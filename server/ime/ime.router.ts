@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql, SQL } from "drizzle-orm";
 import { jsonValue } from "@shared/validators";
@@ -38,7 +38,7 @@ export const imeRouter = router({
     }),
 
   // Trigger AI analysis for a meeting (includes engagement)
-  analyzeMeeting: protectedProcedure
+  analyzeMeeting: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       const contributions = await imeService.analyzeContributions(input.meetingId);
@@ -98,7 +98,7 @@ export const imeRouter = router({
     }),
 
   // Batch analyze multiple meetings
-  batchAnalyze: protectedProcedure
+  batchAnalyze: requirePermission('mfg:process:manage')
     .input(z.object({ meetingIds: z.array(z.string()).min(1).max(20) }))
     .mutation(async ({ input }) => {
       const results: { meetingId: string; success: boolean; error?: string }[] = [];
@@ -119,7 +119,7 @@ export const imeRouter = router({
   // Participant Engagement Analysis
   // ========================================================================
 
-  analyzeEngagement: protectedProcedure
+  analyzeEngagement: requirePermission('mfg:process:manage')
     .input(z.object({
       meetingId: z.string(),
       excludeSpeakers: z.array(z.string()).optional(),
@@ -182,7 +182,7 @@ export const imeRouter = router({
       return imeService.getManagementDashboard(input.scope, input.scopeId, input.period);
     }),
 
-  refreshDepartmentRollup: protectedProcedure
+  refreshDepartmentRollup: requirePermission('mfg:process:manage')
     .input(z.object({ department: z.string(), period: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.computeDepartmentRollup(input.department, input.period);
@@ -192,7 +192,7 @@ export const imeRouter = router({
   // Phase 2: Meeting Patterns
   // ========================================================================
 
-  detectPatterns: protectedProcedure
+  detectPatterns: requirePermission('mfg:process:manage')
     .input(z.object({
       scope: z.string(),
       scopeId: z.string().optional(),
@@ -223,7 +223,7 @@ export const imeRouter = router({
   // Phase 2: HR Signals
   // ========================================================================
 
-  generateHrSignals: protectedProcedure
+  generateHrSignals: requirePermission('mfg:process:manage')
     .input(z.object({ employeeId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.generateHrSignals(input.employeeId);
@@ -280,7 +280,7 @@ export const imeRouter = router({
       return imeService.recommendTraining(input.employeeId);
     }),
 
-  updateSignalStatus: protectedProcedure
+  updateSignalStatus: requirePermission('mfg:process:manage')
     .input(z.object({
       signalId: z.number(),
       status: z.enum(["pending", "acknowledged", "acted_on", "dismissed"]),
@@ -299,14 +299,14 @@ export const imeRouter = router({
   // Phase 2: Real-time Assistant
   // ========================================================================
 
-  startLiveSession: protectedProcedure
+  startLiveSession: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const userId = (ctx as any).user?.openId || "unknown";
       return imeService.startLiveSession(input.meetingId, userId);
     }),
 
-  endLiveSession: protectedProcedure
+  endLiveSession: requirePermission('mfg:process:manage')
     .input(z.object({ sessionId: z.number() }))
     .mutation(async ({ input }) => {
       return imeService.endLiveSession(input.sessionId);
@@ -332,7 +332,7 @@ export const imeRouter = router({
   // Phase 3: Meeting Cost Calculator
   // ========================================================================
 
-  computeMeetingCost: protectedProcedure
+  computeMeetingCost: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.computeMeetingCost(input.meetingId);
@@ -348,7 +348,7 @@ export const imeRouter = router({
       return imeService.getCostDashboard(input ?? {});
     }),
 
-  batchComputeCosts: protectedProcedure
+  batchComputeCosts: requirePermission('mfg:process:manage')
     .input(z.object({ meetingIds: z.array(z.string()).min(1).max(50) }))
     .mutation(async ({ input }) => {
       return imeService.batchComputeCosts(input.meetingIds);
@@ -358,7 +358,7 @@ export const imeRouter = router({
   // Phase 3: Action Item Tracker
   // ========================================================================
 
-  extractActionItems: protectedProcedure
+  extractActionItems: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.extractAndTrackActionItems(input.meetingId);
@@ -373,7 +373,7 @@ export const imeRouter = router({
       return imeService.getActionItemDashboard(input ?? {});
     }),
 
-  updateActionItemStatus: protectedProcedure
+  updateActionItemStatus: requirePermission('mfg:process:manage')
     .input(z.object({
       itemId: z.number(),
       status: z.enum(["open", "in_progress", "completed", "stale", "cancelled"]),
@@ -386,7 +386,7 @@ export const imeRouter = router({
   // Phase 3: Topic Continuity
   // ========================================================================
 
-  extractTopics: protectedProcedure
+  extractTopics: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.extractAndTrackTopics(input.meetingId);
@@ -400,7 +400,7 @@ export const imeRouter = router({
       return imeService.getTopicContinuityDashboard(input ?? {});
     }),
 
-  updateTopicStatus: protectedProcedure
+  updateTopicStatus: requirePermission('mfg:process:manage')
     .input(z.object({
       topicId: z.number(),
       status: z.enum(["introduced", "debated", "decided", "closed", "stalled"]),
@@ -413,7 +413,7 @@ export const imeRouter = router({
   // Phase 4: Sentiment Analysis
   // ========================================================================
 
-  analyzeSentiment: protectedProcedure
+  analyzeSentiment: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.analyzeMeetingSentiment(input.meetingId);
@@ -429,7 +429,7 @@ export const imeRouter = router({
       return imeService.getSentimentDashboard(input ?? {});
     }),
 
-  batchAnalyzeSentiment: protectedProcedure
+  batchAnalyzeSentiment: requirePermission('mfg:process:manage')
     .input(z.object({ meetingIds: z.array(z.string()).min(1).max(50) }))
     .mutation(async ({ input }) => {
       return imeService.batchAnalyzeSentiment(input.meetingIds);
@@ -439,7 +439,7 @@ export const imeRouter = router({
   // Phase 4: Meeting Health & Optimization
   // ========================================================================
 
-  computeHealth: protectedProcedure
+  computeHealth: requirePermission('mfg:process:manage')
     .input(z.object({
       scope: z.string(),
       scopeId: z.string().optional(),
@@ -471,7 +471,7 @@ export const imeRouter = router({
   // Phase 4: Digest & Alerts
   // ========================================================================
 
-  generateDigest: protectedProcedure
+  generateDigest: requirePermission('mfg:process:manage')
     .input(z.object({
       digestType: z.string(),
       scope: z.string(),
@@ -505,7 +505,7 @@ export const imeRouter = router({
   // Phase 5: Meeting ROI
   // ========================================================================
 
-  computeRoi: protectedProcedure
+  computeRoi: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.computeMeetingRoi(input.meetingId);
@@ -521,7 +521,7 @@ export const imeRouter = router({
       return imeService.getRoiDashboard(input ?? {});
     }),
 
-  batchComputeRoi: protectedProcedure
+  batchComputeRoi: requirePermission('mfg:process:manage')
     .input(z.object({ meetingIds: z.array(z.string()).min(1).max(50) }))
     .mutation(async ({ input }) => {
       return imeService.batchComputeRoi(input.meetingIds);
@@ -531,7 +531,7 @@ export const imeRouter = router({
   // Phase 5: Attendee Optimization
   // ========================================================================
 
-  optimizeAttendees: protectedProcedure
+  optimizeAttendees: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.optimizeAttendees(input.meetingId);
@@ -560,13 +560,13 @@ export const imeRouter = router({
   // Phase 5: Predictive Analytics
   // ========================================================================
 
-  predictEffectiveness: protectedProcedure
+  predictEffectiveness: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.predictMeetingEffectiveness(input.meetingId);
     }),
 
-  detectFatigue: protectedProcedure
+  detectFatigue: requirePermission('mfg:process:manage')
     .input(z.object({
       scope: z.string(),
       scopeId: z.string().optional(),
@@ -589,13 +589,13 @@ export const imeRouter = router({
   // Phase 6: Report Exports
   // ========================================================================
 
-  generateMeetingReport: protectedProcedure
+  generateMeetingReport: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.generateMeetingReport(input.meetingId);
     }),
 
-  generateDashboardExcel: protectedProcedure
+  generateDashboardExcel: requirePermission('mfg:process:manage')
     .input(z.object({
       channelId: z.string().optional(),
       dateFrom: z.string().optional(),
@@ -605,7 +605,7 @@ export const imeRouter = router({
       return imeService.generateExecutiveDashboardExcel(input ?? {});
     }),
 
-  generateBenchmarkReport: protectedProcedure
+  generateBenchmarkReport: requirePermission('mfg:process:manage')
     .input(z.object({
       scope: z.string(),
       scopeId: z.string().optional(),
@@ -645,13 +645,13 @@ export const imeRouter = router({
   // Phase 7: Knowledge Graph & Organizational Learning
   // ========================================================================
 
-  extractEntities: protectedProcedure
+  extractEntities: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.extractKnowledgeEntities(input.meetingId);
     }),
 
-  buildRelationships: protectedProcedure
+  buildRelationships: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.buildEntityRelationships(input.meetingId);
@@ -704,7 +704,7 @@ export const imeRouter = router({
       return result.rows;
     }),
 
-  trackDecision: protectedProcedure
+  trackDecision: requirePermission('mfg:process:manage')
     .input(z.object({
       entityId: z.number(),
       outcomeStatus: z.enum(["pending", "implemented", "reversed", "modified", "abandoned"]),
@@ -748,7 +748,7 @@ export const imeRouter = router({
       }
     }),
 
-  generateRetrospective: protectedProcedure
+  generateRetrospective: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.generateRetrospective(input.meetingId);
@@ -768,7 +768,7 @@ export const imeRouter = router({
       return result.rows;
     }),
 
-  computeExpertProfiles: protectedProcedure
+  computeExpertProfiles: requirePermission('mfg:process:manage')
     .input(z.object({ department: z.string().optional() }).optional())
     .mutation(async ({ input }) => {
       return imeService.computeExpertProfiles(input?.department);
@@ -814,7 +814,7 @@ export const imeRouter = router({
   // Phase 8: Meeting AI Assistant
   // ========================================================================
 
-  generateBrief: protectedProcedure
+  generateBrief: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.generateMeetingBrief(input.meetingId);
@@ -830,7 +830,7 @@ export const imeRouter = router({
       return (result.rows as any[])[0] || null;
     }),
 
-  generateAgenda: protectedProcedure
+  generateAgenda: requirePermission('mfg:process:manage')
     .input(z.object({
       topic: z.string(),
       participants: z.array(z.string()).optional(),
@@ -840,7 +840,7 @@ export const imeRouter = router({
       return imeService.generateAgendaSuggestion(input.topic, input.participants, input.durationMinutes);
     }),
 
-  generateMinutes: protectedProcedure
+  generateMinutes: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.generateMeetingMinutes(input.meetingId);
@@ -856,13 +856,13 @@ export const imeRouter = router({
       return (result.rows as any[])[0] || null;
     }),
 
-  generateFollowUp: protectedProcedure
+  generateFollowUp: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.generateFollowUpPlan(input.meetingId);
     }),
 
-  askAssistant: protectedProcedure
+  askAssistant: requirePermission('mfg:process:manage')
     .input(z.object({
       sessionId: z.string(),
       question: z.string(),
@@ -906,10 +906,10 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       if (input?.activeOnly !== false) {
-        const result = await db.execute(sql`SELECT * FROM ime_workflow_rules WHERE is_active = 1 ORDER BY created_at DESC`);
+        const result = await db.execute(sql`SELECT * FROM ime_workflow_rules WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1000`);
         return result.rows;
       } else {
-        const result = await db.execute(sql`SELECT * FROM ime_workflow_rules ORDER BY created_at DESC`);
+        const result = await db.execute(sql`SELECT * FROM ime_workflow_rules ORDER BY created_at DESC LIMIT 1000`);
         return result.rows;
       }
     }),
@@ -945,7 +945,7 @@ export const imeRouter = router({
       return { success: true };
     }),
 
-  deleteRule: protectedProcedure
+  deleteRule: requirePermission('mfg:process:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -953,7 +953,7 @@ export const imeRouter = router({
       return { success: true };
     }),
 
-  evaluateRules: protectedProcedure
+  evaluateRules: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string(), event: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.evaluateWorkflowRules(input.meetingId, input.event);
@@ -970,7 +970,7 @@ export const imeRouter = router({
       return result.rows;
     }),
 
-  generateCoaching: protectedProcedure
+  generateCoaching: requirePermission('mfg:process:manage')
     .input(z.object({
       scope: z.string(),
       scopeId: z.string().optional(),
@@ -991,7 +991,7 @@ export const imeRouter = router({
 
   // Phase 10: Integration Hub & System Settings
 
-  createIntegration: protectedProcedure
+  createIntegration: requirePermission('mfg:process:manage')
     .input(z.object({
       name: z.string(),
       integrationType: z.string(),
@@ -1007,11 +1007,11 @@ export const imeRouter = router({
   listIntegrations: protectedProcedure
     .query(async () => {
       const db = await requireDb();
-      const result = await db.execute(sql`SELECT * FROM ime_integrations ORDER BY created_at DESC`);
+      const result = await db.execute(sql`SELECT * FROM ime_integrations ORDER BY created_at DESC LIMIT 1000`);
       return result.rows;
     }),
 
-  updateIntegration: protectedProcedure
+  updateIntegration: requirePermission('mfg:process:manage')
     .input(z.object({
       id: z.number(),
       name: z.string().optional(),
@@ -1034,7 +1034,7 @@ export const imeRouter = router({
       return { success: true };
     }),
 
-  deleteIntegration: protectedProcedure
+  deleteIntegration: requirePermission('mfg:process:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -1042,7 +1042,7 @@ export const imeRouter = router({
       return { success: true };
     }),
 
-  syncIntegration: protectedProcedure
+  syncIntegration: requirePermission('mfg:process:manage')
     .input(z.object({ integrationId: z.number() }))
     .mutation(async ({ input }) => {
       return imeService.syncIntegration(input.integrationId);
@@ -1066,7 +1066,7 @@ export const imeRouter = router({
       }
     }),
 
-  updateSetting: protectedProcedure
+  updateSetting: requirePermission('mfg:process:manage')
     .input(z.object({
       key: z.string(),
       value: z.string(),
@@ -1093,7 +1093,7 @@ export const imeRouter = router({
 
   // Phase 11: Gamification & Engagement
 
-  evaluateAchievements: protectedProcedure
+  evaluateAchievements: requirePermission('mfg:process:manage')
     .input(z.object({ userId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.evaluateAchievements(input.userId);
@@ -1112,7 +1112,7 @@ export const imeRouter = router({
   achievementDefinitions: protectedProcedure
     .query(async () => {
       const db = await requireDb();
-      const result = await db.execute(sql`SELECT * FROM ime_achievements WHERE is_global = 1 ORDER BY points ASC`);
+      const result = await db.execute(sql`SELECT * FROM ime_achievements WHERE is_global = 1 ORDER BY points ASC LIMIT 1000`);
       return result.rows;
     }),
 
@@ -1144,15 +1144,15 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       if (input?.status) {
-        const result = await db.execute(sql`SELECT * FROM ime_team_challenges WHERE status = ${input.status} ORDER BY created_at DESC`);
+        const result = await db.execute(sql`SELECT * FROM ime_team_challenges WHERE status = ${input.status} ORDER BY created_at DESC LIMIT 1000`);
         return result.rows;
       } else {
-        const result = await db.execute(sql`SELECT * FROM ime_team_challenges ORDER BY created_at DESC`);
+        const result = await db.execute(sql`SELECT * FROM ime_team_challenges ORDER BY created_at DESC LIMIT 1000`);
         return result.rows;
       }
     }),
 
-  updateChallengeProgress: protectedProcedure
+  updateChallengeProgress: requirePermission('mfg:process:manage')
     .input(z.object({ challengeId: z.number() }))
     .mutation(async ({ input }) => {
       return imeService.updateChallengeProgress(input.challengeId);
@@ -1191,13 +1191,13 @@ export const imeRouter = router({
       return imeService.getMeetingFeedbackSummary(input.meetingId);
     }),
 
-  feedbackTrends: protectedProcedure
+  feedbackTrends: requirePermission('mfg:process:manage')
     .input(z.object({ period: z.string().optional(), scope: z.string().optional(), scopeId: z.string().optional() }).optional())
     .mutation(async ({ input }) => {
       return imeService.analyzeFeedbackTrends(input || undefined);
     }),
 
-  generateImprovement: protectedProcedure
+  generateImprovement: requirePermission('mfg:process:manage')
     .input(z.object({ scope: z.string(), scopeId: z.string().optional() }))
     .mutation(async ({ input }) => {
       return imeService.generateImprovementInitiative(input.scope, input.scopeId);
@@ -1208,15 +1208,15 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       if (input?.status) {
-        const result = await db.execute(sql`SELECT * FROM ime_improvement_initiatives WHERE status = ${input.status} ORDER BY created_at DESC`);
+        const result = await db.execute(sql`SELECT * FROM ime_improvement_initiatives WHERE status = ${input.status} ORDER BY created_at DESC LIMIT 1000`);
         return result.rows;
       } else {
-        const result = await db.execute(sql`SELECT * FROM ime_improvement_initiatives ORDER BY created_at DESC`);
+        const result = await db.execute(sql`SELECT * FROM ime_improvement_initiatives ORDER BY created_at DESC LIMIT 1000`);
         return result.rows;
       }
     }),
 
-  updateImprovement: protectedProcedure
+  updateImprovement: requirePermission('mfg:process:manage')
     .input(z.object({
       id: z.number(),
       status: z.string().optional(),
@@ -1277,15 +1277,15 @@ export const imeRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       if (input?.activeOnly !== false) {
-        const result = await db.execute(sql`SELECT * FROM ime_compliance_policies WHERE is_active = 1 ORDER BY created_at DESC`);
+        const result = await db.execute(sql`SELECT * FROM ime_compliance_policies WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1000`);
         return result.rows;
       } else {
-        const result = await db.execute(sql`SELECT * FROM ime_compliance_policies ORDER BY created_at DESC`);
+        const result = await db.execute(sql`SELECT * FROM ime_compliance_policies ORDER BY created_at DESC LIMIT 1000`);
         return result.rows;
       }
     }),
 
-  updatePolicy: protectedProcedure
+  updatePolicy: requirePermission('mfg:process:manage')
     .input(z.object({
       id: z.number(),
       name: z.string().optional(),
@@ -1308,7 +1308,7 @@ export const imeRouter = router({
       return { success: true };
     }),
 
-  deletePolicy: protectedProcedure
+  deletePolicy: requirePermission('mfg:process:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -1316,7 +1316,7 @@ export const imeRouter = router({
       return { success: true };
     }),
 
-  auditMeeting: protectedProcedure
+  auditMeeting: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.auditMeetingCompliance(input.meetingId);
@@ -1328,7 +1328,7 @@ export const imeRouter = router({
       return imeService.getComplianceOverview(input || undefined);
     }),
 
-  generateGovernanceReport: protectedProcedure
+  generateGovernanceReport: requirePermission('mfg:process:manage')
     .input(z.object({ period: z.string().optional() }).optional())
     .mutation(async ({ input }) => {
       return imeService.generateGovernanceReport(input?.period);
@@ -1394,13 +1394,13 @@ export const imeRouter = router({
       return imeService.updateLinkageRule(id, updates);
     }),
 
-  deleteLinkageRule: protectedProcedure
+  deleteLinkageRule: requirePermission('mfg:process:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return imeService.deleteLinkageRule(input.id);
     }),
 
-  evaluateLinkage: protectedProcedure
+  evaluateLinkage: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.evaluateLinkage(input.meetingId);
@@ -1419,19 +1419,19 @@ export const imeRouter = router({
       return imeService.getHrActionLog(input || undefined);
     }),
 
-  approveHrAction: protectedProcedure
+  approveHrAction: requirePermission('mfg:process:manage')
     .input(z.object({ id: z.number(), reviewedBy: z.string(), notes: z.string().optional() }))
     .mutation(async ({ input }) => {
       return imeService.approveHrAction(input.id, input.reviewedBy, input.notes);
     }),
 
-  rejectHrAction: protectedProcedure
+  rejectHrAction: requirePermission('mfg:process:manage')
     .input(z.object({ id: z.number(), reviewedBy: z.string(), notes: z.string().optional() }))
     .mutation(async ({ input }) => {
       return imeService.rejectHrAction(input.id, input.reviewedBy, input.notes);
     }),
 
-  executeHrActions: protectedProcedure
+  executeHrActions: requirePermission('mfg:process:manage')
     .input(z.object({ actionIds: z.array(z.number()) }))
     .mutation(async ({ input }) => {
       return imeService.executeHrActions(input.actionIds);
@@ -1466,13 +1466,13 @@ export const imeRouter = router({
       return imeService.listApiKeys();
     }),
 
-  revokeApiKey: protectedProcedure
+  revokeApiKey: requirePermission('mfg:process:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return imeService.revokeApiKey(input.id);
     }),
 
-  regenerateApiKey: protectedProcedure
+  regenerateApiKey: requirePermission('mfg:process:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return imeService.regenerateApiKey(input.id);
@@ -1499,7 +1499,7 @@ export const imeRouter = router({
   // Phase 16: Collaboration Network Intelligence
   // ==========================================================================
 
-  buildCollaborationNetwork: protectedProcedure
+  buildCollaborationNetwork: requirePermission('mfg:process:manage')
     .input(z.object({
       dateFrom: z.string().optional(),
       dateTo: z.string().optional(),
@@ -1548,7 +1548,7 @@ export const imeRouter = router({
       return imeService.detectCollaborationSilos(input ?? {});
     }),
 
-  analyzeMeetingNecessity: protectedProcedure
+  analyzeMeetingNecessity: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.analyzeMeetingNecessity(input.meetingId);
@@ -1563,7 +1563,7 @@ export const imeRouter = router({
       return imeService.getMeetingNecessityScores(input ?? {});
     }),
 
-  batchAnalyzeNecessity: protectedProcedure
+  batchAnalyzeNecessity: requirePermission('mfg:process:manage')
     .input(z.object({ meetingIds: z.array(z.string()) }))
     .mutation(async ({ input }) => {
       return imeService.batchAnalyzeMeetingNecessity(input.meetingIds);
@@ -1573,7 +1573,7 @@ export const imeRouter = router({
   // Phase 17: Meeting Load & Participant Well-being Intelligence
   // ==========================================================================
 
-  computeParticipantLoad: protectedProcedure
+  computeParticipantLoad: requirePermission('mfg:process:manage')
     .input(z.object({
       periodType: z.string().optional(),
       dateFrom: z.string().optional(),
@@ -1632,7 +1632,7 @@ export const imeRouter = router({
       return imeService.getMeetingFreeTimeAnalysis(input ?? {});
     }),
 
-  assessWellbeing: protectedProcedure
+  assessWellbeing: requirePermission('mfg:process:manage')
     .input(z.object({
       employeeId: z.string(),
       periodType: z.string().optional(),
@@ -1651,7 +1651,7 @@ export const imeRouter = router({
       return imeService.getWellbeingScores(input ?? {});
     }),
 
-  batchAssessWellbeing: protectedProcedure
+  batchAssessWellbeing: requirePermission('mfg:process:manage')
     .input(z.object({ employeeIds: z.array(z.string()) }))
     .mutation(async ({ input }) => {
       return imeService.batchAssessWellbeing(input.employeeIds);
@@ -1667,7 +1667,7 @@ export const imeRouter = router({
 
   // ====== Phase 18: Recurring Meeting Value Assessment & Optimization ======
 
-  detectRecurringSeries: protectedProcedure
+  detectRecurringSeries: requirePermission('mfg:process:manage')
     .input(z.object({
       dateFrom: z.string().optional(),
       dateTo: z.string().optional(),
@@ -1711,19 +1711,19 @@ export const imeRouter = router({
       return imeService.getSeriesComparison(input ?? {});
     }),
 
-  generateSeriesOptimization: protectedProcedure
+  generateSeriesOptimization: requirePermission('mfg:process:manage')
     .input(z.object({ seriesId: z.number() }))
     .mutation(async ({ input }) => {
       return imeService.generateSeriesOptimization(input.seriesId);
     }),
 
-  batchGenerateOptimizations: protectedProcedure
+  batchGenerateOptimizations: requirePermission('mfg:process:manage')
     .input(z.object({ seriesIds: z.array(z.number()) }))
     .mutation(async ({ input }) => {
       return imeService.batchGenerateOptimizations(input.seriesIds);
     }),
 
-  recordOptimizationAction: protectedProcedure
+  recordOptimizationAction: requirePermission('mfg:process:manage')
     .input(z.object({
       seriesId: z.number(),
       actionTaken: z.string(),
@@ -1754,19 +1754,19 @@ export const imeRouter = router({
   // Phase 19: Decision Effectiveness & Outcome Intelligence
   // ========================================================================
 
-  analyzeDecisionEffectiveness: protectedProcedure
+  analyzeDecisionEffectiveness: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.analyzeDecisionEffectiveness(input.meetingId);
     }),
 
-  batchAnalyzeDecisionEffectiveness: protectedProcedure
+  batchAnalyzeDecisionEffectiveness: requirePermission('mfg:process:manage')
     .input(z.object({ meetingIds: z.array(z.string()) }))
     .mutation(async ({ input }) => {
       return imeService.batchAnalyzeDecisionEffectiveness(input.meetingIds);
     }),
 
-  detectDecisionReversals: protectedProcedure
+  detectDecisionReversals: requirePermission('mfg:process:manage')
     .input(z.object({
       dateFrom: z.string().optional(),
       dateTo: z.string().optional(),
@@ -1775,13 +1775,13 @@ export const imeRouter = router({
       return imeService.detectDecisionReversals(input ?? {});
     }),
 
-  assessDecisionQuality: protectedProcedure
+  assessDecisionQuality: requirePermission('mfg:process:manage')
     .input(z.object({ decisionId: z.number() }))
     .mutation(async ({ input }) => {
       return imeService.assessDecisionQuality(input.decisionId);
     }),
 
-  computeDecisionSnapshot: protectedProcedure
+  computeDecisionSnapshot: requirePermission('mfg:process:manage')
     .input(z.object({
       scope: z.string(),
       scopeId: z.string().optional(),
@@ -1845,7 +1845,7 @@ export const imeRouter = router({
       return imeService.computeDecisionVelocity(input ?? {});
     }),
 
-  updateDecisionFollowThrough: protectedProcedure
+  updateDecisionFollowThrough: requirePermission('mfg:process:manage')
     .input(z.object({
       id: z.number(),
       status: z.string().optional(),
@@ -1860,13 +1860,13 @@ export const imeRouter = router({
 
   // Phase 20: Meeting Agenda & Time Allocation Intelligence
 
-  analyzeMeetingAgendaStructure: protectedProcedure
+  analyzeMeetingAgendaStructure: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.analyzeMeetingAgendaStructure(input.meetingId);
     }),
 
-  batchAnalyzeMeetingAgenda: protectedProcedure
+  batchAnalyzeMeetingAgenda: requirePermission('mfg:process:manage')
     .input(z.object({ meetingIds: z.array(z.string()) }))
     .mutation(async ({ input }) => {
       return imeService.batchAnalyzeMeetingAgenda(input.meetingIds);
@@ -1909,13 +1909,13 @@ export const imeRouter = router({
       return imeService.detectCategoryTimeDistribution(input ?? {});
     }),
 
-  generateAgendaOptimization: protectedProcedure
+  generateAgendaOptimization: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.generateAgendaOptimization(input.meetingId);
     }),
 
-  computeAgendaSnapshot: protectedProcedure
+  computeAgendaSnapshot: requirePermission('mfg:process:manage')
     .input(z.object({
       scope: z.string(),
       scopeId: z.string().optional(),
@@ -1959,7 +1959,7 @@ export const imeRouter = router({
       return imeService.getAgendaTrendData(input ?? {});
     }),
 
-  updateAgendaItemAnalysis: protectedProcedure
+  updateAgendaItemAnalysis: requirePermission('mfg:process:manage')
     .input(z.object({
       id: z.number(),
       plannedDurationMinutes: z.number().optional(),
@@ -1975,13 +1975,13 @@ export const imeRouter = router({
   // Phase 21: Facilitator Effectiveness Intelligence
   // ===========================================================================
 
-  analyzeMeetingFacilitator: protectedProcedure
+  analyzeMeetingFacilitator: requirePermission('mfg:process:manage')
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.analyzeMeetingFacilitator(input.meetingId);
     }),
 
-  batchAnalyzeFacilitators: protectedProcedure
+  batchAnalyzeFacilitators: requirePermission('mfg:process:manage')
     .input(z.object({ meetingIds: z.array(z.string()) }))
     .mutation(async ({ input }) => {
       return imeService.batchAnalyzeFacilitators(input.meetingIds);
@@ -2022,13 +2022,13 @@ export const imeRouter = router({
       return imeService.classifyFacilitatorStyles(input ?? {});
     }),
 
-  generateFacilitatorCoaching: protectedProcedure
+  generateFacilitatorCoaching: requirePermission('mfg:process:manage')
     .input(z.object({ facilitatorId: z.string() }))
     .mutation(async ({ input }) => {
       return imeService.generateFacilitatorCoaching(input.facilitatorId);
     }),
 
-  computeFacilitatorSnapshot: protectedProcedure
+  computeFacilitatorSnapshot: requirePermission('mfg:process:manage')
     .input(z.object({
       scope: z.string(),
       scopeId: z.string().optional(),

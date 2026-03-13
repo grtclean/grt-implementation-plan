@@ -26,7 +26,7 @@ const mockProjectGateChange = {
   previousGateName: '方案设计',
   currentGate: 'M4',
   currentGateName: '详细设计',
-  changedBy: '张工程师',
+  changedBy: '孙国祥',
   changedAt: new Date().toISOString(),
   reviewResult: '通过',
   reviewComments: '方案设计评审通过，进入详细设计阶段',

@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageCircle, Star, TrendingUp, Lightbulb, Send, BarChart3, ThumbsUp, ThumbsDown, RefreshCw } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
@@ -21,6 +22,7 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
 }
 
 export function FeedbackTab() {
+  const { t } = useLanguage();
   // Feedback form
   const [fbMeetingId, setFbMeetingId] = useState("");
   const [fbOverall, setFbOverall] = useState(0);
@@ -71,28 +73,28 @@ export function FeedbackTab() {
           <CardContent className="pt-4 text-center">
             <MessageCircle className="h-8 w-8 mx-auto text-blue-500 mb-1" />
             <div className="text-3xl font-bold">{dashboard?.stats?.totalResponses || 0}</div>
-            <div className="text-sm text-muted-foreground">反馈总数</div>
+            <div className="text-sm text-muted-foreground">{t("meeting.feedback.totalResponses")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <Star className="h-8 w-8 mx-auto text-yellow-500 mb-1" />
             <div className="text-3xl font-bold">{dashboard?.stats?.avgRating || 0}</div>
-            <div className="text-sm text-muted-foreground">平均评分</div>
+            <div className="text-sm text-muted-foreground">{t("meeting.feedback.avgRating")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <ThumbsUp className="h-8 w-8 mx-auto text-green-500 mb-1" />
             <div className="text-3xl font-bold">{dashboard?.stats?.npsScore || 0}</div>
-            <div className="text-sm text-muted-foreground">NPS得分</div>
+            <div className="text-sm text-muted-foreground">{t("meeting.feedback.npsScore")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <Lightbulb className="h-8 w-8 mx-auto text-orange-500 mb-1" />
             <div className="text-3xl font-bold">{improvements.filter((i: any) => i.status === "proposed" || i.status === "in_progress").length}</div>
-            <div className="text-sm text-muted-foreground">活跃改进项</div>
+            <div className="text-sm text-muted-foreground">{t("meeting.feedback.activeImprovements")}</div>
           </CardContent>
         </Card>
       </div>
@@ -102,36 +104,36 @@ export function FeedbackTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Send className="h-5 w-5" />
-            提交会议反馈
+            {t("meeting.feedback.submitTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Input placeholder="会议ID" value={fbMeetingId} onChange={e => setFbMeetingId(e.target.value)} className="mb-3" />
+              <Input placeholder={t("meeting.feedback.meetingIdPlaceholder")} value={fbMeetingId} onChange={e => setFbMeetingId(e.target.value)} className="mb-3" />
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">总体评分 *</span>
+                  <span className="text-sm">{t("meeting.feedback.overallRating")}</span>
                   <StarRating value={fbOverall} onChange={setFbOverall} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">内容相关性</span>
+                  <span className="text-sm">{t("meeting.feedback.contentRelevance")}</span>
                   <StarRating value={fbContent} onChange={setFbContent} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">时间效率</span>
+                  <span className="text-sm">{t("meeting.feedback.timeEfficiency")}</span>
                   <StarRating value={fbTime} onChange={setFbTime} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">主持质量</span>
+                  <span className="text-sm">{t("meeting.feedback.facilitationQuality")}</span>
                   <StarRating value={fbFacilitation} onChange={setFbFacilitation} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">行动清晰度</span>
+                  <span className="text-sm">{t("meeting.feedback.actionClarity")}</span>
                   <StarRating value={fbAction} onChange={setFbAction} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">是否推荐</span>
+                  <span className="text-sm">{t("meeting.feedback.wouldRecommend")}</span>
                   <div className="flex gap-2">
                     <Button size="sm" variant={fbRecommend === 1 ? "default" : "outline"} onClick={() => setFbRecommend(1)}>
                       <ThumbsUp className="h-3 w-3" />
@@ -144,11 +146,11 @@ export function FeedbackTab() {
               </div>
             </div>
             <div className="space-y-3">
-              <Input placeholder="亮点 — 哪些做得好？" value={fbHighlights} onChange={e => setFbHighlights(e.target.value)} />
-              <Input placeholder="改进 — 哪些可以更好？" value={fbImprovements} onChange={e => setFbImprovements(e.target.value)} />
+              <Input placeholder={t("meeting.feedback.highlightsPlaceholder")} value={fbHighlights} onChange={e => setFbHighlights(e.target.value)} />
+              <Input placeholder={t("meeting.feedback.improvementsPlaceholder")} value={fbImprovements} onChange={e => setFbImprovements(e.target.value)} />
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={fbAnonymous} onChange={e => setFbAnonymous(e.target.checked)} />
-                匿名提交
+                {t("meeting.feedback.anonymousSubmit")}
               </label>
               <Button
                 className="w-full"
@@ -161,7 +163,7 @@ export function FeedbackTab() {
                 })}
                 disabled={!fbMeetingId || !fbOverall || submitMut.isPending}
               >
-                {submitMut.isPending ? "提交中..." : "提交反馈"}
+                {submitMut.isPending ? t("meeting.feedback.submitting") : t("meeting.feedback.submitFeedback")}
               </Button>
             </div>
           </div>
@@ -173,25 +175,25 @@ export function FeedbackTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            会议反馈查询
+            {t("meeting.feedback.lookupTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-2">
-            <Input placeholder="会议ID" value={lookupMeetingId} onChange={e => setLookupMeetingId(e.target.value)} className="flex-1" />
+            <Input placeholder={t("meeting.feedback.meetingIdPlaceholder")} value={lookupMeetingId} onChange={e => setLookupMeetingId(e.target.value)} className="flex-1" />
           </div>
           {lookupMut.data && (
             <div className="p-3 bg-muted rounded space-y-2">
               <div className="flex items-center gap-4 text-sm">
-                <span>反馈数: <strong>{(lookupMut.data as any).totalResponses}</strong></span>
-                <span>平均评分: <strong>{(lookupMut.data as any).avgOverall}</strong>/5</span>
+                <span>{t("meeting.feedback.responseCount")}: <strong>{(lookupMut.data as any).totalResponses}</strong></span>
+                <span>{t("meeting.feedback.avgOverall")}: <strong>{(lookupMut.data as any).avgOverall}</strong>/5</span>
                 <span>NPS: <strong>{(lookupMut.data as any).npsScore}</strong></span>
               </div>
               <div className="grid grid-cols-4 gap-2 text-xs">
-                <div>内容: <strong>{(lookupMut.data as any).avgContent}</strong></div>
-                <div>时间: <strong>{(lookupMut.data as any).avgTime}</strong></div>
-                <div>主持: <strong>{(lookupMut.data as any).avgFacilitation}</strong></div>
-                <div>行动: <strong>{(lookupMut.data as any).avgAction}</strong></div>
+                <div>{t("meeting.feedback.content")}: <strong>{(lookupMut.data as any).avgContent}</strong></div>
+                <div>{t("meeting.feedback.time")}: <strong>{(lookupMut.data as any).avgTime}</strong></div>
+                <div>{t("meeting.feedback.facilitation")}: <strong>{(lookupMut.data as any).avgFacilitation}</strong></div>
+                <div>{t("meeting.feedback.action")}: <strong>{(lookupMut.data as any).avgAction}</strong></div>
               </div>
             </div>
           )}
@@ -203,7 +205,7 @@ export function FeedbackTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            反馈趋势分析
+            {t("meeting.feedback.trendsTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -211,28 +213,28 @@ export function FeedbackTab() {
             <Select value={trendPeriod} onValueChange={setTrendPeriod}>
               <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="weekly">本周</SelectItem>
-                <SelectItem value="monthly">本月</SelectItem>
-                <SelectItem value="quarterly">本季</SelectItem>
+                <SelectItem value="weekly">{t("meeting.feedback.weekly")}</SelectItem>
+                <SelectItem value="monthly">{t("meeting.feedback.monthly")}</SelectItem>
+                <SelectItem value="quarterly">{t("meeting.feedback.quarterly")}</SelectItem>
               </SelectContent>
             </Select>
             <Button onClick={() => trendsMut.mutate({ period: trendPeriod })} disabled={trendsMut.isPending}>
-              {trendsMut.isPending ? "分析中..." : "分析趋势"}
+              {trendsMut.isPending ? t("meeting.feedback.analyzing") : t("meeting.feedback.analyzeTrends")}
             </Button>
           </div>
           {trendsMut.data && (
             <div className="p-4 bg-muted rounded space-y-3">
               <div className="flex items-center gap-6 text-sm">
-                <span>反馈数: <strong>{(trendsMut.data as any).totalResponses}</strong></span>
-                <span>平均: <strong>{(trendsMut.data as any).avgOverall}</strong>/5</span>
+                <span>{t("meeting.feedback.responseCount")}: <strong>{(trendsMut.data as any).totalResponses}</strong></span>
+                <span>{t("meeting.feedback.avgOverall")}: <strong>{(trendsMut.data as any).avgOverall}</strong>/5</span>
                 <span>NPS: <strong>{(trendsMut.data as any).npsScore}</strong></span>
                 <Badge variant={(trendsMut.data as any).trend === "up" ? "default" : (trendsMut.data as any).trend === "down" ? "destructive" : "secondary"}>
-                  {(trendsMut.data as any).trend === "up" ? "↑ 上升" : (trendsMut.data as any).trend === "down" ? "↓ 下降" : "→ 稳定"}
+                  {(trendsMut.data as any).trend === "up" ? `↑ ${t("meeting.feedback.trendUp")}` : (trendsMut.data as any).trend === "down" ? `↓ ${t("meeting.feedback.trendDown")}` : `→ ${t("meeting.feedback.trendStable")}`}
                 </Badge>
               </div>
               {(trendsMut.data as any).topHighlights?.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold mb-1">常见亮点</h4>
+                  <h4 className="text-sm font-semibold mb-1">{t("meeting.feedback.commonHighlights")}</h4>
                   <ul className="list-disc list-inside text-sm space-y-1">
                     {(trendsMut.data as any).topHighlights.map((h: string, i: number) => <li key={i}>{h}</li>)}
                   </ul>
@@ -240,7 +242,7 @@ export function FeedbackTab() {
               )}
               {(trendsMut.data as any).topImprovements?.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold mb-1">常见改进建议</h4>
+                  <h4 className="text-sm font-semibold mb-1">{t("meeting.feedback.commonImprovements")}</h4>
                   <ul className="list-disc list-inside text-sm space-y-1">
                     {(trendsMut.data as any).topImprovements.map((h: string, i: number) => <li key={i}>{h}</li>)}
                   </ul>
@@ -256,7 +258,7 @@ export function FeedbackTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lightbulb className="h-5 w-5" />
-            改进计划
+            {t("meeting.feedback.improvementPlan")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -264,12 +266,12 @@ export function FeedbackTab() {
             <Select value={improvScope} onValueChange={setImprovScope}>
               <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="organization">组织级</SelectItem>
-                <SelectItem value="department">部门级</SelectItem>
+                <SelectItem value="organization">{t("meeting.feedback.orgLevel")}</SelectItem>
+                <SelectItem value="department">{t("meeting.feedback.deptLevel")}</SelectItem>
               </SelectContent>
             </Select>
             <Button onClick={() => improvMut.mutate({ scope: improvScope })} disabled={improvMut.isPending}>
-              {improvMut.isPending ? "生成中..." : "AI生成改进计划"}
+              {improvMut.isPending ? t("meeting.feedback.generating") : t("meeting.feedback.aiGenerateImprovement")}
             </Button>
           </div>
 
@@ -277,12 +279,12 @@ export function FeedbackTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>标题</TableHead>
-                  <TableHead>分类</TableHead>
-                  <TableHead>优先级</TableHead>
-                  <TableHead>来源</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>操作</TableHead>
+                  <TableHead>{t("meeting.feedback.thTitle")}</TableHead>
+                  <TableHead>{t("meeting.feedback.thCategory")}</TableHead>
+                  <TableHead>{t("meeting.feedback.thPriority")}</TableHead>
+                  <TableHead>{t("meeting.feedback.thSource")}</TableHead>
+                  <TableHead>{t("meeting.feedback.thStatus")}</TableHead>
+                  <TableHead>{t("meeting.feedback.thAction")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -303,16 +305,16 @@ export function FeedbackTab() {
                     <TableCell className="text-xs">{init.source}</TableCell>
                     <TableCell>
                       <Badge variant={init.status === "completed" ? "default" : init.status === "in_progress" ? "outline" : "secondary"}>
-                        {init.status === "proposed" ? "待审" : init.status === "approved" ? "已批" : init.status === "in_progress" ? "进行中" : init.status === "completed" ? "完成" : init.status}
+                        {init.status === "proposed" ? t("meeting.feedback.statusProposed") : init.status === "approved" ? t("meeting.feedback.statusApproved") : init.status === "in_progress" ? t("meeting.feedback.statusInProgress") : init.status === "completed" ? t("meeting.feedback.statusCompleted") : init.status}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         {init.status === "proposed" && (
-                          <Button size="sm" variant="outline" onClick={() => updateImprovMut.mutate({ id: init.id, status: "approved" })}>批准</Button>
+                          <Button size="sm" variant="outline" onClick={() => updateImprovMut.mutate({ id: init.id, status: "approved" })}>{t("meeting.feedback.approve")}</Button>
                         )}
                         {(init.status === "approved" || init.status === "in_progress") && (
-                          <Button size="sm" variant="outline" onClick={() => updateImprovMut.mutate({ id: init.id, status: "completed" })}>完成</Button>
+                          <Button size="sm" variant="outline" onClick={() => updateImprovMut.mutate({ id: init.id, status: "completed" })}>{t("meeting.feedback.complete")}</Button>
                         )}
                       </div>
                     </TableCell>
@@ -321,7 +323,7 @@ export function FeedbackTab() {
               </TableBody>
             </Table>
           ) : (
-            <p className="text-sm text-muted-foreground">暂无改进计划。点击上方按钮由AI生成。</p>
+            <p className="text-sm text-muted-foreground">{t("meeting.feedback.noImprovements")}</p>
           )}
         </CardContent>
       </Card>

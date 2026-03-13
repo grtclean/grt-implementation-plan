@@ -9,7 +9,7 @@
  */
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   sysDictionaries,
@@ -150,7 +150,7 @@ export const governanceRouter = router({
       return item;
     }),
 
-  deleteDictionary: protectedProcedure
+  deleteDictionary: requirePermission('system:compliance:manage')
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -405,7 +405,7 @@ export const governanceRouter = router({
       return node;
     }),
 
-  deleteWorkflowNode: protectedProcedure
+  deleteWorkflowNode: requirePermission('system:compliance:manage')
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -536,7 +536,7 @@ export const governanceRouter = router({
       return item;
     }),
 
-  deleteDataPolicy: protectedProcedure
+  deleteDataPolicy: requirePermission('system:compliance:manage')
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();

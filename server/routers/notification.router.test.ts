@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -81,7 +81,7 @@ describe("notification.list", () => {
     // Third execute: SELECT COUNT(*)
     executeResults.push({ rows: [{ total: 1 }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list();
     expect(result.items).toHaveLength(1);
     expect(result.items[0]).toEqual({
@@ -104,7 +104,7 @@ describe("notification.list", () => {
     executeResults.push({ rows: [] }); // SELECT *
     executeResults.push({ rows: [{ total: 0 }] }); // COUNT
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list();
     expect(result.items).toEqual([]);
     expect(result.total).toBe(0);
@@ -119,7 +119,7 @@ describe("notification.list", () => {
     });
     executeResults.push({ rows: [{ total: 1 }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list({ filter: "unread" });
     expect(result.items).toHaveLength(1);
     expect(result.items[0].isRead).toBe(false);
@@ -134,7 +134,7 @@ describe("notification.list", () => {
     });
     executeResults.push({ rows: [{ total: 1 }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list({ filter: "important" });
     expect(result.items).toHaveLength(1);
     expect(result.items[0].isImportant).toBe(true);
@@ -149,7 +149,7 @@ describe("notification.list", () => {
     });
     executeResults.push({ rows: [{ total: 1 }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list({ filter: "ai" });
     expect(result.items).toHaveLength(1);
     expect(result.items[0].type).toBe("ai_suggestion");
@@ -164,7 +164,7 @@ describe("notification.list", () => {
     });
     executeResults.push({ rows: [{ total: 1 }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list({ filter: "all", category: "hr" });
     expect(result.items).toHaveLength(1);
     expect(result.items[0].category).toBe("hr");
@@ -175,7 +175,7 @@ describe("notification.list", () => {
     executeResults.push({ rows: [] }); // SELECT with OFFSET
     executeResults.push({ rows: [{ total: 100 }] }); // COUNT
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list({ page: 3, pageSize: 10 });
     expect(result.total).toBe(100);
     expect(result.items).toEqual([]);
@@ -188,7 +188,7 @@ describe("notification.list", () => {
     executeResults.push({ rows: [] }); // SELECT
     executeResults.push({ rows: [{ total: 0 }] }); // COUNT
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list();
     expect(result.total).toBe(0);
     expect(mockDb.execute).toHaveBeenCalledTimes(3);
@@ -199,7 +199,7 @@ describe("notification.list", () => {
     executeResults.push({ rows: [] }); // SELECT
     executeResults.push({ rows: [{ total: 0 }] }); // COUNT
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list(undefined);
     expect(result.items).toEqual([]);
     expect(result.total).toBe(0);
@@ -209,7 +209,7 @@ describe("notification.list", () => {
     // Make execute throw on the first call (ensureTable)
     mockDb.execute.mockRejectedValueOnce(new Error("DB connection failed"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list();
     expect(result.items.length).toBe(10); // All 10 SEED_NOTIFICATIONS
     expect(result.total).toBe(10);
@@ -228,7 +228,7 @@ describe("notification.list", () => {
   it("fallback: 'unread' filter returns only unread seed items", async () => {
     mockDb.execute.mockRejectedValueOnce(new Error("fail"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list({ filter: "unread" });
     // Seed: items with index < 4 are unread (isRead = i >= 4)
     // So items 0,1,2,3 are unread = 4 items
@@ -241,7 +241,7 @@ describe("notification.list", () => {
   it("fallback: 'important' filter returns only important seed items", async () => {
     mockDb.execute.mockRejectedValueOnce(new Error("fail"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list({ filter: "important" });
     // Seed items with is_important: true = indices 0,1,3,6,8 = 5 items
     expect(result.items.length).toBe(5);
@@ -253,7 +253,7 @@ describe("notification.list", () => {
   it("fallback: 'ai' filter returns only ai_suggestion seed items", async () => {
     mockDb.execute.mockRejectedValueOnce(new Error("fail"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list({ filter: "ai" });
     // Only seed[0] has type: "ai_suggestion"
     expect(result.items.length).toBe(1);
@@ -263,7 +263,7 @@ describe("notification.list", () => {
   it("fallback: total equals filtered items length", async () => {
     mockDb.execute.mockRejectedValueOnce(new Error("fail"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list({ filter: "all" });
     expect(result.total).toBe(result.items.length);
   });
@@ -278,14 +278,14 @@ describe("notification.list", () => {
     // COUNT returns no rows at all
     executeResults.push({ rows: [] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list();
     // countRow is undefined, so total = countRow?.total ?? items.length = 1
     expect(result.total).toBe(1);
   });
 
   it("rejects invalid filter value", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.notification.list({ filter: "invalid_filter" as any })
     ).rejects.toThrow();
@@ -305,7 +305,7 @@ describe("notification.stats", () => {
       }],
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.stats();
     expect(result).toEqual({
       total: 20,
@@ -320,7 +320,7 @@ describe("notification.stats", () => {
     executeResults.push({ rows: [] }); // ensureTable
     executeResults.push({ rows: [{}] }); // empty row
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.stats();
     expect(result).toEqual({
       total: 0,
@@ -335,7 +335,7 @@ describe("notification.stats", () => {
     executeResults.push({ rows: [] }); // ensureTable
     executeResults.push({ rows: [] }); // no rows
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.stats();
     expect(result).toEqual({
       total: 0,
@@ -358,7 +358,7 @@ describe("notification.stats", () => {
       }],
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.stats();
     expect(result.total).toBe(15);
     expect(typeof result.total).toBe("number");
@@ -369,7 +369,7 @@ describe("notification.stats", () => {
   it("falls back to hardcoded stats when DB throws", async () => {
     mockDb.execute.mockRejectedValueOnce(new Error("DB error"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.stats();
     expect(result).toEqual({
       total: 10,
@@ -386,7 +386,7 @@ describe("notification.stats", () => {
       rows: [{ total: 5, unread: 2, important_unread: 1, ai_suggestions: 0, today: 1 }],
     });
 
-    const caller = createAuthenticatedCaller({ id: 42 });
+    const caller = createAdminCaller({ id: 42 });
     const result = await caller.notification.stats();
     expect(result.total).toBe(5);
     expect(mockDb.execute).toHaveBeenCalledTimes(2);
@@ -401,7 +401,7 @@ describe("notification.markRead", () => {
   it("marks a notification as read with numeric id", async () => {
     executeResults.push({ rows: [] }); // UPDATE result
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.markRead({ id: 1 });
     expect(result).toEqual({ success: true });
     expect(mockDb.execute).toHaveBeenCalledTimes(1);
@@ -410,7 +410,7 @@ describe("notification.markRead", () => {
   it("marks a notification as read with string id", async () => {
     executeResults.push({ rows: [] }); // UPDATE result
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.markRead({ id: "42" });
     expect(result).toEqual({ success: true });
   });
@@ -418,13 +418,13 @@ describe("notification.markRead", () => {
   it("returns success even when DB throws", async () => {
     mockDb.execute.mockRejectedValueOnce(new Error("DB error"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.markRead({ id: 999 });
     expect(result).toEqual({ success: true });
   });
 
   it("rejects missing id", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.notification.markRead as any)({})
     ).rejects.toThrow();
@@ -435,7 +435,7 @@ describe("notification.markAllRead", () => {
   it("marks all notifications as read", async () => {
     executeResults.push({ rows: [] }); // UPDATE result
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.markAllRead();
     expect(result).toEqual({ success: true });
     expect(mockDb.execute).toHaveBeenCalledTimes(1);
@@ -444,7 +444,7 @@ describe("notification.markAllRead", () => {
   it("returns success even when DB throws", async () => {
     mockDb.execute.mockRejectedValueOnce(new Error("DB error"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.markAllRead();
     expect(result).toEqual({ success: true });
   });
@@ -452,7 +452,7 @@ describe("notification.markAllRead", () => {
   it("uses user id for scoped update when available", async () => {
     executeResults.push({ rows: [] }); // UPDATE
 
-    const caller = createAuthenticatedCaller({ id: 7 });
+    const caller = createAdminCaller({ id: 7 });
     const result = await caller.notification.markAllRead();
     expect(result).toEqual({ success: true });
     expect(mockDb.execute).toHaveBeenCalledTimes(1);
@@ -463,7 +463,7 @@ describe("notification.archive", () => {
   it("archives a notification with numeric id", async () => {
     executeResults.push({ rows: [] }); // UPDATE
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.archive({ id: 5 });
     expect(result).toEqual({ success: true });
     expect(mockDb.execute).toHaveBeenCalledTimes(1);
@@ -472,7 +472,7 @@ describe("notification.archive", () => {
   it("archives a notification with string id", async () => {
     executeResults.push({ rows: [] }); // UPDATE
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.archive({ id: "10" });
     expect(result).toEqual({ success: true });
   });
@@ -480,13 +480,13 @@ describe("notification.archive", () => {
   it("returns success even when DB throws", async () => {
     mockDb.execute.mockRejectedValueOnce(new Error("DB error"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.archive({ id: 1 });
     expect(result).toEqual({ success: true });
   });
 
   it("rejects missing id", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.notification.archive as any)({})
     ).rejects.toThrow();
@@ -500,7 +500,7 @@ describe("notification.deleteBatch", () => {
     executeResults.push({ rows: [] }); // DELETE for id 2
     executeResults.push({ rows: [] }); // DELETE for id 3
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.deleteBatch({ ids: [1, 2, 3] });
     expect(result).toEqual({ success: true, deleted: 3 });
     expect(mockDb.execute).toHaveBeenCalledTimes(3);
@@ -510,7 +510,7 @@ describe("notification.deleteBatch", () => {
     executeResults.push({ rows: [] });
     executeResults.push({ rows: [] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.deleteBatch({ ids: ["5", "10"] });
     expect(result).toEqual({ success: true, deleted: 2 });
   });
@@ -519,13 +519,13 @@ describe("notification.deleteBatch", () => {
     executeResults.push({ rows: [] });
     executeResults.push({ rows: [] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.deleteBatch({ ids: [1, "2"] });
     expect(result).toEqual({ success: true, deleted: 2 });
   });
 
   it("handles empty ids array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.deleteBatch({ ids: [] });
     expect(result).toEqual({ success: true, deleted: 0 });
     expect(mockDb.execute).not.toHaveBeenCalled();
@@ -534,14 +534,14 @@ describe("notification.deleteBatch", () => {
   it("returns success with correct count even when DB throws", async () => {
     mockDb.execute.mockRejectedValueOnce(new Error("DB error"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.deleteBatch({ ids: [1, 2] });
     // catch block returns { success: true, deleted: input.ids.length }
     expect(result).toEqual({ success: true, deleted: 2 });
   });
 
   it("rejects when ids is not an array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.notification.deleteBatch as any)({ ids: "not-array" })
     ).rejects.toThrow();
@@ -557,7 +557,7 @@ describe("notification.seedDemo", () => {
       executeResults.push({ rows: [] });
     }
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.seedDemo();
     expect(result.seeded).toBe(true);
     expect(result.count).toBe(10);
@@ -587,7 +587,7 @@ describe("notification.seedDemo", () => {
       return Promise.resolve({ rows: [] }); // remaining inserts succeed
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.seedDemo();
     expect(result.seeded).toBe(true);
     expect(result.count).toBe(10);
@@ -599,7 +599,7 @@ describe("notification.seedDemo", () => {
   it("returns seeded=false when ensureTable fails", async () => {
     mockDb.execute.mockRejectedValueOnce(new Error("Cannot create table"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.seedDemo();
     expect(result.seeded).toBe(false);
     expect(result.error).toContain("Cannot create table");
@@ -611,7 +611,7 @@ describe("notification.seedDemo", () => {
       executeResults.push({ rows: [] });
     }
 
-    const caller = createAuthenticatedCaller({ id: 42 });
+    const caller = createAdminCaller({ id: 42 });
     const result = await caller.notification.seedDemo();
     expect(result.seeded).toBe(true);
     expect(result.count).toBe(10);
@@ -624,7 +624,7 @@ describe("notification.seedDemo", () => {
     }
 
     // User exists (protectedProcedure passes) but we test the path
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.seedDemo();
     expect(result.seeded).toBe(true);
   });
@@ -689,7 +689,7 @@ describe("notification - input validation", () => {
     executeResults.push({ rows: [] }); // SELECT
     executeResults.push({ rows: [{ total: 0 }] }); // COUNT
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list({ page: -1, pageSize: 10 });
     expect(result).toHaveProperty("items");
   });
@@ -697,7 +697,7 @@ describe("notification - input validation", () => {
   it("markRead accepts numeric 0 as id", async () => {
     executeResults.push({ rows: [] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.markRead({ id: 0 });
     expect(result).toEqual({ success: true });
   });
@@ -705,7 +705,7 @@ describe("notification - input validation", () => {
   it("archive accepts large numeric id", async () => {
     executeResults.push({ rows: [] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.archive({ id: 999999 });
     expect(result).toEqual({ success: true });
   });
@@ -713,7 +713,7 @@ describe("notification - input validation", () => {
   it("deleteBatch with single id", async () => {
     executeResults.push({ rows: [] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.deleteBatch({ ids: [42] });
     expect(result).toEqual({ success: true, deleted: 1 });
   });
@@ -724,7 +724,7 @@ describe("notification - input validation", () => {
       executeResults.push({ rows: [] }); // SELECT
       executeResults.push({ rows: [{ total: 0 }] }); // COUNT
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.notification.list({ filter });
       expect(result).toHaveProperty("items");
       expect(result).toHaveProperty("total");
@@ -742,7 +742,7 @@ describe("notification - DB interactions", () => {
     executeResults.push({ rows: [] }); // SELECT
     executeResults.push({ rows: [{ total: 0 }] }); // COUNT
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.notification.list();
     // First call should be CREATE TABLE IF NOT EXISTS
     expect(mockDb.execute).toHaveBeenCalledTimes(3);
@@ -752,7 +752,7 @@ describe("notification - DB interactions", () => {
     executeResults.push({ rows: [] }); // ensureTable
     executeResults.push({ rows: [{ total: 0, unread: 0, important_unread: 0, ai_suggestions: 0, today: 0 }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.notification.stats();
     expect(mockDb.execute).toHaveBeenCalledTimes(2);
   });
@@ -760,7 +760,7 @@ describe("notification - DB interactions", () => {
   it("markRead does NOT call ensureNotificationsTable", async () => {
     executeResults.push({ rows: [] }); // UPDATE only
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.notification.markRead({ id: 1 });
     // Only 1 call: the UPDATE itself (no ensureTable)
     expect(mockDb.execute).toHaveBeenCalledTimes(1);
@@ -769,7 +769,7 @@ describe("notification - DB interactions", () => {
   it("markAllRead does NOT call ensureNotificationsTable", async () => {
     executeResults.push({ rows: [] }); // UPDATE only
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.notification.markAllRead();
     expect(mockDb.execute).toHaveBeenCalledTimes(1);
   });
@@ -777,7 +777,7 @@ describe("notification - DB interactions", () => {
   it("archive does NOT call ensureNotificationsTable", async () => {
     executeResults.push({ rows: [] }); // UPDATE only
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.notification.archive({ id: 1 });
     expect(mockDb.execute).toHaveBeenCalledTimes(1);
   });
@@ -788,7 +788,7 @@ describe("notification - DB interactions", () => {
       executeResults.push({ rows: [] });
     }
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.notification.seedDemo();
     // 1 ensureTable + 10 inserts = 11
     expect(mockDb.execute).toHaveBeenCalledTimes(11);
@@ -812,7 +812,7 @@ describe("notification - DB interactions", () => {
     });
     executeResults.push({ rows: [{ total: 1 }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.notification.list();
     const item = result.items[0];
     // Verify camelCase mapping

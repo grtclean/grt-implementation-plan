@@ -339,7 +339,7 @@ export default function LeadManagement() {
           ${t("crm.lead.totalLeadsLabel")} <span class="highlight">${stats?.total || 0}</span> ${t("crm.workbench.countUnit")},
           ${t("crm.lead.highPriority")} <span class="highlight">${stats?.highPriority || 0}</span> ${t("crm.workbench.countUnit")},
           ${t("crm.lead.avgConfidence")} <span class="highlight">${stats?.avgConfidence || 0}%</span>,
-          ${t("crm.lead.estimatedTotal")} <span class="highlight">¥${((stats?.totalValue || 0) / 10000).toFixed(1)}万</span>
+          ${t("crm.lead.estimatedTotal")} <span class="highlight">¥${((stats?.totalValue || 0) / 10000).toFixed(1)}${t("crm.currencyUnit10k")}</span>
         </div>
     `;
 
@@ -376,7 +376,7 @@ export default function LeadManagement() {
     htmlContent += `<h2>${t("crm.lead.salesRanking")}</h2><table><tr><th>${t("crm.lead.rank")}</th><th>${t("crm.lead.salesperson")}</th><th>${t("crm.lead.totalLeadsLabel")}</th><th>${t("crm.lead.closedCount")}</th><th>${t("crm.leads.conversionRate")}</th><th>${t("crm.lead.totalAmount")}</th></tr>`;
     if (salesPerformance) {
       salesPerformance.slice(0, 10).forEach((item, index) => {
-        htmlContent += `<tr><td>${index + 1}</td><td>${item.salesName}</td><td>${item.totalLeads}</td><td>${item.wonLeads}</td><td>${item.conversionRate.toFixed(1)}%</td><td>¥${(item.totalValue / 10000).toFixed(1)}万</td></tr>`;
+        htmlContent += `<tr><td>${index + 1}</td><td>${item.salesName}</td><td>${item.totalLeads}</td><td>${item.wonLeads}</td><td>${item.conversionRate.toFixed(1)}%</td><td>¥${(item.totalValue / 10000).toFixed(1)}${t("crm.currencyUnit10k")}</td></tr>`;
       });
     }
     htmlContent += '</table></body></html>';
@@ -416,7 +416,7 @@ export default function LeadManagement() {
           <StatCard icon={Users} label={t("crm.lead.totalLeadsLabel")} value={stats?.total || 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
           <StatCard icon={AlertCircle} label={t("crm.lead.highPriority")} value={stats?.highPriority || 0} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
           <StatCard icon={Activity} label={t("crm.lead.avgConfidence")} value={`${stats?.avgConfidence || 0}%`} iconColor="text-green-500" iconBg="bg-green-500/10" />
-          <StatCard icon={TrendingUp} label={t("crm.lead.estimatedTotal")} value={`¥${((stats?.totalValue || 0) / 10000).toFixed(1)}万`} iconColor="text-primary" iconBg="bg-primary/10" />
+          <StatCard icon={TrendingUp} label={t("crm.lead.estimatedTotal")} value={`¥${((stats?.totalValue || 0) / 10000).toFixed(1)}${t("crm.currencyUnit10k")}`} iconColor="text-primary" iconBg="bg-primary/10" />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -520,7 +520,7 @@ export default function LeadManagement() {
                         </div>
                         <div className="text-right">
                           {lead.estimatedValue && (
-                            <p className="text-lg font-bold text-primary">¥{(lead.estimatedValue / 10000).toFixed(1)}万</p>
+                            <p className="text-lg font-bold text-primary">¥{(lead.estimatedValue / 10000).toFixed(1)}{t("crm.currencyUnit10k")}</p>
                           )}
                           <p className="text-xs text-muted-foreground mt-1">
                             {new Date(lead.createdAt).toLocaleDateString()}
@@ -812,7 +812,7 @@ export default function LeadManagement() {
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-lg font-bold text-primary">¥{(item.totalValue / 10000).toFixed(1)}万</p>
+                            <p className="text-lg font-bold text-primary">¥{(item.totalValue / 10000).toFixed(1)}{t("crm.currencyUnit10k")}</p>
                             <p className="text-xs text-muted-foreground flex items-center justify-end gap-1">
                               {item.conversionRate > 30 ? (
                                 <><ArrowUpRight className="w-3 h-3 text-green-500" /> {t("crm.lead.excellent")}</>
@@ -902,7 +902,7 @@ export default function LeadManagement() {
                     {selectedLead.estimatedValue && (
                       <div>
                         <p className="text-sm text-muted-foreground">{t("crm.lead.estimatedAmount")}</p>
-                        <p className="font-medium text-primary">¥{(selectedLead.estimatedValue / 10000).toFixed(1)}万</p>
+                        <p className="font-medium text-primary">¥{(selectedLead.estimatedValue / 10000).toFixed(1)}{t("crm.currencyUnit10k")}</p>
                       </div>
                     )}
                   </div>

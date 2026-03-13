@@ -13,6 +13,7 @@
  */
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +47,7 @@ import {
 const SOURCE_CONFIG: Record<string, {
   indicator: string;
   label: string;
-  labelZh: string;
+  labelZhKey: string;
   bg: string;
   text: string;
   dot: string;
@@ -54,7 +55,7 @@ const SOURCE_CONFIG: Record<string, {
   overdue_task: {
     indicator: "bg-red-500",
     label: "OVERDUE",
-    labelZh: "逾期",
+    labelZhKey: "manufacturing.morning.sourceOverdue",
     bg: "bg-red-500/10 dark:bg-red-500/15 border-red-500/20",
     text: "text-red-600 dark:text-red-400",
     dot: "animate-pulse bg-red-500",
@@ -62,7 +63,7 @@ const SOURCE_CONFIG: Record<string, {
   "8d_report": {
     indicator: "bg-orange-500",
     label: "8D",
-    labelZh: "8D报告",
+    labelZhKey: "manufacturing.morning.source8D",
     bg: "bg-orange-500/10 dark:bg-orange-500/15 border-orange-500/20",
     text: "text-orange-600 dark:text-orange-400",
     dot: "bg-orange-500",
@@ -70,7 +71,7 @@ const SOURCE_CONFIG: Record<string, {
   quality_issue: {
     indicator: "bg-amber-500",
     label: "QUALITY",
-    labelZh: "质量",
+    labelZhKey: "manufacturing.morning.sourceQuality",
     bg: "bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20",
     text: "text-amber-600 dark:text-amber-400",
     dot: "bg-amber-500",
@@ -78,25 +79,25 @@ const SOURCE_CONFIG: Record<string, {
   manual: {
     indicator: "bg-slate-400",
     label: "MANUAL",
-    labelZh: "手动",
+    labelZhKey: "manufacturing.morning.sourceManual",
     bg: "bg-slate-500/10 dark:bg-slate-500/15 border-slate-500/20",
     text: "text-slate-500 dark:text-slate-400",
     dot: "bg-slate-400",
   },
 };
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  open: { label: "待办", color: "text-blue-400", bg: "bg-blue-500/10" },
-  in_progress: { label: "进行中", color: "text-amber-400", bg: "bg-amber-500/10" },
-  done: { label: "完成", color: "text-emerald-400", bg: "bg-emerald-500/10" },
-  cancelled: { label: "取消", color: "text-slate-400", bg: "bg-slate-500/10" },
+const STATUS_CONFIG: Record<string, { labelKey: string; color: string; bg: string }> = {
+  open: { labelKey: "manufacturing.morning.statusOpen", color: "text-blue-400", bg: "bg-blue-500/10" },
+  in_progress: { labelKey: "manufacturing.morning.statusInProgress", color: "text-amber-400", bg: "bg-amber-500/10" },
+  done: { labelKey: "manufacturing.morning.statusDone", color: "text-emerald-400", bg: "bg-emerald-500/10" },
+  cancelled: { labelKey: "manufacturing.morning.statusCancelled", color: "text-slate-400", bg: "bg-slate-500/10" },
 };
 
-const STATUS_OPTIONS = [
-  { value: "open", label: "待办 Open" },
-  { value: "in_progress", label: "进行中 In Progress" },
-  { value: "done", label: "完成 Done" },
-  { value: "cancelled", label: "取消 Cancelled" },
+const STATUS_OPTION_KEYS = [
+  { value: "open", labelKey: "manufacturing.morning.statusOpenEn" },
+  { value: "in_progress", labelKey: "manufacturing.morning.statusInProgressEn" },
+  { value: "done", labelKey: "manufacturing.morning.statusDoneEn" },
+  { value: "cancelled", labelKey: "manufacturing.morning.statusCancelledEn" },
 ];
 
 // ════════════════════════════════════════════════════════
@@ -104,6 +105,7 @@ const STATUS_OPTIONS = [
 // ════════════════════════════════════════════════════════
 
 export default function MorningMeetingBoard() {
+  const { t } = useLanguage();
   const today = new Date().toISOString().split("T")[0];
   const [concluded, setConcluded] = useState(false);
   const [liveClock, setLiveClock] = useState(new Date());
@@ -144,20 +146,20 @@ export default function MorningMeetingBoard() {
   const generateAgendaMut = trpc.oa.generateAgenda.useMutation({
     onSuccess: () => {
       utils.oa.getAgendaItems.invalidate();
-      toast.success("AI Agenda Generated", { description: "议题已从项目/质量数据自动提取" });
+      toast.success(t("manufacturing.morning.aiGenerated"), { description: t("manufacturing.morning.aiGeneratedDesc") });
     },
-    onError: (err) => toast.error("Generation Failed", { description: err.message }),
+    onError: (err) => toast.error(t("manufacturing.morning.genFailed"), { description: err.message }),
   });
 
   const concludeMut = trpc.oa.concludeMeeting.useMutation({
     onSuccess: (data) => {
       setConcluded(true);
       utils.oa.getAgendaItems.invalidate();
-      toast.success("Meeting Concluded", {
-        description: `${data.updatedCount} items updated · Tasks dispatched`,
+      toast.success(t("manufacturing.morning.concludeSuccess"), {
+        description: `${data.updatedCount} items updated`,
       });
     },
-    onError: (err) => toast.error("Conclude Failed", { description: err.message }),
+    onError: (err) => toast.error(t("manufacturing.morning.concludeFailed"), { description: err.message }),
   });
 
   // ── Inline Editors ──
@@ -251,7 +253,7 @@ export default function MorningMeetingBoard() {
 
               <div>
                 <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                  {firstMeeting?.title ?? "BU 晨会智能看板"}
+                  {firstMeeting?.title ?? t("manufacturing.morning.defaultTitle")}
                   {concluded && (
                     <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">
                       CONCLUDED
@@ -289,7 +291,7 @@ export default function MorningMeetingBoard() {
                   {clockStr}
                 </div>
                 <div className="text-[10px] text-slate-500 uppercase tracking-widest">
-                  {concluded ? "meeting ended" : "live"}
+                  {concluded ? t("manufacturing.morning.meetingEnded") : t("manufacturing.morning.live")}
                 </div>
               </div>
 
@@ -307,7 +309,7 @@ export default function MorningMeetingBoard() {
                   ) : (
                     <Zap className="h-4 w-4 mr-1.5" />
                   )}
-                  AI Generate
+                  {t("manufacturing.morning.aiGenerate")}
                 </Button>
               )}
             </div>
@@ -317,18 +319,18 @@ export default function MorningMeetingBoard() {
         {/* Mini stat bar */}
         {totalCount > 0 && (
           <div className="bg-slate-900/50 border-b border-slate-700/30 px-5 py-1.5 flex items-center gap-6 text-xs">
-            <StatPill icon={Target} label="TOTAL" value={totalCount} color="text-slate-300" />
-            <StatPill icon={CheckCircle2} label="DECIDED" value={decidedCount} color="text-cyan-400" />
-            <StatPill icon={Users} label="ASSIGNED" value={assignedCount} color="text-blue-400" />
+            <StatPill icon={Target} label={t("manufacturing.morning.total")} value={totalCount} color="text-slate-300" />
+            <StatPill icon={CheckCircle2} label={t("manufacturing.morning.decided")} value={decidedCount} color="text-cyan-400" />
+            <StatPill icon={Users} label={t("manufacturing.morning.assigned")} value={assignedCount} color="text-blue-400" />
             {overdueCount > 0 && (
-              <StatPill icon={AlertTriangle} label="OVERDUE" value={overdueCount} color="text-red-400" />
+              <StatPill icon={AlertTriangle} label={t("manufacturing.morning.overdue")} value={overdueCount} color="text-red-400" />
             )}
-            <StatPill icon={CheckCircle2} label="DONE" value={doneCount} color="text-emerald-400" />
+            <StatPill icon={CheckCircle2} label={t("manufacturing.morning.done")} value={doneCount} color="text-emerald-400" />
 
             {/* Progress bar */}
             <div className="flex-1" />
             <div className="flex items-center gap-2 text-slate-500">
-              <span className="text-[10px] uppercase tracking-wider">completion</span>
+              <span className="text-[10px] uppercase tracking-wider">{t("manufacturing.morning.completion")}</span>
               <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 transition-all duration-700 ease-out rounded-full"
@@ -356,22 +358,22 @@ export default function MorningMeetingBoard() {
                   #
                 </th>
                 <th className="text-left py-2.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-                  Agenda Item / 议题
+                  {t("manufacturing.morning.colAgenda")}
                 </th>
                 <th className="w-[100px] text-center py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-                  Source
+                  {t("manufacturing.morning.colSource")}
                 </th>
                 <th className="w-[260px] text-left py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-                  Executive Decision / 高管决议
+                  {t("manufacturing.morning.colDecision")}
                 </th>
                 <th className="w-[150px] text-left py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-                  Assignee / 责任人
+                  {t("manufacturing.morning.colAssignee")}
                 </th>
                 <th className="w-[130px] text-left py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-                  Deadline
+                  {t("manufacturing.morning.colDeadline")}
                 </th>
                 <th className="w-[110px] text-left py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-                  Status
+                  {t("manufacturing.morning.colStatus")}
                 </th>
               </tr>
             </thead>
@@ -419,7 +421,7 @@ export default function MorningMeetingBoard() {
                           </div>
                         </TooltipTrigger>
                         <TooltipContent side="left" className="text-xs">
-                          Source: {src.labelZh} ({src.label})
+                          {t("manufacturing.morning.colSource")}: {t(src.labelZhKey)} ({src.label})
                           {item.sourceId && <span className="text-muted-foreground"> · #{item.sourceId}</span>}
                         </TooltipContent>
                       </Tooltip>
@@ -429,7 +431,7 @@ export default function MorningMeetingBoard() {
                     <td className="py-2 px-2">
                       <Input
                         defaultValue={item.decision ?? ""}
-                        placeholder={concluded ? "—" : "Type decision..."}
+                        placeholder={concluded ? "—" : t("manufacturing.morning.typeDecision")}
                         disabled={concluded}
                         onBlur={(e) => handleDecisionBlur(item.id, item.decision, e.target.value)}
                         className={`
@@ -460,7 +462,7 @@ export default function MorningMeetingBoard() {
                             : "bg-slate-800/50"
                           }
                         `}>
-                          <SelectValue placeholder="Select...">
+                          <SelectValue placeholder={t("manufacturing.morning.selectAssignee")}>
                             {item.assignedTo ? userMap.get(item.assignedTo) ?? `#${item.assignedTo}` : undefined}
                           </SelectValue>
                         </SelectTrigger>
@@ -508,9 +510,9 @@ export default function MorningMeetingBoard() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-900 border-slate-700">
-                          {STATUS_OPTIONS.map(o => (
+                          {STATUS_OPTION_KEYS.map(o => (
                             <SelectItem key={o.value} value={o.value} className="text-slate-200">
-                              <span className={STATUS_CONFIG[o.value]?.color}>{o.label}</span>
+                              <span className={STATUS_CONFIG[o.value]?.color}>{t(o.labelKey)}</span>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -528,12 +530,12 @@ export default function MorningMeetingBoard() {
               <Calendar className="h-7 w-7 text-slate-600" />
             </div>
             <h3 className="text-base font-semibold text-slate-400 mb-1">
-              {firstMeeting ? "No Agenda Items" : "No Meeting Defined"}
+              {firstMeeting ? t("manufacturing.morning.noAgenda") : t("manufacturing.morning.noMeeting")}
             </h3>
             <p className="text-sm text-slate-600 max-w-md">
               {firstMeeting
-                ? 'Click "AI Generate" to auto-extract agenda items from overdue tasks, 8D reports, and quality issues.'
-                : "Configure a recurring meeting in the OA Command Center to activate the smart whiteboard."}
+                ? t("manufacturing.morning.noAgendaHint")
+                : t("manufacturing.morning.noMeetingHint")}
             </p>
           </div>
         )}
@@ -547,17 +549,17 @@ export default function MorningMeetingBoard() {
           {/* Stats summary */}
           <div className="flex items-center gap-5 text-xs text-slate-500">
             <span className="font-mono tabular-nums">
-              <strong className="text-slate-300">{totalCount}</strong> items
+              <strong className="text-slate-300">{totalCount}</strong> {t("manufacturing.morning.items")}
             </span>
             <span>
-              <strong className="text-cyan-400">{decidedCount}</strong> decided
+              <strong className="text-cyan-400">{decidedCount}</strong> {t("manufacturing.morning.decidedLower")}
             </span>
             <span>
-              <strong className="text-blue-400">{assignedCount}</strong> assigned
+              <strong className="text-blue-400">{assignedCount}</strong> {t("manufacturing.morning.assignedLower")}
             </span>
             {!concluded && agendaQuery.isFetching && (
               <span className="flex items-center gap-1 text-slate-600">
-                <Loader2 className="h-3 w-3 animate-spin" /> syncing...
+                <Loader2 className="h-3 w-3 animate-spin" /> {t("manufacturing.morning.syncing")}
               </span>
             )}
           </div>
@@ -567,7 +569,7 @@ export default function MorningMeetingBoard() {
             <div className="flex items-center gap-3">
               <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 px-4 py-1.5">
                 <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                Meeting Concluded — Tasks Dispatched
+                {t("manufacturing.morning.meetingConcluded")}
               </Badge>
             </div>
           ) : (
@@ -583,9 +585,9 @@ export default function MorningMeetingBoard() {
               "
             >
               {concludeMut.isPending ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Concluding...</>
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {t("manufacturing.morning.concluding")}</>
               ) : (
-                <><Gavel className="h-4 w-4 mr-2" /> Conclude Meeting & Dispatch Tasks</>
+                <><Gavel className="h-4 w-4 mr-2" /> {t("manufacturing.morning.concludeBtn")}</>
               )}
             </Button>
           )}

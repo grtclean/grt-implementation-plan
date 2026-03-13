@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Bell,
   RefreshCw,
@@ -33,6 +34,12 @@ const SEVERITY_CONFIG: Record<string, { icon: any; color: string; bg: string; ba
   info: { icon: Info, color: "text-blue-600", bg: "bg-blue-50 border-blue-200", badge: "outline" },
 };
 
+const SEVERITY_LABEL_KEYS: Record<string, string> = {
+  critical: "meeting.digest.severityCritical",
+  warning: "meeting.digest.severityWarning",
+  info: "meeting.digest.severityInfo",
+};
+
 const HIGHLIGHT_ICONS: Record<string, any> = {
   cost: DollarSign,
   tension: AlertTriangle,
@@ -42,6 +49,7 @@ const HIGHLIGHT_ICONS: Record<string, any> = {
 };
 
 export function DigestAlertsTab() {
+  const { t } = useLanguage();
   const [digestType, setDigestType] = useState("weekly");
   const [scope, setScope] = useState("organization");
   const [scopeId, setScopeId] = useState("");
@@ -66,6 +74,9 @@ export function DigestAlertsTab() {
     });
   };
 
+  const severityLabel = (severity: string) =>
+    t(SEVERITY_LABEL_KEYS[severity] || "meeting.digest.severityInfo");
+
   return (
     <div className="space-y-6">
       {/* Active alerts banner */}
@@ -79,7 +90,7 @@ export function DigestAlertsTab() {
                 <Icon className={`h-5 w-5 ${config.color} shrink-0`} />
                 <span className="text-sm flex-1">{alert.message}</span>
                 <Badge variant={config.badge as any}>
-                  {alert.severity === "critical" ? "严重" : alert.severity === "warning" ? "警告" : "信息"}
+                  {severityLabel(alert.severity)}
                 </Badge>
               </div>
             );
@@ -92,9 +103,9 @@ export function DigestAlertsTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <FileText className="h-4 w-4 text-indigo-500" />
-            摘要与警报
+            {t("meeting.digest.title")}
           </CardTitle>
-          <CardDescription>生成周报/月报摘要，查看活跃警报</CardDescription>
+          <CardDescription>{t("meeting.digest.desc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3 flex-wrap">
@@ -104,18 +115,18 @@ export function DigestAlertsTab() {
                 size="sm"
                 onClick={() => setDigestType("weekly")}
               >
-                周报
+                {t("meeting.digest.weekly")}
               </Button>
               <Button
                 variant={digestType === "monthly" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setDigestType("monthly")}
               >
-                月报
+                {t("meeting.digest.monthly")}
               </Button>
             </div>
             <Input
-              placeholder="范围ID (可选)"
+              placeholder={t("meeting.digest.scopePlaceholder")}
               value={scopeId}
               onChange={(e) => setScopeId(e.target.value)}
               className="max-w-[200px]"
@@ -129,11 +140,11 @@ export function DigestAlertsTab() {
               ) : (
                 <FileText className="h-4 w-4 mr-2" />
               )}
-              生成报告
+              {t("meeting.digest.generateBtn")}
             </Button>
           </div>
           {generateMutation.isError && (
-            <p className="text-sm text-red-500">生成失败: {generateMutation.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.digest.generateFailed")}: {generateMutation.error.message}</p>
           )}
         </CardContent>
       </Card>
@@ -142,33 +153,30 @@ export function DigestAlertsTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Bell}
-          label="活跃警报"
+          label={t("meeting.digest.activeAlerts")}
           value={alertsLoading ? "..." : activeAlerts.length}
-          subtitle={`${totalCritical} 严重 / ${totalWarning} 警告`}
+          subtitle={`${totalCritical} ${t("meeting.digest.criticalWarningSubtitle")} / ${totalWarning} ${t("meeting.digest.warningSubtitle")}`}
           iconColor="text-red-600"
           iconBg="bg-red-50"
         />
         <StatCard
           icon={BarChart3}
-          label="本期会议"
+          label={t("meeting.digest.periodMeetings")}
           value={generateResult?.metrics?.meetingCount ?? "—"}
-          subtitle="Meetings This Period"
           iconColor="text-indigo-600"
           iconBg="bg-indigo-50"
         />
         <StatCard
           icon={DollarSign}
-          label="本期花费"
+          label={t("meeting.digest.periodCost")}
           value={generateResult?.metrics?.totalCost ? `¥${generateResult.metrics.totalCost}` : "—"}
-          subtitle="Total Cost"
           iconColor="text-green-600"
           iconBg="bg-green-50"
         />
         <StatCard
           icon={Target}
-          label="本期效能"
+          label={t("meeting.digest.periodEffectiveness")}
           value={generateResult?.metrics?.avgEffectiveness ? `${generateResult.metrics.avgEffectiveness}%` : "—"}
-          subtitle="Avg Effectiveness"
           iconColor="text-blue-600"
           iconBg="bg-blue-50"
         />
@@ -180,7 +188,7 @@ export function DigestAlertsTab() {
           {/* Narrative */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">AI 摘要</CardTitle>
+              <CardTitle className="text-base">{t("meeting.digest.aiSummary")}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground leading-relaxed">{generateResult.summary}</p>
@@ -191,7 +199,7 @@ export function DigestAlertsTab() {
           {generateResult.highlights?.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">重点事项</CardTitle>
+                <CardTitle className="text-base">{t("meeting.digest.highlights")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {generateResult.highlights.map((h: any, i: number) => {
@@ -205,7 +213,7 @@ export function DigestAlertsTab() {
                         <span className="text-sm text-muted-foreground ml-2">{h.description}</span>
                       </div>
                       <Badge variant={config.badge as any} className="text-xs">
-                        {h.severity === "critical" ? "严重" : h.severity === "warning" ? "警告" : "信息"}
+                        {severityLabel(h.severity)}
                       </Badge>
                     </div>
                   );
@@ -218,7 +226,7 @@ export function DigestAlertsTab() {
           {generateResult.alerts?.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">警报</CardTitle>
+                <CardTitle className="text-base">{t("meeting.digest.alerts")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {generateResult.alerts.map((a: any, i: number) => {
@@ -229,7 +237,7 @@ export function DigestAlertsTab() {
                       <Icon className={`h-4 w-4 ${config.color} shrink-0`} />
                       <span className="text-sm flex-1">{a.message}</span>
                       <Badge variant={config.badge as any}>
-                        {a.severity === "critical" ? "严重" : a.severity === "warning" ? "警告" : "信息"}
+                        {severityLabel(a.severity)}
                       </Badge>
                     </div>
                   );
@@ -242,40 +250,40 @@ export function DigestAlertsTab() {
           {generateResult.metrics && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">详细指标</CardTitle>
+                <CardTitle className="text-base">{t("meeting.digest.detailedMetrics")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   <div className="p-3 rounded-lg bg-muted/50 text-center">
-                    <div className="text-xs text-muted-foreground">新建行动项</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.digest.newActionItems")}</div>
                     <div className="text-lg font-semibold">{generateResult.metrics.newActionItems}</div>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/50 text-center">
-                    <div className="text-xs text-muted-foreground">完成行动项</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.digest.completedActionItems")}</div>
                     <div className="text-lg font-semibold">{generateResult.metrics.completedActionItems}</div>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/50 text-center">
-                    <div className="text-xs text-muted-foreground">逾期行动项</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.digest.overdueActionItems")}</div>
                     <div className="text-lg font-semibold text-red-600">{generateResult.metrics.staleActionItems}</div>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/50 text-center">
-                    <div className="text-xs text-muted-foreground">新增议题</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.digest.newTopics")}</div>
                     <div className="text-lg font-semibold">{generateResult.metrics.topicsIntroduced}</div>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/50 text-center">
-                    <div className="text-xs text-muted-foreground">已决议题</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.digest.decidedTopics")}</div>
                     <div className="text-lg font-semibold">{generateResult.metrics.topicsDecided}</div>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/50 text-center">
-                    <div className="text-xs text-muted-foreground">停滞议题</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.digest.stalledTopics")}</div>
                     <div className="text-lg font-semibold text-amber-600">{generateResult.metrics.stalledTopics}</div>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/50 text-center">
-                    <div className="text-xs text-muted-foreground">HR信号</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.digest.hrSignals")}</div>
                     <div className="text-lg font-semibold">{generateResult.metrics.hrSignals}</div>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/50 text-center">
-                    <div className="text-xs text-muted-foreground">新模式</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.digest.newPatterns")}</div>
                     <div className="text-lg font-semibold">{generateResult.metrics.patterns}</div>
                   </div>
                 </div>
@@ -288,22 +296,21 @@ export function DigestAlertsTab() {
       {/* Digest history */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">历史报告</CardTitle>
-          <CardDescription>Digest History</CardDescription>
+          <CardTitle className="text-base">{t("meeting.digest.historyTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           {historyLoading ? (
-            <p className="text-center py-6 text-muted-foreground">加载中...</p>
+            <p className="text-center py-6 text-muted-foreground">{t("meeting.digest.loadingText")}</p>
           ) : digestHistory.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>类型</TableHead>
-                  <TableHead>范围</TableHead>
-                  <TableHead>时段</TableHead>
-                  <TableHead className="text-center">重点事项</TableHead>
-                  <TableHead className="text-center">警报数</TableHead>
-                  <TableHead className="text-center">生成时间</TableHead>
+                  <TableHead>{t("meeting.digest.thType")}</TableHead>
+                  <TableHead>{t("meeting.digest.thScope")}</TableHead>
+                  <TableHead>{t("meeting.digest.thPeriod")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.digest.thHighlights")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.digest.thAlerts")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.digest.thGeneratedAt")}</TableHead>
                   <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -316,7 +323,7 @@ export function DigestAlertsTab() {
                       onClick={() => setExpandedDigest(expandedDigest === d.id ? null : d.id)}
                     >
                       <TableCell>
-                        <Badge variant="outline">{d.digestType === "weekly" ? "周报" : d.digestType === "monthly" ? "月报" : d.digestType}</Badge>
+                        <Badge variant="outline">{d.digestType === "weekly" ? t("meeting.digest.weekly") : d.digestType === "monthly" ? t("meeting.digest.monthly") : d.digestType}</Badge>
                       </TableCell>
                       <TableCell className="text-sm">{d.scope}</TableCell>
                       <TableCell className="text-sm">{d.period}</TableCell>
@@ -345,18 +352,15 @@ export function DigestAlertsTab() {
                       <TableRow key={`${d.id}-detail`}>
                         <TableCell colSpan={7} className="bg-muted/30">
                           <div className="p-4 space-y-4">
-                            {/* Narrative */}
                             {d.summary?.narrative && (
                               <div>
-                                <h4 className="text-sm font-medium mb-2">AI 摘要</h4>
+                                <h4 className="text-sm font-medium mb-2">{t("meeting.digest.expandedAiSummary")}</h4>
                                 <p className="text-sm text-muted-foreground">{d.summary.narrative}</p>
                               </div>
                             )}
-
-                            {/* Highlights */}
                             {d.highlights?.length > 0 && (
                               <div>
-                                <h4 className="text-sm font-medium mb-2">重点事项</h4>
+                                <h4 className="text-sm font-medium mb-2">{t("meeting.digest.expandedHighlights")}</h4>
                                 <div className="space-y-1">
                                   {d.highlights.map((h: any, i: number) => {
                                     const config = SEVERITY_CONFIG[h.severity] || SEVERITY_CONFIG.info;
@@ -370,11 +374,9 @@ export function DigestAlertsTab() {
                                 </div>
                               </div>
                             )}
-
-                            {/* Alerts */}
                             {d.alerts?.length > 0 && (
                               <div>
-                                <h4 className="text-sm font-medium mb-2">警报</h4>
+                                <h4 className="text-sm font-medium mb-2">{t("meeting.digest.expandedAlerts")}</h4>
                                 <div className="space-y-1">
                                   {d.alerts.map((a: any, i: number) => {
                                     const config = SEVERITY_CONFIG[a.severity] || SEVERITY_CONFIG.info;
@@ -389,34 +391,32 @@ export function DigestAlertsTab() {
                                 </div>
                               </div>
                             )}
-
-                            {/* Metrics */}
                             {d.metrics && (
                               <div>
-                                <h4 className="text-sm font-medium mb-2">指标</h4>
+                                <h4 className="text-sm font-medium mb-2">{t("meeting.digest.expandedMetrics")}</h4>
                                 <div className="grid grid-cols-3 md:grid-cols-6 gap-2 text-xs">
                                   <div className="p-2 rounded bg-background text-center">
-                                    <div className="text-muted-foreground">会议数</div>
+                                    <div className="text-muted-foreground">{t("meeting.digest.metricMeetingCount")}</div>
                                     <div className="font-semibold">{d.metrics.meetingCount}</div>
                                   </div>
                                   <div className="p-2 rounded bg-background text-center">
-                                    <div className="text-muted-foreground">总花费</div>
-                                    <div className="font-semibold">¥{d.metrics.totalCost}</div>
+                                    <div className="text-muted-foreground">{t("meeting.digest.metricTotalCost")}</div>
+                                    <div className="font-semibold">{d.metrics.totalCost}</div>
                                   </div>
                                   <div className="p-2 rounded bg-background text-center">
-                                    <div className="text-muted-foreground">效能</div>
+                                    <div className="text-muted-foreground">{t("meeting.digest.metricEffectiveness")}</div>
                                     <div className="font-semibold">{d.metrics.avgEffectiveness}%</div>
                                   </div>
                                   <div className="p-2 rounded bg-background text-center">
-                                    <div className="text-muted-foreground">情感</div>
+                                    <div className="text-muted-foreground">{t("meeting.digest.metricSentiment")}</div>
                                     <div className="font-semibold">{d.metrics.avgSentiment}</div>
                                   </div>
                                   <div className="p-2 rounded bg-background text-center">
-                                    <div className="text-muted-foreground">HR信号</div>
+                                    <div className="text-muted-foreground">{t("meeting.digest.metricHrSignals")}</div>
                                     <div className="font-semibold">{d.metrics.hrSignals}</div>
                                   </div>
                                   <div className="p-2 rounded bg-background text-center">
-                                    <div className="text-muted-foreground">新模式</div>
+                                    <div className="text-muted-foreground">{t("meeting.digest.metricPatterns")}</div>
                                     <div className="font-semibold">{d.metrics.patterns}</div>
                                   </div>
                                 </div>
@@ -433,8 +433,8 @@ export function DigestAlertsTab() {
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <FileText className="h-12 w-12 mb-3 opacity-30" />
-              <p>暂无历史报告</p>
-              <p className="text-sm">请点击"生成报告"创建第一份摘要</p>
+              <p>{t("meeting.digest.noHistoryData")}</p>
+              <p className="text-sm">{t("meeting.digest.noHistoryHint")}</p>
             </div>
           )}
         </CardContent>

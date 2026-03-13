@@ -4,6 +4,7 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,39 +37,52 @@ import {
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 
-// 模块名称映射
-const MODULE_NAMES: Record<string, string> = {
-  hrm_salary_detail: "员工薪资明细",
-  hrm_employee_id: "员工身份信息",
-  hrm_ai_interview: "AI面试系统",
-  hrm_performance: "绩效管理",
-  hrm_candidate: "候选人管理",
-  hrm_position: "岗位管理",
-  hrm_training: "培训管理",
-  pm_project: "项目管理",
-  pm_milestone: "里程碑管理",
-  crm_customer: "客户管理",
-  crm_opportunity: "商机管理",
-  system_user: "用户管理",
-  system_role: "角色管理",
-  system_audit: "审计日志",
+// 模块名称映射 — keys resolved via t() at render time
+const MODULE_NAME_KEYS: Record<string, string> = {
+  hrm_salary_detail: "admin.audit.module.hrmSalary",
+  hrm_employee_id: "admin.audit.module.hrmEmployee",
+  hrm_ai_interview: "admin.audit.module.hrmInterview",
+  hrm_performance: "admin.audit.module.hrmPerformance",
+  hrm_candidate: "admin.audit.module.hrmCandidate",
+  hrm_position: "admin.audit.module.hrmPosition",
+  hrm_training: "admin.audit.module.hrmTraining",
+  pm_project: "admin.audit.module.pmProject",
+  pm_milestone: "admin.audit.module.pmMilestone",
+  crm_customer: "admin.audit.module.crmCustomer",
+  crm_opportunity: "admin.audit.module.crmOpportunity",
+  system_user: "admin.audit.module.systemUser",
+  system_role: "admin.audit.module.systemRole",
+  system_audit: "admin.audit.module.systemAudit",
 };
 
-// 操作类型映射
-const OPERATION_NAMES: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  read: { label: "查看", color: "bg-blue-500/10 text-blue-500", icon: <Eye className="w-4 h-4" /> },
-  write: { label: "修改", color: "bg-orange-500/10 text-orange-500", icon: <Edit className="w-4 h-4" /> },
-  delete: { label: "删除", color: "bg-red-500/10 text-red-500", icon: <Trash2 className="w-4 h-4" /> },
+// 操作类型映射 — labels resolved via t() at render time
+const OPERATION_LABEL_KEYS: Record<string, string> = {
+  read: "admin.audit.viewOp",
+  write: "admin.audit.writeOp",
+  delete: "admin.audit.deleteOp",
 };
 
-// 变更类型映射
-const CHANGE_TYPE_NAMES: Record<string, { label: string; color: string }> = {
-  role_added: { label: "添加角色", color: "bg-green-500/10 text-green-500" },
-  role_removed: { label: "移除角色", color: "bg-red-500/10 text-red-500" },
-  permission_changed: { label: "权限变更", color: "bg-orange-500/10 text-orange-500" },
+const OPERATION_STYLES: Record<string, { color: string; icon: React.ReactNode }> = {
+  read: { color: "bg-blue-500/10 text-blue-500", icon: <Eye className="w-4 h-4" /> },
+  write: { color: "bg-orange-500/10 text-orange-500", icon: <Edit className="w-4 h-4" /> },
+  delete: { color: "bg-red-500/10 text-red-500", icon: <Trash2 className="w-4 h-4" /> },
+};
+
+// 变更类型映射 — labels resolved via t() at render time
+const CHANGE_TYPE_LABEL_KEYS: Record<string, string> = {
+  role_added: "admin.audit.addRole",
+  role_removed: "admin.audit.removeRole",
+  permission_changed: "admin.audit.permissionChange",
+};
+
+const CHANGE_TYPE_STYLES: Record<string, string> = {
+  role_added: "bg-green-500/10 text-green-500",
+  role_removed: "bg-red-500/10 text-red-500",
+  permission_changed: "bg-orange-500/10 text-orange-500",
 };
 
 export default function AuditLogViewer() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("access-logs");
   
@@ -116,22 +130,22 @@ export default function AuditLogViewer() {
     try {
       const logs = auditLogs.data?.logs || [];
       if (logs.length === 0) {
-        toast.error("没有可导出的数据");
+        toast.error(t("admin.audit.noExportData"));
         return;
       }
 
-      const headers = ["ID", "用户ID", "用户名", "模块", "数据类型", "数据ID", "操作", "IP地址", "结果", "访问时间"];
-      const rows = logs.map((log) => [
+      const headers = ["ID", "UserID", "UserName", "Module", "DataType", "DataID", "Operation", "IP", "Result", "Time"];
+      const rows = logs.map((log: any) => [
         log.id,
         log.userId,
         log.userName,
-        MODULE_NAMES[log.moduleId] || log.moduleId,
+        MODULE_NAME_KEYS[log.moduleId] ? t(MODULE_NAME_KEYS[log.moduleId]) : log.moduleId,
         log.dataType,
         log.dataId,
-        OPERATION_NAMES[log.operation]?.label || log.operation,
+        OPERATION_LABEL_KEYS[log.operation] ? t(OPERATION_LABEL_KEYS[log.operation]) : log.operation,
         log.ipAddress || "",
         log.result,
-        new Date(log.accessTime).toLocaleString("zh-CN"),
+        new Date(log.accessTime).toLocaleString(),
       ]);
 
       const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
@@ -142,9 +156,9 @@ export default function AuditLogViewer() {
       a.download = `audit-logs-${new Date().toISOString().split("T")[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("导出成功");
+      toast.success(t("admin.audit.exportSuccess"));
     } catch (error) {
-      toast.error("导出失败");
+      toast.error(t("admin.audit.exportFailed"));
     }
   };
 
@@ -171,8 +185,8 @@ export default function AuditLogViewer() {
       <div className="space-y-6">
         <PageHeader
           icon={Shield}
-          title="审计日志管理"
-          description="查看敏感数据访问记录、权限变更历史和安全统计分析"
+          title={t("admin.audit.title")}
+          description={t("admin.audit.description")}
           actions={
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => {
@@ -181,11 +195,11 @@ export default function AuditLogViewer() {
                 auditStats.refetch();
               }}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                刷新
+                {t("admin.audit.refresh")}
               </Button>
               <Button onClick={handleExportCSV}>
                 <Download className="w-4 h-4 mr-2" />
-                导出CSV
+                {t("admin.audit.exportCSV")}
               </Button>
             </div>
           }
@@ -196,15 +210,15 @@ export default function AuditLogViewer() {
           <TabsList className="bg-muted/50">
             <TabsTrigger value="access-logs" className="flex items-center gap-2">
               <Eye className="w-4 h-4" />
-              访问日志
+              {t("admin.audit.accessLogs")}
             </TabsTrigger>
             <TabsTrigger value="permission-history" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
-              权限变更
+              {t("admin.audit.permissionHistory")}
             </TabsTrigger>
             <TabsTrigger value="statistics" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
-              统计分析
+              {t("admin.audit.statisticsTab")}
             </TabsTrigger>
           </TabsList>
 
@@ -260,6 +274,7 @@ function AccessLogsTab({
   setFilters: (fn: (prev: any) => any) => void;
   onPageChange: (dir: "prev" | "next") => void;
 }) {
+  const { t } = useLanguage();
   const [showFilterDialog, setShowFilterDialog] = useState(false);
   const [tempFilters, setTempFilters] = useState(filters);
 
@@ -276,7 +291,7 @@ function AccessLogsTab({
               <div className="flex items-center gap-2">
                 <Search className="w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="搜索用户ID..."
+                  placeholder={t("admin.audit.searchUserId")}
                   className="w-40"
                   type="number"
                   onChange={(e) => {
@@ -290,12 +305,12 @@ function AccessLogsTab({
                 onValueChange={(v) => setFilters((prev: any) => ({ ...prev, moduleId: v === "all" ? undefined : v, offset: 0 }))}
               >
                 <SelectTrigger className="w-40">
-                  <SelectValue placeholder="选择模块" />
+                  <SelectValue placeholder={t("admin.audit.selectModule")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部模块</SelectItem>
-                  {Object.entries(MODULE_NAMES).map(([id, name]) => (
-                    <SelectItem key={id} value={id}>{name}</SelectItem>
+                  <SelectItem value="all">{t("admin.audit.allModules")}</SelectItem>
+                  {Object.entries(MODULE_NAME_KEYS).map(([id, key]) => (
+                    <SelectItem key={id} value={id}>{t(key)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -304,36 +319,36 @@ function AccessLogsTab({
                 onValueChange={(v) => setFilters((prev: any) => ({ ...prev, operation: v === "all" ? undefined : v as any, offset: 0 }))}
               >
                 <SelectTrigger className="w-32">
-                  <SelectValue placeholder="操作类型" />
+                  <SelectValue placeholder={t("admin.audit.operationType")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部操作</SelectItem>
-                  <SelectItem value="read">查看</SelectItem>
-                  <SelectItem value="write">修改</SelectItem>
-                  <SelectItem value="delete">删除</SelectItem>
+                  <SelectItem value="all">{t("admin.audit.allOperations")}</SelectItem>
+                  <SelectItem value="read">{t("admin.audit.viewOp")}</SelectItem>
+                  <SelectItem value="write">{t("admin.audit.writeOp")}</SelectItem>
+                  <SelectItem value="delete">{t("admin.audit.deleteOp")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
-                共 {total} 条记录
+                {t("admin.audit.totalRecords").replace("{count}", String(total))}
               </span>
               <Dialog open={showFilterDialog} onOpenChange={setShowFilterDialog}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
                     <Filter className="w-4 h-4 mr-2" />
-                    高级筛选
+                    {t("admin.audit.advancedFilter")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>高级筛选</DialogTitle>
-                    <DialogDescription>设置日期范围和其他筛选条件</DialogDescription>
+                    <DialogTitle>{t("admin.audit.advancedFilterTitle")}</DialogTitle>
+                    <DialogDescription>{t("admin.audit.advancedFilterDesc")}</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>开始日期</Label>
+                        <Label>{t("admin.audit.startDate")}</Label>
                         <Input
                           type="date"
                           onChange={(e) => setTempFilters((prev: any) => ({
@@ -343,7 +358,7 @@ function AccessLogsTab({
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>结束日期</Label>
+                        <Label>{t("admin.audit.endDate")}</Label>
                         <Input
                           type="date"
                           onChange={(e) => setTempFilters((prev: any) => ({
@@ -354,7 +369,7 @@ function AccessLogsTab({
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>每页显示</Label>
+                      <Label>{t("admin.audit.perPage")}</Label>
                       <Select
                         value={tempFilters.limit.toString()}
                         onValueChange={(v) => setTempFilters((prev: any) => ({ ...prev, limit: parseInt(v) }))}
@@ -363,23 +378,23 @@ function AccessLogsTab({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="10">10条</SelectItem>
-                          <SelectItem value="20">20条</SelectItem>
-                          <SelectItem value="50">50条</SelectItem>
-                          <SelectItem value="100">100条</SelectItem>
+                          <SelectItem value="10">{t("admin.audit.perPageItems").replace("{count}", "10")}</SelectItem>
+                          <SelectItem value="20">{t("admin.audit.perPageItems").replace("{count}", "20")}</SelectItem>
+                          <SelectItem value="50">{t("admin.audit.perPageItems").replace("{count}", "50")}</SelectItem>
+                          <SelectItem value="100">{t("admin.audit.perPageItems").replace("{count}", "100")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setShowFilterDialog(false)}>
-                      取消
+                      {t("admin.audit.cancel")}
                     </Button>
                     <Button onClick={() => {
                       setFilters((prev: any) => ({ ...prev, ...tempFilters, offset: 0 }));
                       setShowFilterDialog(false);
                     }}>
-                      应用筛选
+                      {t("admin.audit.applyFilter")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -394,17 +409,17 @@ function AccessLogsTab({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" />
-            敏感数据访问记录
+            {t("admin.audit.sensitiveRecords")}
           </CardTitle>
           <CardDescription>
-            记录所有敏感数据的访问、修改和删除操作
+            {t("admin.audit.sensitiveRecordsDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">加载中...</div>
+            <div className="text-center py-8 text-muted-foreground">{t("admin.audit.loadingText")}</div>
           ) : logs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">暂无记录</div>
+            <div className="text-center py-8 text-muted-foreground">{t("admin.audit.noRecords")}</div>
           ) : (
             <div className="space-y-3">
               {logs.map((log) => (
@@ -414,18 +429,18 @@ function AccessLogsTab({
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
-                      <div className={`p-2 rounded-lg ${OPERATION_NAMES[log.operation]?.color || "bg-muted"}`}>
-                        {OPERATION_NAMES[log.operation]?.icon || <Eye className="w-4 h-4" />}
+                      <div className={`p-2 rounded-lg ${OPERATION_STYLES[log.operation]?.color || "bg-muted"}`}>
+                        {OPERATION_STYLES[log.operation]?.icon || <Eye className="w-4 h-4" />}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">{log.userName || `用户#${log.userId}`}</span>
-                          <Badge variant="outline" className={OPERATION_NAMES[log.operation]?.color}>
-                            {OPERATION_NAMES[log.operation]?.label || log.operation}
+                          <span className="font-medium">{log.userName || `User#${log.userId}`}</span>
+                          <Badge variant="outline" className={OPERATION_STYLES[log.operation]?.color}>
+                            {OPERATION_LABEL_KEYS[log.operation] ? t(OPERATION_LABEL_KEYS[log.operation]) : log.operation}
                           </Badge>
-                          <span className="text-muted-foreground">了</span>
+                          <span className="text-muted-foreground">{t("admin.audit.operatedOn")}</span>
                           <Badge variant="secondary">
-                            {MODULE_NAMES[log.moduleId] || log.moduleId}
+                            {MODULE_NAME_KEYS[log.moduleId] ? t(MODULE_NAME_KEYS[log.moduleId]) : log.moduleId}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
@@ -447,9 +462,9 @@ function AccessLogsTab({
                     </div>
                     <Badge variant={log.result === "success" ? "default" : "destructive"}>
                       {log.result === "success" ? (
-                        <><CheckCircle2 className="w-3 h-3 mr-1" />成功</>
+                        <><CheckCircle2 className="w-3 h-3 mr-1" />{t("admin.audit.success")}</>
                       ) : (
-                        <><AlertCircle className="w-3 h-3 mr-1" />拒绝</>
+                        <><AlertCircle className="w-3 h-3 mr-1" />{t("admin.audit.denied")}</>
                       )}
                     </Badge>
                   </div>
@@ -462,7 +477,7 @@ function AccessLogsTab({
           {total > 0 && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t">
               <span className="text-sm text-muted-foreground">
-                第 {currentPage} / {totalPages} 页
+                {t("admin.audit.pageOf").replace("{current}", String(currentPage)).replace("{total}", String(totalPages))}
               </span>
               <div className="flex gap-2">
                 <Button
@@ -472,7 +487,7 @@ function AccessLogsTab({
                   disabled={filters.offset === 0}
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  上一页
+                  {t("admin.audit.prevPage")}
                 </Button>
                 <Button
                   variant="outline"
@@ -480,7 +495,7 @@ function AccessLogsTab({
                   onClick={() => onPageChange("next")}
                   disabled={filters.offset + filters.limit >= total}
                 >
-                  下一页
+                  {t("admin.audit.nextPage")}
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -508,6 +523,7 @@ function PermissionHistoryTab({
   setFilters: (fn: (prev: any) => any) => void;
   onPageChange: (dir: "prev" | "next") => void;
 }) {
+  const { t } = useLanguage();
   const currentPage = Math.floor(filters.offset / filters.limit) + 1;
   const totalPages = Math.ceil(total / filters.limit);
 
@@ -527,18 +543,18 @@ function PermissionHistoryTab({
                 }))}
               >
                 <SelectTrigger className="w-40">
-                  <SelectValue placeholder="变更类型" />
+                  <SelectValue placeholder={t("admin.audit.changeType")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部类型</SelectItem>
-                  <SelectItem value="role_added">添加角色</SelectItem>
-                  <SelectItem value="role_removed">移除角色</SelectItem>
-                  <SelectItem value="permission_changed">权限变更</SelectItem>
+                  <SelectItem value="all">{t("admin.audit.allTypes")}</SelectItem>
+                  <SelectItem value="role_added">{t("admin.audit.addRole")}</SelectItem>
+                  <SelectItem value="role_removed">{t("admin.audit.removeRole")}</SelectItem>
+                  <SelectItem value="permission_changed">{t("admin.audit.permissionChange")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <span className="text-sm text-muted-foreground">
-              共 {total} 条记录
+              {t("admin.audit.totalRecords").replace("{count}", String(total))}
             </span>
           </div>
         </CardContent>
@@ -549,17 +565,17 @@ function PermissionHistoryTab({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
-            权限变更历史
+            {t("admin.audit.permHistoryTitle")}
           </CardTitle>
           <CardDescription>
-            记录所有用户角色和权限的变更操作
+            {t("admin.audit.permHistoryDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">加载中...</div>
+            <div className="text-center py-8 text-muted-foreground">{t("admin.audit.loadingText")}</div>
           ) : history.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">暂无记录</div>
+            <div className="text-center py-8 text-muted-foreground">{t("admin.audit.noRecords")}</div>
           ) : (
             <div className="space-y-3">
               {history.map((change) => (
@@ -569,17 +585,17 @@ function PermissionHistoryTab({
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
-                      <div className={`p-2 rounded-lg ${CHANGE_TYPE_NAMES[change.changeType]?.color || "bg-muted"}`}>
+                      <div className={`p-2 rounded-lg ${CHANGE_TYPE_STYLES[change.changeType] || "bg-muted"}`}>
                         <Shield className="w-4 h-4" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium">{change.modifierName || `操作人#${change.modifierId}`}</span>
-                          <Badge variant="outline" className={CHANGE_TYPE_NAMES[change.changeType]?.color}>
-                            {CHANGE_TYPE_NAMES[change.changeType]?.label || change.changeType}
+                          <span className="font-medium">{change.modifierName || `User#${change.modifierId}`}</span>
+                          <Badge variant="outline" className={CHANGE_TYPE_STYLES[change.changeType]}>
+                            {CHANGE_TYPE_LABEL_KEYS[change.changeType] ? t(CHANGE_TYPE_LABEL_KEYS[change.changeType]) : change.changeType}
                           </Badge>
                           <span className="text-muted-foreground">→</span>
-                          <span className="font-medium">{change.targetUserName || `用户#${change.targetUserId}`}</span>
+                          <span className="font-medium">{change.targetUserName || `User#${change.targetUserId}`}</span>
                         </div>
                         <div className="flex items-center gap-4 mt-2 text-sm">
                           {change.oldValue && (
@@ -594,7 +610,7 @@ function PermissionHistoryTab({
                         </div>
                         {change.reason && (
                           <p className="text-sm text-muted-foreground mt-1">
-                            原因: {change.reason}
+                            {t("admin.audit.reasonLabel")} {change.reason}
                           </p>
                         )}
                         <div className="flex items-center gap-1 mt-2 text-sm text-muted-foreground">
@@ -613,7 +629,7 @@ function PermissionHistoryTab({
           {total > 0 && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t">
               <span className="text-sm text-muted-foreground">
-                第 {currentPage} / {totalPages} 页
+                {t("admin.audit.pageOf").replace("{current}", String(currentPage)).replace("{total}", String(totalPages))}
               </span>
               <div className="flex gap-2">
                 <Button
@@ -623,7 +639,7 @@ function PermissionHistoryTab({
                   disabled={filters.offset === 0}
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  上一页
+                  {t("admin.audit.prevPage")}
                 </Button>
                 <Button
                   variant="outline"
@@ -631,7 +647,7 @@ function PermissionHistoryTab({
                   onClick={() => onPageChange("next")}
                   disabled={filters.offset + filters.limit >= total}
                 >
-                  下一页
+                  {t("admin.audit.nextPage")}
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -651,9 +667,10 @@ function StatisticsTab({
   stats: any;
   isLoading: boolean;
 }) {
+  const { t } = useLanguage();
   if (isLoading) {
     return (
-      <div className="text-center py-8 text-muted-foreground">加载中...</div>
+      <div className="text-center py-8 text-muted-foreground">{t("admin.audit.loadingText")}</div>
     );
   }
 
@@ -669,7 +686,7 @@ function StatisticsTab({
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats?.totalAccess || 0}</p>
-                <p className="text-sm text-muted-foreground">总访问次数</p>
+                <p className="text-sm text-muted-foreground">{t("admin.audit.totalAccessCount")}</p>
               </div>
             </div>
           </CardContent>
@@ -685,7 +702,7 @@ function StatisticsTab({
                 <p className="text-2xl font-bold">
                   {stats?.byOperation?.find((o: any) => o.operation === "read")?.count || 0}
                 </p>
-                <p className="text-sm text-muted-foreground">查看操作</p>
+                <p className="text-sm text-muted-foreground">{t("admin.audit.viewCount")}</p>
               </div>
             </div>
           </CardContent>
@@ -701,7 +718,7 @@ function StatisticsTab({
                 <p className="text-2xl font-bold">
                   {stats?.byOperation?.find((o: any) => o.operation === "write")?.count || 0}
                 </p>
-                <p className="text-sm text-muted-foreground">修改操作</p>
+                <p className="text-sm text-muted-foreground">{t("admin.audit.writeCount")}</p>
               </div>
             </div>
           </CardContent>
@@ -717,7 +734,7 @@ function StatisticsTab({
                 <p className="text-2xl font-bold">
                   {stats?.byOperation?.find((o: any) => o.operation === "delete")?.count || 0}
                 </p>
-                <p className="text-sm text-muted-foreground">删除操作</p>
+                <p className="text-sm text-muted-foreground">{t("admin.audit.deleteCount")}</p>
               </div>
             </div>
           </CardContent>
@@ -729,9 +746,9 @@ function StatisticsTab({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-primary" />
-            按模块统计
+            {t("admin.audit.byModuleTitle")}
           </CardTitle>
-          <CardDescription>各模块的访问频率统计</CardDescription>
+          <CardDescription>{t("admin.audit.byModuleDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {stats?.byModule?.length > 0 ? (
@@ -742,8 +759,8 @@ function StatisticsTab({
                 return (
                   <div key={item.moduleId} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
-                      <span>{MODULE_NAMES[item.moduleId] || item.moduleId}</span>
-                      <span className="text-muted-foreground">{item.count} 次</span>
+                      <span>{MODULE_NAME_KEYS[item.moduleId] ? t(MODULE_NAME_KEYS[item.moduleId]) : item.moduleId}</span>
+                      <span className="text-muted-foreground">{item.count} {t("admin.audit.times")}</span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
@@ -756,7 +773,7 @@ function StatisticsTab({
               })}
             </div>
           ) : (
-            <div className="text-center py-4 text-muted-foreground">暂无数据</div>
+            <div className="text-center py-4 text-muted-foreground">{t("admin.audit.noModuleData")}</div>
           )}
         </CardContent>
       </Card>
@@ -766,9 +783,9 @@ function StatisticsTab({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="w-5 h-5 text-primary" />
-            活跃用户排行
+            {t("admin.audit.activeUsersTitle")}
           </CardTitle>
-          <CardDescription>访问敏感数据最频繁的用户</CardDescription>
+          <CardDescription>{t("admin.audit.activeUsersDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {stats?.byUser?.length > 0 ? (
@@ -792,12 +809,12 @@ function StatisticsTab({
                       <p className="text-xs text-muted-foreground">ID: {item.userId}</p>
                     </div>
                   </div>
-                  <Badge variant="secondary">{item.count} 次访问</Badge>
+                  <Badge variant="secondary">{t("admin.audit.accessCount").replace("{count}", String(item.count))}</Badge>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-4 text-muted-foreground">暂无数据</div>
+            <div className="text-center py-4 text-muted-foreground">{t("admin.audit.noUserData")}</div>
           )}
         </CardContent>
       </Card>

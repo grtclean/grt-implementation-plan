@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { importHistory } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -21,7 +21,7 @@ export const importHistoryRouter = router({
   }),
 
   // 创建导入记录
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('system:data:migrate').input(z.object({
     importType: z.string().max(100).optional(),
     fileName: z.string().max(255).optional(),
     fileSize: z.number().int().optional(),
@@ -70,7 +70,7 @@ export const importHistoryRouter = router({
   }),
 
   // 删除导入记录
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  delete: requirePermission('system:data:migrate').input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(importHistory).where(eq(importHistory.id, parseInt(input.id)));
     return { success: true, message: "删除成功" };
@@ -121,7 +121,7 @@ export const importHistoryRouter = router({
   }),
 
   // 回滚导入
-  rollback: protectedProcedure.input(z.object({
+  rollback: requirePermission('system:data:migrate').input(z.object({
     id: z.union([z.string(), z.number()]).optional(),
   }).optional()).mutation(async ({ input, ctx }) => {
     const db = await requireDb();

@@ -147,7 +147,7 @@ vi.mock("../../drizzle/schema", () => ({
 
 // ─── Import callers AFTER mocks ──────────────────────────────────────
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -252,7 +252,7 @@ describe("visionDashboard.listScreens", () => {
       makeScreen({ id: 2, location: "SHOPFLOOR" }),
     ];
     mockQueryResult = screens;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.listScreens();
     expect(result).toHaveLength(2);
   });
@@ -260,7 +260,7 @@ describe("visionDashboard.listScreens", () => {
   it("returns all screens when input is empty object", async () => {
     const screens = [makeScreen({ id: 1 })];
     mockQueryResult = screens;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.listScreens({});
     expect(result).toHaveLength(1);
   });
@@ -272,7 +272,7 @@ describe("visionDashboard.listScreens", () => {
       makeScreen({ id: 3, location: "LOBBY" }),
     ];
     mockQueryResult = screens;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.listScreens({ location: "LOBBY" });
     expect(result).toHaveLength(2);
     expect(result.every((s: any) => s.location === "LOBBY")).toBe(true);
@@ -281,14 +281,14 @@ describe("visionDashboard.listScreens", () => {
   it("returns empty array when no screens match location filter", async () => {
     const screens = [makeScreen({ id: 1, location: "LOBBY" })];
     mockQueryResult = screens;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.listScreens({ location: "SERVICE" });
     expect(result).toHaveLength(0);
   });
 
   it("returns empty array when no screens exist", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.listScreens();
     expect(result).toHaveLength(0);
   });
@@ -305,7 +305,7 @@ describe("visionDashboard.listScreens", () => {
 describe("visionDashboard.getScreen", () => {
   it("returns a screen by numeric id", async () => {
     mockQueryResult = [makeScreen({ id: 5 })];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.getScreen({ id: 5 });
     expect(result).toBeTruthy();
     expect(result!.id).toBe(5);
@@ -313,14 +313,14 @@ describe("visionDashboard.getScreen", () => {
 
   it("returns a screen by string id", async () => {
     mockQueryResult = [makeScreen({ id: 5 })];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.getScreen({ id: "5" });
     expect(result).toBeTruthy();
   });
 
   it("returns null when screen not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.getScreen({ id: 999 });
     expect(result).toBeNull();
   });
@@ -336,7 +336,7 @@ describe("visionDashboard.getScreen", () => {
     });
     mockQueryResult = [screen];
     mockReturningResult = []; // update returning (not used)
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.getScreen({ id: 10 });
     // Should return with EXTERNAL mode
     expect(result!.currentMode).toBe("EXTERNAL");
@@ -355,7 +355,7 @@ describe("visionDashboard.getScreen", () => {
       unlockedByName: "Operator Y",
     });
     mockQueryResult = [screen];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.getScreen({ id: 11 });
     expect(result!.currentMode).toBe("INTERNAL");
     // update should NOT have been called
@@ -365,7 +365,7 @@ describe("visionDashboard.getScreen", () => {
   it("does NOT revert EXTERNAL mode", async () => {
     const screen = makeScreen({ id: 12, currentMode: "EXTERNAL" });
     mockQueryResult = [screen];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.getScreen({ id: 12 });
     expect(result!.currentMode).toBe("EXTERNAL");
     expect(mockDb.update).not.toHaveBeenCalled();
@@ -384,7 +384,7 @@ describe("visionDashboard.createScreen", () => {
   it("creates a screen with required fields", async () => {
     const created = makeScreen({ id: 100, name: "New Screen", location: "LOBBY" });
     mockReturningResult = [created];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.createScreen({
       name: "New Screen",
       location: "LOBBY",
@@ -397,7 +397,7 @@ describe("visionDashboard.createScreen", () => {
   it("creates a screen with optional macAddress", async () => {
     const created = makeScreen({ id: 101, macAddress: "FF:FF:FF:00:00:01" });
     mockReturningResult = [created];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.createScreen({
       name: "Floor Screen",
       location: "SHOPFLOOR",
@@ -408,7 +408,7 @@ describe("visionDashboard.createScreen", () => {
 
   it("returns null when insert returns empty", async () => {
     mockReturningResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.createScreen({
       name: "Ghost Screen",
       location: "BU",
@@ -417,7 +417,7 @@ describe("visionDashboard.createScreen", () => {
   });
 
   it("rejects invalid location enum", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.visionDashboard.createScreen({
         name: "Bad",
@@ -427,7 +427,7 @@ describe("visionDashboard.createScreen", () => {
   });
 
   it("rejects empty name", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.visionDashboard.createScreen({
         name: "",
@@ -451,7 +451,7 @@ describe("visionDashboard.unlockInternal", () => {
   it("unlocks screen to INTERNAL with correct master PIN", async () => {
     const updated = makeScreen({ id: 1, currentMode: "INTERNAL" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.unlockInternal({
       screenId: 1,
       pin: "8888",
@@ -465,7 +465,7 @@ describe("visionDashboard.unlockInternal", () => {
   it("sets operator name to 'Unknown' if not provided", async () => {
     const updated = makeScreen({ id: 2, currentMode: "INTERNAL" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.unlockInternal({
       screenId: 2,
       pin: "8888",
@@ -474,7 +474,7 @@ describe("visionDashboard.unlockInternal", () => {
   });
 
   it("throws error with incorrect PIN", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.visionDashboard.unlockInternal({
         screenId: 1,
@@ -484,7 +484,7 @@ describe("visionDashboard.unlockInternal", () => {
   });
 
   it("throws error with too-short PIN (validation)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.visionDashboard.unlockInternal({
         screenId: 1,
@@ -496,7 +496,7 @@ describe("visionDashboard.unlockInternal", () => {
   it("accepts string screenId", async () => {
     const updated = makeScreen({ id: 3, currentMode: "INTERNAL" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.unlockInternal({
       screenId: "3",
       pin: "8888",
@@ -506,7 +506,7 @@ describe("visionDashboard.unlockInternal", () => {
 
   it("returns null when update returns empty", async () => {
     mockReturningResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.unlockInternal({
       screenId: 999,
       pin: "8888",
@@ -529,7 +529,7 @@ describe("visionDashboard.lockExternal", () => {
   it("locks screen back to EXTERNAL mode", async () => {
     const updated = makeScreen({ id: 1, currentMode: "EXTERNAL" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.lockExternal({
       screenId: 1,
       operatorName: "Admin",
@@ -542,7 +542,7 @@ describe("visionDashboard.lockExternal", () => {
   it("uses 'Unknown' when operatorName not provided", async () => {
     const updated = makeScreen({ id: 2, currentMode: "EXTERNAL" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.lockExternal({
       screenId: 2,
     });
@@ -552,7 +552,7 @@ describe("visionDashboard.lockExternal", () => {
   it("accepts string screenId", async () => {
     const updated = makeScreen({ id: 5, currentMode: "EXTERNAL" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.lockExternal({
       screenId: "5",
     });
@@ -561,7 +561,7 @@ describe("visionDashboard.lockExternal", () => {
 
   it("returns null when screen not found", async () => {
     mockReturningResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.lockExternal({
       screenId: 404,
     });
@@ -586,21 +586,21 @@ describe("visionDashboard.listPlaylists", () => {
       makePlaylist({ id: 2, screenId: 1, orderIndex: 1 }),
     ];
     mockQueryResult = playlists;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.listPlaylists({ screenId: 1 });
     expect(result).toHaveLength(2);
   });
 
   it("returns empty array for screen with no playlists", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.listPlaylists({ screenId: 999 });
     expect(result).toHaveLength(0);
   });
 
   it("accepts string screenId", async () => {
     mockQueryResult = [makePlaylist()];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.listPlaylists({ screenId: "1" });
     expect(result).toHaveLength(1);
   });
@@ -620,7 +620,7 @@ describe("visionDashboard.upsertPlaylist", () => {
   it("creates a new playlist when no id provided", async () => {
     const created = makePlaylist({ id: 10, viewComponentName: "NewView" });
     mockReturningResult = [created];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.upsertPlaylist({
       screenId: 1,
       viewComponentName: "NewView",
@@ -636,7 +636,7 @@ describe("visionDashboard.upsertPlaylist", () => {
   it("updates an existing playlist when id is provided", async () => {
     const updated = makePlaylist({ id: 5, viewComponentName: "UpdatedView" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.upsertPlaylist({
       id: 5,
       screenId: 1,
@@ -650,7 +650,7 @@ describe("visionDashboard.upsertPlaylist", () => {
   it("uses default values for durationSeconds, orderIndex, mode", async () => {
     const created = makePlaylist({ id: 11 });
     mockReturningResult = [created];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.upsertPlaylist({
       screenId: 1,
       viewComponentName: "DefaultsView",
@@ -661,7 +661,7 @@ describe("visionDashboard.upsertPlaylist", () => {
   it("accepts string id for update", async () => {
     const updated = makePlaylist({ id: 7 });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.upsertPlaylist({
       id: "7",
       screenId: 1,
@@ -672,7 +672,7 @@ describe("visionDashboard.upsertPlaylist", () => {
   });
 
   it("rejects durationSeconds below 5", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.visionDashboard.upsertPlaylist({
         screenId: 1,
@@ -683,7 +683,7 @@ describe("visionDashboard.upsertPlaylist", () => {
   });
 
   it("rejects invalid mode enum", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.visionDashboard.upsertPlaylist({
         screenId: 1,
@@ -714,7 +714,7 @@ describe("visionDashboard.securityLogs", () => {
       makeSecurityLog({ id: 2, screenId: 2 }),
     ];
     mockQueryResult = logs;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.securityLogs();
     expect(result).toHaveLength(2);
   });
@@ -726,7 +726,7 @@ describe("visionDashboard.securityLogs", () => {
       makeSecurityLog({ id: 3, screenId: 1 }),
     ];
     mockQueryResult = logs;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.securityLogs({ screenId: 1 });
     expect(result).toHaveLength(2);
     expect(result.every((l: any) => l.screenId === 1)).toBe(true);
@@ -735,21 +735,21 @@ describe("visionDashboard.securityLogs", () => {
   it("accepts string screenId for filter", async () => {
     const logs = [makeSecurityLog({ id: 1, screenId: 5 })];
     mockQueryResult = logs;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.securityLogs({ screenId: "5" });
     expect(result).toHaveLength(1);
   });
 
   it("returns empty array when no logs exist", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.securityLogs();
     expect(result).toHaveLength(0);
   });
 
   it("respects custom limit", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.securityLogs({ limit: 10 });
     expect(result).toHaveLength(0);
     // The limit call should still happen (DB mock doesn't enforce it, but call is made)
@@ -767,7 +767,7 @@ describe("visionDashboard.securityLogs", () => {
 describe("visionDashboard.shopfloorStations", () => {
   it("returns empty array when no stations exist", async () => {
     selectResultsQueue.push([]); // stations query
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorStations();
     expect(result).toEqual([]);
   });
@@ -775,7 +775,7 @@ describe("visionDashboard.shopfloorStations", () => {
   it("returns station with 100% FPY when no logs", async () => {
     selectResultsQueue.push([makeStation({ id: 1, code: "T1", name: "Station 1" })]);
     selectResultsQueue.push([]); // no execution logs today
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorStations();
     expect(result).toHaveLength(1);
     expect(result[0].code).toBe("T1");
@@ -794,7 +794,7 @@ describe("visionDashboard.shopfloorStations", () => {
       makeExecLog({ id: 3, stationId: 1, humanFinalResult: "FAIL", cycleTimeSeconds: 50, createdAt: now.toISOString() }),
       makeExecLog({ id: 4, stationId: 1, humanFinalResult: "PASS", cycleTimeSeconds: 60, createdAt: now.toISOString() }),
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorStations();
     expect(result).toHaveLength(1);
     // 3 pass out of 4 = 75.0%
@@ -810,7 +810,7 @@ describe("visionDashboard.shopfloorStations", () => {
     selectResultsQueue.push([
       makeExecLog({ id: 1, stationId: 1, humanFinalResult: "PASS", createdAt: now.toISOString() }),
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorStations();
     expect(result[0].status).toBe("running");
   });
@@ -821,7 +821,7 @@ describe("visionDashboard.shopfloorStations", () => {
     selectResultsQueue.push([
       makeExecLog({ id: 1, stationId: 1, humanFinalResult: "FAIL", createdAt: now.toISOString() }),
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorStations();
     expect(result[0].status).toBe("alarm");
   });
@@ -833,7 +833,7 @@ describe("visionDashboard.shopfloorStations", () => {
       makeExecLog({ id: 1, stationId: 1, humanFinalResult: "PASS", createdAt: now.toISOString() }),
       makeExecLog({ id: 2, stationId: 1, humanFinalResult: "SCRAP", createdAt: now.toISOString() }),
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorStations();
     expect(result[0].status).toBe("alarm");
   });
@@ -844,7 +844,7 @@ describe("visionDashboard.shopfloorStations", () => {
     selectResultsQueue.push([
       makeExecLog({ id: 1, stationId: 1, humanFinalResult: "PASS", createdAt: twoHoursAgo }),
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorStations();
     expect(result[0].status).toBe("idle");
   });
@@ -856,7 +856,7 @@ describe("visionDashboard.shopfloorStations", () => {
       makeExecLog({ id: 1, stationId: 1, operatorId: "OP-FIRST", createdAt: now.toISOString() }),
       makeExecLog({ id: 2, stationId: 1, operatorId: "OP-LAST", createdAt: now.toISOString() }),
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorStations();
     // Latest log is last in array
     expect(result[0].operator).toBe("OP-LAST");
@@ -872,7 +872,7 @@ describe("visionDashboard.shopfloorStations", () => {
       makeExecLog({ id: 1, stationId: 1, humanFinalResult: "PASS", createdAt: now.toISOString() }),
       makeExecLog({ id: 2, stationId: 2, humanFinalResult: "FAIL", createdAt: now.toISOString() }),
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorStations();
     expect(result).toHaveLength(2);
     // Station 1: 1 PASS → FPY 100%
@@ -893,7 +893,7 @@ describe("visionDashboard.shopfloorStations", () => {
 describe("visionDashboard.shopfloorRedBlackList", () => {
   it("returns empty array when no logs exist", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorRedBlackList();
     expect(result).toEqual([]);
   });
@@ -905,7 +905,7 @@ describe("visionDashboard.shopfloorRedBlackList", () => {
       makeExecLog({ operatorId: "OP-BAD", humanFinalResult: "PASS" }),
     ];
     mockQueryResult = logs;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorRedBlackList();
     const reds = result.filter((r: any) => r.type === "red");
     expect(reds).toHaveLength(1);
@@ -919,7 +919,7 @@ describe("visionDashboard.shopfloorRedBlackList", () => {
       logs.push(makeExecLog({ operatorId: "OP-GOOD", humanFinalResult: "PASS" }));
     }
     mockQueryResult = logs;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorRedBlackList();
     const blacks = result.filter((r: any) => r.type === "black");
     expect(blacks).toHaveLength(1);
@@ -936,7 +936,7 @@ describe("visionDashboard.shopfloorRedBlackList", () => {
       }
     }
     mockQueryResult = logs;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorRedBlackList();
     const reds = result.filter((r: any) => r.type === "red");
     expect(reds).toHaveLength(3);
@@ -951,7 +951,7 @@ describe("visionDashboard.shopfloorRedBlackList", () => {
       }
     }
     mockQueryResult = logs;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorRedBlackList();
     const blacks = result.filter((r: any) => r.type === "black");
     expect(blacks).toHaveLength(3);
@@ -963,7 +963,7 @@ describe("visionDashboard.shopfloorRedBlackList", () => {
       makeExecLog({ operatorId: "OP-MEH", humanFinalResult: "PASS" }),
     ];
     mockQueryResult = logs;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorRedBlackList();
     expect(result).toHaveLength(0);
   });
@@ -978,7 +978,7 @@ describe("visionDashboard.shopfloorRedBlackList", () => {
       logs.push(makeExecLog({ operatorId: "OP-B", humanFinalResult: "FAIL" }));
     }
     mockQueryResult = logs;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorRedBlackList();
     const reds = result.filter((r: any) => r.type === "red");
     expect(reds[0].name).toBe("OP-B");
@@ -997,7 +997,7 @@ describe("visionDashboard.shopfloorRedBlackList", () => {
 describe("visionDashboard.shopfloorShortageAlerts", () => {
   it("returns empty array when no parts below reorder point", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorShortageAlerts();
     expect(result).toEqual([]);
   });
@@ -1014,7 +1014,7 @@ describe("visionDashboard.shopfloorShortageAlerts", () => {
         preferredSupplierName: "SupplierCo",
       }),
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorShortageAlerts();
     expect(result).toHaveLength(1);
     expect(result[0].station).toBe("WH-B2");
@@ -1028,7 +1028,7 @@ describe("visionDashboard.shopfloorShortageAlerts", () => {
     mockQueryResult = [
       makeSparePart({ currentStock: 0, reorderPoint: 5 }),
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorShortageAlerts();
     expect(result[0].severity).toBe("critical");
   });
@@ -1037,28 +1037,28 @@ describe("visionDashboard.shopfloorShortageAlerts", () => {
     mockQueryResult = [
       makeSparePart({ currentStock: 2, reorderPoint: 10 }),
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorShortageAlerts();
     expect(result[0].severity).toBe("warning");
   });
 
   it("uses dash fallback when locationCode is null", async () => {
     mockQueryResult = [makeSparePart({ locationCode: null })];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorShortageAlerts();
     expect(result[0].station).toBe("—");
   });
 
   it("uses 'ETA未知' when leadTimeDays is null", async () => {
     mockQueryResult = [makeSparePart({ leadTimeDays: null })];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorShortageAlerts();
     expect(result[0].eta).toBe("ETA未知");
   });
 
   it("uses dash fallback when preferredSupplierName is null", async () => {
     mockQueryResult = [makeSparePart({ preferredSupplierName: null })];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.shopfloorShortageAlerts();
     expect(result[0].buyer).toBe("—");
   });
@@ -1079,7 +1079,7 @@ describe("visionDashboard.lobbyData", () => {
     selectResultsQueue.push([{ count: 15 }]);   // station count
     selectResultsQueue.push([{ count: 8 }]);    // project count
     selectResultsQueue.push([{ location: "Shanghai", count: 20 }, { location: "Munich", count: 22 }]); // eqByLoc groupBy
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.lobbyData();
     expect(result.externalKpis).toHaveLength(4);
     expect(result.externalKpis[0].value).toBe("42");
@@ -1096,7 +1096,7 @@ describe("visionDashboard.lobbyData", () => {
     selectResultsQueue.push([{ count: 5 }]);
     selectResultsQueue.push([{ count: 3 }]);
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.lobbyData({ mode: "EXTERNAL" });
     expect(result.externalKpis).toHaveLength(4);
     expect(result.internalKpis).toHaveLength(0);
@@ -1108,7 +1108,7 @@ describe("visionDashboard.lobbyData", () => {
     selectResultsQueue.push([{ count: 12 }]);
     selectResultsQueue.push([{ location: "Factory A", count: 50 }]);
     selectResultsQueue.push([{ count: 230 }]); // today's execution log count
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.lobbyData({ mode: "INTERNAL" });
     expect(result.externalKpis).toHaveLength(4);
     expect(result.internalKpis).toHaveLength(2);
@@ -1122,7 +1122,7 @@ describe("visionDashboard.lobbyData", () => {
     selectResultsQueue.push([{ count: 0 }]);
     selectResultsQueue.push([{ count: 0 }]);
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.lobbyData();
     expect(result.externalKpis[0].value).toBe("0");
     expect(result.locations).toHaveLength(0);
@@ -1133,7 +1133,7 @@ describe("visionDashboard.lobbyData", () => {
     selectResultsQueue.push([{ count: 1 }]);
     selectResultsQueue.push([{ count: 1 }]);
     selectResultsQueue.push([{ location: null, count: 5 }]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.visionDashboard.lobbyData();
     expect(result.locations[0].city).toBe("Factory");
   });

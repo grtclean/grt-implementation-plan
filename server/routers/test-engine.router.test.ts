@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -191,7 +191,7 @@ describe("testEngine router", () => {
   // ─── listTemplates ─────────────────────────────────────────
   describe("listTemplates", () => {
     it("returns items and total with no filters", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const templates = [
         { id: 1, name: "FAT Checklist", domain: "fat_checklist", status: "active" },
         { id: 2, name: "PLC Test", domain: "plc_test", status: "draft" },
@@ -205,7 +205,7 @@ describe("testEngine router", () => {
     });
 
     it("passes domain filter", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, name: "PLC", domain: "plc_test" }]);
       selectResultsQueue.push([{ value: 1 }]);
       const result = await caller.testEngine.listTemplates({ domain: "plc_test" });
@@ -214,7 +214,7 @@ describe("testEngine router", () => {
     });
 
     it("passes status filter", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
       const result = await caller.testEngine.listTemplates({ status: "archived" });
@@ -223,7 +223,7 @@ describe("testEngine router", () => {
     });
 
     it("passes search filter", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 3, name: "FAT 验收清单" }]);
       selectResultsQueue.push([{ value: 1 }]);
       const result = await caller.testEngine.listTemplates({ search: "FAT" });
@@ -231,7 +231,7 @@ describe("testEngine router", () => {
     });
 
     it("applies pagination via limit and offset", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 5, name: "Page 2 item" }]);
       selectResultsQueue.push([{ value: 15 }]);
       const result = await caller.testEngine.listTemplates({ limit: 5, offset: 5 });
@@ -240,7 +240,7 @@ describe("testEngine router", () => {
     });
 
     it("works when called with undefined input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
       const result = await caller.testEngine.listTemplates(undefined);
@@ -252,7 +252,7 @@ describe("testEngine router", () => {
   // ─── getTemplate ───────────────────────────────────────────
   describe("getTemplate", () => {
     it("returns template with cases when found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First select: template lookup
       selectResultsQueue.push([
         { id: 1, name: "FAT Checklist", domain: "fat_checklist", status: "active", version: 1 },
@@ -270,14 +270,14 @@ describe("testEngine router", () => {
     });
 
     it("returns null when template not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       const result = await caller.testEngine.getTemplate({ id: 999 });
       expect(result).toBeNull();
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 5, name: "String ID", domain: "custom" }]);
       selectResultsQueue.push([]);
       const result = await caller.testEngine.getTemplate({ id: "5" });
@@ -289,7 +289,7 @@ describe("testEngine router", () => {
   // ─── createTemplate ────────────────────────────────────────
   describe("createTemplate", () => {
     it("creates template with required fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [
         { id: 1, name: "New Template", domain: "software_uat", status: "draft", createdBy: 1 },
       ];
@@ -304,7 +304,7 @@ describe("testEngine router", () => {
     });
 
     it("creates template with all optional fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [
         {
           id: 2,
@@ -337,14 +337,14 @@ describe("testEngine router", () => {
     });
 
     it("rejects empty name", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.testEngine.createTemplate({ name: "", domain: "custom" })
       ).rejects.toThrow();
     });
 
     it("rejects invalid domain enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.testEngine.createTemplate({
           name: "Bad Domain",
@@ -354,7 +354,7 @@ describe("testEngine router", () => {
     });
 
     it("sets createdBy from context user", async () => {
-      const caller = createAuthenticatedCaller({ id: 42 });
+      const caller = createAdminCaller({ id: 42 });
       mockReturningResult = [{ id: 3, name: "T", domain: "custom", createdBy: 42, updatedBy: 42 }];
       const result = await caller.testEngine.createTemplate({
         name: "T",
@@ -368,7 +368,7 @@ describe("testEngine router", () => {
   // ─── updateTemplate ────────────────────────────────────────
   describe("updateTemplate", () => {
     it("updates template name", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, name: "Updated Name", status: "draft" }];
       const result = await caller.testEngine.updateTemplate({
         id: 1,
@@ -378,7 +378,7 @@ describe("testEngine router", () => {
     });
 
     it("updates template status to active", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, name: "T", status: "active" }];
       const result = await caller.testEngine.updateTemplate({
         id: 1,
@@ -388,7 +388,7 @@ describe("testEngine router", () => {
     });
 
     it("updates template status to archived", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, name: "T", status: "archived" }];
       const result = await caller.testEngine.updateTemplate({
         id: 1,
@@ -398,7 +398,7 @@ describe("testEngine router", () => {
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 5, name: "T", status: "draft" }];
       const result = await caller.testEngine.updateTemplate({
         id: "5",
@@ -408,7 +408,7 @@ describe("testEngine router", () => {
     });
 
     it("rejects invalid status enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.testEngine.updateTemplate({ id: 1, status: "bogus" as any })
       ).rejects.toThrow();
@@ -418,7 +418,7 @@ describe("testEngine router", () => {
   // ─── cloneTemplate ─────────────────────────────────────────
   describe("cloneTemplate", () => {
     it("clones template with cases and returns cloned count", async () => {
-      const caller = createAuthenticatedCaller({ id: 7 });
+      const caller = createAdminCaller({ id: 7 });
       // 1st: source template lookup
       selectResultsQueue.push([
         {
@@ -450,7 +450,7 @@ describe("testEngine router", () => {
     });
 
     it("clones template with custom name", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         { id: 1, name: "Source", domain: "custom", version: 1 },
       ]);
@@ -465,7 +465,7 @@ describe("testEngine router", () => {
     });
 
     it("throws when source template does not exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]); // source not found
       await expect(
         caller.testEngine.cloneTemplate({ sourceTemplateId: 999 })
@@ -473,7 +473,7 @@ describe("testEngine router", () => {
     });
 
     it("accepts string sourceTemplateId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         { id: 3, name: "S", domain: "plc_test", version: 1 },
       ]);
@@ -493,7 +493,7 @@ describe("testEngine router", () => {
   // ─── listCases ─────────────────────────────────────────────
   describe("listCases", () => {
     it("returns active cases for template", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 1, templateId: 10, title: "Case A", isActive: true, sortOrder: 1 },
         { id: 2, templateId: 10, title: "Case B", isActive: true, sortOrder: 2 },
@@ -504,7 +504,7 @@ describe("testEngine router", () => {
     });
 
     it("includes inactive cases when flag is true", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 1, title: "Active", isActive: true },
         { id: 2, title: "Inactive", isActive: false },
@@ -517,7 +517,7 @@ describe("testEngine router", () => {
     });
 
     it("returns empty list when no cases exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.testEngine.listCases({ templateId: 999 });
       expect(result.items).toHaveLength(0);
@@ -525,7 +525,7 @@ describe("testEngine router", () => {
     });
 
     it("accepts string templateId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ id: 1, title: "C" }];
       const result = await caller.testEngine.listCases({ templateId: "10" });
       expect(result.items).toHaveLength(1);
@@ -535,7 +535,7 @@ describe("testEngine router", () => {
   // ─── createCase ────────────────────────────────────────────
   describe("createCase", () => {
     it("creates case with minimal fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [
         { id: 1, templateId: 10, title: "Login test", sortOrder: 0 },
       ];
@@ -548,7 +548,7 @@ describe("testEngine router", () => {
     });
 
     it("creates case with all optional fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [
         {
           id: 2,
@@ -584,14 +584,14 @@ describe("testEngine router", () => {
     });
 
     it("rejects empty title", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.testEngine.createCase({ templateId: 10, title: "" })
       ).rejects.toThrow();
     });
 
     it("rejects invalid phase enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.testEngine.createCase({
           templateId: 10,
@@ -602,7 +602,7 @@ describe("testEngine router", () => {
     });
 
     it("rejects invalid category enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.testEngine.createCase({
           templateId: 10,
@@ -613,7 +613,7 @@ describe("testEngine router", () => {
     });
 
     it("rejects invalid priority enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.testEngine.createCase({
           templateId: 10,
@@ -627,7 +627,7 @@ describe("testEngine router", () => {
   // ─── updateCase ────────────────────────────────────────────
   describe("updateCase", () => {
     it("updates case title", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, title: "New Title" }];
       const result = await caller.testEngine.updateCase({
         id: 1,
@@ -637,7 +637,7 @@ describe("testEngine router", () => {
     });
 
     it("updates case priority and category", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, priority: "critical", category: "safety" }];
       const result = await caller.testEngine.updateCase({
         id: 1,
@@ -649,7 +649,7 @@ describe("testEngine router", () => {
     });
 
     it("updates case steps array", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const newSteps = [
         { step: 1, action: "Open page", expected: "Page loads" },
         { step: 2, action: "Click save", expected: "Data saved" },
@@ -663,7 +663,7 @@ describe("testEngine router", () => {
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 5, title: "T" }];
       const result = await caller.testEngine.updateCase({
         id: "5",
@@ -676,14 +676,14 @@ describe("testEngine router", () => {
   // ─── deleteCase ────────────────────────────────────────────
   describe("deleteCase", () => {
     it("soft-deletes case by setting isActive to false", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, isActive: false }];
       const result = await caller.testEngine.deleteCase({ id: 1 });
       expect(result.isActive).toBe(false);
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 5, isActive: false }];
       const result = await caller.testEngine.deleteCase({ id: "5" });
       expect(result.isActive).toBe(false);
@@ -697,7 +697,7 @@ describe("testEngine router", () => {
   // ─── listExecutions ────────────────────────────────────────
   describe("listExecutions", () => {
     it("returns items and total with no filters", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const executions = [
         { id: 1, executionName: "Sprint 1 FAT", status: "in_progress" },
         { id: 2, executionName: "Sprint 2 FAT", status: "planned" },
@@ -710,7 +710,7 @@ describe("testEngine router", () => {
     });
 
     it("filters by templateId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, templateId: 5, executionName: "E1" }]);
       selectResultsQueue.push([{ value: 1 }]);
       const result = await caller.testEngine.listExecutions({ templateId: 5 });
@@ -718,7 +718,7 @@ describe("testEngine router", () => {
     });
 
     it("filters by status", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
       const result = await caller.testEngine.listExecutions({ status: "completed" });
@@ -726,7 +726,7 @@ describe("testEngine router", () => {
     });
 
     it("filters by environment", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, environment: "prod" }]);
       selectResultsQueue.push([{ value: 1 }]);
       const result = await caller.testEngine.listExecutions({ environment: "prod" });
@@ -734,7 +734,7 @@ describe("testEngine router", () => {
     });
 
     it("applies pagination", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 6 }]);
       selectResultsQueue.push([{ value: 20 }]);
       const result = await caller.testEngine.listExecutions({ limit: 5, offset: 5 });
@@ -742,7 +742,7 @@ describe("testEngine router", () => {
     });
 
     it("works with undefined input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
       const result = await caller.testEngine.listExecutions(undefined);
@@ -753,7 +753,7 @@ describe("testEngine router", () => {
   // ─── createExecution ───────────────────────────────────────
   describe("createExecution", () => {
     it("creates execution and pre-creates result entries", async () => {
-      const caller = createAuthenticatedCaller({ id: 3 });
+      const caller = createAdminCaller({ id: 3 });
       // 1st: cases lookup for the template
       selectResultsQueue.push([
         { id: 10, templateId: 5, isActive: true },
@@ -773,7 +773,7 @@ describe("testEngine router", () => {
     });
 
     it("creates execution with all optional fields", async () => {
-      const caller = createAuthenticatedCaller({ id: 3 });
+      const caller = createAdminCaller({ id: 3 });
       selectResultsQueue.push([{ id: 10, isActive: true }]);
       mockReturningResult = [
         {
@@ -805,7 +805,7 @@ describe("testEngine router", () => {
     });
 
     it("creates execution with zero cases", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]); // no cases for template
       mockReturningResult = [
         { id: 102, templateId: 5, executionName: "Empty", environment: "lab" },
@@ -819,7 +819,7 @@ describe("testEngine router", () => {
     });
 
     it("rejects empty executionName", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.testEngine.createExecution({
           templateId: 5,
@@ -830,7 +830,7 @@ describe("testEngine router", () => {
     });
 
     it("rejects invalid environment enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.testEngine.createExecution({
           templateId: 5,
@@ -844,7 +844,7 @@ describe("testEngine router", () => {
   // ─── updateExecution ───────────────────────────────────────
   describe("updateExecution", () => {
     it("updates execution status to in_progress", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 100, status: "in_progress" }];
       const result = await caller.testEngine.updateExecution({
         id: 100,
@@ -855,7 +855,7 @@ describe("testEngine router", () => {
     });
 
     it("updates execution status to completed", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 100, status: "completed" }];
       const result = await caller.testEngine.updateExecution({
         id: 100,
@@ -866,7 +866,7 @@ describe("testEngine router", () => {
     });
 
     it("updates execution notes", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 100, notes: "Updated notes" }];
       const result = await caller.testEngine.updateExecution({
         id: 100,
@@ -876,14 +876,14 @@ describe("testEngine router", () => {
     });
 
     it("rejects invalid status enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.testEngine.updateExecution({ id: 100, status: "bad" as any })
       ).rejects.toThrow();
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 100, status: "paused" }];
       const result = await caller.testEngine.updateExecution({
         id: "100",
@@ -896,7 +896,7 @@ describe("testEngine router", () => {
   // ─── getExecution ──────────────────────────────────────────
   describe("getExecution", () => {
     it("returns execution with result summary", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // 1st: execution lookup
       selectResultsQueue.push([
         { id: 100, executionName: "Sprint 1 FAT", status: "in_progress" },
@@ -923,14 +923,14 @@ describe("testEngine router", () => {
     });
 
     it("returns null when execution not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]); // execution not found
       const result = await caller.testEngine.getExecution({ id: 999 });
       expect(result).toBeNull();
     });
 
     it("returns 0.00 score when no results exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 100, executionName: "Empty" }]);
       selectResultsQueue.push([]); // no results
       const result = await caller.testEngine.getExecution({ id: 100 });
@@ -939,7 +939,7 @@ describe("testEngine router", () => {
     });
 
     it("returns 100.00 score when all results pass", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 100, executionName: "All Pass" }]);
       selectResultsQueue.push([
         { id: 1, status: "pass" },
@@ -952,7 +952,7 @@ describe("testEngine router", () => {
     });
 
     it("counts partial and skipped statuses correctly", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 100 }]);
       selectResultsQueue.push([
         { id: 1, status: "partial" },
@@ -973,7 +973,7 @@ describe("testEngine router", () => {
   // ─── recordResult ──────────────────────────────────────────
   describe("recordResult", () => {
     it("updates existing result entry", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       // 1st: existing result check
       selectResultsQueue.push([{ id: 50, executionId: 100, testCaseId: 10, status: "not_started" }]);
       // returning from update
@@ -994,7 +994,7 @@ describe("testEngine router", () => {
     });
 
     it("creates new result when none exists", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       // 1st: existing result check — empty
       selectResultsQueue.push([]);
       // returning from insert
@@ -1014,7 +1014,7 @@ describe("testEngine router", () => {
     });
 
     it("records result with bug information", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([]);
       mockReturningResult = [
         {
@@ -1041,7 +1041,7 @@ describe("testEngine router", () => {
     });
 
     it("records result with evidence URLs", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([]);
       mockReturningResult = [
         {
@@ -1063,7 +1063,7 @@ describe("testEngine router", () => {
     });
 
     it("records result with retest reference", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([]);
       mockReturningResult = [
         { id: 54, executionId: 100, testCaseId: 10, status: "pass", retestOf: 50 },
@@ -1080,7 +1080,7 @@ describe("testEngine router", () => {
     });
 
     it("accepts string executionId and testCaseId", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([]);
       mockReturningResult = [{ id: 55, executionId: 100, testCaseId: 14, status: "skipped" }];
       selectResultsQueue.push([{ id: 55, status: "skipped" }]);
@@ -1093,7 +1093,7 @@ describe("testEngine router", () => {
     });
 
     it("rejects invalid status enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.testEngine.recordResult({
           executionId: 100,
@@ -1104,7 +1104,7 @@ describe("testEngine router", () => {
     });
 
     it("rejects invalid bugSeverity enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.testEngine.recordResult({
           executionId: 100,
@@ -1119,7 +1119,7 @@ describe("testEngine router", () => {
   // ─── updateResult ──────────────────────────────────────────
   describe("updateResult", () => {
     it("updates result status", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       mockReturningResult = [{ id: 50, executionId: 100, status: "pass", executedBy: 5 }];
       // For updateExecutionCounters
       selectResultsQueue.push([{ id: 50, status: "pass" }]);
@@ -1131,7 +1131,7 @@ describe("testEngine router", () => {
     });
 
     it("updates result notes", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       mockReturningResult = [{ id: 50, executionId: 100, notes: "Updated note" }];
       selectResultsQueue.push([{ id: 50, status: "pass" }]);
       const result = await caller.testEngine.updateResult({
@@ -1142,7 +1142,7 @@ describe("testEngine router", () => {
     });
 
     it("updates bug details on a result", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       mockReturningResult = [
         { id: 50, executionId: 100, bugSeverity: "major", bugDescription: "New desc" },
       ];
@@ -1156,7 +1156,7 @@ describe("testEngine router", () => {
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       mockReturningResult = [{ id: 50, executionId: 100, status: "blocked" }];
       selectResultsQueue.push([{ id: 50, status: "blocked" }]);
       const result = await caller.testEngine.updateResult({
@@ -1167,7 +1167,7 @@ describe("testEngine router", () => {
     });
 
     it("skips counter update when returning is empty (no row updated)", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       mockReturningResult = [];
       // updateExecutionCounters should NOT be called since updated is undefined
       const result = await caller.testEngine.updateResult({
@@ -1181,7 +1181,7 @@ describe("testEngine router", () => {
   // ─── getExecutionResults ───────────────────────────────────
   describe("getExecutionResults", () => {
     it("returns all results for an execution", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 1, executionId: 100, testCaseId: 10, status: "pass" },
         { id: 2, executionId: 100, testCaseId: 11, status: "fail" },
@@ -1193,7 +1193,7 @@ describe("testEngine router", () => {
     });
 
     it("filters results by status", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 1, executionId: 100, status: "fail" },
       ];
@@ -1205,7 +1205,7 @@ describe("testEngine router", () => {
     });
 
     it("returns empty when no results", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.testEngine.getExecutionResults({ executionId: 999 });
       expect(result.items).toHaveLength(0);
@@ -1213,7 +1213,7 @@ describe("testEngine router", () => {
     });
 
     it("accepts string executionId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ id: 1, status: "pass" }];
       const result = await caller.testEngine.getExecutionResults({ executionId: "100" });
       expect(result.items).toHaveLength(1);
@@ -1227,7 +1227,7 @@ describe("testEngine router", () => {
   // ─── logAiGeneration ───────────────────────────────────────
   describe("logAiGeneration", () => {
     it("creates AI generation log entry", async () => {
-      const caller = createAuthenticatedCaller({ id: 7 });
+      const caller = createAdminCaller({ id: 7 });
       mockReturningResult = [
         {
           id: 1,
@@ -1250,7 +1250,7 @@ describe("testEngine router", () => {
     });
 
     it("creates log with all optional fields", async () => {
-      const caller = createAuthenticatedCaller({ id: 7 });
+      const caller = createAdminCaller({ id: 7 });
       mockReturningResult = [
         {
           id: 2,
@@ -1287,7 +1287,7 @@ describe("testEngine router", () => {
     });
 
     it("creates log without templateId", async () => {
-      const caller = createAuthenticatedCaller({ id: 7 });
+      const caller = createAdminCaller({ id: 7 });
       mockReturningResult = [
         { id: 3, templateId: null, source: "test_suggestion", modelUsed: "gpt-4" },
       ];
@@ -1300,7 +1300,7 @@ describe("testEngine router", () => {
     });
 
     it("rejects invalid source enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.testEngine.logAiGeneration({
           source: "invalid_source" as any,
@@ -1314,7 +1314,7 @@ describe("testEngine router", () => {
   // ─── getAiLogs ─────────────────────────────────────────────
   describe("getAiLogs", () => {
     it("returns logs with no filters", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 1, source: "template_generation", modelUsed: "gpt-4" },
         { id: 2, source: "risk_analysis", modelUsed: "claude-3-opus" },
@@ -1325,28 +1325,28 @@ describe("testEngine router", () => {
     });
 
     it("filters by templateId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ id: 1, templateId: 5, source: "template_generation" }];
       const result = await caller.testEngine.getAiLogs({ templateId: 5 });
       expect(result.items).toHaveLength(1);
     });
 
     it("filters by source", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ id: 1, source: "case_optimization" }];
       const result = await caller.testEngine.getAiLogs({ source: "case_optimization" });
       expect(result.items).toHaveLength(1);
     });
 
     it("accepts custom limit", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.testEngine.getAiLogs({ limit: 10 });
       expect(result.items).toHaveLength(0);
     });
 
     it("accepts string templateId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ id: 1, templateId: 5 }];
       const result = await caller.testEngine.getAiLogs({ templateId: "5" });
       expect(result.items).toHaveLength(1);

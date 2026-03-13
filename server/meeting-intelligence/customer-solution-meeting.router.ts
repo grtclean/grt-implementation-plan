@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { router, protectedProcedure } from '../_core/trpc';
+import {router, protectedProcedure, requirePermission} from '../_core/trpc';
 import { jsonValue } from '../../shared/validators';
 import {
   createCustomerSolutionMeeting,
@@ -153,7 +153,7 @@ export const customerSolutionMeetingRouter = router({
   /**
    * AI分析上传的文件
    */
-  analyzeFile: protectedProcedure
+  analyzeFile: requirePermission('collab:meeting:hub')
     .input(z.object({ fileId: z.string() }))
     .mutation(async ({ input }) => {
       return analyzeUploadedFile(input.fileId);
@@ -241,7 +241,7 @@ export const customerSolutionMeetingRouter = router({
   /**
    * 上传并转写会议录音
    */
-  transcribeRecording: protectedProcedure
+  transcribeRecording: requirePermission('collab:meeting:hub')
     .input(z.object({
       meetingId: z.string(),
       audioBase64: z.string(),
@@ -353,7 +353,7 @@ export const customerSolutionMeetingRouter = router({
   /**
    * 审批方案版本
    */
-  reviewVersion: protectedProcedure
+  reviewVersion: requirePermission('collab:meeting:hub')
     .input(z.object({
       versionId: z.string(),
       status: z.enum(['approved', 'rejected']),

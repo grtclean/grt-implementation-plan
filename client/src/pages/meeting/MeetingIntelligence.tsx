@@ -63,6 +63,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Channel {
   id: string;
@@ -72,23 +73,24 @@ interface Channel {
   user_role?: string;
 }
 
-const PROJECT_PHASES = [
-  { value: "M0_Opportunity", label: "M0 商机" },
-  { value: "M1_Proposal", label: "M1 方案" },
-  { value: "M2_Kickoff", label: "M2 启动" },
-  { value: "M3_Technical_Design", label: "M3 技术设计" },
-  { value: "M4_Procurement", label: "M4 采购" },
-  { value: "M5_Manufacturing", label: "M5 制造" },
-  { value: "M6_Assembly", label: "M6 组装" },
-  { value: "M7_Testing", label: "M7 测试" },
-  { value: "M8_Production", label: "M8 生产" },
-  { value: "M9_Debugging", label: "M9 调试" },
-  { value: "M10_PreAcceptance", label: "M10 预验收" },
-  { value: "M11_Shipping", label: "M11 发货" },
-  { value: "M12_Handover", label: "M12 交付" },
+const PROJECT_PHASE_KEYS = [
+  { value: "M0_Opportunity", labelKey: "meeting.phase.m0" },
+  { value: "M1_Proposal", labelKey: "meeting.phase.m1" },
+  { value: "M2_Kickoff", labelKey: "meeting.phase.m2" },
+  { value: "M3_Technical_Design", labelKey: "meeting.phase.m3" },
+  { value: "M4_Procurement", labelKey: "meeting.phase.m4" },
+  { value: "M5_Manufacturing", labelKey: "meeting.phase.m5" },
+  { value: "M6_Assembly", labelKey: "meeting.phase.m6" },
+  { value: "M7_Testing", labelKey: "meeting.phase.m7" },
+  { value: "M8_Production", labelKey: "meeting.phase.m8" },
+  { value: "M9_Debugging", labelKey: "meeting.phase.m9" },
+  { value: "M10_PreAcceptance", labelKey: "meeting.phase.m10" },
+  { value: "M11_Shipping", labelKey: "meeting.phase.m11" },
+  { value: "M12_Handover", labelKey: "meeting.phase.m12" },
 ];
 
 export default function MeetingIntelligence() {
+  const { t } = useLanguage();
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
   const [isCreateMeetingOpen, setIsCreateMeetingOpen] = useState(false);
@@ -182,17 +184,17 @@ export default function MeetingIntelligence() {
                 <PageHeader
                   icon={Brain}
                   title={`# ${selectedChannel.name}${selectedChannel.is_confidential ? '' : ''}`}
-                  description={`${meetings?.length || 0} 个会议记录`}
+                  description={`${meetings?.length || 0} ${t("meeting.intel.meetingRecords")}`}
                   actions={
                     <>
                       {selectedChannel.is_confidential && (
                         <Badge variant="outline" className="text-rose-400 border-rose-500/50">
-                          机密
+                          {t("meeting.intel.confidential")}
                         </Badge>
                       )}
                       <Button className="gap-2" onClick={() => setIsCreateMeetingOpen(true)}>
                         <Plus className="w-4 h-4" />
-                        新建会议
+                        {t("meeting.intel.newMeeting")}
                       </Button>
                       <CreateMeetingDialog
                         open={isCreateMeetingOpen}
@@ -212,19 +214,19 @@ export default function MeetingIntelligence() {
                   <TabsList className="bg-background/30">
                     <TabsTrigger value="meetings" className="gap-2">
                       <FileText className="w-4 h-4" />
-                      会议记录
+                      {t("meeting.intel.meetingRecordsTab")}
                     </TabsTrigger>
                     <TabsTrigger value="transcription" className="gap-2">
                       <Mic className="w-4 h-4" />
-                      语音转录
+                      {t("meeting.intel.transcription")}
                     </TabsTrigger>
                     <TabsTrigger value="export-history" className="gap-2">
                       <History className="w-4 h-4" />
-                      导出历史
+                      {t("meeting.intel.exportHistory")}
                     </TabsTrigger>
                     <TabsTrigger value="batch-export" className="gap-2">
                       <FileArchive className="w-4 h-4" />
-                      批量导出
+                      {t("meeting.intel.batchExport")}
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -233,7 +235,7 @@ export default function MeetingIntelligence() {
                   {/* Meeting List */}
                   <div className="w-80 border-r border-border/50 flex flex-col">
                   <div className="p-3 border-b border-border/50">
-                    <Input placeholder="搜索会议..." className="bg-background/30 h-8" />
+                    <Input placeholder={t("meeting.intel.searchMeetings")} className="bg-background/30 h-8" />
                   </div>
                   <ScrollArea className="flex-1">
                     <div className="p-2 space-y-2">
@@ -282,7 +284,7 @@ export default function MeetingIntelligence() {
                       ))}
                       {(!meetings || meetings.length === 0) && (
                         <div className="text-center py-8 text-muted-foreground text-sm">
-                          暂无会议记录
+                          {t("meeting.intel.noMeetingRecords")}
                         </div>
                       )}
                     </div>
@@ -322,7 +324,7 @@ export default function MeetingIntelligence() {
                               disabled={generateSummary.isPending}
                             >
                               <Brain className="w-4 h-4 mr-1" />
-                              {generateSummary.isPending ? "生成中..." : "AI 总结"}
+                              {generateSummary.isPending ? t("meeting.intel.generating") : t("meeting.intel.aiSummary")}
                             </Button>
                             <Button
                               variant="outline"
@@ -331,7 +333,7 @@ export default function MeetingIntelligence() {
                               disabled={generateAssessments.isPending}
                             >
                               <Users className="w-4 h-4 mr-1" />
-                              {generateAssessments.isPending ? "评估中..." : "AI 评估"}
+                              {generateAssessments.isPending ? t("meeting.intel.assessing") : t("meeting.intel.aiAssessment")}
                             </Button>
                           </div>
                         </div>
@@ -346,14 +348,14 @@ export default function MeetingIntelligence() {
                               <CardHeader className="pb-2">
                                 <CardTitle className="text-sm flex items-center gap-2">
                                   <Sparkles className="w-4 h-4 text-primary" />
-                                  AI 会议摘要
+                                  {t("meeting.intel.aiMeetingSummary")}
                                 </CardTitle>
                               </CardHeader>
                               <CardContent className="space-y-3">
                                 <p className="text-sm">{selectedMeeting.summary}</p>
                                 {selectedMeeting.ai_insights.decisions?.length > 0 && (
                                   <div>
-                                    <h4 className="text-xs font-medium text-muted-foreground mb-1">关键决策</h4>
+                                    <h4 className="text-xs font-medium text-muted-foreground mb-1">{t("meeting.intel.keyDecisions")}</h4>
                                     <ul className="space-y-1">
                                       {selectedMeeting.ai_insights.decisions.map((d: string, i: number) => (
                                         <li key={i} className="flex items-start gap-2 text-sm">
@@ -366,7 +368,7 @@ export default function MeetingIntelligence() {
                                 )}
                                 {selectedMeeting.ai_insights.actionItems?.length > 0 && (
                                   <div>
-                                    <h4 className="text-xs font-medium text-muted-foreground mb-1">行动项</h4>
+                                    <h4 className="text-xs font-medium text-muted-foreground mb-1">{t("meeting.intel.actionItems")}</h4>
                                     <ul className="space-y-1">
                                       {selectedMeeting.ai_insights.actionItems.map((item: any, i: number) => (
                                         <li key={i} className="flex items-start gap-2 text-sm">
@@ -386,14 +388,14 @@ export default function MeetingIntelligence() {
                           <div className="space-y-2">
                             <h3 className="text-sm font-medium flex items-center gap-2">
                               <MessageSquare className="w-4 h-4" />
-                              会议内容 ({contentBlocks?.length || 0})
+                              {t("meeting.intel.meetingContent")} ({contentBlocks?.length || 0})
                             </h3>
                             {contentBlocks?.map((block: any) => (
                               <ContentBlockCard key={block.id} block={block} />
                             ))}
                             {(!contentBlocks || contentBlocks.length === 0) && (
                               <div className="text-center py-8 text-muted-foreground text-sm border border-dashed border-border rounded-lg">
-                                暂无内容块，点击添加会议内容
+                                {t("meeting.intel.noContentBlocks")}
                               </div>
                             )}
                           </div>
@@ -403,7 +405,7 @@ export default function MeetingIntelligence() {
                             <div className="space-y-2">
                               <h3 className="text-sm font-medium flex items-center gap-2">
                                 <Users className="w-4 h-4" />
-                                参会人员评估 ({assessments.length})
+                                {t("meeting.intel.participantAssessment")} ({assessments.length})
                               </h3>
                               <div className="grid grid-cols-2 gap-3">
                                 {assessments.map((assessment: any) => (
@@ -419,7 +421,7 @@ export default function MeetingIntelligence() {
                     <div className="flex-1 flex items-center justify-center text-muted-foreground">
                       <div className="text-center">
                         <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p>选择一个会议查看详情</p>
+                        <p>{t("meeting.intel.selectMeeting")}</p>
                       </div>
                     </div>
                   )}
@@ -436,7 +438,7 @@ export default function MeetingIntelligence() {
                   <ExportHistory 
                     defaultFilterType="transcription" 
                     hideTypeFilter={true}
-                    title="会议转录导出历史"
+                    title={t("meeting.intel.transcriptionExportHistory")}
                   />
                 </TabsContent>
                 
@@ -445,7 +447,7 @@ export default function MeetingIntelligence() {
                   <BatchExport 
                     meetings={(meetings || []).map((m: any) => ({
                       id: m.id,
-                      title: m.title || '未命名会议',
+                      title: m.title || t("meeting.intel.untitledMeeting"),
                       date: new Date(m.meetingDate || m.createdAt),
                       duration: m.duration,
                       participants: m.participants?.split(',') || [],
@@ -461,9 +463,9 @@ export default function MeetingIntelligence() {
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
               <div className="text-center">
                 <Brain className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <h2 className="text-xl font-bold mb-2">智能会议评估系统</h2>
+                <h2 className="text-xl font-bold mb-2">{t("meeting.intel.systemTitle")}</h2>
                 <p className="text-sm max-w-md">
-                  选择左侧频道开始记录和分析会议内容，AI 将自动生成摘要和人员评估
+                  {t("meeting.intel.systemDesc")}
                 </p>
               </div>
             </div>
@@ -525,15 +527,15 @@ function AssessmentCard({ assessment }: { assessment: any }) {
           )}
         </div>
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <ScoreItem label="技术清晰度" value={assessment.technical_clarity} />
-          <ScoreItem label="主动性" value={assessment.proactivity} />
-          <ScoreItem label="沟通能力" value={assessment.communication_skill} />
-          <ScoreItem label="问题解决" value={assessment.problem_solving} />
+          <ScoreItem label={t("meeting.intel.techClarity")} value={assessment.technical_clarity} />
+          <ScoreItem label={t("meeting.intel.proactivity")} value={assessment.proactivity} />
+          <ScoreItem label={t("meeting.intel.communication")} value={assessment.communication_skill} />
+          <ScoreItem label={t("meeting.intel.problemSolving")} value={assessment.problem_solving} />
         </div>
         {assessment.evidence && assessment.evidence.length > 0 && (
           <div className="mt-2 pt-2 border-t border-border/50">
             <p className="text-[10px] text-muted-foreground">
-              证据: {JSON.parse(assessment.evidence)[0]}
+              {t("meeting.intel.evidence")}: {JSON.parse(assessment.evidence)[0]}
             </p>
           </div>
         )}

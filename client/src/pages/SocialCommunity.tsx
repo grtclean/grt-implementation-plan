@@ -3,6 +3,7 @@
  * 功能：微信群消息监听、AI回复草拟、人工审核发布
  */
 
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,15 +31,15 @@ const statusColorMap = createStatusColorMap({
   failed: "red",
 });
 
-const statusLabels: Record<string, string> = {
-  pending: "待审核",
-  approved: "已批准",
-  rejected: "已拒绝",
-  published: "已发布",
-  failed: "发布失败",
-};
-
 export default function SocialCommunity() {
+  const { t } = useLanguage();
+  const statusLabels: Record<string, string> = {
+    pending: t("common.social.statusPending"),
+    approved: t("common.social.statusApproved"),
+    rejected: t("common.social.statusRejected"),
+    published: t("common.social.statusPublished"),
+    failed: t("common.social.statusFailed"),
+  };
   const [activeTab, setActiveTab] = useState("messages");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
@@ -76,44 +77,44 @@ export default function SocialCommunity() {
   // tRPC mutations
   const createGroupMutation = trpc.socialCommunity.createGroup.useMutation({
     onSuccess: () => {
-      toast.success("群组创建成功");
+      toast.success(t("common.social.groupCreated"));
       setShowCreateGroupDialog(false);
       setNewGroup({ groupName: "", platform: "wechat", groupId: "", description: "" });
     },
     onError: (error) => {
-      toast.error(`创建失败: ${error.message}`);
+      toast.error(`${t("common.social.createFailed")}: ${error.message}`);
     },
   });
 
   const generateReplyMutation = (trpc.socialCommunity as any).generateAIReply.useMutation({
     onSuccess: () => {
-      toast.success("AI回复已生成，请审核");
+      toast.success(t("common.social.aiReplyGenerated"));
       refetchDrafts();
     },
     onError: (error) => {
-      toast.error(`生成失败: ${error.message}`);
+      toast.error(`${t("common.social.generateFailed")}: ${error.message}`);
     },
   });
 
   const reviewDraftMutation = trpc.socialCommunity.reviewDraft.useMutation({
     onSuccess: () => {
-      toast.success("审核完成");
+      toast.success(t("common.social.reviewComplete"));
       setShowReviewDialog(false);
       refetchDrafts();
       refetchQueue();
     },
     onError: (error) => {
-      toast.error(`审核失败: ${error.message}`);
+      toast.error(`${t("common.social.reviewFailed")}: ${error.message}`);
     },
   });
 
   const publishMessageMutation = (trpc.socialCommunity as any).publishMessage.useMutation({
     onSuccess: () => {
-      toast.success("消息已发布");
+      toast.success(t("common.social.messagePublished"));
       refetchQueue();
     },
     onError: (error) => {
-      toast.error(`发布失败: ${error.message}`);
+      toast.error(`${t("common.social.publishFailed")}: ${error.message}`);
     },
   });
 
@@ -121,39 +122,39 @@ export default function SocialCommunity() {
       <div className="space-y-6">
         <PageHeader
           icon={MessageSquare}
-          title="社群管理"
-          description="微信群消息监听、AI智能回复、人工审核发布"
+          title={t("common.social.title")}
+          description={t("common.social.description")}
           actions={
             <>
               <Button variant="outline" onClick={() => refetchMessages()}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                刷新
+                {t("common.social.refresh")}
               </Button>
               <Dialog open={showCreateGroupDialog} onOpenChange={setShowCreateGroupDialog}>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
-                    添加群组
+                    {t("common.social.addGroup")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>添加社群群组</DialogTitle>
+                    <DialogTitle>{t("common.social.addGroupTitle")}</DialogTitle>
                     <DialogDescription>
-                      配置需要监听的社群群组信息
+                      {t("common.social.addGroupDesc")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <Label>群组名称</Label>
+                      <Label>{t("common.social.groupName")}</Label>
                       <Input
                         value={newGroup.groupName}
                         onChange={(e) => setNewGroup({ ...newGroup, groupName: e.target.value })}
-                        placeholder="如：GRT技术交流群"
+                        placeholder={t("common.social.groupNamePlaceholder")}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>平台</Label>
+                      <Label>{t("common.social.platform")}</Label>
                       <Select
                         value={newGroup.platform}
                         onValueChange={(v) => setNewGroup({ ...newGroup, platform: v })}
@@ -162,39 +163,39 @@ export default function SocialCommunity() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="wechat">微信</SelectItem>
-                          <SelectItem value="dingtalk">钉钉</SelectItem>
-                          <SelectItem value="feishu">飞书</SelectItem>
+                          <SelectItem value="wechat">{t("common.social.wechat")}</SelectItem>
+                          <SelectItem value="dingtalk">{t("common.social.dingtalk")}</SelectItem>
+                          <SelectItem value="feishu">{t("common.social.feishu")}</SelectItem>
                           <SelectItem value="telegram">Telegram</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>群组ID</Label>
+                      <Label>{t("common.social.groupId")}</Label>
                       <Input
                         value={newGroup.groupId}
                         onChange={(e) => setNewGroup({ ...newGroup, groupId: e.target.value })}
-                        placeholder="平台群组唯一标识"
+                        placeholder={t("common.social.groupIdPlaceholder")}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>描述</Label>
+                      <Label>{t("common.social.descriptionLabel")}</Label>
                       <Textarea
                         value={newGroup.description}
                         onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
-                        placeholder="群组用途描述"
+                        placeholder={t("common.social.descriptionPlaceholder")}
                       />
                     </div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setShowCreateGroupDialog(false)}>
-                      取消
+                      {t("common.social.cancel")}
                     </Button>
                     <Button
                       onClick={() => createGroupMutation.mutate({ groupWxId: newGroup.groupId, name: newGroup.groupName, description: newGroup.description } as any)}
                       disabled={createGroupMutation.isPending}
                     >
-                      {createGroupMutation.isPending ? "创建中..." : "创建"}
+                      {createGroupMutation.isPending ? t("common.social.creating") : t("common.social.create")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -205,10 +206,10 @@ export default function SocialCommunity() {
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={Users} label="活跃群组" value={stats?.activeGroups || 0} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
-          <StatCard icon={MessageSquare} label="今日消息" value={stats?.todayMessages || 0} iconColor="text-green-400" iconBg="bg-green-500/10" />
-          <StatCard icon={Clock} label="待审核" value={stats?.pendingDrafts || 0} iconColor="text-yellow-400" iconBg="bg-yellow-500/10" />
-          <StatCard icon={Bot} label="AI回复率" value={`${stats?.aiReplyRate || 0}%`} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
+          <StatCard icon={Users} label={t("common.social.activeGroups")} value={stats?.activeGroups || 0} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+          <StatCard icon={MessageSquare} label={t("common.social.todayMessages")} value={stats?.todayMessages || 0} iconColor="text-green-400" iconBg="bg-green-500/10" />
+          <StatCard icon={Clock} label={t("common.social.pendingReview")} value={stats?.pendingDrafts || 0} iconColor="text-yellow-400" iconBg="bg-yellow-500/10" />
+          <StatCard icon={Bot} label={t("common.social.aiReplyRate")} value={`${stats?.aiReplyRate || 0}%`} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
         </div>
 
         {/* 主要内容区 */}
@@ -216,11 +217,11 @@ export default function SocialCommunity() {
           <TabsList className="bg-muted/50">
             <TabsTrigger value="messages">
               <MessageSquare className="w-4 h-4 mr-2" />
-              消息列表
+              {t("common.social.messageList")}
             </TabsTrigger>
             <TabsTrigger value="drafts">
               <Bot className="w-4 h-4 mr-2" />
-              AI草稿审核
+              {t("common.social.aiDraftReview")}
               {(stats?.pendingDrafts || 0) > 0 && (
                 <Badge variant="destructive" className="ml-2 h-5 px-1.5">
                   {stats?.pendingDrafts}
@@ -229,11 +230,11 @@ export default function SocialCommunity() {
             </TabsTrigger>
             <TabsTrigger value="queue">
               <Send className="w-4 h-4 mr-2" />
-              发布队列
+              {t("common.social.publishQueue")}
             </TabsTrigger>
             <TabsTrigger value="groups">
               <Users className="w-4 h-4 mr-2" />
-              群组管理
+              {t("common.social.groupManagement")}
             </TabsTrigger>
           </TabsList>
 
@@ -242,7 +243,7 @@ export default function SocialCommunity() {
             <div className="flex gap-4">
               <div className="flex-1">
                 <Input
-                  placeholder="搜索消息内容..."
+                  placeholder={t("common.social.searchMessages")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="bg-background"
@@ -250,10 +251,10 @@ export default function SocialCommunity() {
               </div>
               <Select value={selectedGroup} onValueChange={setSelectedGroup}>
                 <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="选择群组" />
+                  <SelectValue placeholder={t("common.social.selectGroup")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部群组</SelectItem>
+                  <SelectItem value="all">{t("common.social.allGroups")}</SelectItem>
                   {groups?.items?.map((group: any) => (
                     <SelectItem key={group.id} value={group.id.toString()}>
                       {group.group_name}
@@ -269,7 +270,7 @@ export default function SocialCommunity() {
                   {messages?.items?.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                       <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>暂无消息记录</p>
+                      <p>{t("common.social.noMessages")}</p>
                     </div>
                   ) : (
                     messages?.items?.map((msg: any) => (
@@ -277,13 +278,13 @@ export default function SocialCommunity() {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium">{msg.sender_name || "未知用户"}</span>
+                              <span className="font-medium">{msg.sender_name || t("common.social.unknownUser")}</span>
                               <Badge variant="outline" className="text-xs">
-                                {msg.group_name || "未知群组"}
+                                {msg.group_name || t("common.social.unknownGroup")}
                               </Badge>
                               {msg.is_question && (
                                 <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
-                                  问题
+                                  {t("common.social.question")}
                                 </Badge>
                               )}
                             </div>
@@ -303,7 +304,7 @@ export default function SocialCommunity() {
                                 disabled={generateReplyMutation.isPending}
                               >
                                 <Bot className="w-4 h-4 mr-1" />
-                                生成回复
+                                {t("common.social.generateReply")}
                               </Button>
                             )}
                           </div>
@@ -322,10 +323,10 @@ export default function SocialCommunity() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Bot className="w-5 h-5" />
-                  待审核的AI回复草稿
+                  {t("common.social.pendingDraftsTitle")}
                 </CardTitle>
                 <CardDescription>
-                  AI自动生成的回复需要人工审核后才能发布
+                  {t("common.social.pendingDraftsDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -333,7 +334,7 @@ export default function SocialCommunity() {
                   {drafts?.items?.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                       <CheckCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>没有待审核的草稿</p>
+                      <p>{t("common.social.noPendingDrafts")}</p>
                     </div>
                   ) : (
                     drafts?.items?.map((draft: any) => (
@@ -342,7 +343,7 @@ export default function SocialCommunity() {
                           <div className="space-y-3">
                             <div className="flex items-start justify-between">
                               <div>
-                                <p className="text-sm text-muted-foreground">原始问题：</p>
+                                <p className="text-sm text-muted-foreground">{t("common.social.originalQuestion")}</p>
                                 <p className="text-sm">{draft.original_message}</p>
                               </div>
                               <StatusBadge color={statusColorMap[draft.status as keyof typeof statusColorMap] ?? "gray"}>
@@ -350,12 +351,12 @@ export default function SocialCommunity() {
                               </StatusBadge>
                             </div>
                             <div className="border-l-2 border-primary pl-4">
-                              <p className="text-sm text-muted-foreground">AI回复草稿：</p>
+                              <p className="text-sm text-muted-foreground">{t("common.social.aiDraftReplyLabel")}</p>
                               <p className="text-sm whitespace-pre-wrap">{draft.draft_content}</p>
                             </div>
                             <div className="flex items-center justify-between pt-2">
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span>置信度: {(draft.confidence_score * 100).toFixed(0)}%</span>
+                                <span>{t("common.social.confidence")}: {(draft.confidence_score * 100).toFixed(0)}%</span>
                                 <span>•</span>
                                 <span>{new Date(draft.created_at).toLocaleString()}</span>
                               </div>
@@ -369,7 +370,7 @@ export default function SocialCommunity() {
                                   }}
                                 >
                                   <Edit className="w-4 h-4 mr-1" />
-                                  审核
+                                  {t("common.social.review")}
                                 </Button>
                               </div>
                             </div>
@@ -389,10 +390,10 @@ export default function SocialCommunity() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Send className="w-5 h-5" />
-                  发布队列
+                  {t("common.social.publishQueueTitle")}
                 </CardTitle>
                 <CardDescription>
-                  已审核通过的消息等待发布
+                  {t("common.social.publishQueueDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -400,7 +401,7 @@ export default function SocialCommunity() {
                   {publishQueue?.items?.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                       <Send className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>发布队列为空</p>
+                      <p>{t("common.social.emptyQueue")}</p>
                     </div>
                   ) : (
                     publishQueue?.items?.map((item: any) => (
@@ -416,7 +417,7 @@ export default function SocialCommunity() {
                               </div>
                               <p className="text-sm whitespace-pre-wrap">{item.content}</p>
                               <p className="text-xs text-muted-foreground mt-2">
-                                计划发布: {item.scheduled_at ? new Date(item.scheduled_at).toLocaleString() : "立即"}
+                                {t("common.social.scheduledPublish")}: {item.scheduled_at ? new Date(item.scheduled_at).toLocaleString() : t("common.social.immediately")}
                               </p>
                             </div>
                             <div className="flex gap-2">
@@ -427,7 +428,7 @@ export default function SocialCommunity() {
                                   disabled={publishMessageMutation.isPending}
                                 >
                                   <Send className="w-4 h-4 mr-1" />
-                                  立即发布
+                                  {t("common.social.publishNow")}
                                 </Button>
                               )}
                             </div>
@@ -453,33 +454,33 @@ export default function SocialCommunity() {
                         <CardDescription>{group.platform}</CardDescription>
                       </div>
                       <Badge variant={group.is_active ? "default" : "secondary"}>
-                        {group.is_active ? "活跃" : "停用"}
+                        {group.is_active ? t("common.social.active") : t("common.social.disabled")}
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">成员数</span>
+                        <span className="text-muted-foreground">{t("common.social.memberCount")}</span>
                         <span>{group.member_count || 0}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">消息数</span>
+                        <span className="text-muted-foreground">{t("common.social.messageCount")}</span>
                         <span>{group.message_count || 0}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">AI回复</span>
-                        <span>{group.ai_enabled ? "已启用" : "未启用"}</span>
+                        <span className="text-muted-foreground">{t("common.social.aiReply")}</span>
+                        <span>{group.ai_enabled ? t("common.social.aiEnabled") : t("common.social.aiDisabled")}</span>
                       </div>
                     </div>
                     <div className="flex gap-2 mt-4">
                       <Button size="sm" variant="outline" className="flex-1">
                         <Settings className="w-4 h-4 mr-1" />
-                        设置
+                        {t("common.social.settings")}
                       </Button>
                       <Button size="sm" variant="outline" className="flex-1">
                         <Activity className="w-4 h-4 mr-1" />
-                        统计
+                        {t("common.social.statistics")}
                       </Button>
                     </div>
                   </CardContent>
@@ -493,21 +494,21 @@ export default function SocialCommunity() {
         <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>审核AI回复</DialogTitle>
+              <DialogTitle>{t("common.social.reviewAiReplyTitle")}</DialogTitle>
               <DialogDescription>
-                审核并修改AI生成的回复内容
+                {t("common.social.reviewAiReplyDesc")}
               </DialogDescription>
             </DialogHeader>
             {selectedDraft && (
               <div className="space-y-4 py-4">
                 <div>
-                  <Label className="text-muted-foreground">原始问题</Label>
+                  <Label className="text-muted-foreground">{t("common.social.originalQuestionLabel")}</Label>
                   <p className="mt-1 p-3 bg-muted rounded-lg text-sm">
                     {selectedDraft.original_message}
                   </p>
                 </div>
                 <div>
-                  <Label>回复内容（可编辑）</Label>
+                  <Label>{t("common.social.replyContentEditable")}</Label>
                   <Textarea
                     className="mt-1 min-h-[150px]"
                     defaultValue={selectedDraft.draft_content}
@@ -515,10 +516,10 @@ export default function SocialCommunity() {
                   />
                 </div>
                 <div>
-                  <Label>审核意见</Label>
+                  <Label>{t("common.social.reviewComment")}</Label>
                   <Textarea
                     className="mt-1"
-                    placeholder="可选：填写审核意见或修改说明"
+                    placeholder={t("common.social.reviewCommentPlaceholder")}
                     id="review-comment"
                   />
                 </div>
@@ -526,7 +527,7 @@ export default function SocialCommunity() {
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowReviewDialog(false)}>
-                取消
+                {t("common.social.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -540,7 +541,7 @@ export default function SocialCommunity() {
                 }}
                 disabled={reviewDraftMutation.isPending}
               >
-                拒绝
+                {t("common.social.reject")}
               </Button>
               <Button
                 onClick={() => {
@@ -555,7 +556,7 @@ export default function SocialCommunity() {
                 }}
                 disabled={reviewDraftMutation.isPending}
               >
-                批准并发布
+                {t("common.social.approveAndPublish")}
               </Button>
             </DialogFooter>
           </DialogContent>

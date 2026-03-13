@@ -38,7 +38,7 @@ export async function grantXP(userId: number, action: string, points?: number, s
   const totalResult = await db.select({ total: sql<number>`COALESCE(SUM(points),0)` }).from(schema.employeeXP).where(eq(schema.employeeXP.userId, userId));
   const newTotal = totalResult[0]?.total ?? 0;
   const { level } = calculateLevel(newTotal);
-  const existing = await db.select().from(schema.employeeLevels).where(eq(schema.employeeLevels.userId, userId));
+  const existing = await db.select().from(schema.employeeLevels).where(eq(schema.employeeLevels.userId, userId)).limit(1000);
   const oldLevel = existing[0]?.currentLevel ?? 0;
   const { title } = calculateLevel(newTotal);
 
@@ -52,7 +52,7 @@ export async function grantXP(userId: number, action: string, points?: number, s
 
 export async function getEmployeeProfile(userId: number) {
   const db = await requireDb();
-  const levelData = await db.select().from(schema.employeeLevels).where(eq(schema.employeeLevels.userId, userId));
+  const levelData = await db.select().from(schema.employeeLevels).where(eq(schema.employeeLevels.userId, userId)).limit(1000);
   const achievements = await db.select().from(schema.employeeAchievements).where(eq(schema.employeeAchievements.userId, userId)).limit(1000);
   const recentXP = await db.select().from(schema.employeeXP).where(eq(schema.employeeXP.userId, userId)).orderBy(desc(schema.employeeXP.awardedAt)).limit(20);
   const totalXP = levelData[0]?.totalXP ?? 0;

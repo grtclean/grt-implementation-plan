@@ -38,46 +38,69 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 
-// 群组类型映射
-const GROUP_TYPE_NAMES: Record<string, { label: string; color: string }> = {
-  department: { label: "部门群组", color: "bg-blue-500/10 text-blue-500" },
-  project: { label: "项目群组", color: "bg-green-500/10 text-green-500" },
-  cross_dept: { label: "跨部门群组", color: "bg-purple-500/10 text-purple-500" },
-  training: { label: "培训群组", color: "bg-orange-500/10 text-orange-500" },
-  announcement: { label: "通告群组", color: "bg-red-500/10 text-red-500" },
-  meeting: { label: "会议群组", color: "bg-cyan-500/10 text-cyan-500" },
-  custom: { label: "自定义群组", color: "bg-gray-500/10 text-gray-500" },
+// Color maps (language-independent)
+const GROUP_TYPE_COLORS: Record<string, string> = {
+  department: "bg-blue-500/10 text-blue-500",
+  project: "bg-green-500/10 text-green-500",
+  cross_dept: "bg-purple-500/10 text-purple-500",
+  training: "bg-orange-500/10 text-orange-500",
+  announcement: "bg-red-500/10 text-red-500",
+  meeting: "bg-cyan-500/10 text-cyan-500",
+  custom: "bg-gray-500/10 text-gray-500",
 };
 
-// 通知类型映射
-const NOTIFICATION_TYPE_NAMES: Record<string, string> = {
-  meeting: "会议通知",
-  training: "培训通知",
-  announcement: "公告通知",
-  reminder: "提醒通知",
-  alert: "告警通知",
-  custom: "自定义通知",
+const GROUP_TYPE_I18N: Record<string, string> = {
+  department: "admin.groupNotif.typeDepartment",
+  project: "admin.groupNotif.typeProject",
+  cross_dept: "admin.groupNotif.typeCrossDept",
+  training: "admin.groupNotif.typeTraining",
+  announcement: "admin.groupNotif.typeAnnouncement",
+  meeting: "admin.groupNotif.typeMeeting",
+  custom: "admin.groupNotif.typeCustom",
 };
 
-// 通知渠道映射
-const CHANNEL_NAMES: Record<string, { label: string; icon: React.ReactNode }> = {
-  email: { label: "邮件", icon: <Mail className="w-4 h-4" /> },
-  system: { label: "系统", icon: <Bell className="w-4 h-4" /> },
-  sms: { label: "短信", icon: <Smartphone className="w-4 h-4" /> },
-  wechat: { label: "微信", icon: <MessageSquare className="w-4 h-4" /> },
+const NOTIFICATION_TYPE_I18N: Record<string, string> = {
+  meeting: "admin.groupNotif.notifMeeting",
+  training: "admin.groupNotif.notifTraining",
+  announcement: "admin.groupNotif.notifAnnouncement",
+  reminder: "admin.groupNotif.notifReminder",
+  alert: "admin.groupNotif.notifAlert",
+  custom: "admin.groupNotif.notifCustom",
 };
 
-// 优先级映射
-const PRIORITY_NAMES: Record<string, { label: string; color: string }> = {
-  low: { label: "低", color: "bg-gray-500/10 text-gray-500" },
-  normal: { label: "普通", color: "bg-blue-500/10 text-blue-500" },
-  high: { label: "高", color: "bg-orange-500/10 text-orange-500" },
-  urgent: { label: "紧急", color: "bg-red-500/10 text-red-500" },
+const CHANNEL_ICONS: Record<string, React.ReactNode> = {
+  email: <Mail className="w-4 h-4" />,
+  system: <Bell className="w-4 h-4" />,
+  sms: <Smartphone className="w-4 h-4" />,
+  wechat: <MessageSquare className="w-4 h-4" />,
+};
+
+const CHANNEL_I18N: Record<string, string> = {
+  email: "admin.groupNotif.channelEmail",
+  system: "admin.groupNotif.channelSystem",
+  sms: "admin.groupNotif.channelSms",
+  wechat: "admin.groupNotif.channelWechat",
+};
+
+const PRIORITY_COLORS: Record<string, string> = {
+  low: "bg-gray-500/10 text-gray-500",
+  normal: "bg-blue-500/10 text-blue-500",
+  high: "bg-orange-500/10 text-orange-500",
+  urgent: "bg-red-500/10 text-red-500",
+};
+
+const PRIORITY_I18N: Record<string, string> = {
+  low: "admin.groupNotif.priorityLow",
+  normal: "admin.groupNotif.priorityNormal",
+  high: "admin.groupNotif.priorityHigh",
+  urgent: "admin.groupNotif.priorityUrgent",
 };
 
 export default function GroupNotificationManagement() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("groups");
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
@@ -88,11 +111,11 @@ export default function GroupNotificationManagement() {
   // 初始化默认群组
   const initGroups = (trpc.permission as any).initDefaultGroups.useMutation({
     onSuccess: (data) => {
-      toast.success(`成功初始化 ${data.created} 个群组，跳过 ${data.skipped} 个已存在群组`);
+      toast.success(`${t("admin.groupNotif.initSuccess")} ${data.created}, ${data.skipped} ${t("admin.groupNotif.initSkipped")}`);
       groups.refetch();
     },
     onError: (error) => {
-      toast.error(`初始化失败: ${error.message}`);
+      toast.error(`${t("admin.groupNotif.initFailed")}: ${error.message}`);
     },
   });
 
@@ -100,13 +123,13 @@ export default function GroupNotificationManagement() {
       <div className="space-y-6">
         <PageHeader
           icon={Users}
-          title="群组通知管理"
-          description="管理部门群组、会议群组、培训群组，配置和发送群组通知"
+          title={t("admin.groupNotif.title")}
+          description={t("admin.groupNotif.description")}
           actions={
             <>
               <Button variant="outline" onClick={() => groups.refetch()}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                刷新
+                {t("admin.groupNotif.refresh")}
               </Button>
               <Button
                 variant="outline"
@@ -114,7 +137,7 @@ export default function GroupNotificationManagement() {
                 disabled={initGroups.isPending}
               >
                 <Settings className="w-4 h-4 mr-2" />
-                {initGroups.isPending ? "初始化中..." : "初始化默认群组"}
+                {initGroups.isPending ? t("admin.groupNotif.initializing") : t("admin.groupNotif.initDefaultGroups")}
               </Button>
             </>
           }
@@ -125,19 +148,19 @@ export default function GroupNotificationManagement() {
           <TabsList className="bg-muted/50">
             <TabsTrigger value="groups" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              群组管理
+              {t("admin.groupNotif.tabGroups")}
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-2">
               <Bell className="w-4 h-4" />
-              通知配置
+              {t("admin.groupNotif.tabNotifications")}
             </TabsTrigger>
             <TabsTrigger value="send" className="flex items-center gap-2">
               <Send className="w-4 h-4" />
-              发送通知
+              {t("admin.groupNotif.tabSend")}
             </TabsTrigger>
             <TabsTrigger value="logs" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              发送记录
+              {t("admin.groupNotif.tabLogs")}
             </TabsTrigger>
           </TabsList>
 
@@ -197,6 +220,7 @@ function GroupsTab({
   onSelectGroup: (id: number | null) => void;
   selectedGroupId: number | null;
 }) {
+  const { t } = useLanguage();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newGroup, setNewGroup] = useState({
     groupCode: "",
@@ -207,24 +231,24 @@ function GroupsTab({
 
   const createGroup = (trpc.permission as any).createGroup.useMutation({
     onSuccess: () => {
-      toast.success("群组创建成功");
+      toast.success(t("admin.groupNotif.createSuccess"));
       setShowCreateDialog(false);
       setNewGroup({ groupCode: "", name: "", type: "custom", description: "" });
       onRefresh();
     },
     onError: (error) => {
-      toast.error(`创建失败: ${error.message}`);
+      toast.error(`${t("admin.groupNotif.createFailed")}: ${error.message}`);
     },
   });
 
   const deleteGroup = (trpc.permission as any).deleteGroup.useMutation({
     onSuccess: () => {
-      toast.success("群组已删除");
+      toast.success(t("admin.groupNotif.deleteSuccess"));
       onRefresh();
       if (selectedGroupId) onSelectGroup(null);
     },
     onError: (error) => {
-      toast.error(`删除失败: ${error.message}`);
+      toast.error(`${t("admin.groupNotif.deleteFailed")}: ${error.message}`);
     },
   });
 
@@ -244,41 +268,41 @@ function GroupsTab({
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" />
-                群组列表
+                {t("admin.groupNotif.groupList")}
               </CardTitle>
-              <CardDescription>共 {groups.length} 个群组</CardDescription>
+              <CardDescription>{groups.length} {t("admin.groupNotif.tabGroups")}</CardDescription>
             </div>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />
-                  创建群组
+                  {t("admin.groupNotif.createGroup")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>创建新群组</DialogTitle>
-                  <DialogDescription>填写群组信息创建新的通知群组</DialogDescription>
+                  <DialogTitle>{t("admin.groupNotif.createNewGroup")}</DialogTitle>
+                  <DialogDescription>{t("admin.groupNotif.createNewGroupDesc")}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>群组代码</Label>
+                    <Label>{t("admin.groupNotif.groupCode")}</Label>
                     <Input
-                      placeholder="例如: grp_custom_001"
+                      placeholder={t("admin.groupNotif.groupCodePlaceholder")}
                       value={newGroup.groupCode}
                       onChange={(e) => setNewGroup({ ...newGroup, groupCode: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>群组名称</Label>
+                    <Label>{t("admin.groupNotif.groupName")}</Label>
                     <Input
-                      placeholder="例如: 项目A团队群组"
+                      placeholder={t("admin.groupNotif.groupNamePlaceholder")}
                       value={newGroup.name}
                       onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>群组类型</Label>
+                    <Label>{t("admin.groupNotif.groupType")}</Label>
                     <Select
                       value={newGroup.type}
                       onValueChange={(v: any) => setNewGroup({ ...newGroup, type: v })}
@@ -287,16 +311,16 @@ function GroupsTab({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(GROUP_TYPE_NAMES).map(([value, { label }]) => (
-                          <SelectItem key={value} value={value}>{label}</SelectItem>
+                        {Object.entries(GROUP_TYPE_I18N).map(([value, key]) => (
+                          <SelectItem key={value} value={value}>{t(key)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>描述</Label>
+                    <Label>{t("admin.groupNotif.descriptionLabel")}</Label>
                     <Textarea
-                      placeholder="群组描述..."
+                      placeholder={t("admin.groupNotif.descriptionPlaceholder")}
                       value={newGroup.description}
                       onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
                     />
@@ -304,13 +328,13 @@ function GroupsTab({
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                    取消
+                    {t("admin.groupNotif.cancel")}
                   </Button>
                   <Button
                     onClick={() => createGroup.mutate(newGroup)}
                     disabled={createGroup.isPending || !newGroup.groupCode || !newGroup.name}
                   >
-                    {createGroup.isPending ? "创建中..." : "创建"}
+                    {createGroup.isPending ? t("admin.groupNotif.creating") : t("admin.groupNotif.create")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -319,18 +343,18 @@ function GroupsTab({
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">加载中...</div>
+            <div className="text-center py-8 text-muted-foreground">{t("admin.groupNotif.loading")}</div>
           ) : groups.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              暂无群组，请点击"初始化默认群组"创建预定义群组
+              {t("admin.groupNotif.noGroupsHint")}
             </div>
           ) : (
             <div className="space-y-6">
               {(Object.entries(groupsByType) as [string, any[]][]).map(([type, typeGroups]) => (
                 <div key={type}>
                   <h4 className="font-semibold mb-3 text-sm text-muted-foreground flex items-center gap-2">
-                    <Badge variant="outline" className={GROUP_TYPE_NAMES[type]?.color}>
-                      {GROUP_TYPE_NAMES[type]?.label || type}
+                    <Badge variant="outline" className={GROUP_TYPE_COLORS[type]}>
+                      {GROUP_TYPE_I18N[type] ? t(GROUP_TYPE_I18N[type]) : type}
                     </Badge>
                     <span>({typeGroups.length})</span>
                   </h4>
@@ -361,7 +385,7 @@ function GroupsTab({
                             className="h-8 w-8"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (confirm("确定要删除此群组吗？")) {
+                              if (confirm(t("admin.groupNotif.deleteConfirm"))) {
                                 deleteGroup.mutate({ id: group.id });
                               }
                             }}
@@ -384,10 +408,10 @@ function GroupsTab({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserPlus className="w-5 h-5 text-primary" />
-            群组成员
+            {t("admin.groupNotif.groupMembers")}
           </CardTitle>
           <CardDescription>
-            {selectedGroupId ? "管理群组成员" : "选择一个群组查看成员"}
+            {selectedGroupId ? t("admin.groupNotif.manageMembers") : t("admin.groupNotif.selectGroupHint")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -395,7 +419,7 @@ function GroupsTab({
             <GroupMembersPanel groupId={selectedGroupId} />
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              请从左侧选择一个群组
+              {t("admin.groupNotif.selectFromLeft")}
             </div>
           )}
         </CardContent>
@@ -406,6 +430,7 @@ function GroupsTab({
 
 // 群组成员管理面板
 function GroupMembersPanel({ groupId }: { groupId: number }) {
+  const { t } = useLanguage();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newMember, setNewMember] = useState({
     memberType: "user" as "user" | "role" | "department",
@@ -419,22 +444,22 @@ function GroupMembersPanel({ groupId }: { groupId: number }) {
 
   const addMember = (trpc.permission as any).addGroupMember.useMutation({
     onSuccess: () => {
-      toast.success("成员添加成功");
+      toast.success(t("admin.groupNotif.addSuccess"));
       setShowAddDialog(false);
       members.refetch();
     },
     onError: (error) => {
-      toast.error(`添加失败: ${error.message}`);
+      toast.error(`${t("admin.groupNotif.addFailed")}: ${error.message}`);
     },
   });
 
   const removeMember = (trpc.permission as any).removeGroupMember.useMutation({
     onSuccess: () => {
-      toast.success("成员已移除");
+      toast.success(t("admin.groupNotif.removeSuccess"));
       members.refetch();
     },
     onError: (error) => {
-      toast.error(`移除失败: ${error.message}`);
+      toast.error(`${t("admin.groupNotif.removeFailed")}: ${error.message}`);
     },
   });
 
@@ -442,23 +467,23 @@ function GroupMembersPanel({ groupId }: { groupId: number }) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <span className="text-sm text-muted-foreground">
-          共 {members.data?.length || 0} 个成员
+          {members.data?.length || 0} {t("admin.groupNotif.recipientCount")}
         </span>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="w-4 h-4 mr-2" />
-              添加成员
+              {t("admin.groupNotif.addMember")}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>添加群组成员</DialogTitle>
-              <DialogDescription>选择成员类型并添加到群组</DialogDescription>
+              <DialogTitle>{t("admin.groupNotif.addGroupMember")}</DialogTitle>
+              <DialogDescription>{t("admin.groupNotif.addGroupMemberDesc")}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>成员类型</Label>
+                <Label>{t("admin.groupNotif.memberType")}</Label>
                 <Select
                   value={newMember.memberType}
                   onValueChange={(v: any) => setNewMember({ ...newMember, memberType: v })}
@@ -467,65 +492,65 @@ function GroupMembersPanel({ groupId }: { groupId: number }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">指定用户</SelectItem>
-                    <SelectItem value="role">按角色</SelectItem>
-                    <SelectItem value="department">按部门</SelectItem>
+                    <SelectItem value="user">{t("admin.groupNotif.specifyUser")}</SelectItem>
+                    <SelectItem value="role">{t("admin.groupNotif.byRole")}</SelectItem>
+                    <SelectItem value="department">{t("admin.groupNotif.byDepartment")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               {newMember.memberType === "user" && (
                 <div className="space-y-2">
-                  <Label>用户ID</Label>
+                  <Label>{t("admin.groupNotif.userId")}</Label>
                   <Input
                     type="number"
-                    placeholder="输入用户ID"
+                    placeholder={t("admin.groupNotif.userIdPlaceholder")}
                     onChange={(e) => setNewMember({ ...newMember, userId: parseInt(e.target.value) || undefined })}
                   />
                 </div>
               )}
               {newMember.memberType === "role" && (
                 <div className="space-y-2">
-                  <Label>角色</Label>
+                  <Label>{t("admin.groupNotif.role")}</Label>
                   <Select
                     value={newMember.roleId}
                     onValueChange={(v) => setNewMember({ ...newMember, roleId: v })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="选择角色" />
+                      <SelectValue placeholder={t("admin.groupNotif.selectRole")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="employee">普通员工</SelectItem>
-                      <SelectItem value="team_lead">组长/主管</SelectItem>
-                      <SelectItem value="dept_manager">部门经理</SelectItem>
-                      <SelectItem value="hr_specialist">HR专员</SelectItem>
-                      <SelectItem value="hr_manager">HR经理</SelectItem>
-                      <SelectItem value="finance_specialist">财务专员</SelectItem>
-                      <SelectItem value="finance_manager">财务经理</SelectItem>
-                      <SelectItem value="director">总监</SelectItem>
-                      <SelectItem value="admin">系统管理员</SelectItem>
+                      <SelectItem value="employee">{t("admin.groupNotif.roleEmployee")}</SelectItem>
+                      <SelectItem value="team_lead">{t("admin.groupNotif.roleTeamLead")}</SelectItem>
+                      <SelectItem value="dept_manager">{t("admin.groupNotif.roleDeptManager")}</SelectItem>
+                      <SelectItem value="hr_specialist">{t("admin.groupNotif.roleHrSpecialist")}</SelectItem>
+                      <SelectItem value="hr_manager">{t("admin.groupNotif.roleHrManager")}</SelectItem>
+                      <SelectItem value="finance_specialist">{t("admin.groupNotif.roleFinanceSpec")}</SelectItem>
+                      <SelectItem value="finance_manager">{t("admin.groupNotif.roleFinanceMgr")}</SelectItem>
+                      <SelectItem value="director">{t("admin.groupNotif.roleDirector")}</SelectItem>
+                      <SelectItem value="admin">{t("admin.groupNotif.roleAdminUser")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               )}
               {newMember.memberType === "department" && (
                 <div className="space-y-2">
-                  <Label>部门</Label>
+                  <Label>{t("admin.groupNotif.department")}</Label>
                   <Select
                     value={newMember.departmentId}
                     onValueChange={(v) => setNewMember({ ...newMember, departmentId: v })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="选择部门" />
+                      <SelectValue placeholder={t("admin.groupNotif.selectDepartment")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sales">销售部</SelectItem>
-                      <SelectItem value="tech">技术服务部</SelectItem>
-                      <SelectItem value="production">生产部</SelectItem>
-                      <SelectItem value="procurement">采购部</SelectItem>
-                      <SelectItem value="quality">品管部</SelectItem>
-                      <SelectItem value="finance">财务部</SelectItem>
-                      <SelectItem value="hr">人力资源部</SelectItem>
-                      <SelectItem value="admin">行政部</SelectItem>
+                      <SelectItem value="sales">{t("admin.groupNotif.deptSales")}</SelectItem>
+                      <SelectItem value="tech">{t("admin.groupNotif.deptTech")}</SelectItem>
+                      <SelectItem value="production">{t("admin.groupNotif.deptProduction")}</SelectItem>
+                      <SelectItem value="procurement">{t("admin.groupNotif.deptProcurement")}</SelectItem>
+                      <SelectItem value="quality">{t("admin.groupNotif.deptQuality")}</SelectItem>
+                      <SelectItem value="finance">{t("admin.groupNotif.deptFinance")}</SelectItem>
+                      <SelectItem value="hr">{t("admin.groupNotif.deptHr")}</SelectItem>
+                      <SelectItem value="admin">{t("admin.groupNotif.deptAdmin")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -536,12 +561,12 @@ function GroupMembersPanel({ groupId }: { groupId: number }) {
                   checked={newMember.isAdmin}
                   onCheckedChange={(checked) => setNewMember({ ...newMember, isAdmin: !!checked })}
                 />
-                <Label htmlFor="isAdmin">设为群组管理员</Label>
+                <Label htmlFor="isAdmin">{t("admin.groupNotif.setAsAdmin")}</Label>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-                取消
+                {t("admin.groupNotif.cancel")}
               </Button>
               <Button
                 onClick={() => addMember.mutate({
@@ -554,7 +579,7 @@ function GroupMembersPanel({ groupId }: { groupId: number }) {
                 })}
                 disabled={addMember.isPending}
               >
-                {addMember.isPending ? "添加中..." : "添加"}
+                {addMember.isPending ? t("admin.groupNotif.adding") : t("admin.groupNotif.add")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -562,9 +587,9 @@ function GroupMembersPanel({ groupId }: { groupId: number }) {
       </div>
 
       {members.isLoading ? (
-        <div className="text-center py-4 text-muted-foreground">加载中...</div>
+        <div className="text-center py-4 text-muted-foreground">{t("admin.groupNotif.loading")}</div>
       ) : members.data?.length === 0 ? (
-        <div className="text-center py-4 text-muted-foreground">暂无成员</div>
+        <div className="text-center py-4 text-muted-foreground">{t("admin.groupNotif.noMembers")}</div>
       ) : (
         <div className="space-y-2">
           {members.data?.map((member: any) => (
@@ -588,13 +613,13 @@ function GroupMembersPanel({ groupId }: { groupId: number }) {
                 </div>
                 <div>
                   <p className="text-sm font-medium">
-                    {member.memberType === "user" ? `用户 #${member.userId}` :
-                     member.memberType === "role" ? `角色: ${member.roleId}` :
-                     `部门: ${member.departmentId}`}
+                    {member.memberType === "user" ? `${t("admin.groupNotif.userPrefix")}${member.userId}` :
+                     member.memberType === "role" ? `${t("admin.groupNotif.rolePrefix")} ${member.roleId}` :
+                     `${t("admin.groupNotif.deptIdPrefix")} ${member.departmentId}`}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {member.isAdmin && <Badge variant="secondary" className="mr-2">管理员</Badge>}
-                    {new Date(member.joinedAt).toLocaleDateString("zh-CN")}
+                    {member.isAdmin && <Badge variant="secondary" className="mr-2">{t("admin.groupNotif.admin")}</Badge>}
+                    {new Date(member.joinedAt).toLocaleDateString()}
                   </p>
                 </div>
               </div>
@@ -624,6 +649,7 @@ function NotificationConfigsTab({
   selectedGroupId: number | null;
   onSelectGroup: (id: number | null) => void;
 }) {
+  const { t } = useLanguage();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newConfig, setNewConfig] = useState({
     notificationType: "announcement" as const,
@@ -641,22 +667,22 @@ function NotificationConfigsTab({
 
   const createConfig = (trpc.permission as any).createGroupNotificationConfig.useMutation({
     onSuccess: () => {
-      toast.success("通知配置创建成功");
+      toast.success(t("admin.groupNotif.configCreated"));
       setShowCreateDialog(false);
       configs.refetch();
     },
     onError: (error) => {
-      toast.error(`创建失败: ${error.message}`);
+      toast.error(`${t("admin.groupNotif.configCreateFailed")}: ${error.message}`);
     },
   });
 
   const deleteConfig = (trpc.permission as any).deleteGroupNotificationConfig.useMutation({
     onSuccess: () => {
-      toast.success("配置已删除");
+      toast.success(t("admin.groupNotif.configDeleted"));
       configs.refetch();
     },
     onError: (error) => {
-      toast.error(`删除失败: ${error.message}`);
+      toast.error(`${t("admin.groupNotif.configDeleteFailed")}: ${error.message}`);
     },
   });
 
@@ -667,7 +693,7 @@ function NotificationConfigsTab({
       {/* 群组选择 */}
       <Card className="bg-card/50">
         <CardHeader>
-          <CardTitle className="text-sm">选择群组</CardTitle>
+          <CardTitle className="text-sm">{t("admin.groupNotif.selectGroup")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -682,8 +708,8 @@ function NotificationConfigsTab({
                 onClick={() => onSelectGroup(group.id)}
               >
                 <p className="font-medium text-sm">{group.name}</p>
-                <Badge variant="outline" className={`mt-1 text-xs ${GROUP_TYPE_NAMES[group.type]?.color}`}>
-                  {GROUP_TYPE_NAMES[group.type]?.label}
+                <Badge variant="outline" className={`mt-1 text-xs ${GROUP_TYPE_COLORS[group.type]}`}>
+                  {GROUP_TYPE_I18N[group.type] ? t(GROUP_TYPE_I18N[group.type]) : group.type}
                 </Badge>
               </div>
             ))}
@@ -698,10 +724,10 @@ function NotificationConfigsTab({
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="w-5 h-5 text-primary" />
-                通知配置 {selectedGroup && `- ${selectedGroup.name}`}
+                {t("admin.groupNotif.notifConfig")} {selectedGroup && `- ${selectedGroup.name}`}
               </CardTitle>
               <CardDescription>
-                {selectedGroupId ? "配置群组的通知规则" : "请先选择一个群组"}
+                {selectedGroupId ? t("admin.groupNotif.configRules") : t("admin.groupNotif.selectGroupFirst")}
               </CardDescription>
             </div>
             {selectedGroupId && (
@@ -709,17 +735,17 @@ function NotificationConfigsTab({
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
-                    添加配置
+                    {t("admin.groupNotif.addConfig")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-lg">
                   <DialogHeader>
-                    <DialogTitle>创建通知配置</DialogTitle>
-                    <DialogDescription>为群组配置通知规则</DialogDescription>
+                    <DialogTitle>{t("admin.groupNotif.createNotifConfig")}</DialogTitle>
+                    <DialogDescription>{t("admin.groupNotif.createNotifConfigDesc")}</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label>通知类型</Label>
+                      <Label>{t("admin.groupNotif.notifType")}</Label>
                       <Select
                         value={newConfig.notificationType}
                         onValueChange={(v: any) => setNewConfig({ ...newConfig, notificationType: v })}
@@ -728,40 +754,40 @@ function NotificationConfigsTab({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(NOTIFICATION_TYPE_NAMES).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>{label}</SelectItem>
+                          {Object.entries(NOTIFICATION_TYPE_I18N).map(([value, key]) => (
+                            <SelectItem key={value} value={value}>{t(key)}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>标题模板</Label>
+                      <Label>{t("admin.groupNotif.titleTemplate")}</Label>
                       <Input
-                        placeholder="例如: [会议通知] {{meetingTitle}}"
+                        placeholder={t("admin.groupNotif.titleTemplatePlaceholder")}
                         value={newConfig.titleTemplate}
                         onChange={(e) => setNewConfig({ ...newConfig, titleTemplate: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>内容模板</Label>
+                      <Label>{t("admin.groupNotif.contentTemplate")}</Label>
                       <Textarea
-                        placeholder="通知内容模板，支持变量..."
+                        placeholder={t("admin.groupNotif.contentTemplatePlaceholder")}
                         value={newConfig.contentTemplate}
                         onChange={(e) => setNewConfig({ ...newConfig, contentTemplate: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Cron表达式（可选，用于定时通知）</Label>
+                      <Label>{t("admin.groupNotif.cronExpression")}</Label>
                       <Input
-                        placeholder="例如: 0 9 * * 1 (每周一9点)"
+                        placeholder={t("admin.groupNotif.cronPlaceholder")}
                         value={newConfig.cronExpression}
                         onChange={(e) => setNewConfig({ ...newConfig, cronExpression: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>通知渠道</Label>
+                      <Label>{t("admin.groupNotif.channels")}</Label>
                       <div className="flex flex-wrap gap-4">
-                        {Object.entries(CHANNEL_NAMES).map(([value, { label, icon }]) => (
+                        {Object.entries(CHANNEL_I18N).map(([value, key]) => (
                           <div key={value} className="flex items-center gap-2">
                             <Checkbox
                               id={`channel-${value}`}
@@ -775,14 +801,14 @@ function NotificationConfigsTab({
                               }}
                             />
                             <Label htmlFor={`channel-${value}`} className="flex items-center gap-1">
-                              {icon} {label}
+                              {CHANNEL_ICONS[value]} {t(key)}
                             </Label>
                           </div>
                         ))}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>优先级</Label>
+                      <Label>{t("admin.groupNotif.priority")}</Label>
                       <Select
                         value={newConfig.priority}
                         onValueChange={(v: any) => setNewConfig({ ...newConfig, priority: v })}
@@ -791,8 +817,8 @@ function NotificationConfigsTab({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(PRIORITY_NAMES).map(([value, { label }]) => (
-                            <SelectItem key={value} value={value}>{label}</SelectItem>
+                          {Object.entries(PRIORITY_I18N).map(([value, key]) => (
+                            <SelectItem key={value} value={value}>{t(key)}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -800,7 +826,7 @@ function NotificationConfigsTab({
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                      取消
+                      {t("admin.groupNotif.cancel")}
                     </Button>
                     <Button
                       onClick={() => createConfig.mutate({
@@ -809,7 +835,7 @@ function NotificationConfigsTab({
                       })}
                       disabled={createConfig.isPending || !newConfig.titleTemplate}
                     >
-                      {createConfig.isPending ? "创建中..." : "创建"}
+                      {createConfig.isPending ? t("admin.groupNotif.creating") : t("admin.groupNotif.create")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -820,13 +846,13 @@ function NotificationConfigsTab({
         <CardContent>
           {!selectedGroupId ? (
             <div className="text-center py-8 text-muted-foreground">
-              请从左侧选择一个群组
+              {t("admin.groupNotif.selectFromLeft")}
             </div>
           ) : configs.isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">加载中...</div>
+            <div className="text-center py-8 text-muted-foreground">{t("admin.groupNotif.loading")}</div>
           ) : configs.data?.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              暂无通知配置
+              {t("admin.groupNotif.noConfigs")}
             </div>
           ) : (
             <div className="space-y-3">
@@ -839,15 +865,15 @@ function NotificationConfigsTab({
                     <div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">
-                          {NOTIFICATION_TYPE_NAMES[config.notificationType]}
+                          {NOTIFICATION_TYPE_I18N[config.notificationType] ? t(NOTIFICATION_TYPE_I18N[config.notificationType]) : config.notificationType}
                         </Badge>
-                        <Badge variant="outline" className={PRIORITY_NAMES[config.priority]?.color}>
-                          {PRIORITY_NAMES[config.priority]?.label}
+                        <Badge variant="outline" className={PRIORITY_COLORS[config.priority]}>
+                          {PRIORITY_I18N[config.priority] ? t(PRIORITY_I18N[config.priority]) : config.priority}
                         </Badge>
                         {config.isEnabled ? (
-                          <Badge className="bg-green-500/10 text-green-500">启用</Badge>
+                          <Badge className="bg-green-500/10 text-green-500">{t("admin.groupNotif.enabled")}</Badge>
                         ) : (
-                          <Badge variant="secondary">禁用</Badge>
+                          <Badge variant="secondary">{t("admin.groupNotif.disabled")}</Badge>
                         )}
                       </div>
                       <p className="font-medium mt-2">{config.titleTemplate}</p>
@@ -858,7 +884,7 @@ function NotificationConfigsTab({
                       )}
                       <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          渠道: {(config.channels as string[]).map((c) => CHANNEL_NAMES[c]?.label).join(", ")}
+                          {t("admin.groupNotif.channelLabel")} {(config.channels as string[]).map((c) => CHANNEL_I18N[c] ? t(CHANNEL_I18N[c]) : c).join(", ")}
                         </span>
                         {config.cronExpression && (
                           <span className="flex items-center gap-1">
@@ -872,7 +898,7 @@ function NotificationConfigsTab({
                       variant="ghost"
                       size="icon"
                       onClick={() => {
-                        if (confirm("确定要删除此配置吗？")) {
+                        if (confirm(t("admin.groupNotif.deleteConfigConfirm"))) {
                           deleteConfig.mutate({ id: config.id });
                         }
                       }}
@@ -900,6 +926,7 @@ function SendNotificationTab({
   selectedGroupId: number | null;
   onSelectGroup: (id: number | null) => void;
 }) {
+  const { t } = useLanguage();
   const [notification, setNotification] = useState({
     notificationType: "announcement" as const,
     title: "",
@@ -910,7 +937,7 @@ function SendNotificationTab({
 
   const sendNotification = (trpc.permission as any).sendGroupNotification.useMutation({
     onSuccess: (data) => {
-      toast.success(`通知发送成功！共发送给 ${data.totalRecipients} 人`);
+      toast.success(`${t("admin.groupNotif.sendSuccess")} ${data.totalRecipients} ${t("admin.groupNotif.totalRecipients")}`);
       setNotification({
         notificationType: "announcement",
         title: "",
@@ -920,7 +947,7 @@ function SendNotificationTab({
       });
     },
     onError: (error) => {
-      toast.error(`发送失败: ${error.message}`);
+      toast.error(`${t("admin.groupNotif.sendFailed")}: ${error.message}`);
     },
   });
 
@@ -931,7 +958,7 @@ function SendNotificationTab({
       {/* 群组选择 */}
       <Card className="bg-card/50">
         <CardHeader>
-          <CardTitle className="text-sm">选择目标群组</CardTitle>
+          <CardTitle className="text-sm">{t("admin.groupNotif.selectTargetGroup")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -946,8 +973,8 @@ function SendNotificationTab({
                 onClick={() => onSelectGroup(group.id)}
               >
                 <p className="font-medium text-sm">{group.name}</p>
-                <Badge variant="outline" className={`mt-1 text-xs ${GROUP_TYPE_NAMES[group.type]?.color}`}>
-                  {GROUP_TYPE_NAMES[group.type]?.label}
+                <Badge variant="outline" className={`mt-1 text-xs ${GROUP_TYPE_COLORS[group.type]}`}>
+                  {GROUP_TYPE_I18N[group.type] ? t(GROUP_TYPE_I18N[group.type]) : group.type}
                 </Badge>
               </div>
             ))}
@@ -960,22 +987,22 @@ function SendNotificationTab({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Send className="w-5 h-5 text-primary" />
-            发送通知 {selectedGroup && `- ${selectedGroup.name}`}
+            {t("admin.groupNotif.sendNotification")} {selectedGroup && `- ${selectedGroup.name}`}
           </CardTitle>
           <CardDescription>
-            {selectedGroupId ? "填写通知内容并发送给群组成员" : "请先选择一个目标群组"}
+            {selectedGroupId ? t("admin.groupNotif.sendDesc") : t("admin.groupNotif.selectTargetFirst")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {!selectedGroupId ? (
             <div className="text-center py-8 text-muted-foreground">
-              请从左侧选择一个目标群组
+              {t("admin.groupNotif.selectTargetFromLeft")}
             </div>
           ) : (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>通知类型</Label>
+                  <Label>{t("admin.groupNotif.notifType")}</Label>
                   <Select
                     value={notification.notificationType}
                     onValueChange={(v: any) => setNotification({ ...notification, notificationType: v })}
@@ -984,14 +1011,14 @@ function SendNotificationTab({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(NOTIFICATION_TYPE_NAMES).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      {Object.entries(NOTIFICATION_TYPE_I18N).map(([value, key]) => (
+                        <SelectItem key={value} value={value}>{t(key)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>优先级</Label>
+                  <Label>{t("admin.groupNotif.priority")}</Label>
                   <Select
                     value={notification.priority}
                     onValueChange={(v: any) => setNotification({ ...notification, priority: v })}
@@ -1000,34 +1027,34 @@ function SendNotificationTab({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(PRIORITY_NAMES).map(([value, { label }]) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      {Object.entries(PRIORITY_I18N).map(([value, key]) => (
+                        <SelectItem key={value} value={value}>{t(key)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>通知标题</Label>
+                <Label>{t("admin.groupNotif.notifTitle")}</Label>
                 <Input
-                  placeholder="输入通知标题..."
+                  placeholder={t("admin.groupNotif.notifTitlePlaceholder")}
                   value={notification.title}
                   onChange={(e) => setNotification({ ...notification, title: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>通知内容</Label>
+                <Label>{t("admin.groupNotif.notifContent")}</Label>
                 <Textarea
-                  placeholder="输入通知内容..."
+                  placeholder={t("admin.groupNotif.notifContentPlaceholder")}
                   rows={5}
                   value={notification.content}
                   onChange={(e) => setNotification({ ...notification, content: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>发送渠道</Label>
+                <Label>{t("admin.groupNotif.sendChannels")}</Label>
                 <div className="flex flex-wrap gap-4">
-                  {Object.entries(CHANNEL_NAMES).map(([value, { label, icon }]) => (
+                  {Object.entries(CHANNEL_I18N).map(([value, key]) => (
                     <div key={value} className="flex items-center gap-2">
                       <Checkbox
                         id={`send-channel-${value}`}
@@ -1041,7 +1068,7 @@ function SendNotificationTab({
                         }}
                       />
                       <Label htmlFor={`send-channel-${value}`} className="flex items-center gap-1">
-                        {icon} {label}
+                        {CHANNEL_ICONS[value]} {t(key)}
                       </Label>
                     </div>
                   ))}
@@ -1056,11 +1083,11 @@ function SendNotificationTab({
                   disabled={sendNotification.isPending || !notification.title || notification.channels.length === 0}
                 >
                   {sendNotification.isPending ? (
-                    <>发送中...</>
+                    <>{t("admin.groupNotif.sending")}</>
                   ) : (
                     <>
                       <Send className="w-4 h-4 mr-2" />
-                      发送通知
+                      {t("admin.groupNotif.sendBtn")}
                     </>
                   )}
                 </Button>
@@ -1083,6 +1110,7 @@ function NotificationLogsTab({
   selectedGroupId: number | null;
   onSelectGroup: (id: number | null) => void;
 }) {
+  const { t } = useLanguage();
   const logs = (trpc.permission as any).getGroupNotificationLogs.useQuery({
     groupId: selectedGroupId || undefined,
     limit: 50,
@@ -1097,16 +1125,16 @@ function NotificationLogsTab({
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
             <div className="space-y-1">
-              <Label className="text-xs">筛选群组</Label>
+              <Label className="text-xs">{t("admin.groupNotif.filterGroup")}</Label>
               <Select
                 value={selectedGroupId?.toString() || "all"}
                 onValueChange={(v) => onSelectGroup(v === "all" ? null : parseInt(v))}
               >
                 <SelectTrigger className="w-48">
-                  <SelectValue placeholder="全部群组" />
+                  <SelectValue placeholder={t("admin.groupNotif.allGroups")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部群组</SelectItem>
+                  <SelectItem value="all">{t("admin.groupNotif.allGroups")}</SelectItem>
                   {groups.map((group) => (
                     <SelectItem key={group.id} value={group.id.toString()}>
                       {group.name}
@@ -1117,7 +1145,7 @@ function NotificationLogsTab({
             </div>
             <div className="flex-1" />
             <span className="text-sm text-muted-foreground">
-              共 {logs.data?.total || 0} 条记录
+              {logs.data?.total || 0} {t("admin.groupNotif.totalRecords")}
             </span>
           </div>
         </CardContent>
@@ -1128,14 +1156,14 @@ function NotificationLogsTab({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-primary" />
-            发送记录 {selectedGroup && `- ${selectedGroup.name}`}
+            {t("admin.groupNotif.sendRecords")} {selectedGroup && `- ${selectedGroup.name}`}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {logs.isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">加载中...</div>
+            <div className="text-center py-8 text-muted-foreground">{t("admin.groupNotif.loading")}</div>
           ) : logs.data?.logs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">暂无发送记录</div>
+            <div className="text-center py-8 text-muted-foreground">{t("admin.groupNotif.noSendRecords")}</div>
           ) : (
             <div className="space-y-3">
               {logs.data?.logs.map((log: any) => {
@@ -1149,11 +1177,11 @@ function NotificationLogsTab({
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline">
-                            {NOTIFICATION_TYPE_NAMES[log.notificationType]}
+                            {NOTIFICATION_TYPE_I18N[log.notificationType] ? t(NOTIFICATION_TYPE_I18N[log.notificationType]) : log.notificationType}
                           </Badge>
-                          <Badge variant="outline" className={CHANNEL_NAMES[log.channel] ? "" : "bg-muted"}>
-                            {CHANNEL_NAMES[log.channel]?.icon}
-                            <span className="ml-1">{CHANNEL_NAMES[log.channel]?.label || log.channel}</span>
+                          <Badge variant="outline" className={CHANNEL_I18N[log.channel] ? "" : "bg-muted"}>
+                            {CHANNEL_ICONS[log.channel]}
+                            <span className="ml-1">{CHANNEL_I18N[log.channel] ? t(CHANNEL_I18N[log.channel]) : log.channel}</span>
                           </Badge>
                           {group && (
                             <Badge variant="secondary">{group.name}</Badge>
@@ -1168,21 +1196,21 @@ function NotificationLogsTab({
                         <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Users className="w-3 h-3" />
-                            {log.recipientCount} 人
+                            {log.recipientCount} {t("admin.groupNotif.recipientCount")}
                           </span>
                           <span className="flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3 text-green-500" />
-                            成功 {log.successCount}
+                            {t("admin.groupNotif.successCount")} {log.successCount}
                           </span>
                           {log.failedCount > 0 && (
                             <span className="flex items-center gap-1">
                               <AlertCircle className="w-3 h-3 text-red-500" />
-                              失败 {log.failedCount}
+                              {t("admin.groupNotif.failedCount")} {log.failedCount}
                             </span>
                           )}
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {new Date(log.createdAt).toLocaleString("zh-CN")}
+                            {new Date(log.createdAt).toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -1193,10 +1221,10 @@ function NotificationLogsTab({
                           "secondary"
                         }
                       >
-                        {log.status === "completed" ? "已完成" :
-                         log.status === "failed" ? "失败" :
-                         log.status === "sending" ? "发送中" :
-                         "待发送"}
+                        {log.status === "completed" ? t("admin.groupNotif.statusCompleted") :
+                         log.status === "failed" ? t("admin.groupNotif.statusFailed") :
+                         log.status === "sending" ? t("admin.groupNotif.statusSending") :
+                         t("admin.groupNotif.statusPending")}
                       </Badge>
                     </div>
                   </div>

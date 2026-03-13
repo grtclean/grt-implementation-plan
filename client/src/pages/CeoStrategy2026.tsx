@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -97,6 +98,7 @@ function computeGoalPct(goal: any): number {
 // ---------------------------------------------------------------------------
 
 export default function CeoStrategy2026() {
+  const { t } = useLanguage();
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const dashboardQuery = trpc.strategyGoals.getDashboard.useQuery({ year: 2026 });
@@ -128,10 +130,10 @@ export default function CeoStrategy2026() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-              2026 GRT Global Strategy & Division Execution
+              {t("admin.strategy.title")}
             </h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              CEO Strategic Command Center — Division Manager Performance System
+              {t("admin.strategy.subtitle")}
             </p>
           </div>
         </div>
@@ -159,7 +161,7 @@ export default function CeoStrategy2026() {
             disabled={dashboardQuery.isFetching}
           >
             <RefreshCw className={`h-4 w-4 mr-1 ${dashboardQuery.isFetching ? "animate-spin" : ""}`} />
-            Refresh
+            {t("admin.strategy.refresh")}
           </Button>
           <Button
             variant="outline"
@@ -168,7 +170,7 @@ export default function CeoStrategy2026() {
             disabled={seedMutation.isPending}
           >
             <Database className="h-4 w-4 mr-1" />
-            {seedMutation.isPending ? "Seeding..." : "Run Seeder"}
+            {seedMutation.isPending ? t("admin.strategy.seeding") : t("admin.strategy.runSeeder")}
           </Button>
         </div>
       </div>
@@ -178,7 +180,7 @@ export default function CeoStrategy2026() {
         <div className="flex items-center justify-center h-64">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-gray-500">Loading strategic dashboard...</p>
+            <p className="text-sm text-gray-500">{t("admin.strategy.loading")}</p>
           </div>
         </div>
       )}
@@ -187,7 +189,7 @@ export default function CeoStrategy2026() {
       {dashboardQuery.error && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="py-4 text-red-700 text-sm">
-            Failed to load dashboard: {dashboardQuery.error.message}
+            {t("admin.strategy.loadFailed")}: {dashboardQuery.error.message}
           </CardContent>
         </Card>
       )}
@@ -198,7 +200,7 @@ export default function CeoStrategy2026() {
           <div>
             <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-blue-600" />
-              Company-Level Strategic Objectives
+              {t("admin.strategy.companyObjectives")}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {data.companyGoals.map((goal: any) => {
@@ -246,7 +248,7 @@ export default function CeoStrategy2026() {
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <span className={`font-medium ${pct >= 90 ? "text-emerald-600" : pct >= 70 ? "text-amber-600" : "text-red-600"}`}>
-                            {pct.toFixed(1)}% achieved
+                            {pct.toFixed(1)}% {t("admin.strategy.achieved")}
                           </span>
                           <span className="text-gray-400">{goal.category}</span>
                         </div>
@@ -262,7 +264,7 @@ export default function CeoStrategy2026() {
           <div>
             <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
               <Shield className="h-5 w-5 text-indigo-600" />
-              Division Manager Performance Matrix
+              {t("admin.strategy.divisionMatrix")}
             </h2>
             <Card className="border shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
@@ -370,23 +372,23 @@ export default function CeoStrategy2026() {
           <div>
             <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-violet-600" />
-              AI Alignment Status
+              {t("admin.strategy.aiAlignment")}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Card 1: KPI Sync Status */}
               <Card className="border shadow-sm">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold text-gray-700">KPI Sync Status</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-gray-700">{t("admin.strategy.kpiSyncStatus")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-bold text-gray-900">{data.aiAlignment.totalKpis}</span>
-                      <span className="text-sm text-gray-400">total KPIs tracked</span>
+                      <span className="text-sm text-gray-400">{t("admin.strategy.totalKpisTracked")}</span>
                     </div>
                     <div>
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-gray-500">Green sync rate</span>
+                        <span className="text-gray-500">{t("admin.strategy.greenSyncRate")}</span>
                         <span className="font-medium text-emerald-600">{data.aiAlignment.syncPct}%</span>
                       </div>
                       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -403,7 +405,7 @@ export default function CeoStrategy2026() {
               {/* Card 2: RAG Distribution */}
               <Card className="border shadow-sm">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold text-gray-700">RAG Distribution</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-gray-700">{t("admin.strategy.ragDistribution")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -453,7 +455,7 @@ export default function CeoStrategy2026() {
               {/* Card 3: AI Recommendation */}
               <Card className="border shadow-sm bg-gradient-to-br from-violet-50 to-white">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold text-violet-700">AI Recommendation</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-violet-700">{t("admin.strategy.aiRecommendation")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm text-gray-700 leading-relaxed">
@@ -474,7 +476,7 @@ export default function CeoStrategy2026() {
                         </p>
                       </>
                     ) : (
-                      <p>All divisions are on track. No immediate actions required.</p>
+                      <p>{t("admin.strategy.allOnTrack")}</p>
                     )}
                   </div>
                 </CardContent>

@@ -101,7 +101,7 @@ export default function AIKPIAssistant() {
 
       setTeams([
         { team: '销售一部', score: 95, members: 8, topPerformer: '张明', improvement: 12 },
-        { team: '机械设计组', score: 88, members: 12, topPerformer: '李华', improvement: 5 },
+        { team: '机械设计组', score: 88, members: 12, topPerformer: '韩保程', improvement: 5 },
         { team: '电气设计组', score: 82, members: 8, topPerformer: '王强', improvement: -3 },
         { team: '装配车间', score: 90, members: 25, topPerformer: '刘伟', improvement: 8 },
         { team: '质量部', score: 85, members: 6, topPerformer: '陈静', improvement: 2 },

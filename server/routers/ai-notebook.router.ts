@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiNotebookSuggestions } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -23,7 +23,7 @@ export const aiNotebookRouter = router({
    * analyzeEntry — async LLM-powered notebook entry analysis
    * Submits to task queue, returns taskId for polling via getAnalysisStatus.
    */
-  analyzeEntry: protectedProcedure.input(z.object({
+  analyzeEntry: requirePermission('ai:hub:access').input(z.object({
     entryId: z.union([z.string(), z.number()]),
     content: z.string().optional(),
     processType: z.string().optional(),
@@ -67,7 +67,7 @@ export const aiNotebookRouter = router({
     return { taskStatus: task.status as "pending" | "processing", suggestions: [] };
   }),
 
-  acceptSuggestion: protectedProcedure.input(z.object({
+  acceptSuggestion: requirePermission('ai:hub:access').input(z.object({
     id: z.union([z.string(), z.number()]).optional(),
     suggestionId: z.union([z.string(), z.number()]).optional(),
     acceptedValue: z.string().optional(),
@@ -83,7 +83,7 @@ export const aiNotebookRouter = router({
     return { success: true, data: item };
   }),
 
-  rejectSuggestion: protectedProcedure.input(z.object({
+  rejectSuggestion: requirePermission('ai:hub:access').input(z.object({
     id: z.union([z.string(), z.number()]).optional(),
     suggestionId: z.union([z.string(), z.number()]).optional(),
   })).mutation(async ({ input, ctx }) => {

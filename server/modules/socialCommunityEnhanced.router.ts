@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { TRPCError } from "@trpc/server";
 import {
@@ -77,7 +77,7 @@ export const socialCommunityEnhancedRouter = router({
     }),
 
   // 测试脱敏规则
-  testDeidentification: protectedProcedure
+  testDeidentification: requirePermission('collab:community:post')
     .input(z.object({
       text: z.string().min(1),
     }))
@@ -137,7 +137,7 @@ export const socialCommunityEnhancedRouter = router({
     }),
 
   // 使用模板生成回复
-  useTemplate: protectedProcedure
+  useTemplate: requirePermission('collab:community:post')
     .input(z.object({
       templateId: z.number(),
       variables: z.record(z.string(), z.string()),
@@ -201,7 +201,7 @@ export const socialCommunityEnhancedRouter = router({
       let query = `
         SELECT DATE(received_at) as date, COUNT(*) as count
         FROM social_messages
-        WHERE received_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+        WHERE received_at >= NOW() - (? || ' days')::interval
       `;
       const params: unknown[] = [days];
       

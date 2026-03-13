@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jsonValue } from "@shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { costAlertRuleTemplates } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -41,7 +41,7 @@ export const ruleTemplateRouter = router({
       return await db.select().from(costAlertRuleTemplates).where(eq(costAlertRuleTemplates.isActive, 1)).orderBy(desc(costAlertRuleTemplates.usageCount)).limit(limit).offset(offset);
     }),
 
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('system:naming:manage').input(z.object({
     name: z.string().max(200).optional(),
     description: z.string().max(1000).optional(),
     templateType: z.string().max(50).optional(),
@@ -61,7 +61,7 @@ export const ruleTemplateRouter = router({
     return { success: true, message: "模板创建成功", data: template };
   }),
 
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('system:naming:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     name: z.string().max(200).optional(),
     description: z.string().max(1000).optional(),
@@ -79,13 +79,13 @@ export const ruleTemplateRouter = router({
     return { success: true, message: "模板更新成功", data: template };
   }),
 
-  delete: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
+  delete: requirePermission('system:naming:manage').input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(costAlertRuleTemplates).where(eq(costAlertRuleTemplates.id, toNum(input.id)));
     return { success: true, message: "模板已删除" };
   }),
 
-  createRule: protectedProcedure.input(z.object({
+  createRule: requirePermission('system:naming:manage').input(z.object({
     name: z.string().max(200).optional(),
     description: z.string().max(1000).optional(),
     category: z.string().max(50).optional(),
@@ -103,7 +103,7 @@ export const ruleTemplateRouter = router({
     return { success: true, message: "规则创建成功", data: template };
   }),
 
-  saveAsTemplate: protectedProcedure.input(z.object({
+  saveAsTemplate: requirePermission('system:naming:manage').input(z.object({
     ruleId: z.union([z.string(), z.number()]).optional(),
     id: z.union([z.string(), z.number()]).optional(),
     name: z.string().max(200).optional(),
@@ -123,7 +123,7 @@ export const ruleTemplateRouter = router({
     return { success: true, message: "已保存为模板", data: template };
   }),
 
-  initBuiltin: protectedProcedure.mutation(async () => {
+  initBuiltin: requirePermission('system:naming:manage').mutation(async () => {
     const db = await requireDb();
     const [existing] = await db.select({ count: count() }).from(costAlertRuleTemplates);
     if (existing.count > 0) return { success: true, message: "内置模板已存在" };

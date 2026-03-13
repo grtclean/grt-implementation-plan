@@ -207,15 +207,17 @@ export async function getProjectById(id: number) {
     .select()
     .from(projectStagesV2)
     .where(eq(projectStagesV2.projectId, id))
-    .orderBy(projectStagesV2.stageCode);
-  
+    .orderBy(projectStagesV2.stageCode)
+    .limit(1000);
+
   // 获取项目版本
   const versions = await db
     .select()
     .from(projectVersions)
     .where(eq(projectVersions.projectId, id))
-    .orderBy(desc(projectVersions.createdAt));
-  
+    .orderBy(desc(projectVersions.createdAt))
+    .limit(1000);
+
   return {
     ...projects[0],
     stages,
@@ -301,8 +303,9 @@ export async function getProjectStages(projectId: number) {
     .select()
     .from(projectStagesV2)
     .where(eq(projectStagesV2.projectId, projectId))
-    .orderBy(projectStagesV2.stageCode);
-  
+    .orderBy(projectStagesV2.stageCode)
+    .limit(1000);
+
   return stages;
 }
 
@@ -327,8 +330,9 @@ export async function getStageById(id: number) {
     .select()
     .from(stageReviews)
     .where(eq(stageReviews.stageId, id))
-    .orderBy(desc(stageReviews.createdAt));
-  
+    .orderBy(desc(stageReviews.createdAt))
+    .limit(1000);
+
   return {
     ...stages[0],
     reviews,
@@ -643,12 +647,13 @@ export async function createProjectVersion(data: {
  */
 export async function getProjectVersions(projectId: number) {
   const db = await requireDb();
-  
+
   const versions = await db
     .select()
     .from(projectVersions)
     .where(eq(projectVersions.projectId, projectId))
-    .orderBy(desc(projectVersions.createdAt));
+    .orderBy(desc(projectVersions.createdAt))
+    .limit(1000);
   
   return versions;
 }
@@ -752,12 +757,13 @@ export async function updateReviewConclusion(id: number, conclusion: string, com
  */
 export async function getStageReviews(stageId: number) {
   const db = await requireDb();
-  
+
   const reviews = await db
     .select()
     .from(stageReviews)
     .where(eq(stageReviews.stageId, stageId))
-    .orderBy(desc(stageReviews.createdAt));
+    .orderBy(desc(stageReviews.createdAt))
+    .limit(1000);
   
   return reviews;
 }

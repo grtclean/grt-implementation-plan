@@ -454,9 +454,9 @@ export class UWBSyncService {
    */
   private generateMockData(device: UWBDevice): UWBPositionData[] {
     const mockUsers = [
-      { userId: 1, userName: '张工程师', tagId: 'TAG001' },
-      { userId: 2, userName: '李技师', tagId: 'TAG002' },
-      { userId: 3, userName: '王质检', tagId: 'TAG003' },
+      { userId: 1, userName: '洪香龙', tagId: 'TAG001' },
+      { userId: 2, userName: '李大鹏', tagId: 'TAG002' },
+      { userId: 3, userName: '金晓锋', tagId: 'TAG003' },
     ];
 
     const stageCodes = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8'];

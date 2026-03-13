@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { reportTemplates } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -82,14 +82,14 @@ export const reportTemplateRouter = router({
   }),
 
   // 删除模板
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('oa:reports:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(reportTemplates).where(eq(reportTemplates.id, toNum(input.id)));
     return { success: true, message: "模板已删除" };
   }),
 
   // 生成报表
-  generate: protectedProcedure.input(z.object({
+  generate: requirePermission('oa:reports:manage').input(z.object({
     templateId: z.union([z.string(), z.number()]),
     params: z.record(z.string(), jsonValue).optional(),
   })).mutation(async ({ input }) => {
@@ -113,7 +113,7 @@ export const reportTemplateRouter = router({
   }),
 
   // 导入模板 (frontend passes { data: object, rename?, makePublic? })
-  import: protectedProcedure.input(z.object({
+  import: requirePermission('oa:reports:manage').input(z.object({
     data: jsonValue,
     rename: z.string().optional(),
     makePublic: z.boolean().optional(),
@@ -156,7 +156,7 @@ export const reportTemplateRouter = router({
   }),
 
   // 从分享导入 (frontend passes { shareData, rename })
-  importFromShare: protectedProcedure.input(z.object({
+  importFromShare: requirePermission('oa:reports:manage').input(z.object({
     shareData: z.string().optional(),
     shareId: z.union([z.string(), z.number()]).optional(),
     rename: z.string().optional(),
@@ -194,7 +194,7 @@ export const reportTemplateRouter = router({
   }),
 
   // 发布模板
-  publish: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  publish: requirePermission('oa:reports:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.update(reportTemplates)
       .set({ isPublic: 1, updatedAt: new Date().toISOString() })
@@ -203,7 +203,7 @@ export const reportTemplateRouter = router({
   }),
 
   // 取消发布
-  unpublish: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  unpublish: requirePermission('oa:reports:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.update(reportTemplates)
       .set({ isPublic: 0, updatedAt: new Date().toISOString() })

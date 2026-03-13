@@ -8,8 +8,10 @@ import { AlertCircle, Bot, Plus, Zap, MessageSquare, Settings } from "lucide-rea
 import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader, StatCard } from "@/components/grt";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function AIAssistantPage() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -19,21 +21,21 @@ export default function AIAssistantPage() {
   // AI助手操作mutations
   const createAssistantMutation = (trpc.aiAssistant as any).createAssistant.useMutation({
     onSuccess: () => {
-      toast({ title: "AI助手创建成功" });
+      toast({ title: t("ai.assistantPage.title") });
       refetch();
     },
     onError: (error) => {
-      toast({ title: "错误", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
   const generateSuggestionMutation = trpc.aiAssistant.generateSuggestion.useMutation({
     onSuccess: () => {
-      toast({ title: "建议生成成功" });
+      toast({ title: t("ai.assistantPage.generateSuggestion") });
       refetch();
     },
     onError: (error) => {
-      toast({ title: "错误", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -42,41 +44,41 @@ export default function AIAssistantPage() {
   ) || [];
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">加载中...</div>;
+    return <div className="flex items-center justify-center h-screen">{t("ai.assistantPage.loading")}</div>;
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Bot}
-        title="AI助手管理"
-        description="管理系统AI助手、生成建议和跟踪执行效果"
+        title={t("ai.assistantPage.title")}
+        description={t("ai.assistantPage.description")}
       />
 
       {/* 快速操作 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard icon={Zap} label="活跃助手" value={assistants?.filter((a) => a.isActive).length || 0} iconColor="text-yellow-500" iconBg="bg-yellow-100" />
-        <StatCard icon={MessageSquare} label="待处理建议" value={12} iconColor="text-blue-500" iconBg="bg-blue-100" />
-        <StatCard icon={AlertCircle} label="执行成功率" value="87%" iconColor="text-green-500" iconBg="bg-green-100" />
+        <StatCard icon={Zap} label={t("ai.assistantPage.activeAssistants")} value={assistants?.filter((a) => a.isActive).length || 0} iconColor="text-yellow-500" iconBg="bg-yellow-100" />
+        <StatCard icon={MessageSquare} label={t("ai.assistantPage.pendingSuggestions")} value={12} iconColor="text-blue-500" iconBg="bg-blue-100" />
+        <StatCard icon={AlertCircle} label={t("ai.assistantPage.executionRate")} value="87%" iconColor="text-green-500" iconBg="bg-green-100" />
       </div>
 
       {/* 搜索和操作 */}
       <Card>
         <CardHeader>
-          <CardTitle>AI助手列表</CardTitle>
-          <CardDescription>查看和管理所有AI助手</CardDescription>
+          <CardTitle>{t("ai.assistantPage.assistantList")}</CardTitle>
+          <CardDescription>{t("ai.assistantPage.viewManage")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-4">
             <Input
-              placeholder="搜索AI助手..."
+              placeholder={t("ai.assistantPage.search")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1"
             />
             <Button>
               <Plus className="w-4 h-4 mr-2" />
-              新建助手
+              {t("ai.assistantPage.newAssistant")}
             </Button>
           </div>
         </CardContent>
@@ -85,9 +87,9 @@ export default function AIAssistantPage() {
       {/* 助手列表 */}
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="all">全部助手</TabsTrigger>
-          <TabsTrigger value="active">活跃</TabsTrigger>
-          <TabsTrigger value="inactive">已禁用</TabsTrigger>
+          <TabsTrigger value="all">{t("ai.assistantPage.allAssistants")}</TabsTrigger>
+          <TabsTrigger value="active">{t("ai.assistantPage.activeTab")}</TabsTrigger>
+          <TabsTrigger value="inactive">{t("ai.assistantPage.inactiveTab")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all">
@@ -96,7 +98,7 @@ export default function AIAssistantPage() {
               <Card className="md:col-span-2">
                 <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
                   <AlertCircle className="w-4 h-4 mr-2" />
-                  没有找到AI助手
+                  {t("ai.assistantPage.noAssistantsFound")}
                 </CardContent>
               </Card>
             ) : (
@@ -109,17 +111,17 @@ export default function AIAssistantPage() {
                         <CardDescription>{assistant.description}</CardDescription>
                       </div>
                       <Badge variant={assistant.isActive ? "default" : "secondary"}>
-                        {assistant.isActive ? "启用" : "禁用"}
+                        {assistant.isActive ? t("ai.assistantPage.enabled") : t("ai.assistantPage.disabled")}
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">执行模式</p>
-                      <p className="text-sm font-medium">{assistant.executionMode || "自动"}</p>
+                      <p className="text-sm text-muted-foreground">{t("ai.assistantPage.executionMode")}</p>
+                      <p className="text-sm font-medium">{assistant.executionMode || t("ai.assistantPage.auto")}</p>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">最后更新</p>
+                      <p className="text-sm text-muted-foreground">{t("ai.assistantPage.lastUpdated")}</p>
                       <p className="text-sm font-medium">
                         {new Date(assistant.updatedAt).toLocaleDateString("zh-CN")}
                       </p>
@@ -127,11 +129,11 @@ export default function AIAssistantPage() {
                     <div className="flex gap-2 pt-4">
                       <Button size="sm" variant="outline" className="flex-1">
                         <Settings className="w-4 h-4 mr-2" />
-                        配置
+                        {t("ai.assistantPage.configure")}
                       </Button>
                       <Button size="sm" className="flex-1">
                         <MessageSquare className="w-4 h-4 mr-2" />
-                        生成建议
+                        {t("ai.assistantPage.generateSuggestion")}
                       </Button>
                     </div>
                   </CardContent>
@@ -147,7 +149,7 @@ export default function AIAssistantPage() {
               <Card className="md:col-span-2">
                 <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
                   <AlertCircle className="w-4 h-4 mr-2" />
-                  没有活跃的AI助手
+                  {t("ai.assistantPage.noActiveAssistants")}
                 </CardContent>
               </Card>
             ) : (
@@ -162,10 +164,10 @@ export default function AIAssistantPage() {
                     <CardContent>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" className="flex-1">
-                          配置
+                          {t("ai.assistantPage.configure")}
                         </Button>
                         <Button size="sm" className="flex-1">
-                          生成建议
+                          {t("ai.assistantPage.generateSuggestion")}
                         </Button>
                       </div>
                     </CardContent>
@@ -181,7 +183,7 @@ export default function AIAssistantPage() {
               <Card className="md:col-span-2">
                 <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
                   <AlertCircle className="w-4 h-4 mr-2" />
-                  没有已禁用的AI助手
+                  {t("ai.assistantPage.noInactiveAssistants")}
                 </CardContent>
               </Card>
             ) : (
@@ -194,7 +196,7 @@ export default function AIAssistantPage() {
                       <CardDescription>{assistant.description}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-muted-foreground">此助手已禁用</p>
+                      <p className="text-sm text-muted-foreground">{t("ai.assistantPage.assistantDisabled")}</p>
                     </CardContent>
                   </Card>
                 ))

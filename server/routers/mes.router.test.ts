@@ -76,7 +76,7 @@ vi.mock("../services/mes-quality-guard", () => ({
 
 // ─── Import caller utilities AFTER mocks ─────────────────────────────
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -98,7 +98,7 @@ beforeEach(() => {
 // =====================================================================
 describe("mes.getOperators", () => {
   it("should return operators from DB rows", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     executeResults.push({
       rows: [
         { employeeId: 1, employeeName: "张三", department: "焊接车间", position: "焊工" },
@@ -114,7 +114,7 @@ describe("mes.getOperators", () => {
   });
 
   it("should default null department and position to empty string", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     executeResults.push({
       rows: [
         { employeeId: 10, employeeName: "王五", department: null, position: null },
@@ -130,7 +130,7 @@ describe("mes.getOperators", () => {
   });
 
   it("should return empty array when no operators exist", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     // executeResults is empty, so default { rows: [] } is returned
 
     const result = await caller.mes.getOperators();
@@ -144,7 +144,7 @@ describe("mes.getOperators", () => {
 // =====================================================================
 describe("mes.verifySkill", () => {
   it("should return success when skill is sufficient", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     mockVerifySkill.mockResolvedValue({
       employeeName: "张三",
       domain: "T",
@@ -176,7 +176,7 @@ describe("mes.verifySkill", () => {
 
   // ─── InsufficientSkillError path ─────────────────────────────────
   it("should return failure when InsufficientSkillError is thrown", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const errorData = {
       employeeId: 5,
       employeeName: "李四",
@@ -206,7 +206,7 @@ describe("mes.verifySkill", () => {
 
   // ─── Generic error path ──────────────────────────────────────────
   it("should return failure with defaults for generic errors", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     mockVerifySkill.mockRejectedValue(new Error("DB connection lost"));
 
     const result = await caller.mes.verifySkill({

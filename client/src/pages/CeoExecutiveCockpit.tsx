@@ -19,6 +19,7 @@
 
 import React, { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -59,8 +60,8 @@ const BURN = { budget: 2800000, spent: 1950000, percent: 69.6 };
 
 const EVENTS: ThreadEvent[] = [
   { eventId: "E1", timestamp: "2026-02-25T16:00", sourceModule: "SOP", severity: "INFO", summaryZh: "新增CNC开机SOP（含视频指导）", summaryEn: "New CNC startup SOP with video guide" },
-  { eventId: "E2", timestamp: "2026-02-25T15:30", sourceModule: "EMPLOYEE", severity: "INFO", summaryZh: "王工战斗力提升至94（TIG焊接认证）", summaryEn: "Wang combat power up to 94 (TIG cert)" },
-  { eventId: "E3", timestamp: "2026-02-25T15:00", sourceModule: "HR_AI", severity: "INFO", summaryZh: "李明完成培训（85/80分），权限恢复", summaryEn: "Li Ming unblocked — training complete 85/80" },
+  { eventId: "E2", timestamp: "2026-02-25T15:30", sourceModule: "EMPLOYEE", severity: "INFO", summaryZh: "曹庆伟战斗力提升至94（TIG焊接认证）", summaryEn: "Cao Qingwei combat power up to 94 (TIG cert)" },
+  { eventId: "E3", timestamp: "2026-02-25T15:00", sourceModule: "HR_AI", severity: "INFO", summaryZh: "吴卫成完成培训（85/80分），权限恢复", summaryEn: "Wu Weicheng unblocked — training complete 85/80" },
   { eventId: "E4", timestamp: "2026-02-25T14:00", sourceModule: "COMPLIANCE", severity: "WARNING", summaryZh: "ISO 9001审核15天后到期", summaryEn: "ISO 9001 audit due in 15 days" },
   { eventId: "E5", timestamp: "2026-02-25T13:00", sourceModule: "OEE", severity: "WARNING", summaryZh: "CNC-003 OEE降至62%", summaryEn: "CNC-003 OEE dropped to 62%" },
   { eventId: "E6", timestamp: "2026-02-25T12:00", sourceModule: "CBAM", severity: "INFO", summaryZh: "GWM-3000 CBAM声明通过合规审核", summaryEn: "GWM-3000 CBAM declaration passed compliance" },
@@ -68,7 +69,7 @@ const EVENTS: ThreadEvent[] = [
   { eventId: "E8", timestamp: "2026-02-25T11:00", sourceModule: "SUPPLIER", severity: "WARNING", summaryZh: "Siemens S7-1500交期延至8周", summaryEn: "Siemens S7-1500 lead time extended to 8 weeks" },
   { eventId: "E9", timestamp: "2026-02-25T10:30", sourceModule: "FMEA", severity: "WARNING", summaryZh: "WASH-003 RPN从320降至180", summaryEn: "WASH-003 RPN dropped 320→180" },
   { eventId: "E10", timestamp: "2026-02-25T10:00", sourceModule: "ECO", severity: "INFO", summaryZh: "ECO-2026-015批准：PLC升级", summaryEn: "ECO-2026-015 approved: PLC upgrade" },
-  { eventId: "E11", timestamp: "2026-02-25T09:30", sourceModule: "HR_AI", severity: "WARNING", summaryZh: "李明被AI系统暂停操作权限", summaryEn: "Li Ming blocked by AI training system" },
+  { eventId: "E11", timestamp: "2026-02-25T09:30", sourceModule: "HR_AI", severity: "WARNING", summaryZh: "吴卫成被AI系统暂停操作权限", summaryEn: "Wu Weicheng blocked by AI training system" },
   { eventId: "E12", timestamp: "2026-02-25T08:15", sourceModule: "SCHEDULER", severity: "CRITICAL", summaryZh: "CNC-001健康35%，3工单自动转移至CNC-002", summaryEn: "CNC-001 health 35% — 3 jobs moved to CNC-002" },
 ];
 
@@ -82,9 +83,9 @@ const MACHINES = [
 ];
 
 const TOP_EMPLOYEES = [
-  { name: "王工 (Wang)", score: 94 },
-  { name: "李明 (Li Ming)", score: 88 },
-  { name: "张伟 (Zhang Wei)", score: 85 },
+  { name: "曹庆伟 (Cao Qingwei)", score: 94 },
+  { name: "吴卫成 (Wu Weicheng)", score: 88 },
+  { name: "张超 (Zhang Chao)", score: 85 },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -103,7 +104,8 @@ const healthRingColor = (score: number) => score >= 80 ? "#22c55e" : score >= 60
 // ─── Component ───────────────────────────────────────────────────────
 
 export default function CeoExecutiveCockpit() {
-  const [lang, setLang] = useState<"zh" | "en">("zh");
+  const { t, language } = useLanguage();
+  const lang = language === "zh" ? "zh" : "en";
 
   // Real backend data — overlay onto mock KPIs where available
   const okrQuery = trpc.okr.dashboard.useQuery(undefined, { retry: false });
@@ -122,13 +124,13 @@ export default function CeoExecutiveCockpit() {
   // SVG Radar chart coordinates
   const radarAxes = useMemo(() => {
     const labels = [
-      { key: "production", label: lang === "zh" ? "生产" : "Production", value: HEALTH.production },
-      { key: "quality", label: lang === "zh" ? "质量" : "Quality", value: HEALTH.quality },
-      { key: "cost", label: lang === "zh" ? "成本" : "Cost", value: HEALTH.cost },
-      { key: "supplyChain", label: lang === "zh" ? "供应链" : "Supply Chain", value: HEALTH.supplyChain },
+      { key: "production", label: t("admin.ceo.production"), value: HEALTH.production },
+      { key: "quality", label: t("admin.ceo.quality"), value: HEALTH.quality },
+      { key: "cost", label: t("admin.ceo.cost"), value: HEALTH.cost },
+      { key: "supplyChain", label: t("admin.ceo.supplyChain"), value: HEALTH.supplyChain },
       { key: "esg", label: "ESG", value: HEALTH.esg },
-      { key: "people", label: lang === "zh" ? "人员" : "People", value: HEALTH.people },
-      { key: "schedule", label: lang === "zh" ? "进度" : "Schedule", value: HEALTH.schedule },
+      { key: "people", label: t("admin.ceo.people"), value: HEALTH.people },
+      { key: "schedule", label: t("admin.ceo.schedule"), value: HEALTH.schedule },
     ];
     const cx = 150, cy = 150, r = 110;
     return labels.map((l, i) => {
@@ -141,7 +143,7 @@ export default function CeoExecutiveCockpit() {
       const ly = cy + (r + 25) * Math.sin(angle);
       return { ...l, px, py, vx, vy, lx, ly };
     });
-  }, [lang]);
+  }, [language, t]);
 
   const radarPath = radarAxes.map((a, i) => `${i === 0 ? "M" : "L"} ${a.vx} ${a.vy}`).join(" ") + " Z";
 
@@ -163,8 +165,8 @@ export default function CeoExecutiveCockpit() {
             </div>
           </div>
           <div>
-            <div style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "2px" }}>GRT EXECUTIVE COCKPIT</div>
-            <div style={{ fontSize: "12px", color: "#64748b" }}>CEO数字驾驶舱 — Digital Thread Active</div>
+            <div style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "2px" }}>{t("admin.ceo.title")}</div>
+            <div style={{ fontSize: "12px", color: "#64748b" }}>{t("admin.ceo.subtitle")}</div>
           </div>
           <span style={{
             padding: "4px 16px", borderRadius: "4px", fontWeight: 900, fontSize: "18px",
@@ -186,13 +188,9 @@ export default function CeoExecutiveCockpit() {
               <div style={{ height: "100%", width: `${BURN.percent}%`, background: BURN.percent > 80 ? "#ef4444" : "#f59e0b", borderRadius: "2px" }} />
             </div>
           </div>
-          {/* Language toggle */}
-          <button onClick={() => setLang(l => l === "zh" ? "en" : "zh")} style={{ padding: "4px 12px", borderRadius: "4px", border: "1px solid #334155", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: "12px" }}>
-            {lang === "zh" ? "EN" : "中"}
-          </button>
           <div style={{ fontSize: "12px", color: "#64748b" }}>
             <div>2026-02-25 22:00 CST</div>
-            <div style={{ color: "#94a3b8" }}>CEO Dashboard</div>
+            <div style={{ color: "#94a3b8" }}>{t("admin.ceo.ceoDashboard")}</div>
           </div>
         </div>
       </div>
@@ -200,14 +198,14 @@ export default function CeoExecutiveCockpit() {
       {/* ═══ ROW 1: KPI CARDS ═══ */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: "12px", marginBottom: "24px" }}>
         {[
-          { label: lang === "zh" ? "项目进度" : "Projects", value: KPI.projectsOnTrack, sub: "on track", color: "#22c55e" },
+          { label: t("admin.ceo.projects"), value: KPI.projectsOnTrack, sub: "on track", color: "#22c55e" },
           { label: "OEE", value: KPI.oee, sub: "fleet avg", color: "#3b82f6" },
-          { label: lang === "zh" ? "成本偏差" : "Cost Var", value: KPI.costVariance, sub: "over budget", color: "#f59e0b" },
-          { label: lang === "zh" ? "8D报告" : "Open 8Ds", value: KPI.open8Ds, sub: "open", color: KPI.open8Ds > 0 ? "#ef4444" : "#22c55e" },
-          { label: lang === "zh" ? "供应商" : "Suppliers", value: KPI.supplierScore, sub: "avg score", color: "#8b5cf6" },
+          { label: t("admin.ceo.costVar"), value: KPI.costVariance, sub: "over budget", color: "#f59e0b" },
+          { label: t("admin.ceo.open8Ds"), value: KPI.open8Ds, sub: "open", color: KPI.open8Ds > 0 ? "#ef4444" : "#22c55e" },
+          { label: t("admin.ceo.suppliers"), value: KPI.supplierScore, sub: "avg score", color: "#8b5cf6" },
           { label: "CBAM", value: KPI.cbamStatus, sub: "products", color: "#22c55e" },
-          { label: lang === "zh" ? "操作员封锁" : "Blocks", value: KPI.operatorBlocks, sub: "active", color: KPI.operatorBlocks > 0 ? "#f59e0b" : "#22c55e" },
-          { label: lang === "zh" ? "危急设备" : "Critical", value: KPI.criticalMachines, sub: "machines", color: KPI.criticalMachines > 0 ? "#ef4444" : "#22c55e" },
+          { label: t("admin.ceo.blocks"), value: KPI.operatorBlocks, sub: "active", color: KPI.operatorBlocks > 0 ? "#f59e0b" : "#22c55e" },
+          { label: t("admin.ceo.critical"), value: KPI.criticalMachines, sub: "machines", color: KPI.criticalMachines > 0 ? "#ef4444" : "#22c55e" },
         ].map((kpi, i) => (
           <div key={i} style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: "8px", padding: "12px", borderLeft: `3px solid ${kpi.color}` }}>
             <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", marginBottom: "4px" }}>{kpi.label}</div>
@@ -284,11 +282,11 @@ export default function CeoExecutiveCockpit() {
           {/* Q1: Manufacturing & Delivery */}
           <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: "12px", padding: "16px" }}>
             <div style={{ fontSize: "11px", color: "#3b82f6", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", fontWeight: 700 }}>
-              ⚙️ {lang === "zh" ? "生产与交付" : "Manufacturing & Delivery"}
+              ⚙️ {t("admin.ceo.mfgDelivery")}
             </div>
             <div style={{ fontSize: "28px", fontWeight: 900, color: "#3b82f6", marginBottom: "8px" }}>OEE {KPI.oee}</div>
             <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "8px" }}>
-              {lang === "zh" ? "自动转移工单" : "Auto-rescheduled"}: <span style={{ color: "#f59e0b", fontWeight: 700 }}>3 jobs</span>
+              {t("admin.ceo.autoRescheduled")}: <span style={{ color: "#f59e0b", fontWeight: 700 }}>3 jobs</span>
             </div>
             <div style={{ fontSize: "11px" }}>
               {MACHINES.map(m => (
@@ -305,7 +303,7 @@ export default function CeoExecutiveCockpit() {
           {/* Q2: Quality & Risk */}
           <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: "12px", padding: "16px" }}>
             <div style={{ fontSize: "11px", color: "#ef4444", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", fontWeight: 700 }}>
-              🔬 {lang === "zh" ? "质量与风险" : "Quality & Risk"}
+              🔬 {t("admin.ceo.qualityRisk")}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "12px" }}>
               <div style={{ background: "#1e293b", borderRadius: "8px", padding: "10px", textAlign: "center" }}>
@@ -328,13 +326,13 @@ export default function CeoExecutiveCockpit() {
           {/* Q3: Supply Chain & Cash Flow */}
           <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: "12px", padding: "16px" }}>
             <div style={{ fontSize: "11px", color: "#8b5cf6", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", fontWeight: 700 }}>
-              🚚 {lang === "zh" ? "供应链与现金流" : "Supply Chain & Cash Flow"}
+              🚚 {t("admin.ceo.scCashFlow")}
             </div>
             <div style={{ fontSize: "14px", color: "#e2e8f0", marginBottom: "8px" }}>
-              {lang === "zh" ? "受限供应商" : "Restricted Suppliers"}: <span style={{ color: "#ef4444", fontWeight: 700 }}>2</span>
+              {t("admin.ceo.restrictedSuppliers")}: <span style={{ color: "#ef4444", fontWeight: 700 }}>2</span>
             </div>
             <div style={{ fontSize: "14px", color: "#e2e8f0", marginBottom: "8px" }}>
-              {lang === "zh" ? "潜在现金释放" : "Cash Release"}: <span style={{ color: "#22c55e", fontWeight: 700 }}>¥185,000</span>
+              {t("admin.ceo.cashRelease")}: <span style={{ color: "#22c55e", fontWeight: 700 }}>¥185,000</span>
             </div>
             <div style={{ fontSize: "12px", color: "#94a3b8" }}>
               Shortage risks: <span style={{ color: "#f59e0b" }}>3 items</span>
@@ -347,13 +345,13 @@ export default function CeoExecutiveCockpit() {
           {/* Q4: Team Readiness */}
           <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: "12px", padding: "16px" }}>
             <div style={{ fontSize: "11px", color: "#22c55e", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", fontWeight: 700 }}>
-              👤 {lang === "zh" ? "团队战备" : "Team Readiness"}
+              👤 {t("admin.ceo.teamReadiness")}
             </div>
             <div style={{ fontSize: "14px", color: "#e2e8f0", marginBottom: "8px" }}>
-              {lang === "zh" ? "AI封锁" : "AI Blocks"}: <span style={{ color: KPI.operatorBlocks > 0 ? "#f59e0b" : "#22c55e", fontWeight: 700 }}>{KPI.operatorBlocks}</span>
+              {t("admin.ceo.aiBlocks")}: <span style={{ color: KPI.operatorBlocks > 0 ? "#f59e0b" : "#22c55e", fontWeight: 700 }}>{KPI.operatorBlocks}</span>
             </div>
             <div style={{ fontSize: "14px", color: "#e2e8f0", marginBottom: "8px" }}>
-              {lang === "zh" ? "平均战斗力" : "Avg Combat Power"}: <span style={{ color: "#3b82f6", fontWeight: 700 }}>76</span>
+              {t("admin.ceo.avgCombatPower")}: <span style={{ color: "#3b82f6", fontWeight: 700 }}>76</span>
             </div>
             <div style={{ fontSize: "11px" }}>
               {TOP_EMPLOYEES.map((e, i) => (
@@ -373,7 +371,7 @@ export default function CeoExecutiveCockpit() {
         {/* Impact Chain */}
         <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: "12px", padding: "20px" }}>
           <div style={{ fontSize: "12px", color: "#64748b", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "16px" }}>
-            ◆ {lang === "zh" ? "变更影响链" : "Change Impact Chain"} — ECO-2026-015
+            ◆ {t("admin.ceo.changeImpactChain")} — ECO-2026-015
           </div>
           <svg viewBox="0 0 500 200" style={{ width: "100%" }}>
             {/* Root node */}
@@ -424,7 +422,7 @@ export default function CeoExecutiveCockpit() {
         {/* CEO Weekly Brief */}
         <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: "12px", padding: "20px" }}>
           <div style={{ fontSize: "12px", color: "#64748b", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "16px" }}>
-            ◆ {lang === "zh" ? "CEO周报" : "CEO Weekly Brief"} — AI Generated
+            ◆ {t("admin.ceo.ceoWeeklyBrief")} — AI Generated
           </div>
           <div style={{ fontFamily: "system-ui", lineHeight: "1.6", fontSize: "13px" }}>
             <div style={{ marginBottom: "12px" }}>
@@ -441,9 +439,9 @@ export default function CeoExecutiveCockpit() {
             </div>
             <div style={{ marginBottom: "12px" }}>
               <div style={{ color: "#22c55e", fontWeight: 700, marginBottom: "4px" }}>Wins</div>
-              <div style={{ color: "#86efac" }}>• Li Ming completed AI training — access restored</div>
+              <div style={{ color: "#86efac" }}>• Wu Weicheng completed AI training — access restored</div>
               <div style={{ color: "#86efac" }}>• GWM-3000 EU CBAM declaration approved</div>
-              <div style={{ color: "#86efac" }}>• Wang combat power 94 — new TIG cert</div>
+              <div style={{ color: "#86efac" }}>• Cao Qingwei combat power 94 — new TIG cert</div>
             </div>
             <div style={{ background: "#1e293b", borderRadius: "8px", padding: "12px", borderLeft: "3px solid #f59e0b" }}>
               <div style={{ color: "#f59e0b", fontWeight: 700, fontSize: "11px", marginBottom: "4px" }}>TOP PRIORITY</div>
@@ -456,7 +454,7 @@ export default function CeoExecutiveCockpit() {
       {/* ═══ ROW 5: QUICK ACTIONS ═══ */}
       <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: "12px", padding: "16px" }}>
         <div style={{ fontSize: "12px", color: "#64748b", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "12px" }}>
-          ◆ {lang === "zh" ? "模块快速跳转" : "Module Quick Actions"} — All 11 Domains Connected
+          ◆ {t("admin.ceo.quickActions")} — All 11 Domains Connected
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
           {[
@@ -488,7 +486,7 @@ export default function CeoExecutiveCockpit() {
 
       {/* ═══ FOOTER ═══ */}
       <div style={{ textAlign: "center", marginTop: "24px", padding: "16px", color: "#334155", fontSize: "11px" }}>
-        GRT 5.0 Digital Thread — 11 Modules • 12 Test Suites • {lang === "zh" ? "全域互联" : "All Domains Connected"}
+        GRT 5.0 Digital Thread — 11 Modules • 12 Test Suites • {t("admin.ceo.footer")}
         <br />Phase 1 (Infrastructure) → Phase 2 (Fusion) → Phase 3 (AI Prediction) → Phase 4 (Executive Cockpit)
       </div>
 

@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
+import {router, adminProcedure, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, and, count, sql, sum } from "drizzle-orm";
 import {
@@ -51,7 +51,7 @@ export const procurementRouter = router({
   /**
    * 创建采购申请
    */
-  createPurchaseRequest: protectedProcedure
+  createPurchaseRequest: requirePermission('supply:procurement:manage')
     .input(PurchaseRequestSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -70,7 +70,7 @@ export const procurementRouter = router({
       });
 
       const insertId = result[0].insertId;
-      const rows = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, insertId));
+      const rows = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, insertId)).limit(1000);
       return rows[0];
     }),
 
@@ -83,7 +83,7 @@ export const procurementRouter = router({
       department: z.string().optional(),
       page: z.number().default(1),
       pageSize: z.number().default(20),
-    }))
+    }).default({ page: 1, pageSize: 20 }))
     .query(async ({ input }) => {
       try {
         const db = await requireDb();
@@ -133,7 +133,7 @@ export const procurementRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
-      const existingRows = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, input.id));
+      const existingRows = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, input.id)).limit(1000);
       if (!existingRows[0]) throw new Error('Purchase request not found');
 
       await db.update(purchaseRequests).set({
@@ -142,7 +142,7 @@ export const procurementRouter = router({
         approvedAt: new Date().toISOString(),
       }).where(eq(purchaseRequests.id, input.id));
 
-      const rows = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, input.id));
+      const rows = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, input.id)).limit(1000);
       return {
         id: rows[0].id,
         status: rows[0].status,
@@ -162,7 +162,7 @@ export const procurementRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
-      const existingRows = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, input.id));
+      const existingRows = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, input.id)).limit(1000);
       if (!existingRows[0]) throw new Error('Purchase request not found');
 
       await db.update(purchaseRequests).set({
@@ -172,7 +172,7 @@ export const procurementRouter = router({
         approvedAt: new Date().toISOString(),
       }).where(eq(purchaseRequests.id, input.id));
 
-      const rows = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, input.id));
+      const rows = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, input.id)).limit(1000);
       return {
         id: rows[0].id,
         status: rows[0].status,
@@ -193,12 +193,12 @@ export const procurementRouter = router({
       const totalAmount = input.quantity * input.unitPrice;
 
       // Look up supplier info
-      const supplierRows = await db.select().from(suppliers).where(eq(suppliers.id, input.supplierId));
+      const supplierRows = await db.select().from(suppliers).where(eq(suppliers.id, input.supplierId)).limit(1000);
       if (!supplierRows[0]) throw new Error('Supplier not found');
       const supplier = supplierRows[0];
 
       // Look up material info
-      const materialRows = await db.select().from(materials).where(eq(materials.id, input.materialId));
+      const materialRows = await db.select().from(materials).where(eq(materials.id, input.materialId)).limit(1000);
       if (!materialRows[0]) throw new Error('Material not found');
       const material = materialRows[0];
 
@@ -222,7 +222,7 @@ export const procurementRouter = router({
       });
 
       const insertId = result[0].insertId;
-      const rows = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, insertId));
+      const rows = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, insertId)).limit(1000);
       return rows[0];
     }),
 
@@ -235,7 +235,7 @@ export const procurementRouter = router({
       supplierId: z.number().optional(),
       page: z.number().default(1),
       pageSize: z.number().default(20),
-    }))
+    }).default({ page: 1, pageSize: 20 }))
     .query(async ({ input }) => {
       try {
         const db = await requireDb();
@@ -285,7 +285,7 @@ export const procurementRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
 
-      const existingRows = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, input.id));
+      const existingRows = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, input.id)).limit(1000);
       if (!existingRows[0]) throw new Error('Purchase order not found');
 
       await db.update(purchaseOrders).set({
@@ -303,7 +303,7 @@ export const procurementRouter = router({
   /**
    * 记录采购收货
    */
-  recordReceipt: protectedProcedure
+  recordReceipt: requirePermission('supply:procurement:manage')
     .input(z.object({
       purchaseOrderId: z.number(),
       receivedQuantity: z.number().min(1),
@@ -316,7 +316,7 @@ export const procurementRouter = router({
       const receiptNumber = `REC-${Date.now()}`;
 
       // Look up the PO to get the poNumber
-      const poRows = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, input.purchaseOrderId));
+      const poRows = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, input.purchaseOrderId)).limit(1000);
       if (!poRows[0]) throw new Error('Purchase order not found');
       const po = poRows[0];
 
@@ -350,7 +350,7 @@ export const procurementRouter = router({
       }).where(eq(purchaseOrders.id, input.purchaseOrderId));
 
       const insertId = result[0].insertId;
-      const rows = await db.select().from(purchaseReceipts).where(eq(purchaseReceipts.id, insertId));
+      const rows = await db.select().from(purchaseReceipts).where(eq(purchaseReceipts.id, insertId)).limit(1000);
       return rows[0];
     }),
 
@@ -362,7 +362,7 @@ export const procurementRouter = router({
       purchaseOrderId: z.number().optional(),
       page: z.number().default(1),
       pageSize: z.number().default(20),
-    }))
+    }).default({ page: 1, pageSize: 20 }))
     .query(async ({ input }) => {
       const db = await requireDb();
 
@@ -423,7 +423,7 @@ export const procurementRouter = router({
       });
 
       const insertId = result[0].insertId;
-      const rows = await db.select().from(suppliers).where(eq(suppliers.id, insertId));
+      const rows = await db.select().from(suppliers).where(eq(suppliers.id, insertId)).limit(1000);
       return rows[0];
     }),
 
@@ -437,7 +437,7 @@ export const procurementRouter = router({
       isPreferred: z.boolean().optional(),
       page: z.number().default(1),
       pageSize: z.number().default(20),
-    }))
+    }).default({ page: 1, pageSize: 20 }))
     .query(async ({ input }) => {
       try {
         const db = await requireDb();
@@ -495,7 +495,7 @@ export const procurementRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
 
-      const existingRows = await db.select().from(suppliers).where(eq(suppliers.id, input.supplierId));
+      const existingRows = await db.select().from(suppliers).where(eq(suppliers.id, input.supplierId)).limit(1000);
       if (!existingRows[0]) throw new Error('Supplier not found');
 
       const updateValues: Record<string, unknown> = {};
@@ -505,7 +505,7 @@ export const procurementRouter = router({
 
       await db.update(suppliers).set(updateValues).where(eq(suppliers.id, input.supplierId));
 
-      const rows = await db.select().from(suppliers).where(eq(suppliers.id, input.supplierId));
+      const rows = await db.select().from(suppliers).where(eq(suppliers.id, input.supplierId)).limit(1000);
       return rows[0];
     }),
 
@@ -695,7 +695,7 @@ export const procurementRouter = router({
       supplierId: z.number().optional(),
       page: z.number().default(1),
       pageSize: z.number().default(20),
-    }))
+    }).default({ page: 1, pageSize: 20 }))
     .query(async ({ input }) => {
       const db = await requireDb();
 
@@ -744,7 +744,7 @@ export const procurementRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
 
-      const existingRows = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, input.invoiceId));
+      const existingRows = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, input.invoiceId)).limit(1000);
       if (!existingRows[0]) throw new Error('Invoice not found');
 
       const invoice = existingRows[0];
@@ -764,7 +764,7 @@ export const procurementRouter = router({
         paymentStatus: newPaymentStatus as "paid" | "partial",
       }).where(eq(purchaseOrders.id, invoice.purchaseOrderId));
 
-      const rows = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, input.invoiceId));
+      const rows = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, input.invoiceId)).limit(1000);
       return {
         invoiceId: rows[0].id,
         paidAmount: rows[0].paidAmount,

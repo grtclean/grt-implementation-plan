@@ -104,6 +104,27 @@ export async function requireDb() {
   return db;
 }
 
+// Synchronous db proxy — eagerly initializes on first property access.
+// Allows routers to `import { db } from "../db"` and use `db.select()` directly
+// without awaiting requireDb() in every procedure.
+export const db: ReturnType<typeof drizzle> = new Proxy({} as any, {
+  get(_target, prop) {
+    if (!_db) {
+      // Trigger lazy init synchronously — pool connects on first query, not on creation
+      if (process.env.DATABASE_URL) {
+        const pool = new pg.Pool({
+          connectionString: process.env.DATABASE_URL,
+          options: '-c client_encoding=UTF8',
+        });
+        _db = drizzle(pool);
+      } else {
+        throw new Error("Database not configured: DATABASE_URL is not set");
+      }
+    }
+    return (_db as any)[prop];
+  },
+});
+
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
@@ -320,7 +341,7 @@ export async function initDefaultMigrationTasks() {
     return { success: true, message: "Tasks already initialized" };
   }
 
-  // Default migration tasks based on Jiandaoyun data
+  // Default migration tasks based on External Sync data
   const defaultTasks: InsertMigrationTask[] = [
     {
       moduleId: "crm_customers",
@@ -1082,7 +1103,7 @@ export async function initDefaultDevTasks() {
 
 ## 参考文档
 - docs/GRT_NocoBase_Development_Guide_v1.0.md 第三章 数据模型设计
-- 简道云项目管理结构: jiandaoyun_extraction/project_management_structure.md
+- 外部数据平台项目管理结构: external_sync_extraction/project_management_structure.md
 
 ## 验收标准
 - 数据库表创建成功
@@ -1126,7 +1147,7 @@ export async function initDefaultDevTasks() {
    - M12: 终验与移交
 
 ## 参考文档
-- jiandaoyun_extraction/project_management_structure.md
+- external_sync_extraction/project_management_structure.md
 
 ## 验收标准
 - 门禁检查逻辑正确

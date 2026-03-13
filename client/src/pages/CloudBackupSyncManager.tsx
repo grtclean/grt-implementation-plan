@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -87,6 +88,7 @@ interface RemoteFile {
 
 export default function CloudBackupSyncManager() {
   const { toast } = useToast();
+  const { t, tpl } = useLanguage();
   const [activeTab, setActiveTab] = useState('configs');
   
   // 模拟数据
@@ -166,15 +168,15 @@ export default function CloudBackupSyncManager() {
 
   // 格式化时间
   const formatTime = (timestamp: number | null) => {
-    if (!timestamp) return '从未';
+    if (!timestamp) return t("admin.cloudBackup.never");
     return new Date(timestamp).toLocaleString('zh-CN');
   };
 
   // 获取提供商名称
   const getProviderName = (provider: CloudProvider) => {
     const names: Record<CloudProvider, string> = {
-      'aliyun-oss': '阿里云OSS',
-      'tencent-cos': '腾讯云COS',
+      'aliyun-oss': t("admin.cloudBackup.aliyunOss"),
+      'tencent-cos': t("admin.cloudBackup.tencentCos"),
       'aws-s3': 'AWS S3',
     };
     return names[provider];
@@ -184,13 +186,13 @@ export default function CloudBackupSyncManager() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />已完成</Badge>;
+        return <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />{t("admin.cloudBackup.statusCompleted")}</Badge>;
       case 'uploading':
-        return <Badge variant="secondary"><RefreshCw className="w-3 h-3 mr-1 animate-spin" />上传中</Badge>;
+        return <Badge variant="secondary"><RefreshCw className="w-3 h-3 mr-1 animate-spin" />{t("admin.cloudBackup.statusUploading")}</Badge>;
       case 'failed':
-        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />失败</Badge>;
+        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />{t("admin.cloudBackup.statusFailed")}</Badge>;
       case 'pending':
-        return <Badge variant="outline"><Clock className="w-3 h-3 mr-1" />等待中</Badge>;
+        return <Badge variant="outline"><Clock className="w-3 h-3 mr-1" />{t("admin.cloudBackup.statusPending")}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -210,7 +212,7 @@ export default function CloudBackupSyncManager() {
     setConfigs([...configs, newConfig]);
     setShowAddDialog(false);
     resetForm();
-    toast({ title: '配置已添加', description: '云存储配置已成功添加' });
+    toast({ title: t("admin.cloudBackup.configAdded"), description: t("admin.cloudBackup.configAddedDesc") });
   };
 
   // 切换配置启用状态
@@ -223,14 +225,14 @@ export default function CloudBackupSyncManager() {
   // 删除配置
   const deleteConfig = (id: string) => {
     setConfigs(configs.filter(c => c.id !== id));
-    toast({ title: '配置已删除' });
+    toast({ title: t("admin.cloudBackup.configDeleted") });
   };
 
   // 测试连接
   const testConnection = (id: string) => {
-    toast({ title: '连接测试', description: '正在测试连接...' });
+    toast({ title: t("admin.cloudBackup.connectionTest"), description: t("admin.cloudBackup.testingConnection") });
     setTimeout(() => {
-      toast({ title: '连接成功', description: '云存储连接正常，延迟 120ms' });
+      toast({ title: t("admin.cloudBackup.connectionSuccess"), description: t("admin.cloudBackup.connectionSuccessDesc") });
     }, 1000);
   };
 
@@ -256,23 +258,23 @@ export default function CloudBackupSyncManager() {
       ));
       if (progress >= 100) {
         clearInterval(interval);
-        toast({ title: '同步完成', description: '备份已成功上传到云端' });
+        toast({ title: t("admin.cloudBackup.syncComplete"), description: t("admin.cloudBackup.syncCompleteDesc") });
       }
     }, 500);
   };
 
   // 下载文件
   const downloadFile = (key: string) => {
-    toast({ title: '开始下载', description: `正在下载 ${key.split('/').pop()}` });
+    toast({ title: t("admin.cloudBackup.startDownload"), description: tpl("admin.cloudBackup.downloadingFile", { name: key.split('/').pop() || "" }) });
     setTimeout(() => {
-      toast({ title: '下载完成', description: '文件已保存到本地备份目录' });
+      toast({ title: t("admin.cloudBackup.downloadComplete"), description: t("admin.cloudBackup.downloadCompleteDesc") });
     }, 2000);
   };
 
   // 删除远程文件
   const deleteRemoteFile = (key: string) => {
     setRemoteFiles(remoteFiles.filter(f => f.key !== key));
-    toast({ title: '文件已删除' });
+    toast({ title: t("admin.cloudBackup.fileDeleted") });
   };
 
   // 重置表单
@@ -304,32 +306,32 @@ export default function CloudBackupSyncManager() {
       {/* 页面标题 */}
       <PageHeader
         icon={Cloud}
-        title="备份云端同步"
-        description="将本地备份自动同步到云存储，实现异地容灾"
+        title={t("admin.cloudBackup.title")}
+        description={t("admin.cloudBackup.description")}
         actions={
           <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            添加云存储
+            {t("admin.cloudBackup.addCloudStorage")}
           </Button>
         }
       />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={Cloud} label="云存储配置" value={`${stats.enabledConfigs}/${stats.totalConfigs}`} iconColor="text-blue-500" iconBg="bg-blue-50" />
-        <StatCard icon={Upload} label="同步任务" value={`${stats.completedTasks}/${stats.totalTasks}`} iconColor="text-green-500" iconBg="bg-green-50" />
-        <StatCard icon={HardDrive} label="云端存储" value={formatSize(stats.totalSize)} iconColor="text-purple-500" iconBg="bg-purple-50" />
-        <StatCard icon={CheckCircle} label="云端文件" value={remoteFiles.length} iconColor="text-emerald-500" iconBg="bg-emerald-50" />
+        <StatCard icon={Cloud} label={t("admin.cloudBackup.cloudStorageConfig")} value={`${stats.enabledConfigs}/${stats.totalConfigs}`} iconColor="text-blue-500" iconBg="bg-blue-50" />
+        <StatCard icon={Upload} label={t("admin.cloudBackup.syncTasks")} value={`${stats.completedTasks}/${stats.totalTasks}`} iconColor="text-green-500" iconBg="bg-green-50" />
+        <StatCard icon={HardDrive} label={t("admin.cloudBackup.cloudStorage")} value={formatSize(stats.totalSize)} iconColor="text-purple-500" iconBg="bg-purple-50" />
+        <StatCard icon={CheckCircle} label={t("admin.cloudBackup.cloudFiles")} value={remoteFiles.length} iconColor="text-emerald-500" iconBg="bg-emerald-50" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="configs">云存储配置</TabsTrigger>
-          <TabsTrigger value="tasks">同步任务</TabsTrigger>
-          <TabsTrigger value="files">云端文件</TabsTrigger>
+          <TabsTrigger value="configs">{t("admin.cloudBackup.cloudStorageConfig")}</TabsTrigger>
+          <TabsTrigger value="tasks">{t("admin.cloudBackup.syncTasks")}</TabsTrigger>
+          <TabsTrigger value="files">{t("admin.cloudBackup.cloudFiles")}</TabsTrigger>
           <TabsTrigger value="notifications">
             <Bell className="w-4 h-4 mr-1" />
-            通知设置
+            {t("admin.cloudBackup.notifications")}
           </TabsTrigger>
         </TabsList>
 
@@ -338,7 +340,7 @@ export default function CloudBackupSyncManager() {
           {configs.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
-                暂无云存储配置，点击"添加云存储"开始配置
+                {t("admin.cloudBackup.noConfig")}
               </CardContent>
             </Card>
           ) : (
@@ -359,11 +361,11 @@ export default function CloudBackupSyncManager() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">区域</span>
+                      <span className="text-muted-foreground">{t("admin.cloudBackup.region")}</span>
                       <span>{config.region}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">最后同步</span>
+                      <span className="text-muted-foreground">{t("admin.cloudBackup.lastSync")}</span>
                       <span>{formatTime(config.lastSync)}</span>
                     </div>
                     <div className="flex gap-2">
@@ -373,7 +375,7 @@ export default function CloudBackupSyncManager() {
                         className="flex-1"
                         onClick={() => testConnection(config.id)}
                       >
-                        测试连接
+                        {t("admin.cloudBackup.testConnection")}
                       </Button>
                       <Button
                         size="sm"
@@ -382,7 +384,7 @@ export default function CloudBackupSyncManager() {
                         disabled={!config.enabled}
                       >
                         <Upload className="w-4 h-4 mr-1" />
-                        立即同步
+                        {t("admin.cloudBackup.syncNow")}
                       </Button>
                     </div>
                     <div className="flex gap-2">
@@ -396,7 +398,7 @@ export default function CloudBackupSyncManager() {
                         }}
                       >
                         <Settings className="w-4 h-4 mr-1" />
-                        设置
+                        {t("admin.cloudBackup.settings")}
                       </Button>
                       <Button
                         variant="ghost"
@@ -405,7 +407,7 @@ export default function CloudBackupSyncManager() {
                         onClick={() => deleteConfig(config.id)}
                       >
                         <Trash2 className="w-4 h-4 mr-1" />
-                        删除
+                        {t("admin.cloudBackup.delete")}
                       </Button>
                     </div>
                   </CardContent>
@@ -419,18 +421,18 @@ export default function CloudBackupSyncManager() {
         <TabsContent value="tasks">
           <Card>
             <CardHeader>
-              <CardTitle>同步任务历史</CardTitle>
+              <CardTitle>{t("admin.cloudBackup.syncHistory")}</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>文件名</TableHead>
-                    <TableHead>大小</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>进度</TableHead>
-                    <TableHead>开始时间</TableHead>
-                    <TableHead>操作</TableHead>
+                    <TableHead>{t("admin.cloudBackup.thFileName")}</TableHead>
+                    <TableHead>{t("admin.cloudBackup.thSize")}</TableHead>
+                    <TableHead>{t("admin.cloudBackup.thStatus")}</TableHead>
+                    <TableHead>{t("admin.cloudBackup.thProgress")}</TableHead>
+                    <TableHead>{t("admin.cloudBackup.thStartTime")}</TableHead>
+                    <TableHead>{t("admin.cloudBackup.thAction")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -467,10 +469,10 @@ export default function CloudBackupSyncManager() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>云端备份文件</CardTitle>
+                <CardTitle>{t("admin.cloudBackup.cloudBackupFiles")}</CardTitle>
                 <Button variant="outline" size="sm">
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  刷新列表
+                  {t("admin.cloudBackup.refreshList")}
                 </Button>
               </div>
             </CardHeader>
@@ -478,10 +480,10 @@ export default function CloudBackupSyncManager() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>文件路径</TableHead>
-                    <TableHead>大小</TableHead>
-                    <TableHead>修改时间</TableHead>
-                    <TableHead>操作</TableHead>
+                    <TableHead>{t("admin.cloudBackup.thFilePath")}</TableHead>
+                    <TableHead>{t("admin.cloudBackup.thSize")}</TableHead>
+                    <TableHead>{t("admin.cloudBackup.thModified")}</TableHead>
+                    <TableHead>{t("admin.cloudBackup.thAction")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -529,24 +531,24 @@ export default function CloudBackupSyncManager() {
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>添加云存储配置</DialogTitle>
+            <DialogTitle>{t("admin.cloudBackup.addConfigTitle")}</DialogTitle>
             <DialogDescription>
-              配置云存储服务以实现备份自动同步
+              {t("admin.cloudBackup.addConfigDesc")}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>配置名称</Label>
+              <Label>{t("admin.cloudBackup.configName")}</Label>
               <Input
-                placeholder="例如：阿里云OSS主存储"
+                placeholder={t("admin.cloudBackup.configNamePlaceholder")}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
             
             <div className="space-y-2">
-              <Label>云服务商</Label>
+              <Label>{t("admin.cloudBackup.cloudProvider")}</Label>
               <Select
                 value={formData.provider}
                 onValueChange={(value: CloudProvider) => setFormData({ ...formData, provider: value })}
@@ -555,8 +557,8 @@ export default function CloudBackupSyncManager() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="aliyun-oss">阿里云OSS</SelectItem>
-                  <SelectItem value="tencent-cos">腾讯云COS</SelectItem>
+                  <SelectItem value="aliyun-oss">{t("admin.cloudBackup.aliyunOss")}</SelectItem>
+                  <SelectItem value="tencent-cos">{t("admin.cloudBackup.tencentCos")}</SelectItem>
                   <SelectItem value="aws-s3">AWS S3</SelectItem>
                 </SelectContent>
               </Select>
@@ -584,7 +586,7 @@ export default function CloudBackupSyncManager() {
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>存储桶名称</Label>
+                <Label>{t("admin.cloudBackup.bucketName")}</Label>
                 <Input
                   placeholder="bucket-name"
                   value={formData.bucket}
@@ -592,7 +594,7 @@ export default function CloudBackupSyncManager() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>区域</Label>
+                <Label>{t("admin.cloudBackup.region")}</Label>
                 <Input
                   placeholder="cn-shanghai"
                   value={formData.region}
@@ -603,8 +605,8 @@ export default function CloudBackupSyncManager() {
             
             <div className="flex items-center justify-between">
               <div>
-                <Label>自动同步</Label>
-                <p className="text-sm text-muted-foreground">备份完成后自动上传到云端</p>
+                <Label>{t("admin.cloudBackup.autoSync")}</Label>
+                <p className="text-sm text-muted-foreground">{t("admin.cloudBackup.autoSyncDesc")}</p>
               </div>
               <Switch
                 checked={formData.autoSync}
@@ -615,10 +617,10 @@ export default function CloudBackupSyncManager() {
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-              取消
+              {t("admin.cloudBackup.cancel")}
             </Button>
             <Button onClick={handleAddConfig}>
-              添加配置
+              {t("admin.cloudBackup.addConfig")}
             </Button>
           </DialogFooter>
         </DialogContent>

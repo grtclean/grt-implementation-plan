@@ -27,13 +27,14 @@ import {
   DollarSign,
 } from "lucide-react";
 import { Link } from "wouter";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // 风险等级配置
-const riskLevels = {
-  critical: { label: '严重', color: 'bg-red-500', textColor: 'text-red-500', bgLight: 'bg-red-50 dark:bg-red-950' },
-  high: { label: '高', color: 'bg-orange-500', textColor: 'text-orange-500', bgLight: 'bg-orange-50 dark:bg-orange-950' },
-  medium: { label: '中', color: 'bg-yellow-500', textColor: 'text-yellow-500', bgLight: 'bg-yellow-50 dark:bg-yellow-950' },
-  low: { label: '低', color: 'bg-green-500', textColor: 'text-green-500', bgLight: 'bg-green-50 dark:bg-green-950' },
+const riskLevelKeys = {
+  critical: { labelKey: 'projects.pos.dashboard.riskCritical', color: 'bg-red-500', textColor: 'text-red-500', bgLight: 'bg-red-50 dark:bg-red-950' },
+  high: { labelKey: 'projects.pos.dashboard.riskHigh', color: 'bg-orange-500', textColor: 'text-orange-500', bgLight: 'bg-orange-50 dark:bg-orange-950' },
+  medium: { labelKey: 'projects.pos.dashboard.riskMedium', color: 'bg-yellow-500', textColor: 'text-yellow-500', bgLight: 'bg-yellow-50 dark:bg-yellow-950' },
+  low: { labelKey: 'projects.pos.dashboard.riskLow', color: 'bg-green-500', textColor: 'text-green-500', bgLight: 'bg-green-50 dark:bg-green-950' },
 };
 
 // KPI阈值配置
@@ -61,6 +62,7 @@ function RiskAlertCard({ title, value, target, trend, trendValue, icon: Icon, al
   icon: any;
   alerts: { level: string; message: string; project?: string }[];
 }) {
+  const { t } = useLanguage();
   const status = getKPIStatus(value, kpiThresholds.otd);
   const StatusIcon = status.icon;
   
@@ -74,7 +76,7 @@ function RiskAlertCard({ title, value, target, trend, trendValue, icon: Icon, al
             {title}
           </CardTitle>
           <Badge variant={value >= target ? 'default' : 'destructive'} className="text-xs">
-            目标: {target}%
+            {t("projects.pos.dashboard.target")}: {target}%
           </Badge>
         </div>
       </CardHeader>
@@ -91,7 +93,7 @@ function RiskAlertCard({ title, value, target, trend, trendValue, icon: Icon, al
               <span className={trend === 'up' ? 'text-green-500' : 'text-red-500'}>
                 {trendValue}%
               </span>
-              <span className="text-muted-foreground">vs 上月</span>
+              <span className="text-muted-foreground">{t("projects.pos.dashboard.vsLastMonth")}</span>
             </div>
           </div>
           <StatusIcon className={`w-8 h-8 ${status.color} opacity-50`} />
@@ -102,12 +104,12 @@ function RiskAlertCard({ title, value, target, trend, trendValue, icon: Icon, al
           <div className="mt-4 space-y-2">
             <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
               <Bell className="w-3 h-3" />
-              风险预警 ({alerts.length})
+              {t("projects.pos.dashboard.riskAlerts")} ({alerts.length})
             </div>
             {alerts.slice(0, 3).map((alert, i) => (
-              <div key={i} className={`text-xs p-2 rounded ${riskLevels[alert.level as keyof typeof riskLevels]?.bgLight || 'bg-muted'}`}>
+              <div key={i} className={`text-xs p-2 rounded ${riskLevelKeys[alert.level as keyof typeof riskLevelKeys]?.bgLight || 'bg-muted'}`}>
                 <div className="flex items-center gap-1">
-                  <div className={`w-1.5 h-1.5 rounded-full ${riskLevels[alert.level as keyof typeof riskLevels]?.color || 'bg-gray-500'}`} />
+                  <div className={`w-1.5 h-1.5 rounded-full ${riskLevelKeys[alert.level as keyof typeof riskLevelKeys]?.color || 'bg-gray-500'}`} />
                   <span className="font-medium">{alert.project}</span>
                 </div>
                 <p className="text-muted-foreground mt-0.5">{alert.message}</p>
@@ -122,12 +124,13 @@ function RiskAlertCard({ title, value, target, trend, trendValue, icon: Icon, al
 
 // 项目风险列表组件
 function ProjectRiskList({ projects }: { projects: any[] }) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-3">
       {projects.map((project, index) => (
         <Link key={index} href={`/pos/projects/${project.id}`}>
           <div className="flex items-center gap-4 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors">
-            <div className={`w-2 h-12 rounded-full ${riskLevels[project.riskLevel as keyof typeof riskLevels]?.color || 'bg-gray-500'}`} />
+            <div className={`w-2 h-12 rounded-full ${riskLevelKeys[project.riskLevel as keyof typeof riskLevelKeys]?.color || 'bg-gray-500'}`} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-sm">{project.code}</span>
@@ -146,8 +149,8 @@ function ProjectRiskList({ projects }: { projects: any[] }) {
               </div>
             </div>
             <div className="text-right">
-              <Badge className={riskLevels[project.riskLevel as keyof typeof riskLevels]?.color}>
-                {riskLevels[project.riskLevel as keyof typeof riskLevels]?.label}风险
+              <Badge className={riskLevelKeys[project.riskLevel as keyof typeof riskLevelKeys]?.color}>
+                {t(riskLevelKeys[project.riskLevel as keyof typeof riskLevelKeys]?.labelKey || "projects.pos.dashboard.riskLow")}
               </Badge>
               <div className="text-xs text-muted-foreground mt-1">{project.riskReason}</div>
             </div>
@@ -160,6 +163,7 @@ function ProjectRiskList({ projects }: { projects: any[] }) {
 
 // 阶段分布图表组件
 function StageDistributionChart({ distribution }: { distribution: Record<string, number> }) {
+  const { t } = useLanguage();
   const stages = ['M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12'];
   const maxValue = Math.max(...Object.values(distribution), 1);
   
@@ -198,16 +202,17 @@ function StageDistributionChart({ distribution }: { distribution: Record<string,
         );
       })}
       <div className="flex justify-between text-xs text-muted-foreground mt-4 pt-2 border-t">
-        <span className="flex items-center gap-1"><div className="w-3 h-3 bg-blue-500 rounded" />售前</span>
-        <span className="flex items-center gap-1"><div className="w-3 h-3 bg-purple-500 rounded" />立项</span>
-        <span className="flex items-center gap-1"><div className="w-3 h-3 bg-orange-500 rounded" />执行</span>
-        <span className="flex items-center gap-1"><div className="w-3 h-3 bg-green-500 rounded" />交付</span>
+        <span className="flex items-center gap-1"><div className="w-3 h-3 bg-blue-500 rounded" />{t("projects.pos.dashboard.preSales")}</span>
+        <span className="flex items-center gap-1"><div className="w-3 h-3 bg-purple-500 rounded" />{t("projects.pos.dashboard.initiation")}</span>
+        <span className="flex items-center gap-1"><div className="w-3 h-3 bg-orange-500 rounded" />{t("projects.pos.dashboard.execution")}</span>
+        <span className="flex items-center gap-1"><div className="w-3 h-3 bg-green-500 rounded" />{t("projects.pos.dashboard.delivery")}</span>
       </div>
     </div>
   );
 }
 
 export default function POSDashboard() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('overview');
   const { data: overview, isLoading } = trpc.pos.dashboard.getOverview.useQuery();
   const { data: activities } = trpc.pos.dashboard.getRecentActivities.useQuery({ limit: 10 });
@@ -226,7 +231,7 @@ export default function POSDashboard() {
   const riskProjects = [
     { id: 1, code: 'GRT-2024-001', name: '某汽车零部件清洗线', stage: 'M4', riskLevel: 'critical', dueDate: '2024-03-15', pm: '张工', riskReason: '交期延迟15天' },
     { id: 2, code: 'GRT-2024-003', name: '新能源电池壳清洗设备', stage: 'M6', riskLevel: 'high', dueDate: '2024-04-01', pm: '李工', riskReason: '关键物料短缺' },
-    { id: 3, code: 'GRT-2024-005', name: '精密零件超声清洗机', stage: 'M3', riskLevel: 'medium', dueDate: '2024-05-10', pm: '王工', riskReason: '技术方案待确认' },
+    { id: 3, code: 'GRT-2024-005', name: '精密零件超声清洗机', stage: 'M3', riskLevel: 'medium', dueDate: '2024-05-10', pm: '焦斌', riskReason: '技术方案待确认' },
   ];
   
   // 模拟KPI预警数据
@@ -254,17 +259,17 @@ export default function POSDashboard() {
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
-        title="经营概览"
-        description="项目型组织操作系统 - 实时监控与风险预警"
+        title={t("projects.pos.dashboard.title")}
+        description={t("projects.pos.dashboard.description")}
         actions={
           <>
             <Badge variant="outline" className="text-sm">
               <Activity className="w-3 h-3 mr-1" />
-              系统正常
+              {t("projects.pos.dashboard.systemNormal")}
             </Badge>
             <Badge variant="outline" className="text-sm">
               <Clock className="w-3 h-3 mr-1" />
-              实时更新
+              {t("projects.pos.dashboard.realTimeUpdate")}
             </Badge>
           </>
         }
@@ -272,10 +277,10 @@ export default function POSDashboard() {
 
       {/* 快速统计 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Package} label="项目总数" value={stats.total} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={Zap} label="活跃项目" value={stats.active} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={CheckCircle2} label="已完成" value={stats.completed} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
-        <StatCard icon={AlertTriangle} label="风险项目" value={stats.atRisk} iconColor="text-red-500" iconBg="bg-red-500/10" />
+        <StatCard icon={Package} label={t("projects.pos.dashboard.totalProjects")} value={stats.total} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Zap} label={t("projects.pos.dashboard.activeProjects")} value={stats.active} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={CheckCircle2} label={t("projects.pos.dashboard.completed")} value={stats.completed} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+        <StatCard icon={AlertTriangle} label={t("projects.pos.dashboard.riskProjects")} value={stats.atRisk} iconColor="text-red-500" iconBg="bg-red-500/10" />
       </div>
 
       {/* KPI风险预警看板 */}
@@ -312,9 +317,9 @@ export default function POSDashboard() {
       {/* 详细内容标签页 */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="overview">风险项目</TabsTrigger>
-          <TabsTrigger value="distribution">阶段分布</TabsTrigger>
-          <TabsTrigger value="activities">最近活动</TabsTrigger>
+          <TabsTrigger value="overview">{t("projects.pos.dashboard.riskProjects")}</TabsTrigger>
+          <TabsTrigger value="distribution">{t("projects.pos.dashboard.stageDistribution")}</TabsTrigger>
+          <TabsTrigger value="activities">{t("projects.pos.dashboard.recentActivities")}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="mt-4">
@@ -324,12 +329,12 @@ export default function POSDashboard() {
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Shield className="h-5 w-5 text-red-500" />
-                    风险项目监控
+                    {t("projects.pos.dashboard.riskMonitor")}
                   </CardTitle>
-                  <CardDescription>需要重点关注的项目列表，按风险等级排序</CardDescription>
+                  <CardDescription>{t("projects.pos.dashboard.riskMonitorDesc")}</CardDescription>
                 </div>
                 <Link href="/pos/projects">
-                  <Button variant="outline" size="sm">查看全部项目</Button>
+                  <Button variant="outline" size="sm">{t("projects.pos.dashboard.viewAllProjects")}</Button>
                 </Link>
               </div>
             </CardHeader>
@@ -339,7 +344,7 @@ export default function POSDashboard() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <CheckCircle2 className="h-12 w-12 mb-2 text-green-500" />
-                  <p>所有项目运行正常，暂无风险预警</p>
+                  <p>{t("projects.pos.dashboard.noRiskAlerts")}</p>
                 </div>
               )}
             </CardContent>
@@ -351,9 +356,9 @@ export default function POSDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                项目阶段分布
+                {t("projects.pos.dashboard.stageDistribution")}
               </CardTitle>
-              <CardDescription>M0-M12各阶段的项目数量分布</CardDescription>
+              <CardDescription>{t("projects.pos.dashboard.stageDistributionDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <StageDistributionChart distribution={stageDistribution} />
@@ -364,8 +369,8 @@ export default function POSDashboard() {
         <TabsContent value="activities" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>最近活动</CardTitle>
-              <CardDescription>系统最新操作记录</CardDescription>
+              <CardTitle>{t("projects.pos.dashboard.recentActivities")}</CardTitle>
+              <CardDescription>{t("projects.pos.dashboard.recentActivitiesDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               {activities && activities.length > 0 ? (
@@ -380,7 +385,7 @@ export default function POSDashboard() {
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  暂无活动记录
+                  {t("projects.pos.dashboard.noActivities")}
                 </div>
               )}
             </CardContent>

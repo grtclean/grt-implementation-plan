@@ -212,7 +212,7 @@ vi.mock("../../drizzle/procurement-schema", () => ({
 
 // ─── Import callers AFTER mocks ──────────────────────────────────
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -276,7 +276,7 @@ describe("p2p auth guard", () => {
 // 1. Framework Agreements (年度框架协议)
 // ═════════════════════════════════════════════════════════════════
 describe("p2p.frameworkAgreement", () => {
-  const caller = createAuthenticatedCaller();
+  const caller = createAdminCaller();
 
   it("list returns items and total", async () => {
     mockQueryResult = [
@@ -385,7 +385,7 @@ describe("p2p.frameworkAgreement", () => {
 // 2. RFQ (询价竞标)
 // ═════════════════════════════════════════════════════════════════
 describe("p2p.rfq", () => {
-  const caller = createAuthenticatedCaller();
+  const caller = createAdminCaller();
 
   it("list returns items and total", async () => {
     mockQueryResult = [{ id: 1, rfqCode: "RFQ-001", status: "draft" }];
@@ -581,7 +581,7 @@ describe("p2p.rfq", () => {
 // 3. Delivery Registrations (到货登记)
 // ═════════════════════════════════════════════════════════════════
 describe("p2p.delivery", () => {
-  const caller = createAuthenticatedCaller();
+  const caller = createAdminCaller();
 
   it("list returns items and total", async () => {
     mockQueryResult = [{ id: 1, registrationCode: "DLV-001", status: "received" }];
@@ -709,7 +709,7 @@ describe("p2p.delivery", () => {
 // 4. Supplier Report Submissions
 // ═════════════════════════════════════════════════════════════════
 describe("p2p.supplierReport", () => {
-  const caller = createAuthenticatedCaller();
+  const caller = createAdminCaller();
 
   it("list returns items and total", async () => {
     mockQueryResult = [{ id: 1, documentType: "test_report", supplierId: 10 }];
@@ -786,7 +786,7 @@ describe("p2p.supplierReport", () => {
 // 5. Payment Workflows (8-step payment approval)
 // ═════════════════════════════════════════════════════════════════
 describe("p2p.payment", () => {
-  const caller = createAuthenticatedCaller();
+  const caller = createAdminCaller();
 
   it("list returns items and total", async () => {
     mockQueryResult = [{ id: 1, workflowCode: "PAY-001", status: "pending" }];
@@ -983,7 +983,7 @@ describe("p2p.payment", () => {
 // 6. Small Value Procurements (小额采购)
 // ═════════════════════════════════════════════════════════════════
 describe("p2p.smallValue", () => {
-  const caller = createAuthenticatedCaller();
+  const caller = createAdminCaller();
 
   it("list returns items and total", async () => {
     mockQueryResult = [{ id: 1, requestCode: "SVP-001", status: "draft" }];
@@ -1108,7 +1108,7 @@ describe("p2p.smallValue", () => {
 // 7. Supplier Qualifications (供应商资格审查)
 // ═════════════════════════════════════════════════════════════════
 describe("p2p.qualification", () => {
-  const caller = createAuthenticatedCaller();
+  const caller = createAdminCaller();
 
   it("list returns items and total", async () => {
     mockQueryResult = [{ id: 1, supplierId: 10, qualificationType: "initial" }];
@@ -1247,7 +1247,7 @@ describe("p2p.qualification", () => {
 // 8. Quality Loss Agreements (质量损失协议)
 // ═════════════════════════════════════════════════════════════════
 describe("p2p.qualityLossAgreement", () => {
-  const caller = createAuthenticatedCaller();
+  const caller = createAdminCaller();
 
   it("list returns items and total", async () => {
     mockQueryResult = [{ id: 1, agreementCode: "QLA-001", status: "draft" }];
@@ -1357,7 +1357,7 @@ describe("p2p.qualityLossAgreement", () => {
 // 9. Quality Loss Incidents (质量损失事件记录)
 // ═════════════════════════════════════════════════════════════════
 describe("p2p.qualityLossIncident", () => {
-  const caller = createAuthenticatedCaller();
+  const caller = createAdminCaller();
 
   it("list returns items and total", async () => {
     mockQueryResult = [{ id: 1, incidentCode: "QLI-001", status: "reported" }];

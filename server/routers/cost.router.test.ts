@@ -14,11 +14,18 @@ import {
   createAdminCaller,
 } from "../_test/trpc-test-utils";
 
-const { selectResultsQueue, mockReturningResult } = vi.hoisted(() => {
+const { selectResultsQueue, mockReturningResult, mockCheckPermission } = vi.hoisted(() => {
   const selectResultsQueue: any[][] = [];
   const mockReturningResult: any[] = [];
-  return { selectResultsQueue, mockReturningResult };
+  const mockCheckPermission = vi.fn().mockResolvedValue(true);
+  return { selectResultsQueue, mockReturningResult, mockCheckPermission };
 });
+
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: mockCheckPermission,
+  },
+}));
 
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => {
@@ -306,6 +313,7 @@ describe("cost router", () => {
     });
 
     it("rejects non-admin without permission", async () => {
+      mockCheckPermission.mockResolvedValueOnce(false);
       await expect(caller().cost.getLaborCosts()).rejects.toThrow(/permission/i);
     });
   });

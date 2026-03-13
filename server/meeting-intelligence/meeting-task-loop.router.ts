@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { router, protectedProcedure } from '../_core/trpc';
+import {router, protectedProcedure, requirePermission} from '../_core/trpc';
 import { jsonValue } from '@shared/validators';
 import {
   generateMeetingMinutes,
@@ -73,7 +73,7 @@ export const meetingTaskLoopRouter = router({
       };
     }),
 
-  approveMinutes: protectedProcedure
+  approveMinutes: requirePermission('collab:meeting:hub')
     .input(z.object({
       minutesId: z.string(),
     }))
@@ -137,7 +137,7 @@ export const meetingTaskLoopRouter = router({
       }));
     }),
 
-  distributeActionItems: protectedProcedure
+  distributeActionItems: requirePermission('collab:meeting:hub')
     .input(z.object({
       minutesId: z.string(),
       actionItemIds: z.array(z.string()),
@@ -176,7 +176,7 @@ export const meetingTaskLoopRouter = router({
       }));
     }),
 
-  acceptAssignment: protectedProcedure
+  acceptAssignment: requirePermission('collab:meeting:hub')
     .input(z.object({
       assignmentId: z.string(),
       notes: z.string().optional(),
@@ -185,7 +185,7 @@ export const meetingTaskLoopRouter = router({
       return acceptTaskAssignment(input.assignmentId, String(ctx.user.id), input.notes);
     }),
 
-  rejectAssignment: protectedProcedure
+  rejectAssignment: requirePermission('collab:meeting:hub')
     .input(z.object({
       assignmentId: z.string(),
       reason: z.string(),
@@ -210,7 +210,7 @@ export const meetingTaskLoopRouter = router({
       return getPersonalTasks(String(ctx.user.id), input);
     }),
 
-  updateTaskStatus: protectedProcedure
+  updateTaskStatus: requirePermission('collab:meeting:hub')
     .input(z.object({
       taskId: z.string(),
       status: z.enum(['todo', 'in_progress', 'blocked', 'completed', 'cancelled']),
@@ -250,7 +250,7 @@ export const meetingTaskLoopRouter = router({
       });
     }),
 
-  submitCompletionReport: protectedProcedure
+  submitCompletionReport: requirePermission('collab:meeting:hub')
     .input(z.object({
       reportId: z.string(),
     }))
@@ -301,7 +301,7 @@ export const meetingTaskLoopRouter = router({
     }),
 
   // MO审核报告
-  reviewCompletionReport: protectedProcedure
+  reviewCompletionReport: requirePermission('collab:meeting:hub')
     .input(z.object({
       reportId: z.string(),
       approved: z.boolean(),
@@ -484,7 +484,7 @@ export const meetingTaskLoopRouter = router({
       return getCustomTemplates(String(ctx.user.id), input);
     }),
 
-  incrementTemplateUsage: protectedProcedure
+  incrementTemplateUsage: requirePermission('collab:meeting:hub')
     .input(z.object({
       templateId: z.string(),
     }))
@@ -493,7 +493,7 @@ export const meetingTaskLoopRouter = router({
       return { success: true };
     }),
 
-  deleteCustomTemplate: protectedProcedure
+  deleteCustomTemplate: requirePermission('collab:meeting:hub')
     .input(z.object({
       templateId: z.string(),
     }))

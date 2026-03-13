@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import { analyzeShiftHandover } from "./shiftHandover.service";
 
 export const shiftHandoverRouter = router({

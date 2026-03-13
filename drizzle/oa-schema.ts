@@ -3,7 +3,7 @@
  * ║       GRT Smart OA & Command Center — Drizzle ORM Schema        ║
  * ╠══════════════════════════════════════════════════════════════════╣
  * ║                                                                 ║
- * ║  Absorbs fragmented OA systems (DingTalk, Jiandaoyun) into     ║
+ * ║  Absorbs fragmented OA systems (DingTalk, External Sync) into  ║
  * ║  the unified GRT Digital Twin System.  DingTalk is demoted to  ║
  * ║  notification-only (webhook); all data logic stays in DB.      ║
  * ║                                                                 ║
@@ -49,7 +49,7 @@ import { projects, users } from "./schema";
 // ══════════════════════════════════════════════════════
 
 /**
- * Workflow types — migrated from Jiandaoyun "人事及OA管理系统" (8 modules, 36 forms):
+ * Workflow types — migrated from External Sync "人事及OA管理系统" (8 modules, 36 forms):
  *   考勤管理 → LEAVE, OVERTIME, ATTENDANCE_FIX, OUTING
  *   车辆管理 → VEHICLE
  *   物资管理 → STATIONERY, PROCUREMENT
@@ -388,7 +388,7 @@ export const businessTripReports = pgTable("business_trip_reports", {
 ]);
 
 // ══════════════════════════════════════════════════════
-// Table 5: oa_leave_balances — 假期余额 (from JDY 考勤管理)
+// Table 5: oa_leave_balances — 假期余额 (from Ext Sync 考勤管理)
 //
 // Tracks annual/sick/personal leave quota per employee per year.
 // Decremented by approved LEAVE workflows.
@@ -441,7 +441,7 @@ export const oaLeaveBalances = pgTable("oa_leave_balances", {
 ]);
 
 // ══════════════════════════════════════════════════════
-// Table 6: oa_announcements — 公告通知 (from JDY 会议管理/通知)
+// Table 6: oa_announcements — 公告通知 (from Ext Sync 会议管理/通知)
 //
 // Company-wide or department-scoped announcements.
 // Replaces ad-hoc DingTalk blasts with trackable, searchable notices.

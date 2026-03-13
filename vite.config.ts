@@ -25,6 +25,7 @@ export default defineConfig({
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
+    dedupe: ["react", "react-dom"],
   },
   envDir: path.resolve(import.meta.dirname),
   root: path.resolve(import.meta.dirname, "client"),
@@ -52,6 +53,22 @@ export default defineConfig({
       },
     },
   },
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "react-dom/client",
+      "@trpc/react-query",
+      "@tanstack/react-query",
+      "sonner",
+      "wouter",
+      "three",
+      "@react-three/fiber",
+      "@react-three/drei",
+    ],
+  },
   server: {
     host: true,
     allowedHosts: [
@@ -65,11 +82,32 @@ export default defineConfig({
     ],
     proxy: {
       "/api": {
-        target: `http://localhost:${process.env.PORT || 3000}`,
+        target: `http://127.0.0.1:${process.env.PORT || 3000}`,
         changeOrigin: true,
+        timeout: 120_000,       // 2 min — large CAD binary uploads/downloads
+        proxyTimeout: 120_000,
+        configure: (proxy) => {
+          proxy.on("proxyReq", (proxyReq) => {
+            // Prevent premature socket close for large binary transfers (.SLDPRT, .STEP)
+            proxyReq.setSocketKeepAlive(true);
+          });
+          proxy.on("error", (_err, _req, res) => {
+            // Friendly auto-retry page instead of white screen / JSON 502
+            if (res && "writeHead" in res && !res.headersSent) {
+              (res as any).writeHead(502, { "Content-Type": "text/html" });
+              (res as any).end(
+                `<html><body style="font-family:system-ui;padding:60px;text-align:center;background:#fafafa">` +
+                `<h2 style="color:#334155">Backend is starting up...</h2>` +
+                `<p style="color:#64748b">Express server on port ${process.env.PORT || 3000} is not ready yet. Auto-retrying in 3s...</p>` +
+                `<script>setTimeout(()=>location.reload(),3000)</script>` +
+                `</body></html>`
+              );
+            }
+          });
+        },
       },
       "/ws": {
-        target: `ws://localhost:${process.env.PORT || 3000}`,
+        target: `ws://127.0.0.1:${process.env.PORT || 3000}`,
         ws: true,
       },
     },
@@ -79,7 +117,7 @@ export default defineConfig({
     },
     hmr: {
       host: process.env.VITE_HMR_HOST || "localhost",
-      port: parseInt(process.env.VITE_HMR_PORT || "3000"),
+      port: 5174, // Dedicated HMR WebSocket port — avoids conflict with Express on PORT 3000
       protocol: process.env.VITE_HMR_PROTOCOL || "ws",
     },
   },

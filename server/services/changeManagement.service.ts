@@ -124,7 +124,7 @@ export async function checkUserAuthorization(
 ): Promise<boolean> {
   // TODO: Fetch from database
   // const auth = await db.select().from(userAuthorizations).where(eq(userAuthorizations.userId, userId));
-  // return auth[0]?.authorizationLevel >= requiredLevel;
+  // return auth[0]?.authorizationLevel >= requiredLevel
   return false;
 }
 

@@ -6,12 +6,12 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
 beforeEach(() => { vi.clearAllMocks(); });
-const caller = () => createAuthenticatedCaller();
+const caller = () => createAdminCaller();
 
 describe("expense-comparison-export router", () => {
   describe("export", () => {

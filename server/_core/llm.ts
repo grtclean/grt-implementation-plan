@@ -335,3 +335,102 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
   return result;
 }
+
+// ── Multi-Provider Wrapper ──────────────────────────────────
+
+export type LLMProvider = "gemini" | "claude" | "openai";
+
+export interface MultiProviderParams {
+  provider: LLMProvider;
+  system: string;
+  prompt: string;
+  maxTokens?: number;
+}
+
+export interface MultiProviderResult {
+  content: string;
+  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  model: string;
+  provider: LLMProvider;
+}
+
+export async function invokeLLMWithProvider(params: MultiProviderParams): Promise<MultiProviderResult> {
+  const { provider, system, prompt, maxTokens = 16384 } = params;
+
+  if (provider === "claude") {
+    const apiKey = env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
+    const model = env.ANTHROPIC_MODEL;
+    const url = `${env.ANTHROPIC_BASE_URL.replace(/\/$/, "")}/messages`;
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        system,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Claude API error: ${res.status} ${errText}`);
+    }
+    const data = await res.json() as any;
+    const text = data.content?.map((b: any) => b.text).join("") ?? "";
+    return {
+      content: text,
+      usage: data.usage ? { prompt_tokens: data.usage.input_tokens, completion_tokens: data.usage.output_tokens, total_tokens: data.usage.input_tokens + data.usage.output_tokens } : undefined,
+      model,
+      provider,
+    };
+  }
+
+  if (provider === "gemini") {
+    const apiKey = env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
+    const model = env.GEMINI_MODEL;
+    const url = `${env.GEMINI_BASE_URL.replace(/\/$/, "")}/chat/completions`;
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: prompt },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Gemini API error: ${res.status} ${errText}`);
+    }
+    const data = await res.json() as any;
+    return {
+      content: data.choices?.[0]?.message?.content ?? "",
+      usage: data.usage,
+      model,
+      provider,
+    };
+  }
+
+  // openai — delegate to existing invokeLLM
+  const result = await invokeLLM({ system, prompt });
+  return {
+    content: result.content ?? "",
+    usage: result.usage,
+    model: resolveModel(),
+    provider,
+  };
+}

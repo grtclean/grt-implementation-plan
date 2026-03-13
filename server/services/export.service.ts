@@ -32,6 +32,7 @@ export async function exportMeetingAsMarkdown(
     .select()
     .from(meetings)
     .where(eq(meetings.id, meetingId))
+    .limit(1000)
     .then((results) => results[0]);
 
   if (!meeting) {
@@ -43,6 +44,7 @@ export async function exportMeetingAsMarkdown(
     .select()
     .from(meetingNotes)
     .where(eq(meetingNotes.meetingId, meetingId))
+    .limit(1000)
     .then((results) => results[results.length - 1]);
 
   // 获取AI洞察
@@ -51,7 +53,8 @@ export async function exportMeetingAsMarkdown(
     insights = await database
       .select()
       .from(aiInsights)
-      .where(eq(aiInsights.meetingId, meetingId));
+      .where(eq(aiInsights.meetingId, meetingId))
+      .limit(1000);
   }
 
   // 获取参与者
@@ -60,7 +63,8 @@ export async function exportMeetingAsMarkdown(
     participants = await database
       .select()
       .from(meetingParticipants)
-      .where(eq(meetingParticipants.meetingId, meetingId));
+      .where(eq(meetingParticipants.meetingId, meetingId))
+      .limit(1000);
   }
 
   // 生成Markdown内容

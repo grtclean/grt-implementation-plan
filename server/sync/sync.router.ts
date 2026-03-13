@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { protectedProcedure, router } from '../_core/trpc';
+import {protectedProcedure, router, requirePermission} from '../_core/trpc';
 import { jsonValue } from '@shared/validators';
 import {
   DataSyncService,
@@ -216,7 +216,7 @@ export const syncRouter = router({
   // ---------------------------------------------------------------------------
   // 标记同步项状态
   // ---------------------------------------------------------------------------
-  updateItemStatus: protectedProcedure
+  updateItemStatus: requirePermission('system:erp:config')
     .input(z.object({
       id: z.string(),
       status: z.enum(['SENDING', 'SENT', 'ACKNOWLEDGED', 'FAILED']),
@@ -244,7 +244,7 @@ export const syncRouter = router({
   // ---------------------------------------------------------------------------
   // 清理已完成的同步项
   // ---------------------------------------------------------------------------
-  cleanupCompleted: protectedProcedure.mutation(() => {
+  cleanupCompleted: requirePermission('system:erp:config').mutation(() => {
     const removed = syncQueue.removeCompleted();
     return {
       success: true,

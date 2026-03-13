@@ -100,7 +100,8 @@ export async function provisionAllEmployees(): Promise<ProvisionResult> {
           eq(hrmEmployees.status, "regular"),
           eq(hrmEmployees.status, "probation"),
         )
-      );
+      )
+      .limit(1000);
 
     if (employees.length === 0) {
       result.errors.push("未找到在职员工");
@@ -110,7 +111,8 @@ export async function provisionAllEmployees(): Promise<ProvisionResult> {
     // 2. 查询已有的AI助理记录
     const existingAssistants = await db
       .select({ employeeId: employeeAiAssistants.employeeId })
-      .from(employeeAiAssistants);
+      .from(employeeAiAssistants)
+      .limit(1000);
 
     const existingSet = new Set(existingAssistants.map((a) => a.employeeId));
 
@@ -342,7 +344,8 @@ export async function getProvisioningStatus(): Promise<ProvisioningStatus> {
         eq(hrmEmployees.status, "regular"),
         eq(hrmEmployees.status, "probation"),
       )
-    );
+    )
+    .limit(1000);
 
   // 所有已配置的助理
   const assistants = await db
@@ -350,7 +353,8 @@ export async function getProvisioningStatus(): Promise<ProvisioningStatus> {
       employeeId: employeeAiAssistants.employeeId,
     })
     .from(employeeAiAssistants)
-    .where(eq(employeeAiAssistants.status, "active"));
+    .where(eq(employeeAiAssistants.status, "active"))
+    .limit(1000);
 
   const provisionedSet = new Set(assistants.map((a) => a.employeeId));
 

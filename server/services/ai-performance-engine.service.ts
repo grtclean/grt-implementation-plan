@@ -103,7 +103,8 @@ export async function calculateUserMeetingScore(
         eq(hrPenalties.meetingId, meetingId),
         eq(hrPenalties.userId, userId)
       )
-    );
+    )
+    .limit(1000);
 
   for (const p of penalties) {
     const deduction = Math.abs(p.deductedKpiPoints ?? 0) * 5;
@@ -119,7 +120,8 @@ export async function calculateUserMeetingScore(
         eq(meetingActionItems.meetingId, meetingId),
         eq(meetingActionItems.assignedTo, userId)
       )
-    );
+    )
+    .limit(1000);
 
   let execution = 100; // default: no items assigned = full score
   if (actionItems.length > 0) {
@@ -204,7 +206,8 @@ export async function calculateMonthlyScore(
         gte(meetingAttendance.createdAt, startDate),
         lte(meetingAttendance.createdAt, endDate)
       )
-    );
+    )
+    .limit(1000);
 
   const totalMeetings = attendanceRecords.length;
   const attended = attendanceRecords.filter(

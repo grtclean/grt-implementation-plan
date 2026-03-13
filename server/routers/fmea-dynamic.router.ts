@@ -33,7 +33,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -387,7 +387,7 @@ export const fmeaDynamicRouter = router({
   /**
    * initiateCapa — trigger CAPA for a CRITICAL FMEA item.
    */
-  initiateCapa: protectedProcedure
+  initiateCapa: requirePermission('mfg:fmea:manage')
     .input(z.object({
       fmeaItemId: z.number(),
       reason: z.string().min(1),

@@ -148,7 +148,7 @@ const initialTestResults: TestResult[] = [
     testItemName: "清洁度检测",
     resultValue: "0.42mg/件 (样本批次1)",
     passed: true,
-    testedBy: "王工",
+    testedBy: "焦斌",
     testedAt: "2024-03-15 11:00",
   },
   {
@@ -189,10 +189,10 @@ const initialChecklist: ChecklistItem[] = [
   { id: "C012", category: "safety", description: "接地电阻测量", checked: true, responsiblePerson: "刘工", notes: "< 4Ω" },
   { id: "C013", category: "safety", description: "CE安全标签张贴", checked: false, responsiblePerson: "张工", notes: "" },
   // 文档类
-  { id: "C014", category: "documentation", description: "操作手册(中/英)", checked: true, responsiblePerson: "王工", notes: "V2.0已完成" },
+  { id: "C014", category: "documentation", description: "操作手册(中/英)", checked: true, responsiblePerson: "焦斌", notes: "V2.0已完成" },
   { id: "C015", category: "documentation", description: "电气图纸交付", checked: true, responsiblePerson: "刘工", notes: "" },
   { id: "C016", category: "documentation", description: "PLC程序备份", checked: false, responsiblePerson: "陈工", notes: "" },
-  { id: "C017", category: "documentation", description: "维护保养手册", checked: false, responsiblePerson: "王工", notes: "编写中" },
+  { id: "C017", category: "documentation", description: "维护保养手册", checked: false, responsiblePerson: "焦斌", notes: "编写中" },
   { id: "C018", category: "documentation", description: "零件清单及供应商信息", checked: true, responsiblePerson: "李工", notes: "" },
 ];
 

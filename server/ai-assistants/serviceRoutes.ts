@@ -161,7 +161,7 @@ export const serviceAssistantRouter = router({
   getDashboard: protectedProcedure.query(async () => {
     await ensureServiceDashboard();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT category, items FROM ai_assistant_dashboard WHERE assistant_type = 'service'`);
+    const { rows } = await db.execute(sql`SELECT category, items FROM ai_assistant_dashboard WHERE assistant_type = 'service' LIMIT 1000`);
     const data: Record<string, any[]> = { steps: [], actions: [], maintenance: [], summaries: [], kb: [] };
     for (const r of rows as any[]) {
       data[r.category] = r.items;

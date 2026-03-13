@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useState } from "react";
 import {
   BarChart3,
@@ -26,19 +27,31 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// 助手类型配置
-const assistantTypeConfig: Record<string, { label: string; color: string }> = {
-  solution: { label: "方案助手", color: "bg-blue-500" },
-  quotation: { label: "报价助手", color: "bg-green-500" },
-  planning: { label: "规划助手", color: "bg-purple-500" },
-  kpi: { label: "绩效助手", color: "bg-orange-500" },
-  interview: { label: "面试助手", color: "bg-pink-500" },
-  purchase: { label: "采购助手", color: "bg-cyan-500" },
-  engineering: { label: "工程助手", color: "bg-indigo-500" },
-  quality: { label: "质量助手", color: "bg-red-500" },
+// 助手类型配置 — label keys resolved at render time via t()
+const assistantTypeColors: Record<string, string> = {
+  solution: "bg-blue-500",
+  quotation: "bg-green-500",
+  planning: "bg-purple-500",
+  kpi: "bg-orange-500",
+  interview: "bg-pink-500",
+  purchase: "bg-cyan-500",
+  engineering: "bg-indigo-500",
+  quality: "bg-red-500",
+};
+
+const assistantTypeLabelKeys: Record<string, string> = {
+  solution: "ai.effectiveness.assistantSolution",
+  quotation: "ai.effectiveness.assistantQuotation",
+  planning: "ai.effectiveness.assistantPlanning",
+  kpi: "ai.effectiveness.assistantKpi",
+  interview: "ai.effectiveness.assistantInterview",
+  purchase: "ai.effectiveness.assistantPurchase",
+  engineering: "ai.effectiveness.assistantEngineering",
+  quality: "ai.effectiveness.assistantQuality",
 };
 
 export default function AIEffectivenessTracking() {
+  const { t } = useLanguage();
   const [selectedAssistant, setSelectedAssistant] = useState<string>("all");
   const [selectedMode, setSelectedMode] = useState<string>("all");
 
@@ -81,8 +94,8 @@ export default function AIEffectivenessTracking() {
         {/* 页面标题 */}
         <PageHeader
           icon={BarChart3}
-          title="AI建议效果追踪"
-          description="监控AI助手的采纳率和执行效果，持续优化AI表现"
+          title={t("ai.effectiveness.title")}
+          description={t("ai.effectiveness.description")}
           actions={
             <div className="flex items-center gap-2">
               <Button
@@ -100,11 +113,11 @@ export default function AIEffectivenessTracking() {
                 ) : (
                   <RefreshCw className="w-4 h-4 mr-2" />
                 )}
-                刷新数据
+                {t("ai.effectiveness.refreshData")}
               </Button>
               <Button variant="outline" size="sm">
                 <Download className="w-4 h-4 mr-2" />
-                导出报告
+                {t("ai.effectiveness.exportReport")}
               </Button>
             </div>
           }
@@ -113,31 +126,31 @@ export default function AIEffectivenessTracking() {
         {/* 筛选器 */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">AI助手:</span>
+            <span className="text-sm text-muted-foreground">{t("ai.effectiveness.filterAssistant")}:</span>
             <Select value={selectedAssistant} onValueChange={setSelectedAssistant}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部助手</SelectItem>
-                {Object.entries(assistantTypeConfig).map(([key, config]) => (
+                <SelectItem value="all">{t("ai.effectiveness.allAssistants")}</SelectItem>
+                {Object.entries(assistantTypeLabelKeys).map(([key, labelKey]) => (
                   <SelectItem key={key} value={key}>
-                    {config.label}
+                    {t(labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">执行模式:</span>
+            <span className="text-sm text-muted-foreground">{t("ai.effectiveness.filterMode")}:</span>
             <Select value={selectedMode} onValueChange={setSelectedMode}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部模式</SelectItem>
-                <SelectItem value="internal">系统内AI</SelectItem>
-                <SelectItem value="generative">泛互式AI</SelectItem>
+                <SelectItem value="all">{t("ai.effectiveness.allModes")}</SelectItem>
+                <SelectItem value="internal">{t("ai.effectiveness.internalAI")}</SelectItem>
+                <SelectItem value="generative">{t("ai.effectiveness.generativeAI")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -147,29 +160,29 @@ export default function AIEffectivenessTracking() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard
             icon={Brain}
-            label="总调用次数"
+            label={t("ai.effectiveness.totalCalls")}
             value={totalCalls}
             iconColor="text-blue-500"
             iconBg="bg-blue-500/10"
           />
           <StatCard
             icon={ThumbsUp}
-            label="整体采纳率"
+            label={t("ai.effectiveness.adoptionRate")}
             value={`${(overallAdoptionRate * 100).toFixed(1)}%`}
             iconColor="text-green-500"
             iconBg="bg-green-500/10"
-            subtitle={overallAdoptionRate >= 0.7 ? "表现良好" : "需要优化"}
+            subtitle={overallAdoptionRate >= 0.7 ? t("ai.effectiveness.performanceGood") : t("ai.effectiveness.needsOptimization")}
           />
           <StatCard
             icon={Clock}
-            label="平均响应时间"
+            label={t("ai.effectiveness.avgResponseTime")}
             value={`${(avgResponseTime / 1000).toFixed(1)}s`}
             iconColor="text-purple-500"
             iconBg="bg-purple-500/10"
           />
           <StatCard
             icon={Target}
-            label="活跃员工DA"
+            label={t("ai.effectiveness.activeEmployeeDAs")}
             value={(integrationStats as any)?.totalEmployeeDAs || 0}
             iconColor="text-orange-500"
             iconBg="bg-orange-500/10"
@@ -182,20 +195,20 @@ export default function AIEffectivenessTracking() {
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 <Database className="w-5 h-5 text-blue-600" />
-                <CardTitle className="text-lg text-blue-700">系统内AI</CardTitle>
+                <CardTitle className="text-lg text-blue-700">{t("ai.effectiveness.internalAI")}</CardTitle>
               </div>
               <CardDescription className="text-blue-600/70">
-                基于案例库，快速响应
+                {t("ai.effectiveness.internalAIDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <p className="text-sm text-blue-600/70">调用次数</p>
+                  <p className="text-sm text-blue-600/70">{t("ai.effectiveness.callCount")}</p>
                   <p className="text-2xl font-bold text-blue-700">{internalTotal}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-blue-600/70">采纳率</p>
+                  <p className="text-sm text-blue-600/70">{t("ai.effectiveness.adoptionRateShort")}</p>
                   <p className="text-2xl font-bold text-blue-700">
                     {internalStats.length > 0
                       ? (
@@ -208,7 +221,7 @@ export default function AIEffectivenessTracking() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-blue-600/70">占比</p>
+                  <p className="text-sm text-blue-600/70">{t("ai.effectiveness.proportion")}</p>
                   <p className="text-2xl font-bold text-blue-700">
                     {totalCalls > 0 ? ((internalTotal / totalCalls) * 100).toFixed(0) : 0}%
                   </p>
@@ -221,20 +234,20 @@ export default function AIEffectivenessTracking() {
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 <Globe className="w-5 h-5 text-purple-600" />
-                <CardTitle className="text-lg text-purple-700">泛互式AI</CardTitle>
+                <CardTitle className="text-lg text-purple-700">{t("ai.effectiveness.generativeAI")}</CardTitle>
               </div>
               <CardDescription className="text-purple-600/70">
-                深度分析，创新建议
+                {t("ai.effectiveness.generativeAIDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <p className="text-sm text-purple-600/70">调用次数</p>
+                  <p className="text-sm text-purple-600/70">{t("ai.effectiveness.callCount")}</p>
                   <p className="text-2xl font-bold text-purple-700">{generativeTotal}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-purple-600/70">采纳率</p>
+                  <p className="text-sm text-purple-600/70">{t("ai.effectiveness.adoptionRateShort")}</p>
                   <p className="text-2xl font-bold text-purple-700">
                     {generativeStats.length > 0
                       ? (
@@ -247,7 +260,7 @@ export default function AIEffectivenessTracking() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-purple-600/70">占比</p>
+                  <p className="text-sm text-purple-600/70">{t("ai.effectiveness.proportion")}</p>
                   <p className="text-2xl font-bold text-purple-700">
                     {totalCalls > 0 ? ((generativeTotal / totalCalls) * 100).toFixed(0) : 0}%
                   </p>
@@ -260,18 +273,18 @@ export default function AIEffectivenessTracking() {
         {/* 详细数据 */}
         <Tabs defaultValue="by-assistant">
           <TabsList>
-            <TabsTrigger value="by-assistant">按助手类型</TabsTrigger>
-            <TabsTrigger value="recent-logs">最近执行日志</TabsTrigger>
+            <TabsTrigger value="by-assistant">{t("ai.effectiveness.byAssistantType")}</TabsTrigger>
+            <TabsTrigger value="recent-logs">{t("ai.effectiveness.recentLogs")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="by-assistant" className="mt-4">
             <Card className="bg-card/50 border-border">
               <CardHeader>
-                <CardTitle className="text-lg">各AI助手效果统计</CardTitle>
+                <CardTitle className="text-lg">{t("ai.effectiveness.assistantStats")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {Object.entries(assistantTypeConfig).map(([type, config]) => {
+                  {Object.entries(assistantTypeLabelKeys).map(([type, labelKey]) => {
                     const typeStats = stats.filter(s => s.assistantType === type);
                     const typeTotalCalls = typeStats.reduce((sum, s) => sum + (s.totalCount || 0), 0);
                     const typeAdopted = typeStats.reduce((sum, s) => sum + (s.adoptedCount || 0), 0);
@@ -283,22 +296,22 @@ export default function AIEffectivenessTracking() {
                         className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <div className={cn("w-3 h-3 rounded-full", config.color)} />
-                          <span className="font-medium">{config.label}</span>
+                          <div className={cn("w-3 h-3 rounded-full", assistantTypeColors[type])} />
+                          <span className="font-medium">{t(labelKey)}</span>
                         </div>
                         <div className="flex items-center gap-8">
                           <div className="text-right">
-                            <p className="text-xs text-muted-foreground">调用次数</p>
+                            <p className="text-xs text-muted-foreground">{t("ai.effectiveness.callCount")}</p>
                             <p className="font-semibold">{typeTotalCalls}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs text-muted-foreground">采纳率</p>
+                            <p className="text-xs text-muted-foreground">{t("ai.effectiveness.adoptionRateShort")}</p>
                             <p className="font-semibold">{(typeAdoptionRate * 100).toFixed(1)}%</p>
                           </div>
                           <div className="w-32">
                             <div className="h-2 bg-muted rounded-full overflow-hidden">
                               <div
-                                className={cn("h-full rounded-full", config.color)}
+                                className={cn("h-full rounded-full", assistantTypeColors[type])}
                                 style={{ width: `${typeAdoptionRate * 100}%` }}
                               />
                             </div>
@@ -315,7 +328,7 @@ export default function AIEffectivenessTracking() {
           <TabsContent value="recent-logs" className="mt-4">
             <Card className="bg-card/50 border-border">
               <CardHeader>
-                <CardTitle className="text-lg">最近执行日志</CardTitle>
+                <CardTitle className="text-lg">{t("ai.effectiveness.recentLogs")}</CardTitle>
               </CardHeader>
               <CardContent>
                 {logsQuery.isLoading ? (
@@ -324,7 +337,7 @@ export default function AIEffectivenessTracking() {
                   </div>
                 ) : logs.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    暂无执行日志
+                    {t("ai.effectiveness.noLogs")}
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -343,10 +356,10 @@ export default function AIEffectivenessTracking() {
                                 : "border-purple-200 text-purple-600"
                             )}
                           >
-                            {(log as any).executionMode === "internal" ? "系统内" : "泛互式"}
+                            {(log as any).executionMode === "internal" ? t("ai.effectiveness.internalShort") : t("ai.effectiveness.generativeShort")}
                           </Badge>
                           <span className="text-sm">
-                            {assistantTypeConfig[(log as any).assistantType]?.label || (log as any).assistantType}
+                            {assistantTypeLabelKeys[(log as any).assistantType] ? t(assistantTypeLabelKeys[(log as any).assistantType]) : (log as any).assistantType}
                           </span>
                         </div>
                         <div className="flex items-center gap-4">
@@ -358,7 +371,7 @@ export default function AIEffectivenessTracking() {
                           ) : (log as any).isAdopted === 0 ? (
                             <ThumbsDown className="w-4 h-4 text-red-500" />
                           ) : (
-                            <span className="text-xs text-muted-foreground">待反馈</span>
+                            <span className="text-xs text-muted-foreground">{t("ai.effectiveness.pendingFeedback")}</span>
                           )}
                           <span className="text-xs text-muted-foreground">
                             {new Date((log as any).createdAt).toLocaleString("zh-CN")}

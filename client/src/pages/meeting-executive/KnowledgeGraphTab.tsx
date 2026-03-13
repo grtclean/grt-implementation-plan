@@ -32,13 +32,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const entityTypeLabels: Record<string, string> = {
-  decision: "决策",
-  risk: "风险",
-  opportunity: "机会",
-  dependency: "依赖",
-  insight: "洞察",
+const entityTypeLabelKeys: Record<string, string> = {
+  decision: "meeting.knowledge.typeDecision",
+  risk: "meeting.knowledge.typeRisk",
+  opportunity: "meeting.knowledge.typeOpportunity",
+  dependency: "meeting.knowledge.typeDependency",
+  insight: "meeting.knowledge.typeInsight",
 };
 
 const entityTypeColors: Record<string, string> = {
@@ -49,15 +50,16 @@ const entityTypeColors: Record<string, string> = {
   insight: "default",
 };
 
-const outcomeStatusLabels: Record<string, string> = {
-  pending: "待定",
-  implemented: "已实施",
-  reversed: "已撤销",
-  modified: "已修改",
-  abandoned: "已放弃",
+const outcomeStatusLabelKeys: Record<string, string> = {
+  pending: "meeting.knowledge.statusPending",
+  implemented: "meeting.knowledge.statusImplemented",
+  reversed: "meeting.knowledge.statusReversed",
+  modified: "meeting.knowledge.statusModified",
+  abandoned: "meeting.knowledge.statusAbandoned",
 };
 
 export function KnowledgeGraphTab() {
+  const { t } = useLanguage();
   // --- Entity extraction ---
   const [extractMeetingId, setExtractMeetingId] = useState("");
   const extractMutation = trpc.ime.extractEntities.useMutation();
@@ -87,11 +89,11 @@ export function KnowledgeGraphTab() {
       {/* Dashboard Summary */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: "知识实体", value: dashboard.data?.summary?.totalEntities ?? 0, icon: Brain },
-          { label: "实体关系", value: dashboard.data?.summary?.totalRelationships ?? 0, icon: GitBranch },
-          { label: "决策追踪", value: dashboard.data?.summary?.totalDecisions ?? 0, icon: Target },
-          { label: "会议回顾", value: dashboard.data?.summary?.totalRetrospectives ?? 0, icon: FileText },
-          { label: "专家画像", value: (dashboard.data?.summary?.totalExperts as any)?.cnt ?? 0, icon: Users },
+          { label: t("meeting.knowledge.entities"), value: dashboard.data?.summary?.totalEntities ?? 0, icon: Brain },
+          { label: t("meeting.knowledge.relationships"), value: dashboard.data?.summary?.totalRelationships ?? 0, icon: GitBranch },
+          { label: t("meeting.knowledge.decisionTracking"), value: dashboard.data?.summary?.totalDecisions ?? 0, icon: Target },
+          { label: t("meeting.knowledge.meetingRetros"), value: dashboard.data?.summary?.totalRetrospectives ?? 0, icon: FileText },
+          { label: t("meeting.knowledge.expertProfiles"), value: (dashboard.data?.summary?.totalExperts as any)?.cnt ?? 0, icon: Users },
         ].map((stat) => (
           <Card key={stat.label}>
             <CardContent className="pt-4 pb-3">
@@ -110,16 +112,16 @@ export function KnowledgeGraphTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-purple-600" />
-            知识实体提取
+            {t("meeting.knowledge.extractTitle")}
           </CardTitle>
-          <CardDescription>从会议记录中自动提取决策、风险、机会、依赖和洞察实体，并建立跨会议关联</CardDescription>
+          <CardDescription>{t("meeting.knowledge.extractDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 items-end">
             <div className="flex-1">
-              <label className="text-sm text-muted-foreground mb-1 block">会议ID</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.knowledge.meetingId")}</label>
               <Input
-                placeholder="输入会议ID..."
+                placeholder={t("meeting.knowledge.enterMeetingId")}
                 value={extractMeetingId}
                 onChange={(e) => setExtractMeetingId(e.target.value)}
               />
@@ -129,7 +131,7 @@ export function KnowledgeGraphTab() {
               disabled={!extractMeetingId.trim() || extractMutation.isPending}
             >
               {extractMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}
-              提取实体
+              {t("meeting.knowledge.extractEntities")}
             </Button>
             <Button
               variant="outline"
@@ -137,17 +139,17 @@ export function KnowledgeGraphTab() {
               disabled={!extractMeetingId.trim() || buildRelMutation.isPending}
             >
               {buildRelMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <GitBranch className="h-4 w-4 mr-2" />}
-              建立关联
+              {t("meeting.knowledge.buildRelationships")}
             </Button>
           </div>
           {extractMutation.isSuccess && (
             <p className="text-sm text-green-600 mt-2">
-              提取完成: {extractMutation.data.entitiesExtracted} 个实体
+              {t("meeting.knowledge.extractComplete")} {extractMutation.data.entitiesExtracted} {t("meeting.knowledge.entitiesCount")}
             </p>
           )}
           {buildRelMutation.isSuccess && (
             <p className="text-sm text-green-600 mt-2">
-              关联完成: {buildRelMutation.data.relationshipsCreated} 个关系
+              {t("meeting.knowledge.relationsComplete")} {buildRelMutation.data.relationshipsCreated} {t("meeting.knowledge.relationsCount")}
             </p>
           )}
           {(extractMutation.isError || buildRelMutation.isError) && (
@@ -163,15 +165,15 @@ export function KnowledgeGraphTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5 text-blue-600" />
-            知识搜索
+            {t("meeting.knowledge.searchTitle")}
           </CardTitle>
-          <CardDescription>搜索跨会议的知识实体，查找决策、风险和洞察</CardDescription>
+          <CardDescription>{t("meeting.knowledge.searchDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 items-end mb-4">
             <div className="flex-1">
               <Input
-                placeholder="搜索关键词..."
+                placeholder={t("meeting.knowledge.searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && searchQuery.trim() && setSearchSubmitted(searchQuery)}
@@ -181,29 +183,29 @@ export function KnowledgeGraphTab() {
               <Select value={searchType} onValueChange={setSearchType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部类型</SelectItem>
-                  <SelectItem value="decision">决策</SelectItem>
-                  <SelectItem value="risk">风险</SelectItem>
-                  <SelectItem value="opportunity">机会</SelectItem>
-                  <SelectItem value="dependency">依赖</SelectItem>
-                  <SelectItem value="insight">洞察</SelectItem>
+                  <SelectItem value="all">{t("meeting.knowledge.allTypes")}</SelectItem>
+                  <SelectItem value="decision">{t("meeting.knowledge.typeDecision")}</SelectItem>
+                  <SelectItem value="risk">{t("meeting.knowledge.typeRisk")}</SelectItem>
+                  <SelectItem value="opportunity">{t("meeting.knowledge.typeOpportunity")}</SelectItem>
+                  <SelectItem value="dependency">{t("meeting.knowledge.typeDependency")}</SelectItem>
+                  <SelectItem value="insight">{t("meeting.knowledge.typeInsight")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <Button onClick={() => setSearchSubmitted(searchQuery)} disabled={!searchQuery.trim()}>
               <Search className="h-4 w-4 mr-2" />
-              搜索
+              {t("meeting.knowledge.search")}
             </Button>
           </div>
           {searchResults.data && (searchResults.data as any[]).length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>类型</TableHead>
-                  <TableHead>内容</TableHead>
-                  <TableHead>来源会议</TableHead>
-                  <TableHead>相关人员</TableHead>
-                  <TableHead>置信度</TableHead>
+                  <TableHead>{t("meeting.knowledge.thType")}</TableHead>
+                  <TableHead>{t("meeting.knowledge.thContent")}</TableHead>
+                  <TableHead>{t("meeting.knowledge.thSourceMeeting")}</TableHead>
+                  <TableHead>{t("meeting.knowledge.thRelatedPeople")}</TableHead>
+                  <TableHead>{t("meeting.knowledge.thConfidence")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -211,7 +213,7 @@ export function KnowledgeGraphTab() {
                   <TableRow key={r.id || i}>
                     <TableCell>
                       <Badge variant={entityTypeColors[r.entity_type] as any || "default"}>
-                        {entityTypeLabels[r.entity_type] || r.entity_type}
+                        {entityTypeLabelKeys[r.entity_type] ? t(entityTypeLabelKeys[r.entity_type]) : r.entity_type}
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-[300px] truncate">{r.entity_value}</TableCell>
@@ -223,7 +225,7 @@ export function KnowledgeGraphTab() {
               </TableBody>
             </Table>
           ) : searchSubmitted ? (
-            <p className="text-sm text-muted-foreground text-center py-4">未找到相关知识实体</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t("meeting.knowledge.noResults")}</p>
           ) : null}
         </CardContent>
       </Card>
@@ -233,16 +235,16 @@ export function KnowledgeGraphTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lightbulb className="h-5 w-5 text-amber-600" />
-            会议回顾
+            {t("meeting.knowledge.retroTitle")}
           </CardTitle>
-          <CardDescription>AI自动生成会议回顾，包括关键学习、改进方向和可行建议</CardDescription>
+          <CardDescription>{t("meeting.knowledge.retroDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 items-end mb-4">
             <div className="flex-1">
-              <label className="text-sm text-muted-foreground mb-1 block">会议ID</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.knowledge.meetingId")}</label>
               <Input
-                placeholder="输入会议ID..."
+                placeholder={t("meeting.knowledge.enterMeetingId")}
                 value={retroMeetingId}
                 onChange={(e) => setRetroMeetingId(e.target.value)}
               />
@@ -252,7 +254,7 @@ export function KnowledgeGraphTab() {
               disabled={!retroMeetingId.trim() || retroMutation.isPending}
             >
               {retroMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lightbulb className="h-4 w-4 mr-2" />}
-              生成回顾
+              {t("meeting.knowledge.generateRetro")}
             </Button>
           </div>
           {retroMutation.isError && (
@@ -262,12 +264,12 @@ export function KnowledgeGraphTab() {
             <div className="space-y-3 border rounded-lg p-4">
               <div className="flex items-center gap-2">
                 <Badge>{retroMutation.data.overallGrade}</Badge>
-                <span className="text-sm font-medium">综合评级</span>
+                <span className="text-sm font-medium">{t("meeting.knowledge.overallGrade")}</span>
               </div>
               <p className="text-sm">{retroMutation.data.summary}</p>
               {retroMutation.data.whatWentWell.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-green-700 mb-1">做得好的方面:</p>
+                  <p className="text-sm font-medium text-green-700 mb-1">{t("meeting.knowledge.whatWentWell")}</p>
                   <ul className="text-sm space-y-1">
                     {retroMutation.data.whatWentWell.map((item: string, i: number) => (
                       <li key={i} className="flex items-start gap-1">
@@ -280,7 +282,7 @@ export function KnowledgeGraphTab() {
               )}
               {retroMutation.data.improvementAreas.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-amber-700 mb-1">改进方向:</p>
+                  <p className="text-sm font-medium text-amber-700 mb-1">{t("meeting.knowledge.improvementAreas")}</p>
                   <ul className="text-sm space-y-1">
                     {retroMutation.data.improvementAreas.map((item: string, i: number) => (
                       <li key={i} className="flex items-start gap-1">
@@ -293,7 +295,7 @@ export function KnowledgeGraphTab() {
               )}
               {retroMutation.data.keyLearnings.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-blue-700 mb-1">关键学习:</p>
+                  <p className="text-sm font-medium text-blue-700 mb-1">{t("meeting.knowledge.keyLearnings")}</p>
                   <ul className="text-sm list-disc list-inside space-y-1">
                     {retroMutation.data.keyLearnings.map((item: string, i: number) => (
                       <li key={i}>{item}</li>
@@ -314,9 +316,9 @@ export function KnowledgeGraphTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5 text-indigo-600" />
-            专家画像
+            {t("meeting.knowledge.expertTitle")}
           </CardTitle>
-          <CardDescription>基于会议贡献、决策影响力和参与度自动识别组织专家</CardDescription>
+          <CardDescription>{t("meeting.knowledge.expertDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 items-end mb-4">
@@ -325,21 +327,21 @@ export function KnowledgeGraphTab() {
               disabled={computeExpertsMutation.isPending}
             >
               {computeExpertsMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              重新计算专家画像
+              {t("meeting.knowledge.computeProfiles")}
             </Button>
             {computeExpertsMutation.isSuccess && (
-              <span className="text-sm text-green-600">计算完成: {computeExpertsMutation.data.profilesComputed} 个专家</span>
+              <span className="text-sm text-green-600">{t("meeting.knowledge.computeComplete")} {computeExpertsMutation.data.profilesComputed} {t("meeting.knowledge.experts")}</span>
             )}
           </div>
           {dashboard.data?.topExperts && (dashboard.data.topExperts as any[]).length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>姓名</TableHead>
-                  <TableHead>信誉分</TableHead>
-                  <TableHead>会议数</TableHead>
-                  <TableHead>专长领域</TableHead>
-                  <TableHead>热门话题</TableHead>
+                  <TableHead>{t("meeting.knowledge.thName")}</TableHead>
+                  <TableHead>{t("meeting.knowledge.thCredibility")}</TableHead>
+                  <TableHead>{t("meeting.knowledge.thMeetingCount")}</TableHead>
+                  <TableHead>{t("meeting.knowledge.thExpertise")}</TableHead>
+                  <TableHead>{t("meeting.knowledge.thTopTopics")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -367,7 +369,7 @@ export function KnowledgeGraphTab() {
               </TableBody>
             </Table>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">暂无专家数据，请先计算专家画像</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t("meeting.knowledge.noExpertData")}</p>
           )}
         </CardContent>
       </Card>
@@ -378,7 +380,7 @@ export function KnowledgeGraphTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5 text-teal-600" />
-              实体类型分布
+              {t("meeting.knowledge.entityDistribution")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -386,10 +388,10 @@ export function KnowledgeGraphTab() {
               {(dashboard.data.entityTypeStats as any[]).map((stat: any) => (
                 <div key={stat.type} className="border rounded-lg p-3 text-center">
                   <Badge variant={entityTypeColors[stat.type] as any || "default"} className="mb-2">
-                    {entityTypeLabels[stat.type] || stat.type}
+                    {entityTypeLabelKeys[stat.type] ? t(entityTypeLabelKeys[stat.type]) : stat.type}
                   </Badge>
                   <div className="text-xl font-bold">{stat.count}</div>
-                  <div className="text-xs text-muted-foreground">置信度 {Math.round(stat.avgConfidence * 100)}%</div>
+                  <div className="text-xs text-muted-foreground">{t("meeting.knowledge.confidenceLabel")} {Math.round(stat.avgConfidence * 100)}%</div>
                 </div>
               ))}
             </div>
@@ -403,17 +405,17 @@ export function KnowledgeGraphTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-gray-600" />
-              最近会议回顾
+              {t("meeting.knowledge.recentRetros")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>会议</TableHead>
-                  <TableHead>评级</TableHead>
-                  <TableHead>摘要</TableHead>
-                  <TableHead>生成时间</TableHead>
+                  <TableHead>{t("meeting.knowledge.thMeeting")}</TableHead>
+                  <TableHead>{t("meeting.knowledge.thGrade")}</TableHead>
+                  <TableHead>{t("meeting.knowledge.thSummary")}</TableHead>
+                  <TableHead>{t("meeting.knowledge.thGeneratedAt")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -423,7 +425,7 @@ export function KnowledgeGraphTab() {
                     <TableCell><Badge>{r.overall_grade}</Badge></TableCell>
                     <TableCell className="max-w-[300px] truncate text-sm">{r.ai_summary}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {r.generated_at ? new Date(r.generated_at).toLocaleString("zh-CN") : "—"}
+                      {r.generated_at ? new Date(r.generated_at).toLocaleString() : "—"}
                     </TableCell>
                   </TableRow>
                 ))}

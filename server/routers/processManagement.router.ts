@@ -9,7 +9,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
 import {
@@ -246,7 +246,7 @@ export const processManagementRouter = router({
   /**
    * respondToSopRecommendation — accept/reject an AI SOP recommendation
    */
-  respondToSopRecommendation: protectedProcedure
+  respondToSopRecommendation: requirePermission('mfg:process:manage')
     .input(
       z.object({
         recommendationId: z.number(),
@@ -352,7 +352,7 @@ export const processManagementRouter = router({
   /**
    * linkSopToStep — acknowledge step-level SOP link
    */
-  linkSopToStep: protectedProcedure
+  linkSopToStep: requirePermission('mfg:process:manage')
     .input(
       z.object({
         stepId: z.number(),
@@ -404,7 +404,7 @@ export const processManagementRouter = router({
   /**
    * acknowledgeRiskAlert — mark a risk alert as acknowledged
    */
-  acknowledgeRiskAlert: protectedProcedure
+  acknowledgeRiskAlert: requirePermission('mfg:process:manage')
     .input(
       z.object({
         alertId: z.number(),
@@ -434,7 +434,7 @@ export const processManagementRouter = router({
   /**
    * updateProcessStatus — update a process instance's status + auto-set dates
    */
-  updateProcessStatus: protectedProcedure
+  updateProcessStatus: requirePermission('mfg:process:manage')
     .input(
       z.object({
         instanceId: z.number(),
@@ -608,7 +608,7 @@ export const processManagementRouter = router({
   /**
    * seedDemo — create tables + seed T1-T15 definitions, sample instances, M2 tags, risk alerts
    */
-  seedDemo: protectedProcedure.mutation(async () => {
+  seedDemo: requirePermission('mfg:process:manage').mutation(async () => {
     const db = await requireDb();
 
     // ── Create tables ──

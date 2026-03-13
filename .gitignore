@@ -135,3 +135,6 @@ screenshot*.png
 
 # User uploads (runtime data)
 uploads/
+
+# GRT dev auth token (never commit)
+.grt-dev-token

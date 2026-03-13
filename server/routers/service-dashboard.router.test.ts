@@ -4,7 +4,7 @@
  * Tests verify the fallback paths work correctly.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAdminCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 
 // ── Mock state ──────────────────────────────────────────
 let mockQueryResult: any[] = [];
@@ -82,7 +82,7 @@ describe("serviceDashboard router", () => {
 
   describe("getRegionOverview", () => {
     it("returns region data (mock fallback)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.serviceDashboard.getRegionOverview();
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(4);
@@ -94,7 +94,7 @@ describe("serviceDashboard router", () => {
 
   describe("getNorthAmericaStats", () => {
     it("returns NA statistics (mock fallback)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.serviceDashboard.getNorthAmericaStats();
       expect(result).toHaveProperty("projectCount");
       expect(result).toHaveProperty("engineerCount");
@@ -105,7 +105,7 @@ describe("serviceDashboard router", () => {
 
   describe("getNAProjectLocations", () => {
     it("returns NA project locations (mock fallback)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.serviceDashboard.getNAProjectLocations();
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThan(0);
@@ -116,7 +116,7 @@ describe("serviceDashboard router", () => {
 
   describe("getServiceReplicationComparison", () => {
     it("returns China vs NA comparison (mock fallback)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.serviceDashboard.getServiceReplicationComparison();
       expect(result).toHaveProperty("china");
       expect(result).toHaveProperty("northAmerica");
@@ -126,7 +126,7 @@ describe("serviceDashboard router", () => {
 
   describe("getComplianceKnowledge", () => {
     it("searches compliance docs", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.serviceDashboard.getComplianceKnowledge({
         query: "OSHA safety", standard: "OSHA",
       });
@@ -135,7 +135,7 @@ describe("serviceDashboard router", () => {
     });
 
     it("searches all standards", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.serviceDashboard.getComplianceKnowledge({
         query: "safety", standard: "all",
       });
@@ -143,7 +143,7 @@ describe("serviceDashboard router", () => {
     });
 
     it("rejects empty query", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.serviceDashboard.getComplianceKnowledge({
         query: "",
       })).rejects.toThrow();
@@ -152,14 +152,14 @@ describe("serviceDashboard router", () => {
 
   describe("getTicketLifecycle", () => {
     it("returns demo lifecycle stages", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.serviceDashboard.getTicketLifecycle({});
       expect(result).toHaveProperty("stages");
       expect(result.stages.length).toBe(7);
     });
 
     it("works with no input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.serviceDashboard.getTicketLifecycle();
       expect(result).toHaveProperty("stages");
     });
@@ -167,7 +167,7 @@ describe("serviceDashboard router", () => {
 
   describe("seedNADemo", () => {
     it("seeds demo data", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1 }];
       const result = await caller.serviceDashboard.seedNADemo();
       expect(result).toHaveProperty("seeded");
@@ -176,7 +176,7 @@ describe("serviceDashboard router", () => {
 
   describe("listKpis", () => {
     it("returns empty array on error (fallback)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.serviceDashboard.listKpis({});
       // Falls back to empty since dynamic import of config schema may resolve OK in test
       expect(Array.isArray(result)).toBe(true);
@@ -185,7 +185,7 @@ describe("serviceDashboard router", () => {
 
   describe("upsertKpi", () => {
     it("inserts new KPI when not existing", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // existing check returns empty
       selectResultsQueue.push([]);
       mockReturningResult = [{ id: 1 }];
@@ -196,7 +196,7 @@ describe("serviceDashboard router", () => {
     });
 
     it("updates existing KPI", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 5 }]);
       const result = await caller.serviceDashboard.upsertKpi({
         category: "region_overview", key: "score", value: 99, label: "Score",
@@ -208,7 +208,7 @@ describe("serviceDashboard router", () => {
 
   describe("bulkUpsertKpis", () => {
     it("upserts multiple KPIs", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Two items, both new (existing check returns empty)
       selectResultsQueue.push([]);
       selectResultsQueue.push([]);
@@ -225,7 +225,7 @@ describe("serviceDashboard router", () => {
 
   describe("listLocations", () => {
     it("returns empty array on fallback", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.serviceDashboard.listLocations({});
       expect(Array.isArray(result)).toBe(true);
     });
@@ -233,7 +233,7 @@ describe("serviceDashboard router", () => {
 
   describe("upsertLocation", () => {
     it("inserts new location", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1 }];
       const result = await caller.serviceDashboard.upsertLocation({
         region: "NorthAmerica", city: "Detroit", country: "US",
@@ -243,7 +243,7 @@ describe("serviceDashboard router", () => {
     });
 
     it("updates existing location by id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.serviceDashboard.upsertLocation({
         id: 5, region: "NorthAmerica", city: "Detroit", country: "US",
         lat: 42.33, lng: -83.05,
@@ -255,7 +255,7 @@ describe("serviceDashboard router", () => {
 
   describe("deleteLocation", () => {
     it("deletes a location (always returns success)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.serviceDashboard.deleteLocation({ id: 1 });
       expect(result).toHaveProperty("deleted", true);
     });
@@ -263,7 +263,7 @@ describe("serviceDashboard router", () => {
 
   describe("syncFromDB", () => {
     it("syncs data and returns diffs", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Multiple queries for counts + upserts
       mockQueryResult = [{ cnt: 0 }];
       const result = await caller.serviceDashboard.syncFromDB();

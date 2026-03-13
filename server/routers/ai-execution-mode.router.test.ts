@@ -35,7 +35,7 @@ vi.mock("../services/ai-execution-mode.service", () => ({
 // ---------------------------------------------------------------------------
 
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -60,7 +60,7 @@ describe("aiExecutionMode.getModeConfig", () => {
     };
     mockGetModeConfig.mockReturnValue(config);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.getModeConfig({
       assistantType: "solution",
     });
@@ -77,7 +77,7 @@ describe("aiExecutionMode.getModeConfig", () => {
     };
     mockGetModeConfig.mockReturnValue(config);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.getModeConfig();
 
     expect(result).toEqual(config);
@@ -92,7 +92,7 @@ describe("aiExecutionMode.getModeConfig", () => {
     };
     mockGetModeConfig.mockReturnValue(config);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.getModeConfig({
       assistantType: "",
     });
@@ -108,7 +108,7 @@ describe("aiExecutionMode.getModeConfig", () => {
       supportedModes: ["internal", "generative", "shadow"],
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiExecutionMode.getModeConfig({ assistantType: "quotation" });
 
     expect(mockGetModeConfig).toHaveBeenCalledTimes(1);
@@ -137,7 +137,7 @@ describe("aiExecutionMode.execute", () => {
       tokensUsed: 150,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.execute(validInput);
 
     expect(result.content).toBe("Recommended: GRT-UC series ultrasonic cleaner");
@@ -157,7 +157,7 @@ describe("aiExecutionMode.execute", () => {
       tokensUsed: 200,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.execute({
       ...validInput,
       mode: "generative",
@@ -177,7 +177,7 @@ describe("aiExecutionMode.execute", () => {
       tokensUsed: 100,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiExecutionMode.execute(validInput);
 
     expect(mockExecuteAI).toHaveBeenCalledWith({
@@ -198,7 +198,7 @@ describe("aiExecutionMode.execute", () => {
       tokensUsed: 50,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiExecutionMode.execute({
       ...validInput,
       mode: "shadow",
@@ -232,7 +232,7 @@ describe("aiExecutionMode.execute", () => {
       tokensUsed: 10,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.execute({
       ...validInput,
       mode: "internal",
@@ -250,7 +250,7 @@ describe("aiExecutionMode.execute", () => {
       tokensUsed: 20,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.execute({
       ...validInput,
       mode: "generative",
@@ -268,7 +268,7 @@ describe("aiExecutionMode.execute", () => {
       tokensUsed: 30,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.execute({
       ...validInput,
       mode: "shadow",
@@ -286,7 +286,7 @@ describe("aiExecutionMode.execute", () => {
       tokensUsed: undefined,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.execute(validInput);
 
     expect(result.tokensUsed).toBeUndefined();
@@ -295,7 +295,7 @@ describe("aiExecutionMode.execute", () => {
   it("propagates service errors", async () => {
     mockExecuteAI.mockRejectedValue(new Error("LLM service unavailable"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.aiExecutionMode.execute(validInput)
     ).rejects.toThrow("LLM service unavailable");
@@ -308,7 +308,7 @@ describe("aiExecutionMode.execute", () => {
 
 describe("aiExecutionMode.execute input validation", () => {
   it("rejects invalid mode value", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.aiExecutionMode.execute({
         assistantType: "solution",
@@ -319,7 +319,7 @@ describe("aiExecutionMode.execute input validation", () => {
   });
 
   it("rejects empty content string", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.aiExecutionMode.execute({
         assistantType: "solution",
@@ -330,7 +330,7 @@ describe("aiExecutionMode.execute input validation", () => {
   });
 
   it("rejects empty assistantType string", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.aiExecutionMode.execute({
         assistantType: "",
@@ -341,7 +341,7 @@ describe("aiExecutionMode.execute input validation", () => {
   });
 
   it("rejects missing required fields", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.aiExecutionMode.execute as any)({})
     ).rejects.toThrow();
@@ -356,7 +356,7 @@ describe("aiExecutionMode.execute input validation", () => {
       tokensUsed: 5,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.execute({
       assistantType: "solution",
       mode: "internal",
@@ -376,7 +376,7 @@ describe("aiExecutionMode.execute input validation", () => {
       tokensUsed: 5,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.execute({
       assistantType: "solution",
       mode: "internal",
@@ -402,7 +402,7 @@ describe("aiExecutionMode.recordAdoption", () => {
       timestamp,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = caller.aiExecutionMode.recordAdoption({
       sessionId: "sess-001",
       isAdopted: true,
@@ -429,7 +429,7 @@ describe("aiExecutionMode.recordAdoption", () => {
       timestamp,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.recordAdoption({
       sessionId: "sess-002",
       isAdopted: false,
@@ -450,7 +450,7 @@ describe("aiExecutionMode.recordAdoption", () => {
       timestamp,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiExecutionMode.recordAdoption({
       sessionId: "sess-003",
       isAdopted: true,
@@ -468,7 +468,7 @@ describe("aiExecutionMode.recordAdoption", () => {
       timestamp,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiExecutionMode.recordAdoption({
       sessionId: "sess-004",
       isAdopted: false,
@@ -485,7 +485,7 @@ describe("aiExecutionMode.recordAdoption", () => {
       timestamp: specificDate,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.recordAdoption({
       sessionId: "sess-christmas",
       isAdopted: true,
@@ -501,7 +501,7 @@ describe("aiExecutionMode.recordAdoption", () => {
 
 describe("aiExecutionMode.recordAdoption input validation", () => {
   it("rejects empty sessionId", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.aiExecutionMode.recordAdoption({
         sessionId: "",
@@ -511,7 +511,7 @@ describe("aiExecutionMode.recordAdoption input validation", () => {
   });
 
   it("rejects missing sessionId", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.aiExecutionMode.recordAdoption as any)({
         isAdopted: true,
@@ -520,7 +520,7 @@ describe("aiExecutionMode.recordAdoption input validation", () => {
   });
 
   it("rejects missing isAdopted", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.aiExecutionMode.recordAdoption as any)({
         sessionId: "sess-001",
@@ -529,7 +529,7 @@ describe("aiExecutionMode.recordAdoption input validation", () => {
   });
 
   it("rejects non-boolean isAdopted", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.aiExecutionMode.recordAdoption({
         sessionId: "sess-001",
@@ -555,7 +555,7 @@ describe("aiExecutionMode.getEffectivenessStats", () => {
     }];
     mockGetEffectivenessStats.mockReturnValue(stats);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.getEffectivenessStats();
 
     expect(result).toEqual(stats);
@@ -573,7 +573,7 @@ describe("aiExecutionMode.getEffectivenessStats", () => {
     }];
     mockGetEffectivenessStats.mockReturnValue(stats);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.getEffectivenessStats({
       assistantType: "solution",
     });
@@ -593,7 +593,7 @@ describe("aiExecutionMode.getEffectivenessStats", () => {
     }];
     mockGetEffectivenessStats.mockReturnValue(stats);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.getEffectivenessStats({
       mode: "internal",
     });
@@ -613,7 +613,7 @@ describe("aiExecutionMode.getEffectivenessStats", () => {
     }];
     mockGetEffectivenessStats.mockReturnValue(stats);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.getEffectivenessStats({
       assistantType: "quotation",
       mode: "generative",
@@ -624,7 +624,7 @@ describe("aiExecutionMode.getEffectivenessStats", () => {
   });
 
   it("rejects invalid mode value in input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.aiExecutionMode.getEffectivenessStats({
         mode: "shadow" as any,
@@ -646,7 +646,7 @@ describe("aiExecutionMode.getRecentLogs", () => {
       { sessionId: "s2", mode: "generative", timestamp: ts2, tokensUsed: 200, contentPreview: "World..." },
     ]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.getRecentLogs();
 
     expect(result).toHaveLength(2);
@@ -659,7 +659,7 @@ describe("aiExecutionMode.getRecentLogs", () => {
   it("uses default limit of 10 when no input provided", async () => {
     mockGetRecentLogs.mockReturnValue([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiExecutionMode.getRecentLogs();
 
     expect(mockGetRecentLogs).toHaveBeenCalledWith(10);
@@ -668,7 +668,7 @@ describe("aiExecutionMode.getRecentLogs", () => {
   it("passes custom limit to getRecentLogs", async () => {
     mockGetRecentLogs.mockReturnValue([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiExecutionMode.getRecentLogs({ limit: 25 });
 
     expect(mockGetRecentLogs).toHaveBeenCalledWith(25);
@@ -677,7 +677,7 @@ describe("aiExecutionMode.getRecentLogs", () => {
   it("returns empty array when no logs exist", async () => {
     mockGetRecentLogs.mockReturnValue([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.getRecentLogs();
 
     expect(result).toEqual([]);
@@ -691,7 +691,7 @@ describe("aiExecutionMode.getRecentLogs", () => {
     ];
     mockGetRecentLogs.mockReturnValue(logs);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.getRecentLogs({ limit: 3 });
 
     expect(result).toHaveLength(3);
@@ -713,7 +713,7 @@ describe("aiExecutionMode.getRecentLogs", () => {
       },
     ]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.getRecentLogs({ limit: 1 });
 
     expect(result[0].sessionId).toBe("detailed-session");
@@ -729,14 +729,14 @@ describe("aiExecutionMode.getRecentLogs", () => {
 
 describe("aiExecutionMode.list", () => {
   it("returns empty items array and total 0", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.list();
 
     expect(result).toEqual({ items: [], total: 0 });
   });
 
   it("always returns the same stub response", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result1 = await caller.aiExecutionMode.list();
     const result2 = await caller.aiExecutionMode.list();
 
@@ -752,14 +752,14 @@ describe("aiExecutionMode.list", () => {
 
 describe("aiExecutionMode.getById", () => {
   it("returns null for any id", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.getById({ id: "some-id" });
 
     expect(result).toBeNull();
   });
 
   it("returns null for different ids", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const r1 = await caller.aiExecutionMode.getById({ id: "abc" });
     const r2 = await caller.aiExecutionMode.getById({ id: "xyz" });
 
@@ -774,21 +774,21 @@ describe("aiExecutionMode.getById", () => {
 
 describe("aiExecutionMode.create", () => {
   it("returns success true with name input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.create({ name: "Test Mode" });
 
     expect(result).toEqual({ success: true });
   });
 
   it("returns success true with mode input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.create({ mode: "internal" });
 
     expect(result).toEqual({ success: true });
   });
 
   it("returns success true with config input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.create({
       config: { key: "value", nested: "data" },
     });
@@ -797,7 +797,7 @@ describe("aiExecutionMode.create", () => {
   });
 
   it("returns success true with empty input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.create({});
 
     expect(result).toEqual({ success: true });
@@ -810,14 +810,14 @@ describe("aiExecutionMode.create", () => {
 
 describe("aiExecutionMode.update", () => {
   it("returns success true", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.update({ id: "mode-1" });
 
     expect(result).toEqual({ success: true });
   });
 
   it("returns success true with name update", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.update({
       id: "mode-1",
       name: "Updated Name",
@@ -827,7 +827,7 @@ describe("aiExecutionMode.update", () => {
   });
 
   it("returns success true with all fields", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.update({
       id: "mode-1",
       name: "Full Update",
@@ -839,7 +839,7 @@ describe("aiExecutionMode.update", () => {
   });
 
   it("requires id field", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.aiExecutionMode.update as any)({ name: "No ID" })
     ).rejects.toThrow();
@@ -852,21 +852,21 @@ describe("aiExecutionMode.update", () => {
 
 describe("aiExecutionMode.delete", () => {
   it("returns success true", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.delete({ id: "mode-1" });
 
     expect(result).toEqual({ success: true });
   });
 
   it("returns success true for any id", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiExecutionMode.delete({ id: "non-existent-id" });
 
     expect(result).toEqual({ success: true });
   });
 
   it("requires id field", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.aiExecutionMode.delete as any)({})
     ).rejects.toThrow();
@@ -964,7 +964,7 @@ describe("aiExecutionMode service delegation", () => {
       tokensUsed: 10,
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiExecutionMode.execute({
       assistantType: "test",
       mode: "internal",
@@ -981,7 +981,7 @@ describe("aiExecutionMode service delegation", () => {
       timestamp: new Date(),
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiExecutionMode.recordAdoption({
       sessionId: "s1",
       isAdopted: true,
@@ -997,7 +997,7 @@ describe("aiExecutionMode service delegation", () => {
       supportedModes: ["internal", "generative", "shadow"],
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiExecutionMode.getModeConfig({ assistantType: "test" });
 
     expect(mockGetModeConfig).toHaveBeenCalledTimes(1);
@@ -1006,7 +1006,7 @@ describe("aiExecutionMode service delegation", () => {
   it("getEffectivenessStats calls getEffectivenessStats service exactly once", async () => {
     mockGetEffectivenessStats.mockReturnValue([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiExecutionMode.getEffectivenessStats();
 
     expect(mockGetEffectivenessStats).toHaveBeenCalledTimes(1);
@@ -1015,14 +1015,14 @@ describe("aiExecutionMode service delegation", () => {
   it("getRecentLogs calls getRecentLogs service exactly once", async () => {
     mockGetRecentLogs.mockReturnValue([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiExecutionMode.getRecentLogs();
 
     expect(mockGetRecentLogs).toHaveBeenCalledTimes(1);
   });
 
   it("stub procedures (list, getById, create, update, delete) do NOT call any service", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     await caller.aiExecutionMode.list();
     await caller.aiExecutionMode.getById({ id: "x" });

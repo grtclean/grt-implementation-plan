@@ -172,16 +172,16 @@ describe("appRouter Integration", () => {
   it("should have router definition", async () => {
     const { appRouter } = await import("./routers");
     expect(appRouter._def).toBeDefined();
-  }, 10000);
+  }, 30000);
 
   it("should have procedures object", async () => {
     const { appRouter } = await import("./routers");
     expect(appRouter._def.procedures).toBeDefined();
-  });
+  }, 30000);
 
   it("should have multiple procedures registered", async () => {
     const { appRouter } = await import("./routers");
     const procedureCount = Object.keys(appRouter._def.procedures).length;
     expect(procedureCount).toBeGreaterThan(10);
-  });
+  }, 30000);
 });

@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -177,12 +178,12 @@ const mockRules: SilenceRule[] = [
   }
 ];
 
-const categoryLabels: Record<TemplateCategory, string> = {
-  maintenance: '维护',
-  deployment: '部署',
-  testing: '测试',
-  scheduled: '定时',
-  custom: '自定义'
+const categoryLabelKeys: Record<TemplateCategory, string> = {
+  maintenance: 'admin.alertSilence.catMaintenance',
+  deployment: 'admin.alertSilence.catDeployment',
+  testing: 'admin.alertSilence.catTesting',
+  scheduled: 'admin.alertSilence.catScheduled',
+  custom: 'admin.alertSilence.catCustom',
 };
 
 const categoryColors: Record<TemplateCategory, string> = {
@@ -194,6 +195,7 @@ const categoryColors: Record<TemplateCategory, string> = {
 };
 
 export default function AlertSilenceInheritanceManager() {
+  const { t, tpl } = useLanguage();
   const [templates, setTemplates] = useState<SilenceRuleTemplate[]>(mockTemplates);
   const [rules, setRules] = useState<SilenceRule[]>(mockRules);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -259,8 +261,8 @@ export default function AlertSilenceInheritanceManager() {
   const handleCreateChildRule = (parentRule: SilenceRule) => {
     const newRule: SilenceRule = {
       id: `rule-${Date.now()}`,
-      name: `${parentRule.name} - 子规则`,
-      description: `继承自: ${parentRule.name}`,
+      name: `${parentRule.name} - ${t("admin.alertSilence.childRuleSuffix")}`,
+      description: tpl("admin.alertSilence.inheritedFrom", { name: parentRule.name }),
       templateId: parentRule.templateId,
       parentRuleId: parentRule.id,
       conditionGroups: [...parentRule.conditionGroups],
@@ -277,7 +279,7 @@ export default function AlertSilenceInheritanceManager() {
     const newRule: SilenceRule = {
       ...rule,
       id: `rule-${Date.now()}`,
-      name: `${rule.name} (副本)`,
+      name: `${rule.name} ${t("admin.alertSilence.duplicateSuffix")}`,
       parentRuleId: null,
       enabled: false,
       createdAt: Date.now()
@@ -296,7 +298,7 @@ export default function AlertSilenceInheritanceManager() {
   const handleDeleteRule = (ruleId: string) => {
     const hasChildren = rules.some(r => r.parentRuleId === ruleId);
     if (hasChildren) {
-      alert('无法删除有子规则的规则');
+      alert(t("admin.alertSilence.cannotDeleteWithChildren"));
       return;
     }
     setRules(rules.filter(r => r.id !== ruleId));
@@ -316,25 +318,25 @@ export default function AlertSilenceInheritanceManager() {
     <div className="p-6 space-y-6">
       <PageHeader
         icon={BellOff}
-        title="告警静默规则继承管理"
-        description="管理静默规则模板和继承关系"
+        title={t("admin.alertSilence.title")}
+        description={t("admin.alertSilence.description")}
       />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard icon={FileText} label="模板总数" value={stats.totalTemplates} />
-        <StatCard icon={Settings} label="内置模板" value={stats.builtInTemplates} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={Plus} label="自定义模板" value={stats.customTemplates} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={Filter} label="规则总数" value={stats.totalRules} />
-        <StatCard icon={Clock} label="已启用" value={stats.enabledRules} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={GitBranch} label="继承规则" value={stats.rulesWithInheritance} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+        <StatCard icon={FileText} label={t("admin.alertSilence.totalTemplates")} value={stats.totalTemplates} />
+        <StatCard icon={Settings} label={t("admin.alertSilence.builtInTemplates")} value={stats.builtInTemplates} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Plus} label={t("admin.alertSilence.customTemplates")} value={stats.customTemplates} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Filter} label={t("admin.alertSilence.totalRules")} value={stats.totalRules} />
+        <StatCard icon={Clock} label={t("admin.alertSilence.enabledRules")} value={stats.enabledRules} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={GitBranch} label={t("admin.alertSilence.inheritedRules")} value={stats.rulesWithInheritance} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       <Tabs defaultValue="templates" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="templates">模板库</TabsTrigger>
-          <TabsTrigger value="rules">规则列表</TabsTrigger>
-          <TabsTrigger value="inheritance">继承关系</TabsTrigger>
+          <TabsTrigger value="templates">{t("admin.alertSilence.tabTemplates")}</TabsTrigger>
+          <TabsTrigger value="rules">{t("admin.alertSilence.tabRules")}</TabsTrigger>
+          <TabsTrigger value="inheritance">{t("admin.alertSilence.tabInheritance")}</TabsTrigger>
         </TabsList>
 
         {/* 模板库 */}
@@ -344,48 +346,48 @@ export default function AlertSilenceInheritanceManager() {
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  创建模板
+                  {t("admin.alertSilence.createTemplate")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>创建新模板</DialogTitle>
-                  <DialogDescription>创建一个新的静默规则模板</DialogDescription>
+                  <DialogTitle>{t("admin.alertSilence.createNewTemplate")}</DialogTitle>
+                  <DialogDescription>{t("admin.alertSilence.createNewTemplateDesc")}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label>模板名称</Label>
-                    <Input 
+                    <Label>{t("admin.alertSilence.templateName")}</Label>
+                    <Input
                       value={newTemplateName}
                       onChange={(e) => setNewTemplateName(e.target.value)}
-                      placeholder="输入模板名称"
+                      placeholder={t("admin.alertSilence.templateNamePlaceholder")}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>描述</Label>
-                    <Textarea 
+                    <Label>{t("admin.alertSilence.templateDescription")}</Label>
+                    <Textarea
                       value={newTemplateDescription}
                       onChange={(e) => setNewTemplateDescription(e.target.value)}
-                      placeholder="输入模板描述"
+                      placeholder={t("admin.alertSilence.templateDescPlaceholder")}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>类别</Label>
+                    <Label>{t("admin.alertSilence.category")}</Label>
                     <Select value={newTemplateCategory} onValueChange={(v) => setNewTemplateCategory(v as TemplateCategory)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(categoryLabels).map(([key, label]) => (
-                          <SelectItem key={key} value={key}>{label}</SelectItem>
+                        {Object.entries(categoryLabelKeys).map(([key, labelKey]) => (
+                          <SelectItem key={key} value={key}>{t(labelKey)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowCreateDialog(false)}>取消</Button>
-                  <Button onClick={handleCreateTemplate} disabled={!newTemplateName}>创建</Button>
+                  <Button variant="outline" onClick={() => setShowCreateDialog(false)}>{t("admin.alertSilence.cancel")}</Button>
+                  <Button onClick={handleCreateTemplate} disabled={!newTemplateName}>{t("admin.alertSilence.create")}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -397,10 +399,10 @@ export default function AlertSilenceInheritanceManager() {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <Badge className={categoryColors[template.category]}>
-                      {categoryLabels[template.category]}
+                      {t(categoryLabelKeys[template.category])}
                     </Badge>
                     {template.isBuiltIn && (
-                      <Badge variant="outline">内置</Badge>
+                      <Badge variant="outline">{t("admin.alertSilence.builtIn")}</Badge>
                     )}
                   </div>
                   <CardTitle className="text-lg">{template.name}</CardTitle>
@@ -408,8 +410,8 @@ export default function AlertSilenceInheritanceManager() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>使用次数: {template.usageCount}</span>
-                    <span>{template.conditionGroups.length} 个条件组</span>
+                    <span>{tpl("admin.alertSilence.usageCount", { count: String(template.usageCount) })}</span>
+                    <span>{tpl("admin.alertSilence.conditionGroups", { count: String(template.conditionGroups.length) })}</span>
                   </div>
                   <div className="flex gap-2 mt-4">
                     <Button 
@@ -421,11 +423,11 @@ export default function AlertSilenceInheritanceManager() {
                       }}
                     >
                       <Plus className="h-3 w-3 mr-1" />
-                      创建规则
+                      {t("admin.alertSilence.createRule")}
                     </Button>
                     <Button size="sm" variant="ghost">
                       <Copy className="h-3 w-3 mr-1" />
-                      复制
+                      {t("admin.alertSilence.copy")}
                     </Button>
                   </div>
                 </CardContent>
@@ -441,20 +443,20 @@ export default function AlertSilenceInheritanceManager() {
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  创建规则
+                  {t("admin.alertSilence.createRule")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>从模板创建规则</DialogTitle>
-                  <DialogDescription>选择一个模板来创建新规则</DialogDescription>
+                  <DialogTitle>{t("admin.alertSilence.createRuleFromTemplate")}</DialogTitle>
+                  <DialogDescription>{t("admin.alertSilence.createRuleFromTemplateDesc")}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label>选择模板</Label>
+                    <Label>{t("admin.alertSilence.selectTemplate")}</Label>
                     <Select value={selectedTemplateForRule} onValueChange={setSelectedTemplateForRule}>
                       <SelectTrigger>
-                        <SelectValue placeholder="选择模板" />
+                        <SelectValue placeholder={t("admin.alertSilence.selectTemplatePlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
                         {templates.map((t) => (
@@ -464,25 +466,25 @@ export default function AlertSilenceInheritanceManager() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>规则名称</Label>
-                    <Input 
+                    <Label>{t("admin.alertSilence.ruleName")}</Label>
+                    <Input
                       value={newRuleName}
                       onChange={(e) => setNewRuleName(e.target.value)}
-                      placeholder="输入规则名称"
+                      placeholder={t("admin.alertSilence.ruleNamePlaceholder")}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>描述</Label>
-                    <Textarea 
+                    <Label>{t("admin.alertSilence.ruleDescription")}</Label>
+                    <Textarea
                       value={newRuleDescription}
                       onChange={(e) => setNewRuleDescription(e.target.value)}
-                      placeholder="输入规则描述"
+                      placeholder={t("admin.alertSilence.ruleDescPlaceholder")}
                     />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowCreateRuleDialog(false)}>取消</Button>
-                  <Button onClick={handleCreateRuleFromTemplate} disabled={!selectedTemplateForRule || !newRuleName}>创建</Button>
+                  <Button variant="outline" onClick={() => setShowCreateRuleDialog(false)}>{t("admin.alertSilence.cancel")}</Button>
+                  <Button onClick={handleCreateRuleFromTemplate} disabled={!selectedTemplateForRule || !newRuleName}>{t("admin.alertSilence.create")}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -504,7 +506,7 @@ export default function AlertSilenceInheritanceManager() {
                           {rule.parentRuleId && (
                             <Badge variant="outline" className="text-xs">
                               <GitBranch className="h-3 w-3 mr-1" />
-                              继承
+                              {t("admin.alertSilence.inherited")}
                             </Badge>
                           )}
                         </div>
@@ -512,7 +514,7 @@ export default function AlertSilenceInheritanceManager() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary">优先级: {rule.priority}</Badge>
+                      <Badge variant="secondary">{tpl("admin.alertSilence.priority", { val: String(rule.priority) })}</Badge>
                       <Button 
                         size="sm" 
                         variant="ghost"
@@ -546,8 +548,8 @@ export default function AlertSilenceInheritanceManager() {
         <TabsContent value="inheritance" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>规则继承树</CardTitle>
-              <CardDescription>查看规则之间的继承关系</CardDescription>
+              <CardTitle>{t("admin.alertSilence.inheritanceTree")}</CardTitle>
+              <CardDescription>{t("admin.alertSilence.inheritanceTreeDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -557,7 +559,7 @@ export default function AlertSilenceInheritanceManager() {
                       <FileText className="h-4 w-4" />
                       <span className="font-medium">{rootRule.name}</span>
                       <Badge variant={rootRule.enabled ? 'default' : 'secondary'}>
-                        {rootRule.enabled ? '已启用' : '已禁用'}
+                        {rootRule.enabled ? t("admin.alertSilence.isEnabled") : t("admin.alertSilence.isDisabled")}
                       </Badge>
                     </div>
                     {rules.filter(r => r.parentRuleId === rootRule.id).map((childRule) => (
@@ -566,7 +568,7 @@ export default function AlertSilenceInheritanceManager() {
                         <GitBranch className="h-4 w-4 text-purple-500" />
                         <span>{childRule.name}</span>
                         <Badge variant={childRule.enabled ? 'default' : 'secondary'} className="text-xs">
-                          {childRule.enabled ? '已启用' : '已禁用'}
+                          {childRule.enabled ? t("admin.alertSilence.isEnabled") : t("admin.alertSilence.isDisabled")}
                         </Badge>
                       </div>
                     ))}

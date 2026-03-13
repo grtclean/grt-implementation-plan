@@ -340,7 +340,8 @@ export async function recommendSolutions(
       eq(historicalSolutions.isActive, 1),
       eq(historicalSolutions.isReference, 1)
     ))
-    .orderBy(desc(historicalSolutions.successRate));
+    .orderBy(desc(historicalSolutions.successRate))
+    .limit(1000);
 
   // 2. 计算相似度并排序
   const scoredSolutions = allSolutions.map(solution => ({

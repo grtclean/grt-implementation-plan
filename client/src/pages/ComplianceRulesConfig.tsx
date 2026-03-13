@@ -33,6 +33,7 @@ import {
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // 类型定义
 type Jurisdiction = "DE" | "US" | "CN" | "OTHER";
@@ -41,6 +42,7 @@ type AlertType = "VIOLATION_10H_LIMIT" | "VIOLATION_REST_PERIOD" | "EXEMPTION_AT
 type Severity = "critical" | "warning" | "info";
 
 export default function ComplianceRulesConfig() {
+  const { t, tpl } = useLanguage();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("rules");
   const [isAddRuleOpen, setIsAddRuleOpen] = useState(false);
@@ -85,34 +87,34 @@ export default function ComplianceRulesConfig() {
   // Mutations
   const createRuleMutation = trpc.compliance.createRule.useMutation({
     onSuccess: () => {
-      toast.success("规则创建成功");
+      toast.success(t("admin.complianceRules.ruleCreated"));
       setIsAddRuleOpen(false);
       refetchRules();
       resetNewRule();
     },
     onError: (error) => {
-      toast.error(`创建失败: ${error.message}`);
+      toast.error(tpl("admin.complianceRules.createFailed", { msg: error.message }));
     }
   });
 
   const updateRuleMutation = trpc.compliance.updateRule.useMutation({
     onSuccess: () => {
-      toast.success("规则更新成功");
+      toast.success(t("admin.complianceRules.ruleUpdated"));
       setEditingRule(null);
       refetchRules();
     },
     onError: (error) => {
-      toast.error(`更新失败: ${error.message}`);
+      toast.error(tpl("admin.complianceRules.updateFailed", { msg: error.message }));
     }
   });
 
   const deleteRuleMutation = trpc.compliance.deleteRule.useMutation({
     onSuccess: () => {
-      toast.success("规则已删除");
+      toast.success(t("admin.complianceRules.ruleDeleted"));
       refetchRules();
     },
     onError: (error) => {
-      toast.error(`删除失败: ${error.message}`);
+      toast.error(tpl("admin.complianceRules.deleteFailed", { msg: error.message }));
     }
   });
 
@@ -124,34 +126,34 @@ export default function ComplianceRulesConfig() {
 
   const createTemplateMutation = trpc.compliance.createTemplate.useMutation({
     onSuccess: () => {
-      toast.success("模板创建成功");
+      toast.success(t("admin.complianceRules.templateCreated"));
       setIsAddTemplateOpen(false);
       refetchTemplates();
       resetNewTemplate();
     },
     onError: (error) => {
-      toast.error(`创建失败: ${error.message}`);
+      toast.error(tpl("admin.complianceRules.createFailed", { msg: error.message }));
     }
   });
 
   const updateTemplateMutation = trpc.compliance.updateTemplate.useMutation({
     onSuccess: () => {
-      toast.success("模板更新成功");
+      toast.success(t("admin.complianceRules.templateUpdated"));
       setEditingTemplate(null);
       refetchTemplates();
     },
     onError: (error) => {
-      toast.error(`更新失败: ${error.message}`);
+      toast.error(tpl("admin.complianceRules.updateFailed", { msg: error.message }));
     }
   });
 
   const deleteTemplateMutation = trpc.compliance.deleteTemplate.useMutation({
     onSuccess: () => {
-      toast.success("模板已删除");
+      toast.success(t("admin.complianceRules.templateDeleted"));
       refetchTemplates();
     },
     onError: (error) => {
-      toast.error(`删除失败: ${error.message}`);
+      toast.error(tpl("admin.complianceRules.deleteFailed", { msg: error.message }));
     }
   });
 
@@ -194,49 +196,49 @@ export default function ComplianceRulesConfig() {
 
   // 获取地区标签
   const getJurisdictionLabel = (j: string) => {
-    const labels: Record<string, string> = {
-      DE: "🇩🇪 德国",
-      US: "🇺🇸 美国",
-      CN: "🇨🇳 中国",
-      OTHER: "🌍 其他",
-      ALL: "🌐 全部"
+    const keyMap: Record<string, string> = {
+      DE: "admin.complianceRules.jurisdictionDE",
+      US: "admin.complianceRules.jurisdictionUS",
+      CN: "admin.complianceRules.jurisdictionCN",
+      OTHER: "admin.complianceRules.jurisdictionOTHER",
+      ALL: "admin.complianceRules.jurisdictionALL",
     };
-    return labels[j] || j;
+    return keyMap[j] ? t(keyMap[j]) : j;
   };
 
   // 获取规则类型标签
   const getRuleTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      daily_limit: "每日上限",
-      weekly_limit: "每周上限",
-      rest_period: "休息时间",
-      overtime_limit: "加班上限",
-      exemption_check: "豁免检查"
+    const keyMap: Record<string, string> = {
+      daily_limit: "admin.complianceRules.ruleTypeDailyLimit",
+      weekly_limit: "admin.complianceRules.ruleTypeWeeklyLimit",
+      rest_period: "admin.complianceRules.ruleTypeRestPeriod",
+      overtime_limit: "admin.complianceRules.ruleTypeOvertimeLimit",
+      exemption_check: "admin.complianceRules.ruleTypeExemptionCheck",
     };
-    return labels[type] || type;
+    return keyMap[type] ? t(keyMap[type]) : type;
   };
 
   // 获取预警类型标签
   const getAlertTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      VIOLATION_10H_LIMIT: "10小时违规",
-      VIOLATION_REST_PERIOD: "休息不足",
-      EXEMPTION_AT_RISK: "豁免风险",
-      OVERTIME_WARNING: "加班预警",
-      WEEKLY_SUMMARY: "每周摘要"
+    const keyMap: Record<string, string> = {
+      VIOLATION_10H_LIMIT: "admin.complianceRules.alertViolation10h",
+      VIOLATION_REST_PERIOD: "admin.complianceRules.alertRestPeriod",
+      EXEMPTION_AT_RISK: "admin.complianceRules.alertExemptionRisk",
+      OVERTIME_WARNING: "admin.complianceRules.alertOvertimeWarning",
+      WEEKLY_SUMMARY: "admin.complianceRules.alertWeeklySummary",
     };
-    return labels[type] || type;
+    return keyMap[type] ? t(keyMap[type]) : type;
   };
 
   // 获取严重程度徽章
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
       case "critical":
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">严重</Badge>;
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{t("admin.complianceRules.severityCritical")}</Badge>;
       case "warning":
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">警告</Badge>;
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{t("admin.complianceRules.severityWarning")}</Badge>;
       default:
-        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">提示</Badge>;
+        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">{t("admin.complianceRules.severityInfo")}</Badge>;
     }
   };
 
@@ -248,8 +250,8 @@ export default function ComplianceRulesConfig() {
         {/* 页面标题 */}
         <PageHeader
           icon={Settings}
-          title="合规规则配置"
-          description="管理工时阈值、预警规则和邮件通知模板"
+          title={t("admin.complianceRules.title")}
+          description={t("admin.complianceRules.description")}
           actions={
             <Button
               variant="outline"
@@ -257,17 +259,17 @@ export default function ComplianceRulesConfig() {
               onClick={() => setLocation("/compliance-dashboard")}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              返回
+              {t("admin.complianceRules.back")}
             </Button>
           }
         />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard icon={Shield} label="总规则数" value={(ruleStats as any)?.totalRules || 0} iconColor="text-primary" iconBg="bg-primary/20" />
-          <StatCard icon={Clock} label="启用规则" value={(ruleStats as any)?.enabledRules || 0} iconColor="text-green-400" iconBg="bg-green-500/20" />
-          <StatCard icon={Mail} label="总模板数" value={(templateStats as any)?.totalTemplates || 0} iconColor="text-blue-400" iconBg="bg-blue-500/20" />
-          <StatCard icon={FileText} label="启用模板" value={(templateStats as any)?.enabledTemplates || 0} iconColor="text-purple-400" iconBg="bg-purple-500/20" />
+          <StatCard icon={Shield} label={t("admin.complianceRules.totalRules")} value={(ruleStats as any)?.totalRules || 0} iconColor="text-primary" iconBg="bg-primary/20" />
+          <StatCard icon={Clock} label={t("admin.complianceRules.enabledRules")} value={(ruleStats as any)?.enabledRules || 0} iconColor="text-green-400" iconBg="bg-green-500/20" />
+          <StatCard icon={Mail} label={t("admin.complianceRules.totalTemplates")} value={(templateStats as any)?.totalTemplates || 0} iconColor="text-blue-400" iconBg="bg-blue-500/20" />
+          <StatCard icon={FileText} label={t("admin.complianceRules.enabledTemplates")} value={(templateStats as any)?.enabledTemplates || 0} iconColor="text-purple-400" iconBg="bg-purple-500/20" />
         </div>
 
         {/* 主内容标签页 */}
@@ -275,11 +277,11 @@ export default function ComplianceRulesConfig() {
           <TabsList className="bg-card/50 border border-border">
             <TabsTrigger value="rules" className="data-[state=active]:bg-primary/20">
               <Shield className="w-4 h-4 mr-2" />
-              合规规则
+              {t("admin.complianceRules.tabRules")}
             </TabsTrigger>
             <TabsTrigger value="templates" className="data-[state=active]:bg-primary/20">
               <Mail className="w-4 h-4 mr-2" />
-              邮件模板
+              {t("admin.complianceRules.tabTemplates")}
             </TabsTrigger>
           </TabsList>
 
@@ -288,33 +290,33 @@ export default function ComplianceRulesConfig() {
             <Card className="bg-card/50 border-border">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>合规规则列表</CardTitle>
-                  <CardDescription>配置各地区的工时阈值和预警触发条件</CardDescription>
+                  <CardTitle>{t("admin.complianceRules.ruleListTitle")}</CardTitle>
+                  <CardDescription>{t("admin.complianceRules.ruleListDesc")}</CardDescription>
                 </div>
                 <Dialog open={isAddRuleOpen} onOpenChange={setIsAddRuleOpen}>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="w-4 h-4 mr-2" />
-                      添加规则
+                      {t("admin.complianceRules.addRule")}
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                      <DialogTitle>添加合规规则</DialogTitle>
-                      <DialogDescription>创建新的工时合规规则</DialogDescription>
+                      <DialogTitle>{t("admin.complianceRules.addRuleTitle")}</DialogTitle>
+                      <DialogDescription>{t("admin.complianceRules.addRuleDesc")}</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>规则名称</Label>
-                          <Input 
+                          <Label>{t("admin.complianceRules.ruleName")}</Label>
+                          <Input
                             value={newRule.ruleName}
                             onChange={(e) => setNewRule({...newRule, ruleName: e.target.value})}
-                            placeholder="例如：德国每日工时上限"
+                            placeholder={t("admin.complianceRules.ruleNamePlaceholder")}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>管辖区</Label>
+                          <Label>{t("admin.complianceRules.jurisdiction")}</Label>
                           <Select 
                             value={newRule.jurisdiction}
                             onValueChange={(v) => setNewRule({...newRule, jurisdiction: v as Jurisdiction})}
@@ -323,17 +325,17 @@ export default function ComplianceRulesConfig() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="DE">🇩🇪 德国</SelectItem>
-                              <SelectItem value="US">🇺🇸 美国</SelectItem>
-                              <SelectItem value="CN">🇨🇳 中国</SelectItem>
-                              <SelectItem value="OTHER">🌍 其他</SelectItem>
+                              <SelectItem value="DE">{t("admin.complianceRules.jurisdictionDE")}</SelectItem>
+                              <SelectItem value="US">{t("admin.complianceRules.jurisdictionUS")}</SelectItem>
+                              <SelectItem value="CN">{t("admin.complianceRules.jurisdictionCN")}</SelectItem>
+                              <SelectItem value="OTHER">{t("admin.complianceRules.jurisdictionOTHER")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>规则类型</Label>
+                          <Label>{t("admin.complianceRules.ruleType")}</Label>
                           <Select 
                             value={newRule.ruleType}
                             onValueChange={(v) => setNewRule({...newRule, ruleType: v as RuleType})}
@@ -342,16 +344,16 @@ export default function ComplianceRulesConfig() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="daily_limit">每日上限</SelectItem>
-                              <SelectItem value="weekly_limit">每周上限</SelectItem>
-                              <SelectItem value="rest_period">休息时间</SelectItem>
-                              <SelectItem value="overtime_limit">加班上限</SelectItem>
-                              <SelectItem value="exemption_check">豁免检查</SelectItem>
+                              <SelectItem value="daily_limit">{t("admin.complianceRules.ruleTypeDailyLimit")}</SelectItem>
+                              <SelectItem value="weekly_limit">{t("admin.complianceRules.ruleTypeWeeklyLimit")}</SelectItem>
+                              <SelectItem value="rest_period">{t("admin.complianceRules.ruleTypeRestPeriod")}</SelectItem>
+                              <SelectItem value="overtime_limit">{t("admin.complianceRules.ruleTypeOvertimeLimit")}</SelectItem>
+                              <SelectItem value="exemption_check">{t("admin.complianceRules.ruleTypeExemptionCheck")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label>阈值单位</Label>
+                          <Label>{t("admin.complianceRules.thresholdUnit")}</Label>
                           <Select 
                             value={newRule.thresholdUnit}
                             onValueChange={(v) => setNewRule({...newRule, thresholdUnit: v as any})}
@@ -360,17 +362,17 @@ export default function ComplianceRulesConfig() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="hours">小时</SelectItem>
-                              <SelectItem value="minutes">分钟</SelectItem>
-                              <SelectItem value="days">天</SelectItem>
-                              <SelectItem value="percentage">百分比</SelectItem>
+                              <SelectItem value="hours">{t("admin.complianceRules.unitHours")}</SelectItem>
+                              <SelectItem value="minutes">{t("admin.complianceRules.unitMinutes")}</SelectItem>
+                              <SelectItem value="days">{t("admin.complianceRules.unitDays")}</SelectItem>
+                              <SelectItem value="percentage">{t("admin.complianceRules.unitPercentage")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
                       <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label>阈值</Label>
+                          <Label>{t("admin.complianceRules.threshold")}</Label>
                           <Input 
                             type="number"
                             value={newRule.thresholdValue}
@@ -378,7 +380,7 @@ export default function ComplianceRulesConfig() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>警告阈值</Label>
+                          <Label>{t("admin.complianceRules.warningThreshold")}</Label>
                           <Input 
                             type="number"
                             value={newRule.warningThreshold}
@@ -386,7 +388,7 @@ export default function ComplianceRulesConfig() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>严重阈值</Label>
+                          <Label>{t("admin.complianceRules.criticalThreshold")}</Label>
                           <Input 
                             type="number"
                             value={newRule.criticalThreshold}
@@ -395,24 +397,24 @@ export default function ComplianceRulesConfig() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>规则描述</Label>
-                        <Textarea 
+                        <Label>{t("admin.complianceRules.ruleDescription")}</Label>
+                        <Textarea
                           value={newRule.ruleDescription}
                           onChange={(e) => setNewRule({...newRule, ruleDescription: e.target.value})}
-                          placeholder="描述此规则的目的和适用场景"
+                          placeholder={t("admin.complianceRules.ruleDescPlaceholder")}
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>法律依据</Label>
-                          <Input 
+                          <Label>{t("admin.complianceRules.legalReference")}</Label>
+                          <Input
                             value={newRule.legalReference}
                             onChange={(e) => setNewRule({...newRule, legalReference: e.target.value})}
-                            placeholder="例如：ArbZG §3"
+                            placeholder={t("admin.complianceRules.legalRefPlaceholder")}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>优先级</Label>
+                          <Label>{t("admin.complianceRules.priorityLabel")}</Label>
                           <Input 
                             type="number"
                             value={newRule.priority}
@@ -421,21 +423,21 @@ export default function ComplianceRulesConfig() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>建议措施</Label>
-                        <Textarea 
+                        <Label>{t("admin.complianceRules.recommendedAction")}</Label>
+                        <Textarea
                           value={newRule.recommendedAction}
                           onChange={(e) => setNewRule({...newRule, recommendedAction: e.target.value})}
-                          placeholder="当触发此规则时的建议处理措施"
+                          placeholder={t("admin.complianceRules.recommendedActionPlaceholder")}
                         />
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsAddRuleOpen(false)}>取消</Button>
-                      <Button 
+                      <Button variant="outline" onClick={() => setIsAddRuleOpen(false)}>{t("admin.complianceRules.cancel")}</Button>
+                      <Button
                         onClick={() => createRuleMutation.mutate(newRule)}
                         disabled={createRuleMutation.isPending}
                       >
-                        {createRuleMutation.isPending ? "创建中..." : "创建规则"}
+                        {createRuleMutation.isPending ? t("admin.complianceRules.creating") : t("admin.complianceRules.createRule")}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -446,20 +448,20 @@ export default function ComplianceRulesConfig() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead>规则名称</TableHead>
-                        <TableHead>管辖区</TableHead>
-                        <TableHead>类型</TableHead>
-                        <TableHead>阈值</TableHead>
-                        <TableHead>法律依据</TableHead>
-                        <TableHead>状态</TableHead>
-                        <TableHead>操作</TableHead>
+                        <TableHead>{t("admin.complianceRules.thRuleName")}</TableHead>
+                        <TableHead>{t("admin.complianceRules.thJurisdiction")}</TableHead>
+                        <TableHead>{t("admin.complianceRules.thType")}</TableHead>
+                        <TableHead>{t("admin.complianceRules.thThreshold")}</TableHead>
+                        <TableHead>{t("admin.complianceRules.thLegalRef")}</TableHead>
+                        <TableHead>{t("admin.complianceRules.thStatus")}</TableHead>
+                        <TableHead>{t("admin.complianceRules.thAction")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {rules.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                            暂无合规规则
+                            {t("admin.complianceRules.noRules")}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -509,7 +511,7 @@ export default function ComplianceRulesConfig() {
                                   size="sm"
                                   className="text-destructive hover:text-destructive"
                                   onClick={() => {
-                                    if (confirm("确定要删除此规则吗？")) {
+                                    if (confirm(t("admin.complianceRules.confirmDeleteRule"))) {
                                       deleteRuleMutation.mutate({ ruleId: rule.ruleId });
                                     }
                                   }}
@@ -533,33 +535,33 @@ export default function ComplianceRulesConfig() {
             <Card className="bg-card/50 border-border">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>邮件模板列表</CardTitle>
-                  <CardDescription>配置预警通知的邮件模板</CardDescription>
+                  <CardTitle>{t("admin.complianceRules.templateListTitle")}</CardTitle>
+                  <CardDescription>{t("admin.complianceRules.templateListDesc")}</CardDescription>
                 </div>
                 <Dialog open={isAddTemplateOpen} onOpenChange={setIsAddTemplateOpen}>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="w-4 h-4 mr-2" />
-                      添加模板
+                      {t("admin.complianceRules.addTemplate")}
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>添加邮件模板</DialogTitle>
-                      <DialogDescription>创建新的预警通知邮件模板</DialogDescription>
+                      <DialogTitle>{t("admin.complianceRules.addTemplateTitle")}</DialogTitle>
+                      <DialogDescription>{t("admin.complianceRules.addTemplateDesc")}</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>模板名称</Label>
-                          <Input 
+                          <Label>{t("admin.complianceRules.templateName")}</Label>
+                          <Input
                             value={newTemplate.templateName}
                             onChange={(e) => setNewTemplate({...newTemplate, templateName: e.target.value})}
-                            placeholder="例如：德国10小时违规通知"
+                            placeholder={t("admin.complianceRules.templateNamePlaceholder")}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>预警类型</Label>
+                          <Label>{t("admin.complianceRules.alertType")}</Label>
                           <Select 
                             value={newTemplate.alertType}
                             onValueChange={(v) => setNewTemplate({...newTemplate, alertType: v as AlertType})}
@@ -568,18 +570,18 @@ export default function ComplianceRulesConfig() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="VIOLATION_10H_LIMIT">10小时违规</SelectItem>
-                              <SelectItem value="VIOLATION_REST_PERIOD">休息不足</SelectItem>
-                              <SelectItem value="EXEMPTION_AT_RISK">豁免风险</SelectItem>
-                              <SelectItem value="OVERTIME_WARNING">加班预警</SelectItem>
-                              <SelectItem value="WEEKLY_SUMMARY">每周摘要</SelectItem>
+                              <SelectItem value="VIOLATION_10H_LIMIT">{t("admin.complianceRules.alertViolation10h")}</SelectItem>
+                              <SelectItem value="VIOLATION_REST_PERIOD">{t("admin.complianceRules.alertRestPeriod")}</SelectItem>
+                              <SelectItem value="EXEMPTION_AT_RISK">{t("admin.complianceRules.alertExemptionRisk")}</SelectItem>
+                              <SelectItem value="OVERTIME_WARNING">{t("admin.complianceRules.alertOvertimeWarning")}</SelectItem>
+                              <SelectItem value="WEEKLY_SUMMARY">{t("admin.complianceRules.alertWeeklySummary")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>严重程度</Label>
+                          <Label>{t("admin.complianceRules.severity")}</Label>
                           <Select 
                             value={newTemplate.severity}
                             onValueChange={(v) => setNewTemplate({...newTemplate, severity: v as Severity})}
@@ -588,14 +590,14 @@ export default function ComplianceRulesConfig() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="critical">严重</SelectItem>
-                              <SelectItem value="warning">警告</SelectItem>
-                              <SelectItem value="info">提示</SelectItem>
+                              <SelectItem value="critical">{t("admin.complianceRules.severityCritical")}</SelectItem>
+                              <SelectItem value="warning">{t("admin.complianceRules.severityWarning")}</SelectItem>
+                              <SelectItem value="info">{t("admin.complianceRules.severityInfo")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label>适用地区</Label>
+                          <Label>{t("admin.complianceRules.applicableRegion")}</Label>
                           <Select 
                             value={newTemplate.jurisdiction}
                             onValueChange={(v) => setNewTemplate({...newTemplate, jurisdiction: v as any})}
@@ -604,40 +606,40 @@ export default function ComplianceRulesConfig() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="ALL">🌐 全部</SelectItem>
-                              <SelectItem value="DE">🇩🇪 德国</SelectItem>
-                              <SelectItem value="US">🇺🇸 美国</SelectItem>
-                              <SelectItem value="CN">🇨🇳 中国</SelectItem>
-                              <SelectItem value="OTHER">🌍 其他</SelectItem>
+                              <SelectItem value="ALL">{t("admin.complianceRules.jurisdictionALL")}</SelectItem>
+                              <SelectItem value="DE">{t("admin.complianceRules.jurisdictionDE")}</SelectItem>
+                              <SelectItem value="US">{t("admin.complianceRules.jurisdictionUS")}</SelectItem>
+                              <SelectItem value="CN">{t("admin.complianceRules.jurisdictionCN")}</SelectItem>
+                              <SelectItem value="OTHER">{t("admin.complianceRules.jurisdictionOTHER")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>模板描述</Label>
-                        <Textarea 
+                        <Label>{t("admin.complianceRules.templateDesc")}</Label>
+                        <Textarea
                           value={newTemplate.templateDescription}
                           onChange={(e) => setNewTemplate({...newTemplate, templateDescription: e.target.value})}
-                          placeholder="描述此模板的用途"
+                          placeholder={t("admin.complianceRules.templateDescPlaceholder")}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>邮件主题</Label>
-                        <Input 
+                        <Label>{t("admin.complianceRules.emailSubject")}</Label>
+                        <Input
                           value={newTemplate.subjectTemplate}
                           onChange={(e) => setNewTemplate({...newTemplate, subjectTemplate: e.target.value})}
-                          placeholder="使用 {{变量名}} 插入动态内容"
+                          placeholder={t("admin.complianceRules.emailSubjectPlaceholder")}
                         />
                         <p className="text-xs text-muted-foreground">
-                          可用变量: {"{{employeeName}}"}, {"{{date}}"}, {"{{actualHours}}"}, {"{{riskReason}}"}
+                          {t("admin.complianceRules.availableVars")}
                         </p>
                       </div>
                       <div className="space-y-2">
-                        <Label>邮件正文</Label>
-                        <Textarea 
+                        <Label>{t("admin.complianceRules.emailBody")}</Label>
+                        <Textarea
                           value={newTemplate.bodyTemplate}
                           onChange={(e) => setNewTemplate({...newTemplate, bodyTemplate: e.target.value})}
-                          placeholder="支持HTML格式，使用 {{变量名}} 插入动态内容"
+                          placeholder={t("admin.complianceRules.emailBodyPlaceholder")}
                           className="min-h-[200px] font-mono text-sm"
                         />
                       </div>
@@ -646,16 +648,16 @@ export default function ComplianceRulesConfig() {
                           checked={newTemplate.isHtml}
                           onCheckedChange={(v) => setNewTemplate({...newTemplate, isHtml: v})}
                         />
-                        <Label>HTML格式</Label>
+                        <Label>{t("admin.complianceRules.htmlFormat")}</Label>
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsAddTemplateOpen(false)}>取消</Button>
-                      <Button 
+                      <Button variant="outline" onClick={() => setIsAddTemplateOpen(false)}>{t("admin.complianceRules.cancel")}</Button>
+                      <Button
                         onClick={() => createTemplateMutation.mutate(newTemplate)}
                         disabled={createTemplateMutation.isPending}
                       >
-                        {createTemplateMutation.isPending ? "创建中..." : "创建模板"}
+                        {createTemplateMutation.isPending ? t("admin.complianceRules.creatingTemplate") : t("admin.complianceRules.createTemplate")}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -666,19 +668,19 @@ export default function ComplianceRulesConfig() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead>模板名称</TableHead>
-                        <TableHead>预警类型</TableHead>
-                        <TableHead>严重程度</TableHead>
-                        <TableHead>适用地区</TableHead>
-                        <TableHead>状态</TableHead>
-                        <TableHead>操作</TableHead>
+                        <TableHead>{t("admin.complianceRules.thTemplateName")}</TableHead>
+                        <TableHead>{t("admin.complianceRules.thAlertType")}</TableHead>
+                        <TableHead>{t("admin.complianceRules.thSeverity")}</TableHead>
+                        <TableHead>{t("admin.complianceRules.thRegion")}</TableHead>
+                        <TableHead>{t("admin.complianceRules.thStatus")}</TableHead>
+                        <TableHead>{t("admin.complianceRules.thAction")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {templates.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            暂无邮件模板
+                            {t("admin.complianceRules.noTemplates")}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -715,7 +717,7 @@ export default function ComplianceRulesConfig() {
                                   size="sm"
                                   className="text-destructive hover:text-destructive"
                                   onClick={() => {
-                                    if (confirm("确定要删除此模板吗？")) {
+                                    if (confirm(t("admin.complianceRules.confirmDeleteTemplate"))) {
                                       deleteTemplateMutation.mutate({ templateId: template.templateId });
                                     }
                                   }}

@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import {
   generateBomExcelTemplate,
   parseExcelBom,
@@ -26,7 +26,7 @@ export const bomExcelImportRouter = router({
     }),
 
   /** 预览Excel文件内容（解析但不导入） */
-  preview: protectedProcedure
+  preview: requirePermission('rnd:bom:manage')
     .input(z.object({
       fileData: z.string(), // base64编码的文件内容
       fileName: z.string(),
@@ -59,7 +59,7 @@ export const bomExcelImportRouter = router({
     }),
 
   /** 执行Excel导入 */
-  import: protectedProcedure
+  import: requirePermission('rnd:bom:manage')
     .input(z.object({
       projectId: z.string(),
       verificationId: z.number(),
@@ -122,7 +122,7 @@ export const bomExcelImportRouter = router({
     }),
 
   /** 解析Excel文件（前端 BomExcelImport.tsx parseMutation 调用） */
-  parseExcel: protectedProcedure
+  parseExcel: requirePermission('rnd:bom:manage')
     .input(z.object({
       fileName: z.string(),
       fileContent: z.string(),
@@ -162,7 +162,7 @@ export const bomExcelImportRouter = router({
     }),
 
   /** 验证数据（前端 BomExcelImport.tsx validateMutation 调用） */
-  validateData: protectedProcedure
+  validateData: requirePermission('rnd:bom:manage')
     .input(z.object({
       fieldMapping: z.record(z.string(), z.string()),
       projectId: z.string(),
@@ -172,7 +172,7 @@ export const bomExcelImportRouter = router({
     }),
 
   /** 执行Excel导入（前端 BomExcelImport.tsx importMutation 调用） */
-  importExcel: protectedProcedure
+  importExcel: requirePermission('rnd:bom:manage')
     .input(z.object({
       fieldMapping: z.record(z.string(), z.string()),
       projectId: z.string(),
@@ -183,7 +183,7 @@ export const bomExcelImportRouter = router({
     }),
 
   /** 下载模板（前端 BomExcelImport.tsx downloadTemplateMutation 调用） */
-  downloadTemplate: protectedProcedure
+  downloadTemplate: requirePermission('rnd:bom:manage')
     .input(z.object({ format: z.string().optional() }))
     .mutation(async () => {
       const buffer = generateBomExcelTemplate();

@@ -22,7 +22,7 @@
  *   - seedDemo: insert seed data for demos
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, sql, count, and, gte, lte } from "drizzle-orm";
 import { hrAiPerformance, meetingActionItems, meetingAttendance, meetingInteractions } from "../../drizzle/smart-meetings-schema";
@@ -231,7 +231,7 @@ export const aiPerformanceRouter = router({
    * Falls back gracefully: if the user has no attendance records for the month,
    * the service will produce zero scores (no mock data injected).
    */
-  recalculateUser: protectedProcedure
+  recalculateUser: requirePermission('ai:effectiveness:view')
     .input(z.object({
       userId: z.number(),
       userName: z.string().default(""),
@@ -274,7 +274,7 @@ export const aiPerformanceRouter = router({
    *
    * Admin/HR only.
    */
-  recalculateAll: protectedProcedure
+  recalculateAll: requirePermission('ai:effectiveness:view')
     .input(z.object({
       month: z.string().regex(/^\d{4}-\d{2}$/), // "YYYY-MM"
     }))
@@ -337,7 +337,7 @@ export const aiPerformanceRouter = router({
    *   2. Otherwise, seed realistic meeting attendance, action items, and interactions
    *      for demo users, then compute scores from that real data.
    */
-  seedDemo: protectedProcedure.mutation(async () => {
+  seedDemo: requirePermission('ai:effectiveness:view').mutation(async () => {
     try {
       const db = await requireDb();
 
@@ -358,7 +358,8 @@ export const aiPerformanceRouter = router({
             userId: meetingAttendance.userId,
             userName: meetingAttendance.userName,
           })
-          .from(meetingAttendance);
+          .from(meetingAttendance)
+          .limit(1000);
 
         // Determine which months have data
         const monthRows = await db.execute(sql`

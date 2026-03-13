@@ -6,13 +6,15 @@
  * getPerformanceStats, updatePerformanceStats, initSamplePerformanceData
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller, createAdminCaller } from "../_test/trpc-test-utils";
+import { createAdminCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 
 // ── Hoisted mock state (vi.mock factories can only reference hoisted vars) ──
 const { mockBuMappingService, mockJdyService, DEFAULT_BUS_MOCK, BU_KEYWORDS_MOCK,
   mockGetAllLeaders, mockGetLeadersByBU, mockSetLeader, mockDeleteLeader,
   mockGetPerformanceStats, mockUpdatePerformanceStats, mockInitSamplePerformanceData,
+  executeResultsQueue,
 } = vi.hoisted(() => {
+  const executeResultsQueue: any[][] = [];
   const mockBuMappingService = {
     getBUStats: vi.fn(),
     getAllMappings: vi.fn(),
@@ -52,6 +54,7 @@ const { mockBuMappingService, mockJdyService, DEFAULT_BUS_MOCK, BU_KEYWORDS_MOCK
     mockGetPerformanceStats: vi.fn(async () => []),
     mockUpdatePerformanceStats: vi.fn(async () => 1),
     mockInitSamplePerformanceData: vi.fn(async () => ({ created: 5, skipped: 0 })),
+    executeResultsQueue,
   };
 });
 
@@ -68,13 +71,40 @@ vi.mock("../services/bu-mapping.service", () => ({
   initSamplePerformanceData: mockInitSamplePerformanceData,
 }));
 
-vi.mock("../jiandaoyun", () => ({
-  getJiandaoyunSyncService: vi.fn(() => mockJdyService),
+vi.mock("../external-sync", () => ({
+  getExternalSyncService: vi.fn(() => mockJdyService),
+}));
+
+vi.mock("../db", () => ({
+  requireDb: vi.fn(async () => ({
+    select: vi.fn(() => {
+      const chain: any = {};
+      for (const m of ["from","where","orderBy","limit","offset","values","set","onConflictDoUpdate","onConflictDoNothing","groupBy","having","innerJoin","leftJoin","rightJoin","fullJoin"]) {
+        chain[m] = vi.fn(() => chain);
+      }
+      chain.returning = vi.fn(() => Promise.resolve([]));
+      chain.then = (resolve: any) => resolve([]);
+      return chain;
+    }),
+    insert: vi.fn(() => {
+      const chain: any = {};
+      for (const m of ["values","onConflictDoUpdate","onConflictDoNothing","returning"]) {
+        chain[m] = vi.fn(() => chain);
+      }
+      chain.then = (resolve: any) => resolve([]);
+      return chain;
+    }),
+    execute: vi.fn(() => {
+      const result = executeResultsQueue.length > 0 ? executeResultsQueue.shift()! : [];
+      return Promise.resolve([result]);
+    }),
+  })),
 }));
 
 // ── Reset ───────────────────────────────────────────────
 beforeEach(() => {
   vi.clearAllMocks();
+  executeResultsQueue.length = 0;
   mockBuMappingService.getBUStats.mockResolvedValue([]);
   mockBuMappingService.getAllMappings.mockResolvedValue([]);
   mockBuMappingService.getMappingsByBU.mockResolvedValue([]);
@@ -93,7 +123,7 @@ describe("bu-mapping router", () => {
 
   describe("getAllBUs", () => {
     it("returns default BUs and keywords", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getAllBUs();
       expect(result).toHaveProperty("bus");
       expect(result).toHaveProperty("keywords");
@@ -108,14 +138,14 @@ describe("bu-mapping router", () => {
         { buCode: "BU1", mappingCount: 3, memberCount: 15 },
         { buCode: "BU2", mappingCount: 2, memberCount: 10 },
       ]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getBUStats();
       expect(result).toHaveProperty("stats");
       expect(result.stats).toHaveLength(2);
     });
 
     it("returns empty stats", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getBUStats();
       expect(result.stats).toHaveLength(0);
     });
@@ -124,16 +154,16 @@ describe("bu-mapping router", () => {
   describe("getAllMappings", () => {
     it("returns all mappings", async () => {
       mockBuMappingService.getAllMappings.mockResolvedValue([
-        { id: 1, buCode: "BU1", jdyDeptNo: 100, jdyDeptName: "海外销售" },
-        { id: 2, buCode: "BU2", jdyDeptNo: 200, jdyDeptName: "商用车项目" },
+        { id: 1, buCode: "BU1", extDeptNo: 100, extDeptName: "海外销售" },
+        { id: 2, buCode: "BU2", extDeptNo: 200, extDeptName: "商用车项目" },
       ]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getAllMappings();
       expect(result.mappings).toHaveLength(2);
     });
 
     it("returns empty when no mappings", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getAllMappings();
       expect(result.mappings).toHaveLength(0);
     });
@@ -142,22 +172,22 @@ describe("bu-mapping router", () => {
   describe("getMappingsByBU", () => {
     it("returns mappings for specific BU", async () => {
       mockBuMappingService.getMappingsByBU.mockResolvedValue([
-        { id: 1, buCode: "BU1", jdyDeptNo: 100, jdyDeptName: "海外销售", roleType: "Sales" },
+        { id: 1, buCode: "BU1", extDeptNo: 100, extDeptName: "海外销售", roleType: "Sales" },
       ]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getMappingsByBU({ buCode: "BU1" });
       expect(result.mappings).toHaveLength(1);
       expect(mockBuMappingService.getMappingsByBU).toHaveBeenCalledWith("BU1");
     });
 
     it("returns empty for BU with no mappings", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getMappingsByBU({ buCode: "BU5" });
       expect(result.mappings).toHaveLength(0);
     });
 
     it("rejects invalid BU code", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.buMapping.getMappingsByBU({ buCode: "INVALID" as any })).rejects.toThrow();
     });
   });
@@ -167,7 +197,7 @@ describe("bu-mapping router", () => {
       mockBuMappingService.createMapping.mockResolvedValue(10);
       const caller = createAdminCaller();
       const result = await caller.buMapping.createMapping({
-        buCode: "BU1", jdyDeptNo: 100,
+        buCode: "BU1", extDeptNo: 100,
       });
       expect(result).toHaveProperty("success", true);
       expect(result).toHaveProperty("id", 10);
@@ -177,7 +207,7 @@ describe("bu-mapping router", () => {
       mockBuMappingService.createMapping.mockResolvedValue(11);
       const caller = createAdminCaller();
       const result = await caller.buMapping.createMapping({
-        buCode: "BU2", jdyDeptNo: 200, jdyDeptName: "商用车设计部", roleType: "Mech",
+        buCode: "BU2", extDeptNo: 200, extDeptName: "商用车设计部", roleType: "Mech",
       });
       expect(result).toHaveProperty("success", true);
       expect(result).toHaveProperty("id", 11);
@@ -190,9 +220,9 @@ describe("bu-mapping router", () => {
       const caller = createAdminCaller();
       const result = await caller.buMapping.batchCreateMappings({
         mappings: [
-          { buCode: "BU1", jdyDeptNo: 100 },
-          { buCode: "BU1", jdyDeptNo: 101, jdyDeptName: "海外采购" },
-          { buCode: "BU2", jdyDeptNo: 200, roleType: "Sales" },
+          { buCode: "BU1", extDeptNo: 100 },
+          { buCode: "BU1", extDeptNo: 101, extDeptName: "海外采购" },
+          { buCode: "BU2", extDeptNo: 200, roleType: "Sales" },
         ],
       });
       expect(result).toHaveProperty("success", true);
@@ -205,9 +235,9 @@ describe("bu-mapping router", () => {
       const caller = createAdminCaller();
       const result = await caller.buMapping.batchCreateMappings({
         mappings: [
-          { buCode: "BU1", jdyDeptNo: 100 },
-          { buCode: "BU2", jdyDeptNo: 200 },
-          { buCode: "BU3", jdyDeptNo: 300 },
+          { buCode: "BU1", extDeptNo: 100 },
+          { buCode: "BU2", extDeptNo: 200 },
+          { buCode: "BU3", extDeptNo: 300 },
         ],
       });
       expect(result.created).toBe(1);
@@ -247,8 +277,9 @@ describe("bu-mapping router", () => {
   });
 
   describe("autoMatchDepartments", () => {
-    it("matches departments to BUs by keywords", async () => {
-      mockJdyService.getDepartments.mockResolvedValue([
+    it("matches departments to BUs by keywords from local DB", async () => {
+      // db.execute() returns departments from jiandaoyun_dept_mappings
+      executeResultsQueue.push([
         { dept_no: 100, name: "海外销售部" },
         { dept_no: 200, name: "商用车项目部" },
         { dept_no: 300, name: "行政后勤" },
@@ -270,16 +301,8 @@ describe("bu-mapping router", () => {
       expect(result.unmatchedDepts![0]).toHaveProperty("deptName", "行政后勤");
     });
 
-    it("returns error when JDY not configured", async () => {
-      mockJdyService.isConfigured.mockReturnValue(false);
-      const caller = createAdminCaller();
-      const result = await caller.buMapping.autoMatchDepartments();
-      expect(result).toHaveProperty("success", false);
-      expect(result).toHaveProperty("error");
-    });
-
     it("handles all departments matching", async () => {
-      mockJdyService.getDepartments.mockResolvedValue([
+      executeResultsQueue.push([
         { dept_no: 100, name: "海外事业部" },
       ]);
       mockBuMappingService.matchBUByDeptName.mockReturnValue("BU1");
@@ -291,7 +314,8 @@ describe("bu-mapping router", () => {
       expect(result.unmatched).toBe(0);
     });
 
-    it("handles no departments", async () => {
+    it("handles no departments in local DB", async () => {
+      executeResultsQueue.push([]);
       const caller = createAdminCaller();
       const result = await caller.buMapping.autoMatchDepartments();
       expect(result).toHaveProperty("success", true);
@@ -299,25 +323,30 @@ describe("bu-mapping router", () => {
       expect(result.matched).toBe(0);
     });
 
-    it("handles service error", async () => {
-      mockJdyService.getDepartments.mockRejectedValue(new Error("API timeout"));
+    it("handles DB error", async () => {
+      // When db.execute rejects, the try/catch in the router returns { success: false, error }
+      const { requireDb } = await import("../db");
+      (requireDb as any).mockResolvedValueOnce({
+        execute: vi.fn().mockRejectedValue(new Error("DB timeout")),
+      });
       const caller = createAdminCaller();
       const result = await caller.buMapping.autoMatchDepartments();
       expect(result).toHaveProperty("success", false);
-      expect(result.error).toContain("API timeout");
+      expect(result.error).toContain("DB timeout");
     });
   });
 
   describe("getBUMembers", () => {
-    it("returns members grouped by BU and role", async () => {
+    it("returns members grouped by BU and role from local DB", async () => {
       mockBuMappingService.getAllMappings.mockResolvedValue([
-        { buCode: "BU1", jdyDeptNo: 100, jdyDeptName: "海外销售", roleType: "Sales" },
+        { buCode: "BU1", extDeptNo: 100, extDeptName: "海外销售", roleType: "Sales" },
       ]);
-      mockJdyService.getMembers.mockResolvedValue([
-        { username: "user1", name: "张三", status: 1, departments: [100] },
-        { username: "user2", name: "李四", status: 1, departments: [200] },
+      // db.execute() returns members from jiandaoyun_user_mappings
+      executeResultsQueue.push([
+        { username: "user1", name: "张三", departments: [100], status: 1 },
+        { username: "user2", name: "李四", departments: [200], status: 1 },
       ]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getBUMembers({});
       expect(result).toHaveProperty("buMembers");
       expect(result.error).toBeNull();
@@ -329,28 +358,20 @@ describe("bu-mapping router", () => {
 
     it("filters by specific BU code", async () => {
       mockBuMappingService.getMappingsByBU.mockResolvedValue([
-        { buCode: "BU2", jdyDeptNo: 200, jdyDeptName: "商用车设计", roleType: "Mech" },
+        { buCode: "BU2", extDeptNo: 200, extDeptName: "商用车设计", roleType: "Mech" },
       ]);
-      mockJdyService.getMembers.mockResolvedValue([
-        { username: "user1", name: "王五", status: 1, departments: [200] },
+      executeResultsQueue.push([
+        { username: "user1", name: "王五", departments: [200], status: 1 },
       ]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getBUMembers({ buCode: "BU2" });
       expect(result.buMembers).toHaveLength(1);
       expect(result.buMembers[0].buCode).toBe("BU2");
     });
 
-    it("returns error when JDY not configured", async () => {
-      mockJdyService.isConfigured.mockReturnValue(false);
-      const caller = createAuthenticatedCaller();
-      const result = await caller.buMapping.getBUMembers({});
-      expect(result.buMembers).toHaveLength(0);
-      expect(result.error).toContain("简道云API未配置");
-    });
-
     it("handles service error", async () => {
       mockBuMappingService.getAllMappings.mockRejectedValue(new Error("DB error"));
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getBUMembers({});
       expect(result.buMembers).toHaveLength(0);
       expect(result.error).toContain("DB error");
@@ -358,13 +379,13 @@ describe("bu-mapping router", () => {
 
     it("deduplicates members across mappings", async () => {
       mockBuMappingService.getAllMappings.mockResolvedValue([
-        { buCode: "BU1", jdyDeptNo: 100, jdyDeptName: "海外-A", roleType: "Sales" },
-        { buCode: "BU1", jdyDeptNo: 101, jdyDeptName: "海外-B", roleType: "Sales" },
+        { buCode: "BU1", extDeptNo: 100, extDeptName: "海外-A", roleType: "Sales" },
+        { buCode: "BU1", extDeptNo: 101, extDeptName: "海外-B", roleType: "Sales" },
       ]);
-      mockJdyService.getMembers.mockResolvedValue([
-        { username: "user1", name: "张三", status: 1, departments: [100, 101] },
+      executeResultsQueue.push([
+        { username: "user1", name: "张三", departments: [100, 101], status: 1 },
       ]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getBUMembers({});
       const bu1 = result.buMembers.find((b: any) => b.buCode === "BU1");
       expect(bu1!.totalMembers).toBe(1); // should not be 2
@@ -373,7 +394,7 @@ describe("bu-mapping router", () => {
 
   describe("getAllLeaders", () => {
     it("returns leaders from dynamic import", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getAllLeaders();
       expect(result).toHaveProperty("leaders");
     });
@@ -381,13 +402,13 @@ describe("bu-mapping router", () => {
 
   describe("getLeadersByBU", () => {
     it("returns leaders for specific BU", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getLeadersByBU({ buCode: "BU1" });
       expect(result).toHaveProperty("leaders");
     });
 
     it("rejects invalid BU code", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.buMapping.getLeadersByBU({ buCode: "INVALID" as any })).rejects.toThrow();
     });
   });
@@ -430,13 +451,13 @@ describe("bu-mapping router", () => {
 
   describe("getPerformanceStats", () => {
     it("returns stats with no input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getPerformanceStats();
       expect(result).toHaveProperty("stats");
     });
 
     it("returns stats with filters", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.buMapping.getPerformanceStats({
         buCode: "BU1", periodType: "quarterly", period: "2026-Q1",
       });
@@ -489,7 +510,7 @@ describe("bu-mapping router", () => {
     it("rejects anonymous for createMapping", async () => {
       const caller = createAnonymousCaller();
       await expect(caller.buMapping.createMapping({
-        buCode: "BU1", jdyDeptNo: 100,
+        buCode: "BU1", extDeptNo: 100,
       })).rejects.toThrow();
     });
 

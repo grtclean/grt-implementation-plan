@@ -1,18 +1,23 @@
 /**
- * Role-Based AI Agent Router — role-specific quick actions, suggestions, activity feed
+ * Role-Based AI Agent Router — role-specific quick actions, suggestions, activity feed, workstation config
  *
  * Provides:
  *   - getQuickActions: returns role-specific quick action cards
  *   - getSuggestions: returns contextual AI suggestions
  *   - getRecentActivity: returns recent activity feed items
+ *   - getWorkstationConfig: returns full role workstation configuration (responsibilities, SOPs, quality, standards)
+ *   - getRoleSOPs: returns SOP list from DB filtered by role-relevant categories
  *   - list: legacy stub
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import { projects } from "../../drizzle/schema";
 import { desc, sql, eq } from "drizzle-orm";
+import { getWorkstationConfig, getBomSOPs, getDailyTasks, ALL_WORKSTATION_ROLES } from "../../shared/role-workstation-config";
+import { AGENT_LEVEL_CONFIGS, getDefaultLevel } from "../../shared/ai-agent-levels";
+import { getPresetByRole } from "../../shared/ai-assistant-presets";
 
 // ── Role Action Configs ──
 
@@ -198,4 +203,98 @@ export const roleAgentRouter = router({
       const buCode = (ctx as any).bu?.buCode ?? null;
       return fetchRecentActivity(input.limit, userId, buCode);
     }),
+
+  /** Get full workstation config for employee's role (responsibilities, SOPs, quality, standards) */
+  getWorkstationConfig: protectedProcedure
+    .input(z.object({ role: z.string().optional() }).optional())
+    .query(async ({ input, ctx }) => {
+      const role = ctx.user?.role ?? input?.role ?? "employee";
+      const config = getWorkstationConfig(role);
+      const preset = getPresetByRole(role);
+      const levelConfig = AGENT_LEVEL_CONFIGS[config.defaultAgentLevel];
+
+      return {
+        ...config,
+        aiAssistant: {
+          label: preset.label,
+          level: config.defaultAgentLevel,
+          levelLabel: levelConfig.label,
+          levelLabelEn: levelConfig.labelEn,
+          autonomy: levelConfig.autonomyLevel,
+          capabilities: levelConfig.defaultCapabilities,
+          maxConcurrentTasks: levelConfig.maxConcurrentTasks,
+          dataScope: levelConfig.dataScope,
+          focusAreas: preset.focusAreas,
+          knowledgeDomains: preset.knowledgeDomains,
+        },
+        bomSOPs: getBomSOPs(role),
+        dailyTasks: getDailyTasks(role),
+      };
+    }),
+
+  /** Get SOPs from DB that match the role's relevant categories */
+  getRoleSOPs: protectedProcedure
+    .input(z.object({ role: z.string().optional() }).optional())
+    .query(async ({ input, ctx }) => {
+      const role = ctx.user?.role ?? input?.role ?? "employee";
+      const config = getWorkstationConfig(role);
+
+      // Determine relevant SOP categories for this role
+      const categories = [...new Set(config.sopReferences.map((s) => s.category))];
+
+      try {
+        const db = await requireDb();
+        const { sopTemplates } = await import("../../drizzle/production-process-schema");
+
+        // Fetch all SOPs then filter by category match
+        const allSops = await db
+          .select({
+            id: sopTemplates.id,
+            code: sopTemplates.code,
+            title: sopTemplates.title,
+            category: sopTemplates.category,
+            processCode: sopTemplates.processCode,
+            version: sopTemplates.version,
+            isActive: sopTemplates.isActive,
+            difficultyLevel: sopTemplates.difficultyLevel,
+          })
+          .from(sopTemplates)
+          .where(eq(sopTemplates.isActive, true))
+          .orderBy(desc(sopTemplates.createdAt))
+          .limit(200);
+
+        // Match DB SOPs to role-relevant categories
+        const matched = allSops.filter((sop) =>
+          categories.includes(sop.category as any)
+        );
+
+        return {
+          dbSOPs: matched,
+          roleSOPReferences: config.sopReferences,
+          categories,
+        };
+      } catch {
+        // DB unavailable — return static references only
+        return {
+          dbSOPs: [],
+          roleSOPReferences: config.sopReferences,
+          categories,
+        };
+      }
+    }),
+
+  /** List all available workstation roles */
+  listWorkstationRoles: protectedProcedure.query(() => {
+    return ALL_WORKSTATION_ROLES.map((roleId) => {
+      const config = getWorkstationConfig(roleId);
+      return {
+        roleId,
+        roleName: config.roleName,
+        roleNameEn: config.roleNameEn,
+        defaultAgentLevel: config.defaultAgentLevel,
+        sopCount: config.sopReferences.length,
+        dailyTaskCount: getDailyTasks(roleId).length,
+      };
+    });
+  }),
 });

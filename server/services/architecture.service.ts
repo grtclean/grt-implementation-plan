@@ -95,7 +95,7 @@ export async function syncUnifiedProjects(): Promise<{ synced: number; errors: s
     for (const p of v1Projects) {
       try {
         const existing = await db.select().from(unifiedProjects)
-          .where(and(eq(unifiedProjects.sourceTable, "v1"), eq(unifiedProjects.sourceId, p.id)));
+          .where(and(eq(unifiedProjects.sourceTable, "v1"), eq(unifiedProjects.sourceId, p.id))).limit(1000);
         const data = {
           sourceTable: "v1" as const, sourceId: p.id,
           projectCode: p.projectCode ?? null, name: p.name,
@@ -128,7 +128,7 @@ export async function syncUnifiedProjects(): Promise<{ synced: number; errors: s
     for (const p of v2Projects) {
       try {
         const existing = await db.select().from(unifiedProjects)
-          .where(and(eq(unifiedProjects.sourceTable, "v2"), eq(unifiedProjects.sourceId, p.id)));
+          .where(and(eq(unifiedProjects.sourceTable, "v2"), eq(unifiedProjects.sourceId, p.id))).limit(1000);
         const data = {
           sourceTable: "v2" as const, sourceId: p.id,
           projectCode: p.projectCode ?? null, name: p.projectName,
@@ -226,7 +226,7 @@ export async function migrateJsonTasks(stageId: number): Promise<{ migrated: num
   const db = await requireDb();
   const errors: string[] = [];
   let migrated = 0;
-  const stageRows = await db.select().from(projectStagesV2).where(eq(projectStagesV2.id, stageId));
+  const stageRows = await db.select().from(projectStagesV2).where(eq(projectStagesV2.id, stageId)).limit(1000);
   if (stageRows.length === 0) return { migrated: 0, errors: ["Stage not found"] };
   const stage = stageRows[0];
   if (!stage.tasksJson) return { migrated: 0, errors: ["No tasksJson data in this stage"] };
@@ -258,7 +258,7 @@ export async function migrateJsonAuditLog(stageId: number): Promise<{ migrated: 
   const db = await requireDb();
   const errors: string[] = [];
   let migrated = 0;
-  const stageRows = await db.select().from(projectStagesV2).where(eq(projectStagesV2.id, stageId));
+  const stageRows = await db.select().from(projectStagesV2).where(eq(projectStagesV2.id, stageId)).limit(1000);
   if (stageRows.length === 0) return { migrated: 0, errors: ["Stage not found"] };
   const stage = stageRows[0];
   if (!stage.auditLog) return { migrated: 0, errors: ["No auditLog data in this stage"] };
@@ -297,7 +297,7 @@ export async function syncCustomerMaster(): Promise<{ synced: number; errors: st
     const rows = await db.select().from(crmCustomers).limit(1000);
     for (const c of rows) {
       try {
-        const existing = await db.select().from(customerMaster).where(eq(customerMaster.sourceCrmV1Id, c.id));
+        const existing = await db.select().from(customerMaster).where(eq(customerMaster.sourceCrmV1Id, c.id)).limit(1000);
         const data = {
           externalCode: c.customerCode ?? null, name: c.name, tier: c.level ?? null,
           industry: c.industry ?? null,
@@ -324,7 +324,7 @@ export async function syncCustomerMaster(): Promise<{ synced: number; errors: st
     const rows = await db.select().from(crmCustomersV2).limit(1000);
     for (const c of rows) {
       try {
-        const existing = await db.select().from(customerMaster).where(eq(customerMaster.sourceCrmV2Id, c.id));
+        const existing = await db.select().from(customerMaster).where(eq(customerMaster.sourceCrmV2Id, c.id)).limit(1000);
         const data = {
           externalCode: c.code ?? null, name: c.name, tier: c.level ?? null,
           industry: c.industry ?? null, region: c.region ?? null,
@@ -349,7 +349,7 @@ export async function syncCustomerMaster(): Promise<{ synced: number; errors: st
     const rows = await db.select().from(customersV2).limit(1000);
     for (const c of rows) {
       try {
-        const existing = await db.select().from(customerMaster).where(eq(customerMaster.sourceCustomersV2Id, c.id));
+        const existing = await db.select().from(customerMaster).where(eq(customerMaster.sourceCustomersV2Id, c.id)).limit(1000);
         const data = {
           externalCode: c.customerCode ?? null, name: c.customerName,
           tier: c.customerLevel ?? null, industry: c.industry ?? null,
@@ -373,7 +373,7 @@ export async function syncCustomerMaster(): Promise<{ synced: number; errors: st
     const rows = await db.select().from(afterSalesClients).limit(1000);
     for (const c of rows) {
       try {
-        const existing = await db.select().from(customerMaster).where(eq(customerMaster.sourceAfterSalesId, c.id));
+        const existing = await db.select().from(customerMaster).where(eq(customerMaster.sourceAfterSalesId, c.id)).limit(1000);
         const data = {
           name: c.name, tier: c.tier ?? null, industry: c.industry ?? null,
           region: c.region ?? null, address: c.address ?? null,

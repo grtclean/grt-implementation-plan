@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 const emptyListResponse = { items: [] as any[], total: 0, page: 1, pageSize: 10 };
@@ -15,19 +15,19 @@ export const ruleVersionRouter = router({
       return null;
     }),
 
-  create: protectedProcedure
+  create: requirePermission('system:naming:manage')
     .input(z.object({ ruleId: z.union([z.string(), z.number()]).optional(), versionNumber: z.number().optional(), description: z.string().optional() }))
     .mutation(() => {
       return successResponse;
     }),
 
-  update: protectedProcedure
+  update: requirePermission('system:naming:manage')
     .input(z.object({ id: z.union([z.string(), z.number()]), description: z.string().optional(), status: z.string().optional() }))
     .mutation(() => {
       return successResponse;
     }),
 
-  delete: protectedProcedure
+  delete: requirePermission('system:naming:manage')
     .input(z.object({ id: z.string() }))
     .mutation(() => {
       return successResponse;
@@ -43,7 +43,7 @@ export const ruleVersionRouter = router({
       return { comparison: null as any };
     }),
 
-  rollback: protectedProcedure
+  rollback: requirePermission('system:naming:manage')
     .input(z.object({ ruleId: z.union([z.string(), z.number()]), versionNumber: z.number() }))
     .mutation(() => {
       return successResponse;

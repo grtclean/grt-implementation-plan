@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -59,13 +60,13 @@ import { PageHeader } from "@/components/grt";
 
 // 通知类型
 const notificationTypes = [
-  { value: "project_gate", label: "项目阶段变更", icon: "📋" },
-  { value: "cost_alert", label: "成本预警", icon: "💰" },
-  { value: "service_ticket", label: "售后工单", icon: "🔧" },
-  { value: "qc_alert", label: "质检异常", icon: "🔍" },
-  { value: "interview", label: "面试安排", icon: "👥" },
-  { value: "approval", label: "审批流程", icon: "✅" },
-  { value: "system", label: "系统事件", icon: "⚙️" },
+  { value: "project_gate", labelKey: "admin.dingtalk.typeProjectGate", descKey: "admin.dingtalk.descProjectGate", icon: "📋" },
+  { value: "cost_alert", labelKey: "admin.dingtalk.typeCostAlert", descKey: "admin.dingtalk.descCostAlert", icon: "💰" },
+  { value: "service_ticket", labelKey: "admin.dingtalk.typeServiceTicket", descKey: "admin.dingtalk.descServiceTicket", icon: "🔧" },
+  { value: "qc_alert", labelKey: "admin.dingtalk.typeQcAlert", descKey: "admin.dingtalk.descQcAlert", icon: "🔍" },
+  { value: "interview", labelKey: "admin.dingtalk.typeInterview", descKey: "admin.dingtalk.descInterview", icon: "👥" },
+  { value: "approval", labelKey: "admin.dingtalk.typeApproval", descKey: "admin.dingtalk.descApproval", icon: "✅" },
+  { value: "system", labelKey: "admin.dingtalk.typeSystem", descKey: "admin.dingtalk.descSystem", icon: "⚙️" },
 ];
 
 // 模拟发送历史数据
@@ -113,6 +114,7 @@ const mockSendHistory = [
 ];
 
 export default function DingTalkSettings() {
+  const { t, tpl } = useLanguage();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
@@ -166,23 +168,23 @@ export default function DingTalkSettings() {
       
       setTestResult({
         success: true,
-        message: "连接成功！钉钉Webhook配置正确。",
+        message: t("admin.dingtalk.connectionSuccess"),
         latency: Math.floor(Math.random() * 100) + 100,
       });
 
       toast({
-        title: "测试成功",
-        description: "钉钉Webhook连接正常",
+        title: t("admin.dingtalk.testSuccessTitle"),
+        description: t("admin.dingtalk.testSuccessDesc"),
       });
     } catch (error) {
       setTestResult({
         success: false,
-        message: "连接失败：" + (error as Error).message,
+        message: t("admin.dingtalk.connectionFailed") + (error as Error).message,
       });
 
       toast({
-        title: "测试失败",
-        description: "请检查Webhook配置",
+        title: t("admin.dingtalk.testFailedTitle"),
+        description: t("admin.dingtalk.testFailedDesc"),
         variant: "destructive",
       });
     } finally {
@@ -209,14 +211,14 @@ export default function DingTalkSettings() {
       setSendHistory([newHistory, ...sendHistory]);
 
       toast({
-        title: "发送成功",
-        description: "测试消息已发送到钉钉群",
+        title: t("admin.dingtalk.sendSuccessTitle"),
+        description: t("admin.dingtalk.sendSuccessDesc"),
       });
 
       setTestDialogOpen(false);
     } catch (error) {
       toast({
-        title: "发送失败",
+        title: t("admin.dingtalk.sendFailedTitle"),
         description: (error as Error).message,
         variant: "destructive",
       });
@@ -225,7 +227,7 @@ export default function DingTalkSettings() {
     }
   };
 
-  // 保存配置
+  // Save config
   const handleSaveConfig = async () => {
     setIsSaving(true);
 
@@ -233,12 +235,12 @@ export default function DingTalkSettings() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       toast({
-        title: "保存成功",
-        description: "钉钉通知配置已更新",
+        title: t("admin.dingtalk.saveSuccessTitle"),
+        description: t("admin.dingtalk.saveSuccessDesc"),
       });
     } catch (error) {
       toast({
-        title: "保存失败",
+        title: t("admin.dingtalk.saveFailedTitle"),
         description: (error as Error).message,
         variant: "destructive",
       });
@@ -251,8 +253,8 @@ export default function DingTalkSettings() {
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(config.webhookUrl);
     toast({
-      title: "已复制",
-      description: "Webhook URL已复制到剪贴板",
+      title: t("admin.dingtalk.copied"),
+      description: t("admin.dingtalk.copiedDesc"),
     });
   };
 
@@ -269,9 +271,9 @@ export default function DingTalkSettings() {
   };
 
   // 获取通知类型标签
-  const getTypeLabel = (type: string) => {
-    const found = notificationTypes.find((t) => t.value === type);
-    return found ? `${found.icon} ${found.label}` : type;
+  const getTypeLabel = (typeVal: string) => {
+    const found = notificationTypes.find((nt) => nt.value === typeVal);
+    return found ? `${found.icon} ${t(found.labelKey)}` : typeVal;
   };
 
   return (
@@ -279,8 +281,8 @@ export default function DingTalkSettings() {
         {/* 页面标题 */}
         <PageHeader
           icon={Bell}
-          title="钉钉通知管理"
-          description="配置钉钉群机器人Webhook，管理系统通知推送"
+          title={t("admin.dingtalk.title")}
+          description={t("admin.dingtalk.description")}
           actions={
             <Button onClick={handleSaveConfig} disabled={isSaving}>
               {isSaving ? (
@@ -288,7 +290,7 @@ export default function DingTalkSettings() {
               ) : (
                 <Settings className="w-4 h-4 mr-2" />
               )}
-              保存配置
+              {t("admin.dingtalk.saveConfig")}
             </Button>
           }
         />
@@ -297,15 +299,15 @@ export default function DingTalkSettings() {
           <TabsList>
             <TabsTrigger value="config">
               <Settings className="w-4 h-4 mr-2" />
-              基础配置
+              {t("admin.dingtalk.tabConfig")}
             </TabsTrigger>
             <TabsTrigger value="notifications">
               <Bell className="w-4 h-4 mr-2" />
-              通知设置
+              {t("admin.dingtalk.tabNotifications")}
             </TabsTrigger>
             <TabsTrigger value="history">
               <History className="w-4 h-4 mr-2" />
-              发送历史
+              {t("admin.dingtalk.tabHistory")}
             </TabsTrigger>
           </TabsList>
 
@@ -314,10 +316,10 @@ export default function DingTalkSettings() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>Webhook配置</span>
+                  <span>{t("admin.dingtalk.webhookConfig")}</span>
                   <div className="flex items-center gap-2">
                     <Label htmlFor="enabled" className="text-sm font-normal">
-                      启用通知
+                      {t("admin.dingtalk.enableNotify")}
                     </Label>
                     <Switch
                       id="enabled"
@@ -329,7 +331,7 @@ export default function DingTalkSettings() {
                   </div>
                 </CardTitle>
                 <CardDescription>
-                  配置钉钉群机器人的Webhook地址和安全设置
+                  {t("admin.dingtalk.webhookConfigDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -354,7 +356,7 @@ export default function DingTalkSettings() {
 
                 {/* 加签密钥 */}
                 <div className="space-y-2">
-                  <Label htmlFor="secret">加签密钥 (Secret)</Label>
+                  <Label htmlFor="secret">{t("admin.dingtalk.signSecret")}</Label>
                   <div className="flex gap-2">
                     <Input
                       id="secret"
@@ -382,17 +384,17 @@ export default function DingTalkSettings() {
 
                 {/* 自定义关键词 */}
                 <div className="space-y-2">
-                  <Label htmlFor="keyword">自定义关键词</Label>
+                  <Label htmlFor="keyword">{t("admin.dingtalk.customKeyword")}</Label>
                   <Input
                     id="keyword"
                     value={config.keyword}
                     onChange={(e) =>
                       setConfig({ ...config, keyword: e.target.value })
                     }
-                    placeholder="消息中必须包含的关键词"
+                    placeholder={t("admin.dingtalk.keywordPlaceholder")}
                   />
                   <p className="text-xs text-muted-foreground">
-                    钉钉机器人安全设置中配置的自定义关键词，消息内容必须包含此关键词才能发送成功
+                    {t("admin.dingtalk.keywordHelp")}
                   </p>
                 </div>
 
@@ -401,9 +403,9 @@ export default function DingTalkSettings() {
                 {/* 测试连接 */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium">连接测试</h4>
+                    <h4 className="font-medium">{t("admin.dingtalk.connectionTestLabel")}</h4>
                     <p className="text-sm text-muted-foreground">
-                      验证Webhook配置是否正确
+                      {t("admin.dingtalk.verifyConfig")}
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -436,7 +438,7 @@ export default function DingTalkSettings() {
                       ) : (
                         <RefreshCw className="w-4 h-4 mr-2" />
                       )}
-                      测试连接
+                      {t("admin.dingtalk.testConnection")}
                     </Button>
                   </div>
                 </div>
@@ -446,28 +448,28 @@ export default function DingTalkSettings() {
                 {/* 发送测试消息 */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium">发送测试消息</h4>
+                    <h4 className="font-medium">{t("admin.dingtalk.sendTestLabel")}</h4>
                     <p className="text-sm text-muted-foreground">
-                      发送一条测试消息到钉钉群
+                      {t("admin.dingtalk.sendTestDesc")}
                     </p>
                   </div>
                   <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
                     <DialogTrigger asChild>
                       <Button>
                         <Send className="w-4 h-4 mr-2" />
-                        发送测试
+                        {t("admin.dingtalk.sendTest")}
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>发送测试消息</DialogTitle>
+                        <DialogTitle>{t("admin.dingtalk.sendTestTitle")}</DialogTitle>
                         <DialogDescription>
-                          编辑并发送一条测试消息到钉钉群
+                          {t("admin.dingtalk.sendTestDialogDesc")}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                          <Label>消息类型</Label>
+                          <Label>{t("admin.dingtalk.msgType")}</Label>
                           <Select
                             value={testMessage.type}
                             onValueChange={(value) =>
@@ -478,13 +480,13 @@ export default function DingTalkSettings() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="text">文本消息</SelectItem>
-                              <SelectItem value="markdown">Markdown消息</SelectItem>
+                              <SelectItem value="text">{t("admin.dingtalk.msgTypeText")}</SelectItem>
+                              <SelectItem value="markdown">{t("admin.dingtalk.msgTypeMarkdown")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label>消息标题</Label>
+                          <Label>{t("admin.dingtalk.msgTitle")}</Label>
                           <Input
                             value={testMessage.title}
                             onChange={(e) =>
@@ -496,7 +498,7 @@ export default function DingTalkSettings() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>消息内容</Label>
+                          <Label>{t("admin.dingtalk.msgContent")}</Label>
                           <Textarea
                             value={testMessage.content}
                             onChange={(e) =>
@@ -508,7 +510,7 @@ export default function DingTalkSettings() {
                             rows={5}
                           />
                           <p className="text-xs text-muted-foreground">
-                            提示：消息内容必须包含关键词"{config.keyword}"
+                            {tpl("admin.dingtalk.msgKeywordHint", { keyword: config.keyword })}
                           </p>
                         </div>
                       </div>
@@ -517,7 +519,7 @@ export default function DingTalkSettings() {
                           variant="outline"
                           onClick={() => setTestDialogOpen(false)}
                         >
-                          取消
+                          {t("admin.dingtalk.cancel")}
                         </Button>
                         <Button
                           onClick={handleSendTestMessage}
@@ -528,7 +530,7 @@ export default function DingTalkSettings() {
                           ) : (
                             <Send className="w-4 h-4 mr-2" />
                           )}
-                          发送
+                          {t("admin.dingtalk.send")}
                         </Button>
                       </div>
                     </DialogContent>
@@ -540,21 +542,13 @@ export default function DingTalkSettings() {
             {/* 帮助信息 */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">配置说明</CardTitle>
+                <CardTitle className="text-base">{t("admin.dingtalk.configGuide")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
-                <p>
-                  1. 在钉钉群中添加自定义机器人，获取Webhook地址
-                </p>
-                <p>
-                  2. 建议同时启用"加签"和"自定义关键词"两种安全设置
-                </p>
-                <p>
-                  3. 加签密钥以"SEC"开头，用于生成消息签名
-                </p>
-                <p>
-                  4. 自定义关键词需要在消息内容中包含，否则发送失败
-                </p>
+                <p>{t("admin.dingtalk.guide1")}</p>
+                <p>{t("admin.dingtalk.guide2")}</p>
+                <p>{t("admin.dingtalk.guide3")}</p>
+                <p>{t("admin.dingtalk.guide4")}</p>
                 <Button variant="link" className="p-0 h-auto" asChild>
                   <a
                     href="https://open.dingtalk.com/document/robots/customize-robot-security-settings"
@@ -562,7 +556,7 @@ export default function DingTalkSettings() {
                     rel="noopener noreferrer"
                   >
                     <ExternalLink className="w-3 h-3 mr-1" />
-                    查看钉钉机器人安全设置文档
+                    {t("admin.dingtalk.viewDocs")}
                   </a>
                 </Button>
               </CardContent>
@@ -573,9 +567,9 @@ export default function DingTalkSettings() {
           <TabsContent value="notifications" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>业务通知开关</CardTitle>
+                <CardTitle>{t("admin.dingtalk.businessNotify")}</CardTitle>
                 <CardDescription>
-                  选择需要推送到钉钉群的业务通知类型
+                  {t("admin.dingtalk.businessNotifyDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -588,22 +582,9 @@ export default function DingTalkSettings() {
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{type.icon}</span>
                         <div>
-                          <h4 className="font-medium">{type.label}</h4>
+                          <h4 className="font-medium">{t(type.labelKey)}</h4>
                           <p className="text-sm text-muted-foreground">
-                            {type.value === "project_gate" &&
-                              "项目阶段变更时发送通知"}
-                            {type.value === "cost_alert" &&
-                              "成本超预算预警时发送通知"}
-                            {type.value === "service_ticket" &&
-                              "新工单创建或升级时发送通知"}
-                            {type.value === "qc_alert" &&
-                              "质检发现异常时发送通知"}
-                            {type.value === "interview" &&
-                              "面试安排提醒"}
-                            {type.value === "approval" &&
-                              "审批流程状态变更通知"}
-                            {type.value === "system" &&
-                              "系统维护和安全事件通知"}
+                            {t(type.descKey)}
                           </p>
                         </div>
                       </div>
@@ -625,17 +606,17 @@ export default function DingTalkSettings() {
             {/* 高级设置 */}
             <Card>
               <CardHeader>
-                <CardTitle>高级设置</CardTitle>
+                <CardTitle>{t("admin.dingtalk.advancedSettings")}</CardTitle>
                 <CardDescription>
-                  配置通知的高级选项
+                  {t("admin.dingtalk.advancedSettingsDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium">紧急通知@所有人</h4>
+                    <h4 className="font-medium">{t("admin.dingtalk.urgentAtAll")}</h4>
                     <p className="text-sm text-muted-foreground">
-                      紧急和严重级别的告警自动@所有人
+                      {t("admin.dingtalk.urgentAtAllDesc")}
                     </p>
                   </div>
                   <Switch defaultChecked />
@@ -643,9 +624,9 @@ export default function DingTalkSettings() {
                 <Separator />
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium">静默时段</h4>
+                    <h4 className="font-medium">{t("admin.dingtalk.silentPeriod")}</h4>
                     <p className="text-sm text-muted-foreground">
-                      在指定时间段内不发送非紧急通知
+                      {t("admin.dingtalk.silentPeriodDesc")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -665,9 +646,9 @@ export default function DingTalkSettings() {
                 <Separator />
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium">消息合并</h4>
+                    <h4 className="font-medium">{t("admin.dingtalk.msgMerge")}</h4>
                     <p className="text-sm text-muted-foreground">
-                      短时间内的多条同类通知合并发送
+                      {t("admin.dingtalk.msgMergeDesc")}
                     </p>
                   </div>
                   <Switch defaultChecked />
@@ -681,47 +662,47 @@ export default function DingTalkSettings() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>发送历史</span>
+                  <span>{t("admin.dingtalk.sendHistory")}</span>
                   <div className="flex items-center gap-2">
                     <Select defaultValue="all">
                       <SelectTrigger className="w-32">
-                        <SelectValue placeholder="筛选类型" />
+                        <SelectValue placeholder={t("admin.dingtalk.filterType")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">全部类型</SelectItem>
+                        <SelectItem value="all">{t("admin.dingtalk.allTypes")}</SelectItem>
                         {notificationTypes.map((type) => (
                           <SelectItem key={type.value} value={type.value}>
-                            {type.icon} {type.label}
+                            {type.icon} {t(type.labelKey)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <Select defaultValue="all">
                       <SelectTrigger className="w-32">
-                        <SelectValue placeholder="筛选状态" />
+                        <SelectValue placeholder={t("admin.dingtalk.filterStatus")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">全部状态</SelectItem>
-                        <SelectItem value="success">发送成功</SelectItem>
-                        <SelectItem value="failed">发送失败</SelectItem>
+                        <SelectItem value="all">{t("admin.dingtalk.allStatus")}</SelectItem>
+                        <SelectItem value="success">{t("admin.dingtalk.statusSuccess")}</SelectItem>
+                        <SelectItem value="failed">{t("admin.dingtalk.statusFailed")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </CardTitle>
                 <CardDescription>
-                  查看最近的通知发送记录
+                  {t("admin.dingtalk.sendHistoryDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>时间</TableHead>
-                      <TableHead>类型</TableHead>
-                      <TableHead>标题</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead>延迟</TableHead>
-                      <TableHead className="text-right">操作</TableHead>
+                      <TableHead>{t("admin.dingtalk.thTime")}</TableHead>
+                      <TableHead>{t("admin.dingtalk.thType")}</TableHead>
+                      <TableHead>{t("admin.dingtalk.thTitle")}</TableHead>
+                      <TableHead>{t("admin.dingtalk.thStatus")}</TableHead>
+                      <TableHead>{t("admin.dingtalk.thLatency")}</TableHead>
+                      <TableHead className="text-right">{t("admin.dingtalk.thAction")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -738,12 +719,12 @@ export default function DingTalkSettings() {
                           {record.status === "success" ? (
                             <Badge variant="default" className="bg-green-500">
                               <CheckCircle2 className="w-3 h-3 mr-1" />
-                              成功
+                              {t("admin.dingtalk.success")}
                             </Badge>
                           ) : (
                             <Badge variant="destructive">
                               <XCircle className="w-3 h-3 mr-1" />
-                              失败
+                              {t("admin.dingtalk.failed")}
                             </Badge>
                           )}
                         </TableCell>
@@ -762,7 +743,7 @@ export default function DingTalkSettings() {
                           {record.status === "failed" && (
                             <Button variant="ghost" size="sm">
                               <RefreshCw className="w-4 h-4 mr-1" />
-                              重试
+                              {t("admin.dingtalk.retry")}
                             </Button>
                           )}
                         </TableCell>
@@ -774,7 +755,7 @@ export default function DingTalkSettings() {
                 {sendHistory.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>暂无发送记录</p>
+                    <p>{t("admin.dingtalk.noHistory")}</p>
                   </div>
                 )}
               </CardContent>
@@ -789,7 +770,7 @@ export default function DingTalkSettings() {
                       {sendHistory.length}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      今日发送总数
+                      {t("admin.dingtalk.todayTotal")}
                     </div>
                   </div>
                 </CardContent>
@@ -801,7 +782,7 @@ export default function DingTalkSettings() {
                       {sendHistory.filter((r) => r.status === "success").length}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      发送成功
+                      {t("admin.dingtalk.sendSuccessCount")}
                     </div>
                   </div>
                 </CardContent>
@@ -813,7 +794,7 @@ export default function DingTalkSettings() {
                       {sendHistory.filter((r) => r.status === "failed").length}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      发送失败
+                      {t("admin.dingtalk.sendFailedCount")}
                     </div>
                   </div>
                 </CardContent>
@@ -831,7 +812,7 @@ export default function DingTalkSettings() {
                       ms
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      平均延迟
+                      {t("admin.dingtalk.avgLatency")}
                     </div>
                   </div>
                 </CardContent>

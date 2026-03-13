@@ -10,11 +10,13 @@
  *   kpiPerformance.militaryOrders — Military Orders (军令状)
  */
 
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { jsonValue } from "../../shared/validators";
 import { analyzeKpiPerformance } from "./kpiAiAnalysis.service";
+import { requireDb } from "../db";
+import { sql } from "drizzle-orm";
 
 /** Roles allowed to view/manage other employees' KPI data */
 const HR_MANAGER_ROLES = new Set(["admin", "director", "hr_manager", "hr_specialist", "dept_manager", "team_lead"]);
@@ -119,7 +121,7 @@ const positionsRouter = router({
       return updateKpiPosition(id, data);
     }),
 
-  delete: protectedProcedure
+  delete: requirePermission('hr:performance:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return deleteKpiPosition(input.id);
@@ -203,7 +205,7 @@ const libraryRouter = router({
       return updateKpiLibraryItem(id, data);
     }),
 
-  delete: protectedProcedure
+  delete: requirePermission('hr:performance:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return deleteKpiLibraryItem(input.id);
@@ -281,7 +283,7 @@ const targetsRouter = router({
       return updatePositionKpiTarget(id, data);
     }),
 
-  delete: protectedProcedure
+  delete: requirePermission('hr:performance:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return deletePositionKpiTarget(input.id);
@@ -368,7 +370,7 @@ const skillsRouter = router({
       return updateUserSkill(id, data);
     }),
 
-  delete: protectedProcedure
+  delete: requirePermission('hr:performance:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return deleteUserSkill(input.id);
@@ -470,7 +472,7 @@ const reviewsRouter = router({
       return updateMonthlyReview(id, { ...data, reviewedBy: ctx.user.id });
     }),
 
-  delete: protectedProcedure
+  delete: requirePermission('hr:performance:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return deleteMonthlyReview(input.id);
@@ -561,7 +563,7 @@ const militaryOrdersRouter = router({
       return updateMilitaryOrder(id, data);
     }),
 
-  sign: protectedProcedure
+  sign: requirePermission('hr:performance:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       // Verify the signer is the order's target user
@@ -576,7 +578,7 @@ const militaryOrdersRouter = router({
       return signMilitaryOrder(input.id);
     }),
 
-  witness: protectedProcedure
+  witness: requirePermission('hr:performance:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       // Witness must be a manager/HR role, and cannot witness their own order
@@ -594,7 +596,7 @@ const militaryOrdersRouter = router({
       return witnessMilitaryOrder(input.id, ctx.user.id);
     }),
 
-  delete: protectedProcedure
+  delete: requirePermission('hr:performance:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return deleteMilitaryOrder(input.id);
@@ -606,7 +608,7 @@ const militaryOrdersRouter = router({
 // ============================================================
 
 const aiAnalysisRouter = router({
-  analyze: protectedProcedure
+  analyze: requirePermission('hr:performance:manage')
     .input(
       z.object({
         buCode: z.string().optional(),
@@ -631,4 +633,41 @@ export const kpiPerformanceRouter = router({
   reviews: reviewsRouter,
   militaryOrders: militaryOrdersRouter,
   aiAnalysis: aiAnalysisRouter,
+
+  getDeptSummary: protectedProcedure.query(async () => {
+    const db = await requireDb();
+    try {
+      const result = await db.execute(sql`
+        SELECT
+          d.name as dept,
+          COUNT(e.id)::int as headcount,
+          COALESCE(AVG(r.final_score), 0)::numeric(5,1) as avg_score,
+          0 as budget_used,
+          0 as target_rate
+        FROM departments d
+        LEFT JOIN company_employees e ON e.department = d.name AND e.status = 'active'
+        LEFT JOIN kpi_monthly_reviews r ON r.employee_id = e.id
+        WHERE d.is_active = true
+        GROUP BY d.name
+        HAVING COUNT(e.id) > 0
+        ORDER BY avg_score DESC
+        LIMIT 50
+      `);
+      const rows = ((result as any).rows ?? []).map((r: any) => {
+        const score = Number(r.avg_score ?? 0);
+        const grade = score >= 88 ? 'A' : score >= 85 ? 'A-' : score >= 82 ? 'B+' : 'B';
+        return {
+          dept: r.dept,
+          headcount: Number(r.headcount ?? 0),
+          avgScore: score,
+          budgetUsed: Number(r.budget_used ?? 0),
+          targetRate: Number(r.target_rate ?? 0),
+          grade,
+        };
+      });
+      return { departments: rows };
+    } catch {
+      return { departments: [] };
+    }
+  }),
 });

@@ -271,9 +271,9 @@ const deliverySubRouter = router({
 
       // Gather shipment, installation, SAT summaries in parallel
       const [shipments, installations, satRecords] = await Promise.all([
-        db.select().from(deliveryShipments).where(eq(deliveryShipments.deliveryId, input.deliveryId)),
-        db.select().from(deliveryInstallations).where(eq(deliveryInstallations.deliveryId, input.deliveryId)),
-        db.select().from(deliverySatRecords).where(eq(deliverySatRecords.deliveryId, input.deliveryId)),
+        db.select().from(deliveryShipments).where(eq(deliveryShipments.deliveryId, input.deliveryId)).limit(1000),
+        db.select().from(deliveryInstallations).where(eq(deliveryInstallations.deliveryId, input.deliveryId)).limit(1000),
+        db.select().from(deliverySatRecords).where(eq(deliverySatRecords.deliveryId, input.deliveryId)).limit(1000),
       ]);
 
       return {
@@ -606,7 +606,8 @@ const stageTransitionSubRouter = router({
         const shipments = await db
           .select()
           .from(deliveryShipments)
-          .where(eq(deliveryShipments.deliveryId, input.deliveryId));
+          .where(eq(deliveryShipments.deliveryId, input.deliveryId))
+          .limit(1000);
 
         if (shipments.length > 0) {
           const unreceivedShipments = shipments.filter(
@@ -655,7 +656,8 @@ const stageTransitionSubRouter = router({
         const installations = await db
           .select()
           .from(deliveryInstallations)
-          .where(eq(deliveryInstallations.deliveryId, input.deliveryId));
+          .where(eq(deliveryInstallations.deliveryId, input.deliveryId))
+          .limit(1000);
 
         if (installations.length > 0) {
           const activeInstall = installations[0];
@@ -711,7 +713,8 @@ const stageTransitionSubRouter = router({
         const satRecords = await db
           .select()
           .from(deliverySatRecords)
-          .where(eq(deliverySatRecords.deliveryId, input.deliveryId));
+          .where(eq(deliverySatRecords.deliveryId, input.deliveryId))
+          .limit(1000);
 
         if (satRecords.length > 0) {
           const activeSat = satRecords[0];
@@ -831,7 +834,8 @@ const gateCheckSubRouter = router({
           const shipments = await db
             .select()
             .from(deliveryShipments)
-            .where(eq(deliveryShipments.deliveryId, input.deliveryId));
+            .where(eq(deliveryShipments.deliveryId, input.deliveryId))
+            .limit(1000);
           if (shipments.length === 0) {
             issues.push("M8: 尚未创建发货记录");
             score -= 15;
@@ -854,7 +858,8 @@ const gateCheckSubRouter = router({
           const installs = await db
             .select()
             .from(deliveryInstallations)
-            .where(eq(deliveryInstallations.deliveryId, input.deliveryId));
+            .where(eq(deliveryInstallations.deliveryId, input.deliveryId))
+            .limit(1000);
           if (installs.length === 0) {
             issues.push("M10: 尚未创建安装记录");
             score -= 15;
@@ -884,7 +889,8 @@ const gateCheckSubRouter = router({
           const sats = await db
             .select()
             .from(deliverySatRecords)
-            .where(eq(deliverySatRecords.deliveryId, input.deliveryId));
+            .where(eq(deliverySatRecords.deliveryId, input.deliveryId))
+            .limit(1000);
           if (sats.length === 0) {
             issues.push("SAT: 尚未创建验收测试记录");
             score -= 20;
@@ -937,7 +943,8 @@ const gateCheckSubRouter = router({
         .select()
         .from(gateChecklistItems)
         .where(eq(gateChecklistItems.gateStage, input.gateStage))
-        .orderBy(asc(gateChecklistItems.sortOrder), asc(gateChecklistItems.id));
+        .orderBy(asc(gateChecklistItems.sortOrder), asc(gateChecklistItems.id))
+        .limit(1000);
       return rows;
     }),
 
@@ -1114,7 +1121,8 @@ const shipmentSubRouter = router({
           .select()
           .from(deliveryShipments)
           .where(eq(deliveryShipments.deliveryId, input.deliveryId))
-          .orderBy(desc(deliveryShipments.createdAt));
+          .orderBy(desc(deliveryShipments.createdAt))
+          .limit(1000);
         return { items: rows, total: rows.length };
       } catch {
         return { items: [], total: 0 };
@@ -1291,7 +1299,8 @@ const shipmentSubRouter = router({
         const shipments = await db
           .select()
           .from(deliveryShipments)
-          .where(eq(deliveryShipments.deliveryId, input.deliveryId));
+          .where(eq(deliveryShipments.deliveryId, input.deliveryId))
+          .limit(1000);
 
         const byStatus: Record<string, number> = {
           preparing: 0,
@@ -1390,7 +1399,8 @@ const installationSubRouter = router({
           .select()
           .from(deliveryInstallations)
           .where(eq(deliveryInstallations.deliveryId, input.deliveryId))
-          .orderBy(desc(deliveryInstallations.createdAt));
+          .orderBy(desc(deliveryInstallations.createdAt))
+          .limit(1000);
         return rows[0] ?? null;
       } catch {
         return null;
@@ -1872,7 +1882,8 @@ const satSubRouter = router({
           .select()
           .from(deliverySatRecords)
           .where(eq(deliverySatRecords.deliveryId, input.deliveryId))
-          .orderBy(desc(deliverySatRecords.createdAt));
+          .orderBy(desc(deliverySatRecords.createdAt))
+          .limit(1000);
         return rows[0] ?? null;
       } catch {
         return null;

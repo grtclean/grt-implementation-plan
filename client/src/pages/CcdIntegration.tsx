@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { PageHeader, StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,20 +24,15 @@ const PROCESS_NAMES: Record<string, string> = {
   T11: '卸车', T12: '就位', T13: '水电气连接', T14: '现场调试', T15: '终验收',
 };
 
-const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  active: { bg: "bg-green-500/20", text: "text-green-400", label: "运行中" },
-  paused: { bg: "bg-yellow-500/20", text: "text-yellow-400", label: "已暂停" },
-  error: { bg: "bg-red-500/20", text: "text-red-400", label: "异常" },
-  offline: { bg: "bg-gray-500/20", text: "text-gray-400", label: "离线" },
-};
-
-const SEVERITY_MAP: Record<string, { bg: string; text: string; label: string }> = {
-  critical: { bg: "bg-red-500/20", text: "text-red-400", label: "严重" },
-  major: { bg: "bg-orange-500/20", text: "text-orange-400", label: "重大" },
-  minor: { bg: "bg-yellow-500/20", text: "text-yellow-400", label: "轻微" },
+const STATUS_STYLE_KEYS: Record<string, { bg: string; text: string; key: string }> = {
+  active: { bg: "bg-green-500/20", text: "text-green-400", key: "manufacturing.ccd.statusActive" },
+  paused: { bg: "bg-yellow-500/20", text: "text-yellow-400", key: "manufacturing.ccd.statusPaused" },
+  error: { bg: "bg-red-500/20", text: "text-red-400", key: "manufacturing.ccd.statusError" },
+  offline: { bg: "bg-gray-500/20", text: "text-gray-400", key: "manufacturing.ccd.statusOffline" },
 };
 
 export default function CcdIntegration() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("bridge");
   const [selectedProject] = useState("PRJ-2026-001");
@@ -78,30 +74,30 @@ export default function CcdIntegration() {
   // Mutations
   const createConfigMutation = (trpc.ccdIntegration as any).createBridgeConfig.useMutation({
     onSuccess: () => {
-      toast({ title: "成功", description: "CCD桥接配置已创建" });
+      toast({ title: t("manufacturing.ccd.success"), description: t("manufacturing.ccd.configCreated") });
       bridgeConfigsQuery.refetch();
       setShowConfigDialog(false);
     },
-    onError: (err) => toast({ title: "错误", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: t("manufacturing.ccd.error"), description: err.message, variant: "destructive" }),
   });
   const submitResultMutation = (trpc.ccdIntegration as any).submitInspectionResult.useMutation({
     onSuccess: (data) => {
       const msg = data.interlockTriggered
-        ? `检测结果已提交，已触发工序联动锁定！锁定工序：${data.lockedProcesses?.join(', ')}`
-        : "检测结果已提交，未触发联动";
-      toast({ title: data.interlockTriggered ? "⚠️ 联动触发" : "成功", description: msg });
+        ? `${t("manufacturing.ccd.interlockMsg")}${data.lockedProcesses?.join(', ')}`
+        : t("manufacturing.ccd.noInterlockMsg");
+      toast({ title: data.interlockTriggered ? t("manufacturing.ccd.interlockAlert") : t("manufacturing.ccd.success"), description: msg });
       inspectionLogsQuery.refetch();
       statsQuery.refetch();
       setShowSubmitDialog(false);
     },
-    onError: (err) => toast({ title: "错误", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: t("manufacturing.ccd.error"), description: err.message, variant: "destructive" }),
   });
   const toggleConfigMutation = (trpc.ccdIntegration as any).toggleBridgeConfig.useMutation({
     onSuccess: () => {
-      toast({ title: "成功", description: "配置状态已更新" });
+      toast({ title: t("manufacturing.ccd.success"), description: t("manufacturing.ccd.configUpdated") });
       bridgeConfigsQuery.refetch();
     },
-    onError: (err) => toast({ title: "错误", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: t("manufacturing.ccd.error"), description: err.message, variant: "destructive" }),
   });
 
   const configs = (bridgeConfigsQuery.data ?? []) as any[];
@@ -112,15 +108,15 @@ export default function CcdIntegration() {
     <div className="space-y-6">
       <PageHeader
         icon={Cpu}
-        title="CCD视觉检测集成"
-        description="CCD检测设备与质量联动系统的桥接集成 · 自动化缺陷检测闭环"
+        title={t("manufacturing.ccd.title")}
+        description={t("manufacturing.ccd.description")}
         actions={
           <>
             <Button variant="outline" onClick={() => { bridgeConfigsQuery.refetch(); inspectionLogsQuery.refetch(); statsQuery.refetch(); }}>
-              <RefreshCw className="w-4 h-4 mr-2" /> 刷新
+              <RefreshCw className="w-4 h-4 mr-2" /> {t("manufacturing.ccd.refresh")}
             </Button>
             <Button onClick={() => setShowSubmitDialog(true)} className="bg-cyan-600 hover:bg-cyan-700">
-              <Camera className="w-4 h-4 mr-2" /> 提交检测结果
+              <Camera className="w-4 h-4 mr-2" /> {t("manufacturing.ccd.submitResult")}
             </Button>
           </>
         }
@@ -128,25 +124,25 @@ export default function CcdIntegration() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={Activity} label="活跃桥接" value={stats.activeConfigs ?? 0} iconColor="text-cyan-400" iconBg="bg-cyan-500/20" />
-        <StatCard icon={CheckCircle2} label="检测总次数" value={stats.totalInspections ?? 0} iconColor="text-green-400" iconBg="bg-green-500/20" />
-        <StatCard icon={AlertTriangle} label="联动触发次数" value={stats.interlockTriggered ?? 0} iconColor="text-red-400" iconBg="bg-red-500/20" />
-        <StatCard icon={BarChart3} label="合格率" value={stats.passRate ? `${Number(stats.passRate).toFixed(1)}%` : 'N/A'} iconColor="text-primary" iconBg="bg-primary/20" />
+        <StatCard icon={Activity} label={t("manufacturing.ccd.activeBridges")} value={stats.activeConfigs ?? 0} iconColor="text-cyan-400" iconBg="bg-cyan-500/20" />
+        <StatCard icon={CheckCircle2} label={t("manufacturing.ccd.totalInspections")} value={stats.totalInspections ?? 0} iconColor="text-green-400" iconBg="bg-green-500/20" />
+        <StatCard icon={AlertTriangle} label={t("manufacturing.ccd.interlockTriggered")} value={stats.interlockTriggered ?? 0} iconColor="text-red-400" iconBg="bg-red-500/20" />
+        <StatCard icon={BarChart3} label={t("manufacturing.ccd.passRate")} value={stats.passRate ? `${Number(stats.passRate).toFixed(1)}%` : 'N/A'} iconColor="text-primary" iconBg="bg-primary/20" />
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-secondary/50">
-          <TabsTrigger value="bridge"><Settings className="w-4 h-4 mr-1" /> 桥接配置</TabsTrigger>
-          <TabsTrigger value="logs"><Eye className="w-4 h-4 mr-1" /> 检测日志</TabsTrigger>
+          <TabsTrigger value="bridge"><Settings className="w-4 h-4 mr-1" /> {t("manufacturing.ccd.tabBridge")}</TabsTrigger>
+          <TabsTrigger value="logs"><Eye className="w-4 h-4 mr-1" /> {t("manufacturing.ccd.tabLogs")}</TabsTrigger>
         </TabsList>
 
         {/* Bridge Configs Tab */}
         <TabsContent value="bridge" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">CCD设备桥接配置</h3>
+            <h3 className="text-lg font-semibold">{t("manufacturing.ccd.bridgeConfigs")}</h3>
             <Button onClick={() => setShowConfigDialog(true)} size="sm">
-              <Zap className="w-4 h-4 mr-1" /> 新建桥接
+              <Zap className="w-4 h-4 mr-1" /> {t("manufacturing.ccd.newBridge")}
             </Button>
           </div>
 
@@ -154,39 +150,39 @@ export default function CcdIntegration() {
             <Card className="bg-card/30 border-dashed border-border">
               <CardContent className="p-8 text-center">
                 <Cpu className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">暂无桥接配置，点击"新建桥接"开始配置CCD设备</p>
+                <p className="text-muted-foreground">{t("manufacturing.ccd.emptyBridge")}</p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {configs.map((cfg: any) => {
-                const status = cfg.is_active ? STATUS_STYLES.active : STATUS_STYLES.paused;
+                const status = cfg.is_active ? STATUS_STYLE_KEYS.active : STATUS_STYLE_KEYS.paused;
                 return (
                   <Card key={cfg.id} className="bg-card/50 border-border hover:border-cyan-500/30 transition-colors">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-base flex items-center gap-2">
                           <Cpu className="w-4 h-4 text-cyan-400" />
-                          {cfg.ccd_device_id || '未命名设备'}
+                          {cfg.ccd_device_id || t("manufacturing.ccd.unnamedDevice")}
                         </CardTitle>
-                        <Badge className={`${status.bg} ${status.text} border-0`}>{status.label}</Badge>
+                        <Badge className={`${status.bg} ${status.text} border-0`}>{t(status.key)}</Badge>
                       </div>
                       <CardDescription>
-                        工序: {cfg.process_code} ({PROCESS_NAMES[cfg.process_code] || cfg.process_code})
+                        {t("manufacturing.ccd.process")}: {cfg.process_code} ({PROCESS_NAMES[cfg.process_code] || cfg.process_code})
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="grid grid-cols-3 gap-2 text-xs">
                         <div className="bg-red-500/10 rounded p-2 text-center">
-                          <p className="text-muted-foreground">严重阈值</p>
+                          <p className="text-muted-foreground">{t("manufacturing.ccd.criticalThreshold")}</p>
                           <p className="font-bold text-red-400">{cfg.defect_threshold_critical}</p>
                         </div>
                         <div className="bg-orange-500/10 rounded p-2 text-center">
-                          <p className="text-muted-foreground">重大阈值</p>
+                          <p className="text-muted-foreground">{t("manufacturing.ccd.majorThreshold")}</p>
                           <p className="font-bold text-orange-400">{cfg.defect_threshold_major}</p>
                         </div>
                         <div className="bg-yellow-500/10 rounded p-2 text-center">
-                          <p className="text-muted-foreground">轻微阈值</p>
+                          <p className="text-muted-foreground">{t("manufacturing.ccd.minorThreshold")}</p>
                           <p className="font-bold text-yellow-400">{cfg.defect_threshold_minor}</p>
                         </div>
                       </div>
@@ -201,7 +197,7 @@ export default function CcdIntegration() {
                           })}
                         >
                           {cfg.is_active ? <Pause className="w-3 h-3 mr-1" /> : <Play className="w-3 h-3 mr-1" />}
-                          {cfg.is_active ? '暂停' : '启用'}
+                          {cfg.is_active ? t("manufacturing.ccd.pause") : t("manufacturing.ccd.enable")}
                         </Button>
                       </div>
                     </CardContent>
@@ -214,12 +210,12 @@ export default function CcdIntegration() {
 
         {/* Inspection Logs Tab */}
         <TabsContent value="logs" className="space-y-4">
-          <h3 className="text-lg font-semibold">CCD检测日志</h3>
+          <h3 className="text-lg font-semibold">{t("manufacturing.ccd.inspectionLogs")}</h3>
           {logs.length === 0 ? (
             <Card className="bg-card/30 border-dashed border-border">
               <CardContent className="p-8 text-center">
                 <Eye className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">暂无检测记录</p>
+                <p className="text-muted-foreground">{t("manufacturing.ccd.emptyLogs")}</p>
               </CardContent>
             </Card>
           ) : (
@@ -239,15 +235,15 @@ export default function CcdIntegration() {
                             {log.process_code} ({PROCESS_NAMES[log.process_code] || ''}) · {log.ccd_device_id}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            缺陷: {log.defects_found} (严重:{log.critical_defects} / 重大:{log.major_defects} / 轻微:{log.minor_defects})
+                            {t("manufacturing.ccd.defects")}: {log.defects_found} ({t("manufacturing.ccd.critical")}:{log.critical_defects} / {t("manufacturing.ccd.major")}:{log.major_defects} / {t("manufacturing.ccd.minor")}:{log.minor_defects})
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
                         {log.interlock_triggered ? (
-                          <Badge className="bg-red-500/20 text-red-400 border-0">已触发联动</Badge>
+                          <Badge className="bg-red-500/20 text-red-400 border-0">{t("manufacturing.ccd.interlockTriggeredBadge")}</Badge>
                         ) : (
-                          <Badge className="bg-green-500/20 text-green-400 border-0">正常通过</Badge>
+                          <Badge className="bg-green-500/20 text-green-400 border-0">{t("manufacturing.ccd.normalPass")}</Badge>
                         )}
                         <p className="text-xs text-muted-foreground mt-1">
                           {log.created_at ? new Date(Number(log.created_at)).toLocaleString() : ''}
@@ -257,7 +253,7 @@ export default function CcdIntegration() {
                     {log.interlock_action && (
                       <div className="mt-2 p-2 bg-red-500/10 rounded text-xs text-red-300">
                         <Shield className="w-3 h-3 inline mr-1" />
-                        联动动作: {log.interlock_action}
+                        {t("manufacturing.ccd.interlockAction")}: {log.interlock_action}
                       </div>
                     )}
                   </CardContent>
@@ -272,11 +268,11 @@ export default function CcdIntegration() {
       <Dialog open={showConfigDialog} onOpenChange={setShowConfigDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>新建CCD桥接配置</DialogTitle>
+            <DialogTitle>{t("manufacturing.ccd.createConfigDialog")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>工序</Label>
+              <Label>{t("manufacturing.ccd.processLabel")}</Label>
               <Select value={configForm.processCode} onValueChange={(v) => setConfigForm(p => ({ ...p, processCode: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -287,26 +283,26 @@ export default function CcdIntegration() {
               </Select>
             </div>
             <div>
-              <Label>CCD设备ID</Label>
-              <Input value={configForm.ccdDeviceId} onChange={(e) => setConfigForm(p => ({ ...p, ccdDeviceId: e.target.value }))} placeholder="如: CCD-001" />
+              <Label>{t("manufacturing.ccd.ccdDeviceId")}</Label>
+              <Input value={configForm.ccdDeviceId} onChange={(e) => setConfigForm(p => ({ ...p, ccdDeviceId: e.target.value }))} placeholder={t("manufacturing.ccd.ccdDevicePlaceholder")} />
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <Label className="text-xs">严重阈值</Label>
+                <Label className="text-xs">{t("manufacturing.ccd.criticalThreshold")}</Label>
                 <Input type="number" value={configForm.defectThresholdCritical} onChange={(e) => setConfigForm(p => ({ ...p, defectThresholdCritical: Number(e.target.value) }))} />
               </div>
               <div>
-                <Label className="text-xs">重大阈值</Label>
+                <Label className="text-xs">{t("manufacturing.ccd.majorThreshold")}</Label>
                 <Input type="number" value={configForm.defectThresholdMajor} onChange={(e) => setConfigForm(p => ({ ...p, defectThresholdMajor: Number(e.target.value) }))} />
               </div>
               <div>
-                <Label className="text-xs">轻微阈值</Label>
+                <Label className="text-xs">{t("manufacturing.ccd.minorThreshold")}</Label>
                 <Input type="number" value={configForm.defectThresholdMinor} onChange={(e) => setConfigForm(p => ({ ...p, defectThresholdMinor: Number(e.target.value) }))} />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <DialogClose asChild><Button variant="outline">取消</Button></DialogClose>
+            <DialogClose asChild><Button variant="outline">{t("manufacturing.ccd.cancel")}</Button></DialogClose>
             <Button
               onClick={() => createConfigMutation.mutate({
                 projectId: selectedProject,
@@ -319,7 +315,7 @@ export default function CcdIntegration() {
               })}
               disabled={createConfigMutation.isPending || !configForm.ccdDeviceId}
             >
-              {createConfigMutation.isPending ? "创建中..." : "创建配置"}
+              {createConfigMutation.isPending ? t("manufacturing.ccd.creating") : t("manufacturing.ccd.createConfig")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -329,12 +325,12 @@ export default function CcdIntegration() {
       <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>提交CCD检测结果</DialogTitle>
+            <DialogTitle>{t("manufacturing.ccd.submitDialog")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>工序</Label>
+                <Label>{t("manufacturing.ccd.processLabel")}</Label>
                 <Select value={submitForm.processCode} onValueChange={(v) => setSubmitForm(p => ({ ...p, processCode: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -345,35 +341,35 @@ export default function CcdIntegration() {
                 </Select>
               </div>
               <div>
-                <Label>CCD设备</Label>
+                <Label>{t("manufacturing.ccd.ccdDevice")}</Label>
                 <Input value={submitForm.ccdDeviceId} onChange={(e) => setSubmitForm(p => ({ ...p, ccdDeviceId: e.target.value }))} />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <Label className="text-xs text-red-400">严重缺陷</Label>
+                <Label className="text-xs text-red-400">{t("manufacturing.ccd.criticalDefects")}</Label>
                 <Input type="number" min={0} value={submitForm.criticalDefects} onChange={(e) => setSubmitForm(p => ({ ...p, criticalDefects: Number(e.target.value) }))} />
               </div>
               <div>
-                <Label className="text-xs text-orange-400">重大缺陷</Label>
+                <Label className="text-xs text-orange-400">{t("manufacturing.ccd.majorDefects")}</Label>
                 <Input type="number" min={0} value={submitForm.majorDefects} onChange={(e) => setSubmitForm(p => ({ ...p, majorDefects: Number(e.target.value) }))} />
               </div>
               <div>
-                <Label className="text-xs text-yellow-400">轻微缺陷</Label>
+                <Label className="text-xs text-yellow-400">{t("manufacturing.ccd.minorDefects")}</Label>
                 <Input type="number" min={0} value={submitForm.minorDefects} onChange={(e) => setSubmitForm(p => ({ ...p, minorDefects: Number(e.target.value) }))} />
               </div>
             </div>
             <div>
-              <Label>检测图片URL（可选）</Label>
+              <Label>{t("manufacturing.ccd.imageUrl")}</Label>
               <Input value={submitForm.imageUrl} onChange={(e) => setSubmitForm(p => ({ ...p, imageUrl: e.target.value }))} placeholder="https://..." />
             </div>
             <div>
-              <Label>备注</Label>
+              <Label>{t("manufacturing.ccd.notes")}</Label>
               <Textarea value={submitForm.notes} onChange={(e) => setSubmitForm(p => ({ ...p, notes: e.target.value }))} rows={2} />
             </div>
           </div>
           <DialogFooter>
-            <DialogClose asChild><Button variant="outline">取消</Button></DialogClose>
+            <DialogClose asChild><Button variant="outline">{t("manufacturing.ccd.cancel")}</Button></DialogClose>
             <Button
               onClick={() => submitResultMutation.mutate({
                 projectId: selectedProject,
@@ -389,7 +385,7 @@ export default function CcdIntegration() {
               disabled={submitResultMutation.isPending}
               className="bg-cyan-600 hover:bg-cyan-700"
             >
-              {submitResultMutation.isPending ? "提交中..." : "提交检测结果"}
+              {submitResultMutation.isPending ? t("manufacturing.ccd.submitting") : t("manufacturing.ccd.submitInspection")}
             </Button>
           </DialogFooter>
         </DialogContent>

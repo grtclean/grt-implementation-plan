@@ -4,6 +4,7 @@
  */
 
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,10 +30,10 @@ const sessionStatusColorMap = createStatusColorMap({
   walk_away: "red",
 });
 
-const sessionStatusLabels: Record<string, string> = {
-  negotiating: "谈判中",
-  deal_reached: "已成交",
-  walk_away: "已终止",
+const sessionStatusLabelKeys: Record<string, string> = {
+  negotiating: "ai.sales.statusNegotiating",
+  deal_reached: "ai.sales.statusDealReached",
+  walk_away: "ai.sales.statusWalkAway",
 };
 
 const zkpTypeColorMap = createStatusColorMap({
@@ -41,13 +42,14 @@ const zkpTypeColorMap = createStatusColorMap({
   green_energy: "green",
 });
 
-const zkpTypeLabels: Record<string, string> = {
-  capacity: "产能证明",
-  compliance: "合规证明",
-  green_energy: "绿色能源",
+const zkpTypeLabelKeys: Record<string, string> = {
+  capacity: "ai.sales.zkpCapacity",
+  compliance: "ai.sales.zkpCompliance",
+  green_energy: "ai.sales.zkpGreenEnergy",
 };
 
 export default function AISales() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("sessions");
   const [showNewSessionDialog, setShowNewSessionDialog] = useState(false);
   const [showZkpDialog, setShowZkpDialog] = useState(false);
@@ -77,39 +79,39 @@ export default function AISales() {
   // tRPC mutations
   const createSessionMutation = trpc.aiSales.createNegotiationSession.useMutation({
     onSuccess: () => {
-      toast.success("谈判会话已创建");
+      toast.success(t("ai.sales.sessionCreated"));
       setShowNewSessionDialog(false);
       setNewSession({ clientAgentId: "", productId: "", floorPrice: "", targetPrice: "", maxRounds: "10" });
       refetchSessions();
     },
     onError: (error) => {
-      toast.error(`创建失败: ${error.message}`);
+      toast.error(`${t("ai.sales.createFailed")}: ${error.message}`);
     },
   });
 
   const advanceNegotiationMutation = (trpc.aiSales as any).advanceNegotiation.useMutation({
     onSuccess: (data) => {
       if (data.status === "deal_reached") {
-        toast.success("🎉 谈判成功！已达成协议");
+        toast.success(t("ai.sales.dealReachedToast"));
       } else if (data.status === "walk_away") {
-        toast.error("谈判终止：未能达成协议");
+        toast.error(t("ai.sales.walkAwayToast"));
       } else {
-        toast.info(`第 ${data.currentRound} 轮谈判完成`);
+        toast.info(`${t("ai.sales.roundComplete")} ${data.currentRound}`);
       }
       refetchSessions();
     },
     onError: (error) => {
-      toast.error(`谈判失败: ${error.message}`);
+      toast.error(`${t("ai.sales.negotiationFailed")}: ${error.message}`);
     },
   });
 
   const generateZkpMutation = (trpc.aiSales as any).generateZkp.useMutation({
     onSuccess: () => {
-      toast.success("ZKP证明已生成");
+      toast.success(t("ai.sales.zkpGenerated"));
       setShowZkpDialog(false);
     },
     onError: (error) => {
-      toast.error(`生成失败: ${error.message}`);
+      toast.error(`${t("ai.sales.generateFailed")}: ${error.message}`);
     },
   });
 
@@ -125,52 +127,52 @@ export default function AISales() {
       <div className="space-y-6">
         <PageHeader
           icon={Bot}
-          title="AI销售"
-          description="AI-to-AI智能谈判、零知识证明验证"
+          title={t("ai.sales.title")}
+          description={t("ai.sales.description")}
           actions={
             <>
               <Dialog open={showZkpDialog} onOpenChange={setShowZkpDialog}>
                 <DialogTrigger asChild>
                   <Button variant="outline">
                     <Shield className="w-4 h-4 mr-2" />
-                    生成ZKP
+                    {t("ai.sales.generateZKP")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>生成零知识证明</DialogTitle>
+                    <DialogTitle>{t("ai.sales.generateZKPTitle")}</DialogTitle>
                     <DialogDescription>
-                      向客户证明能力而不泄露敏感信息
+                      {t("ai.sales.generateZKPDesc")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <Label>证明类型</Label>
+                      <Label>{t("ai.sales.proofType")}</Label>
                       <Select>
                         <SelectTrigger>
-                          <SelectValue placeholder="选择证明类型" />
+                          <SelectValue placeholder={t("ai.sales.selectProofType")} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="capacity">产能证明</SelectItem>
-                          <SelectItem value="compliance">合规证明 (VDA/IATF)</SelectItem>
-                          <SelectItem value="green_energy">绿色能源证明</SelectItem>
+                          <SelectItem value="capacity">{t("ai.sales.zkpCapacity")}</SelectItem>
+                          <SelectItem value="compliance">{t("ai.sales.zkpCompliance")} (VDA/IATF)</SelectItem>
+                          <SelectItem value="green_energy">{t("ai.sales.zkpGreenEnergy")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>公开输入参数</Label>
-                      <Textarea placeholder='如: {"standard": "VDA6.3", "score_range": [90, 100]}' />
+                      <Label>{t("ai.sales.publicInputParams")}</Label>
+                      <Textarea placeholder={t("ai.sales.zkpInputPlaceholder")} />
                     </div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setShowZkpDialog(false)}>
-                      取消
+                      {t("ai.sales.cancel")}
                     </Button>
                     <Button onClick={() => generateZkpMutation.mutate({
                       proofType: "capacity",
                       publicInputs: {},
                     })}>
-                      生成证明
+                      {t("ai.sales.generateProof")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -179,55 +181,55 @@ export default function AISales() {
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
-                    新建谈判
+                    {t("ai.sales.newNegotiation")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>创建AI谈判会话</DialogTitle>
+                    <DialogTitle>{t("ai.sales.createSessionTitle")}</DialogTitle>
                     <DialogDescription>
-                      配置谈判参数，启动AI-to-AI自动谈判
+                      {t("ai.sales.createSessionDesc")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <Label>客户Agent ID</Label>
+                      <Label>{t("ai.sales.clientAgentId")}</Label>
                       <Input
                         value={newSession.clientAgentId}
                         onChange={(e) => setNewSession({ ...newSession, clientAgentId: e.target.value })}
-                        placeholder="客户采购AI的标识"
+                        placeholder={t("ai.sales.clientAgentIdPlaceholder")}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>产品/项目</Label>
+                      <Label>{t("ai.sales.productProject")}</Label>
                       <Input
                         value={newSession.productId}
                         onChange={(e) => setNewSession({ ...newSession, productId: e.target.value })}
-                        placeholder="谈判的产品或项目"
+                        placeholder={t("ai.sales.productProjectPlaceholder")}
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>底价 (元)</Label>
+                        <Label>{t("ai.sales.floorPrice")}</Label>
                         <Input
                           type="number"
                           value={newSession.floorPrice}
                           onChange={(e) => setNewSession({ ...newSession, floorPrice: e.target.value })}
-                          placeholder="最低可接受价格"
+                          placeholder={t("ai.sales.floorPricePlaceholder")}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>目标价 (元)</Label>
+                        <Label>{t("ai.sales.targetPrice")}</Label>
                         <Input
                           type="number"
                           value={newSession.targetPrice}
                           onChange={(e) => setNewSession({ ...newSession, targetPrice: e.target.value })}
-                          placeholder="期望成交价格"
+                          placeholder={t("ai.sales.targetPricePlaceholder")}
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>最大谈判轮次</Label>
+                      <Label>{t("ai.sales.maxRounds")}</Label>
                       <Input
                         type="number"
                         value={newSession.maxRounds}
@@ -238,7 +240,7 @@ export default function AISales() {
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setShowNewSessionDialog(false)}>
-                      取消
+                      {t("ai.sales.cancel")}
                     </Button>
                     <Button
                       onClick={() => createSessionMutation.mutate({
@@ -250,7 +252,7 @@ export default function AISales() {
                       } as any)}
                       disabled={createSessionMutation.isPending}
                     >
-                      {createSessionMutation.isPending ? "创建中..." : "开始谈判"}
+                      {createSessionMutation.isPending ? t("ai.sales.creating") : t("ai.sales.startNegotiation")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -261,10 +263,10 @@ export default function AISales() {
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={MessageSquare} label="进行中谈判" value={(stats as any)?.activeNegotiations || 0} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
-          <StatCard icon={Handshake} label="成交率" value={`${(stats as any)?.dealRate?.toFixed(1) || 0}%`} iconColor="text-green-400" iconBg="bg-green-500/10" />
-          <StatCard icon={Shield} label="ZKP证明" value={(stats as any)?.zkpCount || 0} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
-          <StatCard icon={TrendingUp} label="平均轮次" value={(stats as any)?.avgRounds?.toFixed(1) || 0} iconColor="text-orange-400" iconBg="bg-orange-500/10" />
+          <StatCard icon={MessageSquare} label={t("ai.sales.activeNegotiations")} value={(stats as any)?.activeNegotiations || 0} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+          <StatCard icon={Handshake} label={t("ai.sales.dealRate")} value={`${(stats as any)?.dealRate?.toFixed(1) || 0}%`} iconColor="text-green-400" iconBg="bg-green-500/10" />
+          <StatCard icon={Shield} label={t("ai.sales.zkpProofs")} value={(stats as any)?.zkpCount || 0} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
+          <StatCard icon={TrendingUp} label={t("ai.sales.avgRounds")} value={(stats as any)?.avgRounds?.toFixed(1) || 0} iconColor="text-orange-400" iconBg="bg-orange-500/10" />
         </div>
 
         {/* 主要内容区 */}
@@ -272,15 +274,15 @@ export default function AISales() {
           <TabsList className="bg-muted/50">
             <TabsTrigger value="sessions">
               <MessageSquare className="w-4 h-4 mr-2" />
-              谈判会话
+              {t("ai.sales.tabSessions")}
             </TabsTrigger>
             <TabsTrigger value="zkp">
               <Shield className="w-4 h-4 mr-2" />
-              ZKP证明
+              {t("ai.sales.tabZKP")}
             </TabsTrigger>
             <TabsTrigger value="strategy">
               <Target className="w-4 h-4 mr-2" />
-              谈判策略
+              {t("ai.sales.tabStrategy")}
             </TabsTrigger>
           </TabsList>
 
@@ -291,8 +293,8 @@ export default function AISales() {
                 <Card>
                   <CardContent className="p-8 text-center text-muted-foreground">
                     <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>暂无谈判会话</p>
-                    <p className="text-sm mt-2">点击"新建谈判"开始AI-to-AI自动谈判</p>
+                    <p>{t("ai.sales.noSessions")}</p>
+                    <p className="text-sm mt-2">{t("ai.sales.noSessionsHint")}</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -303,17 +305,17 @@ export default function AISales() {
                         <div>
                           <CardTitle className="text-lg flex items-center gap-2">
                             <Bot className="w-5 h-5" />
-                            会话 #{session.id}
+                            {t("ai.sales.session")} #{session.id}
                             <StatusBadge color={sessionStatusColorMap[session.status as keyof typeof sessionStatusColorMap] ?? "gray"}>
-                              {sessionStatusLabels[session.status] || session.status}
+                              {sessionStatusLabelKeys[session.status] ? t(sessionStatusLabelKeys[session.status]) : session.status}
                             </StatusBadge>
                           </CardTitle>
                           <CardDescription>
-                            客户Agent: {session.client_agent_id}
+                            {t("ai.sales.clientAgent")}: {session.client_agent_id}
                           </CardDescription>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-muted-foreground">第 {session.current_round} 轮</p>
+                          <p className="text-sm text-muted-foreground">{t("ai.sales.round")} {session.current_round}</p>
                         </div>
                       </div>
                     </CardHeader>
@@ -322,15 +324,15 @@ export default function AISales() {
                         {/* 报价对比 */}
                         <div className="grid grid-cols-2 gap-4">
                           <div className="p-3 bg-muted/30 rounded-lg">
-                            <p className="text-sm text-muted-foreground">我方报价</p>
+                            <p className="text-sm text-muted-foreground">{t("ai.sales.ourOffer")}</p>
                             <p className="text-xl font-bold text-green-400">
-                              ¥{session.our_offer_price?.toLocaleString() || "待报价"}
+                              ¥{session.our_offer_price?.toLocaleString() || t("ai.sales.pendingOffer")}
                             </p>
                           </div>
                           <div className="p-3 bg-muted/30 rounded-lg">
-                            <p className="text-sm text-muted-foreground">客户还价</p>
+                            <p className="text-sm text-muted-foreground">{t("ai.sales.clientCounter")}</p>
                             <p className="text-xl font-bold text-blue-400">
-                              ¥{session.client_counter_offer?.toLocaleString() || "待还价"}
+                              ¥{session.client_counter_offer?.toLocaleString() || t("ai.sales.pendingCounter")}
                             </p>
                           </div>
                         </div>
@@ -339,7 +341,7 @@ export default function AISales() {
                         {session.zopa_range && (
                           <div>
                             <div className="flex justify-between text-sm mb-1">
-                              <span className="text-muted-foreground">ZOPA区间</span>
+                              <span className="text-muted-foreground">{t("ai.sales.zopaRange")}</span>
                               <span>
                                 ¥{session.zopa_range[0]?.toLocaleString()} - ¥{session.zopa_range[1]?.toLocaleString()}
                               </span>
@@ -351,16 +353,16 @@ export default function AISales() {
                         {/* 情绪分析 */}
                         {session.sentiment_analysis && (
                           <div className="p-3 bg-muted/30 rounded-lg">
-                            <p className="text-sm text-muted-foreground mb-2">客户情绪分析</p>
+                            <p className="text-sm text-muted-foreground mb-2">{t("ai.sales.sentimentAnalysis")}</p>
                             <div className="flex gap-2">
                               <Badge variant="outline">
-                                意愿度: {session.sentiment_analysis.willingness || "N/A"}
+                                {t("ai.sales.willingness")}: {session.sentiment_analysis.willingness || "N/A"}
                               </Badge>
                               <Badge variant="outline">
-                                紧迫感: {session.sentiment_analysis.urgency || "N/A"}
+                                {t("ai.sales.urgency")}: {session.sentiment_analysis.urgency || "N/A"}
                               </Badge>
                               <Badge variant="outline">
-                                信任度: {session.sentiment_analysis.trust || "N/A"}
+                                {t("ai.sales.trust")}: {session.sentiment_analysis.trust || "N/A"}
                               </Badge>
                             </div>
                           </div>
@@ -375,11 +377,11 @@ export default function AISales() {
                               className="flex-1"
                             >
                               <Zap className="w-4 h-4 mr-2" />
-                              继续谈判
+                              {t("ai.sales.continueNegotiation")}
                             </Button>
                             <Button variant="outline">
                               <Eye className="w-4 h-4 mr-2" />
-                              查看详情
+                              {t("ai.sales.viewDetails")}
                             </Button>
                           </div>
                         )}
@@ -395,9 +397,9 @@ export default function AISales() {
           <TabsContent value="zkp" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>零知识证明注册表</CardTitle>
+                <CardTitle>{t("ai.sales.zkpRegistry")}</CardTitle>
                 <CardDescription>
-                  向客户证明能力而不泄露敏感信息
+                  {t("ai.sales.zkpRegistryDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -405,7 +407,7 @@ export default function AISales() {
                   {zkpRegistry?.items?.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                       <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>暂无ZKP证明</p>
+                      <p>{t("ai.sales.noZKP")}</p>
                     </div>
                   ) : (
                     zkpRegistry?.items?.map((zkp: any) => (
@@ -415,17 +417,17 @@ export default function AISales() {
                             <div>
                               <div className="flex items-center gap-2 mb-2">
                                 <StatusBadge color={zkpTypeColorMap[zkp.proof_type as keyof typeof zkpTypeColorMap] ?? "gray"}>
-                                  {zkpTypeLabels[zkp.proof_type] || zkp.proof_type}
+                                  {zkpTypeLabelKeys[zkp.proof_type] ? t(zkpTypeLabelKeys[zkp.proof_type]) : zkp.proof_type}
                                 </StatusBadge>
                                 {zkp.verified_by_client ? (
                                   <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
                                     <CheckCircle className="w-3 h-3 mr-1" />
-                                    已验证
+                                    {t("ai.sales.verified")}
                                   </Badge>
                                 ) : (
                                   <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
                                     <Clock className="w-3 h-3 mr-1" />
-                                    待验证
+                                    {t("ai.sales.pendingVerification")}
                                   </Badge>
                                 )}
                               </div>
@@ -434,13 +436,13 @@ export default function AISales() {
                               </p>
                               {zkp.public_inputs && (
                                 <div className="mt-2 text-xs text-muted-foreground">
-                                  公开输入: {JSON.stringify(zkp.public_inputs)}
+                                  {t("ai.sales.publicInputs")}: {JSON.stringify(zkp.public_inputs)}
                                 </div>
                               )}
                             </div>
                             <Button variant="outline" size="sm">
                               <Eye className="w-4 h-4 mr-1" />
-                              详情
+                              {t("ai.sales.details")}
                             </Button>
                           </div>
                         </CardContent>
@@ -456,52 +458,52 @@ export default function AISales() {
           <TabsContent value="strategy" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>谈判策略配置</CardTitle>
+                <CardTitle>{t("ai.sales.strategyConfig")}</CardTitle>
                 <CardDescription>
-                  配置AI谈判的默认策略和参数
+                  {t("ai.sales.strategyConfigDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label>默认让步策略</Label>
+                      <Label>{t("ai.sales.defaultConcessionStrategy")}</Label>
                       <Select defaultValue="gradual">
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="gradual">渐进让步</SelectItem>
-                          <SelectItem value="aggressive">激进策略</SelectItem>
-                          <SelectItem value="conservative">保守策略</SelectItem>
-                          <SelectItem value="mirroring">镜像策略</SelectItem>
+                          <SelectItem value="gradual">{t("ai.sales.strategyGradual")}</SelectItem>
+                          <SelectItem value="aggressive">{t("ai.sales.strategyAggressive")}</SelectItem>
+                          <SelectItem value="conservative">{t("ai.sales.strategyConservative")}</SelectItem>
+                          <SelectItem value="mirroring">{t("ai.sales.strategyMirroring")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>情绪响应模式</Label>
+                      <Label>{t("ai.sales.emotionResponseMode")}</Label>
                       <Select defaultValue="adaptive">
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="adaptive">自适应</SelectItem>
-                          <SelectItem value="empathetic">共情模式</SelectItem>
-                          <SelectItem value="neutral">中立模式</SelectItem>
+                          <SelectItem value="adaptive">{t("ai.sales.modeAdaptive")}</SelectItem>
+                          <SelectItem value="empathetic">{t("ai.sales.modeEmpathetic")}</SelectItem>
+                          <SelectItem value="neutral">{t("ai.sales.modeNeutral")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Walk-away阈值</Label>
+                    <Label>{t("ai.sales.walkAwayThreshold")}</Label>
                     <div className="flex items-center gap-4">
                       <Input type="number" defaultValue="3" className="w-24" />
                       <span className="text-sm text-muted-foreground">
-                        连续拒绝次数后终止谈判
+                        {t("ai.sales.walkAwayThresholdDesc")}
                       </span>
                     </div>
                   </div>
-                  <Button onClick={() => toast.info('功能完善中', { description: '策略配置保存功能正在开发完善中，敬请期待' })}>保存策略配置</Button>
+                  <Button onClick={() => toast.info(t("ai.sales.featureInProgress"), { description: t("ai.sales.featureInProgressDesc") })}>{t("ai.sales.saveStrategy")}</Button>
                 </div>
               </CardContent>
             </Card>

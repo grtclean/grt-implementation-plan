@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import {
   Building2,
@@ -98,7 +99,7 @@ function EmptyState() {
         No Organization Data
       </h3>
       <p className="text-sm text-[#605e5c] max-w-sm">
-        The departments and company_employees tables are empty. Run the Jiandaoyun
+        The departments and company_employees tables are empty. Run the External Sync
         org import seed script first, then refresh this page.
       </p>
     </div>
@@ -228,6 +229,7 @@ function DepartmentCard({
 
 // ── Main Page ────────────────────────────────────────────────────────────
 export default function OrgTreePage() {
+  const { t } = useLanguage();
   const { data, isLoading, error } = trpc.org.getOrgTree.useQuery();
   const [expandedDepts, setExpandedDepts] = useState<Set<string>>(new Set());
 
@@ -288,10 +290,10 @@ export default function OrgTreePage() {
         {/* Page header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-[#323130] tracking-tight">
-            Organization Tree
+            {t("hr.org.title")}
           </h1>
           <p className="text-sm text-[#605e5c] mt-1">
-            Clean Slate Verification &mdash; Jiandaoyun Org Import
+            {t("hr.org.subtitle")}
           </p>
         </div>
 
@@ -311,7 +313,7 @@ export default function OrgTreePage() {
                 <div className="flex items-center gap-2 mb-2">
                   <Building2 className="w-4 h-4 text-[#0078d4]" />
                   <span className="text-xs font-medium text-[#605e5c] uppercase tracking-wider">
-                    Departments
+                    {t("hr.org.departments")}
                   </span>
                 </div>
                 <div className="text-3xl font-bold text-[#323130] tabular-nums">
@@ -323,7 +325,7 @@ export default function OrgTreePage() {
                 <div className="flex items-center gap-2 mb-2">
                   <Users className="w-4 h-4 text-[#107c10]" />
                   <span className="text-xs font-medium text-[#605e5c] uppercase tracking-wider">
-                    Employees
+                    {t("hr.org.employees")}
                   </span>
                 </div>
                 <div className="text-3xl font-bold text-[#323130] tabular-nums">
@@ -335,7 +337,7 @@ export default function OrgTreePage() {
                 <div className="flex items-center gap-2 mb-2">
                   <Database className="w-4 h-4 text-[#8764b8]" />
                   <span className="text-xs font-medium text-[#605e5c] uppercase tracking-wider">
-                    Data Source
+                    {t("hr.org.dataSource")}
                   </span>
                 </div>
                 <div className="text-lg font-semibold text-[#323130]">
@@ -356,20 +358,20 @@ export default function OrgTreePage() {
             {departments.length > 0 && (
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-[#605e5c] uppercase tracking-wider">
-                  Department Tree
+                  {t("hr.org.departmentTree")}
                 </h2>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={expandAll}
                     className="text-xs px-3 py-1.5 rounded-sm border border-[#edebe9] text-[#0078d4] hover:bg-[#deecf9] transition-colors font-medium"
                   >
-                    Expand All
+                    {t("hr.org.expandAll")}
                   </button>
                   <button
                     onClick={collapseAll}
                     className="text-xs px-3 py-1.5 rounded-sm border border-[#edebe9] text-[#605e5c] hover:bg-[#f3f2f1] transition-colors font-medium"
                   >
-                    Collapse All
+                    {t("hr.org.collapseAll")}
                   </button>
                 </div>
               </div>
@@ -400,7 +402,7 @@ export default function OrgTreePage() {
                       </div>
                       <div className="text-left">
                         <div className="font-semibold text-[#323130]">
-                          Unassigned Employees
+                          {t("hr.org.unassignedEmployees")}
                         </div>
                         <div className="text-xs text-[#605e5c]">
                           Department not matched &middot;{" "}
@@ -462,12 +464,12 @@ export default function OrgTreePage() {
                 <Shield className="w-5 h-5 text-[#107c10] flex-shrink-0 mt-0.5" />
                 <div>
                   <div className="text-sm font-semibold text-[#107c10]">
-                    Data Verification Summary
+                    {t("hr.org.verificationSummary")}
                   </div>
                   <p className="text-xs text-[#323130] mt-1 leading-relaxed">
                     {data.summary.totalDepartments} departments and{" "}
                     {data.summary.totalEmployees} active employees loaded from
-                    the database. This data was imported from Jiandaoyun during
+                    the database. This data was imported from External Sync during
                     the Clean Slate org seed operation. If the numbers above
                     match your expectations, the import was successful.
                   </p>

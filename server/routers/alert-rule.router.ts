@@ -3,7 +3,7 @@
  * 成本预警规则管理 — replaces placeholder alertRuleRouter
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { costAlertRules, costAlertLogs } from "../../drizzle/schema";
 import { eq, desc, count, sql } from "drizzle-orm";
@@ -94,13 +94,13 @@ export const alertRuleRouter = router({
     return { success: true, message: "规则更新成功", data: rule };
   }),
 
-  delete: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
+  delete: requirePermission('system:notifications:config').input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(costAlertRules).where(eq(costAlertRules.id, toNum(input.id)));
     return { success: true, message: "规则已删除" };
   }),
 
-  toggleEnabled: protectedProcedure.input(z.object({
+  toggleEnabled: requirePermission('system:notifications:config').input(z.object({
     id: z.union([z.string(), z.number()]),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
@@ -112,7 +112,7 @@ export const alertRuleRouter = router({
     return { success: true, message: newActive === 1 ? "已启用" : "已禁用" };
   }),
 
-  acknowledge: protectedProcedure.input(z.object({
+  acknowledge: requirePermission('system:notifications:config').input(z.object({
     id: z.union([z.string(), z.number()]).optional(),
     alertId: z.union([z.string(), z.number()]).optional(),
     handleNote: z.string().max(2000).optional(),

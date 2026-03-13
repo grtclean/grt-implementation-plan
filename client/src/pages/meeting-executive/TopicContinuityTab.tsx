@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   PieChart,
   Pie,
@@ -54,15 +55,16 @@ const STATUS_COLORS: Record<string, string> = {
 
 const PIE_COLORS = ["#3b82f6", "#f59e0b", "#22c55e", "#9ca3af", "#ef4444"];
 
-const STATUS_LABELS: Record<string, string> = {
-  introduced: "已提出",
-  debated: "讨论中",
-  decided: "已决议",
-  closed: "已关闭",
-  stalled: "停滞",
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  introduced: "meeting.topic.statusIntroduced",
+  debated: "meeting.topic.statusDebated",
+  decided: "meeting.topic.statusDecided",
+  closed: "meeting.topic.statusClosed",
+  stalled: "meeting.topic.statusStalled",
 };
 
 export function TopicContinuityTab() {
+  const { t } = useLanguage();
   const [meetingId, setMeetingId] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedTopic, setExpandedTopic] = useState<number | null>(null);
@@ -78,8 +80,10 @@ export function TopicContinuityTab() {
   const resolutionStats = dashboard?.resolutionStats ?? { resolvedCount: 0, avgResolutionDays: 0 };
   const topics = (dashboard?.topics ?? []) as any[];
 
+  const getStatusLabel = (status: string) => t(STATUS_LABEL_KEYS[status] || "meeting.topic.statusIntroduced");
+
   const pieData = Object.entries(statusCounts).map(([status, count]) => ({
-    name: STATUS_LABELS[status] || status,
+    name: getStatusLabel(status),
     value: count,
   }));
 
@@ -89,7 +93,7 @@ export function TopicContinuityTab() {
     const counts: Record<string, number> = {};
     for (const s of statusOrder) counts[s] = statusCounts[s] || 0;
     return statusOrder.map((s) => ({
-      status: STATUS_LABELS[s] || s,
+      status: getStatusLabel(s),
       count: counts[s],
     }));
   })();
@@ -121,14 +125,14 @@ export function TopicContinuityTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <GitBranch className="h-4 w-4 text-purple-500" />
-            跨会议议题追踪
+            {t("meeting.topic.title")}
           </CardTitle>
-          <CardDescription>从会议中提取议题并追踪其跨会议演变</CardDescription>
+          <CardDescription>{t("meeting.topic.desc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3">
             <Input
-              placeholder="输入会议ID..."
+              placeholder={t("meeting.topic.meetingIdPlaceholder")}
               value={meetingId}
               onChange={(e) => setMeetingId(e.target.value)}
               className="max-w-sm"
@@ -142,16 +146,16 @@ export function TopicContinuityTab() {
               ) : (
                 <GitBranch className="h-4 w-4 mr-2" />
               )}
-              提取议题
+              {t("meeting.topic.extract")}
             </Button>
           </div>
           {extractMutation.data && (
             <p className="text-sm text-muted-foreground">
-              匹配已有议题: {extractMutation.data.matched} | 新增议题: {extractMutation.data.created}
+              {t("meeting.topic.matchedTopics")}: {extractMutation.data.matched} | {t("meeting.topic.newTopics")}: {extractMutation.data.created}
             </p>
           )}
           {extractMutation.isError && (
-            <p className="text-sm text-red-500">提取失败: {extractMutation.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.topic.extractFailed")}: {extractMutation.error.message}</p>
           )}
         </CardContent>
       </Card>
@@ -160,7 +164,7 @@ export function TopicContinuityTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={GitBranch}
-          label="总议题"
+          label={t("meeting.topic.totalTopics")}
           value={isLoading ? "..." : totalTopics}
           subtitle="Total Topics"
           iconColor="text-purple-600"
@@ -168,7 +172,7 @@ export function TopicContinuityTab() {
         />
         <StatCard
           icon={CheckCircle2}
-          label="已决议"
+          label={t("meeting.topic.decidedClosed")}
           value={isLoading ? "..." : (statusCounts["decided"] ?? 0) + (statusCounts["closed"] ?? 0)}
           subtitle="Decided / Closed"
           iconColor="text-green-600"
@@ -176,7 +180,7 @@ export function TopicContinuityTab() {
         />
         <StatCard
           icon={AlertTriangle}
-          label="停滞议题"
+          label={t("meeting.topic.stalledTopics")}
           value={isLoading ? "..." : statusCounts["stalled"] ?? 0}
           subtitle="Stalled Topics"
           iconColor="text-red-600"
@@ -184,7 +188,7 @@ export function TopicContinuityTab() {
         />
         <StatCard
           icon={Clock}
-          label="平均解决天数"
+          label={t("meeting.topic.avgResolutionDays")}
           value={isLoading ? "..." : resolutionStats.avgResolutionDays}
           subtitle="Avg Resolution Days"
           iconColor="text-amber-600"
@@ -198,9 +202,9 @@ export function TopicContinuityTab() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2 text-red-700">
               <AlertTriangle className="h-4 w-4" />
-              停滞议题 ({stalledTopics.length})
+              {t("meeting.topic.stalledTopics")} ({stalledTopics.length})
             </CardTitle>
-            <CardDescription>这些议题在多次会议中被讨论但未达成决议</CardDescription>
+            <CardDescription>{t("meeting.topic.stalledDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -209,7 +213,7 @@ export function TopicContinuityTab() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{topic.topic_name}</p>
                     <p className="text-xs text-muted-foreground">
-                      出现 {topic.appearance_count} 次 | 首次: {topic.first_seen_date?.split("T")[0] ?? "—"}
+                      {t("meeting.topic.appeared")} {topic.appearance_count} {t("meeting.topic.times")} | {t("meeting.topic.firstSeen")}: {topic.first_seen_date?.split("T")[0] ?? "\u2014"}
                     </p>
                   </div>
                   <div className="flex gap-1">
@@ -219,7 +223,7 @@ export function TopicContinuityTab() {
                       onClick={() => handleStatusUpdate(topic.id, "debated")}
                       disabled={updateMutation.isPending}
                     >
-                      标记讨论中
+                      {t("meeting.topic.markDebated")}
                     </Button>
                     <Button
                       size="sm"
@@ -227,7 +231,7 @@ export function TopicContinuityTab() {
                       onClick={() => handleStatusUpdate(topic.id, "decided")}
                       disabled={updateMutation.isPending}
                     >
-                      标记已决议
+                      {t("meeting.topic.markDecided")}
                     </Button>
                   </div>
                 </div>
@@ -243,7 +247,7 @@ export function TopicContinuityTab() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
-              议题生命周期分布
+              {t("meeting.topic.lifecycleDistribution")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -254,7 +258,7 @@ export function TopicContinuityTab() {
                   <XAxis type="number" />
                   <YAxis dataKey="status" type="category" width={60} tick={{ fontSize: 12 }} />
                   <Tooltip />
-                  <Bar dataKey="count" name="议题数">
+                  <Bar dataKey="count" name={t("meeting.topic.topicCount")}>
                     {lifecycleData.map((_, idx) => (
                       <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                     ))}
@@ -262,7 +266,7 @@ export function TopicContinuityTab() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center py-12 text-muted-foreground">暂无数据</p>
+              <p className="text-center py-12 text-muted-foreground">{t("meeting.topic.noData")}</p>
             )}
           </CardContent>
         </Card>
@@ -270,7 +274,7 @@ export function TopicContinuityTab() {
         {/* Status Pie Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">状态分布</CardTitle>
+            <CardTitle className="text-base">{t("meeting.topic.statusDistribution")}</CardTitle>
           </CardHeader>
           <CardContent>
             {pieData.length > 0 ? (
@@ -292,7 +296,7 @@ export function TopicContinuityTab() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center py-12 text-muted-foreground">暂无数据</p>
+              <p className="text-center py-12 text-muted-foreground">{t("meeting.topic.noData")}</p>
             )}
           </CardContent>
         </Card>
@@ -302,18 +306,18 @@ export function TopicContinuityTab() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">议题列表</CardTitle>
+            <CardTitle className="text-base">{t("meeting.topic.topicList")}</CardTitle>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="筛选状态" />
+                <SelectValue placeholder={t("meeting.topic.filterStatus")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部</SelectItem>
-                <SelectItem value="introduced">已提出</SelectItem>
-                <SelectItem value="debated">讨论中</SelectItem>
-                <SelectItem value="decided">已决议</SelectItem>
-                <SelectItem value="closed">已关闭</SelectItem>
-                <SelectItem value="stalled">停滞</SelectItem>
+                <SelectItem value="all">{t("meeting.topic.all")}</SelectItem>
+                <SelectItem value="introduced">{t("meeting.topic.statusIntroduced")}</SelectItem>
+                <SelectItem value="debated">{t("meeting.topic.statusDebated")}</SelectItem>
+                <SelectItem value="decided">{t("meeting.topic.statusDecided")}</SelectItem>
+                <SelectItem value="closed">{t("meeting.topic.statusClosed")}</SelectItem>
+                <SelectItem value="stalled">{t("meeting.topic.statusStalled")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -323,12 +327,12 @@ export function TopicContinuityTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>议题名称</TableHead>
-                  <TableHead className="text-center">状态</TableHead>
-                  <TableHead className="text-center">出现次数</TableHead>
-                  <TableHead className="text-center">首次发现</TableHead>
-                  <TableHead className="text-center">最后讨论</TableHead>
-                  <TableHead>操作</TableHead>
+                  <TableHead>{t("meeting.topic.topicName")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.topic.status")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.topic.appearances")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.topic.firstSeen")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.topic.lastSeen")}</TableHead>
+                  <TableHead>{t("meeting.topic.actions")}</TableHead>
                   <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -343,15 +347,15 @@ export function TopicContinuityTab() {
                       <TableCell className="font-medium max-w-[250px] truncate">{topic.topic_name}</TableCell>
                       <TableCell className="text-center">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[topic.status] || "bg-gray-100"}`}>
-                          {STATUS_LABELS[topic.status] || topic.status}
+                          {getStatusLabel(topic.status)}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">{topic.appearance_count}</TableCell>
                       <TableCell className="text-center text-sm">
-                        {topic.first_seen_date?.split("T")[0] ?? "—"}
+                        {topic.first_seen_date?.split("T")[0] ?? "\u2014"}
                       </TableCell>
                       <TableCell className="text-center text-sm">
-                        {topic.last_seen_date?.split("T")[0] ?? "—"}
+                        {topic.last_seen_date?.split("T")[0] ?? "\u2014"}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
@@ -363,7 +367,7 @@ export function TopicContinuityTab() {
                               onClick={() => handleStatusUpdate(topic.id, "decided")}
                               disabled={updateMutation.isPending}
                             >
-                              决议
+                              {t("meeting.topic.decide")}
                             </Button>
                           )}
                           {topic.status !== "closed" && (
@@ -374,7 +378,7 @@ export function TopicContinuityTab() {
                               onClick={() => handleStatusUpdate(topic.id, "closed")}
                               disabled={updateMutation.isPending}
                             >
-                              关闭
+                              {t("meeting.topic.close")}
                             </Button>
                           )}
                         </div>
@@ -393,18 +397,18 @@ export function TopicContinuityTab() {
                           <div className="p-4 space-y-3">
                             {topic.topic_description && (
                               <div>
-                                <h4 className="text-sm font-medium mb-1">描述</h4>
+                                <h4 className="text-sm font-medium mb-1">{t("meeting.topic.description")}</h4>
                                 <p className="text-sm text-muted-foreground">{topic.topic_description}</p>
                               </div>
                             )}
                             <div>
-                              <h4 className="text-sm font-medium mb-2">会议出现记录</h4>
+                              <h4 className="text-sm font-medium mb-2">{t("meeting.topic.meetingAppearances")}</h4>
                               <div className="space-y-2">
                                 {parseAppearances(topic.meeting_appearances).map((app: any, i: number) => (
                                   <div key={i} className="flex items-start gap-3 p-2 rounded bg-white text-sm">
-                                    <Badge variant="outline" className="shrink-0">{app.date?.split("T")[0] ?? "—"}</Badge>
+                                    <Badge variant="outline" className="shrink-0">{app.date?.split("T")[0] ?? "\u2014"}</Badge>
                                     <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_COLORS[app.statusAtMeeting] || "bg-gray-100"}`}>
-                                      {STATUS_LABELS[app.statusAtMeeting] || app.statusAtMeeting}
+                                      {getStatusLabel(app.statusAtMeeting)}
                                     </span>
                                     <span className="text-muted-foreground">{app.summary}</span>
                                   </div>
@@ -422,8 +426,8 @@ export function TopicContinuityTab() {
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <GitBranch className="h-12 w-12 mb-3 opacity-30" />
-              <p>暂无议题数据</p>
-              <p className="text-sm">请先从会议中提取议题</p>
+              <p>{t("meeting.topic.noTopicData")}</p>
+              <p className="text-sm">{t("meeting.topic.extractFirst")}</p>
             </div>
           )}
         </CardContent>

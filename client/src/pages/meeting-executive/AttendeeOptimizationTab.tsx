@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Users,
   RefreshCw,
@@ -39,6 +40,7 @@ import {
 } from "recharts";
 
 export function AttendeeOptimizationTab() {
+  const { t } = useLanguage();
   const [meetingId, setMeetingId] = useState("");
   const [topic, setTopic] = useState("");
 
@@ -89,33 +91,33 @@ export function AttendeeOptimizationTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            参会优化
+            {t("meeting.attendee.title")}
           </CardTitle>
-          <CardDescription>分析会议参会者构成，优化参会人员名单</CardDescription>
+          <CardDescription>{t("meeting.attendee.desc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
-              placeholder="输入会议ID"
+              placeholder={t("meeting.attendee.inputMeetingId")}
               value={meetingId}
               onChange={(e) => setMeetingId(e.target.value)}
               className="max-w-sm"
             />
             <Button onClick={handleOptimize} disabled={optimizeMutation.isPending}>
               {optimizeMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Target className="h-4 w-4 mr-2" />}
-              优化分析
+              {t("meeting.attendee.optimizeBtn")}
             </Button>
           </div>
           <div className="flex gap-2">
             <Input
-              placeholder="输入议题关键词，推荐参会者"
+              placeholder={t("meeting.attendee.topicPlaceholder")}
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               className="max-w-md"
             />
             <Button variant="outline" onClick={handleSuggest} disabled={suggestionsLoading}>
               {suggestionsLoading ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
-              推荐参会者
+              {t("meeting.attendee.suggestBtn")}
             </Button>
           </div>
         </CardContent>
@@ -128,25 +130,25 @@ export function AttendeeOptimizationTab() {
             <Card>
               <CardContent className="pt-4 text-center">
                 <div className="text-2xl font-bold">{optResult.currentSize}</div>
-                <div className="text-sm text-muted-foreground">当前人数</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.attendee.currentSize")}</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-4 text-center">
                 <div className="text-2xl font-bold text-green-600">{optResult.optimalSize}</div>
-                <div className="text-sm text-muted-foreground">最佳人数</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.attendee.optimalSize")}</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-4 text-center">
                 <div className="text-2xl font-bold text-red-600">{optResult.overInvited?.length ?? 0}</div>
-                <div className="text-sm text-muted-foreground">超邀人数</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.attendee.overInvitedCount")}</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-4 text-center">
-                <div className="text-2xl font-bold text-amber-600">¥{optResult.estimatedCostSaving}</div>
-                <div className="text-sm text-muted-foreground">预计节省</div>
+                <div className="text-2xl font-bold text-amber-600">{optResult.estimatedCostSaving}</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.attendee.estimatedSaving")}</div>
               </CardContent>
             </Card>
           </div>
@@ -157,7 +159,7 @@ export function AttendeeOptimizationTab() {
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2 text-red-600">
                   <UserMinus className="h-4 w-4" />
-                  超邀人员
+                  {t("meeting.attendee.overInvited")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -165,10 +167,10 @@ export function AttendeeOptimizationTab() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>姓名</TableHead>
-                        <TableHead className="text-center">平均分</TableHead>
-                        <TableHead className="text-right">浪费成本</TableHead>
-                        <TableHead>原因</TableHead>
+                        <TableHead>{t("meeting.attendee.thName")}</TableHead>
+                        <TableHead className="text-center">{t("meeting.attendee.thAvgScore")}</TableHead>
+                        <TableHead className="text-right">{t("meeting.attendee.thCostWaste")}</TableHead>
+                        <TableHead>{t("meeting.attendee.thReason")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -178,14 +180,14 @@ export function AttendeeOptimizationTab() {
                           <TableCell className="text-center">
                             <Badge variant="destructive">{p.avgScore}</Badge>
                           </TableCell>
-                          <TableCell className="text-right text-red-600">¥{p.costWaste}</TableCell>
+                          <TableCell className="text-right text-red-600">{p.costWaste}</TableCell>
                           <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{p.reason}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 ) : (
-                  <p className="text-center py-4 text-muted-foreground">无超邀人员</p>
+                  <p className="text-center py-4 text-muted-foreground">{t("meeting.attendee.noOverInvited")}</p>
                 )}
               </CardContent>
             </Card>
@@ -195,7 +197,7 @@ export function AttendeeOptimizationTab() {
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2 text-green-600">
                   <UserPlus className="h-4 w-4" />
-                  推荐新增
+                  {t("meeting.attendee.recommended")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -203,9 +205,9 @@ export function AttendeeOptimizationTab() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>姓名</TableHead>
-                        <TableHead className="text-center">预测贡献</TableHead>
-                        <TableHead>推荐原因</TableHead>
+                        <TableHead>{t("meeting.attendee.thName")}</TableHead>
+                        <TableHead className="text-center">{t("meeting.attendee.thPredictedContribution")}</TableHead>
+                        <TableHead>{t("meeting.attendee.thRecommendReason")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -221,7 +223,7 @@ export function AttendeeOptimizationTab() {
                     </TableBody>
                   </Table>
                 ) : (
-                  <p className="text-center py-4 text-muted-foreground">暂无推荐新增人员</p>
+                  <p className="text-center py-4 text-muted-foreground">{t("meeting.attendee.noRecommended")}</p>
                 )}
               </CardContent>
             </Card>
@@ -231,7 +233,7 @@ export function AttendeeOptimizationTab() {
           {radarData.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">参会者能力雷达</CardTitle>
+                <CardTitle className="text-base">{t("meeting.attendee.radarTitle")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -239,8 +241,8 @@ export function AttendeeOptimizationTab() {
                     <PolarGrid />
                     <PolarAngleAxis dataKey="name" />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                    <Radar name="贡献分" dataKey="score" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} />
-                    <Radar name="参与度" dataKey="engagement" stroke="#22c55e" fill="#22c55e" fillOpacity={0.2} />
+                    <Radar name={t("meeting.attendee.radarContribution")} dataKey="score" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} />
+                    <Radar name={t("meeting.attendee.radarEngagement")} dataKey="engagement" stroke="#22c55e" fill="#22c55e" fillOpacity={0.2} />
                     <Legend />
                     <Tooltip />
                   </RadarChart>
@@ -260,18 +262,18 @@ export function AttendeeOptimizationTab() {
       {suggestions.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">议题推荐参会者</CardTitle>
-            <CardDescription>基于「{(topicSuggestions as any)?.topic}」的历史会议数据</CardDescription>
+            <CardTitle className="text-base">{t("meeting.attendee.topicSuggestions")}</CardTitle>
+            <CardDescription>{(topicSuggestions as any)?.topic}</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>姓名</TableHead>
-                  <TableHead className="text-center">相关度</TableHead>
-                  <TableHead className="text-center">相关会议数</TableHead>
-                  <TableHead className="text-center">决策贡献</TableHead>
-                  <TableHead>推荐原因</TableHead>
+                  <TableHead>{t("meeting.attendee.thName")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.attendee.thRelevance")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.attendee.thTopicMeetings")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.attendee.thDecisionContribution")}</TableHead>
+                  <TableHead>{t("meeting.attendee.thRecommendReason")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -292,25 +294,25 @@ export function AttendeeOptimizationTab() {
 
       {/* Dashboard stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard icon={Users} label="已优化会议" value={stats?.totalOptimized ?? 0} loading={isLoading} />
-        <StatCard icon={DollarSign} label="平均节省潜力" value={`¥${stats?.avgSaving ?? 0}`} loading={isLoading} />
-        <StatCard icon={UserMinus} label="平均超邀人数" value={stats?.avgSizeGap ?? 0} loading={isLoading} />
+        <StatCard icon={Users} label={t("meeting.attendee.totalOptimized")} value={stats?.totalOptimized ?? 0} loading={isLoading} />
+        <StatCard icon={DollarSign} label={t("meeting.attendee.avgSaving")} value={`¥${stats?.avgSaving ?? 0}`} loading={isLoading} />
+        <StatCard icon={UserMinus} label={t("meeting.attendee.avgSizeGap")} value={stats?.avgSizeGap ?? 0} loading={isLoading} />
       </div>
 
       {/* Over-invited frequency rankings */}
       {overInvitedRankings.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">超邀频率排名</CardTitle>
-            <CardDescription>在多次会议中被标记为超邀的人员</CardDescription>
+            <CardTitle className="text-base">{t("meeting.attendee.overInvitedRanking")}</CardTitle>
+            <CardDescription>{t("meeting.attendee.overInvitedRankingDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>排名</TableHead>
-                  <TableHead>姓名</TableHead>
-                  <TableHead className="text-center">被标记次数</TableHead>
+                  <TableHead>{t("meeting.attendee.thRank")}</TableHead>
+                  <TableHead>{t("meeting.attendee.thName")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.attendee.thCount")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -333,7 +335,7 @@ export function AttendeeOptimizationTab() {
       {sizeComparisonData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">人数优化对比（当前 vs 最佳）</CardTitle>
+            <CardTitle className="text-base">{t("meeting.attendee.sizeComparison")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -343,8 +345,8 @@ export function AttendeeOptimizationTab() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="current" name="当前人数" fill="#ef4444" />
-                <Bar dataKey="optimal" name="最佳人数" fill="#22c55e" />
+                <Bar dataKey="current" name={t("meeting.attendee.chartCurrent")} fill="#ef4444" />
+                <Bar dataKey="optimal" name={t("meeting.attendee.chartOptimal")} fill="#22c55e" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { annualAgendas, annualMilestones, departmentAgendas } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -49,7 +49,7 @@ export const agendaRouter = router({
     }));
   }),
 
-  initMeetingTypes: protectedProcedure.mutation(async () => {
+  initMeetingTypes: requirePermission('strategy:agenda:manage').mutation(async () => {
     return { success: true, message: "会议类型已初始化" };
   }),
 
@@ -107,15 +107,15 @@ export const agendaRouter = router({
     return { success: true, data: milestone };
   }),
 
-  createTraining: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).mutation(async () => {
+  createTraining: requirePermission('strategy:agenda:manage').input(z.record(z.string(), jsonValue).optional()).mutation(async () => {
     return { success: true, message: "培训已创建" };
   }),
 
-  seedTrainingData: protectedProcedure.mutation(async () => {
+  seedTrainingData: requirePermission('strategy:agenda:manage').mutation(async () => {
     return { success: true, message: "培训数据已初始化" };
   }),
 
-  clearTrainingData: protectedProcedure.mutation(async () => {
+  clearTrainingData: requirePermission('strategy:agenda:manage').mutation(async () => {
     return { success: true, message: "培训数据已清除" };
   }),
 
@@ -140,7 +140,7 @@ export const agendaRouter = router({
     }));
   }),
 
-  addParticipant: protectedProcedure.input(z.object({
+  addParticipant: requirePermission('strategy:agenda:manage').input(z.object({
     agendaId: z.number().optional(),
     milestoneId: z.union([z.string(), z.number()]).optional(),
     trainingId: z.union([z.string(), z.number()]).optional(),
@@ -167,7 +167,7 @@ export const agendaRouter = router({
     return { success: true, data: item };
   }),
 
-  batchAddParticipants: protectedProcedure.input(z.object({
+  batchAddParticipants: requirePermission('strategy:agenda:manage').input(z.object({
     agendaId: z.number().optional(),
     milestoneId: z.union([z.string(), z.number()]).optional(),
     trainingId: z.union([z.string(), z.number()]).optional(),

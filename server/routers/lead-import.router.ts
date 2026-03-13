@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { leadImportLogs } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -11,7 +11,7 @@ export const leadImportRouter = router({
     return await db.select().from(leadImportLogs).orderBy(desc(leadImportLogs.createdAt)).limit(50);
   }),
 
-  import: protectedProcedure.input(z.object({
+  import: requirePermission('crm:leads:manage').input(z.object({
     fileName: z.string(),
     totalRows: z.number().optional(),
   })).mutation(async ({ input, ctx }) => {
@@ -27,7 +27,7 @@ export const leadImportRouter = router({
     return { success: true, data: log };
   }),
 
-  importFromCSV: protectedProcedure.input(z.object({
+  importFromCSV: requirePermission('crm:leads:manage').input(z.object({
     fileName: z.string(),
     data: z.array(z.record(z.string(), jsonValue)).optional(),
     totalRows: z.number().optional(),

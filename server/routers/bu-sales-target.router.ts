@@ -9,7 +9,7 @@
  *   - On CEO approval: proposed data → official baseline (isAdjusted=true)
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { getDb, requireDb } from "../db";
 import { eq, desc, sql, and } from "drizzle-orm";
@@ -168,18 +168,21 @@ export const buSalesTargetRouter = router({
         const [plan] = await db
           .select()
           .from(buSalesPlans)
-          .where(and(...conditions));
+          .where(and(...conditions))
+          .limit(1000);
         if (!plan) return null;
         const details = await db
           .select()
           .from(buSalesPlanDetails)
           .where(eq(buSalesPlanDetails.buSalesPlanId, input.id))
-          .orderBy(buSalesPlanDetails.periodValue);
+          .orderBy(buSalesPlanDetails.periodValue)
+          .limit(1000);
         const adjustments = await db
           .select()
           .from(buSalesPlanAdjustments)
           .where(eq(buSalesPlanAdjustments.buSalesPlanId, input.id))
-          .orderBy(desc(buSalesPlanAdjustments.createdAt));
+          .orderBy(desc(buSalesPlanAdjustments.createdAt))
+          .limit(1000);
         return { plan, details, adjustments };
       } catch {
         return null;
@@ -187,7 +190,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** Create plan + auto-generate 12 monthly details using growthRules */
-  create: protectedProcedure
+  create: requirePermission('strategy:okr:manage')
     .input(z.object({
       year: z.number(),
       departmentId: z.string(),
@@ -261,7 +264,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** Manually adjust a single month detail (sets isAdjusted=true) */
-  updateDetail: protectedProcedure
+  updateDetail: requirePermission('strategy:okr:manage')
     .input(z.object({
       detailId: z.number(),
       salesTarget: z.number().optional(),
@@ -292,7 +295,7 @@ export const buSalesTargetRouter = router({
   // ─── Phase 1: Two-Step Approval Workflow ─────────────────────
 
   /** Submit plan for approval: draft → submitted */
-  submitPlan: protectedProcedure
+  submitPlan: requirePermission('strategy:okr:manage')
     .input(z.object({
       planId: z.number(),
     }))
@@ -319,7 +322,7 @@ export const buSalesTargetRouter = router({
    * originalDetails + proposedDetails must have same total salesTarget & outputTarget
    * unless adjustmentType === 'exception'.
    */
-  submitAdjustment: protectedProcedure
+  submitAdjustment: requirePermission('strategy:okr:manage')
     .input(z.object({
       buSalesPlanId: z.number(),
       applicantId: z.string(),
@@ -382,7 +385,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** Finance/PMO first-step review */
-  financeReview: protectedProcedure
+  financeReview: requirePermission('finance:budget:approve')
     .input(z.object({
       adjustmentId: z.number(),
       approved: z.boolean(),
@@ -430,7 +433,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** CEO final review — on approval, apply proposed data to detail rows */
-  ceoReview: protectedProcedure
+  ceoReview: requirePermission('strategy:okr:manage')
     .input(z.object({
       adjustmentId: z.number(),
       approved: z.boolean(),
@@ -503,7 +506,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** Legacy approve shortcut — kept for backward compatibility */
-  approveAdjustment: protectedProcedure
+  approveAdjustment: requirePermission('strategy:okr:manage')
     .input(z.object({
       adjustmentId: z.number(),
       approved: z.boolean(),
@@ -526,7 +529,7 @@ export const buSalesTargetRouter = router({
     }),
 
   /** Delete plan + cascade details + adjustments */
-  delete: protectedProcedure
+  delete: requirePermission('strategy:okr:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -538,6 +541,45 @@ export const buSalesTargetRouter = router({
       await db.delete(buSalesPlans).where(eq(buSalesPlans.id, input.id));
 
       return { success: true };
+    }),
+
+  /** Sales summary grouped by BU for the SalesAnalytics page */
+  getSalesSummary: protectedProcedure
+    .input(z.object({ year: z.number().optional() }).optional())
+    .query(async () => {
+      const db = await getDb();
+      if (!db) return { sales: [] };
+      await ensureTables();
+      try {
+        const result = await db.execute(sql`
+          SELECT
+            p.department_id as bu_code,
+            p.year,
+            COALESCE(SUM(d.sales_target::numeric), 0)::numeric(12,0) as revenue,
+            COALESCE(SUM(d.output_target::numeric), 0)::numeric(12,0) as target,
+            COUNT(DISTINCT d.id)::int as deals
+          FROM bu_sales_plans p
+          LEFT JOIN bu_sales_plan_details d ON d.bu_sales_plan_id = p.id
+          GROUP BY p.department_id, p.year
+          ORDER BY revenue DESC
+          LIMIT 20
+        `);
+        const rows = ((result as any).rows ?? []).map((r: any) => {
+          const revenue = Number(r.revenue ?? 0);
+          const target = Number(r.target ?? 0);
+          return {
+            bu: r.bu_code || '未分配',
+            revenue,
+            target,
+            rate: target > 0 ? Number(((revenue / target) * 100).toFixed(1)) : 0,
+            deals: Number(r.deals ?? 0),
+            pipeline: 0,
+          };
+        });
+        return { sales: rows };
+      } catch {
+        return { sales: [] };
+      }
     }),
 
   /** Aggregate KPIs: total plans, sum sales target, avg growth (BU-scoped) */
@@ -592,7 +634,8 @@ export const buSalesTargetRouter = router({
         const buFilter = buScopeCondition(buSalesPlans.departmentId, ctx);
         let planIds: number[] | undefined;
         if (buFilter) {
-          const plans = await db.select({ id: buSalesPlans.id }).from(buSalesPlans).where(buFilter);
+          const plans = await db.select({ id: buSalesPlans.id }).from(buSalesPlans).where(buFilter)
+      .limit(1000);
           planIds = plans.map(p => p.id);
           if (planIds.length === 0) return [];
         }
@@ -610,7 +653,8 @@ export const buSalesTargetRouter = router({
           .select()
           .from(buSalesPlanAdjustments)
           .where(whereClause)
-          .orderBy(desc(buSalesPlanAdjustments.createdAt));
+          .orderBy(desc(buSalesPlanAdjustments.createdAt))
+          .limit(1000);
 
         // Apply BU filter by plan ownership
         if (planIds) {

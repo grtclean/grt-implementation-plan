@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import {
   createTestPlan,
   getTestPlan,
@@ -133,7 +133,7 @@ const initSATSchema = z.object({
 
 export const fatSatRouter = router({
   plans: router({
-    create: protectedProcedure
+    create: requirePermission('mfg:fat:manage')
       .input(createPlanSchema)
       .mutation(async ({ input }) => {
         const plannedDate = input.plannedDate ? new Date(input.plannedDate) : undefined;
@@ -156,7 +156,7 @@ export const fatSatRouter = router({
         return await listTestPlans(input);
       }),
 
-    updateStatus: protectedProcedure
+    updateStatus: requirePermission('mfg:fat:manage')
       .input(z.object({
         planId: z.number(),
         status: z.enum(["draft", "in_progress", "completed", "cancelled"]),
@@ -167,13 +167,13 @@ export const fatSatRouter = router({
   }),
 
   testItems: router({
-    add: protectedProcedure
+    add: requirePermission('mfg:fat:manage')
       .input(addTestItemSchema)
       .mutation(async ({ input }) => {
         return await addTestItem(input);
       }),
 
-    update: protectedProcedure
+    update: requirePermission('mfg:fat:manage')
       .input(updateTestItemSchema)
       .mutation(async ({ input }) => {
         return await updateTestItem(input);
@@ -188,7 +188,7 @@ export const fatSatRouter = router({
         return await getTestItems(input.planId, input.category);
       }),
 
-    batchUpdate: protectedProcedure
+    batchUpdate: requirePermission('mfg:fat:manage')
       .input(batchUpdateTestItemsSchema)
       .mutation(async ({ input }) => {
         return await batchUpdateTestItems(input);
@@ -196,13 +196,13 @@ export const fatSatRouter = router({
   }),
 
   checklists: router({
-    add: protectedProcedure
+    add: requirePermission('mfg:fat:manage')
       .input(addChecklistSchema)
       .mutation(async ({ input }) => {
         return await addChecklist(input);
       }),
 
-    update: protectedProcedure
+    update: requirePermission('mfg:fat:manage')
       .input(updateChecklistSchema)
       .mutation(async ({ input }) => {
         return await updateChecklist(input);
@@ -215,13 +215,13 @@ export const fatSatRouter = router({
       }),
   }),
   signoffs: router({
-    add: protectedProcedure
+    add: requirePermission('mfg:fat:manage')
       .input(addSignoffSchema)
       .mutation(async ({ input }) => {
         return await addSignoff(input);
       }),
 
-    update: protectedProcedure
+    update: requirePermission('mfg:fat:manage')
       .input(updateSignoffSchema)
       .mutation(async ({ input }) => {
         return await updateSignoff(input);
@@ -235,13 +235,13 @@ export const fatSatRouter = router({
   }),
 
   siteConditions: router({
-    add: protectedProcedure
+    add: requirePermission('mfg:fat:manage')
       .input(addSiteConditionSchema)
       .mutation(async ({ input }) => {
         return await addSiteCondition(input);
       }),
 
-    update: protectedProcedure
+    update: requirePermission('mfg:fat:manage')
       .input(updateSiteConditionSchema)
       .mutation(async ({ input }) => {
         return await updateSiteCondition(input);
@@ -263,7 +263,7 @@ export const fatSatRouter = router({
   }),
 
   templates: router({
-    initSAT: protectedProcedure
+    initSAT: requirePermission('mfg:fat:manage')
       .input(initSATSchema)
       .mutation(async ({ input }) => {
         const plannedDate = input.plannedDate ? new Date(input.plannedDate) : undefined;

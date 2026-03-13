@@ -234,7 +234,8 @@ export async function getOffboardingDetail(id: number) {
   const db = await requireDb();
   const [record] = await db.select()
     .from(employeeOffboarding)
-    .where(eq(employeeOffboarding.id, id));
+    .where(eq(employeeOffboarding.id, id))
+    .limit(1000);
 
   if (!record) return null;
 
@@ -323,7 +324,8 @@ export async function submitOffboarding(id: number) {
   // 获取离职记录详情用于通知
   const [offboardingRecord] = await db.select()
     .from(employeeOffboarding)
-    .where(eq(employeeOffboarding.id, id));
+    .where(eq(employeeOffboarding.id, id))
+    .limit(1000);
 
   // 发送通知给主管
   await sendOffboardingNotification(
@@ -482,7 +484,8 @@ export async function autoAnnotatePerformanceData(offboardingId: number) {
   const db = await requireDb();
   const [record] = await db.select()
     .from(employeeOffboarding)
-    .where(eq(employeeOffboarding.id, offboardingId));
+    .where(eq(employeeOffboarding.id, offboardingId))
+    .limit(1000);
 
   if (!record) throw new Error('离职记录不存在');
 
@@ -634,7 +637,7 @@ async function generateDefaultAssetItems(offboardingId: number, input: CreateOff
     offboardingId,
     assetCategory: 'system_account',
     assetName: `${input.employeeName}的系统登录账号`,
-    assetDescription: 'GRT系统、简道云等系统账号',
+    assetDescription: 'GRT系统、外部数据平台等系统账号',
     handlingAction: 'deactivate',
   });
 
@@ -685,7 +688,8 @@ export async function processApprovalDecision(input: ApprovalDecisionInput) {
   const db = await requireDb();
   const [approval] = await db.select()
     .from(offboardingApprovals)
-    .where(eq(offboardingApprovals.id, input.approvalId));
+    .where(eq(offboardingApprovals.id, input.approvalId))
+    .limit(1000);
 
   if (!approval) throw new Error('审批记录不存在');
 
@@ -728,7 +732,8 @@ export async function processApprovalDecision(input: ApprovalDecisionInput) {
       // 获取离职记录详情用于通知
       const [offboardingForNotify] = await db.select()
         .from(employeeOffboarding)
-        .where(eq(employeeOffboarding.id, approval.offboardingId));
+        .where(eq(employeeOffboarding.id, approval.offboardingId))
+        .limit(1000);
 
       // 通知下一级审批人
       await sendOffboardingNotification(
@@ -748,7 +753,8 @@ export async function processApprovalDecision(input: ApprovalDecisionInput) {
       // 获取离职记录详情用于通知
       const [completedOffboarding] = await db.select()
         .from(employeeOffboarding)
-        .where(eq(employeeOffboarding.id, approval.offboardingId));
+        .where(eq(employeeOffboarding.id, approval.offboardingId))
+        .limit(1000);
 
       // 通知所有审批已完成
       await sendOffboardingNotification(
@@ -769,7 +775,8 @@ export async function processApprovalDecision(input: ApprovalDecisionInput) {
     // 通知离职申请被拒绝
     const [rejectedOffboarding] = await db.select()
       .from(employeeOffboarding)
-      .where(eq(employeeOffboarding.id, approval.offboardingId));
+      .where(eq(employeeOffboarding.id, approval.offboardingId))
+      .limit(1000);
 
     await sendOffboardingNotification(
       `❌ 离职申请被拒绝 - ${rejectedOffboarding?.employeeName || '员工'}`,
@@ -946,7 +953,8 @@ export async function completeOffboarding(id: number) {
 
   const [record] = await db.select()
     .from(employeeOffboarding)
-    .where(eq(employeeOffboarding.id, id));
+    .where(eq(employeeOffboarding.id, id))
+    .limit(1000);
 
   if (record) {
     await db.update(hrmEmployees)
@@ -965,7 +973,8 @@ export async function completeOffboarding(id: number) {
   // 获取离职记录详情用于通知
   const [completedRecord] = await db.select()
     .from(employeeOffboarding)
-    .where(eq(employeeOffboarding.id, id));
+    .where(eq(employeeOffboarding.id, id))
+    .limit(1000);
 
   // 通知离职流程完成
   await sendOffboardingNotification(
@@ -1073,8 +1082,8 @@ export async function getOffboardingDashboardStats() {
   const [overallStats] = await db.select({
     total: sql<number>`count(*)`,
     active: sql<number>`sum(case when status in ('in_progress', 'approval_complete') then 1 else 0 end)`,
-    pendingApproval: sql<number>`sum(case when approval_status like 'pending_%' then 1 else 0 end)`,
-    completedThisMonth: sql<number>`sum(case when status = 'completed' and completed_at >= DATE_FORMAT(NOW(), '%Y-%m-01') then 1 else 0 end)`,
+    pendingApproval: sql<number>`sum(case when "approvalStatus"::text like 'pending_%' then 1 else 0 end)`,
+    completedThisMonth: sql<number>`sum(case when status = 'completed' and completed_at >= date_trunc('month', NOW()) then 1 else 0 end)`,
   }).from(employeeOffboarding);
 
   return {
@@ -1089,11 +1098,11 @@ export async function getOffboardingDashboardStats() {
 }
 
 // ============================================================
-// 8. 简道云员工数据自动填充
+// 8. 外部数据平台员工数据自动填充
 // ============================================================
 
-/** 从简道云搜索员工信息（用于离职表单自动填充） */
-export async function searchJiandaoyunEmployees(keyword: string) {
+/** 从外部数据平台搜索员工信息（用于离职表单自动填充） */
+export async function searchExtSyncEmployees(keyword: string) {
   try {
     // 先从本地数据库搜索
     const db = await requireDb();
@@ -1111,37 +1120,36 @@ export async function searchJiandaoyunEmployees(keyword: string) {
 
     const employees = (localResults[0] as any[]) || [];
 
-    // 同时尝试从简道云获取最新数据
-    let jiandaoyunMembers: any[] = [];
+    // 从外部同步映射表获取数据（本地DB，无需调用外部API）
+    let externalSyncMembers: any[] = [];
     try {
-      const { getJiandaoyunSyncService } = await import('../jiandaoyun');
-      const syncService = getJiandaoyunSyncService();
-      if (syncService.isConfigured()) {
-        const members = await syncService.getMembers(1);
-        jiandaoyunMembers = members
-          .filter(m => m.name.includes(keyword) || m.username.includes(keyword))
-          .slice(0, 10)
-          .map(m => ({
-            source: 'jiandaoyun',
-            username: m.username,
-            name: m.name,
-            departments: m.departments,
-            status: m.status,
-          }));
-      }
+      const extResult = await db.execute(sql`
+        SELECT jdy_name as name, jdy_username as username,
+               jdy_departments as departments, jdy_status as status
+        FROM jiandaoyun_user_mappings
+        WHERE jdy_name LIKE ${`%${keyword}%`} OR jdy_username LIKE ${`%${keyword}%`}
+        ORDER BY jdy_name LIMIT 10
+      `);
+      externalSyncMembers = ((extResult as any)[0] || []).map((m: any) => ({
+        source: 'externalSync',
+        username: m.username,
+        name: m.name,
+        departments: m.departments,
+        status: m.status,
+      }));
     } catch (e) {
-      log.warn({ err: e }, "Failed to fetch from Jiandaoyun");
+      log.warn({ err: e }, "Failed to query external sync mappings");
     }
 
     return {
       localEmployees: employees,
-      jiandaoyunMembers,
+      externalSyncMembers,
       totalLocal: employees.length,
-      totalJiandaoyun: jiandaoyunMembers.length,
+      totalExternalSync: externalSyncMembers.length,
     };
   } catch (error: any) {
-    log.error({ err: error }, "searchJiandaoyunEmployees error");
-    return { localEmployees: [], jiandaoyunMembers: [], totalLocal: 0, totalJiandaoyun: 0 };
+    log.error({ err: error }, "searchExternalSyncEmployees error");
+    return { localEmployees: [], externalSyncMembers: [], totalLocal: 0, totalExternalSync: 0 };
   }
 }
 

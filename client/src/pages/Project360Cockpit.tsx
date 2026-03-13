@@ -80,8 +80,8 @@ interface SubSystem {
 }
 
 const SUB_SYSTEMS: SubSystem[] = [
-  { id: "ultrasonic", name: "Ultrasonic Module", nameCn: "超声波模块", icon: Activity, status: "locked", lockedBy: "Zhang Wei (张伟)", lockedSince: "14:30", testProgress: 68 },
-  { id: "drying", name: "Hot-Air Drying Unit", nameCn: "热风干燥单元", icon: Wind, status: "locked", lockedBy: "Li Na (李娜)", lockedSince: "13:15", testProgress: 45 },
+  { id: "ultrasonic", name: "Ultrasonic Module", nameCn: "超声波模块", icon: Activity, status: "locked", lockedBy: "Wu Weicheng (吴卫成)", lockedSince: "14:30", testProgress: 68 }, // demo
+  { id: "drying", name: "Hot-Air Drying Unit", nameCn: "热风干燥单元", icon: Wind, status: "locked", lockedBy: "Dai Xiaoyan (戴晓燕)", lockedSince: "13:15", testProgress: 45 }, // demo
   { id: "conveyor", name: "Conveyor System", nameCn: "输送系统", icon: ArrowRight, status: "testing", testProgress: 82 },
   { id: "spray", name: "High-Pressure Spray", nameCn: "高压喷淋", icon: Droplets, status: "passed", testProgress: 100 },
   { id: "plc", name: "PLC Control Unit", nameCn: "PLC控制单元", icon: Cpu, status: "idle" },
@@ -114,7 +114,7 @@ const AI_SUGGESTIONS: AiSuggestion[] = [
   },
   {
     id: "s3", type: "info",
-    title: "Zhang Wei & Li Na running concurrent tests",
+    title: "Wu Weicheng & Dai Xiaoyan running concurrent tests",
     detail: "Two engineers are currently holding locks on sub-systems in the same zone. Consider staggering test windows to avoid electromagnetic interference between ultrasonic and drying modules.",
     timestamp: "1 hr ago", source: "IoT Fleet Monitor",
   },
@@ -512,7 +512,7 @@ export default function Project360Cockpit() {
                   ECO-2026-0047: Modify ultrasonic transducer mounting bracket (Revision B → C)
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Submitted by Zhang Wei (张伟) &nbsp;|&nbsp; Priority: High
+                  Submitted by Wu Weicheng (吴卫成) &nbsp;|&nbsp; Priority: High {/* demo */}
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">

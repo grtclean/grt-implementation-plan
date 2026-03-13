@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart3, TrendingUp, Users, Clock, MousePointerClick, Star, ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/grt";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const TOP_PAGES = [
   { path: "/", name: "我的看板", visits: 1250, users: 128, avgTime: "3m 20s", trend: "up" },
@@ -38,40 +39,41 @@ const ROLE_USAGE = [
 ];
 
 export default function MenuAnalytics() {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
-        title="菜单使用分析"
-        description="菜单热度 · 使用趋势 · 用户行为分析"
+        title={t("admin.menuAnalytics.title")}
+        description={t("admin.menuAnalytics.description")}
         actions={
           <>
             <Select defaultValue="7d">
               <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="1d">今天</SelectItem>
-                <SelectItem value="7d">最近7天</SelectItem>
-                <SelectItem value="30d">最近30天</SelectItem>
-                <SelectItem value="90d">最近90天</SelectItem>
+                <SelectItem value="1d">{t("admin.menuAnalytics.today")}</SelectItem>
+                <SelectItem value="7d">{t("admin.menuAnalytics.last7Days")}</SelectItem>
+                <SelectItem value="30d">{t("admin.menuAnalytics.last30Days")}</SelectItem>
+                <SelectItem value="90d">{t("admin.menuAnalytics.last90Days")}</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline"><RefreshCw className="h-4 w-4 mr-2" />刷新</Button>
+            <Button variant="outline"><RefreshCw className="h-4 w-4 mr-2" />{t("admin.menuAnalytics.refresh")}</Button>
           </>
         }
       />
 
-      {/* 整体统计 */}
+      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={MousePointerClick} label="总页面访问" value="12,580" trend={{ value: 12, label: "vs 上周" }} />
-        <StatCard icon={Users} label="活跃用户" value={128} trend={{ value: 5, label: "vs 上周" }} />
-        <StatCard icon={Clock} label="平均停留时间" value="5m 22s" subtitle="稳定" />
-        <StatCard icon={Star} label="收藏使用率" value="42%" trend={{ value: 8, label: "" }} />
+        <StatCard icon={MousePointerClick} label={t("admin.menuAnalytics.totalPageVisits")} value="12,580" trend={{ value: 12, label: t("admin.menuAnalytics.vsLastWeek") }} />
+        <StatCard icon={Users} label={t("admin.menuAnalytics.activeUsers")} value={128} trend={{ value: 5, label: t("admin.menuAnalytics.vsLastWeek") }} />
+        <StatCard icon={Clock} label={t("admin.menuAnalytics.avgStayTime")} value="5m 22s" subtitle={t("admin.menuAnalytics.stable")} />
+        <StatCard icon={Star} label={t("admin.menuAnalytics.favUsageRate")} value="42%" trend={{ value: 8, label: "" }} />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* 热门页面 */}
+        {/* Top Pages */}
         <Card>
-          <CardHeader><CardTitle className="text-lg">热门页面 Top 10</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">{t("admin.menuAnalytics.topPages")}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
               {TOP_PAGES.map((p, i) => (
@@ -79,7 +81,7 @@ export default function MenuAnalytics() {
                   <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">{p.users}人 · 平均{p.avgTime}</p>
+                    <p className="text-xs text-muted-foreground">{p.users}{t("admin.menuAnalytics.persons")} · {t("admin.menuAnalytics.avg")}{p.avgTime}</p>
                   </div>
                   <div className="flex items-center gap-1">
                     {p.trend === "up" ? <ArrowUp className="h-3 w-3 text-green-500" /> : p.trend === "down" ? <ArrowDown className="h-3 w-3 text-red-500" /> : null}
@@ -91,16 +93,16 @@ export default function MenuAnalytics() {
           </CardContent>
         </Card>
 
-        {/* 按角色使用分析 */}
+        {/* Role Distribution */}
         <Card>
-          <CardHeader><CardTitle className="text-lg">角色使用分布</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">{t("admin.menuAnalytics.roleDistribution")}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-4">
               {ROLE_USAGE.map((r, i) => (
                 <div key={i} className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">{r.role}</span>
-                    <span className="text-sm text-muted-foreground">{r.sessions}次会话</span>
+                    <span className="text-sm text-muted-foreground">{r.sessions}{t("admin.menuAnalytics.sessions")}</span>
                   </div>
                   <div className="flex gap-1">
                     {r.topPages.map(p => <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>)}
@@ -112,12 +114,12 @@ export default function MenuAnalytics() {
         </Card>
       </div>
 
-      {/* 低使用率页面 */}
+      {/* Low Usage Pages */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            低使用率页面
-            <Badge variant="outline" className="text-xs">可能需要优化或移除</Badge>
+            {t("admin.menuAnalytics.lowUsagePages")}
+            <Badge variant="outline" className="text-xs">{t("admin.menuAnalytics.lowUsageHint")}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -128,8 +130,8 @@ export default function MenuAnalytics() {
                   <p className="text-sm font-medium">{p.name}</p>
                   <p className="text-xs text-muted-foreground font-mono">{p.path}</p>
                 </div>
-                <span className="text-sm text-muted-foreground">{p.visits}次访问</span>
-                <span className="text-xs text-muted-foreground">最后访问: {p.lastAccess}</span>
+                <span className="text-sm text-muted-foreground">{p.visits}{t("admin.menuAnalytics.visits")}</span>
+                <span className="text-xs text-muted-foreground">{t("admin.menuAnalytics.lastAccess")}: {p.lastAccess}</span>
               </div>
             ))}
           </div>

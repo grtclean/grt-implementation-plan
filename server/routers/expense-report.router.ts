@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import { expenseClaims, expenseLineItems, projects } from "../../drizzle/schema";
@@ -25,7 +25,8 @@ async function buScopedProjectIds(ctx: any): Promise<number[] | undefined> {
 /** Check optimistic lock version — throws CONFLICT if stale */
 async function checkExpenseVersion(db: any, id: number, expectedVersion?: number) {
   if (expectedVersion === undefined) return;
-  const [current] = await db.select({ version: expenseClaims.version }).from(expenseClaims).where(eq(expenseClaims.id, id));
+  const [current] = await db.select({ version: expenseClaims.version }).from(expenseClaims).where(eq(expenseClaims.id, id))
+      .limit(1000);
   if (current && current.version !== expectedVersion) {
     throw new TRPCError({ code: "CONFLICT", message: "版本冲突：报销单已被他人修改，请刷新后重试" });
   }
@@ -119,7 +120,7 @@ export const expenseReportRouter = router({
   }),
 
   // 更新报销 (with optimistic locking + ownership check)
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('finance:expense:create').input(z.object({
     id: z.union([z.string(), z.number()]),
     expectedVersion: z.number().optional(),
     claimTitle: z.string().max(500).optional(),
@@ -148,13 +149,14 @@ export const expenseReportRouter = router({
   }),
 
   // 删除报销 — ownership check, only draft can be deleted
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
+  delete: requirePermission('finance:expense:create').input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     await assertClaimOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
 
     // Only draft claims can be deleted
-    const [claim] = await db.select({ status: expenseClaims.status }).from(expenseClaims).where(eq(expenseClaims.id, id));
+    const [claim] = await db.select({ status: expenseClaims.status }).from(expenseClaims).where(eq(expenseClaims.id, id))
+      .limit(1000);
     if (claim && claim.status !== "draft") {
       throw new TRPCError({ code: "BAD_REQUEST", message: "仅草稿状态的报销单可以删除" });
     }
@@ -165,7 +167,7 @@ export const expenseReportRouter = router({
   }),
 
   // 提交报销 (with optimistic locking + ownership check)
-  submit: protectedProcedure.input(z.object({
+  submit: requirePermission('finance:expense:create').input(z.object({
     id: z.union([z.string(), z.number()]),
     expectedVersion: z.number().optional(),
   })).mutation(async ({ input, ctx }) => {
@@ -186,7 +188,7 @@ export const expenseReportRouter = router({
   }),
 
   // 审批通过 — ctx.user.id as approver, role gate + self-approval prevention
-  approve: protectedProcedure.input(z.object({
+  approve: requirePermission('finance:expense:create').input(z.object({
     id: z.union([z.string(), z.number()]),
     expectedVersion: z.number().optional(),
   })).mutation(async ({ input, ctx }) => {
@@ -226,7 +228,7 @@ export const expenseReportRouter = router({
   }),
 
   // 拒绝 — role gate + self-rejection prevention
-  reject: protectedProcedure.input(z.object({
+  reject: requirePermission('finance:expense:create').input(z.object({
     id: z.union([z.string(), z.number()]),
     expectedVersion: z.number().optional(),
     reason: z.string().max(2000).optional(),
@@ -314,7 +316,7 @@ export const expenseReportRouter = router({
   }),
 
   // 导出Excel — scoped by role + BU isolation
-  exportToExcel: protectedProcedure.input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional()).mutation(async ({ input, ctx }) => {
+  exportToExcel: requirePermission('finance:expense:create').input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional()).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const role = ctx.user.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);

@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -13,6 +13,12 @@ const { selectResultsQueue, returningQueue } = vi.hoisted(() => {
   const returningQueue: any[][] = [];
   return { selectResultsQueue, returningQueue };
 });
+
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
 
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => {
@@ -58,6 +64,7 @@ const mockSubmitTask = vi.fn().mockResolvedValue({ taskId: 42 });
 const mockGetTaskStatus = vi.fn().mockResolvedValue({ id: 42, status: "completed", resultData: {} });
 
 vi.mock("../services/task-worker.service", () => ({
+  registerTaskHandler: vi.fn(),
   submitTask: (...args: any[]) => mockSubmitTask(...args),
   getTaskStatus: (...args: any[]) => mockGetTaskStatus(...args),
 }));
@@ -70,7 +77,7 @@ beforeEach(() => {
   mockGetTaskStatus.mockReset().mockResolvedValue({ id: 42, status: "completed", resultData: {} });
 });
 
-const caller = () => createAuthenticatedCaller();
+const caller = () => createAdminCaller();
 
 const sampleSuggestion = {
   id: 1,

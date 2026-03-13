@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { invokeLLM } from "../_core/llm";
 import { TRPCError } from "@trpc/server";
@@ -202,7 +202,7 @@ export const liquidWorkforceRouter = router({
     }),
 
   // 增加技能使用次数
-  incrementSkillUsage: protectedProcedure
+  incrementSkillUsage: requirePermission('hr:bu-team:manage')
     .input(z.object({
       skillId: z.string(),
     }))
@@ -302,7 +302,7 @@ export const liquidWorkforceRouter = router({
         `INSERT INTO task_bids 
          (task_id, bidder_agent_id, bidder_id, bid_price, currency, promised_sla, 
           credit_score_snapshot, ai_judge_score, ai_judge_reason, required_skills, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 7 DAY))`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW() + INTERVAL '7 days')`,
         [taskId, bidderAgentId, ctx.user?.id || null, bidPrice, currency,
          JSON.stringify(promisedSla), creditScore, aiJudgeResult.score,
          aiJudgeResult.reason, requiredSkills ? JSON.stringify(requiredSkills) : null]
@@ -494,7 +494,7 @@ export const liquidWorkforceRouter = router({
     }),
 
   // 发起争议
-  disputeContract: protectedProcedure
+  disputeContract: requirePermission('hr:bu-team:manage')
     .input(z.object({
       contractId: z.number(),
       reason: z.string(),

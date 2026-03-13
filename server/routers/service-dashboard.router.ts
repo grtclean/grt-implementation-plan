@@ -8,7 +8,7 @@
  * Config tables: serviceDashboardKpis, serviceDashboardLocations.
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, and, desc, sql, count, or, ilike, gte, lte, isNull, type SQL } from "drizzle-orm";
 
@@ -431,7 +431,7 @@ export const serviceDashboardRouter = router({
   /**
    * getComplianceKnowledge — Search compliance knowledge base (UL/CSA/OSHA/EPA/NFPA)
    */
-  getComplianceKnowledge: protectedProcedure
+  getComplianceKnowledge: requirePermission('service:workbench:view')
     .input(z.object({
       query: z.string().min(1),
       standard: z.enum(["UL", "CSA", "OSHA", "EPA", "NFPA", "NEC", "all"]).optional(),
@@ -570,7 +570,7 @@ export const serviceDashboardRouter = router({
   /**
    * seedNADemo — Seed demo data into existing tables for NA showcase
    */
-  seedNADemo: protectedProcedure.mutation(async () => {
+  seedNADemo: requirePermission('service:workbench:view').mutation(async () => {
     const db = await requireDb();
     const { afterSalesClients, afterSalesEquipments, afterSalesServiceLogs, knowledgeDocuments } = await import("../../drizzle/schema");
     const { spareParts } = await import("../../drizzle/supply-chain-schema");
@@ -674,6 +674,116 @@ export const serviceDashboardRouter = router({
         }
       } catch (e: any) { results.push(`Part skip: ${sp.partCode} (${e?.message?.slice(0, 50)})`); }
     }
+
+    // 6. Seed Region Overview KPIs (all 4 regions)
+    try {
+      const { serviceDashboardKpis } = await import("../../drizzle/service-dashboard-config-schema");
+      const regionKpis = [
+        { region: "Asia", regionCn: "亚太", projectCount: 128, engineerCount: 45, activeTickets: 23, avgResponseHours: 4.2, healthScore: 92 },
+        { region: "NorthAmerica", regionCn: "北美", projectCount: 34, engineerCount: 12, activeTickets: 8, avgResponseHours: 6.5, healthScore: 87 },
+        { region: "Europe", regionCn: "欧洲", projectCount: 18, engineerCount: 6, activeTickets: 5, avgResponseHours: 8.1, healthScore: 81 },
+        { region: "Other", regionCn: "其他", projectCount: 9, engineerCount: 3, activeTickets: 2, avgResponseHours: 12.3, healthScore: 74 },
+      ];
+      for (const rk of regionKpis) {
+        const entries = [
+          { key: "projectCount", value: rk.projectCount, label: "项目数", unit: "个" },
+          { key: "engineerCount", value: rk.engineerCount, label: "工程师", unit: "人" },
+          { key: "activeTickets", value: rk.activeTickets, label: "活跃工单", unit: "个" },
+          { key: "avgResponseHours", value: rk.avgResponseHours, label: "平均响应", unit: "小时" },
+          { key: "healthScore", value: rk.healthScore, label: "健康指数", unit: "分" },
+        ];
+        for (const entry of entries) {
+          const existing = await db.select({ id: serviceDashboardKpis.id }).from(serviceDashboardKpis)
+            .where(and(
+              eq(serviceDashboardKpis.category, "region_overview"),
+              eq(serviceDashboardKpis.region, rk.region),
+              eq(serviceDashboardKpis.key, entry.key),
+            )).limit(1);
+          if (existing.length === 0) {
+            await db.insert(serviceDashboardKpis).values({
+              category: "region_overview", region: rk.region,
+              key: entry.key, value: String(entry.value), label: entry.label, unit: entry.unit, source: "manual",
+            });
+            results.push(`KPI: ${rk.region}/${entry.key}`);
+          }
+        }
+      }
+
+      // Seed service comparison metrics (china_hq + north_america)
+      const comparisonSeeds: { category: string; entries: { key: string; value: number; label: string; unit: string }[] }[] = [
+        {
+          category: "china_hq",
+          entries: [
+            { key: "avgResponseHours", value: 3.8, label: "平均响应时间", unit: "小时" },
+            { key: "firstCallResolution", value: 72, label: "首次解决率", unit: "%" },
+            { key: "sparePartsAvailability", value: 94, label: "备件可用率", unit: "%" },
+            { key: "mttr", value: 18.5, label: "平均修复时间", unit: "小时" },
+            { key: "customerSatisfaction", value: 4.3, label: "客户满意度", unit: "分" },
+            { key: "engineerUtilization", value: 82, label: "工程师利用率", unit: "%" },
+            { key: "preventiveMaintenanceRate", value: 68, label: "预防性维护率", unit: "%" },
+            { key: "slaCompliance", value: 91, label: "SLA达标率", unit: "%" },
+          ],
+        },
+        {
+          category: "north_america",
+          entries: [
+            { key: "avgResponseHours", value: 6.2, label: "平均响应时间", unit: "小时" },
+            { key: "firstCallResolution", value: 65, label: "首次解决率", unit: "%" },
+            { key: "sparePartsAvailability", value: 78, label: "备件可用率", unit: "%" },
+            { key: "mttr", value: 28.4, label: "平均修复时间", unit: "小时" },
+            { key: "customerSatisfaction", value: 4.0, label: "客户满意度", unit: "分" },
+            { key: "engineerUtilization", value: 74, label: "工程师利用率", unit: "%" },
+            { key: "preventiveMaintenanceRate", value: 55, label: "预防性维护率", unit: "%" },
+            { key: "slaCompliance", value: 83, label: "SLA达标率", unit: "%" },
+          ],
+        },
+      ];
+      for (const group of comparisonSeeds) {
+        for (const entry of group.entries) {
+          const existing = await db.select({ id: serviceDashboardKpis.id }).from(serviceDashboardKpis)
+            .where(and(
+              eq(serviceDashboardKpis.category, group.category),
+              isNull(serviceDashboardKpis.region),
+              eq(serviceDashboardKpis.key, entry.key),
+            )).limit(1);
+          if (existing.length === 0) {
+            await db.insert(serviceDashboardKpis).values({
+              category: group.category, key: entry.key,
+              value: String(entry.value), label: entry.label, unit: entry.unit, source: "manual",
+            });
+            results.push(`KPI: ${group.category}/${entry.key}`);
+          }
+        }
+      }
+    } catch (e: any) { results.push(`KPI seed error: ${e?.message?.slice(0, 80)}`); }
+
+    // 7. Seed NA Project Location pins (config table)
+    try {
+      const { serviceDashboardLocations } = await import("../../drizzle/service-dashboard-config-schema");
+      const locationSeeds = [
+        { city: "Detroit", state: "MI", country: "US", lat: "42.330000", lng: "-83.050000", status: "active", clientName: "GM Powertrain", equipmentType: "Ultrasonic Cleaning Line", engineerCount: 3 },
+        { city: "Detroit", state: "MI", country: "US", lat: "42.360000", lng: "-83.100000", status: "active", clientName: "Ford Dearborn", equipmentType: "Spray Wash System", engineerCount: 2 },
+        { city: "Austin", state: "TX", country: "US", lat: "30.270000", lng: "-97.740000", status: "active", clientName: "Tesla Gigafactory", equipmentType: "Immersion Cleaning Station", engineerCount: 2 },
+        { city: "Chicago", state: "IL", country: "US", lat: "41.880000", lng: "-87.630000", status: "active", clientName: "Stellantis Chicago", equipmentType: "Multi-Stage Wash Line", engineerCount: 1 },
+        { city: "Monterrey", state: "NL", country: "MX", lat: "25.690000", lng: "-100.310000", status: "planned", clientName: "Nemak Monterrey", equipmentType: "Automated Cleaning Cell", engineerCount: 2 },
+        { city: "Nashville", state: "TN", country: "US", lat: "36.160000", lng: "-86.780000", status: "completed", clientName: "Nissan Nashville", equipmentType: "Parts Washer System", engineerCount: 1 },
+        { city: "San Jose", state: "CA", country: "US", lat: "37.340000", lng: "-121.890000", status: "active", clientName: "Applied Materials", equipmentType: "Precision Cleaning System", engineerCount: 2 },
+        { city: "Queretaro", state: "QRO", country: "MX", lat: "20.590000", lng: "-100.390000", status: "planned", clientName: "Continental Queretaro", equipmentType: "Spray Wash System", engineerCount: 1 },
+        { city: "Greenville", state: "SC", country: "US", lat: "34.850000", lng: "-82.400000", status: "active", clientName: "BMW Manufacturing", equipmentType: "Ultrasonic Degreaser", engineerCount: 2 },
+        { city: "El Paso", state: "TX", country: "US", lat: "31.760000", lng: "-106.440000", status: "completed", clientName: "Delphi Technologies", equipmentType: "Vacuum Dryer System", engineerCount: 1 },
+      ];
+      for (const loc of locationSeeds) {
+        const existing = await db.select({ id: serviceDashboardLocations.id }).from(serviceDashboardLocations)
+          .where(and(
+            eq(serviceDashboardLocations.city, loc.city),
+            eq(serviceDashboardLocations.clientName, loc.clientName),
+          )).limit(1);
+        if (existing.length === 0) {
+          await db.insert(serviceDashboardLocations).values({ ...loc, region: "NorthAmerica" });
+          results.push(`Location: ${loc.city} (${loc.clientName})`);
+        }
+      }
+    } catch (e: any) { results.push(`Location seed error: ${e?.message?.slice(0, 80)}`); }
 
     return { seeded: results.length, details: results };
   }),
@@ -893,7 +1003,7 @@ export const serviceDashboardRouter = router({
   /**
    * deleteLocation — Delete a project site location
    */
-  deleteLocation: protectedProcedure
+  deleteLocation: requirePermission('service:workbench:view')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -906,7 +1016,7 @@ export const serviceDashboardRouter = router({
    * syncFromDB — Aggregate real data from existing tables into config KPIs
    * Returns diff of what changed
    */
-  syncFromDB: protectedProcedure.mutation(async () => {
+  syncFromDB: requirePermission('service:workbench:view').mutation(async () => {
     const db = await requireDb();
     const { afterSalesServiceLogs, afterSalesClients } = await import("../../drizzle/schema");
     const { spareParts } = await import("../../drizzle/supply-chain-schema");

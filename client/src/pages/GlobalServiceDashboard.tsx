@@ -9,6 +9,7 @@
  *  - TicketLifecycleViz: 7-stage ticket pipeline
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "../lib/trpc";
 import {
   Globe, MapPin, Search, Shield, TicketCheck, Warehouse,
@@ -21,12 +22,13 @@ import { useLocation } from "wouter";
 
 type Region = "Asia" | "NorthAmerica" | "Europe" | "Other";
 
-const REGION_TABS: { key: Region; label: string; labelEn: string }[] = [
-  { key: "Asia", label: "亚太", labelEn: "Asia Pacific" },
-  { key: "NorthAmerica", label: "北美", labelEn: "North America" },
-  { key: "Europe", label: "欧洲", labelEn: "Europe" },
-  { key: "Other", label: "其他", labelEn: "Other" },
-];
+const REGION_KEYS: Region[] = ["Asia", "NorthAmerica", "Europe", "Other"];
+const REGION_I18N: Record<Region, string> = {
+  Asia: "afterSales.globalService.asiaPacific",
+  NorthAmerica: "afterSales.globalService.northAmerica",
+  Europe: "afterSales.globalService.europe",
+  Other: "afterSales.globalService.other",
+};
 
 // ─── Skeleton ──────────────────────────────────────────────────────────────────
 
@@ -42,7 +44,7 @@ function AdminGear({ href }: { href: string }) {
     <button
       onClick={(e) => { e.stopPropagation(); navigate(href); }}
       className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/70 transition-colors"
-      title="管理设置"
+      title="Admin Settings"
     >
       <Settings className="w-3.5 h-3.5" />
     </button>
@@ -50,6 +52,7 @@ function AdminGear({ href }: { href: string }) {
 }
 
 function RegionOverviewCards({ onSelectRegion }: { onSelectRegion: (r: Region) => void }) {
+  const { t } = useLanguage();
   const { data, isLoading } = trpc.serviceDashboard.getRegionOverview.useQuery(undefined, {
     refetchInterval: 30000,
   });
@@ -79,10 +82,10 @@ function RegionOverviewCards({ onSelectRegion }: { onSelectRegion: (r: Region) =
             <span className={`text-lg font-bold ${healthColor(r.healthScore)}`}>{r.healthScore}</span>
           </div>
           <div className="space-y-1 text-xs text-white/60">
-            <div className="flex justify-between"><span>项目数</span><span className="text-white/80">{r.projectCount}</span></div>
-            <div className="flex justify-between"><span>工程师</span><span className="text-white/80">{r.engineerCount}</span></div>
-            <div className="flex justify-between"><span>活跃工单</span><span className="text-white/80">{r.activeTickets}</span></div>
-            <div className="flex justify-between"><span>响应(h)</span><span className="text-white/80">{r.avgResponseHours}</span></div>
+            <div className="flex justify-between"><span>{t("afterSales.globalService.projectCount")}</span><span className="text-white/80">{r.projectCount}</span></div>
+            <div className="flex justify-between"><span>{t("afterSales.globalService.engineers")}</span><span className="text-white/80">{r.engineerCount}</span></div>
+            <div className="flex justify-between"><span>{t("afterSales.globalService.activeTickets")}</span><span className="text-white/80">{r.activeTickets}</span></div>
+            <div className="flex justify-between"><span>{t("afterSales.globalService.responseHours")}</span><span className="text-white/80">{r.avgResponseHours}</span></div>
           </div>
         </button>
       ))}
@@ -93,6 +96,7 @@ function RegionOverviewCards({ onSelectRegion }: { onSelectRegion: (r: Region) =
 // ─── Service Replication Demo ──────────────────────────────────────────────────
 
 function ServiceReplicationDemo() {
+  const { t } = useLanguage();
   const { data, isLoading } = trpc.serviceDashboard.getServiceReplicationComparison.useQuery(undefined, {
     refetchInterval: 30000,
   });
@@ -106,14 +110,14 @@ function ServiceReplicationDemo() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white/90 font-semibold flex items-center gap-2">
           <ArrowRight className="w-4 h-4 text-cyan-400" />
-          服务复制对比 — 中国总部 vs 北美
+          {t("afterSales.globalService.serviceComparison")}
         </h3>
         <AdminGear href="/service-dashboard-admin?tab=kpi&category=service_comparison" />
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] gap-x-4 gap-y-2">
-        <div className="text-center text-xs text-cyan-400 font-medium pb-2 border-b border-white/10">中国总部 (HQ)</div>
-        <div className="text-center text-xs text-white/40 pb-2 border-b border-white/10">指标</div>
-        <div className="text-center text-xs text-amber-400 font-medium pb-2 border-b border-white/10">北美 (NA)</div>
+        <div className="text-center text-xs text-cyan-400 font-medium pb-2 border-b border-white/10">{t("afterSales.globalService.chinaHQ")}</div>
+        <div className="text-center text-xs text-white/40 pb-2 border-b border-white/10">{t("afterSales.globalService.metric")}</div>
+        <div className="text-center text-xs text-amber-400 font-medium pb-2 border-b border-white/10">{t("afterSales.globalService.naLabel")}</div>
         {data.metrics.map((m) => {
           const chinaVal = (data.china as any)[m.key];
           const naVal = (data.northAmerica as any)[m.key];
@@ -139,6 +143,7 @@ function ServiceReplicationDemo() {
 // ─── Detroit Digital Factory ───────────────────────────────────────────────────
 
 function DetroitDigitalFactory() {
+  const { t } = useLanguage();
   const { data, isLoading } = trpc.serviceDashboard.getDetroitSparePartsInventory.useQuery(undefined, {
     refetchInterval: 15000,
   });
@@ -161,7 +166,7 @@ function DetroitDigitalFactory() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white/90 font-semibold flex items-center gap-2">
           <Warehouse className="w-4 h-4 text-cyan-400" />
-          底特律数字工厂 — 备件仓
+          {t("afterSales.globalService.detroitFactory")}
         </h3>
         <AdminGear href="/service-dashboard-admin?tab=import" />
       </div>
@@ -170,19 +175,19 @@ function DetroitDigitalFactory() {
       <div className="grid grid-cols-4 gap-3 mb-4">
         <div className="text-center">
           <div className="text-lg font-bold text-emerald-400">{healthCounts.healthy}</div>
-          <div className="text-xs text-white/50">正常</div>
+          <div className="text-xs text-white/50">{t("afterSales.globalService.healthy")}</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-amber-400">{healthCounts.warning}</div>
-          <div className="text-xs text-white/50">预警</div>
+          <div className="text-xs text-white/50">{t("afterSales.globalService.warning")}</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-red-400">{healthCounts.critical}</div>
-          <div className="text-xs text-white/50">紧急</div>
+          <div className="text-xs text-white/50">{t("afterSales.globalService.critical")}</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-cyan-400">{stats?.sparePartsCoverage ?? capacityPct}%</div>
-          <div className="text-xs text-white/50">覆盖率</div>
+          <div className="text-xs text-white/50">{t("afterSales.globalService.coverage")}</div>
         </div>
       </div>
 
@@ -216,6 +221,7 @@ function DetroitDigitalFactory() {
 // ─── Interactive NA Map (SVG) ──────────────────────────────────────────────────
 
 function InteractiveNAMap() {
+  const { t } = useLanguage();
   const { data, isLoading } = trpc.serviceDashboard.getNAProjectLocations.useQuery(undefined, {
     refetchInterval: 30000,
   });
@@ -242,7 +248,7 @@ function InteractiveNAMap() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white/90 font-semibold flex items-center gap-2">
           <MapPin className="w-4 h-4 text-cyan-400" />
-          北美项目分布 — US + Mexico
+          {t("afterSales.globalService.naProjects")}
         </h3>
         <AdminGear href="/service-dashboard-admin?tab=locations" />
       </div>
@@ -287,9 +293,9 @@ function InteractiveNAMap() {
           </svg>
           {/* Legend */}
           <div className="flex gap-4 mt-2 justify-center text-[10px] text-white/50">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" /> 运行中</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 inline-block" /> 已完成</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> 规划中</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" /> {t("afterSales.globalService.legendActive")}</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 inline-block" /> {t("afterSales.globalService.legendCompleted")}</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> {t("afterSales.globalService.legendPlanned")}</span>
           </div>
         </div>
 
@@ -300,7 +306,7 @@ function InteractiveNAMap() {
             <div className="text-white/50">{selectedSite.city}, {selectedSite.state}, {selectedSite.country}</div>
             <div className="space-y-1.5 text-white/70">
               <div className="flex items-center gap-1.5"><Package className="w-3 h-3" />{selectedSite.equipmentType}</div>
-              <div className="flex items-center gap-1.5"><Users className="w-3 h-3" />{selectedSite.engineerCount} 工程师</div>
+              <div className="flex items-center gap-1.5"><Users className="w-3 h-3" />{selectedSite.engineerCount} {t("afterSales.globalService.engineerCount")}</div>
               <div className="flex items-center gap-1.5">
                 <Activity className="w-3 h-3" />
                 <span className={`px-1.5 py-0.5 rounded text-[10px] ${
@@ -308,7 +314,7 @@ function InteractiveNAMap() {
                   selectedSite.status === "completed" ? "bg-blue-500/20 text-blue-400" :
                   "bg-amber-500/20 text-amber-400"
                 }`}>
-                  {selectedSite.status === "active" ? "运行中" : selectedSite.status === "completed" ? "已完成" : "规划中"}
+                  {selectedSite.status === "active" ? t("afterSales.globalService.statusActive") : selectedSite.status === "completed" ? t("afterSales.globalService.statusCompleted") : t("afterSales.globalService.statusPlanned")}
                 </span>
               </div>
             </div>
@@ -324,6 +330,7 @@ function InteractiveNAMap() {
 const STANDARD_PILLS = ["all", "UL", "CSA", "OSHA", "EPA", "NFPA", "NEC"] as const;
 
 function ComplianceQAPanel() {
+  const { t } = useLanguage();
   const [query, setQuery] = useState("");
   const [standard, setStandard] = useState<typeof STANDARD_PILLS[number]>("all");
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -339,7 +346,7 @@ function ComplianceQAPanel() {
     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-5">
       <h3 className="text-white/90 font-semibold mb-4 flex items-center gap-2">
         <Shield className="w-4 h-4 text-cyan-400" />
-        合规知识库 — NA Standards
+        {t("afterSales.globalService.complianceKB")}
       </h3>
 
       {/* Standard filter pills */}
@@ -352,7 +359,7 @@ function ComplianceQAPanel() {
               standard === s ? "bg-cyan-500/30 text-cyan-300 border border-cyan-500/50" : "bg-white/5 text-white/50 border border-white/10 hover:bg-white/10"
             }`}
           >
-            {s === "all" ? "全部" : s}
+            {s === "all" ? t("afterSales.globalService.all") : s}
           </button>
         ))}
       </div>
@@ -374,7 +381,7 @@ function ComplianceQAPanel() {
           disabled={searchMut.isPending || !query.trim()}
           className="px-4 py-2 bg-cyan-600/80 hover:bg-cyan-600 text-white text-sm rounded disabled:opacity-50 transition-colors"
         >
-          {searchMut.isPending ? "..." : "搜索"}
+          {searchMut.isPending ? "..." : t("afterSales.globalService.search")}
         </button>
       </div>
 
@@ -395,10 +402,10 @@ function ComplianceQAPanel() {
           </div>
         ))}
         {searchMut.data?.results.length === 0 && (
-          <div className="text-center text-sm text-white/40 py-4">未找到匹配的合规文档</div>
+          <div className="text-center text-sm text-white/40 py-4">{t("afterSales.globalService.noComplianceDocs")}</div>
         )}
         {!searchMut.data && !searchMut.isPending && (
-          <div className="text-center text-sm text-white/30 py-4">输入关键词搜索合规标准 (UL 508A, OSHA LOTO...)</div>
+          <div className="text-center text-sm text-white/30 py-4">{t("afterSales.globalService.searchHint")}</div>
         )}
       </div>
     </div>
@@ -408,6 +415,7 @@ function ComplianceQAPanel() {
 // ─── Ticket Lifecycle Viz ──────────────────────────────────────────────────────
 
 function TicketLifecycleViz() {
+  const { t } = useLanguage();
   const { data, isLoading } = trpc.serviceDashboard.getTicketLifecycle.useQuery(undefined, {
     refetchInterval: 15000,
   });
@@ -421,7 +429,7 @@ function TicketLifecycleViz() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white/90 font-semibold flex items-center gap-2">
           <TicketCheck className="w-4 h-4 text-cyan-400" />
-          工单生命周期 — {data.ticketId}
+          {t("afterSales.globalService.ticketLifecycle")} — {data.ticketId}
         </h3>
         <div className="flex items-center gap-2">
           <span className={`px-2 py-0.5 rounded text-xs ${
@@ -476,16 +484,17 @@ function TicketLifecycleViz() {
 // ─── Region Placeholder ────────────────────────────────────────────────────────
 
 function RegionPlaceholder({ region }: { region: { region: string; regionCn: string; projectCount: number; engineerCount: number; activeTickets: number; healthScore: number } }) {
+  const { t } = useLanguage();
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8 text-center">
       <Globe className="w-12 h-12 text-white/20 mx-auto mb-4" />
-      <h3 className="text-white/80 font-semibold text-lg mb-2">{region.regionCn}区域服务中心</h3>
+      <h3 className="text-white/80 font-semibold text-lg mb-2">{region.regionCn} {t("afterSales.globalService.regionServiceCenter")}</h3>
       <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto mb-4">
-        <div><div className="text-2xl font-bold text-cyan-400">{region.projectCount}</div><div className="text-xs text-white/50">项目</div></div>
-        <div><div className="text-2xl font-bold text-cyan-400">{region.engineerCount}</div><div className="text-xs text-white/50">工程师</div></div>
-        <div><div className="text-2xl font-bold text-cyan-400">{region.activeTickets}</div><div className="text-xs text-white/50">活跃工单</div></div>
+        <div><div className="text-2xl font-bold text-cyan-400">{region.projectCount}</div><div className="text-xs text-white/50">{t("afterSales.globalService.projects")}</div></div>
+        <div><div className="text-2xl font-bold text-cyan-400">{region.engineerCount}</div><div className="text-xs text-white/50">{t("afterSales.globalService.engineers")}</div></div>
+        <div><div className="text-2xl font-bold text-cyan-400">{region.activeTickets}</div><div className="text-xs text-white/50">{t("afterSales.globalService.activeTickets")}</div></div>
       </div>
-      <p className="text-white/40 text-sm">详细面板即将上线 — 敬请期待</p>
+      <p className="text-white/40 text-sm">{t("afterSales.globalService.comingSoon")}</p>
     </div>
   );
 }
@@ -493,6 +502,7 @@ function RegionPlaceholder({ region }: { region: { region: string; regionCn: str
 // ─── NA Stats Bar ──────────────────────────────────────────────────────────────
 
 function NAStatsBar() {
+  const { t } = useLanguage();
   const { data, isLoading } = trpc.serviceDashboard.getNorthAmericaStats.useQuery(undefined, {
     refetchInterval: 30000,
   });
@@ -502,13 +512,13 @@ function NAStatsBar() {
   }
 
   const kpis = [
-    { label: "项目", value: data.projectCount, icon: Globe },
-    { label: "工程师", value: data.engineerCount, icon: Users },
-    { label: "备件覆盖", value: `${data.sparePartsCoverage}%`, icon: Package },
-    { label: "响应(h)", value: data.avgResponseTimeHours, icon: Clock },
-    { label: "开放工单", value: data.ticketsOpen, icon: AlertTriangle },
-    { label: "已关闭", value: data.ticketsClosed, icon: CheckCircle2 },
-    { label: "满意度", value: `${data.customerSatisfaction}/5`, icon: Star },
+    { label: t("afterSales.globalService.projects"), value: data.projectCount, icon: Globe },
+    { label: t("afterSales.globalService.engineers"), value: data.engineerCount, icon: Users },
+    { label: t("afterSales.globalService.sparePartsCoverage"), value: `${data.sparePartsCoverage}%`, icon: Package },
+    { label: t("afterSales.globalService.responseHours"), value: data.avgResponseTimeHours, icon: Clock },
+    { label: t("afterSales.globalService.openTickets"), value: data.ticketsOpen, icon: AlertTriangle },
+    { label: t("afterSales.globalService.closed"), value: data.ticketsClosed, icon: CheckCircle2 },
+    { label: t("afterSales.globalService.satisfaction"), value: `${data.customerSatisfaction}/5`, icon: Star },
     { label: "MTTR(h)", value: data.mttr, icon: Activity },
   ];
 
@@ -528,6 +538,7 @@ function NAStatsBar() {
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function GlobalServiceDashboard() {
+  const { t } = useLanguage();
   const [activeRegion, setActiveRegion] = useState<Region>("NorthAmerica");
   const regionOverview = trpc.serviceDashboard.getRegionOverview.useQuery(undefined, {
     refetchInterval: 30000,
@@ -539,18 +550,17 @@ export default function GlobalServiceDashboard() {
     <div className="space-y-4">
       {/* Region Tabs */}
       <div className="flex gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
-        {REGION_TABS.map(tab => (
+        {REGION_KEYS.map(key => (
           <button
-            key={tab.key}
-            onClick={() => setActiveRegion(tab.key)}
+            key={key}
+            onClick={() => setActiveRegion(key)}
             className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-              activeRegion === tab.key
+              activeRegion === key
                 ? "bg-cyan-600/80 text-white shadow-lg shadow-cyan-500/20"
                 : "text-white/50 hover:text-white/80 hover:bg-white/5"
             }`}
           >
-            {tab.label}
-            <span className="text-[10px] ml-1 opacity-60">{tab.labelEn}</span>
+            {t(REGION_I18N[key])}
           </button>
         ))}
       </div>

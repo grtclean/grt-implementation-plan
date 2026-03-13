@@ -47,7 +47,7 @@ vi.mock("drizzle-orm", () => ({
 
 // ─── Import callers AFTER mocks ─────────────────────────────────────
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -74,7 +74,7 @@ describe("accessControl.blacklist", () => {
 
   describe("list", () => {
     it("returns items with correct field mapping and stats", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Bootstrap: CREATE TABLE (result ignored)
       executeResultsQueue.push({ rows: [] });
       // Bootstrap: SELECT COUNT → 3 (skip seed)
@@ -117,7 +117,7 @@ describe("accessControl.blacklist", () => {
 
     // After first test, bootstrap is done. Only procedure execute calls needed.
     it("returns empty list when no entries exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Only the list SELECT query
       executeResultsQueue.push({ rows: [] });
 
@@ -128,7 +128,7 @@ describe("accessControl.blacklist", () => {
     });
 
     it("correctly counts stats with all active entries", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({
         rows: [
           { id: 1, bl_number: "BL-001", user_name: "A", department: "", blocked_module: "X", blocked_action: "", reason: "", created_by: "admin", created_at: "2026-01-01", status: "active" },
@@ -144,7 +144,7 @@ describe("accessControl.blacklist", () => {
     });
 
     it("correctly counts stats with all lifted entries", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({
         rows: [
           { id: 1, bl_number: "BL-001", user_name: "A", department: "", blocked_module: "X", blocked_action: "", reason: "", created_by: "admin", created_at: "2026-01-01", status: "lifted" },
@@ -161,7 +161,7 @@ describe("accessControl.blacklist", () => {
 
   describe("create", () => {
     it("creates a blacklist entry with auto-generated blNumber", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Procedure: SELECT COUNT for blNumber generation
       executeResultsQueue.push({ rows: [{ cnt: 3 }] });
       // Procedure: INSERT
@@ -180,7 +180,7 @@ describe("accessControl.blacklist", () => {
     });
 
     it("uses ctx.user.name as createdBy", async () => {
-      const caller = createAuthenticatedCaller({ name: "张经理" });
+      const caller = createAdminCaller({ name: "张经理" });
       executeResultsQueue.push({ rows: [{ cnt: 0 }] });
       executeResultsQueue.push({ rows: [] });
 
@@ -195,7 +195,7 @@ describe("accessControl.blacklist", () => {
     });
 
     it("defaults createdBy to 'admin' when ctx.user.name is missing", async () => {
-      const caller = createAuthenticatedCaller({ name: undefined as any });
+      const caller = createAdminCaller({ name: undefined as any });
       executeResultsQueue.push({ rows: [{ cnt: 5 }] });
       executeResultsQueue.push({ rows: [] });
 
@@ -209,7 +209,7 @@ describe("accessControl.blacklist", () => {
     });
 
     it("pads blNumber with leading zeros", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({ rows: [{ cnt: 99 }] });
       executeResultsQueue.push({ rows: [] });
 
@@ -222,7 +222,7 @@ describe("accessControl.blacklist", () => {
     });
 
     it("handles optional fields (department, blockedAction, reason)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({ rows: [{ cnt: 0 }] });
       executeResultsQueue.push({ rows: [] });
 
@@ -237,7 +237,7 @@ describe("accessControl.blacklist", () => {
     });
 
     it("rejects empty user field", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.accessControl.blacklist.create({
           user: "",
@@ -247,7 +247,7 @@ describe("accessControl.blacklist", () => {
     });
 
     it("rejects empty blockedModule field", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.accessControl.blacklist.create({
           user: "A",
@@ -259,7 +259,7 @@ describe("accessControl.blacklist", () => {
 
   describe("lift", () => {
     it("lifts a blacklist entry by numeric id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // UPDATE execute
       executeResultsQueue.push({ rows: [] });
 
@@ -270,7 +270,7 @@ describe("accessControl.blacklist", () => {
     });
 
     it("lifts a blacklist entry by string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({ rows: [] });
 
       const result = await caller.accessControl.blacklist.lift({ id: "2" });
@@ -287,7 +287,7 @@ describe("accessControl.tempPermission", () => {
   describe("list", () => {
     // First test triggers bootstrap for tempPerm.
     it("returns items with correct field mapping and stats", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Bootstrap: CREATE TABLE
       executeResultsQueue.push({ rows: [] });
       // Bootstrap: SELECT COUNT → 4 (skip seed)
@@ -322,7 +322,7 @@ describe("accessControl.tempPermission", () => {
     });
 
     it("returns empty list when no temp permissions exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({ rows: [] });
 
       const result = await caller.accessControl.tempPermission.list();
@@ -334,7 +334,7 @@ describe("accessControl.tempPermission", () => {
     });
 
     it("calculates expiringSoon for active permissions ending within 3 days", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
 
       const now = new Date();
       const tomorrow = new Date(now.getTime() + 1 * 86400000);
@@ -368,7 +368,7 @@ describe("accessControl.tempPermission", () => {
     });
 
     it("does not count expired-status permissions as expiringSoon even if endDate is near", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 
       executeResultsQueue.push({
@@ -389,7 +389,7 @@ describe("accessControl.tempPermission", () => {
     });
 
     it("counts endDate of today as expiringSoon (diffDays=0)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const today = new Date().toISOString().slice(0, 10);
 
       executeResultsQueue.push({
@@ -412,7 +412,7 @@ describe("accessControl.tempPermission", () => {
 
   describe("create", () => {
     it("creates a temp permission with auto-generated tpNumber", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // SELECT COUNT for tpNumber
       executeResultsQueue.push({ rows: [{ cnt: 4 }] });
       // INSERT
@@ -432,7 +432,7 @@ describe("accessControl.tempPermission", () => {
     });
 
     it("uses ctx.user.name as grantedBy", async () => {
-      const caller = createAuthenticatedCaller({ name: "李总" });
+      const caller = createAdminCaller({ name: "李总" });
       executeResultsQueue.push({ rows: [{ cnt: 0 }] });
       executeResultsQueue.push({ rows: [] });
 
@@ -448,7 +448,7 @@ describe("accessControl.tempPermission", () => {
     });
 
     it("defaults grantedBy to 'admin' when ctx.user.name is missing", async () => {
-      const caller = createAuthenticatedCaller({ name: undefined as any });
+      const caller = createAdminCaller({ name: undefined as any });
       executeResultsQueue.push({ rows: [{ cnt: 2 }] });
       executeResultsQueue.push({ rows: [] });
 
@@ -464,7 +464,7 @@ describe("accessControl.tempPermission", () => {
     });
 
     it("handles optional fields (module, reason)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({ rows: [{ cnt: 0 }] });
       executeResultsQueue.push({ rows: [] });
 
@@ -480,7 +480,7 @@ describe("accessControl.tempPermission", () => {
     });
 
     it("rejects empty user field", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.accessControl.tempPermission.create({
           user: "",
@@ -492,7 +492,7 @@ describe("accessControl.tempPermission", () => {
     });
 
     it("rejects empty role field", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.accessControl.tempPermission.create({
           user: "X",
@@ -506,7 +506,7 @@ describe("accessControl.tempPermission", () => {
 
   describe("revoke", () => {
     it("revokes a temp permission by numeric id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({ rows: [] });
 
       const result = await caller.accessControl.tempPermission.revoke({ id: 1 });
@@ -516,7 +516,7 @@ describe("accessControl.tempPermission", () => {
     });
 
     it("revokes a temp permission by string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({ rows: [] });
 
       const result = await caller.accessControl.tempPermission.revoke({ id: "3" });
@@ -533,7 +533,7 @@ describe("accessControl.userStatus", () => {
   describe("list", () => {
     // First test triggers bootstrap for userStatus.
     it("returns items with correct field mapping and settings when has_profile is true", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Bootstrap: CREATE TABLE
       executeResultsQueue.push({ rows: [] });
       // Bootstrap: SELECT COUNT → 5 (skip seed)
@@ -542,8 +542,8 @@ describe("accessControl.userStatus", () => {
       executeResultsQueue.push({
         rows: [
           {
-            id: 1, employee_id: "GRT001", name: "侯亚东", department: "总裁办",
-            bu_code: "FUNC", email: "hou.yadong@grt.com", has_profile: true,
+            id: 1, employee_id: "GRT001", name: "倪亚东", department: "总裁办",
+            bu_code: "FUNC", email: "ni.yadong@grt.com", has_profile: true,
             work_plan_enabled: true, work_plan_frequency: "daily",
             training_enabled: true, project_enabled: true,
             performance_enabled: true, report_enabled: true,
@@ -559,10 +559,10 @@ describe("accessControl.userStatus", () => {
       expect(result.items).toHaveLength(1);
       const item = result.items[0];
       expect(item.employeeId).toBe("GRT001");
-      expect(item.name).toBe("侯亚东");
+      expect(item.name).toBe("倪亚东");
       expect(item.department).toBe("总裁办");
       expect(item.buCode).toBe("FUNC");
-      expect(item.email).toBe("hou.yadong@grt.com");
+      expect(item.email).toBe("ni.yadong@grt.com");
       expect(item.hasProfile).toBe(true);
       expect(item.settings).not.toBeNull();
       expect(item.settings!.workPlanEnabled).toBe(true);
@@ -580,7 +580,7 @@ describe("accessControl.userStatus", () => {
     });
 
     it("returns null settings when has_profile is false", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({
         rows: [
           {
@@ -603,7 +603,7 @@ describe("accessControl.userStatus", () => {
     });
 
     it("computes stats correctly (configured, unconfigured, withOverdue, reminderEnabled)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({
         rows: [
           {
@@ -646,7 +646,7 @@ describe("accessControl.userStatus", () => {
     });
 
     it("filters by bu when provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({
         rows: [
           {
@@ -670,11 +670,11 @@ describe("accessControl.userStatus", () => {
     });
 
     it("filters by search when provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({
         rows: [
           {
-            id: 1, employee_id: "GRT001", name: "侯亚东", department: "总裁办",
+            id: 1, employee_id: "GRT001", name: "倪亚东", department: "总裁办",
             bu_code: "FUNC", email: "", has_profile: true,
             work_plan_enabled: true, work_plan_frequency: "daily",
             training_enabled: true, project_enabled: true,
@@ -692,7 +692,7 @@ describe("accessControl.userStatus", () => {
     });
 
     it("filters by both bu and search when both provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({ rows: [] });
 
       const result = await caller.accessControl.userStatus.list({
@@ -705,7 +705,7 @@ describe("accessControl.userStatus", () => {
     });
 
     it("returns all when no filter is provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({
         rows: [
           {
@@ -735,7 +735,7 @@ describe("accessControl.userStatus", () => {
     });
 
     it("works with no input at all (input is optional)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({ rows: [] });
 
       const result = await caller.accessControl.userStatus.list();
@@ -745,7 +745,7 @@ describe("accessControl.userStatus", () => {
     });
 
     it("handles null pending_tasks and overdue_tasks with defaults", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({
         rows: [
           {
@@ -768,7 +768,7 @@ describe("accessControl.userStatus", () => {
     });
 
     it("has_profile coerces falsy values to boolean", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({
         rows: [
           {
@@ -793,7 +793,7 @@ describe("accessControl.userStatus", () => {
 
   describe("sendReminder", () => {
     it("returns success with user-specific message (number id)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
 
       const result = await caller.accessControl.userStatus.sendReminder({ userId: 42 });
 
@@ -802,7 +802,7 @@ describe("accessControl.userStatus", () => {
     });
 
     it("returns success with user-specific message (string id)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
 
       const result = await caller.accessControl.userStatus.sendReminder({ userId: "GRT001" });
 
@@ -811,7 +811,7 @@ describe("accessControl.userStatus", () => {
     });
 
     it("does not require any db calls (pure function)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
 
       await caller.accessControl.userStatus.sendReminder({ userId: 1 });
 

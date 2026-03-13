@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import {
   analyzeSemantics,
   assessRisk,
@@ -29,7 +29,7 @@ export const aiRouter = router({
   }),
 
   // 语义分析
-  analyzeSemantics: protectedProcedure
+  analyzeSemantics: requirePermission('ai:hub:access')
     .input(
       z.object({
         text: z.string().min(1),
@@ -42,7 +42,7 @@ export const aiRouter = router({
     }),
 
   // 风险评估
-  assessRisk: protectedProcedure
+  assessRisk: requirePermission('ai:hub:access')
     .input(
       z.object({
         type: z.enum(["project", "cost", "quality", "delivery", "security"]),
@@ -75,7 +75,7 @@ export const aiRouter = router({
     }),
 
   // 表单智能审核
-  reviewForm: protectedProcedure
+  reviewForm: requirePermission('ai:hub:access')
     .input(
       z.object({
         formType: z.string(),

@@ -607,7 +607,8 @@ export async function generateInterviewReport(params: {
     .select()
     .from(hrmAiInterviewRecords)
     .where(eq(hrmAiInterviewRecords.candidateId, params.candidateId))
-    .orderBy(desc(hrmAiInterviewRecords.interviewedAt));
+    .orderBy(desc(hrmAiInterviewRecords.interviewedAt))
+    .limit(1000);
 
   if (records.length === 0) {
     return { success: false, error: "No interview records found" };

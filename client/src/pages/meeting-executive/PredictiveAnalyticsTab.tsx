@@ -25,8 +25,6 @@ import {
 import { StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   XAxis,
@@ -34,22 +32,42 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   Area,
   AreaChart,
 } from "recharts";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const RISK_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  high: { color: "text-red-600", bg: "bg-red-100", label: "高风险" },
-  medium: { color: "text-amber-600", bg: "bg-amber-100", label: "中风险" },
-  low: { color: "text-green-600", bg: "bg-green-100", label: "低风险" },
-  none: { color: "text-blue-600", bg: "bg-blue-100", label: "无风险" },
+const RISK_LABEL_KEYS: Record<string, string> = {
+  high: "meeting.predictive.riskHigh",
+  medium: "meeting.predictive.riskMedium",
+  low: "meeting.predictive.riskLow",
+  none: "meeting.predictive.riskNone",
+};
+
+const RISK_STYLE: Record<string, { color: string; bg: string }> = {
+  high: { color: "text-red-600", bg: "bg-red-100" },
+  medium: { color: "text-amber-600", bg: "bg-amber-100" },
+  low: { color: "text-green-600", bg: "bg-green-100" },
+  none: { color: "text-blue-600", bg: "bg-blue-100" },
 };
 
 const FATIGUE_COLOR = (index: number) =>
   index >= 60 ? "#ef4444" : index >= 30 ? "#f59e0b" : "#22c55e";
 
+const PRIORITY_LABEL_KEYS: Record<string, string> = {
+  high: "meeting.predictive.priorityHigh",
+  medium: "meeting.predictive.priorityMedium",
+  low: "meeting.predictive.priorityLow",
+};
+
+const TREND_LABEL_KEYS: Record<string, string> = {
+  declining: "meeting.predictive.trendDeclining",
+  improving: "meeting.predictive.trendImproving",
+  stable: "meeting.predictive.trendStable",
+};
+
 export function PredictiveAnalyticsTab() {
+  const { t } = useLanguage();
   const [meetingId, setMeetingId] = useState("");
   const [fatigueScope, setFatigueScope] = useState("organization");
   const [fatigueScopeId, setFatigueScopeId] = useState("");
@@ -93,52 +111,52 @@ export function PredictiveAnalyticsTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5" />
-            预测分析
+            {t("meeting.predictive.title")}
           </CardTitle>
-          <CardDescription>预测会议效能，检测会议疲劳信号</CardDescription>
+          <CardDescription>{t("meeting.predictive.desc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
-              placeholder="输入会议ID"
+              placeholder={t("meeting.predictive.enterMeetingId")}
               value={meetingId}
               onChange={(e) => setMeetingId(e.target.value)}
               className="max-w-sm"
             />
             <Button onClick={handlePredict} disabled={predictMutation.isPending}>
               {predictMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
-              预测效能
+              {t("meeting.predictive.predict")}
             </Button>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Select value={fatigueScope} onValueChange={(v) => setFatigueScope(v)}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="选择范围" />
+                <SelectValue placeholder={t("meeting.predictive.selectScope")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="organization">全组织</SelectItem>
-                <SelectItem value="department">部门</SelectItem>
-                <SelectItem value="channel">频道</SelectItem>
+                <SelectItem value="organization">{t("meeting.predictive.scopeOrg")}</SelectItem>
+                <SelectItem value="department">{t("meeting.predictive.scopeDept")}</SelectItem>
+                <SelectItem value="channel">{t("meeting.predictive.scopeChannel")}</SelectItem>
               </SelectContent>
             </Select>
             <Input
-              placeholder="范围ID（可选）"
+              placeholder={t("meeting.predictive.scopeIdPlaceholder")}
               value={fatigueScopeId}
               onChange={(e) => setFatigueScopeId(e.target.value)}
               className="max-w-xs"
             />
             <Select value={fatiguePeriod} onValueChange={(v) => setFatiguePeriod(v)}>
               <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="选择周期" />
+                <SelectValue placeholder={t("meeting.predictive.selectPeriod")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="monthly">月度</SelectItem>
-                <SelectItem value="quarterly">季度</SelectItem>
+                <SelectItem value="monthly">{t("meeting.predictive.monthly")}</SelectItem>
+                <SelectItem value="quarterly">{t("meeting.predictive.quarterly")}</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" onClick={handleDetectFatigue} disabled={fatigueMutation.isPending}>
               {fatigueMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Activity className="h-4 w-4 mr-2" />}
-              检测疲劳
+              {t("meeting.predictive.detectFatigue")}
             </Button>
           </div>
         </CardContent>
@@ -150,7 +168,7 @@ export function PredictiveAnalyticsTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
-              预测结果
+              {t("meeting.predictive.predictionResult")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -171,13 +189,13 @@ export function PredictiveAnalyticsTab() {
                   </svg>
                   <span className="absolute text-xl font-bold">{Math.round(prediction.predictedScore)}</span>
                 </div>
-                <div className="text-sm text-muted-foreground mt-1">预测评分</div>
+                <div className="text-sm text-muted-foreground mt-1">{t("meeting.predictive.predictedScore")}</div>
               </div>
               <div className="text-center flex flex-col justify-center">
-                <Badge className={`text-base px-3 py-1 ${RISK_CONFIG[prediction.riskLevel]?.bg || ""}`}>
-                  {RISK_CONFIG[prediction.riskLevel]?.label || prediction.riskLevel}
+                <Badge className={`text-base px-3 py-1 ${RISK_STYLE[prediction.riskLevel]?.bg || ""}`}>
+                  {t(RISK_LABEL_KEYS[prediction.riskLevel] || "meeting.predictive.riskMedium")}
                 </Badge>
-                <div className="text-sm text-muted-foreground mt-1">风险等级</div>
+                <div className="text-sm text-muted-foreground mt-1">{t("meeting.predictive.riskLevel")}</div>
               </div>
               <div className="text-center flex flex-col justify-center">
                 <div className="w-full bg-gray-200 rounded-full h-3">
@@ -187,24 +205,24 @@ export function PredictiveAnalyticsTab() {
                   />
                 </div>
                 <div className="text-sm font-medium mt-1">{(prediction.confidenceLevel * 100).toFixed(0)}%</div>
-                <div className="text-sm text-muted-foreground">置信度</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.predictive.confidence")}</div>
               </div>
               <div className="text-center flex flex-col justify-center">
                 <div className="text-2xl font-bold">{prediction.riskFactors?.length ?? 0}</div>
-                <div className="text-sm text-muted-foreground">风险因素</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.predictive.riskFactors")}</div>
               </div>
             </div>
 
             {/* Risk factors table */}
             {prediction.riskFactors?.length > 0 && (
               <div>
-                <h4 className="font-medium mb-2">风险因素</h4>
+                <h4 className="font-medium mb-2">{t("meeting.predictive.riskFactors")}</h4>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>因素</TableHead>
-                      <TableHead className="text-center">权重</TableHead>
-                      <TableHead>描述</TableHead>
+                      <TableHead>{t("meeting.predictive.thFactor")}</TableHead>
+                      <TableHead className="text-center">{t("meeting.predictive.thWeight")}</TableHead>
+                      <TableHead>{t("meeting.predictive.thDescription")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -225,12 +243,12 @@ export function PredictiveAnalyticsTab() {
             {/* Recommendations */}
             {prediction.recommendations?.length > 0 && (
               <div>
-                <h4 className="font-medium mb-2">改善建议</h4>
+                <h4 className="font-medium mb-2">{t("meeting.predictive.recommendations")}</h4>
                 <div className="space-y-2">
                   {prediction.recommendations.map((r: any, i: number) => (
                     <div key={i} className="flex items-center gap-2 text-sm p-2 bg-muted/30 rounded">
                       <Badge variant={r.priority === "high" ? "default" : "outline"} className="text-xs shrink-0">
-                        {r.priority === "high" ? "高优" : r.priority === "medium" ? "中优" : "低优"}
+                        {t(PRIORITY_LABEL_KEYS[r.priority] || "meeting.predictive.priorityLow")}
                       </Badge>
                       <span>{r.action}</span>
                       <span className="ml-auto text-muted-foreground text-xs shrink-0">{r.expectedImpact}</span>
@@ -253,9 +271,9 @@ export function PredictiveAnalyticsTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              疲劳检测结果
+              {t("meeting.predictive.fatigueResult")}
               <Badge className={fatigueResult.fatigueIndex >= 60 ? "bg-red-500" : fatigueResult.fatigueIndex >= 30 ? "bg-amber-500" : "bg-green-500"}>
-                疲劳指数: {fatigueResult.fatigueIndex}
+                {t("meeting.predictive.fatigueIndex")}: {fatigueResult.fatigueIndex}
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -265,33 +283,33 @@ export function PredictiveAnalyticsTab() {
                 <div className="text-2xl font-bold" style={{ color: FATIGUE_COLOR(fatigueResult.fatigueIndex) }}>
                   {fatigueResult.fatigueIndex}
                 </div>
-                <div className="text-sm text-muted-foreground">疲劳指数</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.predictive.fatigueIndex")}</div>
               </div>
               <div>
-                <div className="text-2xl font-bold">{fatigueResult.trendDirection === "declining" ? "下降" : fatigueResult.trendDirection === "improving" ? "改善" : "稳定"}</div>
-                <div className="text-sm text-muted-foreground">趋势方向</div>
+                <div className="text-2xl font-bold">{t(TREND_LABEL_KEYS[fatigueResult.trendDirection] || "meeting.predictive.trendStable")}</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.predictive.trendDirection")}</div>
               </div>
               <div>
                 <div className="text-2xl font-bold">{fatigueResult.stats?.totalMeetings ?? 0}</div>
-                <div className="text-sm text-muted-foreground">分析会议数</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.predictive.analyzedMeetings")}</div>
               </div>
               <div>
                 <div className="text-2xl font-bold">{fatigueResult.stats?.meetingsPerWeek?.toFixed(1) ?? 0}</div>
-                <div className="text-sm text-muted-foreground">每周会议数</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.predictive.meetingsPerWeek")}</div>
               </div>
             </div>
 
             {/* Trend forecast chart */}
             {fatigueResult.trendForecast?.length > 0 && (
               <div>
-                <h4 className="font-medium mb-2">趋势预测</h4>
+                <h4 className="font-medium mb-2">{t("meeting.predictive.trendForecast")}</h4>
                 <ResponsiveContainer width="100%" height={200}>
                   <AreaChart data={fatigueResult.trendForecast}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="period" />
                     <YAxis domain={[0, 100]} />
                     <Tooltip />
-                    <Area type="monotone" dataKey="predictedScore" name="预测分数" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} strokeDasharray="5 5" />
+                    <Area type="monotone" dataKey="predictedScore" name={t("meeting.predictive.predictedScoreLabel")} stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} strokeDasharray="5 5" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -299,7 +317,7 @@ export function PredictiveAnalyticsTab() {
 
             {fatigueResult.recommendations?.length > 0 && (
               <div>
-                <h4 className="font-medium mb-2">缓解建议</h4>
+                <h4 className="font-medium mb-2">{t("meeting.predictive.mitigationSuggestions")}</h4>
                 <div className="space-y-1">
                   {fatigueResult.recommendations.map((r: any, i: number) => (
                     <div key={i} className="flex items-center gap-2 text-sm p-2 bg-muted/30 rounded">
@@ -326,15 +344,15 @@ export function PredictiveAnalyticsTab() {
 
       {/* Dashboard stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={AlertTriangle} label="高风险会议" value={highRiskCount} loading={isLoading} />
-        <StatCard icon={Target} label="平均预测准确度" value={accuracy.avgAccuracy ? `${accuracy.avgAccuracy}%` : "N/A"} loading={isLoading} />
+        <StatCard icon={AlertTriangle} label={t("meeting.predictive.highRiskMeetings")} value={highRiskCount} loading={isLoading} />
+        <StatCard icon={Target} label={t("meeting.predictive.avgAccuracy")} value={accuracy.avgAccuracy ? `${accuracy.avgAccuracy}%` : "N/A"} loading={isLoading} />
         <StatCard
           icon={Activity}
-          label="平均疲劳指数"
+          label={t("meeting.predictive.avgFatigueIndex")}
           value={fatigueStats?.avgPredicted ?? "N/A"}
           loading={isLoading}
         />
-        <StatCard icon={Brain} label="已预测会议" value={effectivenessStats?.count ?? 0} loading={isLoading} />
+        <StatCard icon={Brain} label={t("meeting.predictive.predictedMeetings")} value={effectivenessStats?.count ?? 0} loading={isLoading} />
       </div>
 
       {/* At-risk meetings table */}
@@ -343,23 +361,23 @@ export function PredictiveAnalyticsTab() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              风险会议列表
+              {t("meeting.predictive.riskMeetingList")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>会议名称</TableHead>
-                  <TableHead className="text-center">预测评分</TableHead>
-                  <TableHead className="text-center">风险等级</TableHead>
-                  <TableHead className="text-center">置信度</TableHead>
-                  <TableHead>主要风险因素</TableHead>
+                  <TableHead>{t("meeting.predictive.thMeetingName")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.predictive.thPredictedScore")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.predictive.thRiskLevel")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.predictive.thConfidence")}</TableHead>
+                  <TableHead>{t("meeting.predictive.thTopRiskFactor")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {atRiskMeetings.map((m: any, i: number) => {
-                  const riskConfig = RISK_CONFIG[m.risk_level] || RISK_CONFIG.medium;
+                  const riskStyle = RISK_STYLE[m.risk_level] || RISK_STYLE.medium;
                   let topFactor = "";
                   try {
                     const factors = JSON.parse(m.risk_factors || "[]");
@@ -374,7 +392,7 @@ export function PredictiveAnalyticsTab() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge className={riskConfig.bg}>{riskConfig.label}</Badge>
+                        <Badge className={riskStyle.bg}>{t(RISK_LABEL_KEYS[m.risk_level] || "meeting.predictive.riskMedium")}</Badge>
                       </TableCell>
                       <TableCell className="text-center">{(Number(m.confidence_level) * 100).toFixed(0)}%</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{topFactor}</TableCell>
@@ -391,19 +409,19 @@ export function PredictiveAnalyticsTab() {
       {fatigueData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">疲劳指数分布</CardTitle>
+            <CardTitle className="text-base">{t("meeting.predictive.fatigueDistribution")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={fatigueData.map((d: any) => ({
-                scope: d.scope_id || "全局",
+                scope: d.scope_id || t("meeting.predictive.global"),
                 fatigue: Number(d.fatigue_index) || 0,
               }))}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="scope" />
                 <YAxis domain={[0, 100]} />
                 <Tooltip />
-                <Bar dataKey="fatigue" name="疲劳指数">
+                <Bar dataKey="fatigue" name={t("meeting.predictive.fatigueIndex")}>
                   {fatigueData.map((_: any, i: number) => (
                     <rect key={i} fill={FATIGUE_COLOR(Number(fatigueData[i]?.fatigue_index) || 0)} />
                   ))}
@@ -418,7 +436,7 @@ export function PredictiveAnalyticsTab() {
       {riskFactorRankings.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">风险因素频率</CardTitle>
+            <CardTitle className="text-base">{t("meeting.predictive.riskFactorFrequency")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={Math.max(200, riskFactorRankings.length * 35)}>
@@ -427,7 +445,7 @@ export function PredictiveAnalyticsTab() {
                 <XAxis type="number" />
                 <YAxis dataKey="factor" type="category" width={120} />
                 <Tooltip />
-                <Bar dataKey="count" name="出现次数" fill="#6366f1" />
+                <Bar dataKey="count" name={t("meeting.predictive.occurrenceCount")} fill="#6366f1" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

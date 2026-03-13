@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -54,7 +54,7 @@ beforeEach(() => {
   executeResults.length = 0;
 });
 
-const caller = () => createAuthenticatedCaller();
+const caller = () => createAdminCaller();
 
 describe("role-agent router", () => {
 
@@ -74,7 +74,7 @@ describe("role-agent router", () => {
   // ═══ getQuickActions ═══
   describe("getQuickActions", () => {
     it("returns actions for default role (employee)", async () => {
-      // createAuthenticatedCaller has role='employee', which falls to bu_sales fallback
+      // createAdminCaller has role='employee', which falls to bu_sales fallback
       const result = await caller().roleAgent.getQuickActions();
       expect(Array.isArray(result)).toBe(true);
     });

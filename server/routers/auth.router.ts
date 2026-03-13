@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import {router, publicProcedure, protectedProcedure, requirePermission} from "../_core/trpc";
 import { createChildLogger } from "../lib/logger";
 
 const log = createChildLogger("auth");
@@ -11,7 +11,7 @@ export const authRouter = router({
     return ctx.user || null;
   }),
 
-  logout: protectedProcedure.mutation(async () => {
+  logout: requirePermission('system:users:edit').mutation(async () => {
     return successResponse;
   }),
 
@@ -40,7 +40,7 @@ export const authRouter = router({
     }
   }),
 
-  updatePreferences: protectedProcedure
+  updatePreferences: requirePermission('system:users:edit')
     .input(z.object({
       language: z.enum(["zh", "en", "de", "fr"]).optional(),
       theme: z.enum(["dark", "light", "system"]).optional(),
@@ -60,7 +60,7 @@ export const authRouter = router({
       }
     }),
 
-  updateLanguagePreference: protectedProcedure
+  updateLanguagePreference: requirePermission('system:users:edit')
     .input(z.object({ language: z.enum(["zh", "en", "de", "fr"]) }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user?.id) return { success: false, error: "User not authenticated" };
@@ -74,7 +74,7 @@ export const authRouter = router({
       }
     }),
 
-  updateThemePreference: protectedProcedure
+  updateThemePreference: requirePermission('system:users:edit')
     .input(z.object({ theme: z.enum(["dark", "light", "system"]) }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user?.id) return { success: false, error: "User not authenticated" };
@@ -111,7 +111,7 @@ export const authRouter = router({
     }
   }),
 
-  addFavorite: protectedProcedure
+  addFavorite: requirePermission('system:users:edit')
     .input(z.object({
       menuPath: z.string(),
       menuName: z.string(),
@@ -134,7 +134,7 @@ export const authRouter = router({
       }
     }),
 
-  removeFavorite: protectedProcedure
+  removeFavorite: requirePermission('system:users:edit')
     .input(z.object({ menuPath: z.string() }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user?.id) return { success: false, error: "User not authenticated" };
@@ -161,7 +161,7 @@ export const authRouter = router({
       }
     }),
 
-  updateFavoriteOrder: protectedProcedure
+  updateFavoriteOrder: requirePermission('system:users:edit')
     .input(z.object({ menuPath: z.string(), newOrder: z.number() }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user?.id) return { success: false, error: "User not authenticated" };
@@ -175,7 +175,7 @@ export const authRouter = router({
       }
     }),
 
-  reorderFavorites: protectedProcedure
+  reorderFavorites: requirePermission('system:users:edit')
     .input(z.object({
       orders: z.array(z.object({ menuPath: z.string(), newOrder: z.number() })),
     }))

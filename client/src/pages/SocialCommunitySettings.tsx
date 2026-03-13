@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 
 export default function SocialCommunitySettings() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("deidentification");
   const [showRuleDialog, setShowRuleDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
@@ -58,66 +60,66 @@ export default function SocialCommunitySettings() {
   // tRPC mutations
   const createRuleMutation = trpc.socialCommunityEnhanced.createDeidentificationRule.useMutation({
     onSuccess: () => {
-      toast.success("脱敏规则创建成功");
+      toast.success(t("common.socialSettings.ruleCreated"));
       setShowRuleDialog(false);
       setNewRule({ name: "", pattern: "", patternType: "keyword", replacement: "[***]", category: "custom", priority: 0 });
       refetchRules();
     },
-    onError: (error) => toast.error(`创建失败: ${error.message}`),
+    onError: (error) => toast.error(`${t("common.socialSettings.createFailed")}: ${error.message}`),
   });
 
   const updateRuleMutation = trpc.socialCommunityEnhanced.updateDeidentificationRule.useMutation({
     onSuccess: () => {
-      toast.success("规则更新成功");
+      toast.success(t("common.socialSettings.ruleUpdated"));
       setShowRuleDialog(false);
       setEditingRule(null);
       refetchRules();
     },
-    onError: (error) => toast.error(`更新失败: ${error.message}`),
+    onError: (error) => toast.error(`${t("common.socialSettings.updateFailed")}: ${error.message}`),
   });
 
   const deleteRuleMutation = trpc.socialCommunityEnhanced.deleteDeidentificationRule.useMutation({
     onSuccess: () => {
-      toast.success("规则已删除");
+      toast.success(t("common.socialSettings.ruleDeleted"));
       refetchRules();
     },
-    onError: (error) => toast.error(`删除失败: ${error.message}`),
+    onError: (error) => toast.error(`${t("common.socialSettings.deleteFailed")}: ${error.message}`),
   });
 
   const testDeidentificationMutation = trpc.socialCommunityEnhanced.testDeidentification.useMutation({
     onSuccess: (data) => {
       setTestResult(data);
-      toast.success("测试完成");
+      toast.success(t("common.socialSettings.testComplete"));
     },
-    onError: (error) => toast.error(`测试失败: ${error.message}`),
+    onError: (error) => toast.error(`${t("common.socialSettings.testFailed")}: ${error.message}`),
   });
 
   const createTemplateMutation = trpc.socialCommunityEnhanced.createAIReplyTemplate.useMutation({
     onSuccess: () => {
-      toast.success("模板创建成功");
+      toast.success(t("common.socialSettings.templateCreated"));
       setShowTemplateDialog(false);
       setNewTemplate({ name: "", category: "custom", promptTemplate: "", systemPrompt: "", variables: [], isDefault: false });
       refetchTemplates();
     },
-    onError: (error) => toast.error(`创建失败: ${error.message}`),
+    onError: (error) => toast.error(`${t("common.socialSettings.createFailed")}: ${error.message}`),
   });
 
   const updateTemplateMutation = trpc.socialCommunityEnhanced.updateAIReplyTemplate.useMutation({
     onSuccess: () => {
-      toast.success("模板更新成功");
+      toast.success(t("common.socialSettings.templateUpdated"));
       setShowTemplateDialog(false);
       setEditingTemplate(null);
       refetchTemplates();
     },
-    onError: (error) => toast.error(`更新失败: ${error.message}`),
+    onError: (error) => toast.error(`${t("common.socialSettings.updateFailed")}: ${error.message}`),
   });
 
   const deleteTemplateMutation = trpc.socialCommunityEnhanced.deleteAIReplyTemplate.useMutation({
     onSuccess: () => {
-      toast.success("模板已删除");
+      toast.success(t("common.socialSettings.templateDeleted"));
       refetchTemplates();
     },
-    onError: (error) => toast.error(`删除失败: ${error.message}`),
+    onError: (error) => toast.error(`${t("common.socialSettings.deleteFailed")}: ${error.message}`),
   });
 
   // 分类标签颜色
@@ -135,8 +137,8 @@ export default function SocialCommunitySettings() {
       farewell: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
     };
     const labels: Record<string, string> = {
-      price: "价格", formula: "配方", personal: "个人", business: "商业", custom: "自定义",
-      greeting: "问候", technical: "技术", sales: "销售", support: "支持", farewell: "告别",
+      price: t("common.socialSettings.catPriceLabel"), formula: t("common.socialSettings.catFormulaLabel"), personal: t("common.socialSettings.catPersonalLabel"), business: t("common.socialSettings.catBusinessLabel"), custom: t("common.socialSettings.catCustomLabel"),
+      greeting: t("common.socialSettings.catGreetingLabel"), technical: t("common.socialSettings.catTechnicalLabel"), sales: t("common.socialSettings.catSalesLabel"), support: t("common.socialSettings.catSupportLabel"), farewell: t("common.socialSettings.catFarewellLabel"),
     };
     return (
       <Badge variant="outline" className={styles[category] || styles.custom}>
@@ -150,19 +152,19 @@ export default function SocialCommunitySettings() {
         {/* 页面标题 */}
         <PageHeader
           icon={Settings}
-          title="社群管理设置"
-          description="配置消息脱敏规则、AI回复模板和Webhook集成"
+          title={t("common.socialSettings.title")}
+          description={t("common.socialSettings.description")}
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
             <TabsTrigger value="deidentification" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
-              脱敏规则
+              {t("common.socialSettings.tabDesensitize")}
             </TabsTrigger>
             <TabsTrigger value="templates" className="flex items-center gap-2">
               <Bot className="w-4 h-4" />
-              AI模板
+              {t("common.socialSettings.tabTemplates")}
             </TabsTrigger>
             <TabsTrigger value="webhook" className="flex items-center gap-2">
               <Webhook className="w-4 h-4" />
@@ -174,36 +176,36 @@ export default function SocialCommunitySettings() {
           <TabsContent value="deidentification" className="space-y-4">
             <div className="flex justify-between items-center">
               <p className="text-sm text-muted-foreground">
-                配置消息脱敏规则，自动识别和替换敏感信息
+                {t("common.socialSettings.desensitizeHint")}
               </p>
               <Dialog open={showRuleDialog} onOpenChange={setShowRuleDialog}>
                 <DialogTrigger asChild>
                   <Button onClick={() => { setEditingRule(null); setNewRule({ name: "", pattern: "", patternType: "keyword", replacement: "[***]", category: "custom", priority: 0 }); }}>
                     <Plus className="w-4 h-4 mr-2" />
-                    添加规则
+                    {t("common.socialSettings.addRule")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-lg">
                   <DialogHeader>
-                    <DialogTitle>{editingRule ? "编辑脱敏规则" : "添加脱敏规则"}</DialogTitle>
+                    <DialogTitle>{editingRule ? t("common.socialSettings.editRule") : t("common.socialSettings.addRuleTitle")}</DialogTitle>
                     <DialogDescription>
-                      配置敏感信息识别模式和替换文本
+                      {t("common.socialSettings.addRuleDesc")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <Label>规则名称</Label>
+                      <Label>{t("common.socialSettings.ruleName")}</Label>
                       <Input
                         value={editingRule?.name || newRule.name}
                         onChange={(e) => editingRule 
                           ? setEditingRule({ ...editingRule, name: e.target.value })
                           : setNewRule({ ...newRule, name: e.target.value })}
-                        placeholder="如：手机号码脱敏"
+                        placeholder={t("common.socialSettings.ruleNamePlaceholder")}
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>匹配类型</Label>
+                        <Label>{t("common.socialSettings.matchType")}</Label>
                         <Select
                           value={editingRule?.patternType || newRule.patternType}
                           onValueChange={(v: any) => editingRule
@@ -214,14 +216,14 @@ export default function SocialCommunitySettings() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="keyword">关键词</SelectItem>
-                            <SelectItem value="regex">正则表达式</SelectItem>
-                            <SelectItem value="ai_detect">AI检测</SelectItem>
+                            <SelectItem value="keyword">{t("common.socialSettings.keyword")}</SelectItem>
+                            <SelectItem value="regex">{t("common.socialSettings.regex")}</SelectItem>
+                            <SelectItem value="ai_detect">{t("common.socialSettings.aiDetect")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>分类</Label>
+                        <Label>{t("common.socialSettings.category")}</Label>
                         <Select
                           value={editingRule?.category || newRule.category}
                           onValueChange={(v: any) => editingRule
@@ -232,32 +234,32 @@ export default function SocialCommunitySettings() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="price">价格信息</SelectItem>
-                            <SelectItem value="formula">配方信息</SelectItem>
-                            <SelectItem value="personal">个人信息</SelectItem>
-                            <SelectItem value="business">商业信息</SelectItem>
-                            <SelectItem value="custom">自定义</SelectItem>
+                            <SelectItem value="price">{t("common.socialSettings.catPrice")}</SelectItem>
+                            <SelectItem value="formula">{t("common.socialSettings.catFormula")}</SelectItem>
+                            <SelectItem value="personal">{t("common.socialSettings.catPersonal")}</SelectItem>
+                            <SelectItem value="business">{t("common.socialSettings.catBusiness")}</SelectItem>
+                            <SelectItem value="custom">{t("common.socialSettings.catCustom")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>匹配模式</Label>
+                      <Label>{t("common.socialSettings.matchPattern")}</Label>
                       <Textarea
                         value={editingRule?.pattern || newRule.pattern}
                         onChange={(e) => editingRule
                           ? setEditingRule({ ...editingRule, pattern: e.target.value })
                           : setNewRule({ ...newRule, pattern: e.target.value })}
-                        placeholder={newRule.patternType === 'keyword' ? "关键词1,关键词2,关键词3" : "正则表达式，如：1[3-9]\\d{9}"}
+                        placeholder={newRule.patternType === 'keyword' ? t("common.socialSettings.keywordPlaceholder") : t("common.socialSettings.regexPlaceholder")}
                         rows={2}
                       />
                       <p className="text-xs text-muted-foreground">
-                        {newRule.patternType === 'keyword' ? "多个关键词用逗号分隔" : "使用JavaScript正则表达式语法"}
+                        {newRule.patternType === 'keyword' ? t("common.socialSettings.keywordHint") : t("common.socialSettings.regexHint")}
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>替换文本</Label>
+                        <Label>{t("common.socialSettings.replacementText")}</Label>
                         <Input
                           value={editingRule?.replacement || newRule.replacement}
                           onChange={(e) => editingRule
@@ -267,7 +269,7 @@ export default function SocialCommunitySettings() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>优先级</Label>
+                        <Label>{t("common.socialSettings.priority")}</Label>
                         <Input
                           type="number"
                           value={editingRule?.priority || newRule.priority}
@@ -281,7 +283,7 @@ export default function SocialCommunitySettings() {
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => { setShowRuleDialog(false); setEditingRule(null); }}>
-                      取消
+                      {t("common.socialSettings.cancel")}
                     </Button>
                     <Button
                       onClick={() => {
@@ -301,7 +303,7 @@ export default function SocialCommunitySettings() {
                       }}
                       disabled={createRuleMutation.isPending || updateRuleMutation.isPending}
                     >
-                      {createRuleMutation.isPending || updateRuleMutation.isPending ? "保存中..." : "保存"}
+                      {createRuleMutation.isPending || updateRuleMutation.isPending ? t("common.socialSettings.saving") : t("common.socialSettings.save")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -319,17 +321,17 @@ export default function SocialCommunitySettings() {
                           <h3 className="font-medium">{rule.name}</h3>
                           {getCategoryBadge(rule.category)}
                           <Badge variant="outline" className="text-xs">
-                            {rule.pattern_type === 'keyword' ? '关键词' : rule.pattern_type === 'regex' ? '正则' : 'AI检测'}
+                            {rule.pattern_type === 'keyword' ? t("common.socialSettings.keywordBadge") : rule.pattern_type === 'regex' ? t("common.socialSettings.regexBadge") : t("common.socialSettings.aiDetectBadge")}
                           </Badge>
                           {rule.is_enabled ? (
-                            <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30">启用</Badge>
+                            <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30">{t("common.socialSettings.enabled")}</Badge>
                           ) : (
-                            <Badge variant="outline" className="bg-gray-500/20 text-gray-400 border-gray-500/30">禁用</Badge>
+                            <Badge variant="outline" className="bg-gray-500/20 text-gray-400 border-gray-500/30">{t("common.socialSettings.disabledBadge")}</Badge>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground font-mono">{rule.pattern}</p>
                         <p className="text-xs text-muted-foreground">
-                          替换为: <span className="text-primary">{rule.replacement}</span> | 优先级: {rule.priority}
+                          {t("common.socialSettings.replaceWith")}: <span className="text-primary">{rule.replacement}</span> | {t("common.socialSettings.priorityLabel")}: {rule.priority}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -347,7 +349,7 @@ export default function SocialCommunitySettings() {
                           variant="ghost"
                           size="icon"
                           onClick={() => {
-                            if (confirm("确定要删除此规则吗？")) {
+                            if (confirm(t("common.socialSettings.confirmDeleteRule"))) {
                               deleteRuleMutation.mutate({ id: rule.id });
                             }
                           }}
@@ -366,30 +368,30 @@ export default function SocialCommunitySettings() {
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <TestTube className="w-5 h-5" />
-                  测试脱敏效果
+                  {t("common.socialSettings.testEffect")}
                 </CardTitle>
-                <CardDescription>输入测试文本，验证脱敏规则效果</CardDescription>
+                <CardDescription>{t("common.socialSettings.testEffectDesc")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Textarea
                   value={testText}
                   onChange={(e) => setTestText(e.target.value)}
-                  placeholder="输入包含敏感信息的测试文本，如：我的手机号是13812345678，报价是10000元"
+                  placeholder={t("common.socialSettings.testPlaceholder")}
                   rows={3}
                 />
                 <Button
                   onClick={() => testDeidentificationMutation.mutate({ text: testText })}
                   disabled={!testText || testDeidentificationMutation.isPending}
                 >
-                  {testDeidentificationMutation.isPending ? "测试中..." : "测试脱敏"}
+                  {testDeidentificationMutation.isPending ? t("common.socialSettings.testing") : t("common.socialSettings.testDesensitize")}
                 </Button>
                 {testResult && (
                   <div className="space-y-2 p-4 rounded-lg bg-muted/50">
-                    <p className="text-sm font-medium">脱敏结果:</p>
+                    <p className="text-sm font-medium">{t("common.socialSettings.desensitizeResult")}</p>
                     <p className="text-sm text-primary">{testResult.deidentifiedText}</p>
                     {testResult.matchedRules?.length > 0 && (
                       <div className="mt-2">
-                        <p className="text-xs text-muted-foreground">匹配的规则:</p>
+                        <p className="text-xs text-muted-foreground">{t("common.socialSettings.matchedRules")}</p>
                         <div className="flex flex-wrap gap-2 mt-1">
                           {testResult.matchedRules.map((r: any, i: number) => (
                             <Badge key={i} variant="outline" className="text-xs">
@@ -409,36 +411,36 @@ export default function SocialCommunitySettings() {
           <TabsContent value="templates" className="space-y-4">
             <div className="flex justify-between items-center">
               <p className="text-sm text-muted-foreground">
-                配置AI回复模板，提高回复质量和一致性
+                {t("common.socialSettings.templateHint")}
               </p>
               <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
                 <DialogTrigger asChild>
                   <Button onClick={() => { setEditingTemplate(null); setNewTemplate({ name: "", category: "custom", promptTemplate: "", systemPrompt: "", variables: [], isDefault: false }); }}>
                     <Plus className="w-4 h-4 mr-2" />
-                    添加模板
+                    {t("common.socialSettings.addTemplate")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>{editingTemplate ? "编辑AI模板" : "添加AI模板"}</DialogTitle>
+                    <DialogTitle>{editingTemplate ? t("common.socialSettings.editTemplate") : t("common.socialSettings.addTemplateTitle")}</DialogTitle>
                     <DialogDescription>
-                      配置AI回复的系统提示词和用户提示词模板
+                      {t("common.socialSettings.addTemplateDesc")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>模板名称</Label>
+                        <Label>{t("common.socialSettings.templateName")}</Label>
                         <Input
                           value={editingTemplate?.name || newTemplate.name}
                           onChange={(e) => editingTemplate
                             ? setEditingTemplate({ ...editingTemplate, name: e.target.value })
                             : setNewTemplate({ ...newTemplate, name: e.target.value })}
-                          placeholder="如：技术问题回复"
+                          placeholder={t("common.socialSettings.templateNamePlaceholder")}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>分类</Label>
+                        <Label>{t("common.socialSettings.category")}</Label>
                         <Select
                           value={editingTemplate?.category || newTemplate.category}
                           onValueChange={(v: any) => editingTemplate
@@ -449,39 +451,39 @@ export default function SocialCommunitySettings() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="greeting">问候语</SelectItem>
-                            <SelectItem value="technical">技术支持</SelectItem>
-                            <SelectItem value="sales">销售咨询</SelectItem>
-                            <SelectItem value="support">售后支持</SelectItem>
-                            <SelectItem value="farewell">告别语</SelectItem>
-                            <SelectItem value="custom">自定义</SelectItem>
+                            <SelectItem value="greeting">{t("common.socialSettings.catGreeting")}</SelectItem>
+                            <SelectItem value="technical">{t("common.socialSettings.catTechnical")}</SelectItem>
+                            <SelectItem value="sales">{t("common.socialSettings.catSales")}</SelectItem>
+                            <SelectItem value="support">{t("common.socialSettings.catSupport")}</SelectItem>
+                            <SelectItem value="farewell">{t("common.socialSettings.catFarewell")}</SelectItem>
+                            <SelectItem value="custom">{t("common.socialSettings.catCustom")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>系统提示词</Label>
+                      <Label>{t("common.socialSettings.systemPrompt")}</Label>
                       <Textarea
                         value={editingTemplate?.system_prompt || newTemplate.systemPrompt}
                         onChange={(e) => editingTemplate
                           ? setEditingTemplate({ ...editingTemplate, system_prompt: e.target.value })
                           : setNewTemplate({ ...newTemplate, systemPrompt: e.target.value })}
-                        placeholder="定义AI的角色和行为规则..."
+                        placeholder={t("common.socialSettings.systemPromptPlaceholder")}
                         rows={4}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>用户提示词模板</Label>
+                      <Label>{t("common.socialSettings.userPromptTemplate")}</Label>
                       <Textarea
                         value={editingTemplate?.prompt_template || newTemplate.promptTemplate}
                         onChange={(e) => editingTemplate
                           ? setEditingTemplate({ ...editingTemplate, prompt_template: e.target.value })
                           : setNewTemplate({ ...newTemplate, promptTemplate: e.target.value })}
-                        placeholder="使用 {{变量名}} 作为占位符，如：请回复以下问题：{{message}}"
+                        placeholder={t("common.socialSettings.userPromptPlaceholder")}
                         rows={4}
                       />
                       <p className="text-xs text-muted-foreground">
-                        使用 {"{{变量名}}"} 语法定义可替换的变量
+                        {t("common.socialSettings.variableHint")}
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -491,12 +493,12 @@ export default function SocialCommunitySettings() {
                           ? setEditingTemplate({ ...editingTemplate, is_default: checked })
                           : setNewTemplate({ ...newTemplate, isDefault: checked })}
                       />
-                      <Label>设为默认模板</Label>
+                      <Label>{t("common.socialSettings.setDefault")}</Label>
                     </div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => { setShowTemplateDialog(false); setEditingTemplate(null); }}>
-                      取消
+                      {t("common.socialSettings.cancel")}
                     </Button>
                     <Button
                       onClick={() => {
@@ -515,7 +517,7 @@ export default function SocialCommunitySettings() {
                       }}
                       disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}
                     >
-                      {createTemplateMutation.isPending || updateTemplateMutation.isPending ? "保存中..." : "保存"}
+                      {createTemplateMutation.isPending || updateTemplateMutation.isPending ? t("common.socialSettings.saving") : t("common.socialSettings.save")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -532,12 +534,12 @@ export default function SocialCommunitySettings() {
                         <CardTitle className="text-base flex items-center gap-2">
                           {template.name}
                           {template.is_default && (
-                            <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 text-xs">默认</Badge>
+                            <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 text-xs">{t("common.socialSettings.defaultBadge")}</Badge>
                           )}
                         </CardTitle>
                         <div className="flex items-center gap-2">
                           {getCategoryBadge(template.category)}
-                          <span className="text-xs text-muted-foreground">使用次数: {template.usage_count}</span>
+                          <span className="text-xs text-muted-foreground">{t("common.socialSettings.usageCount")}: {template.usage_count}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
@@ -555,7 +557,7 @@ export default function SocialCommunitySettings() {
                           variant="ghost"
                           size="icon"
                           onClick={() => {
-                            if (confirm("确定要删除此模板吗？")) {
+                            if (confirm(t("common.socialSettings.confirmDeleteTemplate"))) {
                               deleteTemplateMutation.mutate({ id: template.id });
                             }
                           }}
@@ -568,11 +570,11 @@ export default function SocialCommunitySettings() {
                   <CardContent>
                     <div className="space-y-2">
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">系统提示词:</p>
+                        <p className="text-xs text-muted-foreground mb-1">{t("common.socialSettings.systemPromptLabel")}</p>
                         <p className="text-sm line-clamp-2">{template.system_prompt}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">用户提示词模板:</p>
+                        <p className="text-xs text-muted-foreground mb-1">{t("common.socialSettings.userPromptLabel")}</p>
                         <p className="text-sm line-clamp-2 font-mono text-xs">{template.prompt_template}</p>
                       </div>
                     </div>
@@ -588,10 +590,10 @@ export default function SocialCommunitySettings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Webhook className="w-5 h-5" />
-                  Social Bridge Webhook配置
+                  {t("common.socialSettings.webhookTitle")}
                 </CardTitle>
                 <CardDescription>
-                  配置与Social Bridge的Webhook集成，启用微信群消息监听
+                  {t("common.socialSettings.webhookDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -599,10 +601,9 @@ export default function SocialCommunitySettings() {
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-yellow-500">配置说明</p>
+                      <p className="text-sm font-medium text-yellow-500">{t("common.socialSettings.webhookConfigNote")}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Social Bridge是微信群消息转发服务，需要单独部署。配置Webhook URL后，
-                        群消息将自动转发到本系统进行AI处理和审核。
+                        {t("common.socialSettings.webhookConfigDesc")}
                       </p>
                     </div>
                   </div>
@@ -610,7 +611,7 @@ export default function SocialCommunitySettings() {
                 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Webhook接收地址（本系统）</Label>
+                    <Label>{t("common.socialSettings.webhookReceiveUrl")}</Label>
                     <div className="flex gap-2">
                       <Input
                         value={`${window.location.origin}/api/trpc/socialCommunity.receiveMessage`}
@@ -621,20 +622,20 @@ export default function SocialCommunitySettings() {
                         variant="outline"
                         onClick={() => {
                           navigator.clipboard.writeText(`${window.location.origin}/api/trpc/socialCommunity.receiveMessage`);
-                          toast.success("已复制到剪贴板");
+                          toast.success(t("common.socialSettings.copiedToClipboard"));
                         }}
                       >
-                        复制
+                        {t("common.socialSettings.copy")}
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      将此地址配置到Social Bridge的消息转发目标
+                      {t("common.socialSettings.webhookUrlHint")}
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>消息格式</Label>
+                      <Label>{t("common.socialSettings.msgFormat")}</Label>
                       <Select defaultValue="json">
                         <SelectTrigger>
                           <SelectValue />
@@ -646,7 +647,7 @@ export default function SocialCommunitySettings() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>认证方式</Label>
+                      <Label>{t("common.socialSettings.authMethod")}</Label>
                       <Select defaultValue="bearer">
                         <SelectTrigger>
                           <SelectValue />
@@ -654,7 +655,7 @@ export default function SocialCommunitySettings() {
                         <SelectContent>
                           <SelectItem value="bearer">Bearer Token</SelectItem>
                           <SelectItem value="basic">Basic Auth</SelectItem>
-                          <SelectItem value="none">无认证</SelectItem>
+                          <SelectItem value="none">{t("common.socialSettings.noAuth")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -663,11 +664,11 @@ export default function SocialCommunitySettings() {
                   <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-yellow-500 animate-pulse"></div>
-                      <span className="text-sm">Webhook状态: 等待配置</span>
+                      <span className="text-sm">{t("common.socialSettings.webhookStatus")}</span>
                     </div>
                     <Button variant="outline" size="sm" disabled>
                       <TestTube className="w-4 h-4 mr-2" />
-                      测试连接
+                      {t("common.socialSettings.testConnection")}
                     </Button>
                   </div>
                 </div>

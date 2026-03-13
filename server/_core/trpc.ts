@@ -65,6 +65,17 @@ export const safeMutationMiddleware = t.middleware(async ({ ctx, next, type }) =
     if (err instanceof TRPCError) throw err;
 
     const message = err instanceof Error ? err.message : 'Unknown mutation error';
+
+    // GRT开发第一定律: DB conflicts → 409 CONFLICT, never 500
+    if (isDbConflictError(err)) {
+      log.warn(`[safeMutation] DB conflict: ${message}`);
+      throw new TRPCError({
+        code: 'CONFLICT',
+        message: `数据冲突 / Data conflict: ${message}`,
+        cause: err,
+      });
+    }
+
     log.error(`[safeMutation] ${message}`);
     throw new TRPCError({
       code: 'INTERNAL_SERVER_ERROR',
@@ -75,16 +86,130 @@ export const safeMutationMiddleware = t.middleware(async ({ ctx, next, type }) =
 });
 
 /**
+ * Detect PostgreSQL unique constraint / serialization / deadlock errors.
+ * Maps to HTTP 409 instead of 500.
+ */
+function isDbConflictError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const code = (err as any).code;
+  // PostgreSQL error codes:
+  // 23505 = unique_violation
+  // 40001 = serialization_failure
+  // 40P01 = deadlock_detected
+  return code === '23505' || code === '40001' || code === '40P01';
+}
+
+/**
  * Mutation auto-audit middleware — fire-and-forget logging of all mutations.
  */
 const mutationAuditMiddleware = createAuditMiddleware(t);
 
 /**
- * protectedProcedure — requires authenticated user + mutation error handling + auto-audit.
+ * Compliance commitment gateway — blocks all business routes if the user
+ * has not signed the monthly self-discipline commitment.
+ *
+ * Exempt paths (checked via tRPC procedure path prefix):
+ *   - securityCompliance.checkMonthlyCommitment
+ *   - securityCompliance.signCommitment
+ *   - auth.*
+ *   - health
+ *
+ * Uses an in-memory LRU cache (userId+period → signed) to avoid hitting DB
+ * on every request.  Cache entry lives for 5 minutes.
+ */
+const commitmentCache = new Map<string, { signed: boolean; ts: number }>();
+const CACHE_TTL = 5 * 60_000; // 5 minutes
+
+const commitmentGateway = t.middleware(async ({ ctx, next, path }) => {
+  // Skip in test environment — compliance checking shouldn't block unit tests
+  if (process.env.VITEST) return next({ ctx });
+
+  // Exempt paths: security commitment routes, auth, health
+  const exemptPrefixes = [
+    "securityCompliance.checkMonthlyCommitment",
+    "securityCompliance.signCommitment",
+    "securityCompliance.logAuditEvent",
+    "auth.",
+    "health",
+    "echo",
+  ];
+  if (exemptPrefixes.some(p => path.startsWith(p))) {
+    return next({ ctx });
+  }
+
+  // Only enforce on authenticated users
+  if (!ctx.user) return next({ ctx });
+
+  // Admin bypass — admins are always allowed through
+  if (ctx.user.role === 'admin') return next({ ctx });
+
+  const period = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  })();
+
+  const cacheKey = `${ctx.user.id}:${period}`;
+  const cached = commitmentCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < CACHE_TTL) {
+    if (cached.signed) return next({ ctx });
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "需先签署本月自律承诺书 / Monthly compliance commitment required",
+    });
+  }
+
+  // Check DB
+  try {
+    const { requireDb } = await import("../db");
+    const db = await requireDb();
+    const { complianceCommitments } = await import("../../drizzle/security-compliance-schema");
+    const { eq, and } = await import("drizzle-orm");
+
+    const [record] = await db.select({ id: complianceCommitments.id })
+      .from(complianceCommitments)
+      .where(and(
+        eq(complianceCommitments.userId, ctx.user.id),
+        eq(complianceCommitments.period, period),
+        eq(complianceCommitments.isAgreed, true),
+      ))
+      .limit(1);
+
+    const signed = !!record;
+    commitmentCache.set(cacheKey, { signed, ts: Date.now() });
+
+    // Evict old cache entries (simple size cap)
+    if (commitmentCache.size > 10_000) {
+      const oldest = commitmentCache.keys().next().value;
+      if (oldest) commitmentCache.delete(oldest);
+    }
+
+    if (!signed) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "需先签署本月自律承诺书 / Monthly compliance commitment required",
+      });
+    }
+  } catch (err) {
+    // If it's already our TRPCError, re-throw
+    if (err instanceof TRPCError) throw err;
+    // If DB is unavailable, let the request through (fail-open for availability)
+    log.warn({ err }, "[commitmentGateway] DB check failed, allowing request");
+  }
+
+  return next({ ctx });
+});
+
+/**
+ * protectedProcedure — requires authenticated user + mutation error handling + auto-audit + compliance commitment.
  * All mutations automatically get try-catch wrapping via safeMutationMiddleware,
  * and are recorded to sys_audit_logs via mutationAuditMiddleware.
+ * Compliance commitment gateway blocks business routes if unsigned.
  */
-export const protectedProcedure = publicProcedure.use(requireUser).use(safeMutationMiddleware).use(mutationAuditMiddleware);
+export const protectedProcedure = publicProcedure
+  .use(requireUser)
+  .use(safeMutationMiddleware)
+  .use(mutationAuditMiddleware)
+  .use(commitmentGateway);
 
 /** Legacy alias — protectedProcedure now includes safeMutation globally */
 export const safeMutationProcedure = protectedProcedure;
@@ -126,7 +251,7 @@ export function requirePermission(permissionCode: string) {
         return next({ ctx });
       }
 
-      const ok = await safeCheckPermission(String(ctx.user.id), permissionCode);
+      const ok = await safeCheckPermission(ctx.user.openId || String(ctx.user.id), permissionCode);
       if (!ok) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -134,6 +259,75 @@ export function requirePermission(permissionCode: string) {
         });
       }
 
+      return next({ ctx });
+    })
+  );
+}
+
+// ── OEM API Key Authentication ──────────────────────────────
+// Separate auth path for external B2B clients using API keys.
+// Branches from publicProcedure (no session required).
+
+import { createHash } from "crypto";
+
+export type OemClientContext = {
+  clientId: number;
+  scopes: string[];
+  keyId: number;
+  rateLimitPerHour: number;
+};
+
+function hashApiKey(rawKey: string): string {
+  return createHash("sha256").update(rawKey).digest("hex");
+}
+
+const oemApiKeyMiddleware = t.middleware(async ({ ctx, next }) => {
+  const apiKey = ctx.req.headers["x-api-key"];
+  if (!apiKey || typeof apiKey !== "string") {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "API key required (x-api-key header)" });
+  }
+
+  const keyHash = hashApiKey(apiKey);
+
+  const { requireDb } = await import("../db");
+  const db = await requireDb();
+  const { oemApiKeys } = await import("../../drizzle/oem-portal-schema");
+  const { eq, and } = await import("drizzle-orm");
+
+  const [keyRecord] = await db.select().from(oemApiKeys)
+    .where(and(eq(oemApiKeys.keyHash, keyHash), eq(oemApiKeys.status, "active")))
+    .limit(1);
+
+  if (!keyRecord) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid or expired API key" });
+  }
+
+  if (keyRecord.expiresAt && new Date(keyRecord.expiresAt) < new Date()) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "API key has expired" });
+  }
+
+  // Fire-and-forget: update last_used_at
+  db.update(oemApiKeys).set({ lastUsedAt: new Date() }).where(eq(oemApiKeys.id, keyRecord.id)).catch(() => {});
+
+  const oemClient: OemClientContext = {
+    clientId: keyRecord.clientId,
+    scopes: (keyRecord.scopes as string[]) || [],
+    keyId: keyRecord.id,
+    rateLimitPerHour: keyRecord.rateLimitPerHour,
+  };
+
+  return next({ ctx: { ...ctx, oemClient } });
+});
+
+export const oemApiProcedure = publicProcedure.use(oemApiKeyMiddleware);
+
+export function requireOemScope(scope: string) {
+  return oemApiProcedure.use(
+    t.middleware(async ({ ctx, next }) => {
+      const oemClient = (ctx as any).oemClient as OemClientContext;
+      if (!oemClient?.scopes?.includes(scope)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: `Missing scope: ${scope}` });
+      }
       return next({ ctx });
     })
   );

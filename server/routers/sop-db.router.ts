@@ -3,7 +3,7 @@
  * Replaces in-memory sop.service.ts with real sopTemplates table
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sopTemplates } from "../../drizzle/production-process-schema";
 import { eq, desc, sql, ilike } from "drizzle-orm";
@@ -118,12 +118,12 @@ export const sopDbRouter = router({
   // 分类列表
   categories: protectedProcedure.query(async () => {
     const db = await requireDb();
-    const items = await db.select({ category: sopTemplates.category }).from(sopTemplates);
+    const items = await db.select({ category: sopTemplates.category }).from(sopTemplates).limit(1000);
     return [...new Set(items.map(i => i.category).filter(Boolean))];
   }),
 
   // 版本升级
-  version: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+  version: requirePermission('project:sop:manage').input(z.object({ id: z.number() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const [sop] = await db.select().from(sopTemplates).where(eq(sopTemplates.id, input.id)).limit(1000);
     if (!sop) return null;

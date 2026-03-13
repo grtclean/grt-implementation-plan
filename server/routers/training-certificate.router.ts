@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { trainingCertificates } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -20,7 +20,7 @@ export const trainingCertificateRouter = router({
   }),
 
   // 创建证书
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('hr:training:manage').input(z.object({
     trainingId: z.number(),
     participantId: z.number(),
     certificateNo: z.string().optional(),
@@ -45,7 +45,7 @@ export const trainingCertificateRouter = router({
   }),
 
   // 更新证书
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('hr:training:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     name: z.string().optional(),
     expiryDate: z.string().optional(),
@@ -68,7 +68,7 @@ export const trainingCertificateRouter = router({
   }),
 
   // 删除证书
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  delete: requirePermission('hr:training:manage').input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(trainingCertificates).where(eq(trainingCertificates.id, parseInt(input.id)));
     return { success: true, message: "删除成功" };
@@ -86,7 +86,7 @@ export const trainingCertificateRouter = router({
   }),
 
   // 颁发证书
-  issue: protectedProcedure.input(z.object({
+  issue: requirePermission('hr:training:manage').input(z.object({
     trainingId: z.number(),
     participantId: z.number(),
     certificateNo: z.string().optional(),

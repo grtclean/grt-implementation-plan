@@ -4,7 +4,7 @@
 
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import {
   createQualityCheckpoint,
   getQualityCheckpoints,
@@ -74,7 +74,7 @@ export const qualityMaterialPerformanceRouter = router({
       return updateQualityCheckpoint(id, data);
     }),
 
-  deleteCheckpoint: protectedProcedure
+  deleteCheckpoint: requirePermission('mfg:qc:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return deleteQualityCheckpoint(input.id);
@@ -114,7 +114,7 @@ export const qualityMaterialPerformanceRouter = router({
       return getCheckResults(input.projectId, input.processCode);
     }),
 
-  analyzeCCD: protectedProcedure
+  analyzeCCD: requirePermission('mfg:qc:manage')
     .input(z.object({
       imageUrl: z.string(),
       checkpointName: z.string(),
@@ -155,7 +155,7 @@ export const qualityMaterialPerformanceRouter = router({
       return getQualityDefects(input.projectId, input.processCode, input.status);
     }),
 
-  updateDefectStatus: protectedProcedure
+  updateDefectStatus: requirePermission('mfg:qc:manage')
     .input(z.object({
       id: z.number(),
       status: z.string(),
@@ -192,7 +192,7 @@ export const qualityMaterialPerformanceRouter = router({
       });
     }),
 
-  updateFlowStatus: protectedProcedure
+  updateFlowStatus: requirePermission('mfg:qc:manage')
     .input(z.object({
       id: z.number(),
       status: z.string(),
@@ -238,7 +238,7 @@ export const qualityMaterialPerformanceRouter = router({
     }),
 
   // ============ 瓶颈分析 ============
-  detectBottlenecks: protectedProcedure
+  detectBottlenecks: requirePermission('mfg:qc:manage')
     .input(z.object({ projectId: z.string() }))
     .mutation(async ({ input }) => {
       return detectBottlenecks(input.projectId);
@@ -253,7 +253,7 @@ export const qualityMaterialPerformanceRouter = router({
       return getBottlenecks(input.projectId, input.status);
     }),
 
-  updateBottleneckStatus: protectedProcedure
+  updateBottleneckStatus: requirePermission('mfg:qc:manage')
     .input(z.object({
       id: z.number(),
       status: z.string(),
@@ -263,7 +263,7 @@ export const qualityMaterialPerformanceRouter = router({
     }),
 
   // ============ 员工绩效 ============
-  calculatePerformance: protectedProcedure
+  calculatePerformance: requirePermission('mfg:qc:manage')
     .input(z.object({
       workerId: z.string(),
       workerName: z.string(),

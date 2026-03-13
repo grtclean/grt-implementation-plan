@@ -40,7 +40,7 @@ export async function updateTelemetry(equipmentId: number, data: { metricType: s
 
 export async function getEquipmentTwin(equipmentId: number) {
   const db = await requireDb();
-  const twins = await db.select().from(schema.iotEquipmentTwins).where(eq(schema.iotEquipmentTwins.equipmentId, equipmentId));
+  const twins = await db.select().from(schema.iotEquipmentTwins).where(eq(schema.iotEquipmentTwins.equipmentId, equipmentId)).limit(1000);
   const telemetry = await db.select().from(schema.iotTelemetryData).where(eq(schema.iotTelemetryData.equipmentId, equipmentId)).orderBy(desc(schema.iotTelemetryData.recordedAt)).limit(100);
   const predictions = await db.select().from(schema.iotMaintenancePredictions).where(eq(schema.iotMaintenancePredictions.equipmentId, equipmentId)).orderBy(desc(schema.iotMaintenancePredictions.createdAt)).limit(10);
   return { equipment: twins[0] ?? null, telemetry, predictions };

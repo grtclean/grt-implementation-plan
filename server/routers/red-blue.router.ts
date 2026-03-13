@@ -10,7 +10,7 @@
 
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -187,7 +187,7 @@ export const redBlueRouter = router({
     }),
 
   /** Create a new red-blue confrontation config. */
-  create: protectedProcedure
+  create: requirePermission('devops:simulator:access')
     .input(createConfigSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -233,7 +233,7 @@ export const redBlueRouter = router({
     }),
 
   /** Update an existing config. */
-  update: protectedProcedure
+  update: requirePermission('devops:simulator:access')
     .input(updateConfigSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -261,7 +261,7 @@ export const redBlueRouter = router({
     }),
 
   /** Delete a config and all its execution records. */
-  delete: protectedProcedure
+  delete: requirePermission('devops:simulator:access')
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -376,7 +376,7 @@ export const redBlueRouter = router({
     }),
 
   /** Create an execution record (a phase/gate for a config). */
-  createExecution: protectedProcedure
+  createExecution: requirePermission('devops:simulator:access')
     .input(createExecutionSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -398,7 +398,7 @@ export const redBlueRouter = router({
     }),
 
   /** Update an execution record (scores, findings, status, etc.). */
-  updateExecution: protectedProcedure
+  updateExecution: requirePermission('devops:simulator:access')
     .input(updateExecutionSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -430,7 +430,7 @@ export const redBlueRouter = router({
     }),
 
   /** Delete an execution record. */
-  deleteExecution: protectedProcedure
+  deleteExecution: requirePermission('devops:simulator:access')
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();

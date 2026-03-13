@@ -3,7 +3,7 @@
  * IATF 16949 Core Tool — DFMEA & PFMEA with RPN calculation
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import { fmeaDocuments, fmeaItems, fmeaActions, controlPlans, controlPlanItems, projects } from "../../drizzle/schema";
@@ -79,7 +79,7 @@ export const fmeaRouter = router({
   }),
 
   // 创建FMEA文档
-  createDocument: protectedProcedure.input(z.object({
+  createDocument: requirePermission('mfg:fmea:manage').input(z.object({
     projectId: z.number().optional(),
     fmeaType: z.enum(["DFMEA", "PFMEA"]),
     title: z.string().min(1),
@@ -107,7 +107,7 @@ export const fmeaRouter = router({
   }),
 
   // 更新FMEA文档
-  updateDocument: protectedProcedure.input(z.object({
+  updateDocument: requirePermission('mfg:fmea:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     title: z.string().optional(),
     scope: z.string().optional(),
@@ -133,7 +133,7 @@ export const fmeaRouter = router({
   }),
 
   // 删除FMEA文档（级联删除）
-  deleteDocument: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  deleteDocument: requirePermission('mfg:fmea:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     // Delete actions for items in this document
@@ -255,7 +255,7 @@ export const fmeaRouter = router({
   }),
 
   // 删除失效模式
-  deleteItem: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  deleteItem: requirePermission('mfg:fmea:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     await db.delete(fmeaActions).where(eq(fmeaActions.fmeaItemId, numId));
@@ -265,7 +265,7 @@ export const fmeaRouter = router({
 
   // ===== FMEA Actions (改进措施) =====
 
-  addAction: protectedProcedure.input(z.object({
+  addAction: requirePermission('mfg:fmea:manage').input(z.object({
     fmeaItemId: z.number(),
     actionDescription: z.string().min(1),
     responsiblePerson: z.string().optional(),
@@ -308,7 +308,7 @@ export const fmeaRouter = router({
     return { success: true, message: "改进措施已更新", data: action };
   }),
 
-  deleteAction: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  deleteAction: requirePermission('mfg:fmea:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(fmeaActions).where(eq(fmeaActions.id, toNum(input.id)));
     return { success: true, message: "改进措施已删除" };

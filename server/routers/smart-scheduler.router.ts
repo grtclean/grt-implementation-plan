@@ -29,7 +29,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 
@@ -580,7 +580,7 @@ export const smartSchedulerRouter = router({
   /**
    * reschedule — manually trigger the self-healing engine.
    */
-  reschedule: protectedProcedure.mutation(async () => {
+  reschedule: requirePermission('mfg:scheduling:run').mutation(async () => {
     const { fleet, dataSource: fleetSource } = await loadFleetFromDb();
     const { schedule, dataSource: schedSource } = await loadScheduleFromDb();
     const result = monitorHealthAndReschedule(fleet, schedule, new Date());
@@ -608,7 +608,7 @@ export const smartSchedulerRouter = router({
   /**
    * seedDemo — create DB tables and seed demo fleet + schedule data.
    */
-  seedDemo: protectedProcedure.mutation(async () => {
+  seedDemo: requirePermission('mfg:scheduling:run').mutation(async () => {
     const db = await requireDb();
 
     // Create tables

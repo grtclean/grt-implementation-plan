@@ -19,7 +19,7 @@ export default function Tools() {
       icon: LayoutTemplate,
       tools: [
         {
-          name: "简道云 (JianDaoYun)",
+          name: "外部数据平台 (External Sync)",
           type: "低代码平台",
           desc: "已选定。平台灵活，API和Webhook功能完善，是实现业务流程数字化的快速通道。",
           tags: ["Core", "Low-Code", "BPM"],
@@ -169,8 +169,8 @@ export default function Tools() {
                           </Badge>
                         ))}
                       </div>
-                      {tool.name.includes("简道云") ? (
-                        <DemoModal toolName={tool.name} type="jiandaoyun" />
+                      {tool.name.includes("外部数据平台") ? (
+                        <DemoModal toolName={tool.name} type="externalSync" />
                       ) : tool.name.includes("Agent") ? (
                         <DemoModal toolName={tool.name} type="agent" />
                       ) : (

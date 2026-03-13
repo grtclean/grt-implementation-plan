@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import {
   generateBomTemplate,
   parseBomCsv,
@@ -12,7 +12,7 @@ import {
   executeBomImport,
   getImportHistory,
   rollbackImport,
-  syncFromJiandaoyun,
+  syncFromExternalSync,
 } from "./bomImport.service";
 
 export const bomImportRouter = router({
@@ -69,7 +69,7 @@ export const bomImportRouter = router({
     }),
 
   /** 下载模板（前端 BomImport.tsx 的 downloadTemplateMutation 调用） */
-  downloadTemplate: protectedProcedure
+  downloadTemplate: requirePermission('rnd:bom:manage')
     .input(z.object({
       processCode: z.string().optional(),
     }))
@@ -78,7 +78,7 @@ export const bomImportRouter = router({
     }),
 
   /** 预览CSV数据（验证但不导入） */
-  previewCsv: protectedProcedure
+  previewCsv: requirePermission('rnd:bom:manage')
     .input(z.object({
       csvText: z.string(),
     }))
@@ -97,7 +97,7 @@ export const bomImportRouter = router({
     }),
 
   /** 执行BOM批量导入 */
-  importCsv: protectedProcedure
+  importCsv: requirePermission('rnd:bom:manage')
     .input(z.object({
       projectId: z.string(),
       verificationId: z.number(),
@@ -123,7 +123,7 @@ export const bomImportRouter = router({
     }),
 
   /** 回滚导入 */
-  rollback: protectedProcedure
+  rollback: requirePermission('rnd:bom:manage')
     .input(z.object({
       importId: z.number(),
     }))
@@ -131,8 +131,8 @@ export const bomImportRouter = router({
       return rollbackImport(input.importId);
     }),
 
-  /** 从简道云同步BOM数据 */
-  syncJiandaoyun: protectedProcedure
+  /** 从外部数据平台同步BOM数据 */
+  syncExternalSync: requirePermission('rnd:bom:manage')
     .input(z.object({
       projectId: z.string(),
       verificationId: z.number(),
@@ -140,7 +140,7 @@ export const bomImportRouter = router({
       fieldMapping: z.record(z.string(), z.string()),
     }))
     .mutation(async ({ input, ctx }) => {
-      return syncFromJiandaoyun({
+      return syncFromExternalSync({
         ...input,
         importedBy: ctx.user?.openId,
       });

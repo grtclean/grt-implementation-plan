@@ -13,7 +13,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import {
   listDocuments,
   createDocument,
@@ -156,7 +156,7 @@ export const knowledgeBaseRouter = router({
   /**
    * 预填充初始GRT技术知识数据
    */
-  seed: protectedProcedure.mutation(async ({ ctx }) => {
+  seed: requirePermission('ai:rag:train').mutation(async ({ ctx }) => {
     const result = await seedInitialKnowledge(ctx.user?.id ?? 0);
     return result;
   }),
@@ -164,7 +164,7 @@ export const knowledgeBaseRouter = router({
   /**
    * 文档使用后提升相关性分数
    */
-  incrementRelevance: protectedProcedure
+  incrementRelevance: requirePermission('ai:rag:train')
     .input(
       z.object({
         id: z.number(),
@@ -194,7 +194,7 @@ export const knowledgeBaseRouter = router({
   /**
    * 解析上传内容，返回可编辑的段落列表
    */
-  parseContent: protectedProcedure
+  parseContent: requirePermission('ai:rag:train')
     .input(
       z.object({
         content: z.string().min(1),

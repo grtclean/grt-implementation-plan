@@ -3,7 +3,7 @@
  * 封装 ai-planning.service.ts 的功能
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import {
   generateWorkPlan,
   updatePlanStatus,
@@ -83,7 +83,7 @@ export const aiPlanningRouter = router({
   }),
 
   // 更新计划任务状态
-  updateTaskStatus: protectedProcedure.input(z.object({
+  updateTaskStatus: requirePermission('ai:hub:access').input(z.object({
     planId: z.string(),
     taskId: z.string(),
     status: z.enum(["pending", "in_progress", "completed"]),

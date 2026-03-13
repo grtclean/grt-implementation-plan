@@ -10,7 +10,7 @@
  * 6. 学习记录
  */
 
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import { z } from "zod";
 import { requireDb } from "../db";
 import { createChildLogger } from "../lib/logger";
@@ -61,7 +61,7 @@ export const employeeAiAssistantRouter = router({
   /**
    * 初始化个人AI助手
    */
-  initialize: protectedProcedure
+  initialize: requirePermission('ai:assistant:chat')
     .input(InitializeInput)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -144,7 +144,7 @@ export const employeeAiAssistantRouter = router({
   /**
    * 获取或创建会话
    */
-  getOrCreateSession: protectedProcedure
+  getOrCreateSession: requirePermission('ai:assistant:chat')
     .input(GetOrCreateSessionInput)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -231,7 +231,7 @@ export const employeeAiAssistantRouter = router({
   /**
    * 发送消息 — async via task queue (conversation memory + RAG in worker)
    */
-  sendMessage: protectedProcedure
+  sendMessage: requirePermission('ai:assistant:chat')
     .input(SendMessageInput)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -355,7 +355,7 @@ export const employeeAiAssistantRouter = router({
     }),
 
   /** Async LLM page suggestions — submit to task queue */
-  requestPageSuggestions: protectedProcedure
+  requestPageSuggestions: requirePermission('ai:assistant:chat')
     .input(z.object({
       routePath: z.string(),
       pageContext: z.string().optional(),
@@ -396,7 +396,8 @@ export const employeeAiAssistantRouter = router({
       const skills = await db
         .select()
         .from(employeeSkillMaps)
-        .where(eq(employeeSkillMaps.employeeId, userId));
+        .where(eq(employeeSkillMaps.employeeId, userId))
+        .limit(1000);
 
       return {
         assistantId: assistant[0].id,
@@ -435,7 +436,8 @@ export const employeeAiAssistantRouter = router({
       // 获取职业路径
       const paths = await db
         .select()
-        .from(careerDevelopmentPaths);
+        .from(careerDevelopmentPaths)
+        .limit(1000);
 
       return paths || [];
     } catch (error) {
@@ -447,7 +449,7 @@ export const employeeAiAssistantRouter = router({
   /**
    * 记录反馈
    */
-  recordFeedback: protectedProcedure
+  recordFeedback: requirePermission('ai:assistant:chat')
     .input(
       z.object({
         type: z.enum(["suggestion", "bug", "other"]),
@@ -524,7 +526,8 @@ export const employeeAiAssistantRouter = router({
       const records = await db
         .select()
         .from(aiLearningRecords)
-        .orderBy(desc(aiLearningRecords.createdAt));
+        .orderBy(desc(aiLearningRecords.createdAt))
+        .limit(1000);
 
       return records || [];
     } catch (error) {
@@ -538,7 +541,7 @@ export const employeeAiAssistantRouter = router({
   /**
    * 一键配置所有员工AI助理
    */
-  provisionAll: protectedProcedure.mutation(async () => {
+  provisionAll: requirePermission('ai:assistant:chat').mutation(async () => {
     try {
       return await provisionAllEmployees();
     } catch (error: any) {
@@ -550,7 +553,7 @@ export const employeeAiAssistantRouter = router({
   /**
    * 配置单个员工AI助理
    */
-  provisionOne: protectedProcedure
+  provisionOne: requirePermission('ai:assistant:chat')
     .input(z.object({ employeeId: z.number() }))
     .mutation(async ({ input }) => {
       try {
@@ -604,7 +607,7 @@ export const employeeAiAssistantRouter = router({
   /**
    * 按角色刷新所有AI助理的预设
    */
-  refreshPresets: protectedProcedure
+  refreshPresets: requirePermission('ai:assistant:chat')
     .input(z.object({ roleId: z.string().optional() }).optional())
     .mutation(async ({ input }) => {
       try {
@@ -627,19 +630,19 @@ export const employeeAiAssistantRouter = router({
       return null;
     }),
 
-  create: protectedProcedure
+  create: requirePermission('ai:assistant:chat')
     .input(z.object({ name: z.string().optional(), type: z.string().optional() }).optional())
     .mutation(async () => {
       return { success: true };
     }),
 
-  update: protectedProcedure
+  update: requirePermission('ai:assistant:chat')
     .input(z.object({ id: z.string(), name: z.string().optional() }).optional())
     .mutation(async () => {
       return { success: true };
     }),
 
-  delete: protectedProcedure
+  delete: requirePermission('ai:assistant:chat')
     .input(z.object({ id: z.string() }))
     .mutation(async () => {
       return { success: true };

@@ -15,6 +15,7 @@ import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 const RISK_COLORS: Record<string, string> = {
@@ -38,6 +39,7 @@ const GRADE_COLORS: Record<string, string> = {
 };
 
 export function MeetingLoadWellbeingTab() {
+  const { t } = useLanguage();
   // Compute load form
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -110,14 +112,14 @@ export function MeetingLoadWellbeingTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Activity className="h-4 w-4 text-indigo-500" />
-            工作负荷计算
+            {t("meeting.load.title")}
           </CardTitle>
-          <CardDescription>选择日期范围和周期类型，计算参会者工作负荷指标</CardDescription>
+          <CardDescription>{t("meeting.load.desc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-3 items-end">
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">开始日期</label>
+              <label className="text-xs text-muted-foreground">{t("meeting.load.startDate")}</label>
               <Input
                 type="date"
                 value={dateFrom}
@@ -126,7 +128,7 @@ export function MeetingLoadWellbeingTab() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">结束日期</label>
+              <label className="text-xs text-muted-foreground">{t("meeting.load.endDate")}</label>
               <Input
                 type="date"
                 value={dateTo}
@@ -135,15 +137,15 @@ export function MeetingLoadWellbeingTab() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">周期类型</label>
+              <label className="text-xs text-muted-foreground">{t("meeting.load.periodType")}</label>
               <Select value={periodType} onValueChange={setPeriodType}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="daily">每日</SelectItem>
-                  <SelectItem value="weekly">每周</SelectItem>
-                  <SelectItem value="monthly">每月</SelectItem>
+                  <SelectItem value="daily">{t("meeting.load.daily")}</SelectItem>
+                  <SelectItem value="weekly">{t("meeting.load.weekly")}</SelectItem>
+                  <SelectItem value="monthly">{t("meeting.load.monthly")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -160,16 +162,16 @@ export function MeetingLoadWellbeingTab() {
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
-              计算工作负荷
+              {t("meeting.load.computeLoad")}
             </Button>
           </div>
           {computeMut.data && (
             <p className="text-sm text-green-600">
-              已计算 {(computeMut.data as any).computed} 名员工的工作负荷数据
+              {t("meeting.load.computed")} {(computeMut.data as any).computed} {t("meeting.load.employeesData")}
             </p>
           )}
           {computeMut.isError && (
-            <p className="text-sm text-red-500">计算失败: {computeMut.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.load.computeFailed")}: {computeMut.error.message}</p>
           )}
         </CardContent>
       </Card>
@@ -178,13 +180,13 @@ export function MeetingLoadWellbeingTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Clock}
-          label="平均周会议时长"
+          label={t("meeting.load.avgWeeklyHours")}
           value={dashboard ? `${dashboard.avgWeeklyHours}h` : "..."}
           subtitle="Avg Weekly Meeting Hours"
         />
         <StatCard
           icon={AlertTriangle}
-          label="超负荷人数"
+          label={t("meeting.load.overloadedCount")}
           value={dashboard?.overloadedCount ?? "..."}
           subtitle="Overloaded Employees"
           iconColor="text-red-600"
@@ -192,7 +194,7 @@ export function MeetingLoadWellbeingTab() {
         />
         <StatCard
           icon={Coffee}
-          label="平均专注时间"
+          label={t("meeting.load.avgFocusTime")}
           value={dashboard ? `${dashboard.avgFocusTimeMinutes}min` : "..."}
           subtitle="Avg Focus Time"
           iconColor="text-green-600"
@@ -200,7 +202,7 @@ export function MeetingLoadWellbeingTab() {
         />
         <StatCard
           icon={Activity}
-          label="平均负荷分"
+          label={t("meeting.load.avgLoadScore")}
           value={dashboard?.avgLoadScore ?? "..."}
           subtitle="Avg Load Score"
           iconColor="text-amber-600"
@@ -213,9 +215,9 @@ export function MeetingLoadWellbeingTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Users className="h-4 w-4" />
-            参会者负荷排行
+            {t("meeting.load.loadRanking")}
           </CardTitle>
-          <CardDescription>按负荷分降序排列的参会者工作负荷详情</CardDescription>
+          <CardDescription>{t("meeting.load.loadRankingDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {loadDetails.length > 0 ? (
@@ -223,14 +225,14 @@ export function MeetingLoadWellbeingTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10">#</TableHead>
-                  <TableHead>姓名</TableHead>
-                  <TableHead>部门</TableHead>
-                  <TableHead className="text-center">会议数</TableHead>
-                  <TableHead className="text-center">总时长(h)</TableHead>
-                  <TableHead className="text-center">背靠背%</TableHead>
-                  <TableHead className="text-center">专注时间</TableHead>
-                  <TableHead className="text-center">负荷分</TableHead>
-                  <TableHead className="text-center">风险等级</TableHead>
+                  <TableHead>{t("meeting.load.name")}</TableHead>
+                  <TableHead>{t("meeting.load.department")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.load.meetingCount")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.load.totalHours")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.load.backToBack")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.load.focusTime")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.load.loadScoreLabel")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.load.riskLevel")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -262,8 +264,8 @@ export function MeetingLoadWellbeingTab() {
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Users className="h-12 w-12 mb-3 opacity-30" />
-              <p>暂无负荷数据</p>
-              <p className="text-sm">请先点击"计算工作负荷"</p>
+              <p>{t("meeting.load.noLoadData")}</p>
+              <p className="text-sm">{t("meeting.load.pleaseCompute")}</p>
             </div>
           )}
         </CardContent>
@@ -272,8 +274,8 @@ export function MeetingLoadWellbeingTab() {
       {/* Section 4: Load Trend Line Chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">负荷趋势</CardTitle>
-          <CardDescription>平均负荷分随时间变化的趋势</CardDescription>
+          <CardTitle className="text-base">{t("meeting.load.loadTrend")}</CardTitle>
+          <CardDescription>{t("meeting.load.loadTrendDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {trends.length > 0 ? (
@@ -296,14 +298,14 @@ export function MeetingLoadWellbeingTab() {
                   stroke="#6366f1"
                   strokeWidth={2}
                   dot={{ r: 3 }}
-                  name="平均负荷分"
+                  name={t("meeting.load.avgLoadScoreLabel")}
                 />
               </LineChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <BarChart3 className="h-12 w-12 mb-3 opacity-30" />
-              <p>暂无趋势数据</p>
+              <p>{t("meeting.load.noTrendData")}</p>
             </div>
           )}
         </CardContent>
@@ -316,7 +318,7 @@ export function MeetingLoadWellbeingTab() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-red-500" />
-              风险分布
+              {t("meeting.load.riskDistribution")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -340,7 +342,7 @@ export function MeetingLoadWellbeingTab() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center py-8 text-muted-foreground">暂无风险分布数据</p>
+              <p className="text-center py-8 text-muted-foreground">{t("meeting.load.noRiskData")}</p>
             )}
           </CardContent>
         </Card>
@@ -350,20 +352,20 @@ export function MeetingLoadWellbeingTab() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Shield className="h-4 w-4 text-orange-500" />
-              燃尽风险警报
+              {t("meeting.load.burnoutAlerts")}
             </CardTitle>
-            <CardDescription>负荷分超过阈值的员工列表</CardDescription>
+            <CardDescription>{t("meeting.load.burnoutDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             {atRisk.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>姓名</TableHead>
-                    <TableHead>部门</TableHead>
-                    <TableHead className="text-center">负荷分</TableHead>
-                    <TableHead className="text-center">时长(h)</TableHead>
-                    <TableHead className="text-center">风险</TableHead>
+                    <TableHead>{t("meeting.load.name")}</TableHead>
+                    <TableHead>{t("meeting.load.department")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.load.loadScoreLabel")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.load.durationH")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.load.risk")}</TableHead>
                     <TableHead className="w-8"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -396,14 +398,14 @@ export function MeetingLoadWellbeingTab() {
                         <TableRow key={`${i}-detail`}>
                           <TableCell colSpan={6} className="bg-muted/30 text-sm">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-2">
-                              <div>会议数: <strong>{row.meeting_count}</strong></div>
-                              <div>背靠背: <strong>{row.back_to_back_ratio}%</strong></div>
-                              <div>专注时间: <strong>{row.focus_time_minutes}min</strong></div>
-                              <div>会议密度: <strong>{row.meeting_density}%</strong></div>
-                              <div>上午会议: <strong>{row.meetings_before_noon}</strong></div>
-                              <div>下午会议: <strong>{row.meetings_after_noon}</strong></div>
-                              <div>协作者: <strong>{row.unique_collaborators}</strong></div>
-                              <div>最长专注: <strong>{row.longest_focus_block}min</strong></div>
+                              <div>{t("meeting.load.meetingCount")}: <strong>{row.meeting_count}</strong></div>
+                              <div>{t("meeting.load.backToBack")}: <strong>{row.back_to_back_ratio}%</strong></div>
+                              <div>{t("meeting.load.focusTime")}: <strong>{row.focus_time_minutes}min</strong></div>
+                              <div>{t("meeting.load.meetingDensity")}: <strong>{row.meeting_density}%</strong></div>
+                              <div>{t("meeting.load.morningMeetings")}: <strong>{row.meetings_before_noon}</strong></div>
+                              <div>{t("meeting.load.afternoonMeetings")}: <strong>{row.meetings_after_noon}</strong></div>
+                              <div>{t("meeting.load.collaborators")}: <strong>{row.unique_collaborators}</strong></div>
+                              <div>{t("meeting.load.longestFocus")}: <strong>{row.longest_focus_block}min</strong></div>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -413,7 +415,7 @@ export function MeetingLoadWellbeingTab() {
                 </TableBody>
               </Table>
             ) : (
-              <p className="text-center py-8 text-muted-foreground">暂无燃尽风险警报</p>
+              <p className="text-center py-8 text-muted-foreground">{t("meeting.load.noBurnoutAlerts")}</p>
             )}
           </CardContent>
         </Card>
@@ -424,9 +426,9 @@ export function MeetingLoadWellbeingTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            团队负荷概览
+            {t("meeting.load.teamOverview")}
           </CardTitle>
-          <CardDescription>各部门平均负荷分对比</CardDescription>
+          <CardDescription>{t("meeting.load.teamOverviewDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {teamData.length > 0 ? (
@@ -437,14 +439,14 @@ export function MeetingLoadWellbeingTab() {
                 <YAxis domain={[0, 100]} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="avg_load_score" fill="#6366f1" name="平均负荷分" />
-                <Bar dataKey="overloaded_percent" fill="#ef4444" name="超负荷比例%" />
+                <Bar dataKey="avg_load_score" fill="#6366f1" name={t("meeting.load.avgLoadScoreLabel")} />
+                <Bar dataKey="overloaded_percent" fill="#ef4444" name={t("meeting.load.overloadedPercent")} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <BarChart3 className="h-12 w-12 mb-3 opacity-30" />
-              <p>暂无团队数据</p>
+              <p>{t("meeting.load.noTeamData")}</p>
             </div>
           )}
         </CardContent>
@@ -455,17 +457,17 @@ export function MeetingLoadWellbeingTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Heart className="h-4 w-4 text-pink-500" />
-            健康评估
+            {t("meeting.load.wellbeingTitle")}
           </CardTitle>
-          <CardDescription>对单个或多个员工进行AI驱动的健康评估</CardDescription>
+          <CardDescription>{t("meeting.load.wellbeingDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Single employee assessment */}
           <div className="flex gap-3 items-end">
             <div className="flex-1 max-w-sm space-y-1">
-              <label className="text-xs text-muted-foreground">员工ID</label>
+              <label className="text-xs text-muted-foreground">{t("meeting.load.employeeId")}</label>
               <Input
-                placeholder="输入员工ID..."
+                placeholder={t("meeting.load.enterEmployeeId")}
                 value={singleEmployeeId}
                 onChange={(e) => setSingleEmployeeId(e.target.value)}
               />
@@ -479,29 +481,29 @@ export function MeetingLoadWellbeingTab() {
               ) : (
                 <Heart className="h-4 w-4 mr-2" />
               )}
-              评估健康
+              {t("meeting.load.assessWellbeing")}
             </Button>
           </div>
           {assessMut.data && (
             <div className="text-sm p-3 bg-muted/50 rounded space-y-1">
               <p>
                 <strong>{(assessMut.data as any).employeeName}</strong> —
-                评分: <Badge className={GRADE_COLORS[(assessMut.data as any).wellbeingGrade] || ""}>{(assessMut.data as any).wellbeingScore}</Badge>
-                等级: <span className={`px-1.5 py-0.5 rounded text-xs ${GRADE_COLORS[(assessMut.data as any).wellbeingGrade] || ""}`}>{(assessMut.data as any).wellbeingGrade}</span>
+                {t("meeting.load.scoreLabel")}: <Badge className={GRADE_COLORS[(assessMut.data as any).wellbeingGrade] || ""}>{(assessMut.data as any).wellbeingScore}</Badge>
+                {t("meeting.load.gradeLabel")}: <span className={`px-1.5 py-0.5 rounded text-xs ${GRADE_COLORS[(assessMut.data as any).wellbeingGrade] || ""}`}>{(assessMut.data as any).wellbeingGrade}</span>
               </p>
               <p className="text-muted-foreground">{(assessMut.data as any).aiNarrative}</p>
             </div>
           )}
           {assessMut.isError && (
-            <p className="text-sm text-red-500">评估失败: {assessMut.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.load.assessFailed")}: {assessMut.error.message}</p>
           )}
 
           {/* Batch assessment */}
           <div className="border-t pt-4 space-y-3">
-            <label className="text-sm font-medium">批量评估</label>
+            <label className="text-sm font-medium">{t("meeting.load.batchAssess")}</label>
             <div className="flex gap-3">
               <Input
-                placeholder="员工ID列表 (逗号分隔): emp-001, emp-002, ..."
+                placeholder={t("meeting.load.batchPlaceholder")}
                 value={batchEmployeeIds}
                 onChange={(e) => setBatchEmployeeIds(e.target.value)}
                 className="flex-1"
@@ -519,13 +521,13 @@ export function MeetingLoadWellbeingTab() {
                 ) : (
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}
-                批量评估
+                {t("meeting.load.batchAssessBtn")}
               </Button>
             </div>
             {batchAssessMut.data && (
               <p className="text-sm text-green-600">
-                已评估 {(batchAssessMut.data as any).assessed} 名，
-                失败 {(batchAssessMut.data as any).errors} 名
+                {t("meeting.load.assessed")} {(batchAssessMut.data as any).assessed} {t("meeting.load.assessedSuffix")},
+                {t("meeting.load.failed")} {(batchAssessMut.data as any).errors} {t("meeting.load.assessedSuffix")}
               </p>
             )}
           </div>
@@ -537,7 +539,7 @@ export function MeetingLoadWellbeingTab() {
         {/* Grade Distribution Pie */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">等级分布</CardTitle>
+            <CardTitle className="text-base">{t("meeting.load.gradeDistribution")}</CardTitle>
           </CardHeader>
           <CardContent>
             {gradePieData.length > 0 ? (
@@ -560,7 +562,7 @@ export function MeetingLoadWellbeingTab() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center py-8 text-muted-foreground">暂无评估数据</p>
+              <p className="text-center py-8 text-muted-foreground">{t("meeting.load.noAssessData")}</p>
             )}
           </CardContent>
         </Card>
@@ -570,7 +572,7 @@ export function MeetingLoadWellbeingTab() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Heart className="h-4 w-4 text-pink-500" />
-              健康评分列表
+              {t("meeting.load.wellbeingScoresList")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -578,16 +580,16 @@ export function MeetingLoadWellbeingTab() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>姓名</TableHead>
-                    <TableHead>部门</TableHead>
-                    <TableHead className="text-center">评分</TableHead>
-                    <TableHead className="text-center">等级</TableHead>
-                    <TableHead className="text-center">负荷</TableHead>
-                    <TableHead className="text-center">平衡</TableHead>
-                    <TableHead className="text-center">协作</TableHead>
-                    <TableHead className="text-center">专注</TableHead>
-                    <TableHead className="text-center">效率</TableHead>
-                    <TableHead className="text-center">趋势</TableHead>
+                    <TableHead>{t("meeting.load.name")}</TableHead>
+                    <TableHead>{t("meeting.load.department")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.load.scoreLabel")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.load.gradeLabel")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.load.dimLoad")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.load.dimBalance")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.load.dimCollaboration")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.load.dimFocus")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.load.dimEfficiency")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.load.dimTrend")}</TableHead>
                     <TableHead className="w-8"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -628,7 +630,7 @@ export function MeetingLoadWellbeingTab() {
                               {/* AI Narrative */}
                               {w.ai_narrative && (
                                 <div>
-                                  <h4 className="text-sm font-medium mb-1">AI 分析</h4>
+                                  <h4 className="text-sm font-medium mb-1">{t("meeting.load.aiAnalysis")}</h4>
                                   <p className="text-sm text-muted-foreground">{w.ai_narrative}</p>
                                 </div>
                               )}
@@ -639,7 +641,7 @@ export function MeetingLoadWellbeingTab() {
                                   if (factors.length > 0) {
                                     return (
                                       <div>
-                                        <h4 className="text-sm font-medium mb-1">风险因素</h4>
+                                        <h4 className="text-sm font-medium mb-1">{t("meeting.load.riskFactors")}</h4>
                                         <div className="flex flex-wrap gap-1">
                                           {factors.map((f: string, fi: number) => (
                                             <Badge key={fi} variant="outline" className="text-xs">{f}</Badge>
@@ -658,7 +660,7 @@ export function MeetingLoadWellbeingTab() {
                                   if (recs.length > 0) {
                                     return (
                                       <div>
-                                        <h4 className="text-sm font-medium mb-1">建议</h4>
+                                        <h4 className="text-sm font-medium mb-1">{t("meeting.load.recommendations")}</h4>
                                         <ul className="space-y-1">
                                           {recs.map((r: string, ri: number) => (
                                             <li key={ri} className="text-sm text-muted-foreground">• {r}</li>
@@ -681,8 +683,8 @@ export function MeetingLoadWellbeingTab() {
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Heart className="h-12 w-12 mb-3 opacity-30" />
-                <p>暂无健康评估数据</p>
-                <p className="text-sm">请先对员工进行健康评估</p>
+                <p>{t("meeting.load.noWellbeingData")}</p>
+                <p className="text-sm">{t("meeting.load.pleaseAssess")}</p>
               </div>
             )}
           </CardContent>

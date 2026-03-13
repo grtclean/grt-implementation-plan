@@ -3,7 +3,7 @@
  * Reads from the flat `employee_competence_assessments` table.
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 

@@ -82,7 +82,8 @@ export async function provisionFleetForEmployee(
   const existing = await db
     .select({ level: aiAgentFleet.level })
     .from(aiAgentFleet)
-    .where(eq(aiAgentFleet.employeeId, employeeId));
+    .where(eq(aiAgentFleet.employeeId, employeeId))
+    .limit(1000);
 
   const existingLevels = new Set(existing.map((a) => a.level));
 
@@ -148,12 +149,14 @@ export async function provisionFleetForAll(): Promise<ProvisionFleetResult> {
     .select({
       employeeId: employeeAiAssistants.employeeId,
     })
-    .from(employeeAiAssistants);
+    .from(employeeAiAssistants)
+    .limit(1000);
 
   // Find employees who already have at least one agent
   const agentEmployees = await db
     .select({ employeeId: aiAgentFleet.employeeId })
-    .from(aiAgentFleet);
+    .from(aiAgentFleet)
+    .limit(1000);
 
   const hasFleet = new Set(agentEmployees.map((a) => a.employeeId));
   const needsFleet = masters.filter((m) => !hasFleet.has(m.employeeId));
@@ -206,7 +209,8 @@ export async function getFleetByEmployee(employeeId: number) {
     .select()
     .from(aiAgentFleet)
     .where(eq(aiAgentFleet.employeeId, employeeId))
-    .orderBy(aiAgentFleet.level);
+    .orderBy(aiAgentFleet.level)
+    .limit(1000);
 
   // Summary stats
   const totalBalance = agents.reduce(
@@ -619,7 +623,8 @@ export async function getFleetAnalytics() {
     })
     .from(aiAgentFleet)
     .groupBy(aiAgentFleet.level)
-    .orderBy(aiAgentFleet.level);
+    .orderBy(aiAgentFleet.level)
+    .limit(1000);
 
   const summary = await getGTokenSummary();
 

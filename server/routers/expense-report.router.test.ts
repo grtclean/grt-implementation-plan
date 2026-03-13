@@ -13,7 +13,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -25,6 +25,12 @@ const { selectResultsQueue, mockReturningResult } = vi.hoisted(() => {
 });
 
 // Mock DB
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => {
     const chain: any = {};
@@ -121,13 +127,13 @@ const sampleLineItem = {
 
 // ── Helper callers ──
 const employeeCaller = (overrides?: Record<string, any>) =>
-  createAuthenticatedCaller({ id: 1, role: "employee", ...overrides });
+  createAdminCaller({ id: 1, role: "employee", ...overrides });
 const financeCaller = (overrides?: Record<string, any>) =>
-  createAuthenticatedCaller({ id: 99, role: "finance_manager", ...overrides });
+  createAdminCaller({ id: 99, role: "finance_manager", ...overrides });
 const adminCaller = (overrides?: Record<string, any>) =>
-  createAuthenticatedCaller({ id: 100, role: "admin", ...overrides });
+  createAdminCaller({ id: 100, role: "admin", ...overrides });
 const directorCaller = (overrides?: Record<string, any>) =>
-  createAuthenticatedCaller({ id: 101, role: "director", ...overrides });
+  createAdminCaller({ id: 101, role: "director", ...overrides });
 
 describe("expenseReport router", () => {
   // ═══ list ═══
@@ -173,7 +179,7 @@ describe("expenseReport router", () => {
 
     it("returns all claims for hr_manager role", async () => {
       selectResultsQueue.push([sampleClaim]);
-      const caller = createAuthenticatedCaller({ id: 50, role: "hr_manager" });
+      const caller = createAdminCaller({ id: 50, role: "hr_manager" });
       const result = await caller.expenseReport.list();
       expect(result.items).toHaveLength(1);
     });
@@ -865,14 +871,14 @@ describe("expenseReport router", () => {
 
     it("hr_manager role can view ranking", async () => {
       selectResultsQueue.push([{ departmentId: 1, total: "10000", count: 3 }]);
-      const caller = createAuthenticatedCaller({ id: 50, role: "hr_manager" });
+      const caller = createAdminCaller({ id: 50, role: "hr_manager" });
       const result = await caller.expenseReport.getDepartmentRanking();
       expect(result).toHaveLength(1);
     });
 
     it("finance_specialist role can view ranking", async () => {
       selectResultsQueue.push([{ departmentId: 1, total: "10000", count: 3 }]);
-      const caller = createAuthenticatedCaller({ id: 50, role: "finance_specialist" });
+      const caller = createAdminCaller({ id: 50, role: "finance_specialist" });
       const result = await caller.expenseReport.getDepartmentRanking();
       expect(result).toHaveLength(1);
     });

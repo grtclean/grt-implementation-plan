@@ -20,10 +20,10 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { productionEquipments } from "../../drizzle/production-equipment-schema";
 import { productionShiftLogs, oeeSnapshots } from "../../drizzle/oee-schema";
 
@@ -227,6 +227,72 @@ async function safeQuery<T>(fn: () => Promise<T>): Promise<T | null> {
 }
 
 export const oeeDashboardRouter = router({
+  /**
+   * Global equipment dashboard for LobbyGlobalScreen.
+   * Returns real equipment list grouped by region, with OEE from latest snapshots.
+   */
+  getGlobalEquipmentDashboard: protectedProcedure.query(async () => {
+    const db = await requireDb();
+    try {
+      const eqResult = await db.execute(sql`
+        SELECT id, code, name, type, location, status
+        FROM production_equipments
+        WHERE status != 'decommissioned'
+        ORDER BY location, code
+        LIMIT 100
+      `);
+
+      let oeeMap: Record<number, number> = {};
+      try {
+        const oeeResult = await db.execute(sql`
+          SELECT machine_id, oee
+          FROM oee_snapshots
+          WHERE (machine_id, snapshot_date) IN (
+            SELECT machine_id, MAX(snapshot_date)
+            FROM oee_snapshots
+            GROUP BY machine_id
+          )
+          LIMIT 200
+        `);
+        for (const r of ((oeeResult as any).rows ?? [])) {
+          oeeMap[Number(r.machine_id)] = Number(r.oee ?? 0) * 100;
+        }
+      } catch { /* oee_snapshots table may not exist yet */ }
+
+      const rows = ((eqResult as any).rows ?? []).map((r: any) => ({
+        id: r.id,
+        code: r.code,
+        name: r.name,
+        type: r.type,
+        location: r.location || '中国',
+        status: r.status,
+        oee: oeeMap[Number(r.id)] ?? 0,
+      }));
+
+      const regionMap: Record<string, any[]> = {};
+      for (const eq of rows) {
+        const region = eq.location.includes('美') || eq.location.includes('US') ? '美洲'
+          : eq.location.includes('欧') || eq.location.includes('EU') || eq.location.includes('德') ? '欧洲'
+          : '中国';
+        if (!regionMap[region]) regionMap[region] = [];
+        regionMap[region].push(eq);
+      }
+
+      return {
+        equipment: rows,
+        regions: Object.entries(regionMap).map(([name, eqs]) => ({
+          name,
+          count: eqs.length,
+          avgOee: eqs.length > 0 ? Number((eqs.reduce((s: number, e: any) => s + e.oee, 0) / eqs.length).toFixed(1)) : 0,
+        })),
+        totalCount: rows.length,
+        avgOee: rows.length > 0 ? Number((rows.reduce((s: number, e: any) => s + e.oee, 0) / rows.length).toFixed(1)) : 0,
+      };
+    } catch {
+      return { equipment: [], regions: [], totalCount: 0, avgOee: 0 };
+    }
+  }),
+
   /**
    * Dashboard overview: all machines with current OEE.
    * Mock-first: returns realistic data immediately.

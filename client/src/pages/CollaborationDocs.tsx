@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   FolderKanban,
   Upload,
@@ -73,6 +74,7 @@ interface BreadcrumbEntry {
 }
 
 export default function CollaborationDocs() {
+  const { t } = useLanguage();
   const [, navigate] = useLocation();
   const { currentUserRole } = useUserProfile();
   const roleLevel = ROLE_HIERARCHY[currentUserRole] ?? 0;
@@ -81,7 +83,7 @@ export default function CollaborationDocs() {
   const [searchQuery, setSearchQuery] = useState("");
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
-  const [folderPath, setFolderPath] = useState<BreadcrumbEntry[]>([{ id: null, name: "Root" }]);
+  const [folderPath, setFolderPath] = useState<BreadcrumbEntry[]>([{ id: null, name: "root" }]);
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
 
@@ -106,13 +108,13 @@ export default function CollaborationDocs() {
       utils.collaborationDocs.listFolders.invalidate();
       setShowNewFolderDialog(false);
       setNewFolderName("");
-      toast.success("Folder created");
+      toast.success(t("hr.collabDocs.folderCreated"));
     },
   });
   const approveMutation = trpc.collaborationDocs.approveFile.useMutation({
     onSuccess: () => {
       utils.collaborationDocs.listFiles.invalidate();
-      toast.success("File approved");
+      toast.success(t("hr.collabDocs.fileApproved"));
     },
   });
 
@@ -158,9 +160,9 @@ export default function CollaborationDocs() {
         {
           onSuccess: (result) => {
             const statusLabel = (result as any).status === "pending_approval"
-              ? " (pending approval)"
+              ? ` ${t("hr.collabDocs.pendingApproval")}`
               : "";
-            toast.success(`${file.name} uploaded${statusLabel}`);
+            toast.success(`${file.name} ${t("hr.collabDocs.uploaded")}${statusLabel}`);
           },
         }
       );
@@ -179,13 +181,13 @@ export default function CollaborationDocs() {
     <div className="flex flex-col h-full space-y-4">
       <PageHeader
         icon={FolderKanban}
-        title="Collaboration Drive"
-        description="GRT协同云盘 — Manage spreadsheets and office documents online"
+        title={t("hr.collabDocs.title")}
+        description={t("hr.collabDocs.desc")}
         actions={
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="gap-1">
               <HardDrive className="w-3 h-3" />
-              {totalItems} items
+              {totalItems} {t("hr.collabDocs.items")}
             </Badge>
             <Button
               variant="outline"
@@ -194,11 +196,11 @@ export default function CollaborationDocs() {
               onClick={() => setShowNewFolderDialog(!showNewFolderDialog)}
             >
               <FolderPlus className="w-3.5 h-3.5" />
-              New Folder
+              {t("hr.collabDocs.newFolder")}
             </Button>
             <Button size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()}>
               <Plus className="w-3.5 h-3.5" />
-              Upload
+              {t("hr.collabDocs.upload")}
             </Button>
             <input
               ref={fileInputRef}
@@ -227,7 +229,7 @@ export default function CollaborationDocs() {
               {idx === 0 ? (
                 <span className="flex items-center gap-1">
                   <Home className="w-3.5 h-3.5" />
-                  Root
+                  {t("hr.collabDocs.root")}
                 </span>
               ) : (
                 entry.name
@@ -241,21 +243,21 @@ export default function CollaborationDocs() {
       {showNewFolderDialog && (
         <div className="flex items-center gap-2 max-w-md">
           <Input
-            placeholder="Folder name..."
+            placeholder={t("hr.collabDocs.folderPlaceholder")}
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleCreateFolder()}
             autoFocus
           />
           <Button size="sm" onClick={handleCreateFolder} disabled={createFolderMutation.isPending}>
-            Create
+            {t("hr.collabDocs.createBtn")}
           </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => { setShowNewFolderDialog(false); setNewFolderName(""); }}
           >
-            Cancel
+            {t("hr.collabDocs.cancelBtn")}
           </Button>
         </div>
       )}
@@ -264,7 +266,7 @@ export default function CollaborationDocs() {
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Search documents..."
+          placeholder={t("hr.collabDocs.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9"
@@ -275,7 +277,7 @@ export default function CollaborationDocs() {
       {uploadProgress !== null && (
         <div className="max-w-md space-y-1">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Upload className="w-3 h-3" /> Uploading...</span>
+            <span className="flex items-center gap-1"><Upload className="w-3 h-3" /> {t("hr.collabDocs.uploading")}</span>
             <span>{Math.round(uploadProgress)}%</span>
           </div>
           <Progress value={uploadProgress} className="h-1.5" />
@@ -289,13 +291,13 @@ export default function CollaborationDocs() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[40%]">Name</th>
-                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[8%]">Type</th>
-                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[10%]">Size</th>
-                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[10%]">Status</th>
-                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[12%]">Modified</th>
-                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[12%]">Owner</th>
-                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[8%]">Actions</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[40%]">{t("hr.collabDocs.colName")}</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[8%]">{t("hr.collabDocs.colType")}</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[10%]">{t("hr.collabDocs.colSize")}</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[10%]">{t("hr.collabDocs.colStatus")}</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[12%]">{t("hr.collabDocs.colModified")}</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[12%]">{t("hr.collabDocs.colOwner")}</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 w-[8%]">{t("hr.collabDocs.colActions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -303,7 +305,7 @@ export default function CollaborationDocs() {
                   <tr>
                     <td colSpan={7} className="text-center py-16">
                       <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-muted-foreground opacity-50" />
-                      <p className="text-sm text-muted-foreground">Loading documents...</p>
+                      <p className="text-sm text-muted-foreground">{t("hr.collabDocs.loading")}</p>
                     </td>
                   </tr>
                 ) : (
@@ -320,7 +322,7 @@ export default function CollaborationDocs() {
                             <Folder className="w-8 h-8 text-amber-500" />
                             <div>
                               <p className="text-sm font-medium text-foreground">{folder.name}</p>
-                              <p className="text-xs text-muted-foreground">Folder</p>
+                              <p className="text-xs text-muted-foreground">{t("hr.collabDocs.folder")}</p>
                             </div>
                           </div>
                         </td>
@@ -350,8 +352,8 @@ export default function CollaborationDocs() {
                       <tr>
                         <td colSpan={7} className="text-center py-16">
                           <FolderKanban className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-40" />
-                          <p className="text-sm text-muted-foreground">No documents in this folder</p>
-                          <p className="text-xs text-muted-foreground mt-1">Upload a file or create a folder to get started</p>
+                          <p className="text-sm text-muted-foreground">{t("hr.collabDocs.noDocuments")}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{t("hr.collabDocs.getStarted")}</p>
                         </td>
                       </tr>
                     ) : (
@@ -386,12 +388,12 @@ export default function CollaborationDocs() {
                               {isPending ? (
                                 <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50">
                                   <CircleDot className="w-3 h-3" />
-                                  Pending
+                                  {t("hr.collabDocs.pending")}
                                 </Badge>
                               ) : (
                                 <Badge variant="outline" className="gap-1 text-green-600 border-green-300 bg-green-50">
                                   <CheckCircle className="w-3 h-3" />
-                                  Active
+                                  {t("hr.collabDocs.active")}
                                 </Badge>
                               )}
                             </td>
@@ -420,7 +422,7 @@ export default function CollaborationDocs() {
                                   disabled={approveMutation.isPending}
                                 >
                                   <ShieldCheck className="w-3 h-3" />
-                                  Approve
+                                  {t("hr.collabDocs.approve")}
                                 </Button>
                               )}
                             </td>

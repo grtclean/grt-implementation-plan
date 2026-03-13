@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import { jsonValue } from "@shared/validators";
 import { requireDb } from "../db";
 import { TRPCError } from "@trpc/server";
@@ -231,7 +231,7 @@ export const stageGateRouter = router({
     }),
 
   // 更新门径检查项状态
-  updateGateChecklistStatus: protectedProcedure
+  updateGateChecklistStatus: requirePermission('project:stage-gate:manage')
     .input(z.object({
       id: z.number(),
       status: z.enum(['pending', 'pass', 'fail', 'waived', 'not_applicable']),
@@ -451,7 +451,7 @@ export const stageGateRouter = router({
     }),
 
   // 为项目初始化M5设计评审检查项（从M5模板批量创建）
-  initializeM5DesignReview: protectedProcedure
+  initializeM5DesignReview: requirePermission('project:stage-gate:manage')
     .input(z.object({
       projectId: z.number(),
       skipExisting: z.boolean().default(true),
@@ -510,7 +510,7 @@ export const stageGateRouter = router({
     }),
 
   // 批量更新M5某类别下所有检查项状态
-  batchUpdateM5CategoryStatus: protectedProcedure
+  batchUpdateM5CategoryStatus: requirePermission('project:stage-gate:manage')
     .input(z.object({
       projectId: z.number(),
       categoryName: z.string(),
@@ -653,7 +653,7 @@ export const stageGateRouter = router({
     }),
 
   // 确认信号已执行
-  acknowledgePullSignal: protectedProcedure
+  acknowledgePullSignal: requirePermission('project:stage-gate:manage')
     .input(z.object({
       signalId: z.string(),
       executionResult: z.record(z.string(), jsonValue).optional(),

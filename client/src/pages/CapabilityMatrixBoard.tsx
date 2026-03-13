@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Users, Award, Filter } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ── Types ──
 
@@ -24,12 +25,12 @@ interface Assessment {
 // ── Domain Configuration ──
 
 const DOMAINS = [
-  { code: "T", label: "硬核技术力", field: "tScore" as const },
-  { code: "S", label: "软性通用力", field: "sScore" as const },
-  { code: "D", label: "设计与创新力", field: "dScore" as const },
-  { code: "C", label: "沟通协作力", field: "cScore" as const },
-  { code: "K", label: "专业标准力", field: "kScore" as const },
-  { code: "L", label: "领导与战略力", field: "lScore" as const },
+  { code: "T", labelKey: "hr.capMatrix.domainT", field: "tScore" as const },
+  { code: "S", labelKey: "hr.capMatrix.domainS", field: "sScore" as const },
+  { code: "D", labelKey: "hr.capMatrix.domainD", field: "dScore" as const },
+  { code: "C", labelKey: "hr.capMatrix.domainC", field: "cScore" as const },
+  { code: "K", labelKey: "hr.capMatrix.domainK", field: "kScore" as const },
+  { code: "L", labelKey: "hr.capMatrix.domainL", field: "lScore" as const },
 ] as const;
 
 type ScoreField = (typeof DOMAINS)[number]["field"];
@@ -120,6 +121,7 @@ function SkeletonRow({ cols }: { cols: number }) {
 // ── Main Component ──
 
 export default function CapabilityMatrixBoard() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
 
@@ -180,7 +182,7 @@ export default function CapabilityMatrixBoard() {
               </h1>
             </div>
             <p className="text-sm text-[#605e5c] mt-1 ml-[30px]">
-              六大能力模型评估看板
+              {t("hr.capMatrix.subtitle")}
             </p>
           </div>
 
@@ -193,7 +195,7 @@ export default function CapabilityMatrixBoard() {
                 onChange={(e) => setDeptFilter(e.target.value)}
                 className="appearance-none pl-8 pr-8 h-9 text-sm rounded border border-[#8a8886] bg-white text-[#323130] focus:outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] cursor-pointer"
               >
-                <option value="all">全部部门</option>
+                <option value="all">{t("hr.capMatrix.allDepartments")}</option>
                 {departments.map((d) => (
                   <option key={d} value={d}>
                     {d}
@@ -206,7 +208,7 @@ export default function CapabilityMatrixBoard() {
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#605e5c]" />
               <Input
-                placeholder="搜索姓名或部门..."
+                placeholder={t("hr.capMatrix.searchPlaceholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-8 h-9 w-full sm:w-[220px] text-sm border-[#8a8886] bg-white text-[#323130] placeholder:text-[#a19f9d] focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] rounded"
@@ -226,13 +228,13 @@ export default function CapabilityMatrixBoard() {
                   #
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-[#605e5c] uppercase tracking-wider min-w-[100px]">
-                  姓名
+                  {t("hr.capMatrix.colName")}
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-[#605e5c] uppercase tracking-wider min-w-[100px]">
-                  部门
+                  {t("hr.capMatrix.colDept")}
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-[#605e5c] uppercase tracking-wider min-w-[90px]">
-                  岗位
+                  {t("hr.capMatrix.colPosition")}
                 </th>
                 {DOMAINS.map((d) => (
                   <th
@@ -242,7 +244,7 @@ export default function CapabilityMatrixBoard() {
                     <div className="flex flex-col items-center gap-0.5">
                       <span className="text-[#0078d4] font-bold">{d.code}</span>
                       <span className="text-[10px] font-normal text-[#a19f9d] normal-case">
-                        {d.label}
+                        {t(d.labelKey)}
                       </span>
                     </div>
                   </th>
@@ -265,10 +267,10 @@ export default function CapabilityMatrixBoard() {
                     <div className="flex flex-col items-center gap-2">
                       <Users className="h-10 w-10 text-[#c8c6c4]" />
                       <p className="text-sm font-medium text-[#605e5c]">
-                        暂无评估数据
+                        {t("hr.capMatrix.noData")}
                       </p>
                       <p className="text-xs text-[#a19f9d]">
-                        请先完成员工能力评估录入
+                        {t("hr.capMatrix.noDataHint")}
                       </p>
                     </div>
                   </td>
@@ -313,12 +315,12 @@ export default function CapabilityMatrixBoard() {
           <div className="flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5 text-[#0078d4]" />
             <span className="font-semibold text-[#323130]">{summary.count}</span>
-            <span>位员工</span>
+            <span>{t("hr.capMatrix.employees")}</span>
           </div>
 
           <div className="h-3 w-px bg-[#edebe9]" />
 
-          <span className="text-[#a19f9d]">平均分:</span>
+          <span className="text-[#a19f9d]">{t("hr.capMatrix.avgScore")}</span>
           <span>
             T <span className="font-semibold text-[#323130]">{summary.t}</span>
           </span>

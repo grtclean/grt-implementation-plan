@@ -17,7 +17,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import {
   searchSimilarByText,
   findSimilarDocuments,
@@ -212,7 +212,7 @@ export const docIntelligenceRouter = router({
   /**
    * 提交推荐反馈
    */
-  submitFeedback: protectedProcedure
+  submitFeedback: requirePermission('ai:rag:train')
     .input(
       z.object({
         logId: z.number(),

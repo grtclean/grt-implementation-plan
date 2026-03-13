@@ -10,7 +10,7 @@
  */
 import { z } from "zod";
 import { jsonValue } from "@shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   cloudHallSessions,
@@ -115,7 +115,7 @@ export const cloudHallRouter = router({
   /**
    * inviteLeadership — sales invites a specific leader to the session
    */
-  inviteLeadership: protectedProcedure
+  inviteLeadership: requirePermission('devops:matrix:view')
     .input(
       z.object({
         sessionId: z.number(),
@@ -130,7 +130,8 @@ export const cloudHallRouter = router({
       const [session] = await db
         .select()
         .from(cloudHallSessions)
-        .where(eq(cloudHallSessions.id, input.sessionId));
+        .where(eq(cloudHallSessions.id, input.sessionId))
+        .limit(1000);
 
       if (!session) throw new Error("Session not found");
       if (session.status !== "waiting")
@@ -167,7 +168,7 @@ export const cloudHallRouter = router({
   /**
    * joinSession — leadership accepts / joins the session
    */
-  joinSession: protectedProcedure
+  joinSession: requirePermission('devops:matrix:view')
     .input(z.object({ sessionId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
@@ -176,7 +177,8 @@ export const cloudHallRouter = router({
       const [session] = await db
         .select()
         .from(cloudHallSessions)
-        .where(eq(cloudHallSessions.id, input.sessionId));
+        .where(eq(cloudHallSessions.id, input.sessionId))
+        .limit(1000);
 
       if (!session) throw new Error("Session not found");
       if (session.status !== "ringing")
@@ -217,7 +219,8 @@ export const cloudHallRouter = router({
       const [session] = await db
         .select()
         .from(cloudHallSessions)
-        .where(eq(cloudHallSessions.id, input.sessionId));
+        .where(eq(cloudHallSessions.id, input.sessionId))
+        .limit(1000);
 
       if (!session) throw new Error("Session not found");
 
@@ -293,7 +296,7 @@ export const cloudHallRouter = router({
   /**
    * heartbeat — keep-alive ping with optional connection quality
    */
-  heartbeat: protectedProcedure
+  heartbeat: requirePermission('devops:matrix:view')
     .input(
       z.object({
         sessionId: z.number(),
@@ -318,7 +321,8 @@ export const cloudHallRouter = router({
       const [session] = await db
         .select({ signalingState: cloudHallSessions.signalingState })
         .from(cloudHallSessions)
-        .where(eq(cloudHallSessions.id, input.sessionId));
+        .where(eq(cloudHallSessions.id, input.sessionId))
+        .limit(1000);
 
       if (session?.signalingState === "disconnected") {
         updates.signalingState = "connected";
@@ -337,7 +341,7 @@ export const cloudHallRouter = router({
   /**
    * endSession — gracefully end a session
    */
-  endSession: protectedProcedure
+  endSession: requirePermission('devops:matrix:view')
     .input(
       z.object({
         sessionId: z.number(),
@@ -351,7 +355,8 @@ export const cloudHallRouter = router({
       const [session] = await db
         .select()
         .from(cloudHallSessions)
-        .where(eq(cloudHallSessions.id, input.sessionId));
+        .where(eq(cloudHallSessions.id, input.sessionId))
+        .limit(1000);
 
       if (!session) throw new Error("Session not found");
 
@@ -441,7 +446,7 @@ export const cloudHallRouter = router({
   /**
    * seedDemo — insert 3 demonstration sessions
    */
-  seedDemo: protectedProcedure.mutation(async () => {
+  seedDemo: requirePermission('devops:matrix:view').mutation(async () => {
     const db = await requireDb();
 
     const now = new Date();
@@ -456,11 +461,11 @@ export const cloudHallRouter = router({
         sessionCode: `CH-${dateStr}-D01`,
         status: "ended" as const,
         initiatorUserId: 1,
-        initiatorName: "张工 (现场销售)",
+        initiatorName: "戴晓燕 (现场销售)",
         initiatorRole: "bu_sales",
         initiatorDevice: "pad",
         leadershipUserId: 2,
-        leadershipName: "王总 (事业部总经理)",
+        leadershipName: "倪亚东 (事业部总经理)",
         leadershipRole: "bu_gm",
         buId: 1,
         customerName: "上汽大众 MEB 平台",
@@ -482,11 +487,11 @@ export const cloudHallRouter = router({
         sessionCode: `CH-${dateStr}-D02`,
         status: "active" as const,
         initiatorUserId: 3,
-        initiatorName: "李工 (客服工程师)",
+        initiatorName: "蔡瑞 (客服工程师)",
         initiatorRole: "cs_engineer",
         initiatorDevice: "laptop",
         leadershipUserId: 4,
-        leadershipName: "赵总监 (技术总监)",
+        leadershipName: "马林山 (技术总监)",
         leadershipRole: "director",
         buId: 2,
         customerName: "博世长沙",
@@ -505,7 +510,7 @@ export const cloudHallRouter = router({
         sessionCode: `CH-${dateStr}-D03`,
         status: "waiting" as const,
         initiatorUserId: 5,
-        initiatorName: "陈工 (项目经理)",
+        initiatorName: "孙坚 (项目经理)",
         initiatorRole: "bu_pm",
         initiatorDevice: "desktop",
         buId: 3,

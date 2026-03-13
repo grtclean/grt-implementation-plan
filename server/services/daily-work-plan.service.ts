@@ -102,7 +102,7 @@ export async function generateDailyPlan(userId: number) {
   const todayStr = today();
 
   // Get user name
-  const userResult = await db.execute(sql`SELECT name FROM users WHERE id = ${userId}`);
+  const userResult = await db.execute(sql`SELECT name FROM users WHERE id = ${userId} LIMIT 1000`);
   const userName = (userResult.rows as any[])[0]?.name || 'Unknown';
 
   // Query data sources in parallel (each wrapped for resilience)

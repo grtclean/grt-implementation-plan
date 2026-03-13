@@ -102,7 +102,7 @@ vi.mock("../services/uwb.service", () => ({
 
 // ─── Import callers AFTER mocks ─────────────────────────────────────
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -264,7 +264,7 @@ describe("uwb router — auth guards", () => {
 
 describe("uwb.reportLocation", () => {
   it("processes a single location data point and returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.reportLocation(sampleLocationData);
     expect(result).toEqual({ success: true });
     expect(mockProcessLocationData).toHaveBeenCalledOnce();
@@ -280,7 +280,7 @@ describe("uwb.reportLocation", () => {
   });
 
   it("accepts location data without optional fields", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.reportLocation({
       tagId: "TAG-002",
       x: 5,
@@ -292,7 +292,7 @@ describe("uwb.reportLocation", () => {
   });
 
   it("converts string timestamp to Date", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.uwb.reportLocation(sampleLocationData);
     const callArg = mockProcessLocationData.mock.calls[0][0];
     expect(callArg.timestamp).toBeInstanceOf(Date);
@@ -300,7 +300,7 @@ describe("uwb.reportLocation", () => {
 
   it("propagates service errors", async () => {
     mockProcessLocationData.mockRejectedValueOnce(new Error("Database error"));
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.uwb.reportLocation(sampleLocationData)).rejects.toThrow("Database error");
   });
 });
@@ -311,7 +311,7 @@ describe("uwb.reportLocation", () => {
 
 describe("uwb.reportBatchLocations", () => {
   it("processes multiple location data points", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const batch = [
       { ...sampleLocationData, tagId: "TAG-001" },
       { ...sampleLocationData, tagId: "TAG-002", x: 15, y: 25 },
@@ -323,14 +323,14 @@ describe("uwb.reportBatchLocations", () => {
 
   it("handles empty batch", async () => {
     mockProcessBatchLocationData.mockResolvedValueOnce({ processed: 0, errors: 0 });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.reportBatchLocations([]);
     expect(result).toEqual({ processed: 0, errors: 0 });
   });
 
   it("returns error count from partial failures", async () => {
     mockProcessBatchLocationData.mockResolvedValueOnce({ processed: 3, errors: 2 });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.reportBatchLocations([
       sampleLocationData,
       sampleLocationData,
@@ -350,7 +350,7 @@ describe("uwb.reportBatchLocations", () => {
 describe("uwb.getEmployeeWorkHours", () => {
   it("returns work hours summary for an employee", async () => {
     mockGetEmployeeWorkHoursSummary.mockResolvedValueOnce([sampleWorkHoursSummary]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getEmployeeWorkHours({
       employeeId: "emp-1",
       startDate: "2026-03-01",
@@ -363,7 +363,7 @@ describe("uwb.getEmployeeWorkHours", () => {
 
   it("returns empty array when no work hours found", async () => {
     mockGetEmployeeWorkHoursSummary.mockResolvedValueOnce([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getEmployeeWorkHours({
       employeeId: "emp-nonexistent",
       startDate: "2026-03-01",
@@ -378,7 +378,7 @@ describe("uwb.getEmployeeWorkHours", () => {
       { ...sampleWorkHoursSummary, workDate: "2026-03-02", totalMinutes: 460, effectiveMinutes: 400 },
     ];
     mockGetEmployeeWorkHoursSummary.mockResolvedValueOnce(multiDaySummary);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getEmployeeWorkHours({
       employeeId: "emp-1",
       startDate: "2026-03-01",
@@ -395,7 +395,7 @@ describe("uwb.getEmployeeWorkHours", () => {
 describe("uwb.getMyWorkHours", () => {
   it("uses ctx.user.id to fetch current user work hours", async () => {
     mockGetEmployeeWorkHoursSummary.mockResolvedValueOnce([sampleWorkHoursSummary]);
-    const caller = createAuthenticatedCaller({ id: 42 });
+    const caller = createAdminCaller({ id: 42 });
     const result = await caller.uwb.getMyWorkHours({
       startDate: "2026-03-01",
       endDate: "2026-03-31",
@@ -407,7 +407,7 @@ describe("uwb.getMyWorkHours", () => {
 
   it("returns empty when user has no hours", async () => {
     mockGetEmployeeWorkHoursSummary.mockResolvedValueOnce([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getMyWorkHours({
       startDate: "2026-01-01",
       endDate: "2026-01-31",
@@ -428,7 +428,7 @@ describe("uwb.getTodayWorkHoursOverview", () => {
         { employee_id: "e2", employee_name: "Bob", effective_minutes: "300", total_minutes: "400" },
       ],
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getTodayWorkHoursOverview();
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
@@ -443,7 +443,7 @@ describe("uwb.getTodayWorkHoursOverview", () => {
 
   it("returns empty array when no data for today", async () => {
     mockDb.execute.mockResolvedValueOnce([[]]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getTodayWorkHoursOverview();
     expect(result).toEqual([]);
   });
@@ -452,7 +452,7 @@ describe("uwb.getTodayWorkHoursOverview", () => {
     mockDb.execute.mockResolvedValueOnce([
       [{ employee_id: "e1", employee_name: "Charlie", effective_minutes: null, total_minutes: null }],
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getTodayWorkHoursOverview();
     expect(result[0].effectiveMinutes).toBe(0);
     expect(result[0].totalMinutes).toBe(0);
@@ -467,7 +467,7 @@ describe("uwb.getTodayWorkHoursOverview", () => {
 describe("uwb.getResourceCapacity", () => {
   it("returns resource capacity data", async () => {
     mockCalculateResourceCapacity.mockResolvedValueOnce(sampleCapacityData);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getResourceCapacity({ resourceId: "res-1", date: "2026-03-01" });
     expect(result).toEqual(sampleCapacityData);
     expect(mockCalculateResourceCapacity).toHaveBeenCalledWith("res-1", "2026-03-01");
@@ -475,7 +475,7 @@ describe("uwb.getResourceCapacity", () => {
 
   it("returns null when resource not found", async () => {
     mockCalculateResourceCapacity.mockResolvedValueOnce(null);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getResourceCapacity({ resourceId: "nonexistent", date: "2026-03-01" });
     expect(result).toBeNull();
   });
@@ -492,7 +492,7 @@ describe("uwb.getAllResourcesCapacity", () => {
       { ...sampleCapacityData, resourceId: "res-2", resourceName: "CNC Machine #2" },
     ];
     mockGetAllResourcesCapacity.mockResolvedValueOnce(capacities);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getAllResourcesCapacity({ date: "2026-03-01" });
     expect(result).toHaveLength(2);
     expect(mockGetAllResourcesCapacity).toHaveBeenCalledWith("2026-03-01");
@@ -500,7 +500,7 @@ describe("uwb.getAllResourcesCapacity", () => {
 
   it("returns empty array when no resources exist", async () => {
     mockGetAllResourcesCapacity.mockResolvedValueOnce([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getAllResourcesCapacity({ date: "2026-03-01" });
     expect(result).toEqual([]);
   });
@@ -512,33 +512,33 @@ describe("uwb.getAllResourcesCapacity", () => {
 
 describe("uwb.createZone", () => {
   it("creates a zone and returns id + success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.createZone(sampleZoneInput);
     expect(result).toEqual({ id: "zone-uuid-1234", success: true });
     expect(mockCreateZone).toHaveBeenCalledWith(sampleZoneInput);
   });
 
   it("creates a zone without optional buCode", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const { buCode, ...inputWithoutBu } = sampleZoneInput;
     const result = await caller.uwb.createZone(inputWithoutBu);
     expect(result.success).toBe(true);
   });
 
   it("rejects invalid zone type", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const invalidInput = { ...sampleZoneInput, zoneType: "invalid_type" };
     await expect(caller.uwb.createZone(invalidInput as any)).rejects.toThrow();
   });
 
   it("rejects non-positive capacity", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const invalidInput = { ...sampleZoneInput, capacity: 0 };
     await expect(caller.uwb.createZone(invalidInput)).rejects.toThrow();
   });
 
   it("rejects negative capacity", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const invalidInput = { ...sampleZoneInput, capacity: -5 };
     await expect(caller.uwb.createZone(invalidInput)).rejects.toThrow();
   });
@@ -551,7 +551,7 @@ describe("uwb.createZone", () => {
 describe("uwb.getAllZones", () => {
   it("returns all zones", async () => {
     mockGetAllZones.mockResolvedValueOnce([sampleZone]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getAllZones();
     expect(result).toHaveLength(1);
     expect(result[0].zoneName).toBe("生产线A");
@@ -559,7 +559,7 @@ describe("uwb.getAllZones", () => {
 
   it("returns empty when no zones exist", async () => {
     mockGetAllZones.mockResolvedValueOnce([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getAllZones();
     expect(result).toEqual([]);
   });
@@ -580,7 +580,7 @@ describe("uwb.getZoneOccupancy", () => {
         { id: "e1", name: "Alice", lastSeen: new Date("2026-03-01T08:00:00Z") },
       ],
     });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getZoneOccupancy({ zoneId: "zone-1" });
     expect(result.currentCount).toBe(5);
     expect(result.capacity).toBe(20);
@@ -589,7 +589,7 @@ describe("uwb.getZoneOccupancy", () => {
 
   it("throws when zone does not exist", async () => {
     mockGetZoneOccupancy.mockRejectedValueOnce(new Error("区域不存在"));
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.uwb.getZoneOccupancy({ zoneId: "nonexistent" })).rejects.toThrow("区域不存在");
   });
 });
@@ -613,7 +613,7 @@ describe("uwb.getAllZonesOccupancy", () => {
         zoneId: "zone-2", zoneName: "Zone B", currentCount: 7, capacity: 15, employees: [],
       });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getAllZonesOccupancy();
     expect(result).toHaveLength(2);
     expect(result[0].currentCount).toBe(3);
@@ -622,7 +622,7 @@ describe("uwb.getAllZonesOccupancy", () => {
 
   it("returns empty array when no zones exist", async () => {
     mockGetAllZones.mockResolvedValueOnce([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getAllZonesOccupancy();
     expect(result).toEqual([]);
   });
@@ -632,7 +632,7 @@ describe("uwb.getAllZonesOccupancy", () => {
     mockGetAllZones.mockResolvedValueOnce(zones);
     mockGetZoneOccupancy.mockRejectedValueOnce(new Error("DB error"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getAllZonesOccupancy();
     expect(result).toHaveLength(1);
     // Fallback: currentCount = 0, employees = []
@@ -647,7 +647,7 @@ describe("uwb.getAllZonesOccupancy", () => {
 
 describe("uwb.bindTag", () => {
   it("binds a tag to an employee and returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.bindTag({ tagId: "TAG-100", employeeId: "emp-1" });
     expect(result).toEqual({ success: true });
     expect(mockBindTagToEmployee).toHaveBeenCalledWith("TAG-100", "emp-1");
@@ -655,7 +655,7 @@ describe("uwb.bindTag", () => {
 
   it("propagates bind errors", async () => {
     mockBindTagToEmployee.mockRejectedValueOnce(new Error("Employee not found"));
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.uwb.bindTag({ tagId: "TAG-100", employeeId: "invalid" })).rejects.toThrow();
   });
 });
@@ -666,7 +666,7 @@ describe("uwb.bindTag", () => {
 
 describe("uwb.unbindTag", () => {
   it("unbinds a tag and returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.unbindTag({ tagId: "TAG-100" });
     expect(result).toEqual({ success: true });
     expect(mockUnbindTag).toHaveBeenCalledWith("TAG-100");
@@ -674,7 +674,7 @@ describe("uwb.unbindTag", () => {
 
   it("propagates unbind errors", async () => {
     mockUnbindTag.mockRejectedValueOnce(new Error("Tag not found"));
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.uwb.unbindTag({ tagId: "TAG-INVALID" })).rejects.toThrow();
   });
 });
@@ -685,7 +685,7 @@ describe("uwb.unbindTag", () => {
 
 describe("uwb.syncToScheduling", () => {
   it("syncs work hours and returns success message", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.syncToScheduling({
       employeeId: "emp-1",
       taskId: "task-1",
@@ -696,14 +696,14 @@ describe("uwb.syncToScheduling", () => {
   });
 
   it("rejects zero reported hours", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.uwb.syncToScheduling({ employeeId: "emp-1", taskId: "task-1", reportedHours: 0 })
     ).rejects.toThrow();
   });
 
   it("rejects negative reported hours", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.uwb.syncToScheduling({ employeeId: "emp-1", taskId: "task-1", reportedHours: -2 })
     ).rejects.toThrow();
@@ -717,7 +717,7 @@ describe("uwb.syncToScheduling", () => {
 describe("uwb.closeDayWorkHours", () => {
   it("closes day records and returns count", async () => {
     mockCloseWorkHoursForDay.mockResolvedValueOnce(10);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.closeDayWorkHours({ date: "2026-03-01" });
     expect(result).toEqual({ success: true, closedRecords: 10 });
     expect(mockCloseWorkHoursForDay).toHaveBeenCalledWith("2026-03-01");
@@ -725,7 +725,7 @@ describe("uwb.closeDayWorkHours", () => {
 
   it("returns 0 when no records to close", async () => {
     mockCloseWorkHoursForDay.mockResolvedValueOnce(0);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.closeDayWorkHours({ date: "2025-01-01" });
     expect(result.closedRecords).toBe(0);
   });
@@ -748,7 +748,7 @@ describe("uwb.getWorkHoursReport", () => {
         },
       ],
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getWorkHoursReport({
       startDate: "2026-03-01",
       endDate: "2026-03-31",
@@ -776,7 +776,7 @@ describe("uwb.getWorkHoursReport", () => {
         },
       ],
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getWorkHoursReport({
       startDate: "2026-03-01",
       endDate: "2026-03-31",
@@ -798,7 +798,7 @@ describe("uwb.getWorkHoursReport", () => {
         },
       ],
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getWorkHoursReport({
       startDate: "2026-03-01",
       endDate: "2026-03-01",
@@ -809,7 +809,7 @@ describe("uwb.getWorkHoursReport", () => {
 
   it("returns empty array when no data matches", async () => {
     mockDb.execute.mockResolvedValueOnce([[]]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getWorkHoursReport({
       startDate: "2020-01-01",
       endDate: "2020-12-31",
@@ -821,7 +821,7 @@ describe("uwb.getWorkHoursReport", () => {
     mockDb.execute.mockResolvedValueOnce([
       [{ group_id: "emp-1", group_name: "Alice", effective_minutes: "0", total_minutes: "0", work_days: "0" }],
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getWorkHoursReport({
       startDate: "2026-03-01",
       endDate: "2026-03-31",
@@ -830,7 +830,7 @@ describe("uwb.getWorkHoursReport", () => {
   });
 
   it("rejects invalid groupBy value", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.uwb.getWorkHoursReport({
         startDate: "2026-03-01",
@@ -871,7 +871,7 @@ describe("uwb.getAllTagBindings", () => {
         },
       ],
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getAllTagBindings();
     expect(result).toHaveLength(2);
     expect(result[0].tagId).toBe("TAG-001");
@@ -884,7 +884,7 @@ describe("uwb.getAllTagBindings", () => {
 
   it("returns empty array when no bindings exist", async () => {
     mockDb.execute.mockResolvedValueOnce([[]]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getAllTagBindings();
     expect(result).toEqual([]);
   });
@@ -902,7 +902,7 @@ describe("uwb.getUnboundWorkers", () => {
         { id: "w2", name: "Diana", department: null, position: null },
       ],
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getUnboundWorkers();
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({ id: "w1", name: "Charlie", department: "Production", position: "Operator" });
@@ -912,7 +912,7 @@ describe("uwb.getUnboundWorkers", () => {
 
   it("returns empty when all workers are bound", async () => {
     mockDb.execute.mockResolvedValueOnce([[]]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getUnboundWorkers();
     expect(result).toEqual([]);
   });
@@ -961,7 +961,7 @@ describe("uwb.getRealtimeLocations", () => {
         },
       ],
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getRealtimeLocations();
     // TAG-001 appears twice but only latest should be kept
     expect(result).toHaveLength(2);
@@ -973,7 +973,7 @@ describe("uwb.getRealtimeLocations", () => {
 
   it("returns empty when no recent data", async () => {
     mockDb.execute.mockResolvedValueOnce([[]]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getRealtimeLocations();
     expect(result).toEqual([]);
   });
@@ -1011,7 +1011,7 @@ describe("uwb.getHistoryTrack", () => {
         },
       ],
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getHistoryTrack({ tagId: "TAG-001", date: "2026-03-01" });
     expect(result).toHaveLength(2);
     expect(result[0].x).toBe(10);
@@ -1020,7 +1020,7 @@ describe("uwb.getHistoryTrack", () => {
 
   it("supports optional startTime and endTime filters", async () => {
     mockDb.execute.mockResolvedValueOnce([[]]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getHistoryTrack({
       tagId: "TAG-001",
       date: "2026-03-01",
@@ -1034,7 +1034,7 @@ describe("uwb.getHistoryTrack", () => {
 
   it("returns empty for a date with no records", async () => {
     mockDb.execute.mockResolvedValueOnce([[]]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getHistoryTrack({ tagId: "TAG-999", date: "2020-01-01" });
     expect(result).toEqual([]);
   });
@@ -1052,7 +1052,7 @@ describe("uwb.getAvailableHistoryDates", () => {
         { date: "2026-02-28", point_count: "800" },
       ],
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getAvailableHistoryDates({ tagId: "TAG-001" });
     expect(result).toHaveLength(2);
     expect(result[0].date).toBe("2026-03-01");
@@ -1061,7 +1061,7 @@ describe("uwb.getAvailableHistoryDates", () => {
 
   it("returns empty when tag has no history", async () => {
     mockDb.execute.mockResolvedValueOnce([[]]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getAvailableHistoryDates({ tagId: "TAG-NONE" });
     expect(result).toEqual([]);
   });
@@ -1095,7 +1095,7 @@ describe("uwb.getLowBatteryAlerts", () => {
         },
       ],
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getLowBatteryAlerts({});
     expect(result).toHaveLength(2);
     expect(result[0].severity).toBe("warning"); // 15 > 10
@@ -1105,7 +1105,7 @@ describe("uwb.getLowBatteryAlerts", () => {
 
   it("uses custom threshold", async () => {
     mockDb.execute.mockResolvedValueOnce([[]]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getLowBatteryAlerts({ threshold: 50 });
     expect(result).toEqual([]);
     // Verify threshold passed to query
@@ -1113,12 +1113,12 @@ describe("uwb.getLowBatteryAlerts", () => {
   });
 
   it("rejects threshold > 100", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.uwb.getLowBatteryAlerts({ threshold: 101 })).rejects.toThrow();
   });
 
   it("rejects threshold < 0", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.uwb.getLowBatteryAlerts({ threshold: -1 })).rejects.toThrow();
   });
 });
@@ -1152,7 +1152,7 @@ describe("uwb.getLostTagAlerts", () => {
         },
       ],
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getLostTagAlerts({});
     expect(result).toHaveLength(2);
     expect(result[0].tagId).toBe("TAG-LOST1");
@@ -1164,13 +1164,13 @@ describe("uwb.getLostTagAlerts", () => {
 
   it("uses custom offline threshold", async () => {
     mockDb.execute.mockResolvedValueOnce([[]]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.getLostTagAlerts({ offlineMinutes: 60 });
     expect(result).toEqual([]);
   });
 
   it("rejects offlineMinutes < 1", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.uwb.getLostTagAlerts({ offlineMinutes: 0 })).rejects.toThrow();
   });
 });
@@ -1182,7 +1182,7 @@ describe("uwb.getLostTagAlerts", () => {
 describe("uwb.updateTagBattery", () => {
   it("updates battery level and returns success", async () => {
     mockDb.execute.mockResolvedValueOnce([{ affectedRows: 1 }]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.updateTagBattery({ tagId: "TAG-001", batteryLevel: 75 });
     expect(result).toEqual({ success: true });
     expect(mockDb.execute).toHaveBeenCalledWith(
@@ -1193,25 +1193,25 @@ describe("uwb.updateTagBattery", () => {
 
   it("accepts batteryLevel = 0 (minimum)", async () => {
     mockDb.execute.mockResolvedValueOnce([{ affectedRows: 1 }]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.updateTagBattery({ tagId: "TAG-001", batteryLevel: 0 });
     expect(result).toEqual({ success: true });
   });
 
   it("accepts batteryLevel = 100 (maximum)", async () => {
     mockDb.execute.mockResolvedValueOnce([{ affectedRows: 1 }]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.updateTagBattery({ tagId: "TAG-001", batteryLevel: 100 });
     expect(result).toEqual({ success: true });
   });
 
   it("rejects batteryLevel > 100", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.uwb.updateTagBattery({ tagId: "TAG-001", batteryLevel: 101 })).rejects.toThrow();
   });
 
   it("rejects batteryLevel < 0", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.uwb.updateTagBattery({ tagId: "TAG-001", batteryLevel: -5 })).rejects.toThrow();
   });
 });
@@ -1238,7 +1238,7 @@ describe("uwb.sendLowBatteryNotification", () => {
       // Second execute: insert notification
       .mockResolvedValueOnce([{ affectedRows: 1 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.uwb.sendLowBatteryNotification({ tagId: "TAG-001" });
     expect(result).toEqual({ success: true, message: "通知已发送" });
     expect(mockDb.execute).toHaveBeenCalledTimes(2);
@@ -1246,7 +1246,7 @@ describe("uwb.sendLowBatteryNotification", () => {
 
   it("throws when tag does not exist", async () => {
     mockDb.execute.mockResolvedValueOnce([[]]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.uwb.sendLowBatteryNotification({ tagId: "TAG-NONE" })).rejects.toThrow("标签不存在");
   });
 });

@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import * as userProfileService from "../services/user-profile.service";
 import * as emailReminderService from "../services/email-reminder.service";
 
@@ -80,7 +80,7 @@ export const userProfileRouter = router({
     }),
 
   // 更新任务状态
-  updateTaskStatus: protectedProcedure
+  updateTaskStatus: requirePermission('workspace:profile:edit')
     .input(z.object({
       taskId: z.number(),
       status: z.enum(['pending', 'in_progress', 'completed', 'overdue', 'cancelled']),
@@ -96,7 +96,7 @@ export const userProfileRouter = router({
   }),
 
   // 发送任务提醒（管理员功能）
-  sendTaskReminders: protectedProcedure
+  sendTaskReminders: requirePermission('workspace:profile:edit')
     .input(z.object({
       reminderTime: z.string().optional(),
     }).optional())
@@ -129,7 +129,7 @@ export const userProfileRouter = router({
     }),
 
   // 发送每日任务提醒邮件（默认下午3:00）
-  sendDailyReminders: protectedProcedure.mutation(async () => {
+  sendDailyReminders: requirePermission('workspace:profile:edit').mutation(async () => {
     return emailReminderService.sendTaskReminderEmails();
   }),
 

@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import * as delegationService from "./delegation.service";
 
 export const delegationRouter = router({
@@ -17,7 +17,7 @@ export const delegationRouter = router({
       return delegationService.getDelegationsToMe(ctx.user.id);
     }),
 
-  create: protectedProcedure
+  create: requirePermission('hr:delegation:manage')
     .input(z.object({
       delegateeId: z.number(),
       delegateeName: z.string(),
@@ -34,7 +34,7 @@ export const delegationRouter = router({
       });
     }),
 
-  revoke: protectedProcedure
+  revoke: requirePermission('hr:delegation:manage')
     .input(z.object({ delegationId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       return delegationService.revokeDelegation(input.delegationId, ctx.user.id);

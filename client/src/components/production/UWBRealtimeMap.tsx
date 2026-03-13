@@ -162,7 +162,7 @@ const generateMockTags = (): UWBTag[] => {
     },
     {
       id: 'tag-003',
-      name: '王工',
+      name: '焦斌',
       type: 'WORKER',
       status: 'ACTIVE',
       position: { x: 620 + Math.random() * 20, y: 110 + Math.random() * 20, timestamp: baseTime },

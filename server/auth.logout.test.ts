@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
-import { createMockContext } from "./_test/helpers";
+import { createAdminContext } from "./_test/helpers";
 
 describe("auth.logout", () => {
   it("returns success response", async () => {
-    const ctx = createMockContext();
+    const ctx = createAdminContext();
     const caller = appRouter.createCaller(ctx);
 
     const result = await caller.auth.logout();

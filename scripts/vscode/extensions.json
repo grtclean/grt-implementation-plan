@@ -1,0 +1,17 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "ms-vscode.vscode-typescript-next",
+    "dsznajder.es7-react-js-snippets",
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+    "mtxr.sqltools",
+    "humao.rest-client",
+    "github.copilot",
+    "github.copilot-chat",
+    "christian-kohler.path-intellisense"
+  ],
+  "unwantedRecommendations": []
+}

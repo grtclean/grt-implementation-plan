@@ -3,7 +3,7 @@
  * Time tracking, prerequisites checking, and categorized task management.
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { projectTasks, taskTimeSessions, taskPrerequisites } from "../../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -33,7 +33,7 @@ export const taskCockpitRouter = router({
   }),
 
   // Start a time tracking session
-  startTimer: protectedProcedure.input(z.object({
+  startTimer: requirePermission('project:tasks:manage').input(z.object({
     taskId: z.union([z.string(), z.number()]),
     projectId: z.number(),
     phaseCode: z.string().optional(),
@@ -63,7 +63,7 @@ export const taskCockpitRouter = router({
   }),
 
   // Stop the active timer
-  stopTimer: protectedProcedure.input(z.object({
+  stopTimer: requirePermission('project:tasks:manage').input(z.object({
     sessionId: z.number(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
@@ -163,7 +163,7 @@ export const taskCockpitRouter = router({
   }),
 
   // Complete a task (with server-side prerequisite enforcement)
-  completeTask: protectedProcedure.input(z.object({
+  completeTask: requirePermission('project:tasks:manage').input(z.object({
     taskId: z.union([z.string(), z.number()]),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
@@ -187,7 +187,7 @@ export const taskCockpitRouter = router({
   }),
 
   // Seed prerequisite rules (idempotent — skips if rules exist)
-  seedPrerequisites: protectedProcedure.mutation(async () => {
+  seedPrerequisites: requirePermission('project:tasks:manage').mutation(async () => {
     const db = await requireDb();
     const existing = await db.select().from(taskPrerequisites).limit(1000);
     if (existing.length > 0) return { success: true, message: "规则已存在，跳过播种", count: existing.length };
@@ -204,7 +204,7 @@ export const taskCockpitRouter = router({
   }),
 
   // Toggle safety checklist completed flag
-  setSafetyChecklistComplete: protectedProcedure.input(z.object({
+  setSafetyChecklistComplete: requirePermission('project:tasks:manage').input(z.object({
     taskId: z.union([z.string(), z.number()]),
     completed: z.boolean(),
   })).mutation(async ({ input }) => {

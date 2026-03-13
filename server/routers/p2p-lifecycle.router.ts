@@ -9,7 +9,7 @@
  */
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import {
@@ -84,7 +84,7 @@ const frameworkAgreementRouter = router({
     return item;
   }),
 
-  create: protectedProcedure
+  create: requirePermission('supply:procurement:manage')
     .input(z.object({
       supplierId: z.number(),
       supplierName: z.string().optional(),
@@ -106,7 +106,7 @@ const frameworkAgreementRouter = router({
       return item;
     }),
 
-  update: protectedProcedure
+  update: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       title: z.string().optional(),
@@ -127,7 +127,7 @@ const frameworkAgreementRouter = router({
       return item;
     }),
 
-  activate: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  activate: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(frameworkAgreements)
       .set({ status: "active", updatedAt: new Date().toISOString() })
@@ -136,7 +136,7 @@ const frameworkAgreementRouter = router({
     return item;
   }),
 
-  expire: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  expire: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(frameworkAgreements)
       .set({ status: "expired", updatedAt: new Date().toISOString() })
@@ -173,7 +173,7 @@ const rfqRouter = router({
     return item;
   }),
 
-  create: protectedProcedure
+  create: requirePermission('supply:procurement:manage')
     .input(z.object({
       title: z.string().optional(),
       materialCode: z.string().optional(),
@@ -196,7 +196,7 @@ const rfqRouter = router({
       return item;
     }),
 
-  publish: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  publish: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(rfqEvents)
       .set({ status: "published", updatedAt: new Date().toISOString() })
@@ -205,7 +205,7 @@ const rfqRouter = router({
     return item;
   }),
 
-  close: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  close: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(rfqEvents)
       .set({ status: "closed", updatedAt: new Date().toISOString() })
@@ -243,7 +243,7 @@ const rfqRouter = router({
       return quote;
     }),
 
-  evaluateQuotes: protectedProcedure
+  evaluateQuotes: requirePermission('supply:procurement:manage')
     .input(z.object({
       rfqEventId: z.number(),
       scores: z.array(z.object({
@@ -286,7 +286,7 @@ const rfqRouter = router({
       return { ranked: results.length };
     }),
 
-  awardQuote: protectedProcedure
+  awardQuote: requirePermission('supply:procurement:manage')
     .input(z.object({
       rfqEventId: z.number(),
       quoteId: z.number(),
@@ -374,7 +374,7 @@ const deliveryRouter = router({
     return item;
   }),
 
-  register: protectedProcedure
+  register: requirePermission('supply:procurement:manage')
     .input(z.object({
       purchaseOrderId: z.number().optional(),
       poNumber: z.string().optional(),
@@ -401,7 +401,7 @@ const deliveryRouter = router({
       return item;
     }),
 
-  updateStatus: protectedProcedure
+  updateStatus: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       status: z.enum(["pending", "received", "qc_pending", "qc_passed", "qc_failed", "warehouse_confirmed", "rejected"]),
@@ -415,7 +415,7 @@ const deliveryRouter = router({
       return item;
     }),
 
-  linkQcInspection: protectedProcedure
+  linkQcInspection: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       qcInspectionId: z.number(),
@@ -433,7 +433,7 @@ const deliveryRouter = router({
       return item;
     }),
 
-  confirmReceipt: protectedProcedure
+  confirmReceipt: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       warehouseReceiptId: z.number().optional(),
@@ -471,7 +471,7 @@ const supplierReportRouter = router({
       return { items, total: items.length };
     }),
 
-  submit: protectedProcedure
+  submit: requirePermission('supply:procurement:manage')
     .input(z.object({
       supplierId: z.number(),
       supplierName: z.string().optional(),
@@ -489,7 +489,7 @@ const supplierReportRouter = router({
       return item;
     }),
 
-  verify: protectedProcedure
+  verify: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       verificationStatus: z.enum(["verified", "rejected"]),
@@ -535,7 +535,7 @@ const paymentRouter = router({
     return item;
   }),
 
-  initiate: protectedProcedure
+  initiate: requirePermission('supply:procurement:manage')
     .input(z.object({
       invoiceId: z.number().optional(),
       invoiceNumber: z.string().optional(),
@@ -557,7 +557,7 @@ const paymentRouter = router({
       return item;
     }),
 
-  checkPaymentTerm: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  checkPaymentTerm: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [wf] = await db.select().from(paymentWorkflows).where(eq(paymentWorkflows.id, toNum(input.id))).limit(1000);
     if (!wf) throw new Error("工作流不存在");
@@ -573,7 +573,7 @@ const paymentRouter = router({
     return item;
   }),
 
-  confirmQualityOk: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  confirmQualityOk: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(paymentWorkflows)
       .set({
@@ -587,7 +587,7 @@ const paymentRouter = router({
     return item;
   }),
 
-  submitBuApproval: protectedProcedure
+  submitBuApproval: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
     }))
@@ -606,7 +606,7 @@ const paymentRouter = router({
       return item;
     }),
 
-  submitQualityApproval: protectedProcedure
+  submitQualityApproval: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
     }))
@@ -625,7 +625,7 @@ const paymentRouter = router({
       return item;
     }),
 
-  approvePayment: protectedProcedure
+  approvePayment: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
     }))
@@ -644,7 +644,7 @@ const paymentRouter = router({
       return item;
     }),
 
-  procurementConfirm: protectedProcedure
+  procurementConfirm: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
     }))
@@ -667,7 +667,7 @@ const paymentRouter = router({
       return item;
     }),
 
-  supplierConfirm: protectedProcedure
+  supplierConfirm: requirePermission('supply:procurement:manage')
     .input(z.object({ token: z.string() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -687,7 +687,7 @@ const paymentRouter = router({
       return item;
     }),
 
-  archiveContract: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  archiveContract: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const now = new Date().toISOString();
     const [item] = await db.update(paymentWorkflows)
@@ -716,7 +716,7 @@ const smallValueRouter = router({
       return { items, total: items.length };
     }),
 
-  create: protectedProcedure
+  create: requirePermission('supply:procurement:manage')
     .input(z.object({
       materialName: z.string(),
       materialCode: z.string().optional(),
@@ -743,7 +743,7 @@ const smallValueRouter = router({
       return item;
     }),
 
-  supervisorApprove: protectedProcedure
+  supervisorApprove: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       approved: z.boolean(),
@@ -777,7 +777,7 @@ const smallValueRouter = router({
       }
     }),
 
-  procurementConfirm: protectedProcedure
+  procurementConfirm: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       procurementOfficerName: z.string().optional(),
@@ -831,7 +831,7 @@ const qualificationRouter = router({
     return item;
   }),
 
-  create: protectedProcedure
+  create: requirePermission('supply:procurement:manage')
     .input(z.object({
       supplierId: z.number(),
       supplierName: z.string().optional(),
@@ -862,7 +862,7 @@ const qualificationRouter = router({
       return item;
     }),
 
-  update: protectedProcedure
+  update: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       isoSystemCertifications: z.array(z.string()).optional(),
@@ -930,7 +930,7 @@ const qualityLossAgreementRouter = router({
     return item;
   }),
 
-  create: protectedProcedure
+  create: requirePermission('supply:procurement:manage')
     .input(z.object({
       supplierId: z.number(),
       supplierName: z.string().optional(),
@@ -952,7 +952,7 @@ const qualityLossAgreementRouter = router({
       return item;
     }),
 
-  sign: protectedProcedure
+  sign: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       signedBy: z.string(),
@@ -974,7 +974,7 @@ const qualityLossAgreementRouter = router({
       return item;
     }),
 
-  expire: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  expire: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(qualityLossAgreements)
       .set({ status: "expired", updatedAt: new Date().toISOString() })
@@ -1012,7 +1012,7 @@ const qualityLossIncidentRouter = router({
     return item;
   }),
 
-  create: protectedProcedure
+  create: requirePermission('supply:procurement:manage')
     .input(z.object({
       qualityLossAgreementId: z.number().optional(),
       supplierId: z.number(),
@@ -1060,7 +1060,7 @@ const qualityLossIncidentRouter = router({
       return item;
     }),
 
-  acknowledge: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  acknowledge: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [item] = await db.update(qualityLossIncidents)
       .set({
@@ -1073,7 +1073,7 @@ const qualityLossIncidentRouter = router({
     return item;
   }),
 
-  deductFromPayment: protectedProcedure
+  deductFromPayment: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       paymentWorkflowId: z.number(),

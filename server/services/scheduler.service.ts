@@ -12,7 +12,7 @@ const log = createChildLogger("scheduler-svc");
 import { sendTaskReminderEmails } from "./email-reminder.service";
 import { sendEmail, generateHtmlEmail } from "./email.service";
 import { notifyOwner } from "../_core/notification";
-import { getJiandaoyunScheduler } from "./jiandaoyun-scheduler.service";
+import { getExternalSyncScheduler } from "./external-sync-scheduler.service";
 import { projects } from "../../drizzle/schema";
 import { projectAgentReviews } from "../../drizzle/project-agent-schema";
 import { submitTask } from "./task-worker.service";
@@ -365,10 +365,10 @@ async function handlePerformanceReviewReminder(): Promise<TaskExecutionResult> {
   }
 }
 
-// 6. 简道云组织架构同步
-async function handleJiandaoyunOrgSync(): Promise<TaskExecutionResult> {
+// 6. 外部平台组织架构同步
+async function handleExternalSyncOrgSync(): Promise<TaskExecutionResult> {
   try {
-    const scheduler = getJiandaoyunScheduler();
+    const scheduler = getExternalSyncScheduler();
     const enabledTasks = await scheduler.getEnabledTasks();
 
     if (enabledTasks.length === 0) {
@@ -524,11 +524,11 @@ const scheduledTasks: ScheduledTask[] = [
     category: 'reminder',
   },
   {
-    id: "jiandaoyun-org-sync",
-    name: "简道云组织架构同步",
-    description: "每天凌晨2点同步简道云组织架构（用户/部门/角色/角色成员）",
+    id: "external-sync-org",
+    name: "外部平台组织架构同步",
+    description: "每天凌晨2点同步外部平台组织架构（用户/部门/角色/角色成员）",
     cronExpression: "0 0 2 * * *", // 每天凌晨2:00
-    handler: handleJiandaoyunOrgSync,
+    handler: handleExternalSyncOrgSync,
     enabled: true,
     category: 'sync',
   },

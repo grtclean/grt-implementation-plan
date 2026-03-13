@@ -94,7 +94,7 @@ const mockUrsChecklist = [
 
 const mockTeamAllocation = [
   { role: "项目经理", name: "张工", level: "L4", status: "已确认" },
-  { role: "机械设计", name: "王工", level: "L3", status: "已确认" },
+  { role: "机械设计", name: "焦斌", level: "L3", status: "已确认" },
   { role: "电气设计", name: "刘工", level: "L4", status: "已确认" },
   { role: "软件开发", name: "陈工", level: "L3", status: "待确认" },
   { role: "现场调试", name: "待分配", level: "-", status: "待分配" },
@@ -460,7 +460,7 @@ export default function M1KickoffDashboard() {
                             <SelectItem value="pending">待分配 (建议L4+工程师)</SelectItem>
                             <SelectItem value="zhang">张工 (L4)</SelectItem>
                             <SelectItem value="li">李工 (L5)</SelectItem>
-                            <SelectItem value="wang">王工 (L4)</SelectItem>
+                            <SelectItem value="wang">焦斌 (L4)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -476,7 +476,7 @@ export default function M1KickoffDashboard() {
                           <SelectContent>
                             <SelectItem value="zhang">张工</SelectItem>
                             <SelectItem value="li">李工</SelectItem>
-                            <SelectItem value="wang">王工</SelectItem>
+                            <SelectItem value="wang">焦斌</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

@@ -41,6 +41,12 @@ const createMockDbChain = () => {
   return chain;
 };
 
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => {
     const chain = createMockDbChain();
@@ -448,7 +454,7 @@ describe("warehouse — CRUD", () => {
 
   it("getWarehouses returns list", async () => {
     mockQueryResult = [mockWarehouse, { ...mockWarehouse, id: 2, warehouseCode: "WH-02" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getWarehouses({});
     expect(result).toHaveLength(2);
     expect(result[0].warehouseCode).toBe("WH-01");
@@ -456,35 +462,35 @@ describe("warehouse — CRUD", () => {
 
   it("getWarehouses filters by warehouseType", async () => {
     mockQueryResult = [mockWarehouse];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getWarehouses({ warehouseType: "raw_material" });
     expect(result).toHaveLength(1);
   });
 
   it("getWarehouses filters by buCode", async () => {
     mockQueryResult = [mockWarehouse];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getWarehouses({ buCode: "BU1" });
     expect(result).toHaveLength(1);
   });
 
   it("getWarehouses filters by isActive", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getWarehouses({ isActive: false });
     expect(result).toHaveLength(0);
   });
 
   it("getWarehouses filters by search term", async () => {
     mockQueryResult = [mockWarehouse];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getWarehouses({ search: "Main" });
     expect(result).toHaveLength(1);
   });
 
   it("getWarehouse returns warehouse with locations", async () => {
     mockQueryResult = [mockWarehouse];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getWarehouse({ id: 1 });
     expect(result).not.toBeNull();
     expect(result!.warehouseCode).toBe("WH-01");
@@ -492,7 +498,7 @@ describe("warehouse — CRUD", () => {
 
   it("getWarehouse returns null for nonexistent id", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getWarehouse({ id: 9999 });
     expect(result).toBeNull();
   });
@@ -619,28 +625,28 @@ describe("warehouse — locations", () => {
 
   it("getLocations returns list filtered by warehouseId", async () => {
     mockQueryResult = [mockLocation, { ...mockLocation, id: 2, locationCode: "WH-01-A-01-01-02" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getLocations({ warehouseId: 1 });
     expect(result).toHaveLength(2);
   });
 
   it("getLocations filters by zone", async () => {
     mockQueryResult = [mockLocation];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getLocations({ warehouseId: 1, zone: "A" });
     expect(result).toHaveLength(1);
   });
 
   it("getLocations filters by locationType", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getLocations({ warehouseId: 1, locationType: "picking" });
     expect(result).toHaveLength(0);
   });
 
   it("getLocations filters by isOccupied", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getLocations({ warehouseId: 1, isOccupied: true });
     expect(result).toHaveLength(0);
   });
@@ -720,7 +726,7 @@ describe("warehouse — locations", () => {
 describe("warehouse — receipts", () => {
   it("createReceipt returns receipt with items", async () => {
     mockReturningResult = [mockReceipt];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.createReceipt({
       receiptType: "purchase",
       warehouseId: 1,
@@ -734,7 +740,7 @@ describe("warehouse — receipts", () => {
 
   it("createReceipt with multiple items", async () => {
     mockReturningResult = [mockReceipt];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.createReceipt({
       receiptType: "production",
       warehouseId: 1,
@@ -750,7 +756,7 @@ describe("warehouse — receipts", () => {
   });
 
   it("createReceipt validates receiptType enum", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.createReceipt({
         receiptType: "invalid" as any,
@@ -762,7 +768,7 @@ describe("warehouse — receipts", () => {
 
   it("createReceipt accepts empty items array (no min constraint)", async () => {
     mockReturningResult = [mockReceipt];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.createReceipt({
       receiptType: "purchase",
       warehouseId: 1,
@@ -772,7 +778,7 @@ describe("warehouse — receipts", () => {
   });
 
   it("createReceipt rejects item with empty materialCode", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.createReceipt({
         receiptType: "purchase",
@@ -783,7 +789,7 @@ describe("warehouse — receipts", () => {
   });
 
   it("createReceipt rejects negative expectedQty", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.createReceipt({
         receiptType: "purchase",
@@ -795,7 +801,7 @@ describe("warehouse — receipts", () => {
 
   it("getReceipts returns paginated results", async () => {
     mockQueryResult = [{ value: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getReceipts({});
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total");
@@ -805,28 +811,28 @@ describe("warehouse — receipts", () => {
 
   it("getReceipts filters by warehouseId", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getReceipts({ warehouseId: 1 });
     expect(result.total).toBeDefined();
   });
 
   it("getReceipts filters by receiptType", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getReceipts({ receiptType: "purchase" });
     expect(result).toBeDefined();
   });
 
   it("getReceipts filters by status", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getReceipts({ status: "draft" });
     expect(result).toBeDefined();
   });
 
   it("getReceipts respects page and pageSize", async () => {
     mockQueryResult = [{ value: 50 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getReceipts({ page: 3, pageSize: 10 });
     expect(result.page).toBe(3);
     expect(result.pageSize).toBe(10);
@@ -834,21 +840,21 @@ describe("warehouse — receipts", () => {
 
   it("getReceipt returns receipt with items", async () => {
     mockQueryResult = [mockReceipt];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getReceipt({ id: 1 });
     expect(result).not.toBeNull();
   });
 
   it("getReceipt returns null for nonexistent id", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getReceipt({ id: 9999 });
     expect(result).toBeNull();
   });
 
   it("updateReceiptStatus transitions to pending_qc", async () => {
     mockQueryResult = [{ ...mockReceipt, status: "pending_qc" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateReceiptStatus({
       id: 1, status: "pending_qc",
     });
@@ -857,7 +863,7 @@ describe("warehouse — receipts", () => {
 
   it("updateReceiptStatus transitions to qc_passed with qcNotes", async () => {
     mockQueryResult = [{ ...mockReceipt, status: "qc_passed", qcResult: "passed" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateReceiptStatus({
       id: 1, status: "qc_passed", qcNotes: "All items pass inspection",
     });
@@ -866,7 +872,7 @@ describe("warehouse — receipts", () => {
 
   it("updateReceiptStatus transitions to qc_failed", async () => {
     mockQueryResult = [{ ...mockReceipt, status: "qc_failed", qcResult: "failed" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateReceiptStatus({
       id: 1, status: "qc_failed", qcNotes: "Surface defects found",
     });
@@ -875,7 +881,7 @@ describe("warehouse — receipts", () => {
 
   it("updateReceiptStatus transitions to shelved", async () => {
     mockQueryResult = [{ ...mockReceipt, status: "shelved" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateReceiptStatus({
       id: 1, status: "shelved",
     });
@@ -884,7 +890,7 @@ describe("warehouse — receipts", () => {
 
   it("updateReceiptStatus transitions to cancelled", async () => {
     mockQueryResult = [{ ...mockReceipt, status: "cancelled" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateReceiptStatus({
       id: 1, status: "cancelled",
     });
@@ -893,14 +899,14 @@ describe("warehouse — receipts", () => {
 
   it("updateReceiptStatus throws for nonexistent receipt", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.updateReceiptStatus({ id: 999, status: "shelved" }),
     ).rejects.toThrow("Receipt not found");
   });
 
   it("updateReceiptStatus validates status enum", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.updateReceiptStatus({ id: 1, status: "invalid" as any }),
     ).rejects.toThrow();
@@ -913,7 +919,7 @@ describe("warehouse — receipts", () => {
 describe("warehouse — issues", () => {
   it("createIssue returns issue with items", async () => {
     mockReturningResult = [mockIssue];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.createIssue({
       issueType: "production",
       warehouseId: 1,
@@ -925,7 +931,7 @@ describe("warehouse — issues", () => {
 
   it("createIssue with full optional fields", async () => {
     mockReturningResult = [mockIssue];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.createIssue({
       issueType: "sales",
       warehouseId: 1,
@@ -944,7 +950,7 @@ describe("warehouse — issues", () => {
   });
 
   it("createIssue validates issueType enum", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.createIssue({
         issueType: "invalid" as any,
@@ -955,7 +961,7 @@ describe("warehouse — issues", () => {
   });
 
   it("createIssue rejects negative requestedQty", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.createIssue({
         issueType: "production",
@@ -967,7 +973,7 @@ describe("warehouse — issues", () => {
 
   it("getIssues returns paginated results", async () => {
     mockQueryResult = [{ value: 2 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getIssues({});
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total");
@@ -977,35 +983,35 @@ describe("warehouse — issues", () => {
 
   it("getIssues filters by warehouseId", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getIssues({ warehouseId: 1 });
     expect(result).toBeDefined();
   });
 
   it("getIssues filters by issueType", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getIssues({ issueType: "production" });
     expect(result).toBeDefined();
   });
 
   it("getIssues filters by status", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getIssues({ status: "draft" });
     expect(result).toBeDefined();
   });
 
   it("getIssues filters by projectCode", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getIssues({ projectCode: "PRJ-001" });
     expect(result).toBeDefined();
   });
 
   it("getIssues respects pagination params", async () => {
     mockQueryResult = [{ value: 100 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getIssues({ page: 5, pageSize: 10 });
     expect(result.page).toBe(5);
     expect(result.pageSize).toBe(10);
@@ -1013,14 +1019,14 @@ describe("warehouse — issues", () => {
 
   it("getIssue returns issue with items", async () => {
     mockQueryResult = [mockIssue];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getIssue({ id: 1 });
     expect(result).not.toBeNull();
   });
 
   it("getIssue returns null for nonexistent id", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getIssue({ id: 9999 });
     expect(result).toBeNull();
   });
@@ -1054,7 +1060,7 @@ describe("warehouse — issues", () => {
   });
 
   it("updateIssueStatus rejects non-admin caller", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.updateIssueStatus({ id: 1, status: "approved" }),
     ).rejects.toThrow();
@@ -1123,7 +1129,7 @@ describe("warehouse — stock counts", () => {
 
   it("getStockCounts returns paginated results", async () => {
     mockQueryResult = [{ value: 3 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getStockCounts({});
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total");
@@ -1131,21 +1137,21 @@ describe("warehouse — stock counts", () => {
 
   it("getStockCounts filters by warehouseId", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getStockCounts({ warehouseId: 1 });
     expect(result).toBeDefined();
   });
 
   it("getStockCounts filters by status", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getStockCounts({ status: "planned" });
     expect(result).toBeDefined();
   });
 
   it("getStockCounts filters by countType", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getStockCounts({ countType: "annual" });
     expect(result).toBeDefined();
   });
@@ -1207,7 +1213,7 @@ describe("warehouse — stock counts", () => {
   });
 
   it("updateStockCountStatus rejects non-admin", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.updateStockCountStatus({ id: 1, status: "in_progress" }),
     ).rejects.toThrow();
@@ -1220,7 +1226,7 @@ describe("warehouse — stock counts", () => {
 describe("warehouse — lot tracking", () => {
   it("createLot returns the created lot", async () => {
     mockReturningResult = [mockLot];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.createLot({
       lotNumber: "LOT-20260101-0001",
       materialCode: "MAT-001",
@@ -1239,7 +1245,7 @@ describe("warehouse — lot tracking", () => {
       unitCost: "10.00",
       totalCost: "1000.00",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.createLot({
       lotNumber: "LOT-002",
       materialCode: "MAT-001",
@@ -1264,7 +1270,7 @@ describe("warehouse — lot tracking", () => {
   });
 
   it("createLot validates sourceType enum", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.createLot({
         lotNumber: "LOT-X",
@@ -1276,7 +1282,7 @@ describe("warehouse — lot tracking", () => {
   });
 
   it("createLot rejects empty lotNumber", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.createLot({
         lotNumber: "",
@@ -1288,7 +1294,7 @@ describe("warehouse — lot tracking", () => {
   });
 
   it("createLot rejects empty materialCode", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.createLot({
         lotNumber: "LOT-Y",
@@ -1300,7 +1306,7 @@ describe("warehouse — lot tracking", () => {
   });
 
   it("createLot rejects negative initialQty", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.createLot({
         lotNumber: "LOT-Z",
@@ -1313,7 +1319,7 @@ describe("warehouse — lot tracking", () => {
 
   it("getLots returns paginated results", async () => {
     mockQueryResult = [{ value: 10 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getLots({});
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total");
@@ -1321,42 +1327,42 @@ describe("warehouse — lot tracking", () => {
 
   it("getLots filters by materialCode", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getLots({ materialCode: "MAT-001" });
     expect(result).toBeDefined();
   });
 
   it("getLots filters by warehouseId", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getLots({ warehouseId: 1 });
     expect(result).toBeDefined();
   });
 
   it("getLots filters by status", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getLots({ status: "available" });
     expect(result).toBeDefined();
   });
 
   it("getLots filters by qcStatus", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getLots({ qcStatus: "passed" });
     expect(result).toBeDefined();
   });
 
   it("getLots filters by expiringWithinDays", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getLots({ expiringWithinDays: 30 });
     expect(result).toBeDefined();
   });
 
   it("getLot returns lot by id", async () => {
     mockQueryResult = [mockLot];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getLot({ id: 1 });
     expect(result).not.toBeNull();
     expect(result!.lotNumber).toBe("LOT-20260101-0001");
@@ -1364,48 +1370,48 @@ describe("warehouse — lot tracking", () => {
 
   it("getLot returns null for nonexistent id", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getLot({ id: 9999 });
     expect(result).toBeNull();
   });
 
   it("updateLotStatus transitions to reserved", async () => {
     mockQueryResult = [{ ...mockLot, status: "reserved" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateLotStatus({ id: 1, status: "reserved" });
     expect(result.status).toBe("reserved");
   });
 
   it("updateLotStatus transitions to quarantine", async () => {
     mockQueryResult = [{ ...mockLot, status: "quarantine" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateLotStatus({ id: 1, status: "quarantine" });
     expect(result.status).toBe("quarantine");
   });
 
   it("updateLotStatus transitions to expired", async () => {
     mockQueryResult = [{ ...mockLot, status: "expired" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateLotStatus({ id: 1, status: "expired" });
     expect(result.status).toBe("expired");
   });
 
   it("updateLotStatus transitions to consumed", async () => {
     mockQueryResult = [{ ...mockLot, status: "consumed" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateLotStatus({ id: 1, status: "consumed" });
     expect(result.status).toBe("consumed");
   });
 
   it("updateLotStatus transitions to scrapped", async () => {
     mockQueryResult = [{ ...mockLot, status: "scrapped" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateLotStatus({ id: 1, status: "scrapped" });
     expect(result.status).toBe("scrapped");
   });
 
   it("updateLotStatus validates status enum", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.updateLotStatus({ id: 1, status: "invalid" as any }),
     ).rejects.toThrow();
@@ -1413,7 +1419,7 @@ describe("warehouse — lot tracking", () => {
 
   it("updateLotStatus throws for nonexistent lot", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.updateLotStatus({ id: 999, status: "reserved" }),
     ).rejects.toThrow("Lot not found");
@@ -1421,7 +1427,7 @@ describe("warehouse — lot tracking", () => {
 
   it("updateLotQC sets qcStatus to passed", async () => {
     mockQueryResult = [{ ...mockLot, qcStatus: "passed" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateLotQC({
       id: 1,
       qcStatus: "passed",
@@ -1432,7 +1438,7 @@ describe("warehouse — lot tracking", () => {
 
   it("updateLotQC sets qcStatus to failed and auto-quarantines", async () => {
     mockQueryResult = [{ ...mockLot, qcStatus: "failed", status: "quarantine" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateLotQC({
       id: 1,
       qcStatus: "failed",
@@ -1443,7 +1449,7 @@ describe("warehouse — lot tracking", () => {
 
   it("updateLotQC sets qcStatus to conditional", async () => {
     mockQueryResult = [{ ...mockLot, qcStatus: "conditional" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateLotQC({
       id: 1,
       qcStatus: "conditional",
@@ -1452,7 +1458,7 @@ describe("warehouse — lot tracking", () => {
   });
 
   it("updateLotQC validates qcStatus enum", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.updateLotQC({ id: 1, qcStatus: "invalid" as any }),
     ).rejects.toThrow();
@@ -1460,7 +1466,7 @@ describe("warehouse — lot tracking", () => {
 
   it("updateLotQC throws for nonexistent lot", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.updateLotQC({ id: 999, qcStatus: "passed" }),
     ).rejects.toThrow("Lot not found");
@@ -1473,7 +1479,7 @@ describe("warehouse — lot tracking", () => {
 describe("warehouse — serial numbers", () => {
   it("createSerialNumber returns the created record", async () => {
     mockReturningResult = [mockSerial];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.createSerialNumber({
       serialNumber: "SN-001",
       materialCode: "MAT-001",
@@ -1490,7 +1496,7 @@ describe("warehouse — serial numbers", () => {
       warehouseId: 1,
       locationId: 1,
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.createSerialNumber({
       serialNumber: "SN-002",
       materialCode: "MAT-001",
@@ -1507,7 +1513,7 @@ describe("warehouse — serial numbers", () => {
   });
 
   it("createSerialNumber rejects empty serialNumber", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.createSerialNumber({
         serialNumber: "",
@@ -1517,7 +1523,7 @@ describe("warehouse — serial numbers", () => {
   });
 
   it("createSerialNumber rejects empty materialCode", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.createSerialNumber({
         serialNumber: "SN-003",
@@ -1528,7 +1534,7 @@ describe("warehouse — serial numbers", () => {
 
   it("getSerialNumbers returns paginated results", async () => {
     mockQueryResult = [{ value: 5 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getSerialNumbers({});
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total");
@@ -1538,35 +1544,35 @@ describe("warehouse — serial numbers", () => {
 
   it("getSerialNumbers filters by materialCode", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getSerialNumbers({ materialCode: "MAT-001" });
     expect(result).toBeDefined();
   });
 
   it("getSerialNumbers filters by lotId", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getSerialNumbers({ lotId: 1 });
     expect(result).toBeDefined();
   });
 
   it("getSerialNumbers filters by status", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getSerialNumbers({ status: "in_stock" });
     expect(result).toBeDefined();
   });
 
   it("getSerialNumbers filters by search", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getSerialNumbers({ search: "SN-" });
     expect(result).toBeDefined();
   });
 
   it("getSerialNumbers respects pagination", async () => {
     mockQueryResult = [{ value: 50 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getSerialNumbers({ page: 2, pageSize: 10 });
     expect(result.page).toBe(2);
     expect(result.pageSize).toBe(10);
@@ -1574,7 +1580,7 @@ describe("warehouse — serial numbers", () => {
 
   it("updateSerialStatus transitions to allocated", async () => {
     mockQueryResult = [{ ...mockSerial, status: "allocated" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateSerialStatus({
       id: 1, status: "allocated",
     });
@@ -1583,7 +1589,7 @@ describe("warehouse — serial numbers", () => {
 
   it("updateSerialStatus transitions to in_production with project/process", async () => {
     mockQueryResult = [{ ...mockSerial, status: "in_production" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateSerialStatus({
       id: 1,
       status: "in_production",
@@ -1596,7 +1602,7 @@ describe("warehouse — serial numbers", () => {
 
   it("updateSerialStatus transitions to shipped", async () => {
     mockQueryResult = [{ ...mockSerial, status: "shipped" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateSerialStatus({
       id: 1, status: "shipped",
     });
@@ -1605,7 +1611,7 @@ describe("warehouse — serial numbers", () => {
 
   it("updateSerialStatus transitions to returned", async () => {
     mockQueryResult = [{ ...mockSerial, status: "returned" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateSerialStatus({
       id: 1, status: "returned",
     });
@@ -1614,7 +1620,7 @@ describe("warehouse — serial numbers", () => {
 
   it("updateSerialStatus transitions to scrapped", async () => {
     mockQueryResult = [{ ...mockSerial, status: "scrapped" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.updateSerialStatus({
       id: 1, status: "scrapped",
     });
@@ -1622,7 +1628,7 @@ describe("warehouse — serial numbers", () => {
   });
 
   it("updateSerialStatus validates status enum", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.updateSerialStatus({ id: 1, status: "invalid" as any }),
     ).rejects.toThrow();
@@ -1630,7 +1636,7 @@ describe("warehouse — serial numbers", () => {
 
   it("updateSerialStatus throws for nonexistent serial", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.warehouse.updateSerialStatus({ id: 999, status: "allocated" }),
     ).rejects.toThrow("Serial number not found");
@@ -1643,7 +1649,7 @@ describe("warehouse — serial numbers", () => {
 describe("warehouse — stats & dashboard", () => {
   it("getWarehouseStats returns all stat fields", async () => {
     mockQueryResult = [{ value: 3 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getWarehouseStats();
     expect(result).toHaveProperty("totalWarehouses");
     expect(result).toHaveProperty("totalLocations");
@@ -1660,7 +1666,7 @@ describe("warehouse — stats & dashboard", () => {
     // With the mock, totalLocations and occupiedLocations both resolve to mockQueryResult[0].value
     // The stats procedure runs 8 parallel queries; each resolves to mockQueryResult
     mockQueryResult = [{ value: 5 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getWarehouseStats();
     // locationUtilization = round(5/5 * 100) = 100
     expect(result.locationUtilization).toBe(100);
@@ -1668,7 +1674,7 @@ describe("warehouse — stats & dashboard", () => {
 
   it("getWarehouseStats handles zero locations gracefully", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.getWarehouseStats();
     expect(result.locationUtilization).toBe(0);
   });
@@ -1680,14 +1686,14 @@ describe("warehouse — stats & dashboard", () => {
 describe("warehouse — traceability", () => {
   it("traceForward returns lot with empty allocations for new lot", async () => {
     mockQueryResult = [mockLot];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.traceForward({ lotNumber: "LOT-20260101-0001" });
     expect(result.lot).toBeDefined();
   });
 
   it("traceForward returns null lot for unknown lotNumber", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.traceForward({ lotNumber: "LOT-UNKNOWN" });
     expect(result.lot).toBeNull();
     expect(result.allocations).toEqual([]);
@@ -1696,21 +1702,21 @@ describe("warehouse — traceability", () => {
 
   it("traceBackward returns results filtered by projectCode", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.traceBackward({ projectCode: "PRJ-001" });
     expect(Array.isArray(result)).toBe(true);
   });
 
   it("traceBackward returns results filtered by sourceDocCode", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.traceBackward({ sourceDocCode: "PO-001" });
     expect(Array.isArray(result)).toBe(true);
   });
 
   it("traceBackward returns empty array when no matches", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.warehouse.traceBackward({});
     expect(result).toEqual([]);
   });

@@ -8,8 +8,9 @@ import { useState } from 'react';
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from 'sonner';
 
-const showPlaceholder = (featureName: string) => {
-  toast.info('功能完善中', { description: `${featureName}功能正在开发完善中，敬请期待` });
+const showPlaceholder = (_featureName: string) => {
+  // i18n note: caller must pass translated name; toast text resolved in component
+  toast.info('Feature in progress');
 };
 void showPlaceholder; // suppress unused warning — kept for future use
 import { PageHeader, StatCard } from '@/components/grt';
@@ -152,28 +153,28 @@ const INITIAL_TASKS: MfgTask[] = [
   }
 ];
 
-// 任务类型配置
-const taskTypeConfig: Record<MfgTaskType, { label: string; icon: React.ReactNode; color: string }> = {
-  'Mech_Sub_Assy': { label: '机械分装', icon: <Package className="w-4 h-4" />, color: 'text-blue-500' },
-  'Mech_Assy': { label: '机械组装', icon: <Wrench className="w-4 h-4" />, color: 'text-green-500' },
-  'Mech_Final_Assy': { label: '机械总装', icon: <Cpu className="w-4 h-4" />, color: 'text-purple-500' },
-  'Elec_Assy': { label: '电气组装', icon: <Zap className="w-4 h-4" />, color: 'text-yellow-500' }
+// 任务类型配置 (key-based for i18n)
+const taskTypeConfigKeys: Record<MfgTaskType, { labelKey: string; icon: React.ReactNode; color: string }> = {
+  'Mech_Sub_Assy': { labelKey: 'manufacturing.mfgTask.typeMechSubAssy', icon: <Package className="w-4 h-4" />, color: 'text-blue-500' },
+  'Mech_Assy': { labelKey: 'manufacturing.mfgTask.typeMechAssy', icon: <Wrench className="w-4 h-4" />, color: 'text-green-500' },
+  'Mech_Final_Assy': { labelKey: 'manufacturing.mfgTask.typeMechFinalAssy', icon: <Cpu className="w-4 h-4" />, color: 'text-purple-500' },
+  'Elec_Assy': { labelKey: 'manufacturing.mfgTask.typeElecAssy', icon: <Zap className="w-4 h-4" />, color: 'text-yellow-500' }
 };
 
-// 状态配置
-const statusConfig: Record<MfgTaskStatus, { label: string; color: string; icon: React.ReactNode }> = {
-  'Pending': { label: '待开始', color: 'bg-gray-500/10 text-gray-400 border-gray-500/20', icon: <Clock className="w-4 h-4" /> },
-  'Started': { label: '进行中', color: 'bg-green-500/10 text-green-500 border-green-500/20', icon: <Play className="w-4 h-4" /> },
-  'Paused': { label: '已暂停', color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', icon: <Pause className="w-4 h-4" /> },
-  'QC_Review': { label: '质检中', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: <ClipboardCheck className="w-4 h-4" /> },
-  'Finished': { label: '已完成', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: <CheckCircle2 className="w-4 h-4" /> }
+// 状态配置 (key-based for i18n)
+const statusConfigKeys: Record<MfgTaskStatus, { labelKey: string; color: string; icon: React.ReactNode }> = {
+  'Pending': { labelKey: 'manufacturing.mfgTask.statusPending', color: 'bg-gray-500/10 text-gray-400 border-gray-500/20', icon: <Clock className="w-4 h-4" /> },
+  'Started': { labelKey: 'manufacturing.mfgTask.statusStarted', color: 'bg-green-500/10 text-green-500 border-green-500/20', icon: <Play className="w-4 h-4" /> },
+  'Paused': { labelKey: 'manufacturing.mfgTask.statusPaused', color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', icon: <Pause className="w-4 h-4" /> },
+  'QC_Review': { labelKey: 'manufacturing.mfgTask.statusQcReview', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: <ClipboardCheck className="w-4 h-4" /> },
+  'Finished': { labelKey: 'manufacturing.mfgTask.statusFinished', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: <CheckCircle2 className="w-4 h-4" /> }
 };
 
-// 班组配置
-const teamConfig: Record<AssignedTeam, { label: string; color: string }> = {
-  'Team_A': { label: 'A班组', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
-  'Team_B': { label: 'B班组', color: 'bg-green-500/10 text-green-500 border-green-500/20' },
-  'Elec_Team': { label: '电气班组', color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' }
+// 班组配置 (key-based for i18n)
+const teamConfigKeys: Record<AssignedTeam, { labelKey: string; color: string }> = {
+  'Team_A': { labelKey: 'manufacturing.mfgTask.teamA', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
+  'Team_B': { labelKey: 'manufacturing.mfgTask.teamB', color: 'bg-green-500/10 text-green-500 border-green-500/20' },
+  'Elec_Team': { labelKey: 'manufacturing.mfgTask.teamElec', color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' }
 };
 
 const DEFAULT_FORM = {
@@ -331,7 +332,7 @@ export default function MfgTaskItemManager() {
                     <Label htmlFor="task-wo">{t("manufacturing.mfgTask.workOrderId")}</Label>
                     <Input
                       id="task-wo"
-                      placeholder="如 WO-001"
+                      placeholder={t("manufacturing.mfgTask.workOrderIdPlaceholder")}
                       value={form.workOrderId}
                       onChange={e => setForm(f => ({ ...f, workOrderId: e.target.value }))}
                     />
@@ -347,10 +348,10 @@ export default function MfgTaskItemManager() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Mech_Sub_Assy">机械分装</SelectItem>
-                          <SelectItem value="Mech_Assy">机械组装</SelectItem>
-                          <SelectItem value="Mech_Final_Assy">机械总装</SelectItem>
-                          <SelectItem value="Elec_Assy">电气组装</SelectItem>
+                          <SelectItem value="Mech_Sub_Assy">{t("manufacturing.mfgTask.typeMechSubAssy")}</SelectItem>
+                          <SelectItem value="Mech_Assy">{t("manufacturing.mfgTask.typeMechAssy")}</SelectItem>
+                          <SelectItem value="Mech_Final_Assy">{t("manufacturing.mfgTask.typeMechFinalAssy")}</SelectItem>
+                          <SelectItem value="Elec_Assy">{t("manufacturing.mfgTask.typeElecAssy")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -364,9 +365,9 @@ export default function MfgTaskItemManager() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Team_A">A班组</SelectItem>
-                          <SelectItem value="Team_B">B班组</SelectItem>
-                          <SelectItem value="Elec_Team">电气班组</SelectItem>
+                          <SelectItem value="Team_A">{t("manufacturing.mfgTask.teamA")}</SelectItem>
+                          <SelectItem value="Team_B">{t("manufacturing.mfgTask.teamB")}</SelectItem>
+                          <SelectItem value="Elec_Team">{t("manufacturing.mfgTask.teamElec")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -376,7 +377,7 @@ export default function MfgTaskItemManager() {
                       <Label htmlFor="task-bom">{t("manufacturing.mfgTask.bomModule")}</Label>
                       <Input
                         id="task-bom"
-                        placeholder="如 M-PIPE-A01"
+                        placeholder={t("manufacturing.mfgTask.bomModulePlaceholder")}
                         value={form.bomModuleName}
                         onChange={e => setForm(f => ({ ...f, bomModuleName: e.target.value }))}
                       />
@@ -435,40 +436,40 @@ export default function MfgTaskItemManager() {
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[120px] bg-background/50">
-                  <SelectValue placeholder="状态" />
+                  <SelectValue placeholder={t("manufacturing.production.status")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部状态</SelectItem>
-                  <SelectItem value="Pending">待开始</SelectItem>
-                  <SelectItem value="Started">进行中</SelectItem>
-                  <SelectItem value="Paused">已暂停</SelectItem>
-                  <SelectItem value="QC_Review">质检中</SelectItem>
-                  <SelectItem value="Finished">已完成</SelectItem>
+                  <SelectItem value="all">{t("manufacturing.common.allStatuses")}</SelectItem>
+                  <SelectItem value="Pending">{t("manufacturing.mfgTask.statusPending")}</SelectItem>
+                  <SelectItem value="Started">{t("manufacturing.mfgTask.statusStarted")}</SelectItem>
+                  <SelectItem value="Paused">{t("manufacturing.mfgTask.statusPaused")}</SelectItem>
+                  <SelectItem value="QC_Review">{t("manufacturing.mfgTask.statusQcReview")}</SelectItem>
+                  <SelectItem value="Finished">{t("manufacturing.mfgTask.statusFinished")}</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-[120px] bg-background/50">
-                  <SelectValue placeholder="类型" />
+                  <SelectValue placeholder={t("manufacturing.mfgTask.taskType")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部类型</SelectItem>
-                  <SelectItem value="Mech_Sub_Assy">机械分装</SelectItem>
-                  <SelectItem value="Mech_Assy">机械组装</SelectItem>
-                  <SelectItem value="Mech_Final_Assy">机械总装</SelectItem>
-                  <SelectItem value="Elec_Assy">电气组装</SelectItem>
+                  <SelectItem value="all">{t("manufacturing.mfgTask.allTypes")}</SelectItem>
+                  <SelectItem value="Mech_Sub_Assy">{t("manufacturing.mfgTask.typeMechSubAssy")}</SelectItem>
+                  <SelectItem value="Mech_Assy">{t("manufacturing.mfgTask.typeMechAssy")}</SelectItem>
+                  <SelectItem value="Mech_Final_Assy">{t("manufacturing.mfgTask.typeMechFinalAssy")}</SelectItem>
+                  <SelectItem value="Elec_Assy">{t("manufacturing.mfgTask.typeElecAssy")}</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={teamFilter} onValueChange={setTeamFilter}>
                 <SelectTrigger className="w-[120px] bg-background/50">
-                  <SelectValue placeholder="班组" />
+                  <SelectValue placeholder={t("manufacturing.mfgTask.assignTeam")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部班组</SelectItem>
-                  <SelectItem value="Team_A">A班组</SelectItem>
-                  <SelectItem value="Team_B">B班组</SelectItem>
-                  <SelectItem value="Elec_Team">电气班组</SelectItem>
+                  <SelectItem value="all">{t("manufacturing.mfgTask.allTeams")}</SelectItem>
+                  <SelectItem value="Team_A">{t("manufacturing.mfgTask.teamA")}</SelectItem>
+                  <SelectItem value="Team_B">{t("manufacturing.mfgTask.teamB")}</SelectItem>
+                  <SelectItem value="Elec_Team">{t("manufacturing.mfgTask.teamElec")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -500,9 +501,9 @@ export default function MfgTaskItemManager() {
         <CardContent className="p-0">
           <div className="divide-y divide-border">
             {filteredTasks.map((task) => {
-              const typeConf = taskTypeConfig[task.taskType];
-              const statusConf = statusConfig[task.status];
-              const teamConf = teamConfig[task.assignedTeam];
+              const typeConf = taskTypeConfigKeys[task.taskType];
+              const statusConf = statusConfigKeys[task.status];
+              const teamConf = teamConfigKeys[task.assignedTeam];
               const progressPercent = task.estimatedHours > 0
                 ? Math.min(100, Math.round((task.actualHours / task.estimatedHours) * 100))
                 : 0;
@@ -544,7 +545,7 @@ export default function MfgTaskItemManager() {
                     {/* 班组 */}
                     <Badge variant="outline" className={teamConf.color}>
                       <Users className="w-3 h-3 mr-1" />
-                      {teamConf.label}
+                      {t(teamConf.labelKey)}
                     </Badge>
 
                     {/* 工时 */}
@@ -563,14 +564,14 @@ export default function MfgTaskItemManager() {
                     {/* 状态 */}
                     <Badge variant="outline" className={statusConf.color}>
                       {statusConf.icon}
-                      <span className="ml-1">{statusConf.label}</span>
+                      <span className="ml-1">{t(statusConf.labelKey)}</span>
                     </Badge>
 
                     {/* 操作 */}
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => toast.info(`查看任务详情`, { description: task.taskName })}
+                      onClick={() => toast.info(t("manufacturing.mfgTask.viewDetails"), { description: task.taskName })}
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>

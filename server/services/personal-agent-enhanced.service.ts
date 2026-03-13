@@ -164,9 +164,9 @@ export class BehaviorProbeCollector {
 
     // 获取最近30天的行为数据
     const [rows] = await db.execute(
-      `SELECT probe_type, event_data, event_time, HOUR(event_time) as hour
+      `SELECT probe_type, event_data, event_time, EXTRACT(HOUR FROM event_time) as hour
        FROM behavior_probes
-       WHERE user_id = ? AND event_time >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+       WHERE user_id = ? AND event_time >= NOW() - INTERVAL '30 days'
        ORDER BY event_time DESC
        LIMIT 1000`,
       [userId]
@@ -240,8 +240,8 @@ export class SkillInferenceEngine {
     const [behaviorRows] = await db.execute(
       `SELECT probe_type, event_data, COUNT(*) as count
        FROM behavior_probes
-       WHERE user_id = ? AND event_time >= DATE_SUB(NOW(), INTERVAL 90 DAY)
-       GROUP BY probe_type, JSON_EXTRACT(event_data, '$.category')`,
+       WHERE user_id = ? AND event_time >= NOW() - INTERVAL '90 days'
+       GROUP BY probe_type, event_data->>'category'`,
       [userId]
     );
     const behaviors = behaviorRows as any[];
@@ -250,7 +250,7 @@ export class SkillInferenceEngine {
     const [taskRows] = await db.execute(
       `SELECT task_type, COUNT(*) as completed, AVG(quality_score) as avg_quality
        FROM task_completions
-       WHERE user_id = ? AND completed_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)
+       WHERE user_id = ? AND completed_at >= NOW() - INTERVAL '90 days'
        GROUP BY task_type`,
       [userId]
     );
@@ -260,7 +260,7 @@ export class SkillInferenceEngine {
     const [learningRows] = await db.execute(
       `SELECT course_category, COUNT(*) as courses, AVG(score) as avg_score
        FROM learning_records
-       WHERE user_id = ? AND completed_at >= DATE_SUB(NOW(), INTERVAL 180 DAY)
+       WHERE user_id = ? AND completed_at >= NOW() - INTERVAL '180 days'
        GROUP BY course_category`,
       [userId]
     );

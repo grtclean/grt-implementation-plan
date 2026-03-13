@@ -2,6 +2,7 @@ import { getErrorLogs, clearErrorLogs } from "@/components/ErrorBoundary";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { AlertTriangle, Trash2, Download, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -14,6 +15,7 @@ interface ErrorLog {
 }
 
 export default function ErrorLogViewer() {
+  const { t, tpl } = useLanguage();
   const [logs, setLogs] = useState<ErrorLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<ErrorLog | null>(null);
 
@@ -22,7 +24,7 @@ export default function ErrorLogViewer() {
   };
 
   const handleClearLogs = () => {
-    if (confirm("确定要清除所有错误日志吗？")) {
+    if (confirm(t("admin.errorLog.confirmClear"))) {
       clearErrorLogs();
       setLogs([]);
       setSelectedLog(null);
@@ -62,8 +64,8 @@ export default function ErrorLogViewer() {
       <div className="space-y-6">
         <PageHeader
           icon={AlertTriangle}
-          title="错误日志查看器"
-          description="监控系统中发生的所有错误，帮助诊断和修复问题"
+          title={t("admin.errorLog.title")}
+          description={t("admin.errorLog.description")}
           actions={
             <div className="flex gap-2">
               <Button
@@ -73,7 +75,7 @@ export default function ErrorLogViewer() {
                 className="flex items-center gap-2"
               >
                 <RefreshCw size={16} />
-                刷新
+                {t("admin.errorLog.refresh")}
               </Button>
               <Button
                 onClick={handleDownloadLogs}
@@ -83,7 +85,7 @@ export default function ErrorLogViewer() {
                 disabled={logs.length === 0}
               >
                 <Download size={16} />
-                下载日志
+                {t("admin.errorLog.downloadLogs")}
               </Button>
               <Button
                 onClick={handleClearLogs}
@@ -93,7 +95,7 @@ export default function ErrorLogViewer() {
                 disabled={logs.length === 0}
               >
                 <Trash2 size={16} />
-                清除日志
+                {t("admin.errorLog.clearLogs")}
               </Button>
             </div>
           }
@@ -103,7 +105,7 @@ export default function ErrorLogViewer() {
         <div className="grid grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">总错误数</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("admin.errorLog.totalErrors")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{logs.length}</div>
@@ -111,7 +113,7 @@ export default function ErrorLogViewer() {
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">页面级错误</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("admin.errorLog.pageErrors")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-destructive">
@@ -121,7 +123,7 @@ export default function ErrorLogViewer() {
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">部分级错误</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("admin.errorLog.sectionErrors")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">
@@ -131,7 +133,7 @@ export default function ErrorLogViewer() {
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">组件级错误</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("admin.errorLog.componentErrors")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
@@ -146,13 +148,13 @@ export default function ErrorLogViewer() {
           {/* Error List */}
           <Card className="col-span-1">
             <CardHeader>
-              <CardTitle>错误列表</CardTitle>
-              <CardDescription>{logs.length} 个错误</CardDescription>
+              <CardTitle>{t("admin.errorLog.errorList")}</CardTitle>
+              <CardDescription>{tpl("admin.errorLog.errorCount", { count: logs.length })}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 max-h-96 overflow-y-auto">
               {logs.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  暂无错误日志
+                  {t("admin.errorLog.noErrors")}
                 </p>
               ) : (
                 logs.map((log) => (
@@ -196,7 +198,7 @@ export default function ErrorLogViewer() {
           {/* Error Details */}
           <Card className="col-span-2">
             <CardHeader>
-              <CardTitle>错误详情</CardTitle>
+              <CardTitle>{t("admin.errorLog.errorDetails")}</CardTitle>
               {selectedLog && (
                 <CardDescription>
                   ID: {selectedLog.id}
@@ -207,7 +209,7 @@ export default function ErrorLogViewer() {
               {selectedLog ? (
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-semibold text-sm mb-2">错误信息</h4>
+                    <h4 className="font-semibold text-sm mb-2">{t("admin.errorLog.errorMessage")}</h4>
                     <div className="bg-muted p-3 rounded-lg">
                       <p className="text-sm font-mono break-words">
                         {selectedLog.error.message}
@@ -216,7 +218,7 @@ export default function ErrorLogViewer() {
                   </div>
 
                   <div>
-                    <h4 className="font-semibold text-sm mb-2">堆栈跟踪</h4>
+                    <h4 className="font-semibold text-sm mb-2">{t("admin.errorLog.stackTrace")}</h4>
                     <div className="bg-muted p-3 rounded-lg max-h-40 overflow-y-auto">
                       <pre className="text-xs font-mono break-words whitespace-pre-wrap">
                         {selectedLog.error.stack}
@@ -225,7 +227,7 @@ export default function ErrorLogViewer() {
                   </div>
 
                   <div>
-                    <h4 className="font-semibold text-sm mb-2">组件堆栈</h4>
+                    <h4 className="font-semibold text-sm mb-2">{t("admin.errorLog.componentStack")}</h4>
                     <div className="bg-muted p-3 rounded-lg max-h-40 overflow-y-auto">
                       <pre className="text-xs font-mono break-words whitespace-pre-wrap">
                         {selectedLog.errorInfo.componentStack}
@@ -235,11 +237,11 @@ export default function ErrorLogViewer() {
 
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground">错误级别</p>
+                      <p className="text-muted-foreground">{t("admin.errorLog.errorLevel")}</p>
                       <p className="font-semibold capitalize">{selectedLog.level}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">发生时间</p>
+                      <p className="text-muted-foreground">{t("admin.errorLog.occurredAt")}</p>
                       <p className="font-semibold">
                         {new Date(selectedLog.timestamp).toLocaleString()}
                       </p>
@@ -248,7 +250,7 @@ export default function ErrorLogViewer() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  选择一个错误以查看详情
+                  {t("admin.errorLog.selectError")}
                 </p>
               )}
             </CardContent>

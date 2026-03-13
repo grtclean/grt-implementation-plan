@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 const emptyListResponse = { items: [] as any[], total: 0, page: 1, pageSize: 10 };
@@ -16,25 +16,25 @@ export const newAiAssistantRouter = router({
       return null;
     }),
 
-  create: protectedProcedure
+  create: requirePermission('ai:assistant:chat')
     .input(z.object({ name: z.string().optional(), type: z.string().optional(), config: z.record(z.string(), jsonValue).optional(), displayName: z.string().optional() }))
     .mutation(() => {
       return successResponse;
     }),
 
-  update: protectedProcedure
+  update: requirePermission('ai:assistant:chat')
     .input(z.object({ id: z.string(), name: z.string().optional(), config: z.record(z.string(), jsonValue).optional(), displayName: z.string().optional() }))
     .mutation(() => {
       return successResponse;
     }),
 
-  delete: protectedProcedure
+  delete: requirePermission('ai:assistant:chat')
     .input(z.object({ id: z.string() }))
     .mutation(() => {
       return successResponse;
     }),
 
-  chat: protectedProcedure
+  chat: requirePermission('ai:assistant:chat')
     .input(z.object({ message: z.string().optional(), sessionId: z.string().optional() }))
     .mutation(() => {
       return { response: "" };

@@ -3,7 +3,7 @@
  * IATF 16949 — GR&R, Bias, Linearity, Stability studies
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { msaStudies, msaMeasurements } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -102,7 +102,7 @@ export const msaRouter = router({
   }),
 
   // 删除
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('mfg:msa:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     await db.delete(msaMeasurements).where(eq(msaMeasurements.studyId, numId));
@@ -111,7 +111,7 @@ export const msaRouter = router({
   }),
 
   // 录入测量数据
-  addMeasurement: protectedProcedure.input(z.object({
+  addMeasurement: requirePermission('mfg:msa:manage').input(z.object({
     studyId: z.number(),
     partNumber: z.number(),
     trialNumber: z.number(),
@@ -132,7 +132,7 @@ export const msaRouter = router({
   }),
 
   // 批量录入
-  addMeasurementsBatch: protectedProcedure.input(z.object({
+  addMeasurementsBatch: requirePermission('mfg:msa:manage').input(z.object({
     studyId: z.number(),
     measurements: z.array(z.object({
       operatorName: z.string().optional(),
@@ -153,7 +153,7 @@ export const msaRouter = router({
   }),
 
   // 计算GR&R（简化版 — 基于均值-极差法）
-  calculateGRR: protectedProcedure.input(z.object({
+  calculateGRR: requirePermission('mfg:msa:manage').input(z.object({
     studyId: z.number(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();

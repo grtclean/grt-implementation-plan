@@ -2,6 +2,7 @@
  * 导出任务资源限制管理组件
  */
 import { useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +42,7 @@ const mockTasks: ExportTask[] = [
 const mockLoad: SystemLoad = { cpuUsagePercent: 45, memoryUsageMB: 3200, memoryTotalMB: 8192, activeTasks: 2, queuedTasks: 2 };
 
 export default function ExportResourceLimiterManager() {
+  const { t } = useLanguage();
   const [tasks] = useState<ExportTask[]>(mockTasks);
   const [load] = useState<SystemLoad>(mockLoad);
   const [concurrency, setConcurrency] = useState(3);
@@ -65,16 +67,16 @@ export default function ExportResourceLimiterManager() {
     <div className="p-6 space-y-6">
       <PageHeader
         icon={Activity}
-        title="导出任务资源限制"
-        description="动态调整并发数量，避免资源争抢"
+        title={t("admin.exportLimiter.title")}
+        description={t("admin.exportLimiter.subtitle")}
       />
 
       {/* 系统负载监控 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={Cpu} label="CPU使用率" value={`${load.cpuUsagePercent}%`} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={HardDrive} label="内存使用" value={`${(load.memoryUsageMB / 1024).toFixed(1)} GB`} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={Activity} label="活跃任务" value={stats.runningTasks} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={Clock} label="排队任务" value={stats.queuedTasks} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+        <StatCard icon={Cpu} label={t("admin.exportLimiter.cpuUsage")} value={`${load.cpuUsagePercent}%`} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={HardDrive} label={t("admin.exportLimiter.memoryUsage")} value={`${(load.memoryUsageMB / 1024).toFixed(1)} GB`} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Activity} label={t("admin.exportLimiter.activeTasks")} value={stats.runningTasks} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={Clock} label={t("admin.exportLimiter.queuedTasks")} value={stats.queuedTasks} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       {/* 并发控制 */}
@@ -82,21 +84,21 @@ export default function ExportResourceLimiterManager() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            并发控制
+            {t("admin.exportLimiter.concurrencyControl")}
           </CardTitle>
-          <CardDescription>调整同时运行的导出任务数量</CardDescription>
+          <CardDescription>{t("admin.exportLimiter.concurrencyDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm">当前并发数: {concurrency}</span>
-              <span className="text-sm text-muted-foreground">范围: 1-10</span>
+              <span className="text-sm">{t("admin.exportLimiter.currentConcurrency")} {concurrency}</span>
+              <span className="text-sm text-muted-foreground">{t("admin.exportLimiter.range")}</span>
             </div>
             <Slider value={[concurrency]} onValueChange={(v) => setConcurrency(v[0])} min={1} max={10} step={1} />
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setConcurrency(1)}>最小</Button>
-              <Button variant="outline" size="sm" onClick={() => setConcurrency(5)}>默认</Button>
-              <Button variant="outline" size="sm" onClick={() => setConcurrency(10)}>最大</Button>
+              <Button variant="outline" size="sm" onClick={() => setConcurrency(1)}>{t("admin.exportLimiter.min")}</Button>
+              <Button variant="outline" size="sm" onClick={() => setConcurrency(5)}>{t("admin.exportLimiter.default")}</Button>
+              <Button variant="outline" size="sm" onClick={() => setConcurrency(10)}>{t("admin.exportLimiter.max")}</Button>
             </div>
           </div>
         </CardContent>
@@ -104,8 +106,8 @@ export default function ExportResourceLimiterManager() {
 
       <Tabs defaultValue="tasks" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="tasks">任务列表</TabsTrigger>
-          <TabsTrigger value="history">历史记录</TabsTrigger>
+          <TabsTrigger value="tasks">{t("admin.exportLimiter.tabTasks")}</TabsTrigger>
+          <TabsTrigger value="history">{t("admin.exportLimiter.tabHistory")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="tasks" className="space-y-4">
@@ -128,14 +130,14 @@ export default function ExportResourceLimiterManager() {
                 {task.status === 'running' && (
                   <div className="space-y-1">
                     <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>进度</span>
+                      <span>{t("admin.exportLimiter.progress")}</span>
                       <span>{task.progress}%</span>
                     </div>
                     <Progress value={task.progress} className="h-2" />
                   </div>
                 )}
                 <div className="mt-2 text-xs text-muted-foreground">
-                  预计大小: {task.estimatedSizeMB} MB · 创建于: {new Date(task.createdAt).toLocaleString()}
+                  {t("admin.exportLimiter.estimatedSize")} {task.estimatedSizeMB} MB · {t("admin.exportLimiter.createdAt")} {new Date(task.createdAt).toLocaleString()}
                 </div>
               </CardContent>
             </Card>

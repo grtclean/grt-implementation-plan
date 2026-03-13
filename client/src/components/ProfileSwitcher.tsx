@@ -43,6 +43,7 @@ import {
   HardHat,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // 角色图标映射 - 扩展版
 const RoleIcon: Record<UserRole, React.ComponentType<{ className?: string }>> = {
@@ -66,53 +67,53 @@ const RoleIcon: Record<UserRole, React.ComponentType<{ className?: string }>> = 
   guest: Eye,
 };
 
-// 按类别分组的角色选项
+// 按类别分组的角色选项 — uses i18n keys resolved at render time
 interface RoleGroup {
-  label: string;
-  roles: { role: UserRole; label: string }[];
+  labelKey: string;
+  roles: { role: UserRole; labelKey: string }[];
 }
 
 const ROLE_GROUPS: RoleGroup[] = [
   {
-    label: "系统角色",
+    labelKey: "common.roleGroup.system",
     roles: [
-      { role: "admin", label: "系统管理员" },
-      { role: "director", label: "总监" },
+      { role: "admin", labelKey: "common.role.admin" },
+      { role: "director", labelKey: "common.role.director" },
     ],
   },
   {
-    label: "事业部角色",
+    labelKey: "common.roleGroup.bu",
     roles: [
-      { role: "bu_gm", label: "事业部总经理" },
-      { role: "bu_pm", label: "项目经理" },
-      { role: "bu_sales", label: "销售工程师" },
-      { role: "bu_mech", label: "机械设计工程师" },
-      { role: "bu_elec", label: "电气设计工程师" },
-      { role: "procurement_eng", label: "采购工程师" },
-      { role: "cs_engineer", label: "客服工程师" },
+      { role: "bu_gm", labelKey: "common.role.bu_gm" },
+      { role: "bu_pm", labelKey: "common.role.bu_pm" },
+      { role: "bu_sales", labelKey: "common.role.bu_sales" },
+      { role: "bu_mech", labelKey: "common.role.bu_mech" },
+      { role: "bu_elec", labelKey: "common.role.bu_elec" },
+      { role: "procurement_eng", labelKey: "common.role.procurement_eng" },
+      { role: "cs_engineer", labelKey: "common.role.cs_engineer" },
     ],
   },
   {
-    label: "部门管理",
+    labelKey: "common.roleGroup.dept",
     roles: [
-      { role: "dept_manager", label: "部门经理" },
-      { role: "team_lead", label: "组长/主管" },
+      { role: "dept_manager", labelKey: "common.role.dept_manager" },
+      { role: "team_lead", labelKey: "common.role.team_lead" },
     ],
   },
   {
-    label: "职能角色",
+    labelKey: "common.roleGroup.function",
     roles: [
-      { role: "hr_manager", label: "HR经理" },
-      { role: "hr_specialist", label: "HR专员" },
-      { role: "finance_manager", label: "财务经理" },
-      { role: "finance_specialist", label: "财务专员" },
+      { role: "hr_manager", labelKey: "common.role.hr_manager" },
+      { role: "hr_specialist", labelKey: "common.role.hr_specialist" },
+      { role: "finance_manager", labelKey: "common.role.finance_manager" },
+      { role: "finance_specialist", labelKey: "common.role.finance_specialist" },
     ],
   },
   {
-    label: "基础角色",
+    labelKey: "common.roleGroup.basic",
     roles: [
-      { role: "employee", label: "普通员工" },
-      { role: "production_worker", label: "产线员工" },
+      { role: "employee", labelKey: "common.role.employee" },
+      { role: "production_worker", labelKey: "common.role.production_worker" },
     ],
   },
 ];
@@ -132,6 +133,7 @@ export function ProfileSwitcher({ className, compact = false }: ProfileSwitcherP
     switchRole,
     switchBU,
   } = useUserProfile();
+  const { t } = useLanguage();
 
   const CurrentIcon = RoleIcon[currentUserRole] || User;
 
@@ -158,13 +160,13 @@ export function ProfileSwitcher({ className, compact = false }: ProfileSwitcherP
             >
               <Building2 className="h-3.5 w-3.5" />
               <span className="flex-1 text-left truncate">
-                {currentBUName || "选择事业部"}
+                {currentBUName || t("common.bu.selectBU")}
               </span>
               <ChevronDown className="h-3 w-3" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" side="top" className="w-60" sideOffset={4}>
-            <DropdownMenuLabel className="text-xs">切换事业部</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-xs">{t("common.bu.switchBU")}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {ROLE_HIERARCHY[currentUserRole] >= 5 && (
               <>
@@ -173,7 +175,7 @@ export function ProfileSwitcher({ className, compact = false }: ProfileSwitcherP
                   className={cn("cursor-pointer", !currentBU && "bg-accent")}
                 >
                   <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span>全部事业部</span>
+                  <span>{t("common.bu.allBU")}</span>
                   {!currentBU && <Check className="h-3 w-3 ml-auto" />}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -229,7 +231,7 @@ export function ProfileSwitcher({ className, compact = false }: ProfileSwitcherP
               <>
                 <div className="flex flex-col items-start flex-1 min-w-0">
                   <span className="text-xs font-medium truncate">
-                    {roleConfig.label}
+                    {t(`common.role.${currentUserRole}`)}
                   </span>
                   <span className="text-[10px] text-muted-foreground truncate">
                     {roleConfig.labelEn} · {dataScope}
@@ -249,16 +251,16 @@ export function ProfileSwitcher({ className, compact = false }: ProfileSwitcherP
         >
           <DropdownMenuLabel className="flex items-center gap-2">
             <Eye className="h-4 w-4" />
-            <span>切换视图角色</span>
+            <span>{t("common.bu.switchRole")}</span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
 
           {ROLE_GROUPS.map((group) => (
-            <React.Fragment key={group.label}>
+            <React.Fragment key={group.labelKey}>
               <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground tracking-wider py-1">
-                {group.label}
+                {t(group.labelKey)}
               </DropdownMenuLabel>
-              {group.roles.map(({ role, label }) => {
+              {group.roles.map(({ role, labelKey }) => {
                 const Icon = RoleIcon[role] || User;
                 const config = ROLE_CONFIGS[role];
                 const isActive = currentUserRole === role;
@@ -282,7 +284,7 @@ export function ProfileSwitcher({ className, compact = false }: ProfileSwitcherP
                       <Icon className="h-3.5 w-3.5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm">{label}</span>
+                      <span className="text-sm">{t(labelKey)}</span>
                     </div>
                     <span className="text-[10px] text-muted-foreground">L{config.level}</span>
                     {isActive && <Check className="h-3 w-3 text-primary" />}
@@ -295,13 +297,13 @@ export function ProfileSwitcher({ className, compact = false }: ProfileSwitcherP
           <DropdownMenuSeparator />
           <div className="px-2 py-2">
             <p className="text-xs text-muted-foreground">
-              当前: <Badge variant="outline" className="ml-1">{roleConfig.label}</Badge>
+              {t("common.bu.current")} <Badge variant="outline" className="ml-1">{t(`common.role.${currentUserRole}`)}</Badge>
               {currentBU && (
                 <Badge variant="secondary" className="ml-1">{currentBU}</Badge>
               )}
             </p>
             <p className="text-[10px] text-muted-foreground mt-1">
-              数据范围: {dataScope} · {roleConfig.description}
+              {t("common.bu.dataScope")} {dataScope} · {roleConfig.description}
             </p>
           </div>
         </DropdownMenuContent>

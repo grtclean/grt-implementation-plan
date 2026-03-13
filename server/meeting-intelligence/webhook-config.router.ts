@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { router, protectedProcedure } from '../_core/trpc';
+import {router, protectedProcedure, requirePermission} from '../_core/trpc';
 import { requireDb } from '../db';
 import { sql } from 'drizzle-orm';
 
@@ -26,7 +26,7 @@ export const webhookConfigRouter = router({
     .query(async () => {
       const db = await requireDb();
 
-      const result = await db.execute(sql`SELECT * FROM meeting_webhook_configs ORDER BY created_at DESC`);
+      const result = await db.execute(sql`SELECT * FROM meeting_webhook_configs ORDER BY created_at DESC LIMIT 1000`);
 
       const configs = result.rows.map((row: any) => ({
         id: row.id,
@@ -46,7 +46,7 @@ export const webhookConfigRouter = router({
     }),
 
   // 保存Webhook配置
-  saveWebhookConfig: protectedProcedure
+  saveWebhookConfig: requirePermission('system:webhooks:manage')
     .input(webhookConfigSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -73,7 +73,7 @@ export const webhookConfigRouter = router({
     }),
 
   // 删除Webhook配置
-  deleteWebhookConfig: protectedProcedure
+  deleteWebhookConfig: requirePermission('system:webhooks:manage')
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -84,7 +84,7 @@ export const webhookConfigRouter = router({
     }),
 
   // 切换Webhook启用状态
-  toggleWebhookConfig: protectedProcedure
+  toggleWebhookConfig: requirePermission('system:webhooks:manage')
     .input(z.object({ id: z.string(), isActive: z.boolean() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -95,13 +95,13 @@ export const webhookConfigRouter = router({
     }),
 
   // 测试Webhook
-  testWebhook: protectedProcedure
+  testWebhook: requirePermission('system:webhooks:manage')
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
 
       // 获取配置
-      const result = await db.execute(sql`SELECT * FROM meeting_webhook_configs WHERE id = ${input.id}`);
+      const result = await db.execute(sql`SELECT * FROM meeting_webhook_configs WHERE id = ${input.id} LIMIT 1000`);
 
       if (result.rows.length === 0) {
         return { success: false, error: '配置不存在' };

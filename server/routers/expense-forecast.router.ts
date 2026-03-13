@@ -10,7 +10,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 const emptyListResponse = { items: [] as any[], total: 0, page: 1, pageSize: 10 };
@@ -26,7 +26,7 @@ export const expenseForecastRouter = router({
       return [];
     }),
 
-  generateForecast: protectedProcedure
+  generateForecast: requirePermission('finance:analytics:view')
     .input(z.object({ startDate: z.string().optional(), endDate: z.string().optional(), category: z.string().optional() }).optional())
     .mutation(() => {
       return [];

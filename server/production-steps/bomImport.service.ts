@@ -6,7 +6,7 @@
  * 1. CSV/Excel格式BOM清单批量导入
  * 2. BOM模板下载
  * 3. 导入数据验证（物料编码格式、数量校验、重复检测）
- * 4. 简道云/ERP BOM数据同步
+ * 4. 外部数据平台/ERP BOM数据同步
  */
 
 import { requireDb } from "../db";
@@ -347,11 +347,11 @@ export async function rollbackImport(importId: number) {
 }
 
 // ============================================================
-// 5. 简道云/ERP数据同步
+// 5. 外部数据平台/ERP数据同步
 // ============================================================
 
-/** 从简道云获取BOM数据（通过API） */
-export async function syncFromJiandaoyun(params: {
+/** 从外部数据平台获取BOM数据（通过API） */
+export async function syncFromExternalSync(params: {
   projectId: string;
   verificationId: number;
   formId: string;
@@ -360,21 +360,21 @@ export async function syncFromJiandaoyun(params: {
 }) {
   const db = await requireDb();
   const now = Date.now();
-  
-  // 简道云API配置
-  const apiKey = process.env.JIANDAOYUN_API_KEY;
-  const corpId = process.env.JIANDAOYUN_CORP_ID;
-  
+
+  // 外部数据平台API配置
+  const apiKey = process.env.EXT_SYNC_API_KEY;
+  const corpId = process.env.EXT_SYNC_CORP_ID;
+
   if (!apiKey || !corpId) {
     return {
       success: false,
-      message: '简道云API未配置，请在系统设置中配置JIANDAOYUN_API_KEY和JIANDAOYUN_CORP_ID',
+      message: '外部数据平台API未配置，请在系统设置中配置EXT_SYNC_API_KEY和EXT_SYNC_CORP_ID',
     };
   }
-  
+
   try {
-    // 调用简道云数据查询API
-    const response = await fetch(`https://api.jiandaoyun.com/api/v5/corp/${corpId}/app/entry/${params.formId}/data/list`, {
+    // 调用外部数据平台数据查询API
+    const response = await fetch(`${process.env.EXT_SYNC_API_URL || 'https://api.external-sync.example.com'}/api/v5/corp/${corpId}/app/entry/${params.formId}/data/list`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -385,20 +385,20 @@ export async function syncFromJiandaoyun(params: {
         fields: Object.values(params.fieldMapping),
       }),
     });
-    
+
     if (!response.ok) {
       const errText = await response.text();
       return {
         success: false,
-        message: `简道云API调用失败: ${response.status} ${errText}`,
+        message: `外部数据平台API调用失败: ${response.status} ${errText}`,
       };
     }
-    
+
     const data = await response.json();
     const records = data.data || [];
-    
+
     if (records.length === 0) {
-      return { success: false, message: '简道云表单中没有数据' };
+      return { success: false, message: '外部数据平台表单中没有数据' };
     }
     
     // 转换数据格式
@@ -428,23 +428,23 @@ export async function syncFromJiandaoyun(params: {
       (project_id, verification_id, file_name, total_rows, imported_rows,
        error_rows, duplicate_rows, import_status, error_details,
        imported_by, imported_by_name, created_at)
-      VALUES (${params.projectId}, ${params.verificationId}, ${'jiandaoyun_sync_' + params.formId},
+      VALUES (${params.projectId}, ${params.verificationId}, ${'ext_sync_' + params.formId},
               ${records.length}, ${items.length},
               ${records.length - items.length}, 0,
-              'completed', ${JSON.stringify({ source: 'jiandaoyun', formId: params.formId })},
-              ${params.importedBy || 'system'}, ${'简道云同步'}, ${now})
+              'completed', ${JSON.stringify({ source: 'externalSync', formId: params.formId })},
+              ${params.importedBy || 'system'}, ${'外部数据平台同步'}, ${now})
     `);
     
     return {
       success: true,
       imported: items.length,
       totalRecords: records.length,
-      message: `从简道云成功同步 ${items.length} 条BOM数据`,
+      message: `从外部数据平台成功同步 ${items.length} 条BOM数据`,
     };
   } catch (error: any) {
     return {
       success: false,
-      message: `简道云同步失败: ${error.message}`,
+      message: `外部数据平台同步失败: ${error.message}`,
     };
   }
 }

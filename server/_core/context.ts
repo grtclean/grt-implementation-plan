@@ -85,7 +85,7 @@ export async function createContext(
     res: opts.res,
     user,
     language,
-    bu: { buId: null, buCode: null, buName: null },
+    bu: { buId: null, buCode: null, buName: null, departmentCode: null },
     requestId: (opts.req.headers['x-request-id'] as string) || 'unknown',
   };
 }

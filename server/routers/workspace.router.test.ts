@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAdminCaller, createAnonymousCaller, createAuthenticatedCaller } from "../_test/trpc-test-utils";
 
 // ── Mock state ──────────────────────────────────────────
 const mockExecuteFn = vi.fn();
@@ -67,6 +67,12 @@ function createMockDb() {
 }
 
 const mockDb = createMockDb();
+
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
 
 vi.mock("../db", () => ({
   getDb: vi.fn(async () => mockDb),

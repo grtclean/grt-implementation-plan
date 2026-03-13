@@ -39,7 +39,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   // ── Happy path ──────────────────────────────────────────────────
 
   it("returns the full FMEA matrix with all 6 items", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     expect(result.items).toHaveLength(6);
@@ -48,7 +48,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   });
 
   it("returns FMEA document metadata", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     expect(result.fmeaDocument.code).toBe("PFMEA-GRT-WASH-001");
@@ -60,7 +60,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   });
 
   it("includes a valid generatedAt ISO timestamp", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     expect(result.generatedAt).toBeTruthy();
@@ -70,7 +70,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   // ── Sorting ────────────────────────────────────────────────────
 
   it("sorts items CRITICAL first, then by RPN descending", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const statusOrder: Record<string, number> = {
@@ -99,7 +99,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   // ── Summary counts ─────────────────────────────────────────────
 
   it("summary counts add up to total items", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
     const { critical, elevated, nominal, total } = result.summary;
 
@@ -107,7 +107,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   });
 
   it("summary.spikedCount counts items with positive rpnDelta", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const actualSpiked = result.items.filter((r) => r.rpnSpiked).length;
@@ -115,7 +115,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   });
 
   it("summary.maxRpn equals the maximum newRpn across all items", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const maxFromItems = Math.max(...result.items.map((r) => r.newRpn));
@@ -125,7 +125,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   // ── Each item has complete recalculation fields ─────────────────
 
   it("every item has all required RpnRecalcResult fields", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     for (const item of result.items) {
@@ -173,7 +173,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   // ── Specific mock scenarios from MOCK_DEFECT_LOGS ──────────────
 
   it("Oil Leakage (#1) spikes with 10 defects (Occurrence 3 -> 6)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const oilLeakage = result.items.find((i) => i.fmeaItemId === 1);
@@ -190,7 +190,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   });
 
   it("PLC Communication (#2) stays clean with 0 defects (Occurrence -> 2)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const plcComm = result.items.find((i) => i.fmeaItemId === 2);
@@ -205,7 +205,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   });
 
   it("Spray Pattern (#3) hits max occurrence with 22 defects", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const sprayPattern = result.items.find((i) => i.fmeaItemId === 3);
@@ -221,7 +221,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   });
 
   it("Weld Porosity (#4) with 3 defects (Occurrence -> 4)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const weldPorosity = result.items.find((i) => i.fmeaItemId === 4);
@@ -237,7 +237,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   });
 
   it("Safety Interlock (#5) stays clean with 0 defects", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const safetyInterlock = result.items.find((i) => i.fmeaItemId === 5);
@@ -252,7 +252,7 @@ describe("fmeaDynamic.liveMatrix", () => {
   });
 
   it("Pump Cavitation (#6) with 4 defects (Occurrence -> 4)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const pumpCavitation = result.items.find((i) => i.fmeaItemId === 6);
@@ -286,7 +286,7 @@ describe("fmeaDynamic.recalculate", () => {
   // ── Happy path ──────────────────────────────────────────────────
 
   it("returns recalculation result for known fmeaItemId 1", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.recalculate({ fmeaItemId: 1 });
 
     expect(result.found).toBe(true);
@@ -298,7 +298,7 @@ describe("fmeaDynamic.recalculate", () => {
   });
 
   it("returns correct RPN recalculation for Oil Leakage (#1)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.recalculate({ fmeaItemId: 1 });
 
     expect(result.found).toBe(true);
@@ -316,7 +316,7 @@ describe("fmeaDynamic.recalculate", () => {
   });
 
   it("returns correct result for PLC Communication (#2, 0 defects)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.recalculate({ fmeaItemId: 2 });
 
     expect(result.found).toBe(true);
@@ -332,7 +332,7 @@ describe("fmeaDynamic.recalculate", () => {
   });
 
   it("returns correct result for Spray Pattern (#3, 22 defects)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.recalculate({ fmeaItemId: 3 });
 
     expect(result.found).toBe(true);
@@ -346,7 +346,7 @@ describe("fmeaDynamic.recalculate", () => {
   });
 
   it("returns correct result for Weld Porosity (#4, 3 defects)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.recalculate({ fmeaItemId: 4 });
 
     expect(result.found).toBe(true);
@@ -358,7 +358,7 @@ describe("fmeaDynamic.recalculate", () => {
   });
 
   it("returns correct result for Safety Interlock (#5, 0 defects)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.recalculate({ fmeaItemId: 5 });
 
     expect(result.found).toBe(true);
@@ -371,7 +371,7 @@ describe("fmeaDynamic.recalculate", () => {
   });
 
   it("returns correct result for Pump Cavitation (#6, 4 defects)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.recalculate({ fmeaItemId: 6 });
 
     expect(result.found).toBe(true);
@@ -385,7 +385,7 @@ describe("fmeaDynamic.recalculate", () => {
   // ── Not found ──────────────────────────────────────────────────
 
   it("returns found: false for unknown fmeaItemId", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.recalculate({ fmeaItemId: 9999 });
 
     expect(result.found).toBe(false);
@@ -395,14 +395,14 @@ describe("fmeaDynamic.recalculate", () => {
   });
 
   it("returns found: false for fmeaItemId 0", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.recalculate({ fmeaItemId: 0 });
 
     expect(result.found).toBe(false);
   });
 
   it("returns found: false for negative fmeaItemId", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.recalculate({ fmeaItemId: -1 });
 
     expect(result.found).toBe(false);
@@ -411,13 +411,13 @@ describe("fmeaDynamic.recalculate", () => {
   // ── Input validation ──────────────────────────────────────────
 
   it("rejects call without fmeaItemId (missing input)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     // @ts-expect-error - intentionally testing missing input
     await expect(caller.fmeaDynamic.recalculate({})).rejects.toThrow();
   });
 
   it("rejects non-numeric fmeaItemId", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       // @ts-expect-error - intentionally testing invalid input type
       caller.fmeaDynamic.recalculate({ fmeaItemId: "abc" }),
@@ -425,7 +425,7 @@ describe("fmeaDynamic.recalculate", () => {
   });
 
   it("rejects call with no input at all", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     // @ts-expect-error - intentionally testing no input
     await expect(caller.fmeaDynamic.recalculate()).rejects.toThrow();
   });
@@ -447,7 +447,7 @@ describe("fmeaDynamic.initiateCapa", () => {
   // ── Happy path ──────────────────────────────────────────────────
 
   it("initiates CAPA for a known FMEA item", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.initiateCapa({
       fmeaItemId: 1,
       reason: "Oil leakage rate exceeds acceptable threshold",
@@ -464,7 +464,7 @@ describe("fmeaDynamic.initiateCapa", () => {
   });
 
   it("generates correct CAPA code with zero-padded item ID", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const result1 = await caller.fmeaDynamic.initiateCapa({
       fmeaItemId: 1,
@@ -489,7 +489,7 @@ describe("fmeaDynamic.initiateCapa", () => {
   });
 
   it("includes a valid timestamp in the response", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.initiateCapa({
       fmeaItemId: 1,
       reason: "Critical RPN detected",
@@ -502,7 +502,7 @@ describe("fmeaDynamic.initiateCapa", () => {
   });
 
   it("returns correct failure mode and process step for each item", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const items = [
       { id: 1, failureMode: "Oil Leakage at Manifold Joint", processStep: "T3 — Hydraulic Assembly" },
@@ -528,7 +528,7 @@ describe("fmeaDynamic.initiateCapa", () => {
   // ── Not found ──────────────────────────────────────────────────
 
   it("returns success: false for unknown fmeaItemId", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.initiateCapa({
       fmeaItemId: 9999,
       reason: "Testing not-found path",
@@ -540,7 +540,7 @@ describe("fmeaDynamic.initiateCapa", () => {
   });
 
   it("returns success: false for fmeaItemId 0", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.initiateCapa({
       fmeaItemId: 0,
       reason: "Zero ID test",
@@ -550,7 +550,7 @@ describe("fmeaDynamic.initiateCapa", () => {
   });
 
   it("returns success: false for negative fmeaItemId", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.initiateCapa({
       fmeaItemId: -1,
       reason: "Negative ID test",
@@ -562,14 +562,14 @@ describe("fmeaDynamic.initiateCapa", () => {
   // ── Input validation ──────────────────────────────────────────
 
   it("rejects call with empty reason string", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.fmeaDynamic.initiateCapa({ fmeaItemId: 1, reason: "" }),
     ).rejects.toThrow();
   });
 
   it("rejects call without reason field", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       // @ts-expect-error - intentionally testing missing required field
       caller.fmeaDynamic.initiateCapa({ fmeaItemId: 1 }),
@@ -577,7 +577,7 @@ describe("fmeaDynamic.initiateCapa", () => {
   });
 
   it("rejects call without fmeaItemId field", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       // @ts-expect-error - intentionally testing missing required field
       caller.fmeaDynamic.initiateCapa({ reason: "test" }),
@@ -585,13 +585,13 @@ describe("fmeaDynamic.initiateCapa", () => {
   });
 
   it("rejects call with no input at all", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     // @ts-expect-error - intentionally testing no input
     await expect(caller.fmeaDynamic.initiateCapa()).rejects.toThrow();
   });
 
   it("rejects non-numeric fmeaItemId", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       // @ts-expect-error - intentionally testing invalid type
       caller.fmeaDynamic.initiateCapa({ fmeaItemId: "abc", reason: "test" }),
@@ -613,7 +613,7 @@ describe("fmeaDynamic.initiateCapa", () => {
   // ── Reason is echoed back ──────────────────────────────────────
 
   it("echoes back the reason provided", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const reason = "RPN exceeded 100 for 3 consecutive days — immediate action needed";
     const result = await caller.fmeaDynamic.initiateCapa({
       fmeaItemId: 1,
@@ -657,7 +657,7 @@ describe("fmeaDynamic — authentication guards", () => {
 
 describe("fmeaDynamic — cross-procedure consistency", () => {
   it("liveMatrix and recalculate return the same data for each FMEA item", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const matrixResult = await caller.fmeaDynamic.liveMatrix();
 
     for (const matrixItem of matrixResult.items) {
@@ -683,7 +683,7 @@ describe("fmeaDynamic — cross-procedure consistency", () => {
   });
 
   it("initiateCapa failure mode matches recalculate failure mode", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     for (const fmeaItemId of [1, 2, 3, 4, 5, 6]) {
       const recalcResult = await caller.fmeaDynamic.recalculate({ fmeaItemId });
@@ -702,7 +702,7 @@ describe("fmeaDynamic — cross-procedure consistency", () => {
   });
 
   it("all CRITICAL items in liveMatrix have capaRequired=true", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const criticalItems = result.items.filter(
@@ -714,7 +714,7 @@ describe("fmeaDynamic — cross-procedure consistency", () => {
   });
 
   it("no NOMINAL items have capaRequired=true", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const nominalItems = result.items.filter(
@@ -726,7 +726,7 @@ describe("fmeaDynamic — cross-procedure consistency", () => {
   });
 
   it("rpnSpiked is true iff rpnDelta > 0", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     for (const item of result.items) {
@@ -735,7 +735,7 @@ describe("fmeaDynamic — cross-procedure consistency", () => {
   });
 
   it("newRpn equals severity * newOccurrence * detection for all items", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     for (const item of result.items) {
@@ -744,7 +744,7 @@ describe("fmeaDynamic — cross-procedure consistency", () => {
   });
 
   it("previousRpn equals severity * previousOccurrence * detection for all items", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     for (const item of result.items) {
@@ -761,7 +761,7 @@ describe("fmeaDynamic — cross-procedure consistency", () => {
 
 describe("fmeaDynamic — defect summary integrity", () => {
   it("recentDefects has at most 5 entries per item", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     for (const item of result.items) {
@@ -770,7 +770,7 @@ describe("fmeaDynamic — defect summary integrity", () => {
   });
 
   it("defectsBySource values sum to totalDefects30d", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     for (const item of result.items) {
@@ -783,7 +783,7 @@ describe("fmeaDynamic — defect summary integrity", () => {
   });
 
   it("items with 0 defects have empty defectsBySource and recentDefects", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const zeroDefectItems = result.items.filter(
@@ -805,7 +805,7 @@ describe("fmeaDynamic — defect summary integrity", () => {
 
 describe("fmeaDynamic — live pulse messages via tRPC", () => {
   it("items with 0 defects have 'No defects' in livePulse", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const zeroDefectItems = result.items.filter(
@@ -817,7 +817,7 @@ describe("fmeaDynamic — live pulse messages via tRPC", () => {
   });
 
   it("CRITICAL items have CAPA REQUIRED in livePulse", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const criticalItems = result.items.filter(
@@ -829,7 +829,7 @@ describe("fmeaDynamic — live pulse messages via tRPC", () => {
   });
 
   it("NOMINAL items do NOT have CAPA REQUIRED in livePulse", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     const nominalItems = result.items.filter(
@@ -841,7 +841,7 @@ describe("fmeaDynamic — live pulse messages via tRPC", () => {
   });
 
   it("spiked items with defects and increased occurrence mention 'jumped' in livePulse", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.fmeaDynamic.liveMatrix();
 
     // Only items with actual defects AND occurrence increase produce the "jumped" message.

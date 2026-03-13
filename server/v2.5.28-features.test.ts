@@ -151,7 +151,7 @@ describe("v2.5.28 工人管理功能", () => {
   describe("工人列表筛选", () => {
     const mockWorkers = [
       { id: 1, name: "张明", employeeCode: "EMP001", status: "Active", skillLevel: "L4" },
-      { id: 2, name: "李强", employeeCode: "EMP002", status: "Active", skillLevel: "L3" },
+      { id: 2, name: "韩保程", employeeCode: "EMP002", status: "Active", skillLevel: "L3" },
       { id: 3, name: "赵磊", employeeCode: "EMP006", status: "On_Leave", skillLevel: "L2" }
     ];
 
@@ -166,9 +166,9 @@ describe("v2.5.28 工人管理功能", () => {
     it("应该支持按工号搜索", () => {
       const searchTerm = "EMP002";
       const filtered = mockWorkers.filter(w => w.employeeCode.includes(searchTerm));
-      
+
       expect(filtered.length).toBe(1);
-      expect(filtered[0].name).toBe("李强");
+      expect(filtered[0].name).toBe("韩保程");
     });
 
     it("应该支持按状态筛选", () => {
@@ -181,9 +181,9 @@ describe("v2.5.28 工人管理功能", () => {
     it("应该支持按技能等级筛选", () => {
       const skillFilter = "L3";
       const filtered = mockWorkers.filter(w => w.skillLevel === skillFilter);
-      
+
       expect(filtered.length).toBe(1);
-      expect(filtered[0].name).toBe("李强");
+      expect(filtered[0].name).toBe("韩保程");
     });
   });
 
@@ -220,7 +220,7 @@ describe("v2.5.28 工人管理功能", () => {
   describe("绩效排名", () => {
     const mockWorkers = [
       { name: "张明", efficiency: 115, tasksCompleted: 156, qualityRate: 98 },
-      { name: "李强", efficiency: 108, tasksCompleted: 128, qualityRate: 96 },
+      { name: "韩保程", efficiency: 108, tasksCompleted: 128, qualityRate: 96 },
       { name: "王伟", efficiency: 102, tasksCompleted: 115, qualityRate: 95 }
     ];
 
@@ -228,7 +228,7 @@ describe("v2.5.28 工人管理功能", () => {
       const sorted = [...mockWorkers].sort((a, b) => b.efficiency - a.efficiency);
       
       expect(sorted[0].name).toBe("张明");
-      expect(sorted[1].name).toBe("李强");
+      expect(sorted[1].name).toBe("韩保程");
       expect(sorted[2].name).toBe("王伟");
     });
 

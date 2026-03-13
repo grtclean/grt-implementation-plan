@@ -16,7 +16,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -27,6 +27,12 @@ const { selectResultsQueue } = vi.hoisted(() => {
 });
 
 // Mock DB
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => {
     const chain: any = {
@@ -76,13 +82,13 @@ const sampleExpense = {
 
 // ── Helper callers ──
 const employeeCaller = (overrides?: Record<string, any>) =>
-  createAuthenticatedCaller({ id: 1, role: "employee", ...overrides });
+  createAdminCaller({ id: 1, role: "employee", ...overrides });
 const financeCaller = (overrides?: Record<string, any>) =>
-  createAuthenticatedCaller({ id: 99, role: "finance_manager", ...overrides });
+  createAdminCaller({ id: 99, role: "finance_manager", ...overrides });
 const adminCaller = (overrides?: Record<string, any>) =>
-  createAuthenticatedCaller({ id: 100, role: "admin", ...overrides });
+  createAdminCaller({ id: 100, role: "admin", ...overrides });
 const directorCaller = (overrides?: Record<string, any>) =>
-  createAuthenticatedCaller({ id: 101, role: "director", ...overrides });
+  createAdminCaller({ id: 101, role: "director", ...overrides });
 
 describe("expenseComparison router", () => {
 
@@ -133,14 +139,14 @@ describe("expenseComparison router", () => {
 
     it("hr_manager role sees all data", async () => {
       selectResultsQueue.push([sampleExpense]);
-      const caller = createAuthenticatedCaller({ id: 50, role: "hr_manager" });
+      const caller = createAdminCaller({ id: 50, role: "hr_manager" });
       const result = await caller.expenseComparison.list();
       expect(result.items).toHaveLength(1);
     });
 
     it("finance_specialist role sees all data", async () => {
       selectResultsQueue.push([sampleExpense]);
-      const caller = createAuthenticatedCaller({ id: 50, role: "finance_specialist" });
+      const caller = createAdminCaller({ id: 50, role: "finance_specialist" });
       const result = await caller.expenseComparison.list();
       expect(result.items).toHaveLength(1);
     });
@@ -366,7 +372,7 @@ describe("expenseComparison router", () => {
 
     for (const role of financeRoles) {
       it(`${role} sees all data via list`, async () => {
-        const caller = createAuthenticatedCaller({ id: 500, role });
+        const caller = createAdminCaller({ id: 500, role });
         selectResultsQueue.push([sampleExpense, { ...sampleExpense, id: 2, submitterId: 999 }]);
         const result = await caller.expenseComparison.list();
         expect(result.items).toHaveLength(2);
@@ -377,7 +383,7 @@ describe("expenseComparison router", () => {
 
     for (const role of nonFinanceRoles) {
       it(`${role} gets filtered data via list`, async () => {
-        const caller = createAuthenticatedCaller({ id: 1, role });
+        const caller = createAdminCaller({ id: 1, role });
         selectResultsQueue.push([sampleExpense]);
         const result = await caller.expenseComparison.list();
         expect(result.items).toHaveLength(1);

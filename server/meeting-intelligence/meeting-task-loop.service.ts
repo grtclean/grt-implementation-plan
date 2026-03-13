@@ -10,6 +10,9 @@ import { invokeLLM } from '../_core/llm';
 import { requireDb } from '../db';
 import { MEETING_TEMPLATES, MeetingTemplate } from '../../client/src/config/meeting-templates';
 import { createChildLogger } from "../lib/logger";
+import { isGraphConfigured } from "../services/microsoft-graph/config";
+import { plannerService } from "../services/microsoft-graph/planner.service";
+import { departmentMappingService } from "../services/microsoft-graph/onedrive-sync.service";
 const log = createChildLogger("meeting-task-loop");
 
 // ============================================================================
@@ -399,6 +402,59 @@ export async function distributeActionItems(
       `UPDATE meeting_action_items SET status = 'assigned' WHERE id = ?`,
       [actionItemId]
     );
+
+    // ═══════ Planner 任务同步 ═══════
+    if (isGraphConfigured()) {
+      try {
+        const plans = await plannerService.getPlans();
+        const targetPlan = plans[0];
+        if (targetPlan) {
+          const buckets = await plannerService.getBuckets(targetPlan.id);
+          const todoBucket = buckets.find((b: any) => b.name === "待办") ?? buckets[0];
+          if (todoBucket) {
+            const plannerTask = await plannerService.createTask({
+              planId: targetPlan.id,
+              bucketId: todoBucket.id,
+              title: `[会议] ${(actionItem.title as string)?.substring(0, 200) ?? "Action Item"}`,
+              dueDateTime: actionItem.due_date ?? undefined,
+              priority: 5,
+            });
+            if (plannerTask) {
+              await (await requireDb() as any).execute(
+                `UPDATE meeting_action_items SET planner_task_id = ? WHERE id = ?`,
+                [plannerTask.id, actionItemId]
+              );
+              await departmentMappingService.logSync({
+                deptCode: "OPS",
+                action: "planner_sync",
+                sourceType: "grt",
+                sourcePath: `meeting_action_items/${actionItemId}`,
+                targetPath: `planner/${plannerTask.id}`,
+                status: "success",
+                fileCount: 0,
+                bytesTransferred: 0,
+                triggeredBy: "system",
+              });
+              log.info({ actionItemId, plannerTaskId: plannerTask.id }, "Synced action item to Planner");
+            }
+          }
+        }
+      } catch (e: any) {
+        log.warn({ err: e, actionItemId }, "Planner sync failed for action item");
+        await departmentMappingService.logSync({
+          deptCode: "OPS",
+          action: "planner_sync",
+          sourceType: "grt",
+          sourcePath: `meeting_action_items/${actionItemId}`,
+          targetPath: null,
+          status: "error",
+          errorMessage: e?.message ?? "Planner sync failed",
+          fileCount: 0,
+          bytesTransferred: 0,
+          triggeredBy: "system",
+        }).catch(() => {});
+      }
+    }
   }
 
   return assignments;

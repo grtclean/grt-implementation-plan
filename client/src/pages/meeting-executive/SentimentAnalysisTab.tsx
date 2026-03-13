@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   LineChart,
   Line,
@@ -44,14 +45,15 @@ const SENTIMENT_COLORS: Record<string, string> = {
   mixed: "#f59e0b",
 };
 
-const SENTIMENT_LABELS: Record<string, string> = {
-  positive: "积极",
-  neutral: "中性",
-  negative: "消极",
-  mixed: "混合",
+const SENTIMENT_LABEL_KEYS: Record<string, string> = {
+  positive: "meeting.sentiment.positive",
+  neutral: "meeting.sentiment.neutral",
+  negative: "meeting.sentiment.negative",
+  mixed: "meeting.sentiment.mixed",
 };
 
 export function SentimentAnalysisTab() {
+  const { t } = useLanguage();
   const [meetingId, setMeetingId] = useState("");
   const [batchIds, setBatchIds] = useState("");
 
@@ -78,8 +80,10 @@ export function SentimentAnalysisTab() {
     batchMutation.mutate({ meetingIds: ids });
   };
 
+  const getSentimentLabel = (key: string) => t(SENTIMENT_LABEL_KEYS[key] || "meeting.sentiment.neutral");
+
   const pieData = Object.entries(distribution).map(([key, value]) => ({
-    name: SENTIMENT_LABELS[key] || key,
+    name: getSentimentLabel(key),
     value: Number(value),
     color: SENTIMENT_COLORS[key] || "#94a3b8",
   }));
@@ -100,14 +104,14 @@ export function SentimentAnalysisTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Heart className="h-4 w-4 text-rose-500" />
-            情感分析
+            {t("meeting.sentiment.title")}
           </CardTitle>
-          <CardDescription>分析会议中的情感倾向、紧张程度和协作氛围</CardDescription>
+          <CardDescription>{t("meeting.sentiment.desc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3">
             <Input
-              placeholder="输入会议ID..."
+              placeholder={t("meeting.sentiment.meetingIdPlaceholder")}
               value={meetingId}
               onChange={(e) => setMeetingId(e.target.value)}
               className="max-w-sm"
@@ -121,12 +125,12 @@ export function SentimentAnalysisTab() {
               ) : (
                 <Heart className="h-4 w-4 mr-2" />
               )}
-              分析情感
+              {t("meeting.sentiment.analyze")}
             </Button>
           </div>
           <div className="flex gap-3">
             <Input
-              placeholder="批量分析: id1, id2, id3..."
+              placeholder={t("meeting.sentiment.batchPlaceholder")}
               value={batchIds}
               onChange={(e) => setBatchIds(e.target.value)}
               className="flex-1"
@@ -141,7 +145,7 @@ export function SentimentAnalysisTab() {
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
-              批量分析
+              {t("meeting.sentiment.batchAnalyze")}
             </Button>
           </div>
           {batchMutation.data && (
@@ -160,7 +164,7 @@ export function SentimentAnalysisTab() {
             </div>
           )}
           {analyzeMutation.isError && (
-            <p className="text-sm text-red-500">分析失败: {analyzeMutation.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.sentiment.analyzeFailed")}: {analyzeMutation.error.message}</p>
           )}
         </CardContent>
       </Card>
@@ -172,26 +176,26 @@ export function SentimentAnalysisTab() {
             <Card>
               <CardContent className="pt-6 text-center">
                 <div className="mb-2">{sentimentIcon(sentimentResult.overallSentiment)}</div>
-                <div className="text-2xl font-bold">{SENTIMENT_LABELS[sentimentResult.overallSentiment] || sentimentResult.overallSentiment}</div>
-                <div className="text-xs text-muted-foreground">情感分: {Number(sentimentResult.sentimentScore).toFixed(2)}</div>
+                <div className="text-2xl font-bold">{getSentimentLabel(sentimentResult.overallSentiment)}</div>
+                <div className="text-xs text-muted-foreground">{t("meeting.sentiment.sentimentScore")}: {Number(sentimentResult.sentimentScore).toFixed(2)}</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
                 <div className="text-2xl font-bold">{Number(sentimentResult.tensionLevel).toFixed(1)}/10</div>
-                <div className="text-xs text-muted-foreground">紧张度</div>
+                <div className="text-xs text-muted-foreground">{t("meeting.sentiment.tension")}</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
                 <div className="text-2xl font-bold">{Number(sentimentResult.collaborationTone).toFixed(1)}/10</div>
-                <div className="text-xs text-muted-foreground">协作度</div>
+                <div className="text-xs text-muted-foreground">{t("meeting.sentiment.collaboration")}</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
-                <div className="text-2xl font-bold">{sentimentResult.consensusReached ? "是" : "否"}</div>
-                <div className="text-xs text-muted-foreground">达成共识</div>
+                <div className="text-2xl font-bold">{sentimentResult.consensusReached ? t("meeting.sentiment.yes") : t("meeting.sentiment.no")}</div>
+                <div className="text-xs text-muted-foreground">{t("meeting.sentiment.consensusReached")}</div>
               </CardContent>
             </Card>
           </div>
@@ -200,7 +204,7 @@ export function SentimentAnalysisTab() {
           {sentimentResult.emotionalArc?.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">情感轨迹</CardTitle>
+                <CardTitle className="text-base">{t("meeting.sentiment.emotionalArc")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-2 flex-wrap">
@@ -225,16 +229,16 @@ export function SentimentAnalysisTab() {
           {sentimentResult.speakerSentiments?.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">参会者情感</CardTitle>
+                <CardTitle className="text-base">{t("meeting.sentiment.participantSentiment")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>发言者</TableHead>
-                      <TableHead className="text-center">情感</TableHead>
-                      <TableHead className="text-center">紧张度</TableHead>
-                      <TableHead>关键情感时刻</TableHead>
+                      <TableHead>{t("meeting.sentiment.speaker")}</TableHead>
+                      <TableHead className="text-center">{t("meeting.sentiment.sentimentLabel")}</TableHead>
+                      <TableHead className="text-center">{t("meeting.sentiment.tension")}</TableHead>
+                      <TableHead>{t("meeting.sentiment.keyEmotionalMoments")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -244,7 +248,7 @@ export function SentimentAnalysisTab() {
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-1">
                             {sentimentIcon(s.sentiment)}
-                            <span className="text-xs">{SENTIMENT_LABELS[s.sentiment] || s.sentiment}</span>
+                            <span className="text-xs">{getSentimentLabel(s.sentiment)}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">{Number(s.tensionLevel).toFixed(1)}</TableCell>
@@ -262,7 +266,7 @@ export function SentimentAnalysisTab() {
             {sentimentResult.conflictTopics?.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">分歧议题</CardTitle>
+                  <CardTitle className="text-base">{t("meeting.sentiment.conflictTopics")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-1">
@@ -279,7 +283,7 @@ export function SentimentAnalysisTab() {
             {sentimentResult.narrative && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">AI 情感叙述</CardTitle>
+                  <CardTitle className="text-base">{t("meeting.sentiment.aiNarrative")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground leading-relaxed">{sentimentResult.narrative}</p>
@@ -294,7 +298,7 @@ export function SentimentAnalysisTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Heart}
-          label="平均情感分"
+          label={t("meeting.sentiment.avgSentimentScore")}
           value={isLoading ? "..." : stats?.avgSentiment ?? 0}
           subtitle="Avg Sentiment Score (-1~+1)"
           iconColor="text-rose-600"
@@ -302,7 +306,7 @@ export function SentimentAnalysisTab() {
         />
         <StatCard
           icon={AlertTriangle}
-          label="平均紧张度"
+          label={t("meeting.sentiment.avgTension")}
           value={isLoading ? "..." : stats?.avgTension ?? 0}
           subtitle="Avg Tension Level (0-10)"
           iconColor="text-amber-600"
@@ -310,7 +314,7 @@ export function SentimentAnalysisTab() {
         />
         <StatCard
           icon={Smile}
-          label="平均协作度"
+          label={t("meeting.sentiment.avgCollaboration")}
           value={isLoading ? "..." : stats?.avgCollaboration ?? 0}
           subtitle="Avg Collaboration Tone (0-10)"
           iconColor="text-green-600"
@@ -318,7 +322,7 @@ export function SentimentAnalysisTab() {
         />
         <StatCard
           icon={Meh}
-          label="已分析会议"
+          label={t("meeting.sentiment.analyzedMeetings")}
           value={isLoading ? "..." : stats?.totalAnalyzed ?? 0}
           subtitle="Total Meetings Analyzed"
           iconColor="text-blue-600"
@@ -330,7 +334,7 @@ export function SentimentAnalysisTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">情感分布</CardTitle>
+            <CardTitle className="text-base">{t("meeting.sentiment.distribution")}</CardTitle>
             <CardDescription>Sentiment Distribution</CardDescription>
           </CardHeader>
           <CardContent>
@@ -353,14 +357,14 @@ export function SentimentAnalysisTab() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center py-8 text-muted-foreground">暂无数据</p>
+              <p className="text-center py-8 text-muted-foreground">{t("meeting.sentiment.noData")}</p>
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">紧张度趋势</CardTitle>
+            <CardTitle className="text-base">{t("meeting.sentiment.tensionTrend")}</CardTitle>
             <CardDescription>Tension Trend (last 30 meetings)</CardDescription>
           </CardHeader>
           <CardContent>
@@ -371,12 +375,12 @@ export function SentimentAnalysisTab() {
                   <XAxis dataKey="title" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={60} />
                   <YAxis domain={[0, 10]} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="tension_level" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} name="紧张度" />
-                  <Line type="monotone" dataKey="sentiment_score" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} name="情感分" />
+                  <Line type="monotone" dataKey="tension_level" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} name={t("meeting.sentiment.tension")} />
+                  <Line type="monotone" dataKey="sentiment_score" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} name={t("meeting.sentiment.sentimentScore")} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center py-8 text-muted-foreground">暂无数据</p>
+              <p className="text-center py-8 text-muted-foreground">{t("meeting.sentiment.noData")}</p>
             )}
           </CardContent>
         </Card>
@@ -385,18 +389,18 @@ export function SentimentAnalysisTab() {
       {/* High tension meetings */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">高紧张度会议 Top 5</CardTitle>
+          <CardTitle className="text-base">{t("meeting.sentiment.highTensionTop5")}</CardTitle>
         </CardHeader>
         <CardContent>
           {highTensionMeetings.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>会议名称</TableHead>
-                  <TableHead className="text-center">日期</TableHead>
-                  <TableHead className="text-center">紧张度</TableHead>
-                  <TableHead className="text-center">情感</TableHead>
-                  <TableHead>分歧议题</TableHead>
+                  <TableHead>{t("meeting.sentiment.meetingName")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.sentiment.date")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.sentiment.tension")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.sentiment.sentimentLabel")}</TableHead>
+                  <TableHead>{t("meeting.sentiment.conflictTopics")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -415,11 +419,11 @@ export function SentimentAnalysisTab() {
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-1">
                           {sentimentIcon(m.overall_sentiment)}
-                          <span className="text-xs">{SENTIMENT_LABELS[m.overall_sentiment] || m.overall_sentiment}</span>
+                          <span className="text-xs">{getSentimentLabel(m.overall_sentiment)}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {conflicts.slice(0, 3).join(", ") || "—"}
+                        {conflicts.slice(0, 3).join(", ") || "\u2014"}
                       </TableCell>
                     </TableRow>
                   );
@@ -427,7 +431,7 @@ export function SentimentAnalysisTab() {
               </TableBody>
             </Table>
           ) : (
-            <p className="text-center py-6 text-muted-foreground">暂无高紧张度会议数据</p>
+            <p className="text-center py-6 text-muted-foreground">{t("meeting.sentiment.noHighTensionData")}</p>
           )}
         </CardContent>
       </Card>
@@ -436,16 +440,16 @@ export function SentimentAnalysisTab() {
       {speakerRankings.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">发言者情感排名</CardTitle>
-            <CardDescription>按平均情感分排名</CardDescription>
+            <CardTitle className="text-base">{t("meeting.sentiment.speakerRanking")}</CardTitle>
+            <CardDescription>{t("meeting.sentiment.speakerRankingDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>发言者</TableHead>
-                  <TableHead className="text-center">参与会议数</TableHead>
-                  <TableHead className="text-center">平均情感</TableHead>
+                  <TableHead>{t("meeting.sentiment.speaker")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.sentiment.meetingCount")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.sentiment.avgSentiment")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

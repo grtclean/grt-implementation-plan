@@ -89,7 +89,7 @@ describe("smartInventory router", () => {
   // ─── dashboard ──────────────────────────────────────────
   describe("dashboard", () => {
     it("returns a full recalculation report with seed data when DB returns empty rows", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // 3 execute calls: loadForecasts, loadBom, loadMaterialRules — all empty → seed fallback
       const result = await caller.smartInventory.dashboard();
 
@@ -103,7 +103,7 @@ describe("smartInventory router", () => {
     });
 
     it("returns database dataSource when DB returns real data for materials", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // loadForecasts: return DB rows
       executeResultsQueue.push({ rows: DB_FORECAST_ROWS });
       // loadBom: return DB rows
@@ -119,7 +119,7 @@ describe("smartInventory router", () => {
     });
 
     it("includes summary with correct structure", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.dashboard();
 
       const { summary } = result;
@@ -138,7 +138,7 @@ describe("smartInventory router", () => {
     });
 
     it("falls back to seed when DB execute throws an error", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockDb.execute = vi.fn(() => Promise.reject(new Error("connection refused")));
 
       const result = await caller.smartInventory.dashboard();
@@ -148,7 +148,7 @@ describe("smartInventory router", () => {
     });
 
     it("includes topCashTraps sorted by descending potentialSavings", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.dashboard();
 
       if (result.topCashTraps.length > 1) {
@@ -160,7 +160,7 @@ describe("smartInventory router", () => {
     });
 
     it("includes topShortageRisks sorted by ascending potentialSavings", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.dashboard();
 
       if (result.topShortageRisks.length > 1) {
@@ -172,7 +172,7 @@ describe("smartInventory router", () => {
     });
 
     it("netCashImpact equals totalCashTrapped minus totalCashNeeded", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.dashboard();
 
       const { totalCashTrapped, totalCashNeeded, netCashImpact } = result.summary;
@@ -183,7 +183,7 @@ describe("smartInventory router", () => {
   // ─── forecasts ──────────────────────────────────────────
   describe("forecasts", () => {
     it("returns forecast data with seed source when DB empty", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.forecasts();
 
       expect(result).toHaveProperty("forecasts");
@@ -193,7 +193,7 @@ describe("smartInventory router", () => {
     });
 
     it("returns database source when DB returns rows", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({ rows: DB_FORECAST_ROWS });
 
       const result = await caller.smartInventory.forecasts();
@@ -203,7 +203,7 @@ describe("smartInventory router", () => {
     });
 
     it("groups forecasts by product with trend analysis", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.forecasts();
 
       expect(result.products.length).toBeGreaterThan(0);
@@ -217,7 +217,7 @@ describe("smartInventory router", () => {
     });
 
     it("product codes are unique in the products array", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.forecasts();
 
       const codes = result.products.map((p: any) => p.productCode);
@@ -226,7 +226,7 @@ describe("smartInventory router", () => {
     });
 
     it("each product's months contain only that product's forecasts", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.forecasts();
 
       for (const product of result.products) {
@@ -237,7 +237,7 @@ describe("smartInventory router", () => {
     });
 
     it("trend values are valid ForecastTrend enums", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.forecasts();
 
       const validTrends = ["HIGH_GROWTH", "MODERATE_GROWTH", "STABLE", "DECLINING", "STEEP_DECLINE"];
@@ -247,7 +247,7 @@ describe("smartInventory router", () => {
     });
 
     it("falls back to seed data when DB throws", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockDb.execute = vi.fn(() => Promise.reject(new Error("table not found")));
 
       const result = await caller.smartInventory.forecasts();
@@ -260,7 +260,7 @@ describe("smartInventory router", () => {
   // ─── recalculate ────────────────────────────────────────
   describe("recalculate", () => {
     it("returns a full report like dashboard (mutation equivalent)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.recalculate();
 
       expect(result).toHaveProperty("results");
@@ -272,8 +272,8 @@ describe("smartInventory router", () => {
     });
 
     it("produces consistent results with dashboard using same data", async () => {
-      const callerA = createAuthenticatedCaller();
-      const callerB = createAuthenticatedCaller();
+      const callerA = createAdminCaller();
+      const callerB = createAdminCaller();
       // Both use seed data (DB returns empty)
       const dashboard = await callerA.smartInventory.dashboard();
       const recalc = await callerB.smartInventory.recalculate();
@@ -286,7 +286,7 @@ describe("smartInventory router", () => {
     });
 
     it("returns database dataSource when DB provides data", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({ rows: DB_FORECAST_ROWS });
       executeResultsQueue.push({ rows: DB_BOM_ROWS });
       executeResultsQueue.push({ rows: DB_MATERIAL_ROWS });
@@ -296,7 +296,7 @@ describe("smartInventory router", () => {
     });
 
     it("timestamp is a valid ISO string", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.recalculate();
 
       const parsed = new Date(result.timestamp);
@@ -304,7 +304,7 @@ describe("smartInventory router", () => {
     });
 
     it("results contain expected fields for each part", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.recalculate();
 
       for (const part of result.results) {
@@ -329,7 +329,7 @@ describe("smartInventory router", () => {
   // ─── partDetail ─────────────────────────────────────────
   describe("partDetail", () => {
     it("returns found=true with part data for a known part", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Uses seed data which includes SS316-PLATE-3MM
       const result = await caller.smartInventory.partDetail({ partNumber: "SS316-PLATE-3MM" });
 
@@ -339,7 +339,7 @@ describe("smartInventory router", () => {
     });
 
     it("returns found=false for an unknown part number", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.partDetail({ partNumber: "NONEXISTENT-PART-999" });
 
       expect(result.found).toBe(false);
@@ -347,7 +347,7 @@ describe("smartInventory router", () => {
     });
 
     it("includes relatedForecasts for the requested part", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.partDetail({ partNumber: "SS316-PLATE-3MM" });
 
       expect(result.found).toBe(true);
@@ -356,7 +356,7 @@ describe("smartInventory router", () => {
     });
 
     it("includes relatedProducts array for the requested part", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.partDetail({ partNumber: "SS316-PLATE-3MM" });
 
       expect(result.found).toBe(true);
@@ -368,7 +368,7 @@ describe("smartInventory router", () => {
     });
 
     it("includes BOM items for the requested part", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.partDetail({ partNumber: "SS316-PLATE-3MM" });
 
       expect(result.found).toBe(true);
@@ -379,7 +379,7 @@ describe("smartInventory router", () => {
     });
 
     it("part detail includes full DynamicStockResult fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.partDetail({ partNumber: "PUMP-HP-15KW" });
 
       expect(result.found).toBe(true);
@@ -394,7 +394,7 @@ describe("smartInventory router", () => {
     });
 
     it("works with DB-sourced data", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // 3 calls: loadForecasts, loadBom, loadMaterialRules
       executeResultsQueue.push({ rows: DB_FORECAST_ROWS });
       executeResultsQueue.push({ rows: DB_BOM_ROWS });
@@ -406,7 +406,7 @@ describe("smartInventory router", () => {
     });
 
     it("returns found=false for parts not in DB material rules", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({ rows: DB_FORECAST_ROWS });
       executeResultsQueue.push({ rows: DB_BOM_ROWS });
       executeResultsQueue.push({ rows: DB_MATERIAL_ROWS });
@@ -417,7 +417,7 @@ describe("smartInventory router", () => {
     });
 
     it("returns PLC part with correct product relationships from seed", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.partDetail({ partNumber: "PLC-SIEMENS-1200" });
 
       expect(result.found).toBe(true);
@@ -431,7 +431,7 @@ describe("smartInventory router", () => {
   // ─── seedDemo ───────────────────────────────────────────
   describe("seedDemo", () => {
     it("creates sales_forecasts table and seeds data", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // CREATE TABLE → ok, then 9 INSERT calls for SEED_FORECASTS
       // mockDb.execute is already mocked to return { rows: [] } by default
 
@@ -448,7 +448,7 @@ describe("smartInventory router", () => {
     });
 
     it("all forecast entries have ok status when DB succeeds", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.seedDemo();
 
       for (const fc of result.forecasts) {
@@ -459,7 +459,7 @@ describe("smartInventory router", () => {
     });
 
     it("handles individual insert failures gracefully (per-row try/catch)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       let callCount = 0;
       mockDb.execute = vi.fn(() => {
         callCount++;
@@ -484,7 +484,7 @@ describe("smartInventory router", () => {
     });
 
     it("throws when CREATE TABLE fails (not caught by per-row try/catch)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       let callCount = 0;
       mockDb.execute = vi.fn(() => {
         callCount++;
@@ -499,7 +499,7 @@ describe("smartInventory router", () => {
     });
 
     it("calls db.execute at least 10 times (1 CREATE TABLE + 9 INSERTs)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.smartInventory.seedDemo();
 
       // 1 CREATE TABLE + 9 SEED_FORECASTS upserts = 10
@@ -507,7 +507,7 @@ describe("smartInventory router", () => {
     });
 
     it("note mentions real tables", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.seedDemo();
 
       expect(result.note).toContain("materials");
@@ -565,7 +565,7 @@ describe("smartInventory router", () => {
   // ─── DB data mapping ───────────────────────────────────
   describe("DB data mapping", () => {
     it("correctly maps forecast DB rows to SalesForecast objects", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       executeResultsQueue.push({
         rows: [
           { product_code: "P-100", product_name: "Widget", month: "2026-06", forecasted_qty: "200", confidence_level: "92" },
@@ -583,7 +583,7 @@ describe("smartInventory router", () => {
     });
 
     it("correctly maps material DB rows with category uppercasing", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // forecasts: empty → seed; bom: empty → seed
       executeResultsQueue.push({ rows: [] });
       executeResultsQueue.push({ rows: [] });
@@ -612,7 +612,7 @@ describe("smartInventory router", () => {
     });
 
     it("handles BOM rows with null qty_per_unit defaulting to 1", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // forecasts: return DB data
       executeResultsQueue.push({
         rows: [
@@ -637,7 +637,7 @@ describe("smartInventory router", () => {
   // ─── Seed data integrity ───────────────────────────────
   describe("seed data integrity", () => {
     it("seed data has 9 forecasts across 3 products", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.forecasts();
 
       expect(result.dataSource).toBe("seed");
@@ -646,7 +646,7 @@ describe("smartInventory router", () => {
     });
 
     it("seed data has 8 material rules", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.dashboard();
 
       expect(result.dataSource).toBe("seed");
@@ -654,7 +654,7 @@ describe("smartInventory router", () => {
     });
 
     it("GWM-3000 forecast trend is HIGH_GROWTH in seed data", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.forecasts();
 
       const gwm = result.products.find((p: any) => p.productCode === "GWM-3000");
@@ -664,7 +664,7 @@ describe("smartInventory router", () => {
     });
 
     it("GSC-200 forecast trend is STEEP_DECLINE in seed data", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.forecasts();
 
       const gsc = result.products.find((p: any) => p.productCode === "GSC-200");
@@ -674,7 +674,7 @@ describe("smartInventory router", () => {
     });
 
     it("GUC-500 forecast trend is STABLE in seed data", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.forecasts();
 
       const guc = result.products.find((p: any) => p.productCode === "GUC-500");
@@ -684,7 +684,7 @@ describe("smartInventory router", () => {
     });
 
     it("PUMP-HP-15KW is in shortage with seed data (8 stock vs high demand)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.partDetail({ partNumber: "PUMP-HP-15KW" });
 
       expect(result.found).toBe(true);
@@ -702,19 +702,19 @@ describe("smartInventory router", () => {
   // ─── Edge cases ─────────────────────────────────────────
   describe("edge cases", () => {
     it("partDetail with empty string partNumber returns found=false", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.partDetail({ partNumber: "" });
       expect(result.found).toBe(false);
     });
 
     it("partDetail with special characters in partNumber returns found=false", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartInventory.partDetail({ partNumber: "!@#$%^&*()" });
       expect(result.found).toBe(false);
     });
 
     it("dashboard handles mixed DB success/failure across loaders", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       let callCount = 0;
       mockDb.execute = vi.fn(() => {
         callCount++;
@@ -734,7 +734,7 @@ describe("smartInventory router", () => {
     });
 
     it("handles rows property being undefined (some DB drivers)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Some drivers return the array directly without .rows
       executeResultsQueue.push({ /* no rows property */ });
 

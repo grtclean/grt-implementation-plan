@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   tripRequests,
@@ -18,7 +18,8 @@ const TRIP_MANAGER_ROLES = new Set(["admin", "director", "dept_manager", "hr_man
 /** Verify trip belongs to current user (managers bypass) */
 async function assertTripOwnership(db: any, tripId: number, userId: number, role: string) {
   if (TRIP_MANAGER_ROLES.has(role)) return;
-  const [trip] = await db.select({ userId: tripRequests.userId }).from(tripRequests).where(eq(tripRequests.id, tripId));
+  const [trip] = await db.select({ userId: tripRequests.userId }).from(tripRequests).where(eq(tripRequests.id, tripId))
+      .limit(1000);
   if (!trip) throw new TRPCError({ code: "NOT_FOUND", message: `出差申请 #${tripId} 不存在` });
   if (trip.userId !== userId) {
     throw new TRPCError({ code: "FORBIDDEN", message: "无权操作他人的出差申请" });
@@ -121,7 +122,7 @@ export const tripRequestRouter = router({
   }),
 
   // 更新出差申请
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('finance:trip:create').input(z.object({
     id: z.string(),
     tripPurpose: z.string().optional(),
     destinationCity: z.string().optional(),
@@ -143,7 +144,7 @@ export const tripRequestRouter = router({
   }),
 
   // 删除出差申请 — ownership check, only draft
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
+  delete: requirePermission('finance:trip:create').input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
@@ -156,7 +157,7 @@ export const tripRequestRouter = router({
   }),
 
   // 审批 — role gate + self-approval prevention
-  approve: protectedProcedure.input(z.object({
+  approve: requirePermission('finance:trip:create').input(z.object({
     id: z.string(),
     notes: z.string().optional(),
   })).mutation(async ({ input, ctx }) => {
@@ -189,7 +190,7 @@ export const tripRequestRouter = router({
   }),
 
   // 拒绝 — role gate + self-rejection prevention
-  reject: protectedProcedure.input(z.object({
+  reject: requirePermission('finance:trip:create').input(z.object({
     id: z.string(),
     reason: z.string().optional(),
   })).mutation(async ({ input, ctx }) => {
@@ -220,7 +221,7 @@ export const tripRequestRouter = router({
   }),
 
   // 提交申请 — ownership check
-  submit: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
+  submit: requirePermission('finance:trip:create').input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
@@ -232,7 +233,7 @@ export const tripRequestRouter = router({
   }),
 
   // 取消申请 — ownership check
-  cancel: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
+  cancel: requirePermission('finance:trip:create').input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
@@ -244,7 +245,7 @@ export const tripRequestRouter = router({
   }),
 
   // 开始出差 — ownership check
-  start: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
+  start: requirePermission('finance:trip:create').input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
@@ -260,7 +261,7 @@ export const tripRequestRouter = router({
   }),
 
   // 完成出差 — ownership check
-  complete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
+  complete: requirePermission('finance:trip:create').input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");

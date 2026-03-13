@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
@@ -61,59 +62,53 @@ type AssistantType = "solution" | "quotation" | "planning" | "kpi" | "employee";
 
 interface AssistantConfig {
   id: AssistantType;
-  name: string;
-  nameCn: string;
-  description: string;
+  nameKey: string;
+  descKey: string;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
-  features: string[];
+  featureKeys: string[];
 }
 
 const ASSISTANT_CONFIGS: AssistantConfig[] = [
   {
     id: "solution",
-    name: "Solution Assistant",
-    nameCn: "方案助手",
-    description: "智能分析客户需求，推荐最佳解决方案",
+    nameKey: "ai.hub.solution.name",
+    descKey: "ai.hub.solution.desc",
     icon: Lightbulb,
     color: "bg-amber-500",
-    features: ["需求分析", "方案推荐", "技术选型", "风险评估"],
+    featureKeys: ["ai.hub.solution.feat1", "ai.hub.solution.feat2", "ai.hub.solution.feat3", "ai.hub.solution.feat4"],
   },
   {
     id: "quotation",
-    name: "Quotation Assistant",
-    nameCn: "报价助手",
-    description: "基于历史数据和市场分析，生成精准报价",
+    nameKey: "ai.hub.quotation.name",
+    descKey: "ai.hub.quotation.desc",
     icon: Calculator,
     color: "bg-emerald-500",
-    features: ["成本估算", "利润分析", "竞品对比", "报价优化"],
+    featureKeys: ["ai.hub.quotation.feat1", "ai.hub.quotation.feat2", "ai.hub.quotation.feat3", "ai.hub.quotation.feat4"],
   },
   {
     id: "planning",
-    name: "Planning Assistant",
-    nameCn: "规划助手",
-    description: "项目规划与资源调度智能助手",
+    nameKey: "ai.hub.planning.name",
+    descKey: "ai.hub.planning.desc",
     icon: Calendar,
     color: "bg-blue-500",
-    features: ["进度规划", "资源分配", "里程碑设定", "风险预警"],
+    featureKeys: ["ai.hub.planning.feat1", "ai.hub.planning.feat2", "ai.hub.planning.feat3", "ai.hub.planning.feat4"],
   },
   {
     id: "kpi",
-    name: "KPI Assistant",
-    nameCn: "KPI助手",
-    description: "绩效指标分析与优化建议",
+    nameKey: "ai.hub.kpi.name",
+    descKey: "ai.hub.kpi.desc",
     icon: ChartBar,
     color: "bg-purple-500",
-    features: ["指标分析", "趋势预测", "改进建议", "对标分析"],
+    featureKeys: ["ai.hub.kpi.feat1", "ai.hub.kpi.feat2", "ai.hub.kpi.feat3", "ai.hub.kpi.feat4"],
   },
   {
     id: "employee",
-    name: "Personal Assistant",
-    nameCn: "个人助手",
-    description: "您的专属AI助手，持续学习您的工作习惯",
+    nameKey: "ai.hub.employee.name",
+    descKey: "ai.hub.employee.desc",
     icon: User,
     color: "bg-rose-500",
-    features: ["个性化学习", "技能提升", "职业规划", "日常协助"],
+    featureKeys: ["ai.hub.employee.feat1", "ai.hub.employee.feat2", "ai.hub.employee.feat3", "ai.hub.employee.feat4"],
   },
 ];
 
@@ -126,6 +121,7 @@ interface ChatMessage {
 }
 
 export default function AIAssistantHub() {
+  const { t } = useLanguage();
   const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<AssistantType>("solution");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -162,12 +158,12 @@ export default function AIAssistantHub() {
   // tRPC mutations
   const initializeAssistant = trpc.employeeAiAssistant.initialize.useMutation({
     onSuccess: () => {
-      toast.success("AI助手初始化成功！");
+      toast.success(t("ai.hub.initSuccess"));
       refetchAssistant();
       setShowSetupDialog(false);
     },
     onError: (error) => {
-      toast.error(`初始化失败: ${error.message}`);
+      toast.error(`${t("ai.hub.initFailed").replace("{error}", error.message)}`);
     },
   });
 
@@ -187,7 +183,7 @@ export default function AIAssistantHub() {
       setIsLoading(false);
     },
     onError: (error) => {
-      toast.error(`发送失败: ${error.message}`);
+      toast.error(`${t("ai.hub.sendFailed").replace("{error}", error.message)}`);
       setIsLoading(false);
     },
   });
@@ -207,12 +203,12 @@ export default function AIAssistantHub() {
         };
         setMessages(prev => [...prev, assistantMessage]);
       } else if (!data.success) {
-        toast.error(data.error || "AI响应失败");
+        toast.error(data.error || t("ai.hub.aiResponseFail"));
       }
       setIsLoading(false);
     },
     onError: (error) => {
-      toast.error(`AI服务错误: ${error.message}`);
+      toast.error(`${t("ai.hub.aiServiceError").replace("{error}", error.message)}`);
       setIsLoading(false);
     },
   });
@@ -266,7 +262,7 @@ export default function AIAssistantHub() {
     const assistantType = activeTab as "solution" | "quotation" | "planning" | "kpi";
     const session = await createSessionMutation.mutateAsync({
       assistantType: assistantType,
-      title: `${ASSISTANT_CONFIGS.find(c => c.id === activeTab)?.nameCn || "AI助手"} - ${new Date().toLocaleDateString()}`,
+      title: `${t(ASSISTANT_CONFIGS.find(c => c.id === activeTab)?.nameKey || "ai.hub.title")} - ${new Date().toLocaleDateString()}`,
     });
     setMessages([]);
     return { sessionId: (session as any).id };
@@ -411,17 +407,17 @@ export default function AIAssistantHub() {
               <Icon className="w-5 h-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-base">{config.nameCn}</CardTitle>
-              <CardDescription className="text-xs">{config.name}</CardDescription>
+              <CardTitle className="text-base">{t(config.nameKey)}</CardTitle>
+              <CardDescription className="text-xs">{config.id}</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-3">{config.description}</p>
+          <p className="text-sm text-muted-foreground mb-3">{t(config.descKey)}</p>
           <div className="flex flex-wrap gap-1">
-            {config.features.map((feature, idx) => (
+            {config.featureKeys.map((fk, idx) => (
               <Badge key={idx} variant="secondary" className="text-xs">
-                {feature}
+                {t(fk)}
               </Badge>
             ))}
           </div>
@@ -451,15 +447,15 @@ export default function AIAssistantHub() {
                 <Icon className="w-5 h-5 text-white" />
               </div>
               <div>
-                <CardTitle>{activeConfig.nameCn}</CardTitle>
-                <CardDescription>{activeConfig.description}</CardDescription>
+                <CardTitle>{t(activeConfig.nameKey)}</CardTitle>
+                <CardDescription>{t(activeConfig.descKey)}</CardDescription>
               </div>
             </div>
             <div className="flex gap-2">
               {(activeTab as string) !== "employee" && (
                 <Button variant="outline" size="sm" onClick={() => setShowHistoryDialog(true)}>
                   <History className="w-4 h-4 mr-1" />
-                  历史
+                  {t("ai.hub.history")}
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={() => {
@@ -467,12 +463,12 @@ export default function AIAssistantHub() {
                 setCurrentSessionId(null);
               }}>
                 <RefreshCw className="w-4 h-4 mr-1" />
-                新对话
+                {t("ai.hub.newConversation")}
               </Button>
               {(activeTab as string) === "employee" && !myAssistant && (
                 <Button size="sm" onClick={() => setShowSetupDialog(true)}>
                   <Plus className="w-4 h-4 mr-1" />
-                  初始化助手
+                  {t("ai.hub.initAssistant")}
                 </Button>
               )}
             </div>
@@ -483,24 +479,24 @@ export default function AIAssistantHub() {
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground">
               <Bot className="w-16 h-16 mb-4 opacity-50" />
-              <h3 className="text-lg font-medium mb-2">开始对话</h3>
+              <h3 className="text-lg font-medium mb-2">{t("ai.hub.startConversation")}</h3>
               <p className="text-sm max-w-md">
                 {(activeTab as string) === "employee" && !myAssistant
-                  ? "请先初始化您的个人AI助手"
-                  : `向${activeConfig.nameCn}提问，获取专业建议`}
+                  ? t("ai.hub.initYourAssistant")
+                  : t("ai.hub.askAssistant").replace("{name}", t(activeConfig.nameKey))}
               </p>
               {(activeTab as string) !== "employee" && (
                 <div className="mt-6 grid grid-cols-2 gap-2">
-                  {activeConfig.features.map((feature, idx) => (
+                  {activeConfig.featureKeys.map((fk, idx) => (
                     <Button
                       key={idx}
                       variant="outline"
                       size="sm"
                       className="text-xs"
-                      onClick={() => setInputMessage(`请帮我分析${feature}相关的问题`)}
+                      onClick={() => setInputMessage(t("ai.hub.analyzeFeature").replace("{feature}", t(activeConfig.featureKeys[idx])))}
                     >
                       <Sparkles className="w-3 h-3 mr-1" />
-                      {feature}
+                      {t(activeConfig.featureKeys[idx])}
                     </Button>
                   ))}
                 </div>
@@ -540,7 +536,7 @@ export default function AIAssistantHub() {
                         <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
                         <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                       </div>
-                      <span className="text-sm text-muted-foreground">正在思考...</span>
+                      <span className="text-sm text-muted-foreground">{t("ai.hub.thinking")}</span>
                     </div>
                   </div>
                 </div>
@@ -553,7 +549,7 @@ export default function AIAssistantHub() {
         <div className="p-4 border-t">
           <div className="flex gap-2">
             <Input
-              placeholder={(activeTab as string) === "employee" && !myAssistant ? "请先初始化助手..." : "输入您的问题..."}
+              placeholder={(activeTab as string) === "employee" && !myAssistant ? t("ai.hub.initFirst") : t("ai.hub.inputPlaceholder")}
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
@@ -589,24 +585,24 @@ export default function AIAssistantHub() {
                   <div>
                     <CardTitle className="text-base">{myAssistant.assistantName}</CardTitle>
                     <CardDescription>
-                      类型: {myAssistant.assistantType} | 状态: {myAssistant.status}
+                      {t("ai.hub.typeLabel")}: {myAssistant.assistantType} | {t("ai.hub.statusLabel")}: {myAssistant.status}
                     </CardDescription>
                   </div>
                 </div>
                 <Badge variant={myAssistant.status === "active" ? "default" : "secondary"}>
-                  {myAssistant.status === "active" ? "活跃" : "暂停"}
+                  {myAssistant.status === "active" ? t("ai.hub.activeStatus") : t("ai.hub.pausedStatus")}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-muted-foreground">助手编码</p>
+                  <p className="text-muted-foreground">{t("ai.hub.assistantCode")}</p>
                   <p className="font-mono">{myAssistant.assistantCode}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">最后活跃</p>
-                  <p>{myAssistant.lastActiveAt ? new Date(myAssistant.lastActiveAt).toLocaleString() : "从未"}</p>
+                  <p className="text-muted-foreground">{t("ai.hub.lastActive")}</p>
+                  <p>{myAssistant.lastActiveAt ? new Date(myAssistant.lastActiveAt).toLocaleString() : t("ai.hub.never")}</p>
                 </div>
               </div>
             </CardContent>
@@ -615,13 +611,13 @@ export default function AIAssistantHub() {
           <Card className="border-dashed">
             <CardContent className="py-8 text-center">
               <Bot className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="font-medium mb-2">尚未初始化个人助手</h3>
+              <h3 className="font-medium mb-2">{t("ai.hub.notInitialized")}</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                创建您的专属AI助手，它将学习您的工作习惯并提供个性化帮助
+                {t("ai.hub.notInitializedDesc")}
               </p>
               <Button onClick={() => setShowSetupDialog(true)}>
                 <Plus className="w-4 h-4 mr-2" />
-                初始化我的助手
+                {t("ai.hub.initMyAssistant")}
               </Button>
             </CardContent>
           </Card>
@@ -633,7 +629,7 @@ export default function AIAssistantHub() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <GraduationCap className="w-4 h-4" />
-                技能图谱
+                {t("ai.hub.skillMap")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -660,7 +656,7 @@ export default function AIAssistantHub() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Briefcase className="w-4 h-4" />
-                职业发展路径
+                {t("ai.hub.careerPath")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -675,9 +671,9 @@ export default function AIAssistantHub() {
                       </div>
                       <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                         <Badge variant="outline" className="text-xs">
-                          {path.pathType === "vertical" ? "纵向晋升" : path.pathType === "horizontal" ? "横向发展" : "跨职能"}
+                          {path.pathType === "vertical" ? t("ai.hub.verticalPromotion") : path.pathType === "horizontal" ? t("ai.hub.horizontalDev") : t("ai.hub.crossFunctional")}
                         </Badge>
-                        <span>进度: {path.progressPercentage}%</span>
+                        <span>{t("ai.hub.progress")}: {path.progressPercentage}%</span>
                       </div>
                     </div>
                     <Progress value={path.progressPercentage} className="w-20" />
@@ -694,7 +690,7 @@ export default function AIAssistantHub() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <History className="w-4 h-4" />
-                最近会话
+                {t("ai.hub.recentSessions")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -706,10 +702,10 @@ export default function AIAssistantHub() {
                   >
                     <div className="flex items-center gap-2">
                       <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">{session.title || "无标题会话"}</span>
+                      <span className="text-sm">{session.title || t("ai.hub.untitledSession")}</span>
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {session.messageCount} 条消息
+                      {session.messageCount} {t("ai.hub.messageCount")}
                     </span>
                   </div>
                 ))}
@@ -735,17 +731,17 @@ export default function AIAssistantHub() {
         {/* 页面标题 */}
         <PageHeader
           icon={Brain}
-          title="AI 助手中心"
-          description="智能助手为您提供专业的业务支持和个性化服务"
+          title={t("ai.hub.title")}
+          description={t("ai.hub.description")}
           actions={
             <div className="flex gap-2">
               <Button variant="outline" size="sm">
                 <BookOpen className="w-4 h-4 mr-2" />
-                使用指南
+                {t("ai.hub.userGuide")}
               </Button>
               <Button variant="outline" size="sm">
                 <Settings className="w-4 h-4 mr-2" />
-                设置
+                {t("ai.hub.settings")}
               </Button>
             </div>
           }
@@ -774,7 +770,7 @@ export default function AIAssistantHub() {
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
                       <Zap className="w-4 h-4" />
-                      快捷操作
+                      {t("ai.hub.quickActions")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
@@ -782,11 +778,11 @@ export default function AIAssistantHub() {
                       <>
                         <Button variant="outline" className="w-full justify-start" size="sm">
                           <FileText className="w-4 h-4 mr-2" />
-                          生成方案文档
+                          {t("ai.hub.generateSolutionDoc")}
                         </Button>
                         <Button variant="outline" className="w-full justify-start" size="sm">
                           <Target className="w-4 h-4 mr-2" />
-                          需求分析报告
+                          {t("ai.hub.requirementAnalysisReport")}
                         </Button>
                       </>
                     )}
@@ -794,11 +790,11 @@ export default function AIAssistantHub() {
                       <>
                         <Button variant="outline" className="w-full justify-start" size="sm">
                           <Calculator className="w-4 h-4 mr-2" />
-                          快速报价
+                          {t("ai.hub.quickQuote")}
                         </Button>
                         <Button variant="outline" className="w-full justify-start" size="sm">
                           <TrendingUp className="w-4 h-4 mr-2" />
-                          利润分析
+                          {t("ai.hub.profitAnalysis")}
                         </Button>
                       </>
                     )}
@@ -806,11 +802,11 @@ export default function AIAssistantHub() {
                       <>
                         <Button variant="outline" className="w-full justify-start" size="sm">
                           <Calendar className="w-4 h-4 mr-2" />
-                          创建项目计划
+                          {t("ai.hub.createProjectPlan")}
                         </Button>
                         <Button variant="outline" className="w-full justify-start" size="sm">
                           <Target className="w-4 h-4 mr-2" />
-                          设置里程碑
+                          {t("ai.hub.setMilestones")}
                         </Button>
                       </>
                     )}
@@ -818,11 +814,11 @@ export default function AIAssistantHub() {
                       <>
                         <Button variant="outline" className="w-full justify-start" size="sm">
                           <ChartBar className="w-4 h-4 mr-2" />
-                          生成KPI报告
+                          {t("ai.hub.generateKpiReport")}
                         </Button>
                         <Button variant="outline" className="w-full justify-start" size="sm">
                           <TrendingUp className="w-4 h-4 mr-2" />
-                          趋势分析
+                          {t("ai.hub.trendAnalysis")}
                         </Button>
                       </>
                     )}
@@ -834,26 +830,26 @@ export default function AIAssistantHub() {
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
                       <ChartBar className="w-4 h-4" />
-                      使用统计
+                      {t("ai.hub.usageStats")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4 text-center">
                       <div>
                         <p className="text-2xl font-bold text-primary">128</p>
-                        <p className="text-xs text-muted-foreground">本月对话</p>
+                        <p className="text-xs text-muted-foreground">{t("ai.hub.monthlyConversations")}</p>
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-emerald-500">94%</p>
-                        <p className="text-xs text-muted-foreground">满意度</p>
+                        <p className="text-xs text-muted-foreground">{t("ai.hub.satisfaction")}</p>
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-amber-500">45</p>
-                        <p className="text-xs text-muted-foreground">方案生成</p>
+                        <p className="text-xs text-muted-foreground">{t("ai.hub.solutionGenerated")}</p>
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-purple-500">12h</p>
-                        <p className="text-xs text-muted-foreground">节省时间</p>
+                        <p className="text-xs text-muted-foreground">{t("ai.hub.timeSaved")}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -864,15 +860,15 @@ export default function AIAssistantHub() {
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
                       <Clock className="w-4 h-4" />
-                      最近活动
+                      {t("ai.hub.recentActivity")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
                       {[
-                        { action: "生成了项目报价", time: "10分钟前", icon: Calculator },
-                        { action: "分析了客户需求", time: "1小时前", icon: Lightbulb },
-                        { action: "更新了KPI指标", time: "3小时前", icon: ChartBar },
+                        { action: t("ai.hub.activity.generatedQuote"), time: t("ai.hub.activity.10minAgo"), icon: Calculator },
+                        { action: t("ai.hub.activity.analyzedRequirement"), time: t("ai.hub.activity.1hAgo"), icon: Lightbulb },
+                        { action: t("ai.hub.activity.updatedKpi"), time: t("ai.hub.activity.3hAgo"), icon: ChartBar },
                       ].map((activity, idx) => (
                         <div key={idx} className="flex items-center gap-3 text-sm">
                           <activity.icon className="w-4 h-4 text-muted-foreground" />
@@ -895,34 +891,34 @@ export default function AIAssistantHub() {
       <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>初始化个人AI助手</DialogTitle>
+            <DialogTitle>{t("ai.hub.initPersonalAssistant")}</DialogTitle>
             <DialogDescription>
-              选择助手类型并设置个性化配置，助手将根据您的工作习惯持续学习
+              {t("ai.hub.initPersonalDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>助手类型</Label>
+              <Label>{t("ai.hub.assistantType")}</Label>
               <Select value={selectedAssistantType} onValueChange={setSelectedAssistantType}>
                 <SelectTrigger>
-                  <SelectValue placeholder="选择助手类型" />
+                  <SelectValue placeholder={t("ai.hub.selectType")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="general">通用助手</SelectItem>
-                  <SelectItem value="sales">销售助手</SelectItem>
-                  <SelectItem value="tech">技术助手</SelectItem>
-                  <SelectItem value="pm">项目管理助手</SelectItem>
-                  <SelectItem value="hr">人力资源助手</SelectItem>
-                  <SelectItem value="finance">财务助手</SelectItem>
-                  <SelectItem value="production">生产管理助手</SelectItem>
-                  <SelectItem value="engineering">工程助手</SelectItem>
+                  <SelectItem value="general">{t("ai.hub.generalAssistant")}</SelectItem>
+                  <SelectItem value="sales">{t("ai.hub.salesAssistant")}</SelectItem>
+                  <SelectItem value="tech">{t("ai.hub.techAssistant")}</SelectItem>
+                  <SelectItem value="pm">{t("ai.hub.pmAssistant")}</SelectItem>
+                  <SelectItem value="hr">{t("ai.hub.hrAssistant")}</SelectItem>
+                  <SelectItem value="finance">{t("ai.hub.financeAssistant")}</SelectItem>
+                  <SelectItem value="production">{t("ai.hub.productionAssistant")}</SelectItem>
+                  <SelectItem value="engineering">{t("ai.hub.engineeringAssistant")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>自定义名称（可选）</Label>
+              <Label>{t("ai.hub.customName")}</Label>
               <Input
-                placeholder="例如：小智"
+                placeholder={t("ai.hub.namePlaceholder")}
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
               />
@@ -930,10 +926,10 @@ export default function AIAssistantHub() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowSetupDialog(false)}>
-              取消
+              {t("ai.hub.cancel")}
             </Button>
             <Button onClick={handleInitializeAssistant} disabled={initializeAssistant.isPending}>
-              {initializeAssistant.isPending ? "初始化中..." : "确认初始化"}
+              {initializeAssistant.isPending ? t("ai.hub.initializing") : t("ai.hub.confirmInit")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -945,10 +941,10 @@ export default function AIAssistantHub() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="w-5 h-5" />
-              历史对话
+              {t("ai.hub.historyConversations")}
             </DialogTitle>
             <DialogDescription>
-              查看和继续之前的对话记录
+              {t("ai.hub.viewHistory")}
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[400px] overflow-y-auto">
@@ -968,7 +964,7 @@ export default function AIAssistantHub() {
                           <MessageSquare className="w-4 h-4 text-muted-foreground" />
                           <div>
                             <p className="font-medium text-sm">
-                              {session.title || `对话 #${session.id}`}
+                              {session.title || `${t("ai.hub.conversationNum").replace("{id}", String(session.id))}`}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {new Date(session.createdAt).toLocaleString()}
@@ -981,7 +977,7 @@ export default function AIAssistantHub() {
                           </Badge>
                           {session.status === "active" && (
                             <Badge variant="default" className="text-xs">
-                              活跃
+                              {t("ai.hub.activeStatus")}
                             </Badge>
                           )}
                         </div>
@@ -993,21 +989,21 @@ export default function AIAssistantHub() {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <History className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>暂无历史对话</p>
-                <p className="text-sm">开始一段新对话后，记录将自动保存</p>
+                <p>{t("ai.hub.noHistory")}</p>
+                <p className="text-sm">{t("ai.hub.startNewToSave")}</p>
               </div>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowHistoryDialog(false)}>
-              关闭
+              {t("ai.hub.close")}
             </Button>
             <Button onClick={() => {
               handleNewSession();
               setShowHistoryDialog(false);
             }}>
               <Plus className="w-4 h-4 mr-1" />
-              新建对话
+              {t("ai.hub.newChat")}
             </Button>
           </DialogFooter>
         </DialogContent>

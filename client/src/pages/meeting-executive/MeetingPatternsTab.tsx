@@ -22,21 +22,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const SEVERITY_CONFIG: Record<string, { color: string; icon: typeof Info; label: string }> = {
-  info: { color: "text-blue-600 bg-blue-50 border-blue-200", icon: Info, label: "信息" },
-  warning: { color: "text-amber-600 bg-amber-50 border-amber-200", icon: AlertTriangle, label: "警告" },
-  critical: { color: "text-red-600 bg-red-50 border-red-200", icon: AlertCircle, label: "严重" },
+const SEVERITY_ICON: Record<string, typeof Info> = {
+  info: Info,
+  warning: AlertTriangle,
+  critical: AlertCircle,
 };
 
-const PATTERN_LABELS: Record<string, string> = {
-  time_waste: "时间浪费",
-  recurring_inefficiency: "持续低效",
-  over_meeting: "会议过多",
-  optimal_pattern: "最佳模式",
+const SEVERITY_COLORS: Record<string, string> = {
+  info: "text-blue-600 bg-blue-50 border-blue-200",
+  warning: "text-amber-600 bg-amber-50 border-amber-200",
+  critical: "text-red-600 bg-red-50 border-red-200",
+};
+
+const PATTERN_LABEL_KEYS: Record<string, string> = {
+  time_waste: "meeting.patterns.timeWaste",
+  recurring_inefficiency: "meeting.patterns.recurringInefficiency",
+  over_meeting: "meeting.patterns.overMeeting",
+  optimal_pattern: "meeting.patterns.optimalPattern",
+};
+
+const SEVERITY_LABEL_KEYS: Record<string, string> = {
+  info: "meeting.patterns.severityInfo",
+  warning: "meeting.patterns.severityWarning",
+  critical: "meeting.patterns.severityCritical",
 };
 
 export function MeetingPatternsTab() {
+  const { t } = useLanguage();
   const [scope, setScope] = useState("organization");
   const [scopeId, setScopeId] = useState("");
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -67,25 +81,25 @@ export function MeetingPatternsTab() {
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-3 items-end">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">范围</label>
+              <label className="text-sm font-medium">{t("meeting.patterns.scope")}</label>
               <Select value={scope} onValueChange={setScope}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="organization">全组织</SelectItem>
-                  <SelectItem value="department">部门</SelectItem>
-                  <SelectItem value="individual">个人</SelectItem>
+                  <SelectItem value="organization">{t("meeting.patterns.orgScope")}</SelectItem>
+                  <SelectItem value="department">{t("meeting.patterns.deptScope")}</SelectItem>
+                  <SelectItem value="individual">{t("meeting.patterns.individualScope")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {scope !== "organization" && (
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">{scope === "department" ? "部门名" : "员工ID"}</label>
+                <label className="text-sm font-medium">{scope === "department" ? t("meeting.patterns.deptName") : t("meeting.patterns.employeeId")}</label>
                 <Input
                   value={scopeId}
                   onChange={(e) => setScopeId(e.target.value)}
-                  placeholder={scope === "department" ? "研发部" : "employee-id"}
+                  placeholder={scope === "department" ? t("meeting.patterns.deptPlaceholder") : t("meeting.patterns.employeePlaceholder")}
                   className="w-[160px]"
                 />
               </div>
@@ -99,7 +113,7 @@ export function MeetingPatternsTab() {
               ) : (
                 <Search className="h-4 w-4 mr-2" />
               )}
-              检测模式
+              {t("meeting.patterns.detect")}
             </Button>
           </div>
         </CardContent>
@@ -112,20 +126,20 @@ export function MeetingPatternsTab() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-purple-500" />
-                {PATTERN_LABELS[type] || type}
+                {t(PATTERN_LABEL_KEYS[type] || `meeting.patterns.${type}`)}
                 <Badge variant="outline" className="ml-2">{items.length}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {items.map((p: any) => {
-                const sev = SEVERITY_CONFIG[p.severity] || SEVERITY_CONFIG.info;
-                const SevIcon = sev.icon;
+                const sevColor = SEVERITY_COLORS[p.severity] || SEVERITY_COLORS.info;
+                const SevIcon = SEVERITY_ICON[p.severity] || Info;
                 const isExpanded = expanded === p.id;
 
                 return (
                   <div
                     key={p.id}
-                    className={`border rounded-lg p-4 ${sev.color}`}
+                    className={`border rounded-lg p-4 ${sevColor}`}
                   >
                     <div
                       className="flex items-start justify-between cursor-pointer"
@@ -141,7 +155,7 @@ export function MeetingPatternsTab() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">{sev.label}</Badge>
+                        <Badge variant="outline" className="text-xs">{t(SEVERITY_LABEL_KEYS[p.severity] || "meeting.patterns.severityInfo")}</Badge>
                         {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </div>
                     </div>
@@ -151,12 +165,12 @@ export function MeetingPatternsTab() {
                         <p className="whitespace-pre-wrap">{p.description}</p>
                         {p.recommendation && (
                           <div className="mt-2 p-2 bg-white/50 rounded text-xs">
-                            <span className="font-medium">建议: </span>{p.recommendation}
+                            <span className="font-medium">{t("meeting.patterns.suggestion")}: </span>{p.recommendation}
                           </div>
                         )}
                         {p.metrics && (
                           <div className="text-xs opacity-70">
-                            指标: {p.metrics}
+                            {t("meeting.patterns.metrics")}: {p.metrics}
                           </div>
                         )}
                       </div>
@@ -171,8 +185,8 @@ export function MeetingPatternsTab() {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <Search className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>暂无检测到的会议模式</p>
-            <p className="text-sm">点击"检测模式"开始分析</p>
+            <p>{t("meeting.patterns.noPatterns")}</p>
+            <p className="text-sm">{t("meeting.patterns.pleaseDetect")}</p>
           </CardContent>
         </Card>
       )}
@@ -182,9 +196,9 @@ export function MeetingPatternsTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-indigo-500" />
-            会议文化报告
+            {t("meeting.patterns.cultureReport")}
           </CardTitle>
-          <CardDescription>Meeting Culture Health Report</CardDescription>
+          <CardDescription>{t("meeting.patterns.cultureReportDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {culture ? (
@@ -193,19 +207,19 @@ export function MeetingPatternsTab() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="text-center p-3 bg-muted/30 rounded-lg">
                   <div className="text-2xl font-semibold">{culture.metrics?.totalMeetings ?? 0}</div>
-                  <div className="text-xs text-muted-foreground">总会议数</div>
+                  <div className="text-xs text-muted-foreground">{t("meeting.patterns.totalMeetings")}</div>
                 </div>
                 <div className="text-center p-3 bg-muted/30 rounded-lg">
                   <div className="text-2xl font-semibold">{culture.metrics?.avgEffectiveness ?? 0}%</div>
-                  <div className="text-xs text-muted-foreground">平均效能</div>
+                  <div className="text-xs text-muted-foreground">{t("meeting.patterns.avgEffectiveness")}</div>
                 </div>
                 <div className="text-center p-3 bg-muted/30 rounded-lg">
                   <div className="text-2xl font-semibold">{culture.metrics?.decisionToMeetingRatio ?? 0}</div>
-                  <div className="text-xs text-muted-foreground">决策/会议比</div>
+                  <div className="text-xs text-muted-foreground">{t("meeting.patterns.decisionRatio")}</div>
                 </div>
                 <div className="text-center p-3 bg-muted/30 rounded-lg">
                   <div className="text-2xl font-semibold">{culture.metrics?.uniqueParticipants ?? 0}</div>
-                  <div className="text-xs text-muted-foreground">独立参与者</div>
+                  <div className="text-xs text-muted-foreground">{t("meeting.patterns.uniqueParticipants")}</div>
                 </div>
               </div>
               {/* AI narrative */}
@@ -213,7 +227,7 @@ export function MeetingPatternsTab() {
                 <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-100">
                   <div className="flex items-center gap-2 mb-2">
                     <Sparkles className="h-4 w-4 text-indigo-600" />
-                    <span className="text-sm font-medium text-indigo-700">AI 分析</span>
+                    <span className="text-sm font-medium text-indigo-700">{t("meeting.patterns.aiAnalysis")}</span>
                   </div>
                   <p className="text-sm text-indigo-800 leading-relaxed whitespace-pre-wrap">
                     {culture.narrative}
@@ -222,7 +236,7 @@ export function MeetingPatternsTab() {
               )}
             </div>
           ) : (
-            <p className="text-center py-6 text-muted-foreground">加载中...</p>
+            <p className="text-center py-6 text-muted-foreground">{t("meeting.patterns.loading")}</p>
           )}
         </CardContent>
       </Card>

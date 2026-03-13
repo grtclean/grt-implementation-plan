@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import * as db from "./production-execution.db";
 
 // ============================================================================
@@ -99,7 +99,7 @@ export const productionExecutionRouter = router({
   /**
    * 为项目初始化所有生产阶段
    */
-  initializeProjectStages: protectedProcedure
+  initializeProjectStages: requirePermission('mfg:execution:report')
     .input(z.object({
       projectId: z.number(),
       contextData: z.string().optional(),
@@ -115,7 +115,7 @@ export const productionExecutionRouter = router({
   /**
    * 更新阶段状态
    */
-  updateStageStatus: protectedProcedure
+  updateStageStatus: requirePermission('mfg:execution:report')
     .input(z.object({
       stageId: z.number(),
       status: stageStatusSchema,
@@ -138,7 +138,7 @@ export const productionExecutionRouter = router({
   /**
    * 更新阶段进度
    */
-  updateStageProgress: protectedProcedure
+  updateStageProgress: requirePermission('mfg:execution:report')
     .input(z.object({
       stageId: z.number(),
       completionPercentage: z.number().min(0).max(100),
@@ -311,7 +311,7 @@ export const productionExecutionRouter = router({
   /**
    * 创建审批请求
    */
-  createApprovalRequest: protectedProcedure
+  createApprovalRequest: requirePermission('mfg:execution:report')
     .input(z.object({
       productionStageId: z.number(),
       projectId: z.number(),
@@ -336,7 +336,7 @@ export const productionExecutionRouter = router({
   /**
    * 处理审批（批准/拒绝）
    */
-  processApproval: protectedProcedure
+  processApproval: requirePermission('mfg:execution:report')
     .input(z.object({
       approvalId: z.number(),
       status: z.enum(['APPROVED', 'REJECTED']),
@@ -377,7 +377,7 @@ export const productionExecutionRouter = router({
   /**
    * 更新集成状态
    */
-  updateIntegrationStatus: protectedProcedure
+  updateIntegrationStatus: requirePermission('mfg:execution:report')
     .input(z.object({
       integrationCode: z.string(),
       status: z.enum(['CONNECTED', 'DISCONNECTED', 'ERROR', 'SYNCING']),
@@ -472,7 +472,7 @@ export const productionExecutionRouter = router({
   /**
    * 手动触发UWB数据同步
    */
-  triggerUwbSync: protectedProcedure.mutation(async () => {
+  triggerUwbSync: requirePermission('mfg:execution:report').mutation(async () => {
     const { uwbSyncService } = await import('./uwb-sync.service');
     const result = await uwbSyncService.manualSync();
     return {
@@ -485,7 +485,7 @@ export const productionExecutionRouter = router({
   /**
    * 启动UWB同步服务
    */
-  startUwbSync: protectedProcedure
+  startUwbSync: requirePermission('mfg:execution:report')
     .input(z.object({ intervalSeconds: z.number().min(10).max(3600).optional() }))
     .mutation(async ({ input }) => {
       const { uwbSyncService } = await import('./uwb-sync.service');
@@ -499,7 +499,7 @@ export const productionExecutionRouter = router({
   /**
    * 停止UWB同步服务
    */
-  stopUwbSync: protectedProcedure.mutation(async () => {
+  stopUwbSync: requirePermission('mfg:execution:report').mutation(async () => {
     const { uwbSyncService } = await import('./uwb-sync.service');
     uwbSyncService.stop();
     return {
@@ -568,7 +568,7 @@ export const productionExecutionRouter = router({
   /**
    * 移除UWB设备
    */
-  removeUwbDevice: protectedProcedure
+  removeUwbDevice: requirePermission('mfg:execution:report')
     .input(z.object({ deviceId: z.string() }))
     .mutation(async ({ input }) => {
       const { uwbSyncService } = await import('./uwb-sync.service');
@@ -603,7 +603,7 @@ export const productionExecutionRouter = router({
   /**
    * 更新通知配置
    */
-  updateNotificationConfig: protectedProcedure
+  updateNotificationConfig: requirePermission('mfg:execution:report')
     .input(z.object({
       channel: z.enum(['WECOM', 'DINGTALK', 'EMAIL', 'SMS', 'SYSTEM']),
       enabled: z.boolean(),
@@ -741,7 +741,7 @@ export const productionExecutionRouter = router({
   /**
    * 测试通知渠道
    */
-  testNotificationChannel: protectedProcedure
+  testNotificationChannel: requirePermission('mfg:execution:report')
     .input(z.object({
       channel: z.enum(['WECOM', 'DINGTALK', 'EMAIL', 'SMS', 'SYSTEM']),
     }))

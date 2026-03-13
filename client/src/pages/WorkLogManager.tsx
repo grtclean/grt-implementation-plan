@@ -42,7 +42,7 @@ const mockLogs = [
     taskId: 'TASK-003',
     taskName: '清洗舱框架组装',
     workerId: 'W001',
-    workerName: '张伟',
+    workerName: '吴卫成', // demo
     startTime: Date.now() - 3 * 60 * 60 * 1000,
     endTime: undefined,
     duration: 3,
@@ -55,7 +55,7 @@ const mockLogs = [
     taskId: 'TASK-002',
     taskName: '清洗舱B区管路连接',
     workerId: 'W002',
-    workerName: '李强',
+    workerName: '韩保程', // demo
     startTime: Date.now() - 8 * 60 * 60 * 1000,
     endTime: Date.now() - 1 * 60 * 60 * 1000,
     duration: 7,
@@ -68,7 +68,7 @@ const mockLogs = [
     taskId: 'TASK-001',
     taskName: '清洗舱A区管路连接',
     workerId: 'W001',
-    workerName: '张伟',
+    workerName: '吴卫成', // demo
     startTime: Date.now() - 24 * 60 * 60 * 1000,
     endTime: Date.now() - 16 * 60 * 60 * 1000,
     duration: 8,

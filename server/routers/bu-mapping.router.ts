@@ -12,7 +12,8 @@ import {
   type BUCode,
   type RoleType 
 } from "../services/bu-mapping.service";
-import { getJiandaoyunSyncService } from "../jiandaoyun";
+import { requireDb } from "../db";
+import { sql as drizzleSql } from "drizzle-orm";
 
 // BU代码验证
 const buCodeSchema = z.enum(['BU1', 'BU2', 'BU3', 'BU4', 'BU5']);
@@ -63,15 +64,15 @@ export const buMappingRouter = router({
   createMapping: requirePermission('hr:bu-team:manage')
     .input(z.object({
       buCode: buCodeSchema,
-      jdyDeptNo: z.number(),
-      jdyDeptName: z.string().optional(),
+      extDeptNo: z.number(),
+      extDeptName: z.string().optional(),
       roleType: roleTypeSchema.optional(),
     }))
     .mutation(async ({ input }) => {
       const id = await buMappingService.createMapping({
         buCode: input.buCode as BUCode,
-        jdyDeptNo: input.jdyDeptNo,
-        jdyDeptName: input.jdyDeptName,
+        extDeptNo: input.extDeptNo,
+        extDeptName: input.extDeptName,
         roleType: input.roleType as RoleType | undefined,
       });
       return { success: true, id };
@@ -84,8 +85,8 @@ export const buMappingRouter = router({
     .input(z.object({
       mappings: z.array(z.object({
         buCode: buCodeSchema,
-        jdyDeptNo: z.number(),
-        jdyDeptName: z.string().optional(),
+        extDeptNo: z.number(),
+        extDeptName: z.string().optional(),
         roleType: roleTypeSchema.optional(),
       })),
     }))
@@ -93,8 +94,8 @@ export const buMappingRouter = router({
       const result = await buMappingService.batchCreateMappings(
         input.mappings.map(m => ({
           buCode: m.buCode as BUCode,
-          jdyDeptNo: m.jdyDeptNo,
-          jdyDeptName: m.jdyDeptName,
+          extDeptNo: m.extDeptNo,
+          extDeptName: m.extDeptName,
           roleType: m.roleType as RoleType | undefined,
         }))
       );
@@ -108,8 +109,8 @@ export const buMappingRouter = router({
     .input(z.object({
       id: z.number(),
       buCode: buCodeSchema.optional(),
-      jdyDeptNo: z.number().optional(),
-      jdyDeptName: z.string().optional(),
+      extDeptNo: z.number().optional(),
+      extDeptName: z.string().optional(),
       roleType: roleTypeSchema.optional(),
       isActive: z.boolean().optional(),
     }))
@@ -117,8 +118,8 @@ export const buMappingRouter = router({
       const { id, ...data } = input;
       const success = await buMappingService.updateMapping(id, {
         buCode: data.buCode as BUCode | undefined,
-        jdyDeptNo: data.jdyDeptNo,
-        jdyDeptName: data.jdyDeptName,
+        extDeptNo: data.extDeptNo,
+        extDeptName: data.extDeptName,
         roleType: data.roleType as RoleType | undefined,
         isActive: data.isActive,
       });
@@ -140,20 +141,21 @@ export const buMappingRouter = router({
    * 根据部门名称关键词自动识别并创建映射
    */
   autoMatchDepartments: requirePermission('hr:bu-team:manage').mutation(async () => {
-    const jdyService = getJiandaoyunSyncService();
-    
-    if (!jdyService.isConfigured()) {
-      return { success: false, error: "简道云API未配置" };
-    }
-    
     try {
-      // 获取所有简道云部门
-      const departments = await jdyService.getDepartments();
+      // 从本地DB获取简道云部门映射数据（无需调用外部API）
+      const db = await requireDb();
+      const deptResult = await db.execute(
+        drizzleSql`SELECT jdy_dept_no as dept_no, jdy_dept_name as name FROM jiandaoyun_dept_mappings LIMIT 1000`
+      );
+      const departments = ((deptResult as any)[0] || []).map((r: any) => ({
+        dept_no: Number(r.dept_no),
+        name: r.name || '',
+      }));
       
       const matchedMappings: Array<{
         buCode: BUCode;
-        jdyDeptNo: number;
-        jdyDeptName: string;
+        extDeptNo: number;
+        extDeptName: string;
       }> = [];
       
       const unmatchedDepts: Array<{
@@ -168,8 +170,8 @@ export const buMappingRouter = router({
         if (matchedBU) {
           matchedMappings.push({
             buCode: matchedBU,
-            jdyDeptNo: dept.dept_no,
-            jdyDeptName: dept.name,
+            extDeptNo: dept.dept_no,
+            extDeptName: dept.name,
           });
         } else {
           unmatchedDepts.push({
@@ -209,20 +211,24 @@ export const buMappingRouter = router({
   getBUMembers: protectedProcedure
     .input(z.object({ buCode: buCodeSchema.optional() }))
     .query(async ({ input }) => {
-      const jdyService = getJiandaoyunSyncService();
-      
-      if (!jdyService.isConfigured()) {
-        return { buMembers: [], error: "简道云API未配置" };
-      }
-      
       try {
         // 获取映射配置
-        const mappings = input.buCode 
+        const mappings = input.buCode
           ? await buMappingService.getMappingsByBU(input.buCode as BUCode)
           : await buMappingService.getAllMappings();
-        
-        // 获取所有成员
-        const allMembers = await jdyService.getMembers();
+
+        // 从本地DB获取所有成员（无需调用外部API）
+        const db = await requireDb();
+        const memberResult = await db.execute(
+          drizzleSql`SELECT jdy_username as username, jdy_name as name, jdy_departments as departments, jdy_status as status
+                     FROM jiandaoyun_user_mappings LIMIT 5000`
+        );
+        const allMembers = ((memberResult as any)[0] || []).map((r: any) => ({
+          username: r.username || '',
+          name: r.name || '',
+          departments: r.departments,
+          status: Number(r.status || 1),
+        }));
         
         // 按BU分组
         const buMembersMap = new Map<string, {
@@ -256,7 +262,7 @@ export const buMappingRouter = router({
           
           // 找到该部门的成员
           const deptMembers = allMembers.filter(m =>
-            m.departments?.includes(mapping.jdyDeptNo)
+            m.departments?.includes(mapping.extDeptNo)
           );
           
           const roleKey = mapping.roleType || 'Other';
@@ -276,7 +282,7 @@ export const buMappingRouter = router({
                 status: member.status,
                 email: (member as any).email,
                 phone: (member as any).phone,
-                deptName: mapping.jdyDeptName || undefined,
+                deptName: mapping.extDeptName || undefined,
               });
             }
           }

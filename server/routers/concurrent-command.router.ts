@@ -7,7 +7,7 @@
 
 import { z } from "zod";
 import { jsonValue } from "@shared/validators";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import { broadcastToWorkspace } from "../services/websocket.service";
 import { requireDb } from "../db";
 import {
@@ -68,7 +68,7 @@ export const concurrentCommandRouter = router({
     return db.select().from(cccSandboxes).orderBy(cccSandboxes.id).limit(1000);
   }),
 
-  updateSandboxStatus: protectedProcedure
+  updateSandboxStatus: requirePermission('devops:concurrent:operate')
     .input(
       z.object({
         id: z.number(),
@@ -82,7 +82,8 @@ export const concurrentCommandRouter = router({
       const [existing] = await db
         .select()
         .from(cccSandboxes)
-        .where(eq(cccSandboxes.id, input.id));
+        .where(eq(cccSandboxes.id, input.id))
+        .limit(1000);
       if (!existing) throw new Error("Sandbox not found");
 
       const [updated] = await db
@@ -100,7 +101,7 @@ export const concurrentCommandRouter = router({
       return updated;
     }),
 
-  approveMerge: protectedProcedure
+  approveMerge: requirePermission('devops:concurrent:operate')
     .input(
       z.object({
         id: z.number(),
@@ -112,7 +113,8 @@ export const concurrentCommandRouter = router({
       const [sandbox] = await db
         .select()
         .from(cccSandboxes)
-        .where(eq(cccSandboxes.id, input.id));
+        .where(eq(cccSandboxes.id, input.id))
+        .limit(1000);
       if (!sandbox) throw new Error("Sandbox not found");
       if (sandbox.branchStatus !== "READY_FOR_MERGE") {
         throw new Error("Branch must be READY_FOR_MERGE before approval");
@@ -136,7 +138,7 @@ export const concurrentCommandRouter = router({
     return db.select().from(cccRooms).orderBy(cccRooms.id).limit(1000);
   }),
 
-  claimRoom: protectedProcedure
+  claimRoom: requirePermission('devops:concurrent:operate')
     .input(
       z.object({
         id: z.number(),
@@ -148,7 +150,8 @@ export const concurrentCommandRouter = router({
       const [room] = await db
         .select()
         .from(cccRooms)
-        .where(eq(cccRooms.id, input.id));
+        .where(eq(cccRooms.id, input.id))
+        .limit(1000);
       if (!room) throw new Error("Room not found");
       if (room.testStatus === "PASSED")
         throw new Error("Cannot claim a sub-system that already passed");
@@ -172,7 +175,7 @@ export const concurrentCommandRouter = router({
       return updated;
     }),
 
-  updateRoomStatus: protectedProcedure
+  updateRoomStatus: requirePermission('devops:concurrent:operate')
     .input(
       z.object({
         id: z.number(),
@@ -185,7 +188,8 @@ export const concurrentCommandRouter = router({
       const [room] = await db
         .select()
         .from(cccRooms)
-        .where(eq(cccRooms.id, input.id));
+        .where(eq(cccRooms.id, input.id))
+        .limit(1000);
       if (!room) throw new Error("Room not found");
 
       const now = new Date().toISOString();
@@ -237,7 +241,7 @@ export const concurrentCommandRouter = router({
     };
   }),
 
-  approveCommissioningReport: protectedProcedure
+  approveCommissioningReport: requirePermission('devops:concurrent:operate')
     .mutation(async ({ ctx }) => {
       const db = await requireDb();
       const now = new Date().toISOString();
@@ -272,7 +276,7 @@ export const concurrentCommandRouter = router({
 
   // ─── Role Improvement Input ──────────────────────────────────────────────
 
-  submitImprovement: protectedProcedure
+  submitImprovement: requirePermission('devops:concurrent:operate')
     .input(z.object({
       role: z.string().min(1),
       area: z.string().min(1),
@@ -376,7 +380,7 @@ export const concurrentCommandRouter = router({
 
   // ─── Improvement Lifecycle (V2 — 6-step closed-loop) ────────────────────
 
-  createImprovement: protectedProcedure
+  createImprovement: requirePermission('devops:concurrent:operate')
     .input(z.object({
       role: z.string().min(1),
       area: z.string().min(1),
@@ -492,7 +496,7 @@ export const concurrentCommandRouter = router({
       return query;
     }),
 
-  updateProgress: protectedProcedure
+  updateProgress: requirePermission('devops:concurrent:operate')
     .input(z.object({
       id: z.number(),
       stepNumber: z.number().min(1).max(6),
@@ -540,7 +544,7 @@ export const concurrentCommandRouter = router({
       return updated;
     }),
 
-  submitResult: protectedProcedure
+  submitResult: requirePermission('devops:concurrent:operate')
     .input(z.object({
       id: z.number(),
       resultSummary: z.string().min(1),
@@ -580,7 +584,7 @@ export const concurrentCommandRouter = router({
       return updated;
     }),
 
-  verifyImprovement: protectedProcedure
+  verifyImprovement: requirePermission('devops:concurrent:operate')
     .input(z.object({
       id: z.number(),
       approved: z.boolean(),
@@ -652,7 +656,7 @@ export const concurrentCommandRouter = router({
 
   // ─── Seed Demo Data ───────────────────────────────────────────────────────
 
-  seedDemoData: protectedProcedure.mutation(async () => {
+  seedDemoData: requirePermission('devops:concurrent:operate').mutation(async () => {
     const db = await requireDb();
 
     // Clear existing data (including improvement lifecycle tables)
@@ -699,7 +703,7 @@ export const concurrentCommandRouter = router({
       {
         projectName: "SAIC New Energy Cleaning Line",
         subSystem: "Conveyor Belt System",
-        engineerAssigned: "张工",
+        engineerAssigned: "孙国祥",
         testStatus: "PASSED",
         testNotes: "Conveyor speed calibration complete. Passed FAT.",
         reportApproved: false,
@@ -707,7 +711,7 @@ export const concurrentCommandRouter = router({
       {
         projectName: "SAIC New Energy Cleaning Line",
         subSystem: "Ultrasonic Generator",
-        engineerAssigned: "李工",
+        engineerAssigned: "李大鹏",
         testStatus: "DEBUGGING",
         testNotes: "Frequency drift at 40kHz — investigating transducer.",
         reportApproved: false,
@@ -731,7 +735,7 @@ export const concurrentCommandRouter = router({
       {
         projectName: "SAIC New Energy Cleaning Line",
         subSystem: "PLC Control Panel",
-        engineerAssigned: "王工",
+        engineerAssigned: "洪香龙",
         testStatus: "DEBUGGING",
         testNotes: "Ladder logic mismatch on drying cycle timer.",
         reportApproved: false,
@@ -740,9 +744,9 @@ export const concurrentCommandRouter = router({
 
     // Sample activity entries
     await db.insert(cccActivities).values([
-      { action: "claimRoom", target: "Conveyor Belt System", userName: "张工" },
-      { action: "updateRoomStatus", target: "Conveyor Belt System", userName: "张工" },
-      { action: "claimRoom", target: "Ultrasonic Generator", userName: "李工" },
+      { action: "claimRoom", target: "Conveyor Belt System", userName: "孙国祥" },
+      { action: "updateRoomStatus", target: "Conveyor Belt System", userName: "孙国祥" },
+      { action: "claimRoom", target: "Ultrasonic Generator", userName: "李大鹏" },
       { action: "updateSandboxStatus", target: "Finance", userName: "System" },
     ]);
 
@@ -777,7 +781,7 @@ export const concurrentCommandRouter = router({
       role: "HR Manager", area: "绩效考核", requirement: "紧急优化绩效考核流程，当前考核周期过长导致反馈滞后",
       priority: "high", status: "in_progress", steps: stepsInProgress("绩效考核", "紧急优化绩效考核流程"),
       estimatedDays: "7-14天", assignedTo: "HR Manager团队", dueDate: dueHigh.toISOString().slice(0, 10),
-      completionPct: 35, createdBy: "王经理", createdAt: now, updatedAt: now,
+      completionPct: 35, createdBy: "杨勇", createdAt: now, updatedAt: now,
     }).returning();
 
     const [imp2] = await db.insert(cccImprovements).values({
@@ -786,23 +790,23 @@ export const concurrentCommandRouter = router({
       estimatedDays: "14-30天", assignedTo: "培训组", dueDate: dueMed.toISOString().slice(0, 10),
       completionPct: 100, resultSummary: "培训完成率从72%提升至95%，满意度从3.2提升至4.6",
       resultEvidence: { before: "完成率72%, 满意度3.2/5", after: "完成率95%, 满意度4.6/5" },
-      createdBy: "李主管", createdAt: now, updatedAt: now,
+      createdBy: "金晓锋", createdAt: now, updatedAt: now,
     }).returning();
 
     await db.insert(cccImprovements).values({
       role: "Admin", area: "系统权限", requirement: "建议梳理并优化系统权限分配流程，减少权限申请审批时间",
       priority: "low", status: "submitted", steps: makeSteps("系统权限", "建议梳理并优化系统权限分配流程"),
       estimatedDays: "30-60天", assignedTo: "Admin团队", dueDate: new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10),
-      completionPct: 0, createdBy: "张管理员", createdAt: now, updatedAt: now,
+      completionPct: 0, createdBy: "朱宇浩", createdAt: now, updatedAt: now,
     });
 
     // Sample update records
     await db.insert(cccImprovementUpdates).values([
-      { improvementId: imp1.id, stepNumber: 0, action: "create", content: "创建改进需求: 绩效考核 — 紧急优化绩效考核流程", userName: "王经理" },
-      { improvementId: imp1.id, stepNumber: 1, action: "progress", content: "已完成现状调研，梳理出3个核心痛点", userName: "王经理" },
-      { improvementId: imp1.id, stepNumber: 2, action: "progress", content: "初步方案已设计完成，待内部评审", userName: "王经理" },
-      { improvementId: imp2.id, stepNumber: 0, action: "create", content: "创建改进需求: 培训体系 — 优化新员工入职培训体系", userName: "李主管" },
-      { improvementId: imp2.id, stepNumber: 0, action: "submit_result", content: "培训完成率从72%提升至95%，满意度从3.2提升至4.6", userName: "李主管" },
+      { improvementId: imp1.id, stepNumber: 0, action: "create", content: "创建改进需求: 绩效考核 — 紧急优化绩效考核流程", userName: "杨勇" },
+      { improvementId: imp1.id, stepNumber: 1, action: "progress", content: "已完成现状调研，梳理出3个核心痛点", userName: "杨勇" },
+      { improvementId: imp1.id, stepNumber: 2, action: "progress", content: "初步方案已设计完成，待内部评审", userName: "杨勇" },
+      { improvementId: imp2.id, stepNumber: 0, action: "create", content: "创建改进需求: 培训体系 — 优化新员工入职培训体系", userName: "金晓锋" },
+      { improvementId: imp2.id, stepNumber: 0, action: "submit_result", content: "培训完成率从72%提升至95%，满意度从3.2提升至4.6", userName: "金晓锋" },
     ]);
 
     return { success: true, message: "Demo data seeded: 4 sandboxes, 5 rooms, 4 activities, 3 improvements" };

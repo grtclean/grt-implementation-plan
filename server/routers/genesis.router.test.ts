@@ -11,6 +11,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -74,6 +75,12 @@ function createMockDb() {
 }
 
 const mockDb = createMockDb();
+
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
 
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => mockDb),
@@ -239,7 +246,7 @@ describe("genesis router", () => {
   // ─────────────────────────────────────────────────────────
   describe("listDocuments", () => {
     it("returns items and total when no filters", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const mockDocs = [
         { id: 1, fileName: "doc1.pdf", status: "ANALYZED" },
         { id: 2, fileName: "doc2.xlsx", status: "UPLOADED" },
@@ -253,7 +260,7 @@ describe("genesis router", () => {
     });
 
     it("returns items and total with filters", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const mockDocs = [{ id: 3, fileName: "sop1.pdf", status: "ANALYZED" }];
       selectResultsQueue.push(mockDocs);
       selectResultsQueue.push([{ value: 1 }]);
@@ -268,7 +275,7 @@ describe("genesis router", () => {
     });
 
     it("returns items with uploadedBy filter", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 5, fileName: "mine.pdf" }]);
       selectResultsQueue.push([{ value: 1 }]);
 
@@ -277,7 +284,7 @@ describe("genesis router", () => {
     });
 
     it("returns empty list when no documents exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
 
@@ -286,7 +293,7 @@ describe("genesis router", () => {
     });
 
     it("applies default limit and offset when no input provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
 
@@ -298,7 +305,7 @@ describe("genesis router", () => {
 
   describe("getDocument", () => {
     it("returns a document by numeric id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const doc = {
         id: 1,
         fileName: "test.pdf",
@@ -312,7 +319,7 @@ describe("genesis router", () => {
     });
 
     it("returns a document by string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const doc = { id: 5, fileName: "spec.docx", status: "UPLOADED" };
       mockQueryResult = [doc];
 
@@ -321,7 +328,7 @@ describe("genesis router", () => {
     });
 
     it("returns null when document does not exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
 
       const result = await caller.genesis.getDocument({ id: 999 });
@@ -350,7 +357,7 @@ describe("genesis router", () => {
     });
 
     it("uses provided fileType over auto-detection", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockIngestAndAnalyzeDocument.mockResolvedValue({ id: 11 });
 
       await caller.genesis.uploadDocument({
@@ -364,7 +371,7 @@ describe("genesis router", () => {
     });
 
     it("auto-detects pdf -> POLICY", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockIngestAndAnalyzeDocument.mockResolvedValue({ id: 12 });
 
       await caller.genesis.uploadDocument({ fileName: "policy.pdf" });
@@ -375,7 +382,7 @@ describe("genesis router", () => {
     });
 
     it("auto-detects txt -> MANUAL", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockIngestAndAnalyzeDocument.mockResolvedValue({ id: 13 });
 
       await caller.genesis.uploadDocument({ fileName: "guide.txt" });
@@ -386,7 +393,7 @@ describe("genesis router", () => {
     });
 
     it("auto-detects unknown extension -> OTHER", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockIngestAndAnalyzeDocument.mockResolvedValue({ id: 14 });
 
       await caller.genesis.uploadDocument({ fileName: "data.json" });
@@ -397,7 +404,7 @@ describe("genesis router", () => {
     });
 
     it("passes all optional fields correctly", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockIngestAndAnalyzeDocument.mockResolvedValue({ id: 15 });
 
       await caller.genesis.uploadDocument({
@@ -422,7 +429,7 @@ describe("genesis router", () => {
     });
 
     it("rejects empty fileName", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.uploadDocument({ fileName: "" })
       ).rejects.toThrow();
@@ -431,7 +438,7 @@ describe("genesis router", () => {
 
   describe("reanalyzeDocument", () => {
     it("successfully re-analyzes an existing document with provided text", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const existingDoc = {
         id: 1,
         fileName: "policy.pdf",
@@ -460,7 +467,7 @@ describe("genesis router", () => {
     });
 
     it("throws when document not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
 
       await expect(
@@ -469,7 +476,7 @@ describe("genesis router", () => {
     });
 
     it("throws when document is ARCHIVED", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 2, status: "ARCHIVED" }]);
 
       await expect(
@@ -478,7 +485,7 @@ describe("genesis router", () => {
     });
 
     it("throws when no extracted text is available", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         { id: 3, status: "UPLOADED", extractedText: null },
       ]);
@@ -489,7 +496,7 @@ describe("genesis router", () => {
     });
 
     it("uses existing text when no extractedText provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         {
           id: 4,
@@ -507,7 +514,7 @@ describe("genesis router", () => {
     });
 
     it("detects ISO/IATF/VDA standards in text", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         {
           id: 5,
@@ -525,7 +532,7 @@ describe("genesis router", () => {
     });
 
     it("detects topic keywords (quality, safety, process, training, customer, supplier, cost)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         {
           id: 6,
@@ -544,7 +551,7 @@ describe("genesis router", () => {
     });
 
     it("throws when update returns empty after re-analysis", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         {
           id: 7,
@@ -561,7 +568,7 @@ describe("genesis router", () => {
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         { id: 8, status: "UPLOADED", fileType: "OTHER", extractedText: "hello" },
       ]);
@@ -574,7 +581,7 @@ describe("genesis router", () => {
 
   describe("archiveDocument", () => {
     it("archives an existing non-archived document", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const existingDoc = { id: 1, status: "ANALYZED", fileName: "test.pdf" };
       selectResultsQueue.push([existingDoc]);
 
@@ -587,7 +594,7 @@ describe("genesis router", () => {
     });
 
     it("throws when document not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
 
       await expect(
@@ -596,7 +603,7 @@ describe("genesis router", () => {
     });
 
     it("throws when document is already archived", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 2, status: "ARCHIVED" }]);
 
       await expect(
@@ -605,7 +612,7 @@ describe("genesis router", () => {
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 3, status: "UPLOADED" }]);
       mockReturningResult = [{ id: 3, status: "ARCHIVED" }];
 
@@ -619,7 +626,7 @@ describe("genesis router", () => {
   // ─────────────────────────────────────────────────────────
   describe("listProposals", () => {
     it("returns items and total with no filters", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const mockProposals = [
         { id: 1, title: "Proposal 1", status: "DRAFT" },
         { id: 2, title: "Proposal 2", status: "APPROVED" },
@@ -632,7 +639,7 @@ describe("genesis router", () => {
     });
 
     it("returns items with proposalType filter", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, proposalType: "WORKFLOW_CHANGE" }]);
       selectResultsQueue.push([{ value: 1 }]);
 
@@ -643,7 +650,7 @@ describe("genesis router", () => {
     });
 
     it("returns items with status filter", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
 
@@ -654,7 +661,7 @@ describe("genesis router", () => {
     });
 
     it("returns items with sourceDocumentId filter", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 5, sourceDocumentId: 10 }]);
       selectResultsQueue.push([{ value: 1 }]);
 
@@ -665,7 +672,7 @@ describe("genesis router", () => {
     });
 
     it("applies limit and offset", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 3 }]);
       selectResultsQueue.push([{ value: 100 }]);
 
@@ -680,7 +687,7 @@ describe("genesis router", () => {
 
   describe("getProposal", () => {
     it("delegates to getProposalWithChat service", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const proposalData = {
         id: 1,
         title: "Test Proposal",
@@ -694,7 +701,7 @@ describe("genesis router", () => {
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockGetProposalWithChat.mockResolvedValue({ id: 5 });
 
       await caller.genesis.getProposal({ id: "5" });
@@ -704,7 +711,7 @@ describe("genesis router", () => {
 
   describe("generateProposal", () => {
     it("delegates to generateProposalFromDocument with ctx.user.id", async () => {
-      const caller = createAuthenticatedCaller({ id: 42 });
+      const caller = createAdminCaller({ id: 42 });
       const generated = { id: 100, title: "Generated Proposal" };
       mockGenerateProposalFromDocument.mockResolvedValue(generated);
 
@@ -727,7 +734,7 @@ describe("genesis router", () => {
 
   describe("updateProposalStatus", () => {
     it("delegates to updateProposalStatus service using id field", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       mockUpdateProposalStatusSvc.mockResolvedValue({
         id: 1,
         status: "APPROVED",
@@ -749,7 +756,7 @@ describe("genesis router", () => {
     });
 
     it("uses proposalId when id is not provided", async () => {
-      const caller = createAuthenticatedCaller({ id: 7 });
+      const caller = createAdminCaller({ id: 7 });
       mockUpdateProposalStatusSvc.mockResolvedValue({
         id: 3,
         status: "REJECTED",
@@ -769,14 +776,14 @@ describe("genesis router", () => {
     });
 
     it("throws when neither id nor proposalId is provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.updateProposalStatus({ status: "DRAFT" })
       ).rejects.toThrow("Either id or proposalId is required");
     });
 
     it("prefers id over proposalId when both given", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       mockUpdateProposalStatusSvc.mockResolvedValue({ id: 10 });
 
       await caller.genesis.updateProposalStatus({
@@ -796,7 +803,7 @@ describe("genesis router", () => {
 
   describe("commitProposal", () => {
     it("delegates to commitProposalToControlTower using id", async () => {
-      const caller = createAuthenticatedCaller({ id: 8 });
+      const caller = createAdminCaller({ id: 8 });
       mockCommitProposalToControlTower.mockResolvedValue({
         id: 1,
         status: "COMMITTED",
@@ -808,7 +815,7 @@ describe("genesis router", () => {
     });
 
     it("uses proposalId when id is not provided", async () => {
-      const caller = createAuthenticatedCaller({ id: 9 });
+      const caller = createAdminCaller({ id: 9 });
       mockCommitProposalToControlTower.mockResolvedValue({
         id: 5,
         status: "COMMITTED",
@@ -819,7 +826,7 @@ describe("genesis router", () => {
     });
 
     it("throws when neither id nor proposalId is provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.commitProposal({})
       ).rejects.toThrow("Either id or proposalId is required");
@@ -828,7 +835,7 @@ describe("genesis router", () => {
 
   describe("updateProposalDiff", () => {
     it("updates diff for a DRAFT proposal", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const existing = { id: 1, status: "DRAFT" };
       selectResultsQueue.push([existing]);
 
@@ -848,7 +855,7 @@ describe("genesis router", () => {
     });
 
     it("updates diff for a PENDING_REVIEW proposal", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 2, status: "PENDING_REVIEW" }]);
       mockReturningResult = [{ id: 2, proposedJsonDiff: { a: 1 } }];
 
@@ -861,7 +868,7 @@ describe("genesis router", () => {
     });
 
     it("throws when proposal not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
 
       await expect(
@@ -873,7 +880,7 @@ describe("genesis router", () => {
     });
 
     it("throws when proposal status is APPROVED", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 3, status: "APPROVED" }]);
 
       await expect(
@@ -885,7 +892,7 @@ describe("genesis router", () => {
     });
 
     it("throws when proposal status is COMMITTED", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 4, status: "COMMITTED" }]);
 
       await expect(
@@ -897,7 +904,7 @@ describe("genesis router", () => {
     });
 
     it("throws when proposal status is REJECTED", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 5, status: "REJECTED" }]);
 
       await expect(
@@ -909,7 +916,7 @@ describe("genesis router", () => {
     });
 
     it("accepts string proposalId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 6, status: "DRAFT" }]);
       mockReturningResult = [{ id: 6 }];
 
@@ -926,7 +933,7 @@ describe("genesis router", () => {
   // ─────────────────────────────────────────────────────────
   describe("getChatMessages", () => {
     it("returns messages for an existing proposal", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const proposal = { id: 1 };
       const messages = [
         { id: 1, proposalId: 1, role: "USER", content: "Hello" },
@@ -942,7 +949,7 @@ describe("genesis router", () => {
     });
 
     it("throws when proposal not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
 
       await expect(
@@ -951,7 +958,7 @@ describe("genesis router", () => {
     });
 
     it("returns empty messages for proposal with no chat", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 2 }]);
       selectResultsQueue.push([]);
 
@@ -960,7 +967,7 @@ describe("genesis router", () => {
     });
 
     it("accepts string proposalId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 5 }]);
       selectResultsQueue.push([{ id: 10, content: "msg" }]);
 
@@ -973,7 +980,7 @@ describe("genesis router", () => {
 
   describe("sendMessage", () => {
     it("delegates to addChatMessage with USER role", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const chatMsg = { id: 1, proposalId: 5, role: "USER", content: "Test" };
       mockAddChatMessage.mockResolvedValue(chatMsg);
 
@@ -992,7 +999,7 @@ describe("genesis router", () => {
     });
 
     it("passes metadata to addChatMessage", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockAddChatMessage.mockResolvedValue({ id: 2 });
 
       await caller.genesis.sendMessage({
@@ -1007,7 +1014,7 @@ describe("genesis router", () => {
     });
 
     it("rejects empty content", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.sendMessage({ proposalId: 1, content: "" })
       ).rejects.toThrow();
@@ -1016,7 +1023,7 @@ describe("genesis router", () => {
 
   describe("generateAIResponse", () => {
     it("generates a generic AI response when no special keywords", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const proposal = {
         id: 1,
         proposalType: "WORKFLOW_CHANGE",
@@ -1048,7 +1055,7 @@ describe("genesis router", () => {
     });
 
     it("generates risk assessment when userMessage contains 'risk'", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const proposal = {
         id: 2,
         proposalType: "SCHEMA_SUGGESTION",
@@ -1081,7 +1088,7 @@ describe("genesis router", () => {
     });
 
     it("generates summary when userMessage contains 'summary'", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const proposal = {
         id: 3,
         proposalType: "DICTIONARY_UPDATE",
@@ -1112,7 +1119,7 @@ describe("genesis router", () => {
     });
 
     it("generates approval guidance when userMessage contains 'approve'", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const proposal = {
         id: 4,
         proposalType: "POLICY_ADD",
@@ -1141,7 +1148,7 @@ describe("genesis router", () => {
     });
 
     it("returns approval guidance for DRAFT when 'approve' is mentioned", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const proposal = {
         id: 5,
         proposalType: "POLICY_ADD",
@@ -1170,7 +1177,7 @@ describe("genesis router", () => {
     });
 
     it("throws when proposal not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
 
       await expect(
@@ -1179,7 +1186,7 @@ describe("genesis router", () => {
     });
 
     it("records user message before generating AI response", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         {
           id: 6,
@@ -1218,7 +1225,7 @@ describe("genesis router", () => {
     });
 
     it("does not record user message when userMessage is not provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         {
           id: 7,
@@ -1250,7 +1257,7 @@ describe("genesis router", () => {
   // ─────────────────────────────────────────────────────────
   describe("getGenesisStats", () => {
     it("returns aggregated stats", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First query: doc status counts
       selectResultsQueue.push([
         { status: "ANALYZED", count: 5 },
@@ -1284,7 +1291,7 @@ describe("genesis router", () => {
     });
 
     it("returns zeros when no data exists", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([]);
 
@@ -1303,7 +1310,7 @@ describe("genesis router", () => {
   // ─────────────────────────────────────────────────────────
   describe("simulateGeneration", () => {
     it("generates content and persists to DB via aiProposalHistory", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 100 }];
 
       const result = await caller.genesis.simulateGeneration({
@@ -1318,7 +1325,7 @@ describe("genesis router", () => {
     }, 10000);
 
     it("uses default document name when not provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 101 }];
 
       const result = await caller.genesis.simulateGeneration({
@@ -1330,7 +1337,7 @@ describe("genesis router", () => {
     }, 10000);
 
     it("includes user context in generated content", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 102 }];
 
       const result = await caller.genesis.simulateGeneration({
@@ -1342,7 +1349,7 @@ describe("genesis router", () => {
     }, 10000);
 
     it("falls back to in-memory store when DB insert fails", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Make getDb throw
       const { getDb } = await import("../db");
       (getDb as any).mockRejectedValueOnce(new Error("DB unavailable"));
@@ -1357,7 +1364,7 @@ describe("genesis router", () => {
     }, 10000);
 
     it("accepts string documentId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 103 }];
 
       const result = await caller.genesis.simulateGeneration({
@@ -1370,7 +1377,7 @@ describe("genesis router", () => {
 
   describe("listProposalHistory", () => {
     it("returns rows from DB", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const rows = [
         { id: 1, status: "DRAFT", generatedContent: "content1" },
         { id: 2, status: "FINALIZED", generatedContent: "content2" },
@@ -1383,7 +1390,7 @@ describe("genesis router", () => {
     });
 
     it("applies limit from input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ id: 1 }];
 
       const result = await caller.genesis.listProposalHistory({ limit: 10 });
@@ -1391,7 +1398,7 @@ describe("genesis router", () => {
     });
 
     it("falls back to in-memory store when DB is unavailable", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const { getDb } = await import("../db");
       (getDb as any).mockResolvedValueOnce(null);
 
@@ -1402,7 +1409,7 @@ describe("genesis router", () => {
 
   describe("updateProposalHistory", () => {
     it("updates status in DB", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const updatedRow = { id: 1, status: "EDITED" };
       mockReturningResult = [updatedRow];
 
@@ -1416,7 +1423,7 @@ describe("genesis router", () => {
     });
 
     it("updates feedbackScore in DB", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const updatedRow = { id: 2, feedbackScore: 4 };
       mockReturningResult = [updatedRow];
 
@@ -1429,7 +1436,7 @@ describe("genesis router", () => {
     });
 
     it("updates generatedContent in DB", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const updatedRow = { id: 3, generatedContent: "revised content" };
       mockReturningResult = [updatedRow];
 
@@ -1442,21 +1449,21 @@ describe("genesis router", () => {
     });
 
     it("rejects feedbackScore below 1", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.updateProposalHistory({ id: 1, feedbackScore: 0 })
       ).rejects.toThrow();
     });
 
     it("rejects feedbackScore above 5", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.updateProposalHistory({ id: 1, feedbackScore: 6 })
       ).rejects.toThrow();
     });
 
     it("falls back to in-memory when DB returns no row", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // DB returns nothing
       mockReturningResult = [];
 
@@ -1469,7 +1476,7 @@ describe("genesis router", () => {
 
   describe("feedbackToKnowledgeBase", () => {
     it("marks history entry as FINALIZED in DB and returns success", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const updatedRow = { id: 1, status: "FINALIZED" };
       mockReturningResult = [updatedRow];
 
@@ -1485,7 +1492,7 @@ describe("genesis router", () => {
     });
 
     it("throws when history entry not found in memory fallback", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // DB returns nothing, forcing in-memory fallback
       mockReturningResult = [];
       const { getDb } = await import("../db");
@@ -1498,7 +1505,7 @@ describe("genesis router", () => {
 
     it("returns success message from in-memory fallback path", async () => {
       // First, create an in-memory item via simulateGeneration with DB failure
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const { getDb } = await import("../db");
       (getDb as any).mockRejectedValueOnce(new Error("no db"));
 
@@ -1523,49 +1530,49 @@ describe("genesis router", () => {
   // ─────────────────────────────────────────────────────────
   describe("input validation", () => {
     it("rejects invalid fileType in listDocuments", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.listDocuments({ fileType: "INVALID" as any })
       ).rejects.toThrow();
     });
 
     it("rejects invalid status in listDocuments", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.listDocuments({ status: "BOGUS" as any })
       ).rejects.toThrow();
     });
 
     it("rejects invalid proposalType in listProposals", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.listProposals({ proposalType: "NOPE" as any })
       ).rejects.toThrow();
     });
 
     it("rejects invalid status in listProposals", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.listProposals({ status: "NOPE" as any })
       ).rejects.toThrow();
     });
 
     it("rejects invalid status in updateProposalStatus", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.updateProposalStatus({ id: 1, status: "BAD" as any })
       ).rejects.toThrow();
     });
 
     it("rejects invalid status in updateProposalHistory", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.updateProposalHistory({ id: 1, status: "INVALID" as any })
       ).rejects.toThrow();
     });
 
     it("rejects content over 10000 chars in sendMessage", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.sendMessage({
           proposalId: 1,
@@ -1575,7 +1582,7 @@ describe("genesis router", () => {
     });
 
     it("rejects userMessage over 10000 chars in generateAIResponse", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.genesis.generateAIResponse({
           proposalId: 1,

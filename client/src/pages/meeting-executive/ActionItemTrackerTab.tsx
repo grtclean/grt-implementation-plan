@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   ListChecks,
   RefreshCw,
@@ -47,15 +48,16 @@ const STATUS_COLORS: Record<string, string> = {
 
 const PIE_COLORS = ["#3b82f6", "#f59e0b", "#22c55e", "#ef4444", "#9ca3af"];
 
-const STATUS_LABELS: Record<string, string> = {
-  open: "待处理",
-  in_progress: "进行中",
-  completed: "已完成",
-  stale: "停滞",
-  cancelled: "已取消",
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  open: "meeting.actionTracker.statusOpen",
+  in_progress: "meeting.actionTracker.statusInProgress",
+  completed: "meeting.actionTracker.statusCompleted",
+  stale: "meeting.actionTracker.statusStale",
+  cancelled: "meeting.actionTracker.statusCancelled",
 };
 
 export function ActionItemTrackerTab() {
+  const { t } = useLanguage();
   const [meetingId, setMeetingId] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -71,7 +73,7 @@ export function ActionItemTrackerTab() {
   const items = (dashboard?.items ?? []) as any[];
 
   const pieData = Object.entries(statusCounts).map(([status, count]) => ({
-    name: STATUS_LABELS[status] || status,
+    name: t(STATUS_LABEL_KEYS[status] || "meeting.actionTracker.statusOpen"),
     value: count,
   }));
 
@@ -96,14 +98,14 @@ export function ActionItemTrackerTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <ListChecks className="h-4 w-4 text-blue-500" />
-            行动项追踪
+            {t("meeting.actionTracker.title")}
           </CardTitle>
-          <CardDescription>从会议中提取行动项并追踪其生命周期</CardDescription>
+          <CardDescription>{t("meeting.actionTracker.desc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3">
             <Input
-              placeholder="输入会议ID..."
+              placeholder={t("meeting.actionTracker.inputPlaceholder")}
               value={meetingId}
               onChange={(e) => setMeetingId(e.target.value)}
               className="max-w-sm"
@@ -117,17 +119,17 @@ export function ActionItemTrackerTab() {
               ) : (
                 <ListChecks className="h-4 w-4 mr-2" />
               )}
-              提取行动项
+              {t("meeting.actionTracker.extractBtn")}
             </Button>
           </div>
           {extractMutation.data && (
             <p className="text-sm text-muted-foreground">
-              匹配已有项: {extractMutation.data.matched} | 新增项: {extractMutation.data.created}
+              {t("meeting.actionTracker.matchedExisting")}: {extractMutation.data.matched} | {t("meeting.actionTracker.newItems")}: {extractMutation.data.created}
               {extractMutation.data.message && ` | ${extractMutation.data.message}`}
             </p>
           )}
           {extractMutation.isError && (
-            <p className="text-sm text-red-500">提取失败: {extractMutation.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.actionTracker.extractFailed")}: {extractMutation.error.message}</p>
           )}
         </CardContent>
       </Card>
@@ -136,33 +138,29 @@ export function ActionItemTrackerTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={ListChecks}
-          label="总行动项"
+          label={t("meeting.actionTracker.totalItems")}
           value={isLoading ? "..." : dashboard?.total ?? 0}
-          subtitle="Total Action Items"
           iconColor="text-blue-600"
           iconBg="bg-blue-50"
         />
         <StatCard
           icon={CheckCircle2}
-          label="完成率"
+          label={t("meeting.actionTracker.completionRate")}
           value={isLoading ? "..." : `${dashboard?.completionRate ?? 0}%`}
-          subtitle="Completion Rate"
           iconColor="text-green-600"
           iconBg="bg-green-50"
         />
         <StatCard
           icon={AlertTriangle}
-          label="停滞项"
+          label={t("meeting.actionTracker.staleItems")}
           value={isLoading ? "..." : statusCounts["stale"] ?? 0}
-          subtitle="Stale Items"
           iconColor="text-red-600"
           iconBg="bg-red-50"
         />
         <StatCard
           icon={Clock}
-          label="平均解决天数"
+          label={t("meeting.actionTracker.avgResolutionDays")}
           value={isLoading ? "..." : dashboard?.avgResolutionDays ?? 0}
-          subtitle="Avg Resolution Days"
           iconColor="text-amber-600"
           iconBg="bg-amber-50"
         />
@@ -174,9 +172,9 @@ export function ActionItemTrackerTab() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2 text-red-700">
               <AlertTriangle className="h-4 w-4" />
-              停滞行动项 ({staleItems.length})
+              {t("meeting.actionTracker.staleAlert")} ({staleItems.length})
             </CardTitle>
-            <CardDescription>这些行动项在多次会议中被提及但未完成</CardDescription>
+            <CardDescription>{t("meeting.actionTracker.staleAlertDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -185,7 +183,7 @@ export function ActionItemTrackerTab() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm truncate">{item.content}</p>
                     <p className="text-xs text-muted-foreground">
-                      负责人: {item.owner || "未指定"} | 出现 {item.appearance_count} 次
+                      {t("meeting.actionTracker.owner")}: {item.owner || t("meeting.actionTracker.unassigned")} | {t("meeting.actionTracker.appearances")} {item.appearance_count} {t("meeting.actionTracker.timesUnit")}
                     </p>
                   </div>
                   <div className="flex gap-1">
@@ -195,7 +193,7 @@ export function ActionItemTrackerTab() {
                       onClick={() => handleStatusUpdate(item.id, "in_progress")}
                       disabled={updateMutation.isPending}
                     >
-                      开始处理
+                      {t("meeting.actionTracker.startProcessing")}
                     </Button>
                     <Button
                       size="sm"
@@ -203,7 +201,7 @@ export function ActionItemTrackerTab() {
                       onClick={() => handleStatusUpdate(item.id, "completed")}
                       disabled={updateMutation.isPending}
                     >
-                      标记完成
+                      {t("meeting.actionTracker.markComplete")}
                     </Button>
                   </div>
                 </div>
@@ -217,7 +215,7 @@ export function ActionItemTrackerTab() {
         {/* Status Pie Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">状态分布</CardTitle>
+            <CardTitle className="text-base">{t("meeting.actionTracker.statusDistribution")}</CardTitle>
           </CardHeader>
           <CardContent>
             {pieData.length > 0 ? (
@@ -239,7 +237,7 @@ export function ActionItemTrackerTab() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center py-12 text-muted-foreground">暂无数据</p>
+              <p className="text-center py-12 text-muted-foreground">{t("meeting.actionTracker.noData")}</p>
             )}
           </CardContent>
         </Card>
@@ -249,7 +247,7 @@ export function ActionItemTrackerTab() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Users className="h-4 w-4" />
-              负责人排名
+              {t("meeting.actionTracker.ownerRanking")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -257,10 +255,10 @@ export function ActionItemTrackerTab() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>负责人</TableHead>
-                    <TableHead className="text-center">总计</TableHead>
-                    <TableHead className="text-center">已完成</TableHead>
-                    <TableHead className="text-center">停滞</TableHead>
+                    <TableHead>{t("meeting.actionTracker.thOwner")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.actionTracker.thTotal")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.actionTracker.thCompleted")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.actionTracker.thStale")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -275,7 +273,7 @@ export function ActionItemTrackerTab() {
                 </TableBody>
               </Table>
             ) : (
-              <p className="text-center py-12 text-muted-foreground">暂无数据</p>
+              <p className="text-center py-12 text-muted-foreground">{t("meeting.actionTracker.noData")}</p>
             )}
           </CardContent>
         </Card>
@@ -285,18 +283,18 @@ export function ActionItemTrackerTab() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">行动项列表</CardTitle>
+            <CardTitle className="text-base">{t("meeting.actionTracker.itemList")}</CardTitle>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="筛选状态" />
+                <SelectValue placeholder={t("meeting.actionTracker.filterStatus")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部</SelectItem>
-                <SelectItem value="open">待处理</SelectItem>
-                <SelectItem value="in_progress">进行中</SelectItem>
-                <SelectItem value="completed">已完成</SelectItem>
-                <SelectItem value="stale">停滞</SelectItem>
-                <SelectItem value="cancelled">已取消</SelectItem>
+                <SelectItem value="all">{t("meeting.actionTracker.statusAll")}</SelectItem>
+                <SelectItem value="open">{t("meeting.actionTracker.statusOpen")}</SelectItem>
+                <SelectItem value="in_progress">{t("meeting.actionTracker.statusInProgress")}</SelectItem>
+                <SelectItem value="completed">{t("meeting.actionTracker.statusCompleted")}</SelectItem>
+                <SelectItem value="stale">{t("meeting.actionTracker.statusStale")}</SelectItem>
+                <SelectItem value="cancelled">{t("meeting.actionTracker.statusCancelled")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -306,12 +304,12 @@ export function ActionItemTrackerTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>内容</TableHead>
-                  <TableHead>负责人</TableHead>
-                  <TableHead className="text-center">状态</TableHead>
-                  <TableHead className="text-center">出现次数</TableHead>
-                  <TableHead className="text-center">首次发现</TableHead>
-                  <TableHead>操作</TableHead>
+                  <TableHead>{t("meeting.actionTracker.thContent")}</TableHead>
+                  <TableHead>{t("meeting.actionTracker.thOwner")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.actionTracker.thStatus")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.actionTracker.thAppearances")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.actionTracker.thFirstSeen")}</TableHead>
+                  <TableHead>{t("meeting.actionTracker.thActions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -321,7 +319,7 @@ export function ActionItemTrackerTab() {
                     <TableCell className="text-sm">{item.owner || "—"}</TableCell>
                     <TableCell className="text-center">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status] || "bg-gray-100"}`}>
-                        {STATUS_LABELS[item.status] || item.status}
+                        {t(STATUS_LABEL_KEYS[item.status] || "meeting.actionTracker.statusOpen")}
                       </span>
                     </TableCell>
                     <TableCell className="text-center">{item.appearance_count}</TableCell>
@@ -338,7 +336,7 @@ export function ActionItemTrackerTab() {
                             onClick={() => handleStatusUpdate(item.id, "completed")}
                             disabled={updateMutation.isPending}
                           >
-                            完成
+                            {t("meeting.actionTracker.actionComplete")}
                           </Button>
                         )}
                         {item.status === "open" && (
@@ -349,7 +347,7 @@ export function ActionItemTrackerTab() {
                             onClick={() => handleStatusUpdate(item.id, "in_progress")}
                             disabled={updateMutation.isPending}
                           >
-                            开始
+                            {t("meeting.actionTracker.actionStart")}
                           </Button>
                         )}
                         {item.status !== "cancelled" && item.status !== "completed" && (
@@ -360,7 +358,7 @@ export function ActionItemTrackerTab() {
                             onClick={() => handleStatusUpdate(item.id, "cancelled")}
                             disabled={updateMutation.isPending}
                           >
-                            取消
+                            {t("meeting.actionTracker.actionCancel")}
                           </Button>
                         )}
                       </div>
@@ -372,8 +370,8 @@ export function ActionItemTrackerTab() {
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <ListChecks className="h-12 w-12 mb-3 opacity-30" />
-              <p>暂无行动项数据</p>
-              <p className="text-sm">请先从会议中提取行动项</p>
+              <p>{t("meeting.actionTracker.noItemData")}</p>
+              <p className="text-sm">{t("meeting.actionTracker.noItemDataHint")}</p>
             </div>
           )}
         </CardContent>

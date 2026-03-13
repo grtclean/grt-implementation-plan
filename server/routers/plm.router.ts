@@ -3,7 +3,8 @@
  * Document management, file versioning, and design review workflows
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { TRPCError } from "@trpc/server";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import {
@@ -138,7 +139,7 @@ export const plmRouter = router({
     return createDocument({ ...input, createdBy: ctx.user.id });
   }),
 
-  updateDocument: protectedProcedure.input(z.object({
+  updateDocument: requirePermission('rnd:plm:access').input(z.object({
     id: z.union([z.string(), z.number()]),
     title: z.string().optional(),
     description: z.string().optional(),
@@ -169,7 +170,7 @@ export const plmRouter = router({
   // Versions — Upload & History
   // ══════════════════════════════════════════════════
 
-  uploadVersion: protectedProcedure.input(z.object({
+  uploadVersion: requirePermission('rnd:plm:access').input(z.object({
     documentId: z.union([z.string(), z.number()]),
     fileUrlPath: z.string().min(1),
     originalFileName: z.string().optional(),
@@ -185,7 +186,7 @@ export const plmRouter = router({
     });
   }),
 
-  promoteMajorVersion: protectedProcedure.input(z.object({
+  promoteMajorVersion: requirePermission('rnd:plm:access').input(z.object({
     documentId: z.union([z.string(), z.number()]),
     fileUrlPath: z.string().min(1),
   })).mutation(async ({ input, ctx }) => {
@@ -211,7 +212,7 @@ export const plmRouter = router({
   // Design Reviews — Submit & Decide
   // ══════════════════════════════════════════════════
 
-  submitReview: protectedProcedure.input(z.object({
+  submitReview: requirePermission('rnd:plm:access').input(z.object({
     documentVersionId: z.union([z.string(), z.number()]),
     reviewerUserId: z.number(),
     reviewerName: z.string().optional(),
@@ -219,6 +220,9 @@ export const plmRouter = router({
     dueDate: z.string().optional(),
     isDesignFreezeReview: z.boolean().optional(),
   })).mutation(async ({ input, ctx }) => {
+    if (input.reviewerUserId === ctx.user.id) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Cannot review your own document' });
+    }
     return submitForReview({
       ...input,
       documentVersionId: toNum(input.documentVersionId),
@@ -226,7 +230,7 @@ export const plmRouter = router({
     });
   }),
 
-  recordDecision: protectedProcedure.input(z.object({
+  recordDecision: requirePermission('rnd:plm:access').input(z.object({
     reviewId: z.union([z.string(), z.number()]),
     reviewStatus: z.enum(["approved", "rejected", "revision_requested"]),
     comments: z.string().optional(),

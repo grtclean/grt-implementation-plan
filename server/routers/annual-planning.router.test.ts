@@ -9,7 +9,7 @@
  *   getUpdateLogs, initSampleData
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAuthenticatedCaller, createAdminCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 
 // ── Mock state ──────────────────────────────────────────
 let mockQueryResult: any[] = [];
@@ -73,6 +73,12 @@ function createMockDb() {
 
 const mockDb = createMockDb();
 
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => mockDb),
 }));
@@ -135,7 +141,7 @@ describe("annualPlanning router", () => {
         { id: 1, year: 2026, name: "Plan A" },
         { id: 2, year: 2025, name: "Plan B" },
       ];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.list();
       expect(result).toHaveProperty("items");
       expect(result).toHaveProperty("total", 2);
@@ -146,7 +152,7 @@ describe("annualPlanning router", () => {
 
     it("returns empty list when no plans exist", async () => {
       mockQueryResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.list();
       expect(result.items).toHaveLength(0);
       expect(result.total).toBe(0);
@@ -157,7 +163,7 @@ describe("annualPlanning router", () => {
   describe("getById", () => {
     it("returns a plan by valid id", async () => {
       mockQueryResult = [{ id: 1, year: 2026, name: "Plan A", status: "draft" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getById({ id: "1" });
       expect(result).not.toBeNull();
       expect(result).toHaveProperty("id", 1);
@@ -166,13 +172,13 @@ describe("annualPlanning router", () => {
 
     it("returns null for non-existent plan", async () => {
       mockQueryResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getById({ id: "999" });
       expect(result).toBeNull();
     });
 
     it("returns null for non-numeric id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getById({ id: "abc" });
       expect(result).toBeNull();
     });
@@ -181,14 +187,14 @@ describe("annualPlanning router", () => {
   // ==================== create ====================
   describe("create", () => {
     it("creates a plan with defaults", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.create({});
       expect(result).toEqual({ success: true, message: "操作成功" });
       expect(mockDb.insert).toHaveBeenCalled();
     });
 
     it("creates a plan with all fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.create({
         year: 2026,
         type: "department",
@@ -209,7 +215,7 @@ describe("annualPlanning router", () => {
     });
 
     it("handles keyInitiatives as string", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.create({
         keyInitiatives: "single initiative",
         risksAndChallenges: "single risk",
@@ -218,13 +224,13 @@ describe("annualPlanning router", () => {
     });
 
     it("defaults year to current year when not provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.annualPlanning.create({});
       expect(mockDb.insert).toHaveBeenCalled();
     });
 
     it("defaults status to draft when not provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.annualPlanning.create({});
       expect(mockDb.insert).toHaveBeenCalled();
     });
@@ -233,7 +239,7 @@ describe("annualPlanning router", () => {
   // ==================== update ====================
   describe("update", () => {
     it("updates a plan by numeric id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.update({
         id: 1,
         name: "Updated Plan",
@@ -244,7 +250,7 @@ describe("annualPlanning router", () => {
     });
 
     it("updates a plan by string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.update({
         id: "5",
         revenueTarget: 5000000,
@@ -253,7 +259,7 @@ describe("annualPlanning router", () => {
     });
 
     it("returns success without updating when id is 0 or invalid", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.update({ id: "0" });
       expect(result).toEqual({ success: true, message: "操作成功" });
       // Should not call update since id converts to 0 (falsy)
@@ -261,7 +267,7 @@ describe("annualPlanning router", () => {
     });
 
     it("serializes array keyInitiatives to JSON string", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.update({
         id: 1,
         keyInitiatives: ["A", "B", "C"],
@@ -270,7 +276,7 @@ describe("annualPlanning router", () => {
     });
 
     it("serializes array risksAndChallenges to JSON string", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.update({
         id: 1,
         risksAndChallenges: ["Risk A", "Risk B"],
@@ -279,7 +285,7 @@ describe("annualPlanning router", () => {
     });
 
     it("passes string keyInitiatives as-is", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.update({
         id: 1,
         keyInitiatives: "already a string",
@@ -291,14 +297,14 @@ describe("annualPlanning router", () => {
   // ==================== delete ====================
   describe("delete", () => {
     it("deletes a plan by valid id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.delete({ id: "1" });
       expect(result).toEqual({ success: true, message: "操作成功" });
       expect(mockDb.delete).toHaveBeenCalled();
     });
 
     it("handles non-numeric id gracefully (no delete called)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.delete({ id: "abc" });
       expect(result).toEqual({ success: true, message: "操作成功" });
       // isNaN("abc") is true, so delete should not be called
@@ -318,7 +324,7 @@ describe("annualPlanning router", () => {
           status: "approved",
         },
       ];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getGoals();
       expect(result).toHaveLength(1);
       expect(result[0]).toHaveProperty("name", "Revenue Goal");
@@ -328,7 +334,7 @@ describe("annualPlanning router", () => {
 
     it("returns empty array when no plans for current year", async () => {
       mockQueryResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getGoals();
       expect(result).toHaveLength(0);
     });
@@ -342,7 +348,7 @@ describe("annualPlanning router", () => {
         // Extra fields that should not appear in goals
         description: "should not appear", creatorId: 99,
       }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getGoals();
       expect(result[0]).not.toHaveProperty("description");
       expect(result[0]).not.toHaveProperty("creatorId");
@@ -354,7 +360,7 @@ describe("annualPlanning router", () => {
   describe("getProgress", () => {
     it("returns 0 when no active config", async () => {
       selectResultsQueue.push([]); // no active config
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getProgress();
       expect(result).toEqual({ progress: 0 });
     });
@@ -363,7 +369,7 @@ describe("annualPlanning router", () => {
       selectResultsQueue.push([{ id: 1, status: "active" }]); // active config
       selectResultsQueue.push([{ count: 0 }]); // total
       selectResultsQueue.push([{ count: 0 }]); // completed
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getProgress();
       expect(result).toEqual({ progress: 0 });
     });
@@ -372,7 +378,7 @@ describe("annualPlanning router", () => {
       selectResultsQueue.push([{ id: 1, status: "active" }]); // active config
       selectResultsQueue.push([{ count: 10 }]); // total
       selectResultsQueue.push([{ count: 7 }]); // completed
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getProgress();
       expect(result).toEqual({ progress: 70 });
     });
@@ -381,7 +387,7 @@ describe("annualPlanning router", () => {
       selectResultsQueue.push([{ id: 1, status: "active" }]);
       selectResultsQueue.push([{ count: 3 }]);
       selectResultsQueue.push([{ count: 1 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getProgress();
       expect(result).toEqual({ progress: 33 }); // Math.round(1/3*100) = 33
     });
@@ -390,7 +396,7 @@ describe("annualPlanning router", () => {
       selectResultsQueue.push([{ id: 1, status: "active" }]);
       selectResultsQueue.push([{ count: 5 }]);
       selectResultsQueue.push([{ count: 5 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getProgress();
       expect(result).toEqual({ progress: 100 });
     });
@@ -403,14 +409,14 @@ describe("annualPlanning router", () => {
         { id: 2, year: 2026, version: "V1.0", versionName: "2026 Plan" },
         { id: 1, year: 2025, version: "V1.0", versionName: "2025 Plan" },
       ];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getConfigs();
       expect(result).toHaveLength(2);
     });
 
     it("returns empty list when no configs exist", async () => {
       mockQueryResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getConfigs();
       expect(result).toHaveLength(0);
     });
@@ -420,7 +426,7 @@ describe("annualPlanning router", () => {
   describe("getActiveConfig", () => {
     it("returns active config when one exists", async () => {
       mockQueryResult = [{ id: 1, year: 2026, status: "active", versionName: "V1" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getActiveConfig();
       expect(result).toHaveProperty("config");
       expect(result.config).not.toBeNull();
@@ -429,7 +435,7 @@ describe("annualPlanning router", () => {
 
     it("returns null config when none is active", async () => {
       mockQueryResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getActiveConfig();
       expect(result).toEqual({ config: null });
     });
@@ -439,7 +445,7 @@ describe("annualPlanning router", () => {
   describe("createConfig", () => {
     it("creates config with defaults", async () => {
       mockReturningResult = [{ id: 10 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createConfig({});
       expect(result).toHaveProperty("success", true);
       expect(result).toHaveProperty("id", 10);
@@ -447,7 +453,7 @@ describe("annualPlanning router", () => {
 
     it("creates config with all fields", async () => {
       mockReturningResult = [{ id: 11 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createConfig({
         year: 2027,
         version: "V2.0",
@@ -462,14 +468,14 @@ describe("annualPlanning router", () => {
 
     it("defaults version to V1.0", async () => {
       mockReturningResult = [{ id: 12 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createConfig({});
       expect(result.success).toBe(true);
     });
 
     it("handles missing returning result gracefully", async () => {
       mockReturningResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createConfig({});
       expect(result).toHaveProperty("success", true);
       expect(result.id).toBeUndefined();
@@ -481,7 +487,7 @@ describe("annualPlanning router", () => {
     it("activates a config using id param", async () => {
       // First select inside tx: find the config
       selectResultsQueue.push([{ id: 1, year: 2026, status: "draft", versionName: "V1" }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.activateConfig({ id: "1" });
       expect(result).toEqual({ success: true, message: "操作成功" });
       expect(mockDb.transaction).toHaveBeenCalled();
@@ -489,13 +495,13 @@ describe("annualPlanning router", () => {
 
     it("activates a config using configId param", async () => {
       selectResultsQueue.push([{ id: 2, year: 2026, status: "draft", versionName: "V2" }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.activateConfig({ configId: "2" });
       expect(result).toEqual({ success: true, message: "操作成功" });
     });
 
     it("returns success early when no id provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.activateConfig({});
       expect(result).toEqual({ success: true, message: "操作成功" });
       // Should not call transaction since configId resolves to NaN/0
@@ -504,7 +510,7 @@ describe("annualPlanning router", () => {
 
     it("returns failure when config not found", async () => {
       selectResultsQueue.push([]); // config not found
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.activateConfig({ id: "999" });
       expect(result).toEqual({ success: false, message: "Config not found" });
     });
@@ -521,7 +527,7 @@ describe("annualPlanning router", () => {
       selectResultsQueue.push([
         { id: 100, category: "sales", name: "Item1", description: "Desc", tasks: null, frequency: "once", responsibleUserId: 1, responsibleUserName: "User", participantIds: null, status: "pending", sortOrder: 1, isTemplate: 0 },
       ]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.copyToNewYear({
         sourceConfigId: "1",
         targetYear: 2026,
@@ -534,7 +540,7 @@ describe("annualPlanning router", () => {
       selectResultsQueue.push([{ id: 2, year: 2025, versionName: "V2" }]);
       mockReturningResult = [{ id: 20 }];
       selectResultsQueue.push([]); // no source items
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.copyToNewYear({
         configId: "2",
         year: 2027,
@@ -546,20 +552,20 @@ describe("annualPlanning router", () => {
       selectResultsQueue.push([{ id: 3, year: 2025, versionName: "V3" }]);
       mockReturningResult = [{ id: 30 }];
       selectResultsQueue.push([]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.copyToNewYear({ id: "3" });
       expect(result).toEqual({ success: true, message: "操作成功" });
     });
 
     it("returns failure when no source config id provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.copyToNewYear({});
       expect(result).toEqual({ success: false, message: "Source config ID required" });
     });
 
     it("returns failure when source config not found", async () => {
       selectResultsQueue.push([]); // not found
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.copyToNewYear({ sourceConfigId: "999" });
       expect(result).toEqual({ success: false, message: "Source config not found" });
     });
@@ -573,7 +579,7 @@ describe("annualPlanning router", () => {
         { id: 10, name: "Item A", configId: 1 },
         { id: 11, name: "Item B", configId: 1 },
       ]); // items
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getItems();
       expect(result).toHaveLength(2);
     });
@@ -581,7 +587,7 @@ describe("annualPlanning router", () => {
     it("returns all items when no active config", async () => {
       selectResultsQueue.push([]); // no active config
       mockQueryResult = [{ id: 10, name: "Item X" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getItems();
       expect(result).toHaveLength(1);
     });
@@ -589,7 +595,7 @@ describe("annualPlanning router", () => {
     it("returns empty when no items exist", async () => {
       selectResultsQueue.push([]); // no active config
       mockQueryResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getItems();
       expect(result).toHaveLength(0);
     });
@@ -614,7 +620,7 @@ describe("annualPlanning router", () => {
     it("falls back to active config when configId is 0/undefined", async () => {
       // Active config lookup
       selectResultsQueue.push([{ id: 5, status: "active" }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createItem({
         name: "Fallback Item",
       });
@@ -623,7 +629,7 @@ describe("annualPlanning router", () => {
 
     it("returns failure when no configId and no active config", async () => {
       selectResultsQueue.push([]); // no active config
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createItem({
         name: "Orphan Item",
       });
@@ -631,7 +637,7 @@ describe("annualPlanning router", () => {
     });
 
     it("handles tasks as string", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createItem({
         configId: 1,
         tasks: "simple task string",
@@ -640,7 +646,7 @@ describe("annualPlanning router", () => {
     });
 
     it("handles tasks as array and serializes to JSON", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createItem({
         configId: 1,
         tasks: [{ name: "Task 1", done: false }],
@@ -649,7 +655,7 @@ describe("annualPlanning router", () => {
     });
 
     it("handles participantIds as string", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createItem({
         configId: 1,
         participantIds: "[1,2,3]",
@@ -658,7 +664,7 @@ describe("annualPlanning router", () => {
     });
 
     it("handles participantIds as array and serializes to JSON", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createItem({
         configId: 1,
         participantIds: [1, 2, "3"],
@@ -667,7 +673,7 @@ describe("annualPlanning router", () => {
     });
 
     it("creates item with all optional fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createItem({
         configId: 1,
         category: "production",
@@ -695,7 +701,7 @@ describe("annualPlanning router", () => {
     it("updates item by numeric id", async () => {
       // before state lookup
       selectResultsQueue.push([{ id: 1, configId: 10, name: "Old Name" }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.updateItem({
         id: 1,
         name: "New Name",
@@ -707,7 +713,7 @@ describe("annualPlanning router", () => {
 
     it("updates item by string id", async () => {
       selectResultsQueue.push([{ id: 5, configId: 10, name: "Item 5" }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.updateItem({
         id: "5",
         category: "hr",
@@ -716,7 +722,7 @@ describe("annualPlanning router", () => {
     });
 
     it("returns success early when id is 0", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.updateItem({ id: "0" });
       expect(result).toEqual({ success: true, message: "操作成功" });
       expect(mockDb.update).not.toHaveBeenCalled();
@@ -724,7 +730,7 @@ describe("annualPlanning router", () => {
 
     it("serializes array tasks to JSON", async () => {
       selectResultsQueue.push([{ id: 1, configId: 10, name: "Item" }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.updateItem({
         id: 1,
         tasks: [{ name: "Updated task", done: true }],
@@ -734,7 +740,7 @@ describe("annualPlanning router", () => {
 
     it("serializes array participantIds to JSON", async () => {
       selectResultsQueue.push([{ id: 1, configId: 10, name: "Item" }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.updateItem({
         id: 1,
         participantIds: [1, 2, 3],
@@ -744,7 +750,7 @@ describe("annualPlanning router", () => {
 
     it("logs update when before state exists", async () => {
       selectResultsQueue.push([{ id: 1, configId: 10, name: "Item" }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.annualPlanning.updateItem({
         id: 1,
         name: "Updated Name",
@@ -768,7 +774,7 @@ describe("annualPlanning router", () => {
 
     it("passes operatorId from input to log", async () => {
       selectResultsQueue.push([{ id: 1, configId: 10, name: "Item" }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.updateItem({
         id: 1,
         name: "Operator test",
@@ -785,14 +791,14 @@ describe("annualPlanning router", () => {
         { id: 1, configId: 1, updateType: "create", description: "Created item" },
         { id: 2, configId: 1, updateType: "update", description: "Updated item" },
       ];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getUpdateLogs();
       expect(result).toHaveLength(2);
     });
 
     it("returns empty when no logs exist", async () => {
       mockQueryResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getUpdateLogs();
       expect(result).toHaveLength(0);
     });
@@ -805,7 +811,7 @@ describe("annualPlanning router", () => {
       selectResultsQueue.push([{ count: 0 }]);
       // config insert returning
       mockReturningResult = [{ id: 1 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.initSampleData();
       expect(result).toHaveProperty("success", true);
       expect(result).toHaveProperty("created");
@@ -814,7 +820,7 @@ describe("annualPlanning router", () => {
 
     it("skips when data already exists", async () => {
       selectResultsQueue.push([{ count: 3 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.initSampleData();
       expect(result).toHaveProperty("success", true);
       expect(result).toHaveProperty("message", "Data already exists");
@@ -823,7 +829,7 @@ describe("annualPlanning router", () => {
 
     it("handles count as string (DB may return string)", async () => {
       selectResultsQueue.push([{ count: "5" }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.initSampleData();
       expect(result).toHaveProperty("created", 0);
     });
@@ -921,13 +927,13 @@ describe("annualPlanning router", () => {
   describe("edge cases", () => {
     it("getById handles large numeric id string", async () => {
       mockQueryResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.getById({ id: "99999999" });
       expect(result).toBeNull();
     });
 
     it("update handles id as number directly", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.update({
         id: 42,
         name: "Numeric ID Update",
@@ -936,7 +942,7 @@ describe("annualPlanning router", () => {
     });
 
     it("createItem defaults category to other", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createItem({
         configId: 1,
         name: "Default Category Item",
@@ -945,7 +951,7 @@ describe("annualPlanning router", () => {
     });
 
     it("createItem defaults frequency to once", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createItem({
         configId: 1,
         name: "Default Frequency Item",
@@ -954,7 +960,7 @@ describe("annualPlanning router", () => {
     });
 
     it("createItem defaults status to pending", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createItem({
         configId: 1,
         name: "Default Status Item",
@@ -963,7 +969,7 @@ describe("annualPlanning router", () => {
     });
 
     it("createItem defaults sortOrder to 0", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.createItem({
         configId: 1,
         name: "Default SortOrder Item",
@@ -973,7 +979,7 @@ describe("annualPlanning router", () => {
 
     it("updateItem with string tasks passes as-is", async () => {
       selectResultsQueue.push([{ id: 1, configId: 10, name: "Item" }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.updateItem({
         id: 1,
         tasks: "string tasks",
@@ -983,7 +989,7 @@ describe("annualPlanning router", () => {
 
     it("updateItem with string participantIds passes as-is", async () => {
       selectResultsQueue.push([{ id: 1, configId: 10, name: "Item" }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.updateItem({
         id: 1,
         participantIds: "[1,2]",
@@ -992,7 +998,7 @@ describe("annualPlanning router", () => {
     });
 
     it("create plan uses ctx.user.id as creatorId", async () => {
-      const caller = createAuthenticatedCaller({ id: 42 });
+      const caller = createAdminCaller({ id: 42 });
       const result = await caller.annualPlanning.create({ name: "User 42 Plan" });
       expect(result.success).toBe(true);
       expect(mockDb.insert).toHaveBeenCalled();
@@ -1004,7 +1010,7 @@ describe("annualPlanning router", () => {
         { id: 2, year: 2026, name: "B" },
         { id: 1, year: 2025, name: "A" },
       ];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.annualPlanning.list();
       expect(result.items).toHaveLength(3);
       expect(result.total).toBe(3);

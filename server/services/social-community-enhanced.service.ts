@@ -374,7 +374,7 @@ export async function getMessageStats(options?: {
   
   // 今日消息数
   const [todayResult] = await (db as any).execute(
-    `SELECT COUNT(*) as total FROM social_messages WHERE DATE(received_at) = CURDATE() ${dateFilter}`,
+    `SELECT COUNT(*) as total FROM social_messages WHERE DATE(received_at) = CURRENT_DATE ${dateFilter}`,
     params
   );
   const todayMessages = (todayResult as any[])[0]?.total || 0;
@@ -395,9 +395,9 @@ export async function getMessageStats(options?: {
   
   // 按小时统计
   const [hourlyResult] = await (db as any).execute(
-    `SELECT HOUR(received_at) as hour, COUNT(*) as count
+    `SELECT EXTRACT(HOUR FROM received_at) as hour, COUNT(*) as count
      FROM social_messages WHERE 1=1 ${dateFilter}
-     GROUP BY HOUR(received_at) ORDER BY hour`,
+     GROUP BY EXTRACT(HOUR FROM received_at) ORDER BY hour`,
     params
   );
   const messagesByHour = (hourlyResult as any[]).map(r => ({
@@ -519,7 +519,7 @@ export async function getGroupActivityStats(groupId: number): Promise<{
   const [activeResult] = await (db as any).execute(
     `SELECT COUNT(DISTINCT sender_wx_id) as total
      FROM social_messages
-     WHERE group_id = ? AND received_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)`,
+     WHERE group_id = ? AND received_at >= NOW() - INTERVAL '7 days'`,
     [groupId]
   );
   const activeMembers = (activeResult as any[])[0]?.total || 0;
@@ -528,17 +528,17 @@ export async function getGroupActivityStats(groupId: number): Promise<{
   const [avgResult] = await (db as any).execute(
     `SELECT COUNT(*) / 30 as avg_per_day
      FROM social_messages
-     WHERE group_id = ? AND received_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)`,
+     WHERE group_id = ? AND received_at >= NOW() - INTERVAL '30 days'`,
     [groupId]
   );
   const avgMessagesPerDay = Math.round((avgResult as any[])[0]?.avg_per_day || 0);
   
   // 高峰时段
   const [peakResult] = await (db as any).execute(
-    `SELECT HOUR(received_at) as hour, COUNT(*) as count
+    `SELECT EXTRACT(HOUR FROM received_at) as hour, COUNT(*) as count
      FROM social_messages
      WHERE group_id = ?
-     GROUP BY HOUR(received_at)
+     GROUP BY EXTRACT(HOUR FROM received_at)
      ORDER BY count DESC
      LIMIT 1`,
     [groupId]

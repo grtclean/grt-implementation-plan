@@ -6,7 +6,7 @@
  * decisionLog, seedDemo)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAdminCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 import {
   classifyHealth,
   determinePriority,
@@ -338,7 +338,7 @@ describe("smart-scheduler router", () => {
 
   describe("fleetHealth", () => {
     it("returns fleet health with seed data on DB fallback", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartScheduler.fleetHealth();
       expect(result).toHaveProperty("machines");
       expect(result).toHaveProperty("summary");
@@ -358,7 +358,7 @@ describe("smart-scheduler router", () => {
             last_updated: new Date().toISOString() },
         ],
       });
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartScheduler.fleetHealth();
       expect(result.dataSource).toBe("database");
       expect(result.machines).toHaveLength(1);
@@ -367,7 +367,7 @@ describe("smart-scheduler router", () => {
 
   describe("ganttView", () => {
     it("returns gantt data with merged reschedule results", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartScheduler.ganttView();
       expect(result).toHaveProperty("jobs");
       expect(result).toHaveProperty("movedJobIds");
@@ -378,7 +378,7 @@ describe("smart-scheduler router", () => {
 
   describe("reschedule", () => {
     it("triggers self-healing engine", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartScheduler.reschedule();
       expect(result).toHaveProperty("triggered");
       expect(result).toHaveProperty("decisionLog");
@@ -388,7 +388,7 @@ describe("smart-scheduler router", () => {
 
   describe("decisionLog", () => {
     it("returns decision log", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartScheduler.decisionLog();
       expect(result).toHaveProperty("log");
       expect(result).toHaveProperty("triggered");
@@ -398,7 +398,7 @@ describe("smart-scheduler router", () => {
 
   describe("seedDemo", () => {
     it("seeds demo data to DB", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.smartScheduler.seedDemo();
       expect(result).toHaveProperty("seeded", true);
       expect(result).toHaveProperty("fleet");

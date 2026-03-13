@@ -22,7 +22,7 @@ import { eq, and, gte, lte, desc, asc } from "drizzle-orm";
 export async function getAllBusinessUnits() {
   const db = await getDb();
   if (!db) throw new Error("Database connection failed");
-  return db.select().from(businessUnits).orderBy(asc(businessUnits.code));
+  return db.select().from(businessUnits).orderBy(asc(businessUnits.code)).limit(1000);
 }
 
 export async function getBusinessUnitById(id: number) {
@@ -83,7 +83,8 @@ export async function getPerformanceByBuAndYear(buId: number, fiscalYear: number
   return db
     .select()
     .from(buPerformance)
-    .where(and(eq(buPerformance.buId, buId), eq(buPerformance.fiscalYear, fiscalYear)));
+    .where(and(eq(buPerformance.buId, buId), eq(buPerformance.fiscalYear, fiscalYear)))
+    .limit(1000);
 }
 
 export async function getPerformanceByBuAndQuarter(
@@ -129,7 +130,8 @@ export async function getKpisByBu(buId: number, fiscalYear: number) {
     .select()
     .from(buKpis)
     .where(and(eq(buKpis.buId, buId), eq(buKpis.fiscalYear, fiscalYear)))
-    .orderBy(asc(buKpis.dimension));
+    .orderBy(asc(buKpis.dimension))
+    .limit(1000);
 }
 
 export async function getKpiByCode(kpiCode: string) {
@@ -175,7 +177,8 @@ export async function getPerformanceHistory(
     .select()
     .from(buPerformanceHistory)
     .where(and(...conditions))
-    .orderBy(desc(buPerformanceHistory.changeTimestamp));
+    .orderBy(desc(buPerformanceHistory.changeTimestamp))
+    .limit(1000);
 }
 
 export async function createPerformanceHistory(data: any) {
@@ -195,7 +198,8 @@ export async function getProjectScoresByBu(buId: number) {
     .select()
     .from(projectScores)
     .where(eq(projectScores.buId, buId))
-    .orderBy(desc(projectScores.evaluationDate));
+    .orderBy(desc(projectScores.evaluationDate))
+    .limit(1000);
 }
 
 export async function getProjectScoresByProject(projectId: number) {
@@ -231,7 +235,8 @@ export async function getMemberScoresByProject(projectId: number) {
     .select()
     .from(projectMemberScores)
     .where(eq(projectMemberScores.projectId, projectId))
-    .orderBy(desc(projectMemberScores.evaluationDate));
+    .orderBy(desc(projectMemberScores.evaluationDate))
+    .limit(1000);
 }
 
 export async function getMemberScoresByEmployee(employeeId: number) {
@@ -241,7 +246,8 @@ export async function getMemberScoresByEmployee(employeeId: number) {
     .select()
     .from(projectMemberScores)
     .where(eq(projectMemberScores.employeeId, employeeId))
-    .orderBy(desc(projectMemberScores.evaluationDate));
+    .orderBy(desc(projectMemberScores.evaluationDate))
+    .limit(1000);
 }
 
 export async function createMemberScore(data: any) {
@@ -267,7 +273,8 @@ export async function getBuEmployees(buId: number) {
     .select()
     .from(buEmployees)
     .where(eq(buEmployees.buId, buId))
-    .orderBy(asc(buEmployees.joinDate));
+    .orderBy(asc(buEmployees.joinDate))
+    .limit(1000);
 }
 
 export async function getEmployeeBus(employeeId: number) {
@@ -277,7 +284,8 @@ export async function getEmployeeBus(employeeId: number) {
     .select()
     .from(buEmployees)
     .where(eq(buEmployees.employeeId, employeeId))
-    .orderBy(asc(buEmployees.joinDate));
+    .orderBy(asc(buEmployees.joinDate))
+    .limit(1000);
 }
 
 export async function addEmployeeToBu(data: any) {
@@ -334,5 +342,6 @@ export async function getPerformanceTrend(buId: number, startYear: number, endYe
         lte(buPerformance.fiscalYear, endYear)
       )
     )
-    .orderBy(asc(buPerformance.fiscalYear), asc(buPerformance.fiscalQuarter));
+    .orderBy(asc(buPerformance.fiscalYear), asc(buPerformance.fiscalQuarter))
+    .limit(1000);
 }

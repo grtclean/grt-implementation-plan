@@ -45,7 +45,7 @@ export const rndTranslations: TranslationModule = {
     "rnd.mechanical.belongProject": "所属项目",
     "rnd.mechanical.belongProjectPlaceholder": "例如：缸体清洗线",
     "rnd.mechanical.engineerLabel": "工程师",
-    "rnd.mechanical.engineerPlaceholder": "例如：王工",
+    "rnd.mechanical.engineerPlaceholder": "例如：焦斌",
     "rnd.mechanical.buLabel": "事业部",
     "rnd.mechanical.cancel": "取消",
     "rnd.mechanical.create": "创建",
@@ -70,7 +70,7 @@ export const rndTranslations: TranslationModule = {
     "rnd.solution.customerLabel": "客户",
     "rnd.solution.customerPlaceholder": "例如：上海大众",
     "rnd.solution.engineerLabel": "工程师",
-    "rnd.solution.engineerPlaceholder": "例如：王工",
+    "rnd.solution.engineerPlaceholder": "例如：焦斌",
     "rnd.solution.buLabel": "事业部",
     "rnd.solution.cancel": "取消",
     "rnd.solution.create": "创建",
@@ -106,7 +106,7 @@ export const rndTranslations: TranslationModule = {
     "rnd.requirements.customerLabel": "客户",
     "rnd.requirements.customerPlaceholder": "例如：上海大众",
     "rnd.requirements.assigneeLabel": "负责人",
-    "rnd.requirements.assigneePlaceholder": "例如：王工",
+    "rnd.requirements.assigneePlaceholder": "例如：焦斌",
     "rnd.requirements.priorityLabel": "优先级",
     "rnd.requirements.priorityLow": "低",
     "rnd.requirements.priorityMedium": "中",
@@ -220,7 +220,7 @@ export const rndTranslations: TranslationModule = {
     "rnd.techDocs.catSoftware": "软件",
     "rnd.techDocs.catQuality": "质量",
     "rnd.techDocs.authorLabel": "作者",
-    "rnd.techDocs.authorPlaceholder": "例如：王工",
+    "rnd.techDocs.authorPlaceholder": "例如：焦斌",
     "rnd.techDocs.cancel": "取消",
     "rnd.techDocs.create": "创建",
     "rnd.techDocs.enterName": "请输入文档名称",
@@ -294,6 +294,9 @@ export const rndTranslations: TranslationModule = {
     "rnd.collab.loginForInvite": "演示模式：请先登录后再邀请成员",
     "rnd.collab.selectWorkspaceForInvite": "请先选择一个工作区",
     "rnd.collab.inviteFailed": "邀请失败",
+    // === Drawing Library ===
+    "rnd.drawings.title": "图纸库",
+    "rnd.drawings.comingSoon": "即将上线",
   },
   en: {
     "rnd.electrical.title": "Electrical Design",
@@ -588,6 +591,9 @@ export const rndTranslations: TranslationModule = {
     "rnd.collab.loginForInvite": "Demo mode: Please log in first to invite members",
     "rnd.collab.selectWorkspaceForInvite": "Please select a workspace first",
     "rnd.collab.inviteFailed": "Invite failed",
+    // === Drawing Library ===
+    "rnd.drawings.title": "Drawing Library",
+    "rnd.drawings.comingSoon": "Coming soon",
   },
   de: {
     "rnd.electrical.title": "",
@@ -882,6 +888,9 @@ export const rndTranslations: TranslationModule = {
     "rnd.collab.loginForInvite": "",
     "rnd.collab.selectWorkspaceForInvite": "",
     "rnd.collab.inviteFailed": "",
+    // === Drawing Library ===
+    "rnd.drawings.title": "Zeichnungsbibliothek",
+    "rnd.drawings.comingSoon": "Demnachst verfuegbar",
   },
   fr: {
     "rnd.electrical.title": "",
@@ -1176,5 +1185,8 @@ export const rndTranslations: TranslationModule = {
     "rnd.collab.loginForInvite": "",
     "rnd.collab.selectWorkspaceForInvite": "",
     "rnd.collab.inviteFailed": "",
+    // === Drawing Library ===
+    "rnd.drawings.title": "Bibliotheque de dessins",
+    "rnd.drawings.comingSoon": "Bientot disponible",
   },
 };

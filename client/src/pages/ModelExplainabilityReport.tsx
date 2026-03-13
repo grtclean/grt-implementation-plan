@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from '@/lib/trpc';
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -92,7 +93,7 @@ function FeatureImportanceChart({ data }: { data: FeatureImportance[] }) {
           <div className="relative h-8 bg-muted rounded-md overflow-hidden">
             <div className={`absolute inset-y-0 left-0 rounded-md transition-all duration-500 ${item.direction === 'positive' ? 'bg-green-500' : 'bg-red-500'}`} style={{ width: `${(item.importance / maxImportance) * 100}%` }} />
             <div className="absolute inset-0 flex items-center px-3">
-              <span className="text-xs font-medium text-white drop-shadow">贡献度: {item.contribution > 0 ? '+' : ''}{(item.contribution * 100).toFixed(1)}%</span>
+              <span className="text-xs font-medium text-white drop-shadow">{item.contribution > 0 ? '+' : ''}{(item.contribution * 100).toFixed(1)}%</span>
             </div>
           </div>
         </div>
@@ -106,7 +107,7 @@ function ModelComparisonRadar({ data }: { data: ModelComparison[] }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-5 gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
-        <div>模型</div>
+        <div>{/* Model */}</div>
         {metrics.map(m => <div key={m} className="text-center">{m}</div>)}
       </div>
       {data.map((model, index) => (
@@ -181,14 +182,15 @@ function PredictionComparisonChart({ data }: { data: { timestamps: number[]; act
 }
 
 function DataCharacteristicsCard({ data }: { data: DataCharacteristics }) {
-  const trendLabels: Record<string, string> = { increasing: '上升趋势', decreasing: '下降趋势', stable: '稳定', volatile: '波动' };
+  const { t } = useLanguage();
+  const trendKeys: Record<string, string> = { increasing: 'ai.modelExplain.trendIncreasing', decreasing: 'ai.modelExplain.trendDecreasing', stable: 'ai.modelExplain.trendStable', volatile: 'ai.modelExplain.trendVolatile' };
   const trendColors: Record<string, string> = { increasing: 'text-green-500', decreasing: 'text-red-500', stable: 'text-blue-500', volatile: 'text-yellow-500' };
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div className="p-4 bg-muted/50 rounded-lg"><div className="text-sm text-muted-foreground">数据量</div><div className="text-2xl font-bold">{data.size}</div><div className="text-xs text-muted-foreground">个样本</div></div>
-      <div className="p-4 bg-muted/50 rounded-lg"><div className="text-sm text-muted-foreground">时间跨度</div><div className="text-2xl font-bold">{data.timeSpan}</div><div className="text-xs text-muted-foreground">天</div></div>
-      <div className="p-4 bg-muted/50 rounded-lg"><div className="text-sm text-muted-foreground">趋势</div><div className={`text-2xl font-bold ${trendColors[data.trend] ?? ''}`}>{trendLabels[data.trend] ?? data.trend}</div><div className="text-xs text-muted-foreground">{data.seasonality ? `季节性(${data.seasonalPeriod}期)` : '无季节性'}</div></div>
-      <div className="p-4 bg-muted/50 rounded-lg"><div className="text-sm text-muted-foreground">异常值比例</div><div className={`text-2xl font-bold ${data.outlierRatio > 0.1 ? 'text-red-500' : 'text-green-500'}`}>{(data.outlierRatio * 100).toFixed(1)}%</div><div className="text-xs text-muted-foreground">非线性度: {(data.nonlinearity * 100).toFixed(1)}%</div></div>
+      <div className="p-4 bg-muted/50 rounded-lg"><div className="text-sm text-muted-foreground">{t("ai.modelExplain.dataSize")}</div><div className="text-2xl font-bold">{data.size}</div><div className="text-xs text-muted-foreground">{t("ai.modelExplain.samples")}</div></div>
+      <div className="p-4 bg-muted/50 rounded-lg"><div className="text-sm text-muted-foreground">{t("ai.modelExplain.timeSpan")}</div><div className="text-2xl font-bold">{data.timeSpan}</div><div className="text-xs text-muted-foreground">{t("ai.modelExplain.days")}</div></div>
+      <div className="p-4 bg-muted/50 rounded-lg"><div className="text-sm text-muted-foreground">{t("ai.modelExplain.trend")}</div><div className={`text-2xl font-bold ${trendColors[data.trend] ?? ''}`}>{trendKeys[data.trend] ? t(trendKeys[data.trend]) : data.trend}</div><div className="text-xs text-muted-foreground">{data.seasonality ? `${t("ai.modelExplain.seasonality")}(${data.seasonalPeriod}${t("ai.modelExplain.seasonalPeriod")})` : t("ai.modelExplain.noSeasonality")}</div></div>
+      <div className="p-4 bg-muted/50 rounded-lg"><div className="text-sm text-muted-foreground">{t("ai.modelExplain.outlierRatio")}</div><div className={`text-2xl font-bold ${data.outlierRatio > 0.1 ? 'text-red-500' : 'text-green-500'}`}>{(data.outlierRatio * 100).toFixed(1)}%</div><div className="text-xs text-muted-foreground">{t("ai.modelExplain.nonlinearity")}: {(data.nonlinearity * 100).toFixed(1)}%</div></div>
     </div>
   );
 }
@@ -196,6 +198,7 @@ function DataCharacteristicsCard({ data }: { data: DataCharacteristics }) {
 // ==================== 主组件 ====================
 
 export default function ModelExplainabilityReport() {
+  const { t } = useLanguage();
   const [selectedProject, setSelectedProject] = useState('project-a');
 
   // ─── tRPC ───
@@ -217,7 +220,7 @@ export default function ModelExplainabilityReport() {
   if (reportQuery.isLoading) {
     return (
       <div className="space-y-6">
-        <PageHeader icon={BarChart3} title="模型解释性报告" description="..." />
+        <PageHeader icon={BarChart3} title={t("ai.modelExplain.title")} description="..." />
         <Skeleton className="h-48 rounded-lg" />
         <Skeleton className="h-32 rounded-lg" />
         <Skeleton className="h-64 rounded-lg" />
@@ -231,8 +234,8 @@ export default function ModelExplainabilityReport() {
         <div className="flex items-center justify-center h-96">
           <div className="text-center space-y-4">
             <AlertCircle className="w-12 h-12 mx-auto text-destructive" />
-            <p className="text-muted-foreground">无法加载报告数据</p>
-            <Button onClick={handleRefresh}>重试</Button>
+            <p className="text-muted-foreground">{t("ai.modelExplain.noData")}</p>
+            <Button onClick={handleRefresh}>{t("ai.modelExplain.retry")}</Button>
           </div>
         </div>
       </div>
@@ -243,20 +246,20 @@ export default function ModelExplainabilityReport() {
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
-        title="模型解释性报告"
-        description={`生成时间: ${new Date(report.generatedAt).toLocaleString('zh-CN')}`}
+        title={t("ai.modelExplain.title")}
+        description={`${new Date(report.generatedAt).toLocaleString()}`}
         actions={
           <>
             <Select value={selectedProject} onValueChange={setSelectedProject}>
-              <SelectTrigger className="w-48"><SelectValue placeholder="选择项目" /></SelectTrigger>
+              <SelectTrigger className="w-48"><SelectValue placeholder={t("ai.modelExplain.selectProject")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="project-a">项目A - 成本预测</SelectItem>
-                <SelectItem value="project-b">项目B - 销售预测</SelectItem>
-                <SelectItem value="project-c">项目C - 库存预测</SelectItem>
+                <SelectItem value="project-a">{t("ai.modelExplain.projectA")}</SelectItem>
+                <SelectItem value="project-b">{t("ai.modelExplain.projectB")}</SelectItem>
+                <SelectItem value="project-c">{t("ai.modelExplain.projectC")}</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={handleRefresh}><RefreshCw className="w-4 h-4 mr-2" />刷新</Button>
-            <Button onClick={handleExport}><Download className="w-4 h-4 mr-2" />导出报告</Button>
+            <Button variant="outline" onClick={handleRefresh}><RefreshCw className="w-4 h-4 mr-2" />{t("ai.modelExplain.refresh")}</Button>
+            <Button onClick={handleExport}><Download className="w-4 h-4 mr-2" />{t("ai.modelExplain.export")}</Button>
           </>
         }
       />
@@ -266,14 +269,14 @@ export default function ModelExplainabilityReport() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-lg bg-primary text-primary-foreground"><Target className="w-6 h-6" /></div>
-              <div><CardTitle className="text-xl">推荐模型: {report.selectedModel.name}</CardTitle><CardDescription>置信度: {(report.selectionReason.confidenceScore * 100).toFixed(0)}%</CardDescription></div>
+              <div><CardTitle className="text-xl">{t("ai.modelExplain.recommendedModel")}: {report.selectedModel.name}</CardTitle><CardDescription>{t("ai.modelExplain.confidence")}: {(report.selectionReason.confidenceScore * 100).toFixed(0)}%</CardDescription></div>
             </div>
             <Badge variant="default" className="text-lg px-4 py-1">R² = {(report.modelComparisons[0].metrics.r2 * 100).toFixed(1)}%</Badge>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div><h4 className="font-medium mb-2 flex items-center gap-2"><Lightbulb className="w-4 h-4 text-yellow-500" />选择理由</h4><p className="text-muted-foreground">{report.selectionReason.primaryReason}</p></div>
+            <div><h4 className="font-medium mb-2 flex items-center gap-2"><Lightbulb className="w-4 h-4 text-yellow-500" />{t("ai.modelExplain.selectionReason")}</h4><p className="text-muted-foreground">{report.selectionReason.primaryReason}</p></div>
             <div className="flex flex-wrap gap-2">
               {Object.entries(report.selectionReason.dataCharacteristicsMatch).map(([key, match]) => (
                 <Badge key={key} variant={match ? 'default' : 'secondary'}>{match ? <CheckCircle2 className="w-3 h-3 mr-1" /> : null}{key}</Badge>
@@ -283,20 +286,20 @@ export default function ModelExplainabilityReport() {
         </CardContent>
       </Card>
 
-      <Card><CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="w-5 h-5" />数据特征分析</CardTitle></CardHeader><CardContent><DataCharacteristicsCard data={report.dataCharacteristics} /></CardContent></Card>
+      <Card><CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="w-5 h-5" />{t("ai.modelExplain.dataCharacteristics")}</CardTitle></CardHeader><CardContent><DataCharacteristicsCard data={report.dataCharacteristics} /></CardContent></Card>
 
       <Tabs defaultValue="importance" className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="importance" className="flex items-center gap-2"><BarChart3 className="w-4 h-4" />特征重要性</TabsTrigger>
-          <TabsTrigger value="comparison" className="flex items-center gap-2"><PieChart className="w-4 h-4" />模型对比</TabsTrigger>
-          <TabsTrigger value="prediction" className="flex items-center gap-2"><LineChart className="w-4 h-4" />预测对比</TabsTrigger>
+          <TabsTrigger value="importance" className="flex items-center gap-2"><BarChart3 className="w-4 h-4" />{t("ai.modelExplain.featureImportance")}</TabsTrigger>
+          <TabsTrigger value="comparison" className="flex items-center gap-2"><PieChart className="w-4 h-4" />{t("ai.modelExplain.modelComparison")}</TabsTrigger>
+          <TabsTrigger value="prediction" className="flex items-center gap-2"><LineChart className="w-4 h-4" />{t("ai.modelExplain.predictionComparison")}</TabsTrigger>
         </TabsList>
-        <TabsContent value="importance"><Card><CardHeader><CardTitle>特征重要性分析</CardTitle><CardDescription>展示各特征对预测结果的贡献程度，绿色表示正向影响，红色表示负向影响</CardDescription></CardHeader><CardContent><FeatureImportanceChart data={report.featureImportances} /></CardContent></Card></TabsContent>
-        <TabsContent value="comparison"><Card><CardHeader><CardTitle>模型性能对比</CardTitle><CardDescription>比较不同模型在各项指标上的表现，第一行为推荐模型</CardDescription></CardHeader><CardContent><ModelComparisonRadar data={report.modelComparisons} /><Separator className="my-6" /><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{report.modelComparisons.slice(0, 2).map((model: any) => (<div key={model.modelId} className="p-4 border rounded-lg"><h4 className="font-medium mb-3">{model.modelName}</h4><div className="space-y-2 text-sm"><div><span className="text-muted-foreground">优势: </span>{model.strengths.join('、')}</div><div><span className="text-muted-foreground">劣势: </span>{model.weaknesses.join('、')}</div><div><span className="text-muted-foreground">适用场景: </span>{model.suitableFor.join('、')}</div></div></div>))}</div></CardContent></Card></TabsContent>
-        <TabsContent value="prediction"><Card><CardHeader><CardTitle>预测结果对比</CardTitle><CardDescription>对比不同模型的预测结果与实际值，点击按钮切换显示的模型</CardDescription></CardHeader><CardContent><PredictionComparisonChart data={report.visualizationData.predictionComparison} /></CardContent></Card></TabsContent>
+        <TabsContent value="importance"><Card><CardHeader><CardTitle>{t("ai.modelExplain.featureImportanceTitle")}</CardTitle><CardDescription>{t("ai.modelExplain.featureImportanceDesc")}</CardDescription></CardHeader><CardContent><FeatureImportanceChart data={report.featureImportances} /></CardContent></Card></TabsContent>
+        <TabsContent value="comparison"><Card><CardHeader><CardTitle>{t("ai.modelExplain.modelPerfComparison")}</CardTitle><CardDescription>{t("ai.modelExplain.modelPerfComparisonDesc")}</CardDescription></CardHeader><CardContent><ModelComparisonRadar data={report.modelComparisons} /><Separator className="my-6" /><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{report.modelComparisons.slice(0, 2).map((model: any) => (<div key={model.modelId} className="p-4 border rounded-lg"><h4 className="font-medium mb-3">{model.modelName}</h4><div className="space-y-2 text-sm"><div><span className="text-muted-foreground">{t("ai.modelExplain.strengths")}: </span>{model.strengths.join(', ')}</div><div><span className="text-muted-foreground">{t("ai.modelExplain.weaknesses")}: </span>{model.weaknesses.join(', ')}</div><div><span className="text-muted-foreground">{t("ai.modelExplain.suitableFor")}: </span>{model.suitableFor.join(', ')}</div></div></div>))}</div></CardContent></Card></TabsContent>
+        <TabsContent value="prediction"><Card><CardHeader><CardTitle>{t("ai.modelExplain.predictionResultComparison")}</CardTitle><CardDescription>{t("ai.modelExplain.predictionResultComparisonDesc")}</CardDescription></CardHeader><CardContent><PredictionComparisonChart data={report.visualizationData.predictionComparison} /></CardContent></Card></TabsContent>
       </Tabs>
 
-      <Card><CardHeader><CardTitle className="flex items-center gap-2"><Zap className="w-5 h-5 text-yellow-500" />优化建议</CardTitle></CardHeader><CardContent><ul className="space-y-3">{report.recommendations.map((rec: string, index: number) => (<li key={index} className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium flex-shrink-0 mt-0.5">{index + 1}</div><span className="text-muted-foreground">{rec}</span></li>))}</ul></CardContent></Card>
+      <Card><CardHeader><CardTitle className="flex items-center gap-2"><Zap className="w-5 h-5 text-yellow-500" />{t("ai.modelExplain.optimizationSuggestions")}</CardTitle></CardHeader><CardContent><ul className="space-y-3">{report.recommendations.map((rec: string, index: number) => (<li key={index} className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium flex-shrink-0 mt-0.5">{index + 1}</div><span className="text-muted-foreground">{rec}</span></li>))}</ul></CardContent></Card>
     </div>
   );
 }

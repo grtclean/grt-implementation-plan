@@ -3,7 +3,7 @@
  * 工业安全规则管理 + 参数校验
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { safetyRules } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -94,7 +94,7 @@ export const safetyRuleRouter = router({
   }),
 
   // 删除规则
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('mfg:safety:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(safetyRules).where(eq(safetyRules.id, toNum(input.id)));
     return { success: true, message: "安全规则已删除" };
@@ -232,7 +232,7 @@ export const safetyRuleRouter = router({
   }),
 
   // 初始化默认安全规则
-  seedDefaults: protectedProcedure.mutation(async () => {
+  seedDefaults: requirePermission('mfg:safety:manage').mutation(async () => {
     const db = await requireDb();
     const existing = await db.select({ id: safetyRules.id }).from(safetyRules).limit(1);
     if (existing.length > 0) return { success: true, message: "安全规则已存在" };

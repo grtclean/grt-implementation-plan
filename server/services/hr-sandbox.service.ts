@@ -64,7 +64,7 @@ export async function parseCapabilityModel(taskId: number): Promise<ParsingResul
   const db = await requireDb();
 
   // 1. Read task input
-  const [task] = await db.select().from(aiTasks).where(eq(aiTasks.id, taskId));
+  const [task] = await db.select().from(aiTasks).where(eq(aiTasks.id, taskId)).limit(1000);
   if (!task) throw new Error(`Task ${taskId} not found`);
 
   const input = task.inputData as Record<string, unknown>;

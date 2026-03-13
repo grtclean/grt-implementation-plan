@@ -6,12 +6,29 @@
  * freezes the associated performance record.
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { violationEvents, performanceRecords } from "../../drizzle/performance-schema";
 import { eq, and, desc, sql, count, type SQL } from "drizzle-orm";
 import { createChildLogger } from "../lib/logger";
+import { awardPoints } from "../services/employee-points.service";
 const log = createChildLogger("violation-event");
+
+// Map violation severity → point rule code
+const SEVERITY_POINT_RULES: Record<string, string> = {
+  MINOR: "violation_minor",
+  MAJOR: "violation_major",
+  CRITICAL: "violation_critical",
+};
+
+// Map event type → additional point rule code
+const EVENT_TYPE_POINT_RULES: Record<string, string> = {
+  quality_defect: "violation_quality_defect",
+  safety_incident: "violation_safety_incident",
+  compliance_breach: "violation_compliance_breach",
+  customer_complaint: "violation_customer_complaint",
+  financial_anomaly: "violation_financial_anomaly",
+};
 
 export const violationEventRouter = router({
   /**
@@ -98,13 +115,43 @@ export const violationEventRouter = router({
         await autoFreezePerformance(db, event.id, input.buId, input.severity, input.title);
       }
 
+      // 红黑榜 → 积分联动: deduct points for violations
+      if (input.userId) {
+        try {
+          // Severity-based deduction
+          const severityRule = SEVERITY_POINT_RULES[input.severity];
+          if (severityRule) {
+            await awardPoints({
+              employeeId: input.userId,
+              ruleCode: severityRule,
+              description: `红黑榜黑榜: ${input.title} (${input.severity})`,
+              sourceType: "violation_event",
+              sourceId: String(event.id),
+            });
+          }
+          // Event-type-based deduction
+          const typeRule = EVENT_TYPE_POINT_RULES[input.eventType];
+          if (typeRule) {
+            await awardPoints({
+              employeeId: input.userId,
+              ruleCode: typeRule,
+              description: `红黑榜: ${input.eventType} — ${input.title}`,
+              sourceType: "violation_event",
+              sourceId: String(event.id),
+            });
+          }
+        } catch (e) {
+          log.warn({ eventId: event.id, userId: input.userId, error: e }, "Failed to deduct points for violation");
+        }
+      }
+
       return event;
     }),
 
   /**
    * updateStatus — transition event status (investigating → confirmed → resolved)
    */
-  updateStatus: protectedProcedure
+  updateStatus: requirePermission('system:compliance:manage')
     .input(z.object({
       id: z.number(),
       status: z.enum(["open", "investigating", "confirmed", "resolved", "dismissed"]),
@@ -212,7 +259,7 @@ export const violationEventRouter = router({
   /**
    * seedDemo — create demo violation events for testing
    */
-  seedDemo: protectedProcedure.mutation(async () => {
+  seedDemo: requirePermission('system:compliance:manage').mutation(async () => {
     const db = await requireDb();
 
     // Ensure table exists

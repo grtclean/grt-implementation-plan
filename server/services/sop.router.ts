@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import {
   listSOPs,
   getSOPById,
@@ -92,7 +92,7 @@ export const sopRouter = router({
     return getSOPCategories();
   }),
 
-  version: protectedProcedure
+  version: requirePermission('project:sop:manage')
     .input(z.object({ id: z.number() }))
     .mutation(({ input }) => {
       return versionSOP(input.id);

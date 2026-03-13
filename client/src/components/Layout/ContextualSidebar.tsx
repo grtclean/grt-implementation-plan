@@ -9,6 +9,7 @@ import { MenuCustomizationPanel } from "@/components/MenuCustomizationPanel";
 import { SidebarMenuGroup } from "@/components/Layout/SidebarMenuGroup";
 import type { MenuGroup, MenuItem, WaffleApp } from "@/config/menuConfig";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   ArrowUp,
   ChevronRight,
@@ -56,6 +57,7 @@ export default function ContextualSidebar({
   avatarInitial,
   logout,
 }: ContextualSidebarProps) {
+  const { t } = useLanguage();
   const [location] = useLocation();
 
   // Only show groups belonging to the active app
@@ -230,7 +232,7 @@ export default function ContextualSidebar({
           <div className="flex-shrink-0 px-3 py-2 border-b border-sidebar-border/50 bg-sidebar-accent/20">
             <div className="flex items-center gap-1.5 text-xs">
               <span className="text-muted-foreground">
-                {language === "zh" ? "当前位置" : language === "de" ? "Aktuell" : language === "fr" ? "Actuel" : "Current"}
+                {t("ui.currentLocation")}
               </span>
               <ChevronRight className="w-3 h-3 text-muted-foreground/50" />
               <button
@@ -263,14 +265,14 @@ export default function ContextualSidebar({
               onClick={onExpandAll}
               className="px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 rounded-sm transition-colors"
             >
-              {language === "zh" ? "展开" : language === "de" ? "Aufklappen" : language === "fr" ? "Déplier" : "Expand"}
+              {t("ui.expand")}
             </button>
             <span className="text-muted-foreground/30">|</span>
             <button
               onClick={onCollapseAll}
               className="px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 rounded-sm transition-colors"
             >
-              {language === "zh" ? "收起" : language === "de" ? "Zuklappen" : language === "fr" ? "Replier" : "Collapse"}
+              {t("ui.collapse")}
             </button>
           </div>
         </div>
@@ -337,10 +339,10 @@ export default function ContextualSidebar({
             <button
               onClick={scrollToTop}
               className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 bg-primary/90 hover:bg-primary text-primary-foreground text-xs font-medium rounded-full shadow-lg transition-colors duration-150 z-10"
-              title={language === "zh" ? "返回顶部" : "Back to top"}
+              title={t("ui.backToTop")}
             >
               <ArrowUp className="w-3.5 h-3.5" />
-              {language === "zh" ? "返回顶部" : "Top"}
+              {t("ui.top")}
             </button>
           )}
         </div>
@@ -368,7 +370,7 @@ export default function ContextualSidebar({
                 size="icon"
                 className="h-8 w-8 text-[#605e5c] hover:text-destructive"
                 onClick={logout}
-                title={language === "zh" ? "退出登录" : "Sign out"}
+                title={t("ui.signOut")}
               >
                 <LogOut className="w-4 h-4" />
               </Button>

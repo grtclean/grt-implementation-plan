@@ -7,8 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plug, Plus, RefreshCw, Trash2, Settings, Clock, CheckCircle, XCircle, Activity, Save } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function IntegrationSettingsTab() {
+  const { t } = useLanguage();
   // Integration form
   const [intName, setIntName] = useState("");
   const [intType, setIntType] = useState("calendar");
@@ -59,25 +61,25 @@ export function IntegrationSettingsTab() {
         <Card>
           <CardContent className="pt-4 text-center">
             <div className="text-3xl font-bold">{integrations.length}</div>
-            <div className="text-sm text-muted-foreground">已配置集成</div>
+            <div className="text-sm text-muted-foreground">{t("meeting.integration.configuredCount")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <div className="text-3xl font-bold">{integrations.filter((i: any) => i.status === "active").length}</div>
-            <div className="text-sm text-muted-foreground">活跃连接</div>
+            <div className="text-sm text-muted-foreground">{t("meeting.integration.activeConnections")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <div className="text-3xl font-bold">{logs.length}</div>
-            <div className="text-sm text-muted-foreground">同步记录</div>
+            <div className="text-sm text-muted-foreground">{t("meeting.integration.syncRecords")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <div className="text-3xl font-bold">{settings.length}</div>
-            <div className="text-sm text-muted-foreground">系统配置项</div>
+            <div className="text-sm text-muted-foreground">{t("meeting.integration.systemConfigItems")}</div>
           </CardContent>
         </Card>
       </div>
@@ -87,20 +89,20 @@ export function IntegrationSettingsTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Plug className="h-5 w-5" />
-            外部集成管理
+            {t("meeting.integration.managementTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            <Input placeholder="集成名称" value={intName} onChange={e => setIntName(e.target.value)} />
+            <Input placeholder={t("meeting.integration.nameLabel")} value={intName} onChange={e => setIntName(e.target.value)} />
             <Select value={intType} onValueChange={setIntType}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="calendar">日历同步</SelectItem>
-                <SelectItem value="task_manager">任务管理</SelectItem>
-                <SelectItem value="messaging">消息推送</SelectItem>
-                <SelectItem value="webhook">Webhook</SelectItem>
-                <SelectItem value="email">邮件通知</SelectItem>
+                <SelectItem value="calendar">{t("meeting.integration.typeCalendar")}</SelectItem>
+                <SelectItem value="task_manager">{t("meeting.integration.typeTaskManager")}</SelectItem>
+                <SelectItem value="messaging">{t("meeting.integration.typeMessaging")}</SelectItem>
+                <SelectItem value="webhook">{t("meeting.integration.typeWebhook")}</SelectItem>
+                <SelectItem value="email">{t("meeting.integration.typeEmail")}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={intProvider} onValueChange={setIntProvider}>
@@ -108,21 +110,21 @@ export function IntegrationSettingsTab() {
               <SelectContent>
                 <SelectItem value="outlook">Outlook</SelectItem>
                 <SelectItem value="google">Google</SelectItem>
-                <SelectItem value="feishu">飞书</SelectItem>
-                <SelectItem value="dingtalk">钉钉</SelectItem>
+                <SelectItem value="feishu">{t("meeting.integration.providerFeishu")}</SelectItem>
+                <SelectItem value="dingtalk">{t("meeting.integration.providerDingtalk")}</SelectItem>
                 <SelectItem value="slack">Slack</SelectItem>
                 <SelectItem value="teams">Teams</SelectItem>
                 <SelectItem value="jira">Jira</SelectItem>
-                <SelectItem value="custom">自定义</SelectItem>
+                <SelectItem value="custom">{t("meeting.integration.providerCustom")}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={intFrequency} onValueChange={setIntFrequency}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="manual">手动</SelectItem>
-                <SelectItem value="hourly">每小时</SelectItem>
-                <SelectItem value="daily">每天</SelectItem>
-                <SelectItem value="realtime">实时</SelectItem>
+                <SelectItem value="manual">{t("meeting.integration.freqManual")}</SelectItem>
+                <SelectItem value="hourly">{t("meeting.integration.freqHourly")}</SelectItem>
+                <SelectItem value="daily">{t("meeting.integration.freqDaily")}</SelectItem>
+                <SelectItem value="realtime">{t("meeting.integration.freqRealtime")}</SelectItem>
               </SelectContent>
             </Select>
             <Button
@@ -133,7 +135,7 @@ export function IntegrationSettingsTab() {
               disabled={!intName || createIntMut.isPending}
             >
               <Plus className="h-4 w-4 mr-1" />
-              {createIntMut.isPending ? "添加中..." : "添加集成"}
+              {createIntMut.isPending ? t("meeting.integration.adding") : t("meeting.integration.addIntegration")}
             </Button>
           </div>
 
@@ -141,13 +143,13 @@ export function IntegrationSettingsTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>名称</TableHead>
-                  <TableHead>类型</TableHead>
-                  <TableHead>提供商</TableHead>
-                  <TableHead>同步频率</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>上次同步</TableHead>
-                  <TableHead>操作</TableHead>
+                  <TableHead>{t("meeting.integration.thName")}</TableHead>
+                  <TableHead>{t("meeting.integration.thType")}</TableHead>
+                  <TableHead>{t("meeting.integration.thProvider")}</TableHead>
+                  <TableHead>{t("meeting.integration.thSyncFreq")}</TableHead>
+                  <TableHead>{t("meeting.integration.thStatus")}</TableHead>
+                  <TableHead>{t("meeting.integration.thLastSync")}</TableHead>
+                  <TableHead>{t("meeting.integration.thActions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -159,7 +161,7 @@ export function IntegrationSettingsTab() {
                     <TableCell>{int.sync_frequency}</TableCell>
                     <TableCell><Badge className={statusColor(int.status)}>{int.status}</Badge></TableCell>
                     <TableCell className="text-xs">
-                      {int.last_sync_at ? new Date(int.last_sync_at).toLocaleString("zh-CN") : "从未"}
+                      {int.last_sync_at ? new Date(int.last_sync_at).toLocaleString() : t("meeting.integration.never")}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -187,7 +189,7 @@ export function IntegrationSettingsTab() {
                 {(syncMut.data as any).status === "success"
                   ? <CheckCircle className="h-4 w-4 text-green-500" />
                   : <XCircle className="h-4 w-4 text-red-500" />}
-                <span>同步完成: 处理 {(syncMut.data as any).recordsProcessed} 条, 成功 {(syncMut.data as any).recordsSucceeded} 条, 耗时 {(syncMut.data as any).durationMs}ms</span>
+                <span>{t("meeting.integration.syncComplete")} {(syncMut.data as any).recordsProcessed} / {(syncMut.data as any).recordsSucceeded}, {(syncMut.data as any).durationMs}ms</span>
               </div>
             </div>
           )}
@@ -199,7 +201,7 @@ export function IntegrationSettingsTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            同步日志
+            {t("meeting.integration.syncLogsTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -207,12 +209,12 @@ export function IntegrationSettingsTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>集成</TableHead>
-                  <TableHead>操作</TableHead>
-                  <TableHead>记录数</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>耗时</TableHead>
-                  <TableHead>时间</TableHead>
+                  <TableHead>{t("meeting.integration.thIntegration")}</TableHead>
+                  <TableHead>{t("meeting.integration.thOperation")}</TableHead>
+                  <TableHead>{t("meeting.integration.thRecordCount")}</TableHead>
+                  <TableHead>{t("meeting.integration.thStatus")}</TableHead>
+                  <TableHead>{t("meeting.integration.thDuration")}</TableHead>
+                  <TableHead>{t("meeting.integration.thTime")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -223,17 +225,17 @@ export function IntegrationSettingsTab() {
                     <TableCell>{log.records_succeeded}/{log.records_processed}</TableCell>
                     <TableCell>
                       <Badge className={statusColor(log.status)}>
-                        {log.status === "success" ? "成功" : log.status === "partial" ? "部分" : "失败"}
+                        {log.status === "success" ? t("meeting.integration.statusSuccess") : log.status === "partial" ? t("meeting.integration.statusPartial") : t("meeting.integration.statusFailed")}
                       </Badge>
                     </TableCell>
                     <TableCell>{log.duration_ms}ms</TableCell>
-                    <TableCell className="text-xs">{log.executed_at ? new Date(log.executed_at).toLocaleString("zh-CN") : ""}</TableCell>
+                    <TableCell className="text-xs">{log.executed_at ? new Date(log.executed_at).toLocaleString() : ""}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            <p className="text-sm text-muted-foreground">暂无同步记录</p>
+            <p className="text-sm text-muted-foreground">{t("meeting.integration.noSyncLogs")}</p>
           )}
         </CardContent>
       </Card>
@@ -243,22 +245,22 @@ export function IntegrationSettingsTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
-            系统设置
+            {t("meeting.integration.settingsTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            <Input placeholder="设置键名" value={settingKey} onChange={e => setSettingKey(e.target.value)} />
-            <Input placeholder="设置值" value={settingValue} onChange={e => setSettingValue(e.target.value)} />
-            <Input placeholder="显示名称" value={settingLabel} onChange={e => setSettingLabel(e.target.value)} />
+            <Input placeholder={t("meeting.integration.settingKey")} value={settingKey} onChange={e => setSettingKey(e.target.value)} />
+            <Input placeholder={t("meeting.integration.settingValue")} value={settingValue} onChange={e => setSettingValue(e.target.value)} />
+            <Input placeholder={t("meeting.integration.settingLabel")} value={settingLabel} onChange={e => setSettingLabel(e.target.value)} />
             <Select value={settingCategory} onValueChange={setSettingCategory}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="general">通用</SelectItem>
-                <SelectItem value="analysis">分析</SelectItem>
-                <SelectItem value="notification">通知</SelectItem>
-                <SelectItem value="threshold">阈值</SelectItem>
-                <SelectItem value="display">显示</SelectItem>
+                <SelectItem value="general">{t("meeting.integration.catGeneral")}</SelectItem>
+                <SelectItem value="analysis">{t("meeting.integration.catAnalysis")}</SelectItem>
+                <SelectItem value="notification">{t("meeting.integration.catNotification")}</SelectItem>
+                <SelectItem value="threshold">{t("meeting.integration.catThreshold")}</SelectItem>
+                <SelectItem value="display">{t("meeting.integration.catDisplay")}</SelectItem>
               </SelectContent>
             </Select>
             <Button
@@ -268,7 +270,7 @@ export function IntegrationSettingsTab() {
               disabled={!settingKey || !settingValue || updateSettingMut.isPending}
             >
               <Save className="h-4 w-4 mr-1" />
-              {updateSettingMut.isPending ? "保存中..." : "保存设置"}
+              {updateSettingMut.isPending ? t("meeting.integration.saving") : t("meeting.integration.saveSetting")}
             </Button>
           </div>
 
@@ -276,12 +278,12 @@ export function IntegrationSettingsTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>键名</TableHead>
-                  <TableHead>显示名</TableHead>
-                  <TableHead>值</TableHead>
-                  <TableHead>分类</TableHead>
-                  <TableHead>更新时间</TableHead>
-                  <TableHead>操作</TableHead>
+                  <TableHead>{t("meeting.integration.thKey")}</TableHead>
+                  <TableHead>{t("meeting.integration.thDisplayName")}</TableHead>
+                  <TableHead>{t("meeting.integration.thValue")}</TableHead>
+                  <TableHead>{t("meeting.integration.thCategory")}</TableHead>
+                  <TableHead>{t("meeting.integration.thUpdateTime")}</TableHead>
+                  <TableHead>{t("meeting.integration.thActions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -291,10 +293,10 @@ export function IntegrationSettingsTab() {
                     <TableCell>{s.label || s.setting_key}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{s.setting_value}</TableCell>
                     <TableCell><Badge variant="outline">{s.category}</Badge></TableCell>
-                    <TableCell className="text-xs">{s.updated_at ? new Date(s.updated_at).toLocaleString("zh-CN") : ""}</TableCell>
+                    <TableCell className="text-xs">{s.updated_at ? new Date(s.updated_at).toLocaleString() : ""}</TableCell>
                     <TableCell>
                       <Button size="sm" variant="ghost" onClick={() => { setSettingKey(s.setting_key); setSettingValue(s.setting_value || ""); setSettingLabel(s.label || ""); setSettingCategory(s.category || "general"); }}>
-                        编辑
+                        {t("meeting.integration.edit")}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -303,7 +305,7 @@ export function IntegrationSettingsTab() {
             </Table>
           ) : (
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p>暂无配置。建议初始化以下设置：</p>
+              <p>{t("meeting.integration.noSettings")}</p>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { key: "health_threshold", label: "健康度警戒阈值", value: "60", cat: "threshold" },

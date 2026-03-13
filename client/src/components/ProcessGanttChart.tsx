@@ -90,7 +90,7 @@ const mockProcessInstances: ProcessInstance[] = PROCESS_STEPS.slice(0, 10).map((
     actualStart: index < 6 ? baseDate : undefined,
     actualEnd: index < 5 ? endDate : undefined,
     progress,
-    assignee: ["张工", "李工", "王工", "赵工", "刘工"][index % 5],
+    assignee: ["张工", "李工", "焦斌", "赵工", "刘工"][index % 5],
   };
 });
 

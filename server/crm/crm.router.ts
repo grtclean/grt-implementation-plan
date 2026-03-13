@@ -9,7 +9,7 @@
  * - crm.interactions.* (list, create, resolve, stats)
  */
 
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import { z } from "zod";
 import {
   listCustomers,
@@ -304,7 +304,7 @@ const opportunitiesRouter = router({
   }),
 
   /** Convert a won opportunity into an M0 project */
-  convertToProject: protectedProcedure
+  convertToProject: requirePermission('crm:customers:edit')
     .input(z.object({ id: z.number(), pm: z.number().optional() }))
     .mutation(async ({ input }) => {
       return convertOpportunityToProject(input.id, input.pm);
@@ -404,7 +404,7 @@ const leadsRouter = router({
     }),
 
   /** Update lead status */
-  updateStatus: protectedProcedure
+  updateStatus: requirePermission('crm:customers:edit')
     .input(
       z.object({
         id: z.number(),
@@ -416,7 +416,7 @@ const leadsRouter = router({
     }),
 
   /** Convert a lead to customer + opportunity */
-  convertToCustomer: protectedProcedure
+  convertToCustomer: requirePermission('crm:customers:edit')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return convertLeadToCustomer(input.id);
@@ -468,7 +468,7 @@ const interactionsRouter = router({
     }),
 
   /** Resolve a complaint interaction */
-  resolve: protectedProcedure
+  resolve: requirePermission('crm:customers:edit')
     .input(
       z.object({
         id: z.number(),

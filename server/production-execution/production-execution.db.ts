@@ -206,15 +206,15 @@ export async function updateStageStatus(
   await (await requireDb()).execute(sql`
     UPDATE production_stages
     SET status = ${status},
-        actual_start_date = CASE 
-          WHEN ${status} = 'In_Progress' AND actual_start_date IS NULL 
-          THEN CURDATE() 
-          ELSE actual_start_date 
+        actual_start_date = CASE
+          WHEN ${status} = 'In_Progress' AND actual_start_date IS NULL
+          THEN CURRENT_DATE
+          ELSE actual_start_date
         END,
-        actual_end_date = CASE 
-          WHEN ${status} = 'Completed' 
-          THEN CURDATE() 
-          ELSE actual_end_date 
+        actual_end_date = CASE
+          WHEN ${status} = 'Completed'
+          THEN CURRENT_DATE
+          ELSE actual_end_date
         END,
         completion_percentage = CASE 
           WHEN ${status} = 'Completed' THEN 100
@@ -368,15 +368,25 @@ export async function getStageApprovals(params: {
   status?: ApprovalStatus;
   approverId?: number;
 }): Promise<StageApproval[]> {
-  let whereClause = 'WHERE 1=1';
-  
-  if (params.projectId) whereClause += ` AND project_id = ${params.projectId}`;
-  if (params.stageId) whereClause += ` AND production_stage_id = ${params.stageId}`;
-  if (params.status) whereClause += ` AND status = '${params.status}'`;
-  if (params.approverId) whereClause += ` AND approver_id = ${params.approverId}`;
-  
-  const result = await (await requireDb()).execute(sql.raw(`
-    SELECT 
+  const conditions: SQL[] = [];
+
+  if (params.projectId) conditions.push(sql`project_id = ${params.projectId}`);
+  if (params.stageId) conditions.push(sql`production_stage_id = ${params.stageId}`);
+  if (params.status) {
+    const ALLOWED_STATUSES: readonly string[] = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'AUTO_APPROVED'];
+    if (!ALLOWED_STATUSES.includes(params.status)) {
+      throw new Error(`Invalid approval status: ${params.status}`);
+    }
+    conditions.push(sql`status = ${params.status}`);
+  }
+  if (params.approverId) conditions.push(sql`approver_id = ${params.approverId}`);
+
+  const whereClause = conditions.length > 0
+    ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+    : sql``;
+
+  const result = await (await requireDb()).execute(sql`
+    SELECT
       id, production_stage_id as productionStageId, project_id as projectId,
       stage_code as stageCode, approval_rule_id as approvalRuleId,
       requested_by as requestedBy, requested_by_name as requestedByName,
@@ -388,7 +398,7 @@ export async function getStageApprovals(params: {
     FROM stage_approvals
     ${whereClause}
     ORDER BY requested_at DESC
-  `));
+  `);
   return result.rows as unknown as StageApproval[];
 }
 

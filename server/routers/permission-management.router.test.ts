@@ -7,15 +7,21 @@
  *
  * NOTE: This router has its own internal permission system (generateUserPermissions)
  * which gives admin permissions ONLY to userId===1. The tRPC test helpers set:
- *   - createAuthenticatedCaller() → user.id=1 (gets internal admin perms)
- *   - createAdminCaller() → user.id=999 (does NOT get internal admin perms)
- * So we use createAuthenticatedCaller() for admin operations and
- * createAdminCaller({id:2}) for non-admin user tests.
+ *   - createAuthenticatedCaller({ id: 1 }) → user.id=1 (gets internal admin perms)
+ *   - createAuthenticatedCaller({ id: 2 }) → user.id=2 (does NOT get internal admin perms)
+ * So we use createAuthenticatedCaller({ id: 1 }) for admin operations and
+ * createAuthenticatedCaller({ id: 2 }) for non-admin user tests.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller, createAdminCaller } from "../_test/trpc-test-utils";
+import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 
 // Mock LLM for permission suggestions
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../_core/llm", () => ({
   invokeLLM: vi.fn(async () => ({
     choices: [{ message: { content: "Suggested permissions: read:projects, write:tasks" } }],
@@ -27,9 +33,9 @@ beforeEach(() => {
 });
 
 // Internal-admin caller: user.id=1 gets admin permissions from generateUserPermissions
-const internalAdmin = () => createAuthenticatedCaller();
+const internalAdmin = () => createAuthenticatedCaller({ id: 1 });
 // Non-admin caller: any user.id != 1
-const nonAdmin = () => createAdminCaller({ id: 2 });
+const nonAdmin = () => createAuthenticatedCaller({ id: 2 });
 
 describe("permission-management router", () => {
 
@@ -291,10 +297,10 @@ describe("permission-management router", () => {
     });
   });
 
-  describe("getPermissionSuggestions", () => {
+  describe("startPermissionSuggestions (async task pattern)", () => {
     it("non-admin gets FORBIDDEN (admin:permissions:suggest not in set)", async () => {
       const caller = nonAdmin();
-      await expect(caller.permissionManagement.getPermissionSuggestions({
+      await expect(caller.permissionManagement.startPermissionSuggestions({
         userId: 5, jobTitle: "X", department: "Y", responsibilities: "Z",
       })).rejects.toThrow(/FORBIDDEN/);
     });
@@ -302,7 +308,7 @@ describe("permission-management router", () => {
     it("internal admin also gets FORBIDDEN (admin:permissions:suggest not in set)", async () => {
       // userId=1 has admin:permissions:write but not admin:permissions:suggest
       const caller = internalAdmin();
-      await expect(caller.permissionManagement.getPermissionSuggestions({
+      await expect(caller.permissionManagement.startPermissionSuggestions({
         userId: 5, jobTitle: "X", department: "Y", responsibilities: "Z",
       })).rejects.toThrow(/FORBIDDEN/);
     });

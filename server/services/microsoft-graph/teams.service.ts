@@ -166,7 +166,7 @@ function getMockMessages(): TeamsMessage[] {
       content: "请大家在下午3点前提交本周的工作进度报告",
       timestamp: new Date(now.getTime() - 30 * 60000).toISOString(),
       sender: {
-        name: "王经理",
+        name: "杨勇",
         id: "user-1",
       },
       importance: "high",

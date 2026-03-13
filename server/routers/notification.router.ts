@@ -13,9 +13,29 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
+
+// ─── Ensure aggregation rules table ──────────────────────────────
+
+async function ensureAggregationRulesTable() {
+  const db = await requireDb();
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS notification_aggregation_rules (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(200) NOT NULL,
+      enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      time_window_minutes INTEGER NOT NULL DEFAULT 30,
+      max_messages INTEGER NOT NULL DEFAULT 10,
+      strategy VARCHAR(50) NOT NULL DEFAULT 'hybrid',
+      channels JSON,
+      priority INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+}
 
 // ─── Ensure table exists ──────────────────────────────────────────
 
@@ -230,7 +250,7 @@ export const notificationRouter = router({
   /**
    * Mark notification as read
    */
-  markRead: protectedProcedure
+  markRead: requirePermission('system:notifications:config')
     .input(z.object({ id: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       try {
@@ -248,7 +268,7 @@ export const notificationRouter = router({
   /**
    * Mark all as read
    */
-  markAllRead: protectedProcedure.mutation(async ({ ctx }) => {
+  markAllRead: requirePermission('system:notifications:config').mutation(async ({ ctx }) => {
     try {
       const db = await requireDb();
       let whereClause = sql`is_read = FALSE AND is_archived = FALSE`;
@@ -268,7 +288,7 @@ export const notificationRouter = router({
   /**
    * Archive notification
    */
-  archive: protectedProcedure
+  archive: requirePermission('system:notifications:config')
     .input(z.object({ id: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       try {
@@ -286,7 +306,7 @@ export const notificationRouter = router({
   /**
    * Delete notifications (batch)
    */
-  deleteBatch: protectedProcedure
+  deleteBatch: requirePermission('system:notifications:config')
     .input(z.object({ ids: z.array(z.union([z.string(), z.number()])) }))
     .mutation(async ({ input }) => {
       try {
@@ -303,7 +323,7 @@ export const notificationRouter = router({
   /**
    * Seed demo notifications
    */
-  seedDemo: protectedProcedure.mutation(async ({ ctx }) => {
+  seedDemo: requirePermission('system:notifications:config').mutation(async ({ ctx }) => {
     try {
       await ensureNotificationsTable();
       const db = await requireDb();
@@ -333,4 +353,159 @@ export const notificationRouter = router({
       return { seeded: false, error: String(e) };
     }
   }),
+
+  // ─── Aggregation Rules CRUD ──────────────────────────────────
+
+  getAggregationRules: protectedProcedure.query(async () => {
+    try {
+      await ensureAggregationRulesTable();
+      const db = await requireDb();
+      const result = await db.execute(sql`
+        SELECT * FROM notification_aggregation_rules
+        ORDER BY priority ASC, created_at DESC
+        LIMIT 100
+      `);
+      const rules = ((result as any).rows ?? []).map((r: any) => ({
+        id: String(r.id),
+        name: r.name,
+        enabled: r.enabled,
+        timeWindowMinutes: r.time_window_minutes,
+        maxMessages: r.max_messages,
+        strategy: r.strategy,
+        channels: typeof r.channels === 'string' ? JSON.parse(r.channels) : (r.channels ?? []),
+        priority: r.priority,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      }));
+      return { rules };
+    } catch {
+      return { rules: [] };
+    }
+  }),
+
+  createAggregationRule: requirePermission('system:notifications:config')
+    .input(z.object({
+      name: z.string().min(1),
+      enabled: z.boolean().default(true),
+      timeWindowMinutes: z.number().min(1).max(1440).default(30),
+      maxMessages: z.number().min(1).max(1000).default(10),
+      strategy: z.enum(['time', 'count', 'hybrid']).default('hybrid'),
+      channels: z.array(z.string()).default([]),
+      priority: z.number().default(0),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        await ensureAggregationRulesTable();
+        const db = await requireDb();
+        await db.execute(sql`
+          INSERT INTO notification_aggregation_rules (name, enabled, time_window_minutes, max_messages, strategy, channels, priority)
+          VALUES (${input.name}, ${input.enabled}, ${input.timeWindowMinutes}, ${input.maxMessages}, ${input.strategy}, ${JSON.stringify(input.channels)}, ${input.priority})
+        `);
+        return { success: true };
+      } catch (e) {
+        return { success: false, error: String(e) };
+      }
+    }),
+
+  updateAggregationRule: requirePermission('system:notifications:config')
+    .input(z.object({
+      id: z.union([z.string(), z.number()]),
+      name: z.string().optional(),
+      enabled: z.boolean().optional(),
+      timeWindowMinutes: z.number().min(1).max(1440).optional(),
+      maxMessages: z.number().min(1).max(1000).optional(),
+      strategy: z.enum(['time', 'count', 'hybrid']).optional(),
+      channels: z.array(z.string()).optional(),
+      priority: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        const sets: any[] = [];
+        if (input.name !== undefined) sets.push(sql`name = ${input.name}`);
+        if (input.enabled !== undefined) sets.push(sql`enabled = ${input.enabled}`);
+        if (input.timeWindowMinutes !== undefined) sets.push(sql`time_window_minutes = ${input.timeWindowMinutes}`);
+        if (input.maxMessages !== undefined) sets.push(sql`max_messages = ${input.maxMessages}`);
+        if (input.strategy !== undefined) sets.push(sql`strategy = ${input.strategy}`);
+        if (input.channels !== undefined) sets.push(sql`channels = ${JSON.stringify(input.channels)}`);
+        if (input.priority !== undefined) sets.push(sql`priority = ${input.priority}`);
+        if (sets.length === 0) return { success: false };
+        await db.execute(sql`
+          UPDATE notification_aggregation_rules
+          SET ${sql.join(sets, sql`, `)}, updated_at = NOW()
+          WHERE id = ${Number(input.id)}
+        `);
+        return { success: true };
+      } catch (e) {
+        return { success: false, error: String(e) };
+      }
+    }),
+
+  deleteAggregationRule: requirePermission('system:notifications:config')
+    .input(z.object({ id: z.union([z.string(), z.number()]) }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        await db.execute(sql`DELETE FROM notification_aggregation_rules WHERE id = ${Number(input.id)}`);
+        return { success: true };
+      } catch {
+        return { success: false };
+      }
+    }),
+
+  getAggregationQueue: protectedProcedure.query(async ({ ctx }) => {
+    try {
+      await ensureNotificationsTable();
+      const db = await requireDb();
+      let userFilter = sql`is_archived = FALSE AND is_read = FALSE`;
+      if (ctx.user?.id) {
+        userFilter = sql`${userFilter} AND (user_id = ${ctx.user.id} OR user_id IS NULL)`;
+      }
+      const result = await db.execute(sql`
+        SELECT
+          category,
+          type,
+          COUNT(*)::int as message_count,
+          MIN(created_at) as oldest,
+          MAX(created_at) as newest
+        FROM notifications
+        WHERE ${userFilter}
+        GROUP BY category, type
+        HAVING COUNT(*) >= 2
+        ORDER BY message_count DESC
+        LIMIT 20
+      `);
+      const queue = ((result as any).rows ?? []).map((r: any, i: number) => ({
+        id: `agg-${i}`,
+        category: r.category,
+        type: r.type,
+        messageCount: Number(r.message_count ?? 0),
+        oldest: r.oldest,
+        newest: r.newest,
+        status: 'pending',
+      }));
+      return { queue };
+    } catch {
+      return { queue: [] };
+    }
+  }),
+
+  sendAggregatedNow: requirePermission('system:notifications:config')
+    .input(z.object({ category: z.string(), type: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const db = await requireDb();
+        let userFilter = sql`is_archived = FALSE AND is_read = FALSE AND category = ${input.category} AND type = ${input.type}`;
+        if (ctx.user?.id) {
+          userFilter = sql`${userFilter} AND (user_id = ${ctx.user.id} OR user_id IS NULL)`;
+        }
+        await db.execute(sql`
+          UPDATE notifications SET is_read = TRUE, read_at = NOW()
+          WHERE ${userFilter}
+        `);
+        return { success: true, message: '聚合消息已标记为已发送' };
+      } catch {
+        return { success: true, message: '操作完成' };
+      }
+    }),
 });

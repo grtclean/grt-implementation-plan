@@ -13,7 +13,7 @@
 
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, and, count } from "drizzle-orm";
 import {
@@ -118,7 +118,7 @@ export const costAlertRouter = router({
     }
   }),
 
-  delete: protectedProcedure
+  delete: requirePermission('finance:cost:manage')
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       try {
@@ -133,7 +133,7 @@ export const costAlertRouter = router({
 
   // ==================== Acknowledge alert log ====================
 
-  acknowledge: protectedProcedure.input(z.object({
+  acknowledge: requirePermission('finance:cost:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     handleNote: z.string().optional(),
     note: z.string().optional(),
@@ -244,7 +244,7 @@ export const costAlertRouter = router({
     return [];
   }),
 
-  exportCSV: protectedProcedure.mutation(async () => {
+  exportCSV: requirePermission('finance:cost:manage').mutation(async () => {
     return { url: "" };
   }),
 });

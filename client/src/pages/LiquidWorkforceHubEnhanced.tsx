@@ -10,10 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { 
+import {
   Briefcase, Award, Gavel, FileCheck, Search, Plus, TrendingUp,
   CheckCircle2, Clock, AlertCircle, BarChart3, Zap
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // 技能认证审核数据
 const skillCertifications = [
@@ -35,6 +36,7 @@ const royaltyBreakdown = [
 ];
 
 export default function LiquidWorkforceHubEnhanced() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("certifications");
   const [selectedCert, setSelectedCert] = useState<typeof skillCertifications[0] | null>(null);
@@ -62,20 +64,20 @@ export default function LiquidWorkforceHubEnhanced() {
     <div className="space-y-6">
       <PageHeader
         icon={Briefcase}
-        title="液态用工中心 (增强版)"
-        description="技能认证审核、竞标智能匹配、版税分成管理"
+        title={t("hr.liquidWorkforceHubEnh.title")}
+        description={t("hr.liquidWorkforceHubEnh.description")}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 bg-card border border-border">
           <TabsTrigger value="certifications" className="flex items-center gap-2">
-            <Award className="w-4 h-4" />技能认证审核
+            <Award className="w-4 h-4" />{t("hr.liquidWorkforceHubEnh.tabCertifications")}
           </TabsTrigger>
           <TabsTrigger value="matching" className="flex items-center gap-2">
-            <Zap className="w-4 h-4" />竞标匹配
+            <Zap className="w-4 h-4" />{t("hr.liquidWorkforceHubEnh.tabMatching")}
           </TabsTrigger>
           <TabsTrigger value="royalty" className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />版税分成
+            <BarChart3 className="w-4 h-4" />{t("hr.liquidWorkforceHubEnh.tabRoyalty")}
           </TabsTrigger>
         </TabsList>
 
@@ -83,8 +85,8 @@ export default function LiquidWorkforceHubEnhanced() {
         <TabsContent value="certifications" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>技能认证审核队列</CardTitle>
-              <CardDescription>待审核的技能胶囊认证申请</CardDescription>
+              <CardTitle>{t("hr.liquidWorkforceHubEnh.certQueue")}</CardTitle>
+              <CardDescription>{t("hr.liquidWorkforceHubEnh.certQueueDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -94,14 +96,14 @@ export default function LiquidWorkforceHubEnhanced() {
                       <Award className="w-8 h-8 text-primary/50" />
                       <div>
                         <p className="font-medium">{cert.skillName}</p>
-                        <p className="text-sm text-muted-foreground">申请人: {cert.applicant} · 提交于: {cert.submittedAt}</p>
-                        <p className="text-xs text-muted-foreground mt-1">证明: {cert.evidence}</p>
+                        <p className="text-sm text-muted-foreground">{t("hr.liquidWorkforceHubEnh.applicant")}: {cert.applicant} · {t("hr.liquidWorkforceHubEnh.submittedAt")}: {cert.submittedAt}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{t("hr.liquidWorkforceHubEnh.evidence")}: {cert.evidence}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Badge className={getStatusColor(cert.status)}>
                         <span className="mr-1">{getStatusIcon(cert.status)}</span>
-                        {cert.status === "pending" ? "待审核" : cert.status === "approved" ? "已批准" : "已驳回"}
+                        {cert.status === "pending" ? t("hr.liquidWorkforceHubEnh.statusPending") : cert.status === "approved" ? t("hr.liquidWorkforceHubEnh.statusApproved") : t("hr.liquidWorkforceHubEnh.statusRejected")}
                       </Badge>
                       {cert.status === "pending" && (
                         <Dialog open={certReviewDialog && selectedCert?.id === cert.id} onOpenChange={(open) => {
@@ -109,21 +111,21 @@ export default function LiquidWorkforceHubEnhanced() {
                           if (open) setSelectedCert(cert);
                         }}>
                           <DialogTrigger asChild>
-                            <Button size="sm" variant="outline">审核</Button>
+                            <Button size="sm" variant="outline">{t("hr.liquidWorkforceHubEnh.review")}</Button>
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
-                              <DialogTitle>审核技能认证</DialogTitle>
+                              <DialogTitle>{t("hr.liquidWorkforceHubEnh.reviewSkillCert")}</DialogTitle>
                               <DialogDescription>{cert.skillName}</DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
                               <div>
-                                <p className="text-sm font-medium mb-2">证明材料</p>
+                                <p className="text-sm font-medium mb-2">{t("hr.liquidWorkforceHubEnh.evidenceMaterials")}</p>
                                 <p className="text-sm text-muted-foreground">{cert.evidence}</p>
                               </div>
                               <div className="flex gap-2">
-                                <Button className="flex-1" variant="outline">驳回</Button>
-                                <Button className="flex-1">批准</Button>
+                                <Button className="flex-1" variant="outline">{t("hr.liquidWorkforceHubEnh.reject")}</Button>
+                                <Button className="flex-1">{t("hr.liquidWorkforceHubEnh.approve")}</Button>
                               </div>
                             </div>
                           </DialogContent>
@@ -141,8 +143,8 @@ export default function LiquidWorkforceHubEnhanced() {
         <TabsContent value="matching" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>竞标自动匹配</CardTitle>
-              <CardDescription>基于技能和信誉评分的智能竞标匹配</CardDescription>
+              <CardTitle>{t("hr.liquidWorkforceHubEnh.autoMatch")}</CardTitle>
+              <CardDescription>{t("hr.liquidWorkforceHubEnh.autoMatchDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -151,13 +153,13 @@ export default function LiquidWorkforceHubEnhanced() {
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="font-medium">{match.taskName}</p>
-                        <p className="text-sm text-muted-foreground">需求技能: {match.requiredSkill}</p>
+                        <p className="text-sm text-muted-foreground">{t("hr.liquidWorkforceHubEnh.requiredSkill")}: {match.requiredSkill}</p>
                       </div>
-                      <Badge variant="outline" className="text-primary">{match.matchScore}% 匹配度</Badge>
+                      <Badge variant="outline" className="text-primary">{match.matchScore}% {t("hr.liquidWorkforceHubEnh.matchScore")}</Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">候选人: {match.candidates} 人 | 最优候选: {match.topCandidate}</span>
-                      <Button size="sm">查看详情</Button>
+                      <span className="text-muted-foreground">{t("hr.liquidWorkforceHubEnh.candidates")}: {match.candidates} {t("hr.liquidWorkforceHubEnh.personSuffix")} | {t("hr.liquidWorkforceHubEnh.topCandidate")}: {match.topCandidate}</span>
+                      <Button size="sm">{t("hr.liquidWorkforceHubEnh.viewDetails")}</Button>
                     </div>
                   </div>
                 ))}
@@ -170,8 +172,8 @@ export default function LiquidWorkforceHubEnhanced() {
         <TabsContent value="royalty" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>版税分成统计</CardTitle>
-              <CardDescription>技能调用收益和版税分配</CardDescription>
+              <CardTitle>{t("hr.liquidWorkforceHubEnh.royaltyStats")}</CardTitle>
+              <CardDescription>{t("hr.liquidWorkforceHubEnh.royaltyStatsDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -180,16 +182,16 @@ export default function LiquidWorkforceHubEnhanced() {
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="font-medium">{item.skillName}</p>
-                        <p className="text-sm text-muted-foreground">版税率: {item.royaltyRate}% | 调用次数: {item.usageCount}</p>
+                        <p className="text-sm text-muted-foreground">{t("hr.liquidWorkforceHubEnh.royaltyRateLabel")}: {item.royaltyRate}% | {t("hr.liquidWorkforceHubEnh.usageCountLabel")}: {item.usageCount}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-primary">¥{item.thisMonth}</p>
-                        <p className="text-xs text-muted-foreground">本月收益</p>
+                        <p className="text-xs text-muted-foreground">{t("hr.liquidWorkforceHubEnh.monthlyEarnings")}</p>
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">累计收益: ¥{item.totalEarnings}</span>
-                      <Button size="sm" variant="outline">查看明细</Button>
+                      <span className="text-muted-foreground">{t("hr.liquidWorkforceHubEnh.totalEarnings")}: ¥{item.totalEarnings}</span>
+                      <Button size="sm" variant="outline">{t("hr.liquidWorkforceHubEnh.viewBreakdown")}</Button>
                     </div>
                   </div>
                 ))}

@@ -48,8 +48,9 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  const isDev = process.env.NODE_ENV !== "production";
   app.use(helmet({
-    contentSecurityPolicy: {
+    contentSecurityPolicy: isDev ? false : {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
@@ -59,16 +60,18 @@ async function startServer() {
         fontSrc: ["'self'", "data:"],
         objectSrc: ["'none'"],
         frameAncestors: ["'self'", "*.manus.computer", "*.manuspre.computer", "*.manus-asia.computer", "*.manuscomputer.ai", "*.manusvm.computer"],
-        // Don't auto-upgrade HTTP→HTTPS in dev (causes fetch failures on localhost)
-        upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null,
+        upgradeInsecureRequests: [],
       },
     },
     crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: isDev ? false : { policy: "same-origin" },
   }));
 
   app.use(cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
+      // In dev, allow all origins (LAN IP access, etc.)
+      if (isDev) return callback(null, true);
       const allowed = [
         /localhost/,
         /127\.0\.0\.1/,
@@ -87,10 +90,10 @@ async function startServer() {
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-  // Global rate limiter — 1000 requests per 15 minutes per IP
+  // Global rate limiter — generous in dev (tRPC batches many queries), strict in prod
   app.use(rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 1000,
+    max: isDev ? 10000 : 2000,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: "Too many requests, please try again later" },
@@ -124,7 +127,7 @@ async function startServer() {
       const startTime = Date.now();
       const db = await getDb();
       if (db) {
-        await db.execute(sql`SELECT 1`);
+        await db.execute(sql`SELECT 1 LIMIT 1000`);
         dbStatus = "connected";
         dbLatency = Date.now() - startTime;
       } else {
@@ -165,6 +168,40 @@ async function startServer() {
   app.get("/ready", (req, res) => {
     res.status(200).json({ ready: true });
   });
+
+  // ── SSE Telemetry Stream ─────────────────────────────────────────────
+  app.get("/api/telemetry/stream", async (req, res) => {
+    try {
+      const { sseManager } = await import("../services/telemetry-sse.service");
+      const topics = ((req.query.topics as string) || "").split(",").filter(Boolean);
+      if (topics.length === 0) {
+        return res.status(400).json({ error: "topics query parameter required" });
+      }
+      const clientId = (req.headers["x-request-id"] as string) || crypto.randomUUID();
+      sseManager.addClient(clientId, res, topics);
+    } catch (err) {
+      log.error({ err }, "SSE stream setup failed");
+      res.status(500).json({ error: "SSE unavailable" });
+    }
+  });
+
+  // ── Chunked File Upload (raw buffer route — BEFORE tRPC) ────────────
+  app.put("/api/upload/chunk/:sessionId/:chunkIndex", express.raw({ limit: "20mb", type: "*/*" }), async (req, res) => {
+    try {
+      const { receiveChunk } = await import("../services/chunked-upload.service");
+      const sessionId = req.params.sessionId;
+      const chunkIndex = parseInt(req.params.chunkIndex, 10);
+      if (isNaN(chunkIndex) || chunkIndex < 0) {
+        return res.status(400).json({ error: "Invalid chunk index" });
+      }
+      const result = await receiveChunk(sessionId, chunkIndex, req.body as Buffer);
+      res.json(result);
+    } catch (err: any) {
+      log.error({ err, sessionId: req.params.sessionId }, "Chunk upload failed");
+      res.status(err.code === "NOT_FOUND" ? 404 : 500).json({ error: err.message || "Chunk upload failed" });
+    }
+  });
+
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -227,6 +264,9 @@ async function startServer() {
   server.listen(port, () => {
     log.info({ port }, "Server started"); log.info({ port }, "WebSocket collaboration ready"); log.info({ port }, "WebSocket IME live ready");
     initScheduler();
+
+    // Fire-and-forget: auto-seed RBAC roles & permissions if tables are empty
+    import("../seed/auto-seed-rbac").then(m => m.autoSeedRbac()).catch(() => {});
 
     // Start async AI task worker (sandbox engines)
     registerAllEngines();

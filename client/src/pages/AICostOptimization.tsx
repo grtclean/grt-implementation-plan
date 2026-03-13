@@ -115,34 +115,34 @@ export default function AICostOptimization() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.costOpt.projectName")}</label>
-                <Input placeholder="如: XX汽车碳氢清洗线项目" value={projectName} onChange={(e) => setProjectName(e.target.value)} />
+                <Input placeholder={t("ai.costOpt.projectNamePlaceholder")} value={projectName} onChange={(e) => setProjectName(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.costOpt.totalBudget")}</label>
-                <Input type="number" placeholder="如: 280" value={totalBudget} onChange={(e) => setTotalBudget(e.target.value)} />
+                <Input type="number" placeholder={t("ai.costOpt.budgetPlaceholder")} value={totalBudget} onChange={(e) => setTotalBudget(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
               <label className="text-sm text-muted-foreground">{t("ai.costOpt.costBreakdown")}</label>
-              <Textarea placeholder="如: 材料120万, 人工60万, 外协30万, 管理费25万" value={costBreakdown} onChange={(e) => setCostBreakdown(e.target.value)} rows={2} />
+              <Textarea placeholder={t("ai.costOpt.breakdownPlaceholder")} value={costBreakdown} onChange={(e) => setCostBreakdown(e.target.value)} rows={2} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.costOpt.targetMargin")}</label>
-                <Input type="number" placeholder="如: 20" value={targetMargin} onChange={(e) => setTargetMargin(e.target.value)} />
+                <Input type="number" placeholder={t("ai.costOpt.marginPlaceholder")} value={targetMargin} onChange={(e) => setTargetMargin(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.costOpt.laborHours")}</label>
-                <Input type="number" placeholder="如: 2000" value={laborHours} onChange={(e) => setLaborHours(e.target.value)} />
+                <Input type="number" placeholder={t("ai.costOpt.laborPlaceholder")} value={laborHours} onChange={(e) => setLaborHours(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.costOpt.overheadRate")}</label>
-                <Input type="number" placeholder="如: 10" value={overheadRate} onChange={(e) => setOverheadRate(e.target.value)} />
+                <Input type="number" placeholder={t("ai.costOpt.overheadPlaceholder")} value={overheadRate} onChange={(e) => setOverheadRate(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
               <label className="text-sm text-muted-foreground">{t("ai.costOpt.materialDetails")}</label>
-              <Textarea placeholder="如: 真空泵15万, 不锈钢板20万, PLC控制系统12万, 超声波换能器8万" value={materialCosts} onChange={(e) => setMaterialCosts(e.target.value)} rows={2} />
+              <Textarea placeholder={t("ai.costOpt.materialPlaceholder")} value={materialCosts} onChange={(e) => setMaterialCosts(e.target.value)} rows={2} />
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!projectName.trim() || !totalBudget || !costBreakdown.trim() || !targetMargin || mutation.isPending || !!taskId}>

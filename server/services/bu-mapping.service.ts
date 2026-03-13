@@ -16,8 +16,8 @@ export type RoleType = 'Sales' | 'Mech' | 'Elec' | 'Procurement' | 'Assembly' | 
 export interface BUDepartmentMapping {
   id: number;
   buCode: BUCode;
-  jdyDeptNo: number;
-  jdyDeptName: string | null;
+  extDeptNo: number;
+  extDeptName: string | null;
   roleType: RoleType | null;
   isActive: boolean;
   createdAt: Date;
@@ -55,23 +55,17 @@ export const BU_KEYWORDS: Record<BUCode, string[]> = {
 export async function getAllMappings(): Promise<BUDepartmentMapping[]> {
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT 
-      id,
-      bu_code as buCode,
-      jdy_dept_no as jdyDeptNo,
-      jdy_dept_name as jdyDeptName,
-      role_type as roleType,
-      is_active as isActive,
-      created_at as createdAt,
-      updated_at as updatedAt
-    FROM bu_department_mappings
-    ORDER BY bu_code, role_type
+    SELECT * FROM bu_department_mappings ORDER BY bu_code, role_type
   `);
-  return (result[0] as any[]).map(row => ({
-    ...row,
-    isActive: Boolean(row.isActive),
-    createdAt: new Date(row.createdAt),
-    updatedAt: new Date(row.updatedAt),
+  return ((result as any).rows as any[]).map((row: any) => ({
+    id: row.id,
+    buCode: row.bu_code as BUCode,
+    extDeptNo: row.jdy_dept_no,
+    extDeptName: row.jdy_dept_name,
+    roleType: row.role_type as RoleType | null,
+    isActive: Boolean(row.is_active),
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
   }));
 }
 
@@ -81,24 +75,19 @@ export async function getAllMappings(): Promise<BUDepartmentMapping[]> {
 export async function getMappingsByBU(buCode: BUCode): Promise<BUDepartmentMapping[]> {
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT 
-      id,
-      bu_code as buCode,
-      jdy_dept_no as jdyDeptNo,
-      jdy_dept_name as jdyDeptName,
-      role_type as roleType,
-      is_active as isActive,
-      created_at as createdAt,
-      updated_at as updatedAt
-    FROM bu_department_mappings
-    WHERE bu_code = ${buCode} AND is_active = 1
+    SELECT * FROM bu_department_mappings
+    WHERE bu_code = ${buCode} AND is_active = true
     ORDER BY role_type
   `);
-  return (result[0] as any[]).map(row => ({
-    ...row,
-    isActive: Boolean(row.isActive),
-    createdAt: new Date(row.createdAt),
-    updatedAt: new Date(row.updatedAt),
+  return ((result as any).rows as any[]).map((row: any) => ({
+    id: row.id,
+    buCode: row.bu_code as BUCode,
+    extDeptNo: row.jdy_dept_no,
+    extDeptName: row.jdy_dept_name,
+    roleType: row.role_type as RoleType | null,
+    isActive: Boolean(row.is_active),
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
   }));
 }
 
@@ -107,20 +96,22 @@ export async function getMappingsByBU(buCode: BUCode): Promise<BUDepartmentMappi
  */
 export async function createMapping(data: {
   buCode: BUCode;
-  jdyDeptNo: number;
-  jdyDeptName?: string;
+  extDeptNo: number;
+  extDeptName?: string;
   roleType?: RoleType;
 }): Promise<number> {
   const db = await requireDb();
   const result = await db.execute(sql`
     INSERT INTO bu_department_mappings (bu_code, jdy_dept_no, jdy_dept_name, role_type)
-    VALUES (${data.buCode}, ${data.jdyDeptNo}, ${data.jdyDeptName || null}, ${data.roleType || null})
-    ON DUPLICATE KEY UPDATE
-      jdy_dept_name = VALUES(jdy_dept_name),
-      role_type = VALUES(role_type),
-      is_active = 1
+    VALUES (${data.buCode}, ${data.extDeptNo}, ${data.extDeptName || null}, ${data.roleType || null})
+    ON CONFLICT (bu_code, jdy_dept_no) DO UPDATE SET
+      jdy_dept_name = EXCLUDED.jdy_dept_name,
+      role_type = EXCLUDED.role_type,
+      is_active = true
+    RETURNING id
   `);
-  return (result[0] as any).insertId || 0;
+  const rows = (result as any).rows as any[];
+  return rows[0]?.id || 0;
 }
 
 /**
@@ -128,8 +119,8 @@ export async function createMapping(data: {
  */
 export async function batchCreateMappings(mappings: Array<{
   buCode: BUCode;
-  jdyDeptNo: number;
-  jdyDeptName?: string;
+  extDeptNo: number;
+  extDeptName?: string;
   roleType?: RoleType;
 }>): Promise<{ created: number; updated: number }> {
   const db = await requireDb();
@@ -139,16 +130,17 @@ export async function batchCreateMappings(mappings: Array<{
   for (const mapping of mappings) {
     const result = await db.execute(sql`
       INSERT INTO bu_department_mappings (bu_code, jdy_dept_no, jdy_dept_name, role_type)
-      VALUES (${mapping.buCode}, ${mapping.jdyDeptNo}, ${mapping.jdyDeptName || null}, ${mapping.roleType || null})
-      ON DUPLICATE KEY UPDATE
-        jdy_dept_name = VALUES(jdy_dept_name),
-        role_type = VALUES(role_type),
-        is_active = 1
+      VALUES (${mapping.buCode}, ${mapping.extDeptNo}, ${mapping.extDeptName || null}, ${mapping.roleType || null})
+      ON CONFLICT (bu_code, jdy_dept_no) DO UPDATE SET
+        jdy_dept_name = EXCLUDED.jdy_dept_name,
+        role_type = EXCLUDED.role_type,
+        is_active = true
+      RETURNING id, (xmax = 0) AS is_insert
     `);
-    const affectedRows = (result[0] as any).affectedRows || 0;
-    if (affectedRows === 1) {
+    const rows = (result as any).rows as any[];
+    if (rows[0]?.is_insert) {
       created++;
-    } else if (affectedRows === 2) {
+    } else {
       updated++;
     }
   }
@@ -161,8 +153,8 @@ export async function batchCreateMappings(mappings: Array<{
  */
 export async function updateMapping(id: number, data: {
   buCode?: BUCode;
-  jdyDeptNo?: number;
-  jdyDeptName?: string;
+  extDeptNo?: number;
+  extDeptName?: string;
   roleType?: RoleType;
   isActive?: boolean;
 }): Promise<boolean> {
@@ -172,17 +164,17 @@ export async function updateMapping(id: number, data: {
   if (data.buCode !== undefined) {
     updates.push(sql`bu_code = ${data.buCode}`);
   }
-  if (data.jdyDeptNo !== undefined) {
-    updates.push(sql`jdy_dept_no = ${data.jdyDeptNo}`);
+  if (data.extDeptNo !== undefined) {
+    updates.push(sql`jdy_dept_no = ${data.extDeptNo}`);
   }
-  if (data.jdyDeptName !== undefined) {
-    updates.push(sql`jdy_dept_name = ${data.jdyDeptName}`);
+  if (data.extDeptName !== undefined) {
+    updates.push(sql`jdy_dept_name = ${data.extDeptName}`);
   }
   if (data.roleType !== undefined) {
     updates.push(sql`role_type = ${data.roleType}`);
   }
   if (data.isActive !== undefined) {
-    updates.push(sql`is_active = ${data.isActive ? 1 : 0}`);
+    updates.push(sql`is_active = ${data.isActive}`);
   }
 
   if (updates.length === 0) return false;
@@ -194,7 +186,7 @@ export async function updateMapping(id: number, data: {
     WHERE id = ${id}
   `);
 
-  return (result[0] as any).affectedRows > 0;
+  return ((result as any).rowCount ?? 0) > 0;
 }
 
 /**
@@ -205,7 +197,7 @@ export async function deleteMapping(id: number): Promise<boolean> {
   const result = await db.execute(sql`
     DELETE FROM bu_department_mappings WHERE id = ${id}
   `);
-  return (result[0] as any).affectedRows > 0;
+  return ((result as any).rowCount ?? 0) > 0;
 }
 
 /**
@@ -234,25 +226,25 @@ export async function getBUStats(): Promise<Array<{
 }>> {
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT 
-      bu_code as buCode,
-      COUNT(DISTINCT jdy_dept_no) as deptCount,
-      COUNT(DISTINCT role_type) as roleCount
+    SELECT
+      bu_code,
+      COUNT(DISTINCT jdy_dept_no) as dept_count,
+      COUNT(DISTINCT role_type) as role_count
     FROM bu_department_mappings
-    WHERE is_active = 1
+    WHERE is_active = true
     GROUP BY bu_code
     ORDER BY bu_code
   `);
-  
-  const stats = (result[0] as any[]);
-  
+
+  const stats = ((result as any).rows as any[]);
+
   return DEFAULT_BUS.map(bu => {
-    const stat = stats.find(s => s.buCode === bu.code);
+    const stat = stats.find((s: any) => s.bu_code === bu.code);
     return {
       buCode: bu.code,
       buName: bu.name,
-      deptCount: stat?.deptCount || 0,
-      roleCount: stat?.roleCount || 0,
+      deptCount: Number(stat?.dept_count) || 0,
+      roleCount: Number(stat?.role_count) || 0,
     };
   });
 }
@@ -296,10 +288,10 @@ export interface BULeader {
 export async function getAllLeaders(): Promise<BULeader[]> {
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT * FROM bu_leaders WHERE is_active = 1 ORDER BY bu_code, role_type
+    SELECT * FROM bu_leaders WHERE is_active = true ORDER BY bu_code, role_type
   `);
   
-  const rows = result[0] as any[];
+  const rows = (result as any).rows as any[];
   return rows.map(row => ({
     id: row.id,
     buCode: row.bu_code,
@@ -308,8 +300,8 @@ export async function getAllLeaders(): Promise<BULeader[]> {
     leaderUserId: row.leader_user_id,
     leaderEmail: row.leader_email,
     leaderPhone: row.leader_phone,
-    isPrimary: row.is_primary === 1,
-    isActive: row.is_active === 1,
+    isPrimary: Boolean(row.is_primary),
+    isActive: Boolean(row.is_active),
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   }));
@@ -321,10 +313,10 @@ export async function getAllLeaders(): Promise<BULeader[]> {
 export async function getLeadersByBU(buCode: BUCode): Promise<BULeader[]> {
   const db = await requireDb();
   const result = await db.execute(sql`
-    SELECT * FROM bu_leaders WHERE bu_code = ${buCode} AND is_active = 1 ORDER BY role_type
+    SELECT * FROM bu_leaders WHERE bu_code = ${buCode} AND is_active = true ORDER BY role_type
   `);
   
-  const rows = result[0] as any[];
+  const rows = (result as any).rows as any[];
   return rows.map(row => ({
     id: row.id,
     buCode: row.bu_code,
@@ -333,8 +325,8 @@ export async function getLeadersByBU(buCode: BUCode): Promise<BULeader[]> {
     leaderUserId: row.leader_user_id,
     leaderEmail: row.leader_email,
     leaderPhone: row.leader_phone,
-    isPrimary: row.is_primary === 1,
-    isActive: row.is_active === 1,
+    isPrimary: Boolean(row.is_primary),
+    isActive: Boolean(row.is_active),
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   }));
@@ -358,23 +350,23 @@ export async function setLeader(data: {
   // 如果是主负责人，先将现有的主负责人设为非主
   if (isPrimary) {
     await db.execute(sql`
-      UPDATE bu_leaders SET is_primary = 0 
-      WHERE bu_code = ${data.buCode} AND role_type = ${data.roleType} AND is_primary = 1
+      UPDATE bu_leaders SET is_primary = false
+      WHERE bu_code = ${data.buCode} AND role_type = ${data.roleType} AND is_primary = true
     `);
   }
   
   const result = await db.execute(sql`
     INSERT INTO bu_leaders (bu_code, role_type, leader_name, leader_user_id, leader_email, leader_phone, is_primary)
-    VALUES (${data.buCode}, ${data.roleType}, ${data.leaderName}, ${data.leaderUserId || null}, ${data.leaderEmail || null}, ${data.leaderPhone || null}, ${isPrimary ? 1 : 0})
-    ON DUPLICATE KEY UPDATE
-      leader_name = VALUES(leader_name),
-      leader_user_id = VALUES(leader_user_id),
-      leader_email = VALUES(leader_email),
-      leader_phone = VALUES(leader_phone),
-      is_active = 1
+    VALUES (${data.buCode}, ${data.roleType}, ${data.leaderName}, ${data.leaderUserId || null}, ${data.leaderEmail || null}, ${data.leaderPhone || null}, ${isPrimary})
+    ON CONFLICT (bu_code, role_type, leader_name) DO UPDATE SET
+      leader_user_id = EXCLUDED.leader_user_id,
+      leader_email = EXCLUDED.leader_email,
+      leader_phone = EXCLUDED.leader_phone,
+      is_active = true
+    RETURNING id
   `);
-  
-  return (result[0] as any).insertId || 0;
+  const rows = (result as any).rows as any[];
+  return rows[0]?.id || 0;
 }
 
 /**
@@ -383,9 +375,9 @@ export async function setLeader(data: {
 export async function deleteLeader(id: number): Promise<boolean> {
   const db = await requireDb();
   const result = await db.execute(sql`
-    UPDATE bu_leaders SET is_active = 0 WHERE id = ${id}
+    UPDATE bu_leaders SET is_active = false WHERE id = ${id}
   `);
-  return (result[0] as any).affectedRows > 0;
+  return ((result as any).rowCount ?? 0) > 0;
 }
 
 // ==================== BU绩效统计 ====================
@@ -439,7 +431,7 @@ export async function getPerformanceStats(params: {
     SELECT * FROM bu_performance_stats ${whereClause} ORDER BY stat_period DESC, bu_code
   `);
   
-  const rows = result[0] as any[];
+  const rows = (result as any).rows as any[];
   return rows.map(row => ({
     id: row.id,
     buCode: row.bu_code,
@@ -484,7 +476,7 @@ export async function updatePerformanceStats(data: {
   
   const result = await db.execute(sql`
     INSERT INTO bu_performance_stats (
-      bu_code, stat_period, period_type, 
+      bu_code, stat_period, period_type,
       project_count, active_project_count, completed_project_count,
       total_revenue, total_cost, gross_profit, gross_margin,
       team_size, utilization_rate, on_time_delivery_rate, customer_satisfaction
@@ -494,21 +486,22 @@ export async function updatePerformanceStats(data: {
       ${data.totalRevenue || 0}, ${data.totalCost || 0}, ${data.grossProfit || 0}, ${data.grossMargin || 0},
       ${data.teamSize || 0}, ${data.utilizationRate || 0}, ${data.onTimeDeliveryRate || 0}, ${data.customerSatisfaction || 0}
     )
-    ON DUPLICATE KEY UPDATE
-      project_count = VALUES(project_count),
-      active_project_count = VALUES(active_project_count),
-      completed_project_count = VALUES(completed_project_count),
-      total_revenue = VALUES(total_revenue),
-      total_cost = VALUES(total_cost),
-      gross_profit = VALUES(gross_profit),
-      gross_margin = VALUES(gross_margin),
-      team_size = VALUES(team_size),
-      utilization_rate = VALUES(utilization_rate),
-      on_time_delivery_rate = VALUES(on_time_delivery_rate),
-      customer_satisfaction = VALUES(customer_satisfaction)
+    ON CONFLICT (bu_code, stat_period, period_type) DO UPDATE SET
+      project_count = EXCLUDED.project_count,
+      active_project_count = EXCLUDED.active_project_count,
+      completed_project_count = EXCLUDED.completed_project_count,
+      total_revenue = EXCLUDED.total_revenue,
+      total_cost = EXCLUDED.total_cost,
+      gross_profit = EXCLUDED.gross_profit,
+      gross_margin = EXCLUDED.gross_margin,
+      team_size = EXCLUDED.team_size,
+      utilization_rate = EXCLUDED.utilization_rate,
+      on_time_delivery_rate = EXCLUDED.on_time_delivery_rate,
+      customer_satisfaction = EXCLUDED.customer_satisfaction
+    RETURNING id
   `);
-  
-  return (result[0] as any).insertId || 0;
+  const rows = (result as any).rows as any[];
+  return rows[0]?.id || 0;
 }
 
 /**

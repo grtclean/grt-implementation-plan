@@ -3,7 +3,7 @@
  * 16 procedures covering: getAll, listAll, list (filtered), getStats,
  * getByDepartment, getByBU, getById, search, getDepartmentStats, getBUStats,
  * getNextId, create, batchCreate, update, updateRole, batchUpdateRoles,
- * updateStatus, initFromData, syncFromJiandaoyun
+ * updateStatus, initFromData, syncFromExternalSync
  *
  * Auth: requirePermission('hr:employees:view') for reads, protectedProcedure for writes.
  * Admin role bypasses permission checks.
@@ -66,7 +66,7 @@ function makeEmployee(overrides: Record<string, any> = {}) {
   return {
     id: 1,
     employeeId: "GRT001",
-    name: "侯亚东",
+    name: "倪亚东",
     department: "总裁办",
     position: "董事长",
     buCode: "HQ",
@@ -83,8 +83,8 @@ function makeEmployee(overrides: Record<string, any> = {}) {
 
 function makeEmployeeList() {
   return [
-    makeEmployee({ id: 1, employeeId: "GRT001", name: "侯亚东", department: "总裁办", position: "董事长", buCode: "HQ" }),
-    makeEmployee({ id: 2, employeeId: "GRT002", name: "黄晓三", department: "财务部", position: "会计", buCode: "FIN" }),
+    makeEmployee({ id: 1, employeeId: "GRT001", name: "倪亚东", department: "总裁办", position: "董事长", buCode: "HQ" }),
+    makeEmployee({ id: 2, employeeId: "GRT002", name: "黄晓兰", department: "财务部", position: "会计", buCode: "FIN" }),
     makeEmployee({ id: 3, employeeId: "GRT003", name: "侯亚琴", department: "事业三部", position: "采购与项目工程师", buCode: "BU3" }),
     makeEmployee({ id: 4, employeeId: "GRT004", name: "戴晓燕", department: "事业一部", position: "高级销售经理", buCode: "BU1" }),
   ];
@@ -150,7 +150,7 @@ describe("employee router", () => {
     it("returns all employees including inactive for authenticated user", async () => {
       const employees = makeEmployeeList();
       mockEmployeeService.getAllEmployees.mockResolvedValue(employees);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.employee.listAll();
       expect(result).toHaveLength(4);
       expect(mockEmployeeService.getAllEmployees).toHaveBeenCalledWith(true);
@@ -190,15 +190,15 @@ describe("employee router", () => {
       const caller = createAdminCaller();
       const result = await caller.employee.list({ department: "财务部" });
       expect(result.employees).toHaveLength(1);
-      expect(result.employees[0].name).toBe("黄晓三");
+      expect(result.employees[0].name).toBe("黄晓兰");
     });
 
     it("filters by search keyword (name match)", async () => {
       const employees = makeEmployeeList();
       mockEmployeeService.getAllEmployees.mockResolvedValue(employees);
       const caller = createAdminCaller();
-      const result = await caller.employee.list({ search: "侯" });
-      expect(result.employees).toHaveLength(2); // 侯亚东 + 侯亚琴
+      const result = await caller.employee.list({ search: "亚" });
+      expect(result.employees).toHaveLength(2); // 倪亚东 + 侯亚琴
     });
 
     it("filters by search keyword (employeeId match)", async () => {
@@ -207,7 +207,7 @@ describe("employee router", () => {
       const caller = createAdminCaller();
       const result = await caller.employee.list({ search: "GRT002" });
       expect(result.employees).toHaveLength(1);
-      expect(result.employees[0].name).toBe("黄晓三");
+      expect(result.employees[0].name).toBe("黄晓兰");
     });
 
     it("filters by search keyword (position match)", async () => {
@@ -223,9 +223,9 @@ describe("employee router", () => {
       const employees = makeEmployeeList();
       mockEmployeeService.getAllEmployees.mockResolvedValue(employees);
       const caller = createAdminCaller();
-      const result = await caller.employee.list({ buCode: "HQ", search: "侯" });
+      const result = await caller.employee.list({ buCode: "HQ", search: "倪" });
       expect(result.employees).toHaveLength(1);
-      expect(result.employees[0].name).toBe("侯亚东");
+      expect(result.employees[0].name).toBe("倪亚东");
     });
 
     it("returns empty when no matches", async () => {
@@ -431,14 +431,14 @@ describe("employee router", () => {
   describe("getNextId", () => {
     it("returns next available employee id", async () => {
       mockEmployeeService.getNextEmployeeId.mockResolvedValue("GRT104");
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.employee.getNextId();
       expect(result).toEqual({ nextId: "GRT104" });
     });
 
     it("returns GRT001 for empty DB", async () => {
       mockEmployeeService.getNextEmployeeId.mockResolvedValue("GRT001");
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.employee.getNextId();
       expect(result).toEqual({ nextId: "GRT001" });
     });
@@ -455,7 +455,7 @@ describe("employee router", () => {
   describe("create", () => {
     it("creates employee with minimal input", async () => {
       mockEmployeeService.createEmployee.mockResolvedValue({ id: 42 });
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.employee.create({
         employeeId: "GRT100",
         name: "测试员工",
@@ -473,7 +473,7 @@ describe("employee router", () => {
 
     it("creates employee with all optional fields", async () => {
       mockEmployeeService.createEmployee.mockResolvedValue({ id: 43 });
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.employee.create({
         employeeId: "GRT200",
         name: "全字段员工",
@@ -496,7 +496,7 @@ describe("employee router", () => {
     });
 
     it("rejects invalid systemRole", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.employee.create({
           employeeId: "GRT300",
@@ -521,7 +521,7 @@ describe("employee router", () => {
     });
 
     it("rejects missing required fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.employee.create({
           employeeId: "GRT300",
@@ -537,7 +537,7 @@ describe("employee router", () => {
   describe("batchCreate", () => {
     it("creates multiple employees", async () => {
       mockEmployeeService.batchCreateEmployees.mockResolvedValue({ created: 2, skipped: 0 });
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.employee.batchCreate({
         employees: [
           { employeeId: "GRT100", name: "A", department: "X", position: "P1" },
@@ -553,7 +553,7 @@ describe("employee router", () => {
 
     it("handles partial creation (some skipped)", async () => {
       mockEmployeeService.batchCreateEmployees.mockResolvedValue({ created: 1, skipped: 1 });
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.employee.batchCreate({
         employees: [
           { employeeId: "GRT100", name: "New", department: "X", position: "P1" },
@@ -580,7 +580,7 @@ describe("employee router", () => {
   describe("update", () => {
     it("updates employee name", async () => {
       mockEmployeeService.updateEmployee.mockResolvedValue(true);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.employee.update({
         employeeId: "GRT001",
         updates: { name: "新名字" },
@@ -590,7 +590,7 @@ describe("employee router", () => {
     });
 
     it("updates employee status", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.employee.update({
         employeeId: "GRT001",
         updates: { status: "resigned" },
@@ -599,7 +599,7 @@ describe("employee router", () => {
     });
 
     it("updates employee systemRole", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.employee.update({
         employeeId: "GRT001",
         updates: { systemRole: "hr_manager" },
@@ -608,7 +608,7 @@ describe("employee router", () => {
     });
 
     it("rejects invalid status", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.employee.update({
           employeeId: "GRT001",
@@ -618,7 +618,7 @@ describe("employee router", () => {
     });
 
     it("rejects invalid systemRole", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.employee.update({
           employeeId: "GRT001",
@@ -641,7 +641,7 @@ describe("employee router", () => {
   describe("updateRole", () => {
     it("updates system role", async () => {
       mockEmployeeService.updateSystemRole.mockResolvedValue(true);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.employee.updateRole({
         employeeId: "GRT049",
         systemRole: "admin",
@@ -658,7 +658,7 @@ describe("employee router", () => {
         "finance_manager", "finance_specialist", "employee",
         "production_worker", "guest",
       ];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       for (const role of roles) {
         mockEmployeeService.updateSystemRole.mockResolvedValue(true);
         const result = await caller.employee.updateRole({
@@ -670,7 +670,7 @@ describe("employee router", () => {
     });
 
     it("rejects invalid system role", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.employee.updateRole({
           employeeId: "GRT001",
@@ -693,7 +693,7 @@ describe("employee router", () => {
   describe("batchUpdateRoles", () => {
     it("batch updates roles", async () => {
       mockEmployeeService.batchUpdateRoles.mockResolvedValue({ updated: 3, failed: 0 });
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.employee.batchUpdateRoles({
         updates: [
           { employeeId: "GRT001", systemRole: "admin" },
@@ -706,7 +706,7 @@ describe("employee router", () => {
 
     it("handles partial failures", async () => {
       mockEmployeeService.batchUpdateRoles.mockResolvedValue({ updated: 1, failed: 2 });
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.employee.batchUpdateRoles({
         updates: [
           { employeeId: "GRT001", systemRole: "admin" },
@@ -719,7 +719,7 @@ describe("employee router", () => {
     });
 
     it("rejects empty updates array", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.employee.batchUpdateRoles({ updates: [] }),
       ).rejects.toThrow();
@@ -741,7 +741,7 @@ describe("employee router", () => {
   describe("updateStatus", () => {
     it("activates employee", async () => {
       mockEmployeeService.updateEmployeeStatus.mockResolvedValue(true);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.employee.updateStatus({
         employeeId: "GRT001",
         status: "active",
@@ -751,19 +751,19 @@ describe("employee router", () => {
     });
 
     it("deactivates employee", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.employee.updateStatus({ employeeId: "GRT001", status: "inactive" });
       expect(mockEmployeeService.updateEmployeeStatus).toHaveBeenCalledWith("GRT001", "inactive");
     });
 
     it("resigns employee", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.employee.updateStatus({ employeeId: "GRT001", status: "resigned" });
       expect(mockEmployeeService.updateEmployeeStatus).toHaveBeenCalledWith("GRT001", "resigned");
     });
 
     it("rejects invalid status", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.employee.updateStatus({
           employeeId: "GRT001",
@@ -786,7 +786,7 @@ describe("employee router", () => {
   describe("initFromData", () => {
     it("calls batchCreateEmployees with hardcoded data", async () => {
       mockEmployeeService.batchCreateEmployees.mockResolvedValue({ created: 90, skipped: 0 });
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.employee.initFromData();
       expect(result).toEqual({ created: 90, skipped: 0 });
       expect(mockEmployeeService.batchCreateEmployees).toHaveBeenCalledTimes(1);
@@ -794,7 +794,7 @@ describe("employee router", () => {
       const callArgs = mockEmployeeService.batchCreateEmployees.mock.calls[0][0];
       expect(callArgs[0]).toEqual({
         employeeId: "GRT001",
-        name: "侯亚东",
+        name: "倪亚东",
         department: "总裁办",
         position: "董事长",
       });
@@ -809,7 +809,7 @@ describe("employee router", () => {
 
     it("passes all employees to service (90 entries)", async () => {
       mockEmployeeService.batchCreateEmployees.mockResolvedValue({ created: 0, skipped: 90 });
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.employee.initFromData();
       const callArgs = mockEmployeeService.batchCreateEmployees.mock.calls[0][0];
       expect(callArgs.length).toBeGreaterThanOrEqual(80);
@@ -822,23 +822,23 @@ describe("employee router", () => {
   });
 
   // ====================================================================
-  // syncFromJiandaoyun — protectedProcedure (stub)
+  // syncFromExternalSync — protectedProcedure (stub)
   // ====================================================================
-  describe("syncFromJiandaoyun", () => {
+  describe("syncFromExternalSync", () => {
     it("returns stub sync result", async () => {
-      const caller = createAuthenticatedCaller();
-      const result = await caller.employee.syncFromJiandaoyun();
+      const caller = createAdminCaller();
+      const result = await caller.employee.syncFromExternalSync();
       expect(result).toEqual({
         added: 0,
         updated: 0,
         deleted: 0,
-        message: "同步完成，请确保简道云API已配置",
+        message: "同步完成，请确保外部数据平台API已配置",
       });
     });
 
     it("rejects anonymous users", async () => {
       const caller = createAnonymousCaller();
-      await expect(caller.employee.syncFromJiandaoyun()).rejects.toThrow();
+      await expect(caller.employee.syncFromExternalSync()).rejects.toThrow();
     });
   });
 });

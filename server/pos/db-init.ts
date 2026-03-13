@@ -153,8 +153,8 @@ export const SAMPLE_CUSTOMERS = [
     scenes: JSON.stringify(['automotive_powertrain', 'automotive_body']),
     decisionWeights: JSON.stringify({ tech: 0.35, price: 0.20, value: 0.25, relation: 0.10, boss: 0.10 }),
     keyContacts: JSON.stringify([
-      { name: '张工', title: '技术经理', phone: '138xxxx1234', email: 'zhang@bosch.com', role: 'technical_decision' },
-      { name: '李总', title: '采购总监', phone: '139xxxx5678', email: 'li@bosch.com', role: 'commercial_decision' }
+      { name: '张建华', title: '技术经理', phone: '138xxxx1234', email: 'zhang.jianhua@bosch.com', role: 'technical_decision' },
+      { name: '李振国', title: '采购总监', phone: '139xxxx5678', email: 'li.zhenguo@bosch.com', role: 'commercial_decision' }
     ]),
     deliveryRisk: 'low',
     riskSolution: '标准交付流程，重点关注FAT验收',
@@ -174,7 +174,7 @@ export const SAMPLE_CUSTOMERS = [
     scenes: JSON.stringify(['semiconductor']),
     decisionWeights: JSON.stringify({ tech: 0.40, price: 0.15, value: 0.30, relation: 0.05, boss: 0.10 }),
     keyContacts: JSON.stringify([
-      { name: '王工', title: '设备工程师', phone: '137xxxx2345', email: 'wang@tsmc.com', role: 'technical_decision' }
+      { name: '王志远', title: '设备工程师', phone: '137xxxx2345', email: 'wang.zhiyuan@tsmc.com', role: 'technical_decision' }
     ]),
     deliveryRisk: 'medium',
     riskSolution: '提前进行洁净度验证，预留调试时间',
@@ -194,7 +194,7 @@ export const SAMPLE_CUSTOMERS = [
     scenes: JSON.stringify(['medical_device']),
     decisionWeights: JSON.stringify({ tech: 0.30, price: 0.25, value: 0.25, relation: 0.10, boss: 0.10 }),
     keyContacts: JSON.stringify([
-      { name: '陈工', title: '质量经理', phone: '136xxxx3456', email: 'chen@medtronic.com', role: 'quality_decision' }
+      { name: '陈明辉', title: '质量经理', phone: '136xxxx3456', email: 'chen.minghui@medtronic.com', role: 'quality_decision' }
     ]),
     deliveryRisk: 'medium',
     riskSolution: 'GMP验证文档提前准备，IQ/OQ/PQ流程规划',
@@ -216,10 +216,10 @@ export const SAMPLE_PROJECTS = [
     currentStage: 'M2',
     projectType: 'new_equipment',
     priority: 'high',
-    pm: '张明',
-    techLeader: '李强',
-    salesOwner: '王芳',
-    serviceOwner: '赵伟',
+    pm: '洪香龙',
+    techLeader: '李大鹏',
+    salesOwner: '吴卫成',
+    serviceOwner: '杨会龙',
     sceneSnapshot: JSON.stringify({
       scene: 'automotive_powertrain',
       product: '发动机缸体',
@@ -243,10 +243,10 @@ export const SAMPLE_PROJECTS = [
     currentStage: 'M3',
     projectType: 'new_equipment',
     priority: 'critical',
-    pm: '刘洋',
-    techLeader: '陈杰',
-    salesOwner: '周敏',
-    serviceOwner: '吴昊',
+    pm: '张超',
+    techLeader: '孙坚',
+    salesOwner: '金晓锋',
+    serviceOwner: '李兴伟',
     sceneSnapshot: JSON.stringify({
       scene: 'semiconductor',
       product: '晶圆',

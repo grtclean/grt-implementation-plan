@@ -55,8 +55,8 @@ const mockTeamsMessages = [
   },
   {
     id: "4",
-    chatName: "王工",
-    senderName: "王工",
+    chatName: "焦斌",
+    senderName: "焦斌",
     content: "现场调试遇到问题，需要远程支援",
     sentAt: new Date(Date.now() - 3 * 3600000).toISOString(),
     isRead: true,

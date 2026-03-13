@@ -13,7 +13,7 @@
  *   generateQuiz      — calls LLM to create quiz questions from transcript
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   sysMeetings,
@@ -97,6 +97,9 @@ const meetingRouter = router({
         scheduledStart: z.string().optional(),
         scheduledEnd: z.string().optional(),
         expectedAttendees: z.number().default(0),
+        stageCode: z.enum(["M0","M1","M2","M3","M4","M5","M6","M7","M8","M9","M10","M11","M12"]).optional(),
+        meetingCategory: z.enum(["CUSTOMER_MEETING","GATE_REVIEW","DESIGN_REVIEW","TEAM_SYNC","SUPPLIER_MEETING","SITE_VISIT","FAT_SAT","TRAINING","PROJECT_KICKOFF","OTHER"]).default("OTHER"),
+        direction: z.enum(["INTERNAL","EXTERNAL"]).default("INTERNAL"),
       })
     )
     .mutation(async ({ input }) => {
@@ -117,13 +120,85 @@ const meetingRouter = router({
             ? new Date(input.scheduledEnd)
             : null,
           expectedAttendees: input.expectedAttendees,
+          stageCode: input.stageCode ?? null,
+          meetingCategory: input.meetingCategory,
+          direction: input.direction,
         })
         .returning();
       return meeting;
     }),
 
+  // Create a meeting with explicit stage, category, and direction
+  createStageMeeting: requirePermission('collab:meeting:hub')
+    .input(
+      z.object({
+        title: z.string().min(1).max(500),
+        stageCode: z.enum(["M0","M1","M2","M3","M4","M5","M6","M7","M8","M9","M10","M11","M12"]),
+        meetingCategory: z.enum(["CUSTOMER_MEETING","GATE_REVIEW","DESIGN_REVIEW","TEAM_SYNC","SUPPLIER_MEETING","SITE_VISIT","FAT_SAT","TRAINING","PROJECT_KICKOFF","OTHER"]),
+        direction: z.enum(["INTERNAL","EXTERNAL"]),
+        type: z.enum(["MAJOR","MINOR"]).default("MINOR"),
+        description: z.string().max(5000).optional(),
+        projectId: z.number().optional(),
+        tProjectId: z.number().optional(),
+        organizerName: z.string().optional(),
+        scheduledStart: z.string().optional(),
+        scheduledEnd: z.string().optional(),
+        expectedAttendees: z.number().default(0),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const [meeting] = await db
+        .insert(sysMeetings)
+        .values({
+          title: input.title,
+          type: input.type,
+          status: "UPCOMING",
+          stageCode: input.stageCode,
+          meetingCategory: input.meetingCategory,
+          direction: input.direction,
+          description: input.description ?? null,
+          projectId: input.projectId ?? null,
+          tProjectId: input.tProjectId ?? null,
+          organizerName: input.organizerName ?? null,
+          scheduledStart: input.scheduledStart ? new Date(input.scheduledStart) : null,
+          scheduledEnd: input.scheduledEnd ? new Date(input.scheduledEnd) : null,
+          expectedAttendees: input.expectedAttendees,
+        })
+        .returning();
+      return meeting;
+    }),
+
+  // List meetings with filtering by stage, category, direction
+  listMeetingsByStage: protectedProcedure
+    .input(
+      z.object({
+        stageCode: z.enum(["M0","M1","M2","M3","M4","M5","M6","M7","M8","M9","M10","M11","M12"]).optional(),
+        meetingCategory: z.enum(["CUSTOMER_MEETING","GATE_REVIEW","DESIGN_REVIEW","TEAM_SYNC","SUPPLIER_MEETING","SITE_VISIT","FAT_SAT","TRAINING","PROJECT_KICKOFF","OTHER"]).optional(),
+        direction: z.enum(["INTERNAL","EXTERNAL"]).optional(),
+        projectId: z.number().optional(),
+        tProjectId: z.number().optional(),
+        limit: z.number().min(1).max(200).default(100),
+      }).optional()
+    )
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const conditions: SQL[] = [];
+      if (input?.stageCode) conditions.push(eq(sysMeetings.stageCode, input.stageCode));
+      if (input?.meetingCategory) conditions.push(eq(sysMeetings.meetingCategory, input.meetingCategory));
+      if (input?.direction) conditions.push(eq(sysMeetings.direction, input.direction));
+      if (input?.projectId) conditions.push(eq(sysMeetings.projectId, input.projectId));
+      if (input?.tProjectId) conditions.push(eq(sysMeetings.tProjectId, input.tProjectId));
+      return db
+        .select()
+        .from(sysMeetings)
+        .where(conditions.length ? and(...conditions) : undefined)
+        .orderBy(desc(sysMeetings.scheduledStart))
+        .limit(input?.limit ?? 100);
+    }),
+
   // Transition meeting status: UPCOMING → LIVE → ENDED
-  updateStatus: protectedProcedure
+  updateStatus: requirePermission('collab:meeting:hub')
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -146,7 +221,7 @@ const meetingRouter = router({
     }),
 
   // Update transcript (for AI quiz generation)
-  updateTranscript: protectedProcedure
+  updateTranscript: requirePermission('collab:meeting:hub')
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -164,7 +239,7 @@ const meetingRouter = router({
     }),
 
   // Generate AI quiz from transcript — async via task queue
-  generateQuiz: protectedProcedure
+  generateQuiz: requirePermission('collab:meeting:hub')
     .input(idInput)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -220,7 +295,7 @@ const meetingRouter = router({
     }),
 
   // Create Teams meeting link via Graph API mock and save to DB
-  createTeamsLink: protectedProcedure
+  createTeamsLink: requirePermission('collab:meeting:hub')
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -283,11 +358,12 @@ const attendanceRouter = router({
       .select()
       .from(meetingAttendance)
       .where(eq(meetingAttendance.meetingId, toNum(input.id)))
-      .orderBy(desc(meetingAttendance.createdAt));
+      .orderBy(desc(meetingAttendance.createdAt))
+      .limit(1000);
   }),
 
   // Check in (physical or online)
-  checkIn: protectedProcedure
+  checkIn: requirePermission('collab:meeting:hub')
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -339,7 +415,7 @@ const attendanceRouter = router({
     }),
 
   // Request leave
-  requestLeave: protectedProcedure
+  requestLeave: requirePermission('collab:meeting:hub')
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -387,7 +463,7 @@ const attendanceRouter = router({
     }),
 
   // Mark user as absent (called when meeting ends, for unregistered users)
-  markAbsent: protectedProcedure
+  markAbsent: requirePermission('collab:meeting:hub')
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -435,7 +511,7 @@ const interactionRouter = router({
     }),
 
   // Save / update private notes
-  saveNotes: protectedProcedure
+  saveNotes: requirePermission('collab:meeting:hub')
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -536,7 +612,7 @@ const interactionRouter = router({
     }),
 
   // Submit takeaway reflection
-  submitReflection: protectedProcedure
+  submitReflection: requirePermission('collab:meeting:hub')
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -612,7 +688,7 @@ const penaltyRouter = router({
     }),
 
   // Trigger the HR penalty engine for a meeting
-  processAbsences: protectedProcedure
+  processAbsences: requirePermission('collab:meeting:hub')
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -653,7 +729,7 @@ const chatRouter = router({
   }),
 
   // Send a chat message
-  sendMessage: protectedProcedure
+  sendMessage: requirePermission('collab:meeting:hub')
     .input(
       z.object({
         meetingId: z.union([z.string(), z.number()]),
@@ -683,7 +759,7 @@ const chatRouter = router({
 //  Seed demo meeting (for CEO demo)
 // ═══════════════════════════════════════════════════════════
 const seedRouter = router({
-  seedDemo: protectedProcedure.mutation(async () => {
+  seedDemo: requirePermission('collab:meeting:hub').mutation(async () => {
     const db = await requireDb();
 
     // Check if demo meeting already exists
@@ -694,6 +770,21 @@ const seedRouter = router({
       .limit(1);
 
     if (existing.length > 0) {
+      // Restore aiSummary if it was cleared
+      if (!existing[0].aiSummary) {
+        await db.update(sysMeetings).set({
+          aiSummary: {
+            highlights: ["自动化产线覆盖率从65%提升至89%", "2026年三大核心战略方向", "海外营收占比目标35%"],
+            decisions: ["所有产线部署AI质检和预测性维护系统", "推行项目型组织（POS）"],
+            risks: ["海外市场拓展进度可能受地缘政治影响", "AI系统部署需要大量培训投入"],
+            nextSteps: ["Q1完成个人KPI目标制定", "与部门负责人对齐战略方向", "启动AI质检系统选型"],
+            sentiment: "positive",
+            generatedAt: new Date().toISOString(),
+          } as Record<string, unknown>,
+        }).where(eq(sysMeetings.id, existing[0].id));
+        const [updated] = await db.select().from(sysMeetings).where(eq(sysMeetings.id, existing[0].id)).limit(1);
+        return { message: "Demo meeting restored aiSummary", meeting: updated };
+      }
       return { message: "Demo meeting already exists", meeting: existing[0] };
     }
 
@@ -716,6 +807,9 @@ const seedRouter = router({
         organizerName: "CEO",
         organizerId: 1,
         expectedAttendees: 500,
+        stageCode: "M0",
+        meetingCategory: "PROJECT_KICKOFF",
+        direction: "INTERNAL",
         actualStart: new Date(),
         aiQuizQuestions: [
           {
@@ -747,6 +841,30 @@ const seedRouter = router({
             correctAnswer: "True",
           },
         ],
+        aiSummary: {
+          highlights: [
+            "自动化产线覆盖率从65%提升至89%",
+            "2026年三大核心战略方向",
+            "海外营收占比目标35%",
+          ],
+          decisions: [
+            "所有产线部署AI质检和预测性维护系统",
+            "推行项目型组织（POS）",
+          ],
+          risks: [
+            "海外市场拓展进度可能受地缘政治影响",
+            "AI系统部署需要大量培训投入",
+          ],
+          nextSteps: [
+            "Q1完成个人KPI目标制定",
+            "与部门负责人对齐战略方向",
+            "启动AI质检系统选型",
+          ],
+          sentiment: "positive",
+          generatedAt: new Date().toISOString(),
+        } as Record<string, unknown>,
+        projectId: null,
+        departmentId: null,
       })
       .returning();
 
@@ -754,31 +872,31 @@ const seedRouter = router({
     chatStore.set(meeting.id, [
       {
         userId: 101,
-        userName: "张工",
+        userName: "孙国祥",
         message: "CEO的战略规划非常振奋人心！💪",
         time: new Date(Date.now() - 300000).toISOString(),
       },
       {
         userId: 102,
-        userName: "李经理",
+        userName: "杨勇",
         message: "海外市场35%的目标很有挑战性，期待更多支持资源",
         time: new Date(Date.now() - 240000).toISOString(),
       },
       {
         userId: 103,
-        userName: "王主管",
+        userName: "金晓锋",
         message: "POS组织架构升级是我最关注的，希望能提升协作效率",
         time: new Date(Date.now() - 180000).toISOString(),
       },
       {
         userId: 104,
-        userName: "陈博士",
+        userName: "胡炜",
         message: "AI质检系统的技术路线已经准备就绪，随时可以部署",
         time: new Date(Date.now() - 120000).toISOString(),
       },
       {
         userId: 105,
-        userName: "赵总监",
+        userName: "戴晓燕",
         message: "建议增加东南亚市场本地化团队的预算",
         time: new Date(Date.now() - 60000).toISOString(),
       },
@@ -793,7 +911,7 @@ const seedRouter = router({
 // ═══════════════════════════════════════════════════════════
 const speakerRouter = router({
   // Run voice-print analysis on a meeting
-  analyze: protectedProcedure
+  analyze: requirePermission('collab:meeting:hub')
     .input(z.object({ meetingId: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       const result = await analyzeMeetingAudio(toNum(input.meetingId));
@@ -809,11 +927,12 @@ const speakerRouter = router({
         .select()
         .from(meetingSpeakers)
         .where(eq(meetingSpeakers.meetingId, toNum(input.meetingId)))
-        .orderBy(meetingSpeakers.firstSpokenAt);
+        .orderBy(meetingSpeakers.firstSpokenAt)
+        .limit(1000);
     }),
 
   // Bind an unknown speaker to a known profile
-  bindProfile: protectedProcedure
+  bindProfile: requirePermission('collab:meeting:hub')
     .input(
       z.object({
         speakerId: z.union([z.string(), z.number()]),
@@ -840,7 +959,7 @@ const speakerRouter = router({
     }),
 
   // Unbind a speaker (reset to unknown)
-  unbindProfile: protectedProcedure
+  unbindProfile: requirePermission('collab:meeting:hub')
     .input(z.object({ speakerId: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -883,7 +1002,7 @@ const REVIEW_DIMENSIONS = ["performance", "execution", "innovation", "teamwork",
 
 const reviewRouter = router({
   // Create a review meeting (creates sys_meetings row + returns it)
-  createReviewMeeting: protectedProcedure
+  createReviewMeeting: requirePermission('collab:meeting:hub')
     .input(
       z.object({
         title: z.string().min(1),
@@ -962,7 +1081,8 @@ const reviewRouter = router({
         .select()
         .from(meetingReviewEvaluations)
         .where(eq(meetingReviewEvaluations.meetingId, input.meetingId))
-        .orderBy(meetingReviewEvaluations.speakerId, meetingReviewEvaluations.dimension);
+        .orderBy(meetingReviewEvaluations.speakerId, meetingReviewEvaluations.dimension)
+        .limit(1000);
 
       // Group by speaker
       const bySpeaker: Record<number, { speakerName: string; evaluations: typeof rows }> = {};
@@ -983,7 +1103,8 @@ const reviewRouter = router({
       const rows = await db
         .select()
         .from(meetingReviewEvaluations)
-        .where(eq(meetingReviewEvaluations.meetingId, input.meetingId));
+        .where(eq(meetingReviewEvaluations.meetingId, input.meetingId))
+        .limit(1000);
 
       // Build per-speaker dimension averages
       const speakerMap: Record<number, { name: string; dims: Record<string, number[]> }> = {};
@@ -1011,7 +1132,7 @@ const reviewRouter = router({
     }),
 
   // Seed demo: 徐树奎 + 李柯瑶 述职会议 with mock evaluations
-  seedDemo: protectedProcedure.mutation(async () => {
+  seedDemo: requirePermission('collab:meeting:hub').mutation(async () => {
     const db = await requireDb();
 
     // Check if already seeded

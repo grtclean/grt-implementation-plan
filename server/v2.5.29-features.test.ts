@@ -13,7 +13,7 @@ describe('v2.5.29 工人管理路由', () => {
       const mockResponse = {
         workers: [
           { id: 1, name: '张明', department: '生产部', position: '生产工人', skillLevel: 'L3', status: 'Active' },
-          { id: 2, name: '李强', department: '生产部', position: '生产工人', skillLevel: 'L2', status: 'Active' },
+          { id: 2, name: '韩保程', department: '生产部', position: '生产工人', skillLevel: 'L2', status: 'Active' },
         ],
         total: 2,
       };
@@ -155,7 +155,7 @@ describe('v2.5.29 工人效率统计', () => {
     it('应该返回排名列表', () => {
       const mockRanking = [
         { workerId: 1, workerName: '张明', avgEfficiency: 115, rank: 1 },
-        { workerId: 2, workerName: '李强', avgEfficiency: 108, rank: 2 },
+        { workerId: 2, workerName: '韩保程', avgEfficiency: 108, rank: 2 },
       ];
       
       expect(mockRanking[0].rank).toBe(1);
@@ -459,7 +459,7 @@ describe('v2.5.29 WorkerManagement组件', () => {
     it('应该支持搜索筛选', () => {
       const workers = [
         { id: 1, name: '张明' },
-        { id: 2, name: '李强' },
+        { id: 2, name: '韩保程' },
       ];
       const searchTerm = '张';
       const filtered = workers.filter(w => w.name.includes(searchTerm));
@@ -532,7 +532,7 @@ describe('v2.5.29 WorkerManagement组件', () => {
     it('应该显示排名列表', () => {
       const ranking = [
         { rank: 1, workerName: '张明', avgEfficiency: 115 },
-        { rank: 2, workerName: '李强', avgEfficiency: 108 },
+        { rank: 2, workerName: '韩保程', avgEfficiency: 108 },
       ];
       
       expect(ranking[0].rank).toBe(1);

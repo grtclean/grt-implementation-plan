@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -63,7 +63,7 @@ beforeEach(() => {
   selectResultsQueue.length = 0;
 });
 
-const caller = () => createAuthenticatedCaller();
+const caller = () => createAdminCaller();
 
 const sampleControl = {
   id: 1, controlKey: "PIPELINE_FROZEN", controlValue: "true",

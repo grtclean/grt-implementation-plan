@@ -181,7 +181,7 @@ describe("violation-event router", () => {
       selectResultsQueue.push([event1, event2]);
       selectResultsQueue.push([{ total: 2 }]);
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.list({});
       expect(result).toHaveProperty("items");
       expect(result).toHaveProperty("total", 2);
@@ -194,7 +194,7 @@ describe("violation-event router", () => {
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ total: 0 }]);
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.list({});
       expect(result.items).toHaveLength(0);
       expect(result.total).toBe(0);
@@ -204,7 +204,7 @@ describe("violation-event router", () => {
       selectResultsQueue.push([]);
       selectResultsQueue.push([]);
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.list({});
       expect(result.total).toBe(0);
     });
@@ -213,7 +213,7 @@ describe("violation-event router", () => {
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ total: 0 }]);
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.list({ buId: 2 });
       expect(result).toHaveProperty("items");
     });
@@ -222,7 +222,7 @@ describe("violation-event router", () => {
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ total: 0 }]);
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.list({ userId: 5 });
       expect(result).toHaveProperty("items");
     });
@@ -232,7 +232,7 @@ describe("violation-event router", () => {
       selectResultsQueue.push([event]);
       selectResultsQueue.push([{ total: 1 }]);
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.list({ severity: "CRITICAL" });
       expect(result.items).toHaveLength(1);
       expect(result.total).toBe(1);
@@ -242,7 +242,7 @@ describe("violation-event router", () => {
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ total: 0 }]);
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.list({ status: "confirmed" });
       expect(result).toHaveProperty("items");
     });
@@ -251,7 +251,7 @@ describe("violation-event router", () => {
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ total: 0 }]);
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.list({
         buId: 1,
         userId: 3,
@@ -269,42 +269,42 @@ describe("violation-event router", () => {
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ total: 0 }]);
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.list({ limit: 50, offset: 25 });
       expect(result.limit).toBe(50);
       expect(result.offset).toBe(25);
     });
 
     it("rejects limit < 1", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.violationEvent.list({ limit: 0 }),
       ).rejects.toThrow();
     });
 
     it("rejects limit > 100", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.violationEvent.list({ limit: 101 }),
       ).rejects.toThrow();
     });
 
     it("rejects negative offset", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.violationEvent.list({ offset: -1 }),
       ).rejects.toThrow();
     });
 
     it("rejects invalid severity value", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).list({ severity: "INVALID" }),
       ).rejects.toThrow();
     });
 
     it("rejects invalid status value", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).list({ status: "nonexistent" }),
       ).rejects.toThrow();
@@ -317,7 +317,7 @@ describe("violation-event router", () => {
       const event = makeViolationEvent({ id: 42 });
       mockQueryResult = [event];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.getById({ id: 42 });
       expect(result).toHaveProperty("id", 42);
       expect(result).toHaveProperty("eventType", "quality_defect");
@@ -327,14 +327,14 @@ describe("violation-event router", () => {
     it("throws when event not found", async () => {
       mockQueryResult = [];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.violationEvent.getById({ id: 999 }),
       ).rejects.toThrow("Violation event not found");
     });
 
     it("rejects non-numeric id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).getById({ id: "abc" }),
       ).rejects.toThrow();
@@ -351,7 +351,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [created];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.create({
         eventType: "compliance_breach",
         severity: "MINOR",
@@ -377,7 +377,7 @@ describe("violation-event router", () => {
       const perfRecord = { id: 100, buId: 1, year: 2026, quarter: 1, isFrozen: false };
       selectResultsQueue.push([perfRecord]);
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.create({
         eventType: "quality_defect",
         severity: "MAJOR",
@@ -402,7 +402,7 @@ describe("violation-event router", () => {
       const perfRecord = { id: 200, buId: 2, year: 2026, quarter: 1, isFrozen: false };
       selectResultsQueue.push([perfRecord]);
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.create({
         eventType: "safety_incident",
         severity: "CRITICAL",
@@ -422,7 +422,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [created];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.create({
         eventType: "financial_anomaly",
         severity: "MAJOR",
@@ -445,7 +445,7 @@ describe("violation-event router", () => {
       // autoFreezePerformance: no performance record found
       selectResultsQueue.push([]);
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.create({
         eventType: "quality_defect",
         severity: "MAJOR",
@@ -463,7 +463,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [created];
 
-      const caller = createAuthenticatedCaller({ name: "Test User" });
+      const caller = createAdminCaller({ name: "Test User" });
       const result = await caller.violationEvent.create({
         eventType: "compliance_breach",
         severity: "MINOR",
@@ -480,7 +480,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [created];
 
-      const caller = createAuthenticatedCaller({ name: "Other Name" });
+      const caller = createAdminCaller({ name: "Other Name" });
       const result = await caller.violationEvent.create({
         eventType: "compliance_breach",
         severity: "MINOR",
@@ -505,7 +505,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [created];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.create({
         eventType: "customer_complaint",
         severity: "MINOR",
@@ -523,7 +523,7 @@ describe("violation-event router", () => {
     });
 
     it("rejects missing title", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).create({
           eventType: "quality_defect",
@@ -534,7 +534,7 @@ describe("violation-event router", () => {
     });
 
     it("rejects missing eventType", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).create({
           severity: "MAJOR",
@@ -544,7 +544,7 @@ describe("violation-event router", () => {
     });
 
     it("rejects invalid severity", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).create({
           eventType: "quality_defect",
@@ -569,7 +569,7 @@ describe("violation-event router", () => {
       // providing a result that won't cause issues (empty = no record found = no freeze)
       // The auto-freeze is wrapped in try/catch so even on error it's non-fatal
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.create({
         eventType: "quality_defect",
         severity: "MAJOR",
@@ -591,7 +591,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.updateStatus({
         id: 1,
         status: "investigating",
@@ -606,7 +606,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.updateStatus({
         id: 1,
         status: "confirmed",
@@ -625,7 +625,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller({ name: "Test User" });
+      const caller = createAdminCaller({ name: "Test User" });
       const result = await caller.violationEvent.updateStatus({
         id: 1,
         status: "resolved",
@@ -662,7 +662,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.updateStatus({
         id: 1,
         status: "resolved",
@@ -699,7 +699,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.violationEvent.updateStatus({
         id: 1,
         status: "resolved",
@@ -716,7 +716,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.violationEvent.updateStatus({
         id: 1,
         status: "investigating",
@@ -734,7 +734,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.updateStatus({
         id: 1,
         status: "resolved",
@@ -751,7 +751,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.updateStatus({
         id: 1,
         status: "investigating",
@@ -773,7 +773,7 @@ describe("violation-event router", () => {
       // which returns mockReturningResult. The unfreeze is in a try/catch
       // so even if it fails, updateStatus still succeeds.
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.updateStatus({
         id: 1,
         status: "resolved",
@@ -783,7 +783,7 @@ describe("violation-event router", () => {
     });
 
     it("rejects invalid status value", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).updateStatus({
           id: 1,
@@ -793,7 +793,7 @@ describe("violation-event router", () => {
     });
 
     it("rejects missing id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).updateStatus({
           status: "investigating",
@@ -805,7 +805,7 @@ describe("violation-event router", () => {
       const updated = makeViolationEvent({ id: 1, status: "open" });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.updateStatus({
         id: 1,
         status: "open",
@@ -827,7 +827,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.addActionItems({
         id: 1,
         actionItems,
@@ -846,7 +846,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.addActionItems({
         id: 1,
         actionItems,
@@ -861,7 +861,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.addActionItems({
         id: 1,
         actionItems: [],
@@ -879,7 +879,7 @@ describe("violation-event router", () => {
       });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.addActionItems({
         id: 1,
         actionItems,
@@ -891,7 +891,7 @@ describe("violation-event router", () => {
       const updated = makeViolationEvent({ id: 1, actionItemsJson: [{ step: 1, description: "Test", responsible: "A", status: "pending" }] });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.addActionItems({
         id: 1,
         actionItems: [
@@ -902,7 +902,7 @@ describe("violation-event router", () => {
     });
 
     it("rejects missing required fields in action items", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).addActionItems({
           id: 1,
@@ -914,7 +914,7 @@ describe("violation-event router", () => {
     });
 
     it("rejects missing id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).addActionItems({
           actionItems: [],
@@ -935,7 +935,7 @@ describe("violation-event router", () => {
       ];
       mockQueryResult = events;
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.stats({});
       expect(result.total).toBe(5);
       expect(result.bySeverity).toEqual({ MINOR: 2, MAJOR: 2, CRITICAL: 1 });
@@ -946,7 +946,7 @@ describe("violation-event router", () => {
     it("returns empty stats when no events", async () => {
       mockQueryResult = [];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.stats({});
       expect(result.total).toBe(0);
       expect(result.bySeverity).toEqual({ MINOR: 0, MAJOR: 0, CRITICAL: 0 });
@@ -960,7 +960,7 @@ describe("violation-event router", () => {
       ];
       mockQueryResult = events;
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.stats({ buId: 2 });
       expect(result.total).toBe(1);
       expect(result.bySeverity.MINOR).toBe(1);
@@ -970,7 +970,7 @@ describe("violation-event router", () => {
     it("returns all zeros when no buId filter and no events", async () => {
       mockQueryResult = [];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.stats({});
       expect(result.total).toBe(0);
       expect(result.activeCount).toBe(0);
@@ -984,7 +984,7 @@ describe("violation-event router", () => {
       ];
       mockQueryResult = events;
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.stats({});
       expect(result.total).toBe(3);
       expect(result.activeCount).toBe(1); // only "open"
@@ -999,7 +999,7 @@ describe("violation-event router", () => {
         throw new Error("DB unavailable");
       };
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.stats({});
 
       // Restore original then
@@ -1019,7 +1019,7 @@ describe("violation-event router", () => {
       ];
       mockQueryResult = events;
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.stats({});
       expect(result.bySeverity.CRITICAL).toBe(3);
       expect(result.bySeverity.MINOR).toBe(0);
@@ -1037,7 +1037,7 @@ describe("violation-event router", () => {
       // Each insert().values().returning() returns a record
       mockReturningResult = [makeViolationEvent({ id: 100 })];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.seedDemo();
       expect(result).toHaveProperty("seeded", 3);
       expect(result).toHaveProperty("results");
@@ -1052,7 +1052,7 @@ describe("violation-event router", () => {
       const originalReturning = chain.returning;
       chain.returning = vi.fn(() => Promise.reject(new Error("duplicate key")));
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.seedDemo();
       expect(result).toHaveProperty("seeded", 3);
       // Each result should have status "error"
@@ -1071,7 +1071,7 @@ describe("violation-event router", () => {
       // Return different ids for each seed
       mockReturningResult = [makeViolationEvent({ id: 1, title: "客户退货：清洗机喷嘴压力不达标" })];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.violationEvent.seedDemo();
       expect(result.results).toHaveLength(3);
       // All should have status "created" since returning() resolves
@@ -1138,21 +1138,21 @@ describe("violation-event router", () => {
   // ═══ Input Validation Edge Cases ═══════════════════
   describe("input validation", () => {
     it("list rejects severity not in enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).list({ severity: "LOW" }),
       ).rejects.toThrow();
     });
 
     it("list rejects status not in enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).list({ status: "pending" }),
       ).rejects.toThrow();
     });
 
     it("create rejects severity not in enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).create({
           eventType: "test",
@@ -1163,7 +1163,7 @@ describe("violation-event router", () => {
     });
 
     it("updateStatus rejects non-numeric id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).updateStatus({
           id: "abc",
@@ -1173,7 +1173,7 @@ describe("violation-event router", () => {
     });
 
     it("addActionItems rejects non-numeric event id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).addActionItems({
           id: "abc",
@@ -1183,14 +1183,14 @@ describe("violation-event router", () => {
     });
 
     it("getById rejects missing id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).getById({}),
       ).rejects.toThrow();
     });
 
     it("addActionItems rejects action item missing step", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).addActionItems({
           id: 1,
@@ -1200,7 +1200,7 @@ describe("violation-event router", () => {
     });
 
     it("addActionItems rejects action item missing description", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.violationEvent as any).addActionItems({
           id: 1,

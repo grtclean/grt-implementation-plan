@@ -45,6 +45,7 @@ const PERMISSIONS: PermDef[] = [
   { code: "system:scheduler:view", name: "View scheduled jobs", category: "system", module: "system", action: "view", level: 3 },
   { code: "system:scheduler:manage", name: "Create/edit/trigger scheduled jobs", category: "system", module: "system", action: "manage", level: 4 },
   { code: "system:security:dashboard", name: "Access security dashboard", category: "system", module: "system", action: "view", level: 3 },
+  { code: "system:security:audit", name: "View security audit logs and reports", category: "system", module: "system", action: "view", level: 4 },
   { code: "system:compliance:view", name: "View compliance dashboard", category: "system", module: "system", action: "view", level: 2 },
   { code: "system:compliance:manage", name: "Manage compliance calendar", category: "system", module: "system", action: "manage", level: 4 },
   { code: "system:errors:view", name: "View error logs", category: "system", module: "system", action: "view", level: 3 },
@@ -80,6 +81,37 @@ const PERMISSIONS: PermDef[] = [
   { code: "crm:forecast:view", name: "View AI sales forecast", category: "crm", module: "crm", action: "view", level: 3 },
   { code: "crm:churn:view", name: "View customer churn predictions", category: "crm", module: "crm", action: "view", level: 3 },
   { code: "crm:portal:access", name: "Access customer portal", category: "crm", module: "crm", action: "view", level: 1 },
+  { code: "crm:campaigns:view", name: "View showcase campaigns", category: "crm", module: "crm", action: "view", level: 1 },
+  { code: "crm:campaigns:manage", name: "Create/edit showcase templates and guest links", category: "crm", module: "crm", action: "manage", level: 2 },
+
+  // ── 2B. BATTLE ARENA (4) ──
+  { code: "arena:rankings:view", name: "View arena rankings & war room", category: "hr", module: "battleArena", action: "view", level: 2 },
+  { code: "arena:rankings:manage", name: "Compute rankings & generate reports", category: "hr", module: "battleArena", action: "manage", level: 3 },
+  { code: "arena:reports:view", name: "View battle reports", category: "hr", module: "battleArena", action: "view", level: 2 },
+  { code: "arena:reports:manage", name: "Lock/review battle reports", category: "hr", module: "battleArena", action: "manage", level: 3 },
+
+  // ── 2C. SALES COACH ENGINE (5) ──
+  { code: "sales:budget:read", name: "View client CAPEX budgets", category: "crm", module: "salesCoach", action: "view", level: 1 },
+  { code: "sales:budget:write", name: "Create/edit client CAPEX budgets", category: "crm", module: "salesCoach", action: "manage", level: 2 },
+  { code: "sales:strategy:read", name: "View bidding strategies", category: "crm", module: "salesCoach", action: "view", level: 1 },
+  { code: "sales:strategy:write", name: "Create/edit bidding strategies", category: "crm", module: "salesCoach", action: "manage", level: 2 },
+  { code: "sales:coach:view", name: "View AI sales coaching", category: "crm", module: "salesCoach", action: "view", level: 1 },
+
+  // ── 2D. BI REPORT ENGINE (4) ──
+  { code: "bi:report:view", name: "View BI reports & dashboards", category: "analytics", module: "biReport", action: "view", level: 2 },
+  { code: "bi:report:manage", name: "Create/publish/archive BI reports", category: "analytics", module: "biReport", action: "manage", level: 5 },
+  { code: "bi:access:view", name: "View BI access rules", category: "analytics", module: "biReport", action: "view", level: 3 },
+  { code: "bi:access:manage", name: "Grant/revoke BI report access", category: "analytics", module: "biReport", action: "manage", level: 7 },
+
+  // ── 2E. OEM DEVELOPER PORTAL (8) ──
+  { code: "oem:keys:view", name: "View OEM API keys", category: "platform", module: "oemPortal", action: "view", level: 3 },
+  { code: "oem:keys:manage", name: "Create/revoke/rotate OEM API keys", category: "platform", module: "oemPortal", action: "manage", level: 5 },
+  { code: "oem:webhooks:view", name: "View OEM webhook configs", category: "platform", module: "oemPortal", action: "view", level: 3 },
+  { code: "oem:webhooks:manage", name: "Create/update/delete OEM webhooks", category: "platform", module: "oemPortal", action: "manage", level: 5 },
+  { code: "oem:analytics:view", name: "View OEM API analytics", category: "platform", module: "oemPortal", action: "view", level: 3 },
+  { code: "oem:analytics:manage", name: "Manage OEM analytics settings", category: "platform", module: "oemPortal", action: "manage", level: 7 },
+  { code: "oem:data:read", name: "Access OEM data API", category: "platform", module: "oemPortal", action: "view", level: 2 },
+  { code: "oem:portal:admin", name: "Full OEM portal admin", category: "platform", module: "oemPortal", action: "manage", level: 7 },
 
   // ── 3. R&D DESIGN (20) ──
   { code: "rnd:requirements:view", name: "View requirements", category: "rnd", module: "rnd", action: "view", level: 1 },
@@ -176,6 +208,14 @@ const PERMISSIONS: PermDef[] = [
   { code: "mfg:certificate:generate", name: "Generate product certificates", category: "mfg", module: "mfg", action: "execute", level: 2 },
   { code: "mfg:monthly-report:view", name: "View quality monthly report", category: "mfg", module: "mfg", action: "view", level: 2 },
   { code: "mfg:process-trials:manage", name: "Manage process trial workbench", category: "mfg", module: "mfg", action: "manage", level: 2 },
+  { code: "mfg:robot-cleaning:view", name: "View robot cleaning performance", category: "mfg", module: "mfg", action: "view", level: 1 },
+  { code: "mfg:robot-cleaning:manage", name: "Manage robot cleaning + oiling records", category: "mfg", module: "mfg", action: "manage", level: 2 },
+  { code: "mfg:robot-fleet:read", name: "View robot fleet registry, telemetry, and alerts", category: "mfg", module: "mfg", action: "view", level: 1 },
+  { code: "mfg:robot-fleet:manage", name: "Manage robot fleet: register, connect, protocol test, DT sync", category: "mfg", module: "mfg", action: "manage", level: 2 },
+  { code: "mfg:semiconductor-cleaning:read", name: "View semiconductor cleaning recipes & compliance", category: "mfg", module: "mfg", action: "view", level: 1 },
+  { code: "mfg:semiconductor-cleaning:manage", name: "Manage semiconductor cleaning recipes & validation", category: "mfg", module: "mfg", action: "manage", level: 2 },
+  { code: "mfg:cleanroom:read", name: "View cleanroom environment logs", category: "mfg", module: "mfg", action: "view", level: 1 },
+  { code: "mfg:cleanroom:manage", name: "Manage cleanroom environment readings", category: "mfg", module: "mfg", action: "manage", level: 2 },
 
   // ── 6. SUPPLY CHAIN (15) ──
   { code: "supply:workbench:view", name: "View supply chain workbench", category: "supply", module: "supply", action: "view", level: 1 },
@@ -243,6 +283,8 @@ const PERMISSIONS: PermDef[] = [
   { code: "hr:status:manage", name: "Manage user status", category: "hr", module: "hr", action: "manage", level: 3 },
   { code: "hr:planning:annual", name: "Manage annual planning", category: "hr", module: "hr", action: "manage", level: 3 },
   { code: "hr:supervisor:dashboard", name: "Access supervisor workbench", category: "hr", module: "hr", action: "view", level: 2 },
+  { code: "hr:calibration:manage", name: "Manage performance calibration sessions", category: "hr", module: "hr", action: "manage", level: 4 },
+  { code: "hr:calibration:ceo", name: "CEO lock calibration sessions", category: "hr", module: "hr", action: "approve", level: 5 },
 
   // ── 9. CAPABILITY SYSTEM (13) ──
   { code: "capability:profile:self", name: "View own capability profile", category: "capability", module: "capability", action: "view", level: 1 },
@@ -301,6 +343,11 @@ const PERMISSIONS: PermDef[] = [
   { code: "ai:provisioning:manage", name: "Manage AI assistant provisioning", category: "ai", module: "ai", action: "manage", level: 4 },
   { code: "ai:localizer:use", name: "Use AI content localizer", category: "ai", module: "ai", action: "execute", level: 1 },
   { code: "ai:security:governance", name: "AI security & governance", category: "ai", module: "ai", action: "manage", level: 4 },
+  { code: "ai:claw:view", name: "View AI Claw executions", category: "ai", module: "ai", action: "view", level: 2 },
+  { code: "ai:claw:execute", name: "Execute external tools via AI Claw", category: "ai", module: "ai", action: "execute", level: 3 },
+  { code: "ai:claw:approve", name: "Approve AI Claw pending executions", category: "ai", module: "ai", action: "approve", level: 3 },
+  { code: "ai:claw:admin", name: "Manage AI Claw tool registry", category: "ai", module: "ai", action: "manage", level: 4 },
+  { code: "ai:claw:audit", name: "Audit AI Claw execution logs", category: "ai", module: "ai", action: "view", level: 3 },
 
   // ── 12. AI DEVOPS (8) ──
   { code: "devops:matrix:view", name: "View dual AI collaboration matrix", category: "devops", module: "devops", action: "view", level: 1 },
@@ -311,6 +358,8 @@ const PERMISSIONS: PermDef[] = [
   { code: "devops:simulator:access", name: "Access simulator", category: "devops", module: "devops", action: "execute", level: 2 },
   { code: "devops:deployment:manage", name: "Manage system deployment", category: "devops", module: "devops", action: "execute", level: 3 },
   { code: "devops:effectiveness:view", name: "View AI effectiveness", category: "devops", module: "devops", action: "view", level: 1 },
+  { code: "dev:env:sync-check", name: "Run mech/elec sync check (pre-push)", category: "devops", module: "devops", action: "execute", level: 2 },
+  { code: "dev:env:oiling-sim", name: "Run AI oiling simulation (pre-push)", category: "devops", module: "devops", action: "execute", level: 2 },
 
   // ── 13. STRATEGIC PLANNING (8) ──
   { code: "strategy:hub:access", name: "Access strategy hub", category: "strategy", module: "strategy", action: "view", level: 2 },
@@ -353,13 +402,165 @@ const PERMISSIONS: PermDef[] = [
   { code: "pos:mes:sync", name: "POS MES synchronization", category: "pos", module: "pos", action: "execute", level: 3 },
   { code: "pos:connectors:config", name: "Configure POS connectors", category: "pos", module: "pos", action: "manage", level: 4 },
 
-  // ── 17. WORKSPACE (6) ──
+  // ── 18. MARKETING PLATFORM (13) ──
+  { code: "marketing:plan:view", name: "View marketing annual plans", category: "marketing", module: "marketing", action: "view", level: 1 },
+  { code: "marketing:plan:create", name: "Create marketing annual plans", category: "marketing", module: "marketing", action: "create", level: 3 },
+  { code: "marketing:plan:edit", name: "Edit marketing plans and KPIs", category: "marketing", module: "marketing", action: "edit", level: 3 },
+  { code: "marketing:quality:view", name: "View marketing quality specs", category: "marketing", module: "marketing", action: "view", level: 1 },
+  { code: "marketing:quality:create", name: "Create quality specifications", category: "marketing", module: "marketing", action: "create", level: 2 },
+  { code: "marketing:quality:edit", name: "Review assets and manage VI rules", category: "marketing", module: "marketing", action: "edit", level: 3 },
+  { code: "marketing:asset:create", name: "Submit marketing assets for review", category: "marketing", module: "marketing", action: "create", level: 1 },
+  { code: "marketing:exhibition:create", name: "Create exhibition campaigns", category: "marketing", module: "marketing", action: "create", level: 2 },
+  { code: "marketing:exhibition:edit", name: "Manage exhibition stages and tasks", category: "marketing", module: "marketing", action: "edit", level: 3 },
+  { code: "marketing:lead:create", name: "Capture and sync exhibition leads", category: "marketing", module: "marketing", action: "create", level: 1 },
+  { code: "marketing:history:create", name: "Add historical marketing assets", category: "marketing", module: "marketing", action: "create", level: 2 },
+  { code: "marketing:history:edit", name: "Edit and vectorize historical assets", category: "marketing", module: "marketing", action: "edit", level: 2 },
+  { code: "marketing:broadcast:create", name: "Create broadcast channels", category: "marketing", module: "marketing", action: "create", level: 3 },
+  { code: "marketing:broadcast:edit", name: "Manage broadcast schedules", category: "marketing", module: "marketing", action: "edit", level: 2 },
+
+  // ── 17. CUSTOMER AUTHORIZATION (7) ──
+  { code: "rnd:hmi:view", name: "View HMI variable tables and layouts", category: "rnd", module: "rnd", action: "view", level: 2 },
+  { code: "rnd:plc:source:view", name: "View PLC source code modules", category: "rnd", module: "rnd", action: "view", level: 3 },
+  { code: "customer:authorization:manage", name: "Create/edit/revoke customer authorizations", category: "customer", module: "customer", action: "manage", level: 3 },
+  { code: "customer:authorization:view", name: "View customer authorization records", category: "customer", module: "customer", action: "view", level: 2 },
+  { code: "customer:nda:countersign", name: "Countersign NDA/IP agreements on behalf of GRT", category: "customer", module: "customer", action: "approve", level: 4 },
+  { code: "customer:portal:audit", name: "View customer portal access audit logs", category: "customer", module: "customer", action: "view", level: 4 },
+  { code: "customer:portal:access", name: "Access customer portal (external customers only)", category: "customer", module: "customer", action: "view", level: 0 },
+
+  // ── 18. WORKSPACE (6) ──
   { code: "workspace:dashboard:view", name: "View personal dashboard", category: "workspace", module: "workspace", action: "view", level: 1 },
   { code: "workspace:profile:view", name: "View own profile", category: "workspace", module: "workspace", action: "view", level: 1 },
   { code: "workspace:profile:edit", name: "Edit own profile", category: "workspace", module: "workspace", action: "edit", level: 1 },
   { code: "workspace:notifications:view", name: "View notifications", category: "workspace", module: "workspace", action: "view", level: 1 },
   { code: "workspace:favorites:manage", name: "Manage favorites", category: "workspace", module: "workspace", action: "manage", level: 1 },
   { code: "workspace:preferences:manage", name: "Manage preferences", category: "workspace", module: "workspace", action: "manage", level: 1 },
+
+  // ── 19. R&D NPI/NPD (10) ──
+  { code: "rnd:npi:view", name: "View NPI/NPD projects", category: "rnd", module: "rnd-npi", action: "view", level: 1 },
+  { code: "rnd:npi:manage", name: "Create/edit NPI projects", category: "rnd", module: "rnd-npi", action: "manage", level: 2 },
+  { code: "rnd:npi:gate:manage", name: "Manage NPI gate reviews", category: "rnd", module: "rnd-npi", action: "manage", level: 2 },
+  { code: "rnd:npi:gate:approve", name: "Approve NPI gates, CTO/CEO sign-off", category: "rnd", module: "rnd-npi", action: "approve", level: 3 },
+  { code: "rnd:npi:bom:manage", name: "Create/edit sandbox BOMs", category: "rnd", module: "rnd-npi", action: "manage", level: 2 },
+  { code: "rnd:npi:bom:freeze", name: "Freeze BOM for gate review", category: "rnd", module: "rnd-npi", action: "approve", level: 3 },
+  { code: "rnd:npi:bom:promote", name: "Promote BOM to production", category: "rnd", module: "rnd-npi", action: "approve", level: 4 },
+  { code: "rnd:npi:test:manage", name: "Create/edit test records", category: "rnd", module: "rnd-npi", action: "manage", level: 2 },
+  { code: "rnd:npi:routing:manage", name: "Create/edit assembly routings", category: "rnd", module: "rnd-npi", action: "manage", level: 2 },
+  { code: "rnd:npi:admin", name: "Full NPI admin access", category: "rnd", module: "rnd-npi", action: "admin", level: 4 },
+
+  // ── 20. PDM — Product Data Management (12) ──
+  { code: "rnd:pdm:view", name: "View PDM workbench and products", category: "rnd", module: "pdm", action: "view", level: 1 },
+  { code: "rnd:pdm:manage", name: "Create/edit PDM products and items", category: "rnd", module: "pdm", action: "manage", level: 2 },
+  { code: "rnd:pdm:baseline", name: "Create configuration baselines", category: "rnd", module: "pdm", action: "manage", level: 2 },
+  { code: "rnd:pdm:approve", name: "Approve baselines and waivers", category: "rnd", module: "pdm", action: "approve", level: 3 },
+  { code: "rnd:eco:manage", name: "Submit and manage ECOs", category: "rnd", module: "pdm", action: "manage", level: 2 },
+  { code: "rnd:eco:approve", name: "Approve or reject ECOs", category: "rnd", module: "pdm", action: "approve", level: 3 },
+  { code: "mfg:pdm:manage", name: "Create as-built deviations", category: "mfg", module: "pdm", action: "manage", level: 2 },
+  { code: "mfg:pdm:approve", name: "Approve as-built deviations", category: "mfg", module: "pdm", action: "approve", level: 3 },
+  { code: "service:pdm:manage", name: "Create field insights", category: "service", module: "pdm", action: "manage", level: 2 },
+  { code: "service:pdm:view", name: "View field insights", category: "service", module: "pdm", action: "view", level: 1 },
+  { code: "rnd:pdm:dashboard", name: "View PDM dashboard analytics", category: "rnd", module: "pdm", action: "view", level: 1 },
+  { code: "rnd:pdm:admin", name: "Full PDM admin access", category: "rnd", module: "pdm", action: "admin", level: 4 },
+
+  // ── 17. DOCUMENT GOVERNANCE (10) ──
+  { code: "doc:registry:view", name: "View document registry", category: "doc", module: "doc-governance", action: "view", level: 1 },
+  { code: "doc:registry:manage", name: "Create/edit document registry entries", category: "doc", module: "doc-governance", action: "manage", level: 3 },
+  { code: "doc:template:edit", name: "Edit document templates and content", category: "doc", module: "doc-governance", action: "edit", level: 2 },
+  { code: "doc:version:approve", name: "Approve major document versions", category: "doc", module: "doc-governance", action: "approve", level: 3 },
+  { code: "doc:instance:create", name: "Create document instances from templates", category: "doc", module: "doc-governance", action: "create", level: 1 },
+  { code: "doc:instance:approve", name: "Approve document instances", category: "doc", module: "doc-governance", action: "approve", level: 3 },
+  { code: "doc:links:manage", name: "Manage document cross-references", category: "doc", module: "doc-governance", action: "manage", level: 2 },
+  { code: "doc:review:schedule", name: "Schedule document reviews", category: "doc", module: "doc-governance", action: "manage", level: 3 },
+  { code: "doc:audit:view", name: "View document audit logs", category: "doc", module: "doc-governance", action: "view", level: 3 },
+  { code: "doc:admin:import", name: "Import/sync documents from filesystem", category: "doc", module: "doc-governance", action: "admin", level: 4 },
+  // IDO — Intelligent Document Optimization
+  { code: "doc:ido:view", name: "View IDO mapping table and recommendations", category: "doc", module: "ido", action: "view", level: 1 },
+  { code: "doc:ido:manage", name: "Manage IDO mapping entries", category: "doc", module: "ido", action: "manage", level: 3 },
+  { code: "doc:ido:recommend", name: "Receive storage recommendations", category: "doc", module: "ido", action: "view", level: 1 },
+  { code: "doc:ido:analytics", name: "View IDO analytics dashboard", category: "doc", module: "ido", action: "view", level: 2 },
+
+  // ── 19. SMART PAYROLL ENGINE (8) ──
+  { code: "payroll:structure:view", name: "View salary structures", category: "finance", module: "payroll", action: "view", level: 3 },
+  { code: "payroll:structure:manage", name: "Create/edit salary structures", category: "finance", module: "payroll", action: "manage", level: 4 },
+  { code: "payroll:attendance:view", name: "View attendance records", category: "finance", module: "payroll", action: "view", level: 3 },
+  { code: "payroll:ledger:view", name: "View payroll ledgers and summaries", category: "finance", module: "payroll", action: "view", level: 3 },
+  { code: "payroll:ledger:calculate", name: "Run payroll calculations", category: "finance", module: "payroll", action: "execute", level: 4 },
+  { code: "payroll:approve:hr", name: "HR verify payroll", category: "finance", module: "payroll", action: "approve", level: 3 },
+  { code: "payroll:approve:ceo", name: "CEO approve payroll", category: "finance", module: "payroll", action: "approve", level: 4 },
+  { code: "payroll:payout:execute", name: "Execute payroll payout", category: "finance", module: "payroll", action: "execute", level: 4 },
+  { code: "payroll:confidentiality:view", name: "View payroll access control list", category: "finance", module: "payroll", action: "view", level: 5 },
+  { code: "payroll:confidentiality:manage", name: "Grant/revoke payroll access", category: "finance", module: "payroll", action: "manage", level: 7 },
+  { code: "payroll:perfOverride:manage", name: "Override performance wages", category: "finance", module: "payroll", action: "manage", level: 7 },
+  { code: "payroll:perfOverride:view", name: "View performance wage override history", category: "finance", module: "payroll", action: "view", level: 5 },
+
+  // ── 20. GO-LIVE COMMAND CENTER (6) ──
+  { code: "goLive:readiness:view", name: "View go-live readiness scorecard", category: "system", module: "goLive", action: "view", level: 3 },
+  { code: "goLive:readiness:manage", name: "Run preflight checks and manage readiness", category: "system", module: "goLive", action: "manage", level: 4 },
+  { code: "goLive:salary:import", name: "Import salary data via Go-Live center", category: "hr", module: "goLive", action: "execute", level: 4 },
+  { code: "goLive:encoding:view", name: "View encoding compliance dashboard", category: "system", module: "goLive", action: "view", level: 2 },
+  { code: "goLive:simulation:run", name: "Run legion simulation", category: "system", module: "goLive", action: "execute", level: 4 },
+  { code: "goLive:architecture:view", name: "View system architecture overview", category: "system", module: "goLive", action: "view", level: 3 },
+  // Sandbox & Go-Live Console (10)
+  { code: "goLive:sandbox:view", name: "View sandbox scenarios and runs", category: "system", module: "goLive", action: "view", level: 3 },
+  { code: "goLive:sandbox:manage", name: "Create/edit sandbox scenarios", category: "system", module: "goLive", action: "manage", level: 4 },
+  { code: "goLive:sandbox:execute", name: "Execute AI sandbox runs (proposal/implementation/review)", category: "system", module: "goLive", action: "execute", level: 4 },
+  { code: "goLive:gate:view", name: "View release gates and progress", category: "system", module: "goLive", action: "view", level: 3 },
+  { code: "goLive:gate:manage", name: "Review and manage release gates", category: "system", module: "goLive", action: "manage", level: 4 },
+  { code: "goLive:gate:admin", name: "Override release gates (CEO/admin)", category: "system", module: "goLive", action: "admin", level: 4 },
+  { code: "goLive:task:view", name: "View sandbox change tasks", category: "system", module: "goLive", action: "view", level: 2 },
+  { code: "goLive:task:manage", name: "Manage sandbox change tasks", category: "system", module: "goLive", action: "manage", level: 3 },
+  { code: "goLive:task:deploy", name: "Deploy sandbox change tasks to production", category: "system", module: "goLive", action: "execute", level: 4 },
+  { code: "goLive:ai:configure", name: "Configure AI providers for sandbox", category: "system", module: "goLive", action: "manage", level: 4 },
+
+  // ── 18. REMOTE GOVERNANCE (6) ──
+  { code: "remote:access:request", name: "Request remote VPN access tokens", category: "security", module: "remoteGovernance", action: "create", level: 2 },
+  { code: "remote:access:approve", name: "Approve/reject remote access requests", category: "security", module: "remoteGovernance", action: "manage", level: 4 },
+  { code: "remote:tunnel:view", name: "View active VPN tunnels", category: "security", module: "remoteGovernance", action: "view", level: 3 },
+  { code: "remote:tunnel:kill", name: "Kill-switch revoke active VPN tokens", category: "security", module: "remoteGovernance", action: "execute", level: 4 },
+  { code: "remote:audit:view", name: "View remote access audit logs", category: "security", module: "remoteGovernance", action: "view", level: 3 },
+  { code: "remote:governance:admin", name: "Full remote governance administration", category: "security", module: "remoteGovernance", action: "admin", level: 4 },
+
+  // ── 19. ELECTRICAL STANDARDS GOVERNANCE (8) ──
+  { code: "electrical:standards:view", name: "View electrical standards library", category: "quality", module: "electricalStandards", action: "view", level: 2 },
+  { code: "electrical:standards:manage", name: "Create/edit electrical standards", category: "quality", module: "electricalStandards", action: "manage", level: 4 },
+  { code: "electrical:customers:manage", name: "Manage customer standard profiles", category: "quality", module: "electricalStandards", action: "manage", level: 3 },
+  { code: "electrical:project:manage", name: "Manage project standard selections", category: "quality", module: "electricalStandards", action: "manage", level: 3 },
+  { code: "electrical:project:lock", name: "Lock project standards at M3 gate", category: "quality", module: "electricalStandards", action: "execute", level: 4 },
+  { code: "electrical:checklist:manage", name: "Generate compliance checklists", category: "quality", module: "electricalStandards", action: "manage", level: 3 },
+  { code: "electrical:checklist:check", name: "Check/verify compliance items", category: "quality", module: "electricalStandards", action: "execute", level: 2 },
+  { code: "electrical:complaints:manage", name: "Manage electrical complaints", category: "quality", module: "electricalStandards", action: "manage", level: 3 },
+  { code: "electrical:rules:manage", name: "Manage review gate rules", category: "quality", module: "electricalStandards", action: "manage", level: 4 },
+
+  // ── 20b. MECHANICAL CONFIG STANDARDS (机械配置标准治理) (12) ──
+  { code: "mechanical:standards:view", name: "View mechanical standards library", category: "quality", module: "mechanicalConfig", action: "view", level: 2 },
+  { code: "mechanical:standards:manage", name: "Create/edit mechanical standards", category: "quality", module: "mechanicalConfig", action: "manage", level: 4 },
+  { code: "mechanical:config:view", name: "View customer mechanical configs", category: "quality", module: "mechanicalConfig", action: "view", level: 2 },
+  { code: "mechanical:config:manage", name: "Manage customer mechanical configs", category: "quality", module: "mechanicalConfig", action: "manage", level: 3 },
+  { code: "mechanical:knowledge:manage", name: "Manage knowledge graph links", category: "quality", module: "mechanicalConfig", action: "manage", level: 4 },
+  { code: "mechanical:project:manage", name: "Manage project mechanical selections", category: "quality", module: "mechanicalConfig", action: "manage", level: 3 },
+  { code: "mechanical:project:lock", name: "Lock project mechanical standards at M3", category: "quality", module: "mechanicalConfig", action: "execute", level: 4 },
+  { code: "mechanical:quotation:manage", name: "Manage quotation compliance checks", category: "quality", module: "mechanicalConfig", action: "manage", level: 3 },
+  { code: "mechanical:checklist:manage", name: "Generate mechanical phase checklists", category: "quality", module: "mechanicalConfig", action: "manage", level: 3 },
+  { code: "mechanical:checklist:check", name: "Check/verify mechanical items", category: "quality", module: "mechanicalConfig", action: "execute", level: 2 },
+  { code: "mechanical:acceptance:manage", name: "Manage customer acceptance records", category: "quality", module: "mechanicalConfig", action: "manage", level: 3 },
+  { code: "mechanical:rules:manage", name: "Manage mechanical review rules", category: "quality", module: "mechanicalConfig", action: "manage", level: 4 },
+
+  // ── 21. AUTHORIZATION HIERARCHY (授权层级审批制度) (8) ──
+  { code: "auth:policy:view", name: "View authorization policies", category: "core", module: "authHierarchy", action: "view", level: 2 },
+  { code: "auth:policy:manage", name: "Create/update authorization policies", category: "core", module: "authHierarchy", action: "manage", level: 5 },
+  { code: "auth:creditTier:view", name: "View employee credit tiers", category: "hr", module: "authHierarchy", action: "view", level: 3 },
+  { code: "auth:creditTier:manage", name: "Override credit tiers", category: "hr", module: "authHierarchy", action: "manage", level: 5 },
+  { code: "auth:greenChannel:use", name: "Use green channel", category: "core", module: "authHierarchy", action: "execute", level: 1 },
+  { code: "auth:postFacto:review", name: "Review post-facto submissions", category: "core", module: "authHierarchy", action: "manage", level: 3 },
+  { code: "auth:integrity:recognize", name: "Publicly recognize employee integrity", category: "hr", module: "authHierarchy", action: "execute", level: 4 },
+  { code: "auth:audit:view", name: "View authorization audit trail", category: "core", module: "authHierarchy", action: "view", level: 4 },
+
+  // ── 22. DEPARTMENT PROCEDURES (规章制度管理) (6) ──
+  { code: "procedure:read", name: "View department procedures", category: "core", module: "deptProcedure", action: "view", level: 1 },
+  { code: "procedure:acknowledge", name: "Acknowledge department procedures", category: "core", module: "deptProcedure", action: "execute", level: 1 },
+  { code: "procedure:manage", name: "Create/edit/publish department procedures", category: "core", module: "deptProcedure", action: "manage", level: 3 },
+  { code: "procedure:admin", name: "Cross-department procedure administration", category: "core", module: "deptProcedure", action: "manage", level: 5 },
+  { code: "procedure:exception:report", name: "Report procedure exceptions", category: "core", module: "deptProcedure", action: "execute", level: 1 },
+  { code: "procedure:exception:manage", name: "Manage procedure exception resolution", category: "core", module: "deptProcedure", action: "manage", level: 3 },
 ];
 
 // ── Role Definitions (14 Organizational Roles) ─────────
@@ -401,7 +602,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   ceo: [
     // System: view-only for users, audit, security, compliance, scheduler, monitoring
     "system:users:view", "system:permissions:assign", "system:audit:view",
-    "system:scheduler:view", "system:security:dashboard", "system:compliance:view",
+    "system:scheduler:view", "system:security:dashboard", "system:security:audit",
+    "system:compliance:view",
     "system:org:manage", "system:deployment:manage", "system:permissions:temporary",
     "system:monitoring:view",
     // CRM: view + strategic approvals
@@ -413,6 +615,19 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "rnd:requirements:view", "rnd:solutions:view", "rnd:bom:view",
     "rnd:bom:freeze", "rnd:plm:access", "rnd:documents:view",
     "rnd:3d:view", "rnd:eco:review", "rnd:digital-twin:view",
+    "rnd:hmi:view", "rnd:plc:source:view",
+    // R&D NPI: full
+    "rnd:npi:view", "rnd:npi:manage", "rnd:npi:gate:manage", "rnd:npi:gate:approve",
+    "rnd:npi:bom:manage", "rnd:npi:bom:freeze", "rnd:npi:bom:promote",
+    "rnd:npi:test:manage", "rnd:npi:routing:manage", "rnd:npi:admin",
+    // Customer authorization
+    "customer:authorization:manage", "customer:authorization:view",
+    "customer:nda:countersign", "customer:portal:audit",
+    // Document governance: view + approve
+    "doc:registry:view", "doc:registry:manage", "doc:template:edit",
+    "doc:version:approve", "doc:instance:create", "doc:instance:approve",
+    "doc:links:manage", "doc:review:schedule", "doc:audit:view",
+    "doc:ido:view", "doc:ido:manage", "doc:ido:recommend", "doc:ido:analytics",
     // Project: view + create/edit
     "project:list:view", "project:create", "project:edit",
     "project:stage-gate:view", "project:stage-gate:manage",
@@ -445,6 +660,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "ai:genesis:access", "ai:genesis:generate", "ai:genesis:approve",
     "ai:agents:manage", "ai:models:monitor", "ai:models:train",
     "ai:accuracy:admin", "ai:knowledge-graph:manage", "ai:security:governance",
+    "ai:claw:view", "ai:claw:execute", "ai:claw:approve", "ai:claw:admin", "ai:claw:audit",
     // DevOps
     "devops:matrix:view", "devops:concurrent:view", "devops:concurrent:approve",
     "devops:gemini:view", "devops:effectiveness:view",
@@ -461,7 +677,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 
   vp: [
-    "system:audit:view", "system:security:dashboard", "system:compliance:view",
+    "system:audit:view", "system:security:dashboard", "system:security:audit",
+    "system:compliance:view",
     "system:org:manage", "system:monitoring:view",
     // CRM
     "crm:customers:view", "crm:opportunities:view", "crm:leads:view",
@@ -471,6 +688,19 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "rnd:requirements:view", "rnd:solutions:view", "rnd:bom:view",
     "rnd:bom:freeze", "rnd:plm:access", "rnd:documents:view",
     "rnd:3d:view", "rnd:eco:review", "rnd:digital-twin:view",
+    "rnd:hmi:view", "rnd:plc:source:view",
+    // R&D NPI: full
+    "rnd:npi:view", "rnd:npi:manage", "rnd:npi:gate:manage", "rnd:npi:gate:approve",
+    "rnd:npi:bom:manage", "rnd:npi:bom:freeze", "rnd:npi:bom:promote",
+    "rnd:npi:test:manage", "rnd:npi:routing:manage", "rnd:npi:admin",
+    // Customer authorization
+    "customer:authorization:manage", "customer:authorization:view",
+    "customer:nda:countersign", "customer:portal:audit",
+    // Document governance: full
+    "doc:registry:view", "doc:registry:manage", "doc:template:edit",
+    "doc:version:approve", "doc:instance:create", "doc:instance:approve",
+    "doc:links:manage", "doc:review:schedule", "doc:audit:view", "doc:admin:import",
+    "doc:ido:view", "doc:ido:manage", "doc:ido:recommend", "doc:ido:analytics",
     // Project
     "project:list:view", "project:create", "project:edit",
     "project:stage-gate:view", "project:stage-gate:manage", "project:m1:manage",
@@ -501,6 +731,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "ai:hub:access", "ai:assistant:chat", "ai:rag:query",
     "ai:genesis:access", "ai:genesis:approve",
     "ai:models:monitor", "ai:security:governance",
+    "ai:claw:view", "ai:claw:execute", "ai:claw:approve", "ai:claw:audit",
     // DevOps
     "devops:matrix:view", "devops:concurrent:view", "devops:concurrent:approve",
     "devops:gemini:view", "devops:effectiveness:view",
@@ -516,7 +747,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 
   director: [
-    "system:compliance:view",
+    "system:compliance:view", "system:security:dashboard", "system:security:audit",
     // CRM: view
     "crm:customers:view", "crm:opportunities:view",
     // R&D: full within department
@@ -526,6 +757,18 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "rnd:bom:freeze", "rnd:plm:access", "rnd:documents:view", "rnd:documents:manage",
     "rnd:drawings:view", "rnd:drawings:manage", "rnd:3d:view",
     "rnd:eco:review", "rnd:digital-twin:view",
+    "rnd:hmi:view", "rnd:plc:source:view",
+    // R&D NPI: full
+    "rnd:npi:view", "rnd:npi:manage", "rnd:npi:gate:manage", "rnd:npi:gate:approve",
+    "rnd:npi:bom:manage", "rnd:npi:bom:freeze", "rnd:npi:bom:promote",
+    "rnd:npi:test:manage", "rnd:npi:routing:manage", "rnd:npi:admin",
+    // Customer authorization: full
+    "customer:authorization:manage", "customer:authorization:view",
+    "customer:nda:countersign", "customer:portal:audit",
+    // Document governance: full
+    "doc:registry:view", "doc:registry:manage", "doc:template:edit",
+    "doc:version:approve", "doc:instance:create", "doc:instance:approve",
+    "doc:links:manage", "doc:review:schedule", "doc:audit:view", "doc:admin:import",
     // Project
     "project:list:view", "project:create", "project:edit",
     "project:stage-gate:view", "project:stage-gate:manage", "project:m1:manage",
@@ -558,6 +801,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "hr:employees:view", "hr:attendance:view",
     "hr:performance:self", "hr:performance:team", "hr:performance:dept",
     "hr:training:view", "hr:bu-team:manage",
+    "hr:calibration:manage", "hr:calibration:ceo",
     // Finance
     "finance:expense:view", "finance:expense:create", "finance:expense:approve",
     "finance:trip:view", "finance:trip:create", "finance:trip:approve",
@@ -569,6 +813,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     // DevOps
     "devops:matrix:view", "devops:concurrent:view", "devops:concurrent:operate",
     "devops:concurrent:approve", "devops:gemini:view", "devops:effectiveness:view",
+    "dev:env:sync-check", "dev:env:oiling-sim",
     // Strategy
     "strategy:hub:access", "strategy:okr:view", "strategy:okr:manage",
     "strategy:agenda:view", "strategy:growth:view",
@@ -593,6 +838,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "hr:training:view", "hr:training:manage", "hr:compliance:view",
     "hr:bu-team:manage", "hr:visitor:request", "hr:status:manage",
     "hr:planning:annual", "hr:supervisor:dashboard",
+    "hr:calibration:manage", "hr:calibration:ceo",
     // Cross-module views
     "hr:employees:view", "project:list:view", "mfg:workers:view", "mfg:workers:performance",
     // Finance
@@ -615,6 +861,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "crm:contracts:view", "crm:contracts:manage",
     "crm:nda:manage", "crm:materials:view", "crm:analytics:view",
     "crm:forecast:view", "crm:churn:view",
+    // Customer authorization
+    "customer:authorization:manage", "customer:authorization:view",
     // Project: view
     "project:list:view", "project:gantt:view", "project:cockpit:view",
     // AI
@@ -634,7 +882,15 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "rnd:requirements:view", "rnd:requirements:manage", "rnd:solutions:view",
     "rnd:mechanical:view", "rnd:electrical:view", "rnd:bom:view",
     "rnd:plm:access", "rnd:documents:view", "rnd:drawings:view", "rnd:3d:view",
-    "rnd:digital-twin:view",
+    "rnd:digital-twin:view", "rnd:hmi:view",
+    // R&D NPI: view + manage + gate
+    "rnd:npi:view", "rnd:npi:manage", "rnd:npi:gate:manage",
+    // Customer authorization
+    "customer:authorization:manage", "customer:authorization:view",
+    // Document governance: manage
+    "doc:registry:view", "doc:registry:manage", "doc:template:edit",
+    "doc:version:approve", "doc:instance:create", "doc:instance:approve",
+    "doc:links:manage", "doc:review:schedule", "doc:audit:view",
     // Project: full
     "project:list:view", "project:create", "project:edit",
     "project:stage-gate:view", "project:stage-gate:manage", "project:m1:manage",
@@ -664,6 +920,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     // DevOps
     "devops:matrix:view", "devops:concurrent:view", "devops:concurrent:operate",
     "devops:gemini:view",
+    "dev:env:sync-check", "dev:env:oiling-sim",
     // Strategy
     "strategy:okr:view",
     // OA
@@ -690,6 +947,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "hr:training:view",
     // Finance
     "finance:expense:view", "finance:expense:create",
+    // Document governance: basic
+    "doc:registry:view", "doc:instance:create",
     // Workspace
     "workspace:dashboard:view", "workspace:profile:view", "workspace:profile:edit",
     "workspace:notifications:view", "workspace:favorites:manage", "workspace:preferences:manage",
@@ -706,6 +965,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "mfg:safety:manage", "mfg:materials:view",
     "mfg:oee:view", "mfg:cleanliness:manage",
     "mfg:monthly-report:view", "mfg:process-trials:manage",
+    // R&D NPI: view + test
+    "rnd:npi:view", "rnd:npi:test:manage",
     // HR
     "hr:performance:self", "hr:performance:team",
     "hr:training:view",
@@ -726,6 +987,10 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "rnd:plm:access", "rnd:documents:view", "rnd:documents:manage",
     "rnd:vault:access", "rnd:drawings:view", "rnd:drawings:manage",
     "rnd:3d:view", "rnd:digital-twin:view",
+    "rnd:hmi:view", "rnd:plc:source:view",
+    // R&D NPI: view + manage + bom + test + routing
+    "rnd:npi:view", "rnd:npi:manage", "rnd:npi:bom:manage",
+    "rnd:npi:test:manage", "rnd:npi:routing:manage",
     // Project
     "project:list:view", "project:tasks:view", "project:tasks:manage",
     "project:gantt:view", "project:risks:view", "project:risks:manage",
@@ -750,6 +1015,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     // DevOps
     "devops:matrix:view", "devops:concurrent:view", "devops:concurrent:operate",
     "devops:gemini:view", "devops:effectiveness:view",
+    "dev:env:sync-check", "dev:env:oiling-sim",
     // Strategy
     "strategy:okr:view",
     // Finance
@@ -772,6 +1038,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "crm:quotations:view", "crm:quotations:create",
     "crm:contracts:view", "crm:nda:manage",
     "crm:materials:view", "crm:analytics:view",
+    // Customer authorization: view only
+    "customer:authorization:view",
     // Project
     "project:list:view",
     // Service
@@ -809,6 +1077,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   customer: [
     // CRM: portal only
     "crm:portal:access",
+    // Customer portal
+    "customer:portal:access",
     // Service: limited
     "service:tickets:view", "service:tickets:manage",
     "service:feedback:view", "service:feedback:manage",
@@ -824,7 +1094,110 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 };
 
-// ── Seed Execution ──────────────────────────────────────
+// ── Exported Seed Function (used by auto-seed + CLI) ────
+
+type DrizzleDb = ReturnType<typeof drizzle>;
+
+export async function seedRbacPermissions(db: DrizzleDb, logger?: { info: (msg: string) => void; warn: (msg: string) => void }) {
+  const print = logger ?? { info: (m: string) => console.log(m), warn: (m: string) => console.warn(m) };
+
+  print.info(`[1/3] Seeding ${PERMISSIONS.length} permissions...`);
+  const permIdMap = new Map<string, number>();
+  let permCreated = 0;
+  let permSkipped = 0;
+
+  for (const permDef of PERMISSIONS) {
+    const existing = await db.select().from(permissions).where(eq(permissions.code, permDef.code));
+    if (existing.length > 0) {
+      permIdMap.set(permDef.code, existing[0].id);
+      permSkipped++;
+      continue;
+    }
+
+    const [created] = await db.insert(permissions).values({
+      code: permDef.code,
+      name: permDef.name,
+      category: permDef.category,
+      module: permDef.module,
+      action: permDef.action,
+      level: permDef.level,
+      isActive: true,
+    }).returning();
+
+    permIdMap.set(permDef.code, created.id);
+    permCreated++;
+  }
+
+  print.info(`  => ${permCreated} created, ${permSkipped} skipped (already exist).`);
+
+  print.info(`[2/3] Seeding ${ORG_ROLES.length} organizational roles...`);
+  const roleIdMap = new Map<string, number>();
+  let rolesCreated = 0;
+  let rolesSkipped = 0;
+
+  for (const roleDef of ORG_ROLES) {
+    const existing = await db.select().from(roles).where(eq(roles.name, roleDef.name));
+    if (existing.length > 0) {
+      roleIdMap.set(roleDef.name, existing[0].id);
+      rolesSkipped++;
+      continue;
+    }
+
+    const [created] = await db.insert(roles).values({
+      name: roleDef.name,
+      displayName: roleDef.displayName,
+      displayNameZh: roleDef.displayNameZh,
+      description: roleDef.description,
+      roleType: roleDef.roleType,
+      category: roleDef.category,
+      level: roleDef.level,
+      defaultDataScope: roleDef.defaultDataScope,
+      isActive: true,
+    }).returning();
+
+    roleIdMap.set(roleDef.name, created.id);
+    rolesCreated++;
+  }
+
+  print.info(`  => ${rolesCreated} created, ${rolesSkipped} skipped.`);
+
+  print.info("[3/3] Seeding role-permission mappings...");
+  let mappingsCreated = 0;
+  let mappingsSkipped = 0;
+
+  for (const [roleName, permCodes] of Object.entries(ROLE_PERMISSIONS)) {
+    const roleId = roleIdMap.get(roleName);
+    if (!roleId) {
+      print.warn(`  [!] Role "${roleName}" not found, skipping its permissions.`);
+      continue;
+    }
+
+    for (const code of permCodes) {
+      const permId = permIdMap.get(code);
+      if (!permId) continue;
+
+      const existing = await db.select().from(rolePermissions)
+        .where(and(eq(rolePermissions.roleId, roleId), eq(rolePermissions.permissionId, permId)));
+
+      if (existing.length > 0) {
+        mappingsSkipped++;
+        continue;
+      }
+
+      await db.insert(rolePermissions).values({
+        roleId,
+        permissionId: permId,
+      });
+      mappingsCreated++;
+    }
+  }
+
+  print.info(`  => ${mappingsCreated} created, ${mappingsSkipped} skipped.`);
+
+  return { permCreated, permSkipped, rolesCreated, rolesSkipped, mappingsCreated, mappingsSkipped };
+}
+
+// ── CLI Entrypoint (npx tsx server/seed-rbac-permissions.ts) ──
 
 async function seed() {
   const connectionString = process.env.DATABASE_URL;
@@ -841,123 +1214,15 @@ async function seed() {
   console.log("╚══════════════════════════════════════════════════════╝\n");
 
   try {
-    // ── Step 1: Seed permissions ──
+    const result = await seedRbacPermissions(db);
 
-    console.log(`[1/3] Seeding ${PERMISSIONS.length} permissions...`);
-    const permIdMap = new Map<string, number>();
-    let permCreated = 0;
-    let permSkipped = 0;
-
-    for (const permDef of PERMISSIONS) {
-      const existing = await db.select().from(permissions).where(eq(permissions.code, permDef.code));
-      if (existing.length > 0) {
-        permIdMap.set(permDef.code, existing[0].id);
-        permSkipped++;
-        continue;
-      }
-
-      const [created] = await db.insert(permissions).values({
-        code: permDef.code,
-        name: permDef.name,
-        category: permDef.category,
-        module: permDef.module,
-        action: permDef.action,
-        level: permDef.level,
-        isActive: true,
-      }).returning();
-
-      permIdMap.set(permDef.code, created.id);
-      permCreated++;
-    }
-
-    console.log(`  => ${permCreated} created, ${permSkipped} skipped (already exist).\n`);
-
-    // ── Step 2: Seed roles ──
-
-    console.log(`[2/3] Seeding ${ORG_ROLES.length} organizational roles...`);
-    const roleIdMap = new Map<string, number>();
-    let rolesCreated = 0;
-    let rolesSkipped = 0;
-
-    for (const roleDef of ORG_ROLES) {
-      const existing = await db.select().from(roles).where(eq(roles.name, roleDef.name));
-      if (existing.length > 0) {
-        roleIdMap.set(roleDef.name, existing[0].id);
-        rolesSkipped++;
-        continue;
-      }
-
-      const [created] = await db.insert(roles).values({
-        name: roleDef.name,
-        displayName: roleDef.displayName,
-        displayNameZh: roleDef.displayNameZh,
-        description: roleDef.description,
-        roleType: roleDef.roleType,
-        category: roleDef.category,
-        level: roleDef.level,
-        defaultDataScope: roleDef.defaultDataScope,
-        isActive: true,
-      }).returning();
-
-      roleIdMap.set(roleDef.name, created.id);
-      rolesCreated++;
-      console.log(`  [+] Role "${roleDef.name}" (level=${roleDef.level})`);
-    }
-
-    console.log(`  => ${rolesCreated} created, ${rolesSkipped} skipped.\n`);
-
-    // ── Step 3: Seed role-permission mappings ──
-
-    console.log("[3/3] Seeding role-permission mappings...");
-    let mappingsCreated = 0;
-    let mappingsSkipped = 0;
-
-    for (const [roleName, permCodes] of Object.entries(ROLE_PERMISSIONS)) {
-      const roleId = roleIdMap.get(roleName);
-      if (!roleId) {
-        console.warn(`  [!] Role "${roleName}" not found, skipping its permissions.`);
-        continue;
-      }
-
-      for (const code of permCodes) {
-        const permId = permIdMap.get(code);
-        if (!permId) {
-          // Permission not in our list (could be a typo or future permission)
-          continue;
-        }
-
-        // Check if mapping already exists
-        const existing = await db.select().from(rolePermissions)
-          .where(and(eq(rolePermissions.roleId, roleId), eq(rolePermissions.permissionId, permId)));
-
-        if (existing.length > 0) {
-          mappingsSkipped++;
-          continue;
-        }
-
-        await db.insert(rolePermissions).values({
-          roleId,
-          permissionId: permId,
-        });
-        mappingsCreated++;
-      }
-
-      const assignedCount = permCodes.filter(c => permIdMap.has(c)).length;
-      console.log(`  [+] ${roleName}: ${assignedCount} permissions`);
-    }
-
-    console.log(`  => ${mappingsCreated} created, ${mappingsSkipped} skipped.\n`);
-
-    // ── Summary ──
-
-    console.log("╔══════════════════════════════════════════════════════╗");
+    console.log("\n╔══════════════════════════════════════════════════════╗");
     console.log("║              RBAC SEED COMPLETE                     ║");
     console.log("╠══════════════════════════════════════════════════════╣");
-    console.log(`║  Permissions: ${String(permCreated).padStart(4)} created / ${String(permSkipped).padStart(4)} existing     ║`);
-    console.log(`║  Roles:       ${String(rolesCreated).padStart(4)} created / ${String(rolesSkipped).padStart(4)} existing     ║`);
-    console.log(`║  Mappings:    ${String(mappingsCreated).padStart(4)} created / ${String(mappingsSkipped).padStart(4)} existing     ║`);
+    console.log(`║  Permissions: ${String(result.permCreated).padStart(4)} created / ${String(result.permSkipped).padStart(4)} existing     ║`);
+    console.log(`║  Roles:       ${String(result.rolesCreated).padStart(4)} created / ${String(result.rolesSkipped).padStart(4)} existing     ║`);
+    console.log(`║  Mappings:    ${String(result.mappingsCreated).padStart(4)} created / ${String(result.mappingsSkipped).padStart(4)} existing     ║`);
     console.log("╚══════════════════════════════════════════════════════╝");
-
   } catch (error) {
     console.error("\n[RBAC Seed] FATAL ERROR:", error);
     process.exit(1);
@@ -966,4 +1231,8 @@ async function seed() {
   }
 }
 
-seed();
+// Only run when executed directly (not when imported)
+const isDirectRun = process.argv[1]?.includes("seed-rbac-permissions");
+if (isDirectRun) {
+  seed();
+}

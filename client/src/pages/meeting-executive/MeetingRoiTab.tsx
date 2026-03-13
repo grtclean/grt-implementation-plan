@@ -39,6 +39,7 @@ import {
   Legend,
   ZAxis,
 } from "recharts";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const GRADE_COLORS: Record<string, string> = {
   A: "#22c55e",
@@ -48,15 +49,28 @@ const GRADE_COLORS: Record<string, string> = {
   F: "#ef4444",
 };
 
-const GRADE_LABELS: Record<string, string> = {
-  A: "优秀",
-  B: "良好",
-  C: "一般",
-  D: "较差",
-  F: "极差",
+const GRADE_LABEL_KEYS: Record<string, string> = {
+  A: "meeting.roi.gradeExcellent",
+  B: "meeting.roi.gradeGood",
+  C: "meeting.roi.gradeAverage",
+  D: "meeting.roi.gradePoor",
+  F: "meeting.roi.gradeVeryPoor",
+};
+
+const OUTCOME_TYPE_KEYS: Record<string, string> = {
+  decision: "meeting.roi.outcomeDecision",
+  deliverable: "meeting.roi.outcomeDeliverable",
+  resolved_issue: "meeting.roi.outcomeResolvedIssue",
+};
+
+const OUTCOME_VALUE_KEYS: Record<string, string> = {
+  high: "meeting.roi.valueHigh",
+  medium: "meeting.roi.valueMedium",
+  low: "meeting.roi.valueLow",
 };
 
 export function MeetingRoiTab() {
+  const { t } = useLanguage();
   const [meetingId, setMeetingId] = useState("");
   const [batchIds, setBatchIds] = useState("");
 
@@ -92,33 +106,33 @@ export function MeetingRoiTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
-            会议ROI分析
+            {t("meeting.roi.title")}
           </CardTitle>
-          <CardDescription>计算会议投资回报率，评估成本效益</CardDescription>
+          <CardDescription>{t("meeting.roi.desc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
-              placeholder="输入会议ID"
+              placeholder={t("meeting.roi.enterMeetingId")}
               value={meetingId}
               onChange={(e) => setMeetingId(e.target.value)}
               className="max-w-sm"
             />
             <Button onClick={handleCompute} disabled={computeMutation.isPending}>
               {computeMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Target className="h-4 w-4 mr-2" />}
-              计算ROI
+              {t("meeting.roi.computeRoi")}
             </Button>
           </div>
           <div className="flex gap-2">
             <Input
-              placeholder="批量会议ID（逗号分隔）"
+              placeholder={t("meeting.roi.batchPlaceholder")}
               value={batchIds}
               onChange={(e) => setBatchIds(e.target.value)}
               className="max-w-md"
             />
             <Button variant="outline" onClick={handleBatchCompute} disabled={batchMutation.isPending}>
               {batchMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
-              批量计算
+              {t("meeting.roi.batchCompute")}
             </Button>
           </div>
         </CardContent>
@@ -130,12 +144,12 @@ export function MeetingRoiTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Award className="h-5 w-5" />
-              分析结果
+              {t("meeting.roi.analysisResult")}
               <Badge
                 className="ml-2 text-lg px-3"
                 style={{ backgroundColor: GRADE_COLORS[roiResult.roiGrade] || "#6366f1" }}
               >
-                {roiResult.roiGrade} — {GRADE_LABELS[roiResult.roiGrade] || ""}
+                {roiResult.roiGrade} — {t(GRADE_LABEL_KEYS[roiResult.roiGrade] || "meeting.roi.gradeAverage")}
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -143,32 +157,32 @@ export function MeetingRoiTab() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold">{roiResult.outcomeScore}</div>
-                <div className="text-sm text-muted-foreground">成果评分</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.roi.outcomeScore")}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold">¥{roiResult.totalCost}</div>
-                <div className="text-sm text-muted-foreground">总成本</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.roi.totalCost")}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold">{roiResult.decisionCount}</div>
-                <div className="text-sm text-muted-foreground">决策数</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.roi.decisionCount")}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold">{roiResult.completedActionCount}/{roiResult.actionItemCount}</div>
-                <div className="text-sm text-muted-foreground">已完成/总行动项</div>
+                <div className="text-sm text-muted-foreground">{t("meeting.roi.completedActions")}</div>
               </div>
             </div>
             {roiResult.outcomes?.length > 0 && (
               <div>
-                <h4 className="font-medium mb-2">成果列表</h4>
+                <h4 className="font-medium mb-2">{t("meeting.roi.outcomeList")}</h4>
                 <div className="space-y-1">
                   {roiResult.outcomes.map((o: any, i: number) => (
                     <div key={i} className="flex items-center gap-2 text-sm">
                       <Badge variant={o.value === "high" ? "default" : "outline"} className="text-xs">
-                        {o.type === "decision" ? "决策" : o.type === "deliverable" ? "交付物" : "解决议题"}
+                        {t(OUTCOME_TYPE_KEYS[o.type] || "meeting.roi.outcomeDecision")}
                       </Badge>
                       <span>{o.description}</span>
-                      <Badge variant="secondary" className="text-xs ml-auto">{o.value === "high" ? "高价值" : o.value === "medium" ? "中价值" : "低价值"}</Badge>
+                      <Badge variant="secondary" className="text-xs ml-auto">{t(OUTCOME_VALUE_KEYS[o.value] || "meeting.roi.valueLow")}</Badge>
                     </div>
                   ))}
                 </div>
@@ -183,10 +197,10 @@ export function MeetingRoiTab() {
 
       {/* Dashboard stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={BarChart3} label="已分析会议" value={stats?.totalAnalyzed ?? 0} loading={isLoading} />
-        <StatCard icon={Award} label="平均ROI评分" value={stats?.avgScore ?? 0} loading={isLoading} />
-        <StatCard icon={DollarSign} label="平均决策成本" value={`¥${stats?.avgCostPerDecision ?? 0}`} loading={isLoading} />
-        <StatCard icon={TrendingUp} label="总投入" value={`¥${stats?.totalCost ?? 0}`} loading={isLoading} />
+        <StatCard icon={BarChart3} label={t("meeting.roi.analyzedMeetings")} value={stats?.totalAnalyzed ?? 0} loading={isLoading} />
+        <StatCard icon={Award} label={t("meeting.roi.avgRoiScore")} value={stats?.avgScore ?? 0} loading={isLoading} />
+        <StatCard icon={DollarSign} label={t("meeting.roi.avgDecisionCost")} value={`¥${stats?.avgCostPerDecision ?? 0}`} loading={isLoading} />
+        <StatCard icon={TrendingUp} label={t("meeting.roi.totalInvestment")} value={`¥${stats?.totalCost ?? 0}`} loading={isLoading} />
       </div>
 
       {/* Charts row */}
@@ -194,7 +208,7 @@ export function MeetingRoiTab() {
         {/* Grade distribution pie */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">等级分布</CardTitle>
+            <CardTitle className="text-base">{t("meeting.roi.gradeDistribution")}</CardTitle>
           </CardHeader>
           <CardContent>
             {gradeDistribution.length > 0 ? (
@@ -209,7 +223,7 @@ export function MeetingRoiTab() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center py-6 text-muted-foreground">暂无数据</p>
+              <p className="text-center py-6 text-muted-foreground">{t("meeting.roi.noData")}</p>
             )}
           </CardContent>
         </Card>
@@ -217,7 +231,7 @@ export function MeetingRoiTab() {
         {/* Monthly ROI trend */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">月度ROI趋势</CardTitle>
+            <CardTitle className="text-base">{t("meeting.roi.monthlyTrend")}</CardTitle>
           </CardHeader>
           <CardContent>
             {monthlyTrend.length > 0 ? (
@@ -227,11 +241,11 @@ export function MeetingRoiTab() {
                   <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip />
-                  <Line type="monotone" dataKey="avg_score" name="平均评分" stroke="#6366f1" strokeWidth={2} />
+                  <Line type="monotone" dataKey="avg_score" name={t("meeting.roi.avgScore")} stroke="#6366f1" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center py-6 text-muted-foreground">暂无数据</p>
+              <p className="text-center py-6 text-muted-foreground">{t("meeting.roi.noData")}</p>
             )}
           </CardContent>
         </Card>
@@ -241,17 +255,17 @@ export function MeetingRoiTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base text-green-600">最佳ROI Top 5</CardTitle>
+            <CardTitle className="text-base text-green-600">{t("meeting.roi.bestTop5")}</CardTitle>
           </CardHeader>
           <CardContent>
             {bestRoi.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>会议</TableHead>
-                    <TableHead className="text-center">评分</TableHead>
-                    <TableHead className="text-center">等级</TableHead>
-                    <TableHead className="text-right">成本</TableHead>
+                    <TableHead>{t("meeting.roi.thMeeting")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.roi.thScore")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.roi.thGrade")}</TableHead>
+                    <TableHead className="text-right">{t("meeting.roi.thCost")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -268,24 +282,24 @@ export function MeetingRoiTab() {
                 </TableBody>
               </Table>
             ) : (
-              <p className="text-center py-6 text-muted-foreground">暂无数据</p>
+              <p className="text-center py-6 text-muted-foreground">{t("meeting.roi.noData")}</p>
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base text-red-600">最差ROI Top 5</CardTitle>
+            <CardTitle className="text-base text-red-600">{t("meeting.roi.worstTop5")}</CardTitle>
           </CardHeader>
           <CardContent>
             {worstRoi.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>会议</TableHead>
-                    <TableHead className="text-center">评分</TableHead>
-                    <TableHead className="text-center">等级</TableHead>
-                    <TableHead className="text-right">成本</TableHead>
+                    <TableHead>{t("meeting.roi.thMeeting")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.roi.thScore")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.roi.thGrade")}</TableHead>
+                    <TableHead className="text-right">{t("meeting.roi.thCost")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -302,7 +316,7 @@ export function MeetingRoiTab() {
                 </TableBody>
               </Table>
             ) : (
-              <p className="text-center py-6 text-muted-foreground">暂无数据</p>
+              <p className="text-center py-6 text-muted-foreground">{t("meeting.roi.noData")}</p>
             )}
           </CardContent>
         </Card>
@@ -311,7 +325,7 @@ export function MeetingRoiTab() {
       {/* Department comparison */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">部门ROI对比</CardTitle>
+          <CardTitle className="text-base">{t("meeting.roi.deptComparison")}</CardTitle>
         </CardHeader>
         <CardContent>
           {departmentComparison.length > 0 ? (
@@ -322,12 +336,12 @@ export function MeetingRoiTab() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="avg_score" name="平均评分" fill="#6366f1" />
-                <Bar dataKey="avg_cost_per_decision" name="平均决策成本" fill="#f59e0b" />
+                <Bar dataKey="avg_score" name={t("meeting.roi.avgScore")} fill="#6366f1" />
+                <Bar dataKey="avg_cost_per_decision" name={t("meeting.roi.avgDecisionCost")} fill="#f59e0b" />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-center py-6 text-muted-foreground">暂无部门数据</p>
+            <p className="text-center py-6 text-muted-foreground">{t("meeting.roi.noDeptData")}</p>
           )}
         </CardContent>
       </Card>
@@ -335,22 +349,22 @@ export function MeetingRoiTab() {
       {/* Cost vs Outcome scatter */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">成本 vs 成果（气泡 = 参会人数）</CardTitle>
+          <CardTitle className="text-base">{t("meeting.roi.costVsOutcome")}</CardTitle>
         </CardHeader>
         <CardContent>
           {scatterData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <ScatterChart>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="cost" name="成本" unit="¥" type="number" />
-                <YAxis dataKey="score" name="评分" type="number" />
-                <ZAxis dataKey="participants" name="参会人数" range={[50, 400]} />
+                <XAxis dataKey="cost" name={t("meeting.roi.costAxis")} unit="¥" type="number" />
+                <YAxis dataKey="score" name={t("meeting.roi.scoreAxis")} type="number" />
+                <ZAxis dataKey="participants" name={t("meeting.roi.participantsAxis")} range={[50, 400]} />
                 <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                <Scatter name="会议" data={scatterData} fill="#6366f1" />
+                <Scatter name={t("meeting.roi.scatterMeeting")} data={scatterData} fill="#6366f1" />
               </ScatterChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-center py-6 text-muted-foreground">暂无数据</p>
+            <p className="text-center py-6 text-muted-foreground">{t("meeting.roi.noData")}</p>
           )}
         </CardContent>
       </Card>
@@ -359,14 +373,14 @@ export function MeetingRoiTab() {
       {batchMutation.data && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">批量计算结果</CardTitle>
+            <CardTitle className="text-base">{t("meeting.roi.batchResult")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-2">已处理 {(batchMutation.data as any).processed} 个会议</p>
+            <p className="text-sm text-muted-foreground mb-2">{t("meeting.roi.processed")} {(batchMutation.data as any).processed} {t("meeting.roi.meetingsUnit")}</p>
             <div className="space-y-1">
               {((batchMutation.data as any).results ?? []).map((r: any, i: number) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
-                  <Badge variant={r.success ? "default" : "destructive"}>{r.success ? "成功" : "失败"}</Badge>
+                  <Badge variant={r.success ? "default" : "destructive"}>{r.success ? t("meeting.roi.success") : t("meeting.roi.failed")}</Badge>
                   <span className="font-mono text-xs">{r.meetingId}</span>
                   {r.success && <Badge style={{ backgroundColor: GRADE_COLORS[r.roiGrade] }}>{r.roiGrade}</Badge>}
                   {!r.success && <span className="text-red-500 text-xs">{r.error}</span>}

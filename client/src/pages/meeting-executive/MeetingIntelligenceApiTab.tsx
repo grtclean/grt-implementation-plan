@@ -13,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const SCOPES = [
   { value: "read_analytics", label: "Analytics", desc: "Dashboard & effectiveness" },
@@ -33,6 +34,7 @@ const API_ENDPOINTS = [
 ];
 
 export function MeetingIntelligenceApiTab() {
+  const { t } = useLanguage();
   // Create key form
   const [keyName, setKeyName] = useState("");
   const [selectedScopes, setSelectedScopes] = useState<string[]>(["read_analytics"]);

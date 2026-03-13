@@ -21,7 +21,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -444,7 +444,7 @@ export const ecoImpactRouter = router({
   /**
    * approveEco — approve ECO with financial impact acknowledgment.
    */
-  approveEco: protectedProcedure
+  approveEco: requirePermission('system:compliance:manage')
     .input(z.object({
       ecoId: z.string(),
       approverNotes: z.string().optional(),
@@ -462,7 +462,7 @@ export const ecoImpactRouter = router({
   /**
    * rejectEco — reject ECO with reason.
    */
-  rejectEco: protectedProcedure
+  rejectEco: requirePermission('system:compliance:manage')
     .input(z.object({
       ecoId: z.string(),
       rejectReason: z.string().min(1),

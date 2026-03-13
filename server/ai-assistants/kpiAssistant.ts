@@ -107,7 +107,7 @@ export async function calculateKpiScore(input: KpiCalculationInput): Promise<Kpi
   const tasks = await db.select().from(planningTasks)
     .where(and(
       eq(planningTasks.ownerId, employeeId),
-      sql`${planningTasks.createdAt} >= DATE_SUB(NOW(), INTERVAL 30 DAY)`
+      sql`${planningTasks.createdAt} >= NOW() - INTERVAL '30 days'`
     ))
     .limit(1000);
 

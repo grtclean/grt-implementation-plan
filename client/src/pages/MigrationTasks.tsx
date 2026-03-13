@@ -155,8 +155,8 @@ export default function MigrationTasks() {
           icon={Database}
           title={language === "zh" ? "迁移任务管理" : "Migration Task Management"}
           description={language === "zh"
-            ? "管理和追踪简道云数据迁移进度"
-            : "Manage and track Jiandaoyun data migration progress"}
+            ? "管理和追踪外部数据平台数据迁移进度"
+            : "Manage and track External Sync data migration progress"}
           actions={
             <>
               <Button variant="outline" onClick={() => refetch()} className="gap-2">

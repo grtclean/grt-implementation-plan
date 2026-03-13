@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { jsonValue } from "@shared/validators";
 import { TRPCError } from "@trpc/server";
 import * as meetingDb from "./meeting.db";
@@ -81,7 +81,7 @@ export const meetingRouter = router({
       return buildChannelTree(channels);
     }),
 
-    create: protectedProcedure
+    create: requirePermission('collab:meeting:hub')
       .input(createChannelSchema)
       .mutation(async ({ ctx, input }) => {
         const id = crypto.randomUUID();
@@ -98,7 +98,7 @@ export const meetingRouter = router({
         return { id, success: true };
       }),
 
-    addMember: protectedProcedure
+    addMember: requirePermission('collab:meeting:hub')
       .input(z.object({
         channelId: z.string().uuid(),
         userId: z.string().uuid(),
@@ -131,7 +131,7 @@ export const meetingRouter = router({
         return meeting;
       }),
 
-    create: protectedProcedure
+    create: requirePermission('collab:meeting:hub')
       .input(createMeetingSchema)
       .mutation(async ({ ctx, input }) => {
         const id = crypto.randomUUID();
@@ -149,7 +149,7 @@ export const meetingRouter = router({
         return { id, success: true };
       }),
 
-    generateSummary: protectedProcedure
+    generateSummary: requirePermission('collab:meeting:hub')
       .input(z.object({ meetingId: z.string().uuid() }))
       .mutation(async ({ input }) => {
         const meeting = await meetingDb.getMeetingById(input.meetingId);
@@ -223,7 +223,7 @@ Format as JSON with keys: summary, decisions, actionItems, risks, strategicAlign
         return await meetingDb.getContentBlocksByMeeting(input.meetingId);
       }),
 
-    create: protectedProcedure
+    create: requirePermission('collab:meeting:hub')
       .input(createContentBlockSchema)
       .mutation(async ({ input }) => {
         const id = crypto.randomUUID();
@@ -293,7 +293,7 @@ Format as JSON with keys: summary, decisions, actionItems, risks, strategicAlign
         return { id, success: true, linkedTaskCreated };
       }),
 
-    update: protectedProcedure
+    update: requirePermission('collab:meeting:hub')
       .input(z.object({
         id: z.string().uuid(),
         content: z.string().min(1),
@@ -323,7 +323,7 @@ Format as JSON with keys: summary, decisions, actionItems, risks, strategicAlign
         return await meetingDb.getAssessmentsByEmployee(input.employeeId, input.startDate, input.endDate);
       }),
 
-    create: protectedProcedure
+    create: requirePermission('collab:meeting:hub')
       .input(createAssessmentSchema)
       .mutation(async ({ input }) => {
         const id = crypto.randomUUID();
@@ -341,14 +341,14 @@ Format as JSON with keys: summary, decisions, actionItems, risks, strategicAlign
         return { id, success: true };
       }),
 
-    review: protectedProcedure
+    review: requirePermission('collab:meeting:hub')
       .input(z.object({ assessmentId: z.string().uuid() }))
       .mutation(async ({ ctx, input }) => {
         await meetingDb.reviewAssessment(input.assessmentId, ctx.user.openId);
         return { success: true };
       }),
 
-    generateFromMeeting: protectedProcedure
+    generateFromMeeting: requirePermission('collab:meeting:hub')
       .input(z.object({ meetingId: z.string().uuid() }))
       .mutation(async ({ input }) => {
         const meeting = await meetingDb.getMeetingById(input.meetingId);
@@ -535,7 +535,7 @@ Provide 3-5 actionable insights connecting meeting performance to strategic goal
   // Reminder Operations
   reminders: router({
     // Configure webhook for channel
-    configureWebhook: protectedProcedure
+    configureWebhook: requirePermission('collab:meeting:hub')
       .input(z.object({
         channelId: z.string().uuid(),
         webhookUrl: z.string().url(),
@@ -583,7 +583,7 @@ Provide 3-5 actionable insights connecting meeting performance to strategic goal
       }),
 
     // Test webhook
-    testWebhook: protectedProcedure
+    testWebhook: requirePermission('collab:meeting:hub')
       .input(z.object({
         webhookUrl: z.string().url(),
       }))
@@ -606,7 +606,7 @@ Provide 3-5 actionable insights connecting meeting performance to strategic goal
       }),
 
     // Process pending reminders (admin only)
-    processPending: protectedProcedure
+    processPending: requirePermission('collab:meeting:hub')
       .mutation(async () => {
         return await reminderService.processReminders();
       }),
@@ -615,7 +615,7 @@ Provide 3-5 actionable insights connecting meeting performance to strategic goal
   // Transcription Operations
   transcription: router({
     // Start transcription job
-    start: protectedProcedure
+    start: requirePermission('collab:meeting:hub')
       .input(z.object({
         meetingId: z.string().uuid(),
         audioUrl: z.string().url(),
@@ -657,7 +657,7 @@ Provide 3-5 actionable insights connecting meeting performance to strategic goal
       }),
 
     // Generate meeting minutes from transcription
-    generateMinutes: protectedProcedure
+    generateMinutes: requirePermission('collab:meeting:hub')
       .input(z.object({ meetingId: z.string().uuid() }))
       .mutation(async ({ input }) => {
         // Get transcription

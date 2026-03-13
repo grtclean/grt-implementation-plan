@@ -147,13 +147,13 @@ const getMockStageData = (projectId: string, stageCode: string) => ({
   tasks: [
     { id: 1, title: '任务1: 准备阶段输入文档', status: 'completed', assignee: '张工', dueDate: '2024-01-20' },
     { id: 2, title: '任务2: 执行阶段关键活动', status: 'in_progress', assignee: '李工', dueDate: '2024-02-01' },
-    { id: 3, title: '任务3: 输出阶段交付物', status: 'pending', assignee: '王工', dueDate: '2024-02-10' },
+    { id: 3, title: '任务3: 输出阶段交付物', status: 'pending', assignee: '焦斌', dueDate: '2024-02-10' },
     { id: 4, title: '任务4: 阶段评审和确认', status: 'pending', assignee: '赵工', dueDate: '2024-02-15' },
   ],
   documents: [
     { id: 1, name: '技术方案v2.1.docx', type: 'input', uploadedBy: '张工', uploadedAt: '2024-01-18', size: '2.3MB' },
     { id: 2, name: 'BOM清单v1.0.xlsx', type: 'input', uploadedBy: '李工', uploadedAt: '2024-01-20', size: '156KB' },
-    { id: 3, name: '设计评审报告.pdf', type: 'output', uploadedBy: '王工', uploadedAt: '2024-02-05', size: '1.8MB' },
+    { id: 3, name: '设计评审报告.pdf', type: 'output', uploadedBy: '焦斌', uploadedAt: '2024-02-05', size: '1.8MB' },
   ],
   reviews: [
     { id: 1, reviewer: '技术总监', status: 'approved', comment: '技术方案可行，同意进入下一阶段', reviewedAt: '2024-02-08' },

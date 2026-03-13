@@ -15,6 +15,7 @@ import { trpc } from "@/lib/trpc";
 import { AlertCircle, Bell, CheckCircle2, Clock, Edit2, ExternalLink, FileText, Plus, RefreshCw, Send, Settings2, Trash2, Webhook, XCircle, Eye, Copy, Filter, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type WebhookType = "wecom" | "dingtalk" | "feishu" | "custom";
 type EventType = "meeting_reminder" | "cost_alert" | "training_notification" | "system_notification";
@@ -48,11 +49,11 @@ interface WebhookLog {
   retryStatus: string;
 }
 
-const webhookTypeLabels: Record<WebhookType, string> = {
-  wecom: "企业微信",
-  dingtalk: "钉钉",
-  feishu: "飞书",
-  custom: "自定义",
+const webhookTypeLabelKeys: Record<WebhookType, string> = {
+  wecom: "admin.webhook.wecom",
+  dingtalk: "admin.webhook.dingtalk",
+  feishu: "admin.webhook.feishu",
+  custom: "admin.webhook.custom",
 };
 
 const webhookTypeColors: Record<WebhookType, string> = {
@@ -62,11 +63,11 @@ const webhookTypeColors: Record<WebhookType, string> = {
   custom: "bg-orange-500/10 text-orange-500 border-orange-500/20",
 };
 
-const eventTypeLabels: Record<EventType, string> = {
-  meeting_reminder: "会议提醒",
-  cost_alert: "成本预警",
-  training_notification: "培训通知",
-  system_notification: "系统通知",
+const eventTypeLabelKeys: Record<EventType, string> = {
+  meeting_reminder: "admin.webhook.meetingReminder",
+  cost_alert: "admin.webhook.costAlert",
+  training_notification: "admin.webhook.trainingNotification",
+  system_notification: "admin.webhook.systemNotification",
 };
 
 // Trigger condition types
@@ -84,37 +85,38 @@ interface TriggerConditionGroup {
   conditions: TriggerCondition[];
 }
 
-const conditionOperatorLabels: Record<ConditionOperator, string> = {
-  eq: "等于",
-  ne: "不等于",
-  gt: "大于",
-  lt: "小于",
-  gte: "大于等于",
-  lte: "小于等于",
-  contains: "包含",
-  not_contains: "不包含",
-  starts_with: "开头是",
-  ends_with: "结尾是",
-  in: "在列表中",
+const conditionOperatorLabelKeys: Record<ConditionOperator, string> = {
+  eq: "admin.webhook.opEq",
+  ne: "admin.webhook.opNe",
+  gt: "admin.webhook.opGt",
+  lt: "admin.webhook.opLt",
+  gte: "admin.webhook.opGte",
+  lte: "admin.webhook.opLte",
+  contains: "admin.webhook.opContains",
+  not_contains: "admin.webhook.opNotContains",
+  starts_with: "admin.webhook.opStartsWith",
+  ends_with: "admin.webhook.opEndsWith",
+  in: "admin.webhook.opIn",
 };
 
-const conditionFieldOptions = [
-  { value: "alert_level", label: "预警级别", type: "select", options: ["low", "medium", "high", "critical"] },
-  { value: "project_type", label: "项目类型", type: "text" },
-  { value: "cost_category", label: "成本类别", type: "text" },
-  { value: "deviation_percent", label: "偏差百分比", type: "number" },
-  { value: "project_name", label: "项目名称", type: "text" },
-  { value: "event_type", label: "事件类型", type: "select", options: ["meeting_reminder", "cost_alert", "training_notification", "system_notification"] },
+const conditionFieldOptionDefs = [
+  { value: "alert_level", labelKey: "admin.webhook.fieldAlertLevel", type: "select", options: ["low", "medium", "high", "critical"] },
+  { value: "project_type", labelKey: "admin.webhook.fieldProjectType", type: "text" },
+  { value: "cost_category", labelKey: "admin.webhook.fieldCostCategory", type: "text" },
+  { value: "deviation_percent", labelKey: "admin.webhook.fieldDeviationPercent", type: "number" },
+  { value: "project_name", labelKey: "admin.webhook.fieldProjectName", type: "text" },
+  { value: "event_type", labelKey: "admin.webhook.fieldEventType", type: "select", options: ["meeting_reminder", "cost_alert", "training_notification", "system_notification"] },
 ];
 
 export default function WebhookManagement() {
+  const { t, tpl } = useLanguage();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("configs");
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showTestDialog, setShowTestDialog] = useState(false);
   const [selectedWebhook, setSelectedWebhook] = useState<WebhookConfig | null>(null);
-  const [testMessage, setTestMessage] = useState("这是一条测试消息");
+  const [testMessage, setTestMessage] = useState("");
   
   // Form state
   const [formData, setFormData] = useState({
@@ -145,56 +147,56 @@ export default function WebhookManagement() {
   // Mutations
   const createMutation = trpc.webhook.create.useMutation({
     onSuccess: () => {
-      toast.success("Webhook创建成功");
+      toast.success(t("admin.webhook.createSuccess"));
       setShowNewDialog(false);
       resetForm();
       refetchWebhooks();
     },
     onError: (error) => {
-      toast.error(`创建失败: ${error.message}`);
+      toast.error(`${t("admin.webhook.createFailed")}: ${error.message}`);
     },
   });
 
   const updateMutation = trpc.webhook.update.useMutation({
     onSuccess: () => {
-      toast.success("Webhook更新成功");
+      toast.success(t("admin.webhook.updateSuccess"));
       setShowEditDialog(false);
       setSelectedWebhook(null);
       refetchWebhooks();
     },
     onError: (error) => {
-      toast.error(`更新失败: ${error.message}`);
+      toast.error(`${t("admin.webhook.updateFailed")}: ${error.message}`);
     },
   });
 
   const deleteMutation = trpc.webhook.delete.useMutation({
     onSuccess: () => {
-      toast.success("Webhook删除成功");
+      toast.success(t("admin.webhook.deleteSuccess"));
       refetchWebhooks();
     },
     onError: (error) => {
-      toast.error(`删除失败: ${error.message}`);
+      toast.error(`${t("admin.webhook.deleteFailed")}: ${error.message}`);
     },
   });
 
   const testMutation = trpc.webhook.test.useMutation({
     onSuccess: (result) => {
       if (result.success) {
-        toast.success("测试消息发送成功");
+        toast.success(t("admin.webhook.testSuccess"));
       } else {
-        toast.error(`测试失败: ${(result as any).message || result.response?.message}`);
+        toast.error(`${t("admin.webhook.testFailed")}: ${(result as any).message || result.response?.message}`);
       }
       setShowTestDialog(false);
       refetchLogs();
     },
     onError: (error) => {
-      toast.error(`测试失败: ${error.message}`);
+      toast.error(`${t("admin.webhook.testFailed")}: ${error.message}`);
     },
   });
 
   const toggleActiveMutation = trpc.webhook.update.useMutation({
     onSuccess: () => {
-      toast.success("状态更新成功");
+      toast.success(t("admin.webhook.statusUpdated"));
       refetchWebhooks();
     },
   });
@@ -280,7 +282,7 @@ export default function WebhookManagement() {
   };
 
   const handleDelete = (id: number) => {
-    if (confirm("确定要删除这个Webhook吗？")) {
+    if (confirm(t("admin.webhook.confirmDelete"))) {
       deleteMutation.mutate({ id: String(id) } as any);
     }
   };
@@ -302,20 +304,20 @@ export default function WebhookManagement() {
       <div className="space-y-6">
         <PageHeader
           icon={Webhook}
-          title="Webhook管理"
-          description="配置和管理系统通知的Webhook端点"
+          title={t("admin.webhook.title")}
+          description={t("admin.webhook.description")}
           actions={
             <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
               <DialogTrigger asChild>
                 <Button className="bg-primary hover:bg-primary/90" onClick={() => resetForm()}>
                   <Plus className="w-4 h-4 mr-2" />
-                  新建Webhook
+                  {t("admin.webhook.newWebhook")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>新建Webhook</DialogTitle>
-                  <DialogDescription>配置新的Webhook端点接收系统通知</DialogDescription>
+                  <DialogTitle>{t("admin.webhook.newWebhook")}</DialogTitle>
+                  <DialogDescription>{t("admin.webhook.newWebhookDesc")}</DialogDescription>
                 </DialogHeader>
                 <WebhookForm
                   formData={formData}
@@ -323,7 +325,7 @@ export default function WebhookManagement() {
                   toggleEvent={toggleEvent}
                   onSubmit={handleCreate}
                   isLoading={createMutation.isPending}
-                  submitLabel="创建"
+                  submitLabel={t("admin.webhook.create")}
                 />
               </DialogContent>
             </Dialog>
@@ -332,10 +334,10 @@ export default function WebhookManagement() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard icon={Webhook} label="Webhook总数" value={webhooks?.length || 0} iconColor="text-primary" iconBg="bg-primary/10" />
-          <StatCard icon={CheckCircle2} label="已启用" value={webhooks?.filter(w => w.enabled).length || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
-          <StatCard icon={Send} label="今日发送" value="-" iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-          <StatCard icon={AlertCircle} label="失败次数" value="-" iconColor="text-red-500" iconBg="bg-red-500/10" />
+          <StatCard icon={Webhook} label={t("admin.webhook.totalWebhooks")} value={webhooks?.length || 0} iconColor="text-primary" iconBg="bg-primary/10" />
+          <StatCard icon={CheckCircle2} label={t("admin.webhook.enabled")} value={webhooks?.filter(w => w.enabled).length || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={Send} label={t("admin.webhook.sentToday")} value="-" iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+          <StatCard icon={AlertCircle} label={t("admin.webhook.failureCount")} value="-" iconColor="text-red-500" iconBg="bg-red-500/10" />
         </div>
 
         {/* Tabs */}
@@ -343,15 +345,15 @@ export default function WebhookManagement() {
           <TabsList className="bg-muted/50">
             <TabsTrigger value="configs">
               <Settings2 className="w-4 h-4 mr-2" />
-              配置列表
+              {t("admin.webhook.configList")}
             </TabsTrigger>
             <TabsTrigger value="templates">
               <FileText className="w-4 h-4 mr-2" />
-              消息模板
+              {t("admin.webhook.messageTemplates")}
             </TabsTrigger>
             <TabsTrigger value="logs">
               <Clock className="w-4 h-4 mr-2" />
-              发送日志
+              {t("admin.webhook.sendLogs")}
             </TabsTrigger>
           </TabsList>
 
@@ -361,23 +363,23 @@ export default function WebhookManagement() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Bell className="w-5 h-5 text-primary" />
-                  Webhook配置列表
+                  {t("admin.webhook.configListTitle")}
                 </CardTitle>
-                <CardDescription>管理所有已配置的Webhook端点</CardDescription>
+                <CardDescription>{t("admin.webhook.configListDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {webhooksLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">加载中...</div>
+                  <div className="text-center py-8 text-muted-foreground">{t("admin.webhook.loading")}</div>
                 ) : webhooks && webhooks.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>名称</TableHead>
-                        <TableHead>类型</TableHead>
+                        <TableHead>{t("admin.webhook.formNameLabel")}</TableHead>
+                        <TableHead>{t("admin.webhook.formTypeLabel")}</TableHead>
                         <TableHead>URL</TableHead>
-                        <TableHead>事件</TableHead>
-                        <TableHead>状态</TableHead>
-                        <TableHead>操作</TableHead>
+                        <TableHead>{t("admin.webhook.subscribeEvents")}</TableHead>
+                        <TableHead>{t("admin.webhook.enabledLabel")}</TableHead>
+                        <TableHead>{t("admin.webhook.actionsCol")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -386,7 +388,7 @@ export default function WebhookManagement() {
                           <TableCell className="font-medium">{webhook.name}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className={webhookTypeColors[webhook.type as WebhookType]}>
-                              {webhookTypeLabels[webhook.type as WebhookType]}
+                              {t(webhookTypeLabelKeys[webhook.type as WebhookType])}
                             </Badge>
                           </TableCell>
                           <TableCell className="max-w-[200px] truncate">
@@ -396,7 +398,7 @@ export default function WebhookManagement() {
                             <div className="flex flex-wrap gap-1">
                               {(webhook.triggerEvents || "").split(",").filter(Boolean).map((event) => (
                                 <Badge key={event} variant="secondary" className="text-xs">
-                                  {eventTypeLabels[event as EventType] || event}
+                                  {t(eventTypeLabelKeys[event as EventType]) || event}
                                 </Badge>
                               ))}
                             </div>
@@ -418,7 +420,7 @@ export default function WebhookManagement() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleTest(webhook)}
-                                title="测试"
+                                title={t("admin.webhook.test")}
                               >
                                 <Send className="w-4 h-4" />
                               </Button>
@@ -426,7 +428,7 @@ export default function WebhookManagement() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleEdit(webhook)}
-                                title="编辑"
+                                title={t("admin.webhook.edit")}
                               >
                                 <Edit2 className="w-4 h-4" />
                               </Button>
@@ -434,7 +436,7 @@ export default function WebhookManagement() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleDelete(webhook.id)}
-                                title="删除"
+                                title={t("admin.webhook.deleteAction")}
                                 className="text-destructive hover:text-destructive"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -447,7 +449,7 @@ export default function WebhookManagement() {
                   </Table>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    暂无Webhook配置，点击"新建Webhook"创建
+                    {t("admin.webhook.noConfigs")}
                   </div>
                 )}
               </CardContent>
@@ -462,9 +464,9 @@ export default function WebhookManagement() {
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <Clock className="w-5 h-5 text-primary" />
-                      发送日志
+                      {t("admin.webhook.logsTitle")}
                     </CardTitle>
-                    <CardDescription>查看Webhook消息发送记录</CardDescription>
+                    <CardDescription>{t("admin.webhook.logsDesc")}</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <Select
@@ -479,10 +481,10 @@ export default function WebhookManagement() {
                       }}
                     >
                       <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="选择Webhook" />
+                        <SelectValue placeholder={t("admin.webhook.selectWebhookPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">全部Webhook</SelectItem>
+                        <SelectItem value="all">{t("admin.webhook.allWebhooksOption")}</SelectItem>
                         {webhooks?.map((webhook) => (
                           <SelectItem key={webhook.id} value={webhook.id.toString()}>
                             {webhook.name}
@@ -498,16 +500,16 @@ export default function WebhookManagement() {
               </CardHeader>
               <CardContent>
                 {logsLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">加载中...</div>
+                  <div className="text-center py-8 text-muted-foreground">{t("admin.webhook.loading")}</div>
                 ) : logs && logs.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>时间</TableHead>
-                        <TableHead>事件类型</TableHead>
-                        <TableHead>状态码</TableHead>
-                        <TableHead>结果</TableHead>
-                        <TableHead>错误信息</TableHead>
+                        <TableHead>{t("admin.webhook.timeCol")}</TableHead>
+                        <TableHead>{t("admin.webhook.eventTypeCol")}</TableHead>
+                        <TableHead>{t("admin.webhook.statusCodeCol")}</TableHead>
+                        <TableHead>{t("admin.webhook.resultCol")}</TableHead>
+                        <TableHead>{t("admin.webhook.errorMsgCol")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -518,7 +520,7 @@ export default function WebhookManagement() {
                           </TableCell>
                           <TableCell>
                             <Badge variant="secondary">
-                              {eventTypeLabels[log.eventType as EventType] || log.eventType}
+                              {t(eventTypeLabelKeys[log.eventType as EventType]) || log.eventType}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -542,7 +544,7 @@ export default function WebhookManagement() {
                   </Table>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    暂无发送日志
+                    {t("admin.webhook.noLogs")}
                   </div>
                 )}
               </CardContent>
@@ -559,8 +561,8 @@ export default function WebhookManagement() {
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>编辑Webhook</DialogTitle>
-              <DialogDescription>修改Webhook配置</DialogDescription>
+              <DialogTitle>{t("admin.webhook.editTitle")}</DialogTitle>
+              <DialogDescription>{t("admin.webhook.editDesc")}</DialogDescription>
             </DialogHeader>
             <WebhookForm
               formData={formData}
@@ -568,7 +570,7 @@ export default function WebhookManagement() {
               toggleEvent={toggleEvent}
               onSubmit={handleUpdate}
               isLoading={updateMutation.isPending}
-              submitLabel="保存"
+              submitLabel={t("admin.webhook.save")}
             />
           </DialogContent>
         </Dialog>
@@ -577,24 +579,24 @@ export default function WebhookManagement() {
         <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>测试Webhook</DialogTitle>
+              <DialogTitle>{t("admin.webhook.testTitle")}</DialogTitle>
               <DialogDescription>
-                向 {selectedWebhook?.name} 发送测试消息
+                {tpl("admin.webhook.testDesc", { name: selectedWebhook?.name || "" })}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>测试消息</Label>
+                <Label>{t("admin.webhook.testMessageLabel")}</Label>
                 <Textarea
                   value={testMessage}
                   onChange={(e) => setTestMessage(e.target.value)}
-                  placeholder="输入测试消息内容"
+                  placeholder={t("admin.webhook.testMessagePlaceholder")}
                   rows={3}
                 />
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowTestDialog(false)}>
-                  取消
+                  {t("admin.webhook.cancel")}
                 </Button>
                 <Button
                   onClick={() => {
@@ -607,7 +609,7 @@ export default function WebhookManagement() {
                   }}
                   disabled={testMutation.isPending}
                 >
-                  {testMutation.isPending ? "发送中..." : "发送测试"}
+                  {testMutation.isPending ? t("admin.webhook.sending") : t("admin.webhook.sendTest")}
                 </Button>
               </div>
             </div>
@@ -644,6 +646,7 @@ function WebhookForm({
   isLoading: boolean;
   submitLabel: string;
 }) {
+  const { t } = useLanguage();
   // Condition management functions
   const addCondition = () => {
     setFormData(prev => ({
@@ -735,27 +738,27 @@ function WebhookForm({
         break;
       case "contains":
         matches = fieldValue.includes(targetValue);
-        reason = `${condition.field} ("${fieldValue}") ${matches ? "包含" : "不包含"} "${targetValue}"`;
+        reason = `${condition.field} ("${fieldValue}") ${matches ? t("admin.webhook.opContainsResult") : t("admin.webhook.opNotContainsResult")} "${targetValue}"`;
         break;
       case "not_contains":
         matches = !fieldValue.includes(targetValue);
-        reason = `${condition.field} ("${fieldValue}") ${matches ? "不包含" : "包含"} "${targetValue}"`;
+        reason = `${condition.field} ("${fieldValue}") ${matches ? t("admin.webhook.opNotContainsResult") : t("admin.webhook.opContainsResult")} "${targetValue}"`;
         break;
       case "starts_with":
         matches = fieldValue.startsWith(targetValue);
-        reason = `${condition.field} ("${fieldValue}") ${matches ? "开头是" : "开头不是"} "${targetValue}"`;
+        reason = `${condition.field} ("${fieldValue}") ${matches ? t("admin.webhook.opStartsWithResult") : t("admin.webhook.opNotStartsWithResult")} "${targetValue}"`;
         break;
       case "ends_with":
         matches = fieldValue.endsWith(targetValue);
-        reason = `${condition.field} ("${fieldValue}") ${matches ? "结尾是" : "结尾不是"} "${targetValue}"`;
+        reason = `${condition.field} ("${fieldValue}") ${matches ? t("admin.webhook.opEndsWithResult") : t("admin.webhook.opNotEndsWithResult")} "${targetValue}"`;
         break;
       case "in":
         const values = targetValue.split(",").map(v => v.trim());
         matches = values.includes(fieldValue);
-        reason = `${condition.field} ("${fieldValue}") ${matches ? "在" : "不在"} [${values.join(", ")}] 中`;
+        reason = `${condition.field} ("${fieldValue}") ${matches ? t("admin.webhook.opInResult") : t("admin.webhook.opNotInResult")} [${values.join(", ")}] ${t("admin.webhook.inSuffix")}`;
         break;
       default:
-        reason = `未知运算符: ${condition.operator}`;
+        reason = `${t("admin.webhook.unknownOperator")}: ${condition.operator}`;
     }
     
     return { matches, reason };
@@ -767,20 +770,20 @@ function WebhookForm({
     const logic = formData.triggerConditions.logic;
     
     if (conditions.length === 0) {
-      setTestResult({ matches: true, details: ["未设置条件，所有事件都会触发"] });
+      setTestResult({ matches: true, details: [t("admin.webhook.noConditionsTriggerAll")] });
       return;
     }
     
     const results = conditions.map(c => evaluateCondition(c, testData));
-    const details = results.map((r, i) => `${i + 1}. ${r.reason} → ${r.matches ? "✅ 匹配" : "❌ 不匹配"}`);
-    
+    const details = results.map((r, i) => `${i + 1}. ${r.reason} → ${r.matches ? `✅ ${t("admin.webhook.matchSymbol")}` : `❌ ${t("admin.webhook.noMatchSymbol")}`}`);
+
     let finalMatch = false;
     if (logic === "AND") {
       finalMatch = results.every(r => r.matches);
-      details.push(`\n结果: 所有条件 (AND) ${finalMatch ? "全部匹配 ✅" : "未全部匹配 ❌"}`);
+      details.push(`\n${t("admin.webhook.andResult")} ${finalMatch ? `${t("admin.webhook.allMatch")} ✅` : `${t("admin.webhook.notAllMatch")} ❌`}`);
     } else {
       finalMatch = results.some(r => r.matches);
-      details.push(`\n结果: 任一条件 (OR) ${finalMatch ? "匹配 ✅" : "无匹配 ❌"}`);
+      details.push(`\n${t("admin.webhook.orResult")} ${finalMatch ? `${t("admin.webhook.anyMatch")} ✅` : `${t("admin.webhook.noneMatch")} ❌`}`);
     }
     
     setTestResult({ matches: finalMatch, details });
@@ -789,16 +792,16 @@ function WebhookForm({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label>名称</Label>
+        <Label>{t("admin.webhook.formNameLabel")}</Label>
         <Input
           value={formData.name}
           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          placeholder="如：生产环境企业微信"
+          placeholder={t("admin.webhook.formNamePlaceholder")}
         />
       </div>
 
       <div className="space-y-2">
-        <Label>类型</Label>
+        <Label>{t("admin.webhook.formTypeLabel")}</Label>
         <Select
           value={formData.type}
           onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as WebhookType }))}
@@ -807,10 +810,10 @@ function WebhookForm({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="wecom">企业微信</SelectItem>
-            <SelectItem value="dingtalk">钉钉</SelectItem>
-            <SelectItem value="feishu">飞书</SelectItem>
-            <SelectItem value="custom">自定义</SelectItem>
+            <SelectItem value="wecom">{t("admin.webhook.wecom")}</SelectItem>
+            <SelectItem value="dingtalk">{t("admin.webhook.dingtalk")}</SelectItem>
+            <SelectItem value="feishu">{t("admin.webhook.feishu")}</SelectItem>
+            <SelectItem value="custom">{t("admin.webhook.custom")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -825,18 +828,18 @@ function WebhookForm({
       </div>
 
       <div className="space-y-2">
-        <Label>描述 (可选)</Label>
+        <Label>{t("admin.webhook.formDescLabel")}</Label>
         <Input
           value={formData.description}
           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          placeholder="Webhook用途说明"
+          placeholder={t("admin.webhook.formDescPlaceholder")}
         />
       </div>
 
       <div className="space-y-2">
-        <Label>订阅事件</Label>
+        <Label>{t("admin.webhook.subscribeEvents")}</Label>
         <div className="grid grid-cols-2 gap-2">
-          {(Object.keys(eventTypeLabels) as EventType[]).map((event) => (
+          {(Object.keys(eventTypeLabelKeys) as EventType[]).map((event) => (
             <label
               key={event}
               className={`flex items-center gap-2 p-2 rounded-sm border cursor-pointer transition-colors ${
@@ -851,14 +854,14 @@ function WebhookForm({
                 onChange={() => toggleEvent(event)}
                 className="sr-only"
               />
-              <span className="text-sm">{eventTypeLabels[event]}</span>
+              <span className="text-sm">{t(eventTypeLabelKeys[event])}</span>
             </label>
           ))}
         </div>
       </div>
 
       <div className="flex items-center justify-between">
-        <Label>启用状态</Label>
+        <Label>{t("admin.webhook.enabledLabel")}</Label>
         <Switch
           checked={formData.enabled}
           onCheckedChange={(checked) => setFormData(prev => ({ ...prev, enabled: checked }))}
@@ -869,12 +872,12 @@ function WebhookForm({
       <div className="space-y-3 border-t border-border pt-4">
         <Label className="flex items-center gap-2">
           <RefreshCw className="w-4 h-4" />
-          重试配置
+          {t("admin.webhook.retryConfigLabel")}
         </Label>
         
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">最大重试次数</Label>
+            <Label className="text-xs text-muted-foreground">{t("admin.webhook.maxRetriesLabel")}</Label>
             <Input
               type="number"
               min={0}
@@ -885,7 +888,7 @@ function WebhookForm({
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">重试间隔(秒)</Label>
+            <Label className="text-xs text-muted-foreground">{t("admin.webhook.retryIntervalLabel")}</Label>
             <Input
               type="number"
               min={10}
@@ -898,14 +901,14 @@ function WebhookForm({
         </div>
         
         <div className="flex items-center justify-between">
-          <Label className="text-sm">指数退避</Label>
+          <Label className="text-sm">{t("admin.webhook.exponentialBackoffLabel")}</Label>
           <Switch
             checked={formData.useExponentialBackoff}
             onCheckedChange={(checked) => setFormData(prev => ({ ...prev, useExponentialBackoff: checked }))}
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          启用指数退避后，每次重试间隔会递增（基础间隔 × 2^重试次数）
+          {t("admin.webhook.exponentialBackoffDesc")}
         </p>
       </div>
 
@@ -914,7 +917,7 @@ function WebhookForm({
         <div className="flex items-center justify-between">
           <Label className="flex items-center gap-2">
             <Filter className="w-4 h-4" />
-            触发条件 (可选)
+            {t("admin.webhook.triggerConditionsLabel")}
           </Label>
           <Button
             type="button"
@@ -923,7 +926,7 @@ function WebhookForm({
             onClick={addCondition}
           >
             <Plus className="w-3 h-3 mr-1" />
-            添加条件
+            {t("admin.webhook.addConditionBtn")}
           </Button>
         </div>
         
@@ -931,7 +934,7 @@ function WebhookForm({
           <div className="space-y-2">
             {/* Logic Toggle */}
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">条件关系:</span>
+              <span className="text-muted-foreground">{t("admin.webhook.conditionRelation")}</span>
               <Button
                 type="button"
                 variant="outline"
@@ -939,7 +942,7 @@ function WebhookForm({
                 onClick={toggleLogic}
                 className="h-7 px-2"
               >
-                {formData.triggerConditions.logic === "AND" ? "且 (AND)" : "或 (OR)"}
+                {formData.triggerConditions.logic === "AND" ? t("admin.webhook.andLogic") : t("admin.webhook.orLogic")}
               </Button>
             </div>
             
@@ -955,9 +958,9 @@ function WebhookForm({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {conditionFieldOptions.map((opt) => (
+                    {conditionFieldOptionDefs.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
+                        {t(opt.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -974,7 +977,7 @@ function WebhookForm({
                   <SelectContent>
                     {(Object.keys(conditionOperatorLabels) as ConditionOperator[]).map((op) => (
                       <SelectItem key={op} value={op}>
-                        {conditionOperatorLabels[op]}
+                        {t(conditionOperatorLabelKeys[op])}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -984,7 +987,7 @@ function WebhookForm({
                 <Input
                   value={condition.value}
                   onChange={(e) => updateCondition(index, "value", e.target.value)}
-                  placeholder="值"
+                  placeholder={t("admin.webhook.valuePlaceholder")}
                   className="flex-1 h-8"
                 />
                 
@@ -1005,7 +1008,7 @@ function WebhookForm({
         
         {formData.triggerConditions.conditions.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未设置条件时，所有订阅事件都会触发此Webhook
+            {t("admin.webhook.noConditionsHint")}
           </p>
         )}
         
@@ -1022,14 +1025,14 @@ function WebhookForm({
             className="mt-2"
           >
             <Eye className="w-3 h-3 mr-1" />
-            测试条件
+            {t("admin.webhook.testConditionBtn")}
           </Button>
         )}
       </div>
 
       <div className="flex justify-end gap-2 pt-4">
         <Button onClick={onSubmit} disabled={isLoading || !formData.name || !formData.webhookUrl}>
-          {isLoading ? "处理中..." : submitLabel}
+          {isLoading ? t("admin.webhook.processing") : submitLabel}
         </Button>
       </div>
       
@@ -1037,19 +1040,19 @@ function WebhookForm({
       <Dialog open={showTestConditionDialog} onOpenChange={setShowTestConditionDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>测试触发条件</DialogTitle>
+            <DialogTitle>{t("admin.webhook.testCondTitle")}</DialogTitle>
             <DialogDescription>
-              输入模拟数据验证条件是否正确触发
+              {t("admin.webhook.testCondDesc")}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             {/* Test Data Input */}
             <div className="space-y-3">
-              <Label>模拟数据</Label>
+              <Label>{t("admin.webhook.simData")}</Label>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">预警级别</Label>
+                  <Label className="text-xs text-muted-foreground">{t("admin.webhook.alertLevelTest")}</Label>
                   <Select
                     value={testData.alert_level}
                     onValueChange={(value) => setTestData(prev => ({ ...prev, alert_level: value }))}
@@ -1058,15 +1061,15 @@ function WebhookForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">低</SelectItem>
-                      <SelectItem value="medium">中</SelectItem>
-                      <SelectItem value="high">高</SelectItem>
-                      <SelectItem value="critical">严重</SelectItem>
+                      <SelectItem value="low">{t("admin.webhook.lowLevel")}</SelectItem>
+                      <SelectItem value="medium">{t("admin.webhook.mediumLevel")}</SelectItem>
+                      <SelectItem value="high">{t("admin.webhook.highLevel")}</SelectItem>
+                      <SelectItem value="critical">{t("admin.webhook.criticalLevel")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">项目类型</Label>
+                  <Label className="text-xs text-muted-foreground">{t("admin.webhook.projectTypeTest")}</Label>
                   <Select
                     value={testData.project_type}
                     onValueChange={(value) => setTestData(prev => ({ ...prev, project_type: value }))}
@@ -1075,15 +1078,15 @@ function WebhookForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="development">研发</SelectItem>
-                      <SelectItem value="production">生产</SelectItem>
-                      <SelectItem value="maintenance">运维</SelectItem>
-                      <SelectItem value="consulting">咨询</SelectItem>
+                      <SelectItem value="development">{t("admin.webhook.development")}</SelectItem>
+                      <SelectItem value="production">{t("admin.webhook.production")}</SelectItem>
+                      <SelectItem value="maintenance">{t("admin.webhook.maintenance")}</SelectItem>
+                      <SelectItem value="consulting">{t("admin.webhook.consulting")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">成本金额</Label>
+                  <Label className="text-xs text-muted-foreground">{t("admin.webhook.costAmountTest")}</Label>
                   <Input
                     type="number"
                     value={testData.cost_amount}
@@ -1092,7 +1095,7 @@ function WebhookForm({
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">事件类型</Label>
+                  <Label className="text-xs text-muted-foreground">{t("admin.webhook.eventTypeTest")}</Label>
                   <Select
                     value={testData.event_type}
                     onValueChange={(value) => setTestData(prev => ({ ...prev, event_type: value }))}
@@ -1101,10 +1104,10 @@ function WebhookForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cost_alert">成本预警</SelectItem>
-                      <SelectItem value="meeting_reminder">会议提醒</SelectItem>
-                      <SelectItem value="training_notification">培训通知</SelectItem>
-                      <SelectItem value="system_notification">系统通知</SelectItem>
+                      <SelectItem value="cost_alert">{t("admin.webhook.costAlert")}</SelectItem>
+                      <SelectItem value="meeting_reminder">{t("admin.webhook.meetingReminder")}</SelectItem>
+                      <SelectItem value="training_notification">{t("admin.webhook.trainingNotification")}</SelectItem>
+                      <SelectItem value="system_notification">{t("admin.webhook.systemNotification")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1113,13 +1116,13 @@ function WebhookForm({
             
             {/* Current Conditions Display */}
             <div className="space-y-2">
-              <Label>当前条件 ({formData.triggerConditions.logic})</Label>
+              <Label>{t("admin.webhook.currentConditions")} ({formData.triggerConditions.logic})</Label>
               <div className="text-xs space-y-1 p-2 bg-muted/30 rounded-sm">
                 {formData.triggerConditions.conditions.map((c, i) => (
                   <div key={i} className="flex items-center gap-1">
                     <span className="text-muted-foreground">{i + 1}.</span>
                     <span>{c.field}</span>
-                    <span className="text-primary">{conditionOperatorLabels[c.operator]}</span>
+                    <span className="text-primary">{t(conditionOperatorLabelKeys[c.operator])}</span>
                     <span>"{c.value}"</span>
                   </div>
                 ))}
@@ -1128,14 +1131,14 @@ function WebhookForm({
             
             {/* Run Test Button */}
             <Button onClick={runConditionTest} className="w-full">
-              运行测试
+              {t("admin.webhook.runTest")}
             </Button>
             
             {/* Test Result */}
             {testResult && (
               <div className={`p-3 rounded-sm border ${testResult.matches ? "bg-green-500/10 border-green-500/30" : "bg-red-500/10 border-red-500/30"}`}>
                 <div className={`font-medium mb-2 ${testResult.matches ? "text-green-500" : "text-red-500"}`}>
-                  {testResult.matches ? "✅ 条件匹配 - Webhook将触发" : "❌ 条件不匹配 - Webhook不会触发"}
+                  {testResult.matches ? `✅ ${t("admin.webhook.conditionMatch")}` : `❌ ${t("admin.webhook.conditionNoMatch")}`}
                 </div>
                 <div className="text-xs space-y-1">
                   {testResult.details.map((detail, i) => (
@@ -1171,6 +1174,7 @@ interface WebhookTemplate {
 }
 
 function TemplatesTab() {
+  const { t, tpl } = useLanguage();
   const [showNewTemplateDialog, setShowNewTemplateDialog] = useState(false);
   const [showEditTemplateDialog, setShowEditTemplateDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -1196,44 +1200,44 @@ function TemplatesTab() {
   // Mutations
   const createMutation = trpc.webhook.createTemplate.useMutation({
     onSuccess: () => {
-      toast.success("模板创建成功");
+      toast.success(t("admin.webhook.templateCreateSuccess"));
       setShowNewTemplateDialog(false);
       refetch();
       resetTemplateForm();
     },
     onError: (error) => {
-      toast.error(`创建失败: ${error.message}`);
+      toast.error(`${t("admin.webhook.createFailed")}: ${error.message}`);
     },
   });
   
   const updateMutation = trpc.webhook.updateTemplate.useMutation({
     onSuccess: () => {
-      toast.success("模板更新成功");
+      toast.success(t("admin.webhook.templateUpdateSuccess"));
       setShowEditTemplateDialog(false);
       refetch();
     },
     onError: (error) => {
-      toast.error(`更新失败: ${error.message}`);
+      toast.error(`${t("admin.webhook.updateFailed")}: ${error.message}`);
     },
   });
   
   const deleteMutation = trpc.webhook.deleteTemplate.useMutation({
     onSuccess: () => {
-      toast.success("模板删除成功");
+      toast.success(t("admin.webhook.templateDeleteSuccess"));
       refetch();
     },
     onError: (error) => {
-      toast.error(`删除失败: ${error.message}`);
+      toast.error(`${t("admin.webhook.deleteFailed")}: ${error.message}`);
     },
   });
   
   const initMutation = trpc.webhook.initTemplates.useMutation({
     onSuccess: (result) => {
-      toast.success(`初始化完成，创建了 ${(result as any).created} 个默认模板`);
+      toast.success(tpl("admin.webhook.initSuccess", { count: String((result as any).created) }));
       refetch();
     },
     onError: (error) => {
-      toast.error(`初始化失败: ${error.message}`);
+      toast.error(`${t("admin.webhook.initFailed")}: ${error.message}`);
     },
   });
   
@@ -1242,7 +1246,7 @@ function TemplatesTab() {
       setPreviewResult(result);
     },
     onError: (error) => {
-      toast.error(`预览失败: ${error.message}`);
+      toast.error(`${t("admin.webhook.previewFailed")}: ${error.message}`);
     },
   });
   
@@ -1274,7 +1278,7 @@ function TemplatesTab() {
   };
   
   const handleDeleteTemplate = (id: number) => {
-    if (confirm("确定要删除此模板吗？")) {
+    if (confirm(t("admin.webhook.confirmDeleteTemplate"))) {
       deleteMutation.mutate({ id });
     }
   };
@@ -1319,10 +1323,10 @@ function TemplatesTab() {
   };
   
   const eventTypeOptions = [
-    { value: "meeting_reminder", label: "会议提醒" },
-    { value: "cost_alert", label: "成本预警" },
-    { value: "training_complete", label: "培训完成" },
-    { value: "system_notification", label: "系统通知" },
+    { value: "meeting_reminder", labelKey: "admin.webhook.eventMeetingReminder" },
+    { value: "cost_alert", labelKey: "admin.webhook.eventCostAlert" },
+    { value: "training_complete", labelKey: "admin.webhook.eventTrainingComplete" },
+    { value: "system_notification", labelKey: "admin.webhook.eventSystemNotification" },
   ];
   
   return (
@@ -1332,25 +1336,25 @@ function TemplatesTab() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
-              消息模板管理
+              {t("admin.webhook.templateMgmtTitle")}
             </CardTitle>
-            <CardDescription>自定义Webhook消息模板，支持变量替换</CardDescription>
+            <CardDescription>{t("admin.webhook.templateMgmtDesc")}</CardDescription>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => initMutation.mutate()} disabled={initMutation.isPending}>
-              {initMutation.isPending ? "初始化中..." : "初始化默认模板"}
+              {initMutation.isPending ? t("admin.webhook.initializing") : t("admin.webhook.initDefault")}
             </Button>
             <Dialog open={showNewTemplateDialog} onOpenChange={setShowNewTemplateDialog}>
               <DialogTrigger asChild>
                 <Button onClick={resetTemplateForm}>
                   <Plus className="w-4 h-4 mr-2" />
-                  新建模板
+                  {t("admin.webhook.newTemplate")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>新建消息模板</DialogTitle>
-                  <DialogDescription>创建自定义的Webhook消息模板</DialogDescription>
+                  <DialogTitle>{t("admin.webhook.newTemplateTitle")}</DialogTitle>
+                  <DialogDescription>{t("admin.webhook.newTemplateDesc")}</DialogDescription>
                 </DialogHeader>
                 <TemplateForm
                   formData={templateForm}
@@ -1358,7 +1362,7 @@ function TemplatesTab() {
                   eventTypeOptions={eventTypeOptions}
                   onSubmit={handleCreateTemplate}
                   isLoading={createMutation.isPending}
-                  submitLabel="创建"
+                  submitLabel={t("admin.webhook.create")}
                 />
               </DialogContent>
             </Dialog>
@@ -1367,17 +1371,17 @@ function TemplatesTab() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">加载中...</div>
+          <div className="text-center py-8 text-muted-foreground">{t("admin.webhook.loading")}</div>
         ) : templates && templates.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>模板名称</TableHead>
-                <TableHead>事件类型</TableHead>
-                <TableHead>Webhook类型</TableHead>
-                <TableHead>默认</TableHead>
-                <TableHead>更新时间</TableHead>
-                <TableHead className="text-right">操作</TableHead>
+                <TableHead>{t("admin.webhook.templateNameCol")}</TableHead>
+                <TableHead>{t("admin.webhook.eventTypeColTpl")}</TableHead>
+                <TableHead>{t("admin.webhook.webhookTypeCol")}</TableHead>
+                <TableHead>{t("admin.webhook.defaultCol")}</TableHead>
+                <TableHead>{t("admin.webhook.updateTimeCol")}</TableHead>
+                <TableHead className="text-right">{t("admin.webhook.actionsCol")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1386,12 +1390,12 @@ function TemplatesTab() {
                   <TableCell className="font-medium">{template.name}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">
-                      {eventTypeOptions.find(e => e.value === template.eventType)?.label || template.eventType}
+                      {(() => { const opt = eventTypeOptions.find(e => e.value === template.eventType); return opt ? t(opt.labelKey) : template.eventType; })()}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge className={webhookTypeColors[template.webhookType as WebhookType]}>
-                      {webhookTypeLabels[template.webhookType as WebhookType]}
+                      {t(webhookTypeLabelKeys[template.webhookType as WebhookType])}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -1410,7 +1414,7 @@ function TemplatesTab() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handlePreviewTemplate(template)}
-                        title="预览"
+                        title={t("admin.webhook.preview")}
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
@@ -1418,7 +1422,7 @@ function TemplatesTab() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleEditTemplate(template)}
-                        title="编辑"
+                        title={t("admin.webhook.edit")}
                       >
                         <Edit2 className="w-4 h-4" />
                       </Button>
@@ -1426,7 +1430,7 @@ function TemplatesTab() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDeleteTemplate(template.id)}
-                        title="删除"
+                        title={t("admin.webhook.deleteAction")}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1440,8 +1444,8 @@ function TemplatesTab() {
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>暂无消息模板</p>
-            <p className="text-sm mt-2">点击"初始化默认模板"快速创建常用模板</p>
+            <p>{t("admin.webhook.noTemplates")}</p>
+            <p className="text-sm mt-2">{t("admin.webhook.noTemplatesHint")}</p>
           </div>
         )}
       </CardContent>
@@ -1450,8 +1454,8 @@ function TemplatesTab() {
       <Dialog open={showEditTemplateDialog} onOpenChange={setShowEditTemplateDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>编辑消息模板</DialogTitle>
-            <DialogDescription>修改Webhook消息模板</DialogDescription>
+            <DialogTitle>{t("admin.webhook.editTemplateTitle")}</DialogTitle>
+            <DialogDescription>{t("admin.webhook.editTemplateDesc")}</DialogDescription>
           </DialogHeader>
           <TemplateForm
             formData={templateForm}
@@ -1459,24 +1463,24 @@ function TemplatesTab() {
             eventTypeOptions={eventTypeOptions}
             onSubmit={handleUpdateTemplate}
             isLoading={updateMutation.isPending}
-            submitLabel="保存"
+            submitLabel={t("admin.webhook.save")}
           />
         </DialogContent>
       </Dialog>
-      
+
       {/* Preview Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>预览消息模板</DialogTitle>
+            <DialogTitle>{t("admin.webhook.previewTemplateTitle")}</DialogTitle>
             <DialogDescription>
-              {selectedTemplate?.name} - 输入变量值查看效果
+              {selectedTemplate?.name} - {t("admin.webhook.previewTemplateDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {/* Variable Inputs */}
             <div className="space-y-2">
-              <Label>变量值</Label>
+              <Label>{t("admin.webhook.varValues")}</Label>
               <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto">
                 {Object.keys(previewVariables).map((key) => (
                   <div key={key} className="flex items-center gap-2">
@@ -1492,18 +1496,18 @@ function TemplatesTab() {
             </div>
             
             <Button onClick={handleGeneratePreview} disabled={previewMutation.isPending}>
-              {previewMutation.isPending ? "生成中..." : "生成预览"}
+              {previewMutation.isPending ? t("admin.webhook.generating") : t("admin.webhook.generatePreview")}
             </Button>
             
             {/* Preview Result */}
             {previewResult && (
               <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">标题</Label>
+                  <Label className="text-xs text-muted-foreground">{t("admin.webhook.previewTitleLabel")}</Label>
                   <div className="font-medium">{previewResult.title}</div>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">内容</Label>
+                  <Label className="text-xs text-muted-foreground">{t("admin.webhook.previewContentLabel")}</Label>
                   <div className="whitespace-pre-wrap text-sm">{previewResult.content}</div>
                 </div>
               </div>
@@ -1537,86 +1541,87 @@ function TemplateForm({
     isDefault: boolean;
   };
   setFormData: React.Dispatch<React.SetStateAction<typeof formData>>;
-  eventTypeOptions: { value: string; label: string }[];
+  eventTypeOptions: { value: string; labelKey: string }[];
   onSubmit: () => void;
   isLoading: boolean;
   submitLabel: string;
 }) {
+  const { t } = useLanguage();
   // Extended variable hints with categories
-  const variableHints: Record<string, { category: string; vars: { key: string; name: string; example: string }[] }[]> = {
+  const variableHints: Record<string, { categoryKey: string; vars: { key: string; nameKey: string; example: string }[] }[]> = {
     meeting_reminder: [
-      { category: '会议信息', vars: [
-        { key: 'meeting_title', name: '会议标题', example: '项目周会' },
-        { key: 'meeting_time', name: '会议时间', example: '2026-01-16 14:00' },
-        { key: 'meeting_location', name: '会议地点', example: '会议室A301' },
-        { key: 'meeting_description', name: '会议描述', example: '讨论项目进度' },
-        { key: 'meeting_participants', name: '参会人员', example: '张三, 李四' },
+      { categoryKey: "admin.webhook.catMeetingInfo", vars: [
+        { key: 'meeting_title', nameKey: "admin.webhook.varMeetingTitle", example: 'Weekly Meeting' },
+        { key: 'meeting_time', nameKey: "admin.webhook.varMeetingTime", example: '2026-01-16 14:00' },
+        { key: 'meeting_location', nameKey: "admin.webhook.varMeetingLocation", example: 'Room A301' },
+        { key: 'meeting_description', nameKey: "admin.webhook.varMeetingDesc", example: 'Project progress' },
+        { key: 'meeting_participants', nameKey: "admin.webhook.varMeetingParticipants", example: 'Alice, Bob' },
       ]},
-      { category: '用户信息', vars: [
-        { key: 'user_name', name: '用户名称', example: '张三' },
-        { key: 'user_list', name: '用户列表', example: '张三, 李四, 王五' },
-        { key: 'user_count', name: '用户数量', example: '5' },
+      { categoryKey: "admin.webhook.catUserInfo", vars: [
+        { key: 'user_name', nameKey: "admin.webhook.varUserName", example: 'Alice' },
+        { key: 'user_list', nameKey: "admin.webhook.varUserList", example: 'Alice, Bob, Carol' },
+        { key: 'user_count', nameKey: "admin.webhook.varUserCount", example: '5' },
       ]},
-      { category: '链接', vars: [
-        { key: 'detail_url', name: '详情链接', example: 'https://...' },
+      { categoryKey: "admin.webhook.catLinks", vars: [
+        { key: 'detail_url', nameKey: "admin.webhook.varDetailUrl", example: 'https://...' },
       ]},
     ],
     cost_alert: [
-      { category: '项目信息', vars: [
-        { key: 'project_name', name: '项目名称', example: '智能制造一期' },
-        { key: 'project_code', name: '项目编号', example: 'GRT-2026-001' },
-        { key: 'project_status', name: '项目状态', example: '进行中' },
+      { categoryKey: "admin.webhook.catProjectInfo", vars: [
+        { key: 'project_name', nameKey: "admin.webhook.varProjectName", example: 'Smart Mfg Phase 1' },
+        { key: 'project_code', nameKey: "admin.webhook.varProjectCode", example: 'GRT-2026-001' },
+        { key: 'project_status', nameKey: "admin.webhook.varProjectStatus", example: 'In Progress' },
       ]},
-      { category: '预警信息', vars: [
-        { key: 'alert_level', name: '预警级别', example: '严重' },
-        { key: 'alert_type', name: '预警类型', example: '预算超支' },
-        { key: 'alert_rule', name: '预警规则', example: '预算使用率95%' },
-        { key: 'current_value', name: '当前值', example: '95,000' },
-        { key: 'threshold_value', name: '阈值', example: '100,000' },
+      { categoryKey: "admin.webhook.catAlertInfo", vars: [
+        { key: 'alert_level', nameKey: "admin.webhook.varAlertLevel", example: 'Critical' },
+        { key: 'alert_type', nameKey: "admin.webhook.varAlertType", example: 'Over Budget' },
+        { key: 'alert_rule', nameKey: "admin.webhook.varAlertRule", example: 'Budget 95%' },
+        { key: 'current_value', nameKey: "admin.webhook.varCurrentValue", example: '95,000' },
+        { key: 'threshold_value', nameKey: "admin.webhook.varThresholdValue", example: '100,000' },
       ]},
-      { category: '预算信息', vars: [
-        { key: 'budget_used', name: '已用预算', example: '95,000' },
-        { key: 'budget_total', name: '总预算', example: '100,000' },
-        { key: 'budget_percent', name: '预算使用率', example: '95%' },
+      { categoryKey: "admin.webhook.catBudgetInfo", vars: [
+        { key: 'budget_used', nameKey: "admin.webhook.varBudgetUsed", example: '95,000' },
+        { key: 'budget_total', nameKey: "admin.webhook.varBudgetTotal", example: '100,000' },
+        { key: 'budget_percent', nameKey: "admin.webhook.varBudgetPercent", example: '95%' },
       ]},
-      { category: '链接', vars: [
-        { key: 'detail_url', name: '详情链接', example: 'https://...' },
-        { key: 'action_url', name: '操作链接', example: 'https://...' },
+      { categoryKey: "admin.webhook.catLinks", vars: [
+        { key: 'detail_url', nameKey: "admin.webhook.varDetailUrl", example: 'https://...' },
+        { key: 'action_url', nameKey: "admin.webhook.varActionUrl", example: 'https://...' },
       ]},
     ],
     training_complete: [
-      { category: '培训信息', vars: [
-        { key: 'training_name', name: '培训名称', example: '安全生产培训' },
-        { key: 'training_type', name: '培训类型', example: '安全培训' },
-        { key: 'training_time', name: '培训时间', example: '2026-01-20 09:00' },
-        { key: 'training_location', name: '培训地点', example: '培训室B201' },
-        { key: 'trainer_name', name: '培训师', example: '王老师' },
+      { categoryKey: "admin.webhook.catTrainingInfo", vars: [
+        { key: 'training_name', nameKey: "admin.webhook.varTrainingName", example: 'Safety Training' },
+        { key: 'training_type', nameKey: "admin.webhook.varTrainingType", example: 'Safety' },
+        { key: 'training_time', nameKey: "admin.webhook.varTrainingTime", example: '2026-01-20 09:00' },
+        { key: 'training_location', nameKey: "admin.webhook.varTrainingLocation", example: 'Room B201' },
+        { key: 'trainer_name', nameKey: "admin.webhook.varTrainerName", example: 'Mr. Wang' },
       ]},
-      { category: '统计信息', vars: [
-        { key: 'participant_count', name: '参与人数', example: '20' },
-        { key: 'pass_rate', name: '通过率', example: '90%' },
-        { key: 'certificate_number', name: '证书编号', example: 'CERT-2026-001' },
+      { categoryKey: "admin.webhook.catStatsInfo", vars: [
+        { key: 'participant_count', nameKey: "admin.webhook.varParticipantCount", example: '20' },
+        { key: 'pass_rate', nameKey: "admin.webhook.varPassRate", example: '90%' },
+        { key: 'certificate_number', nameKey: "admin.webhook.varCertNumber", example: 'CERT-2026-001' },
       ]},
-      { category: '用户信息', vars: [
-        { key: 'user_name', name: '用户名称', example: '张三' },
-        { key: 'user_list', name: '用户列表', example: '张三, 李四' },
+      { categoryKey: "admin.webhook.catUserInfo", vars: [
+        { key: 'user_name', nameKey: "admin.webhook.varUserName", example: 'Alice' },
+        { key: 'user_list', nameKey: "admin.webhook.varUserList", example: 'Alice, Bob' },
       ]},
     ],
     system_notification: [
-      { category: '基础信息', vars: [
-        { key: 'event_type', name: '事件类型', example: '系统通知' },
-        { key: 'event_time', name: '事件时间', example: '2026-01-16 14:30:00' },
-        { key: 'system_name', name: '系统名称', example: 'GRT智能系统' },
+      { categoryKey: "admin.webhook.catBasicInfo", vars: [
+        { key: 'event_type', nameKey: "admin.webhook.varEventType", example: 'System Notification' },
+        { key: 'event_time', nameKey: "admin.webhook.varEventTime", example: '2026-01-16 14:30:00' },
+        { key: 'system_name', nameKey: "admin.webhook.varSystemName", example: 'GRT System' },
       ]},
-      { category: '附件', vars: [
-        { key: 'attachment_url', name: '附件链接', example: 'https://...' },
-        { key: 'attachment_name', name: '附件名称', example: '报告.pdf' },
-        { key: 'attachment_count', name: '附件数量', example: '3' },
+      { categoryKey: "admin.webhook.catAttachments", vars: [
+        { key: 'attachment_url', nameKey: "admin.webhook.varAttachmentUrl", example: 'https://...' },
+        { key: 'attachment_name', nameKey: "admin.webhook.varAttachmentName", example: 'report.pdf' },
+        { key: 'attachment_count', nameKey: "admin.webhook.varAttachmentCount", example: '3' },
       ]},
-      { category: '自定义', vars: [
-        { key: 'custom_field_1', name: '自定义字1', example: '自定义内容' },
-        { key: 'custom_field_2', name: '自定义字2', example: '自定义内容' },
-        { key: 'custom_field_3', name: '自定义字3', example: '自定义内容' },
+      { categoryKey: "admin.webhook.catCustom", vars: [
+        { key: 'custom_field_1', nameKey: "admin.webhook.varCustomField1", example: 'Custom content' },
+        { key: 'custom_field_2', nameKey: "admin.webhook.varCustomField2", example: 'Custom content' },
+        { key: 'custom_field_3', nameKey: "admin.webhook.varCustomField3", example: 'Custom content' },
       ]},
     ],
   };
@@ -1628,16 +1633,16 @@ function TemplateForm({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>模板名称</Label>
+          <Label>{t("admin.webhook.templateFormName")}</Label>
           <Input
             value={formData.name}
             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            placeholder="如：成本预警-企业微信"
+            placeholder={t("admin.webhook.templateFormNamePlaceholder")}
           />
         </div>
         
         <div className="space-y-2">
-          <Label>事件类型</Label>
+          <Label>{t("admin.webhook.templateFormEventType")}</Label>
           <Select
             value={formData.eventType}
             onValueChange={(value) => {
@@ -1654,17 +1659,17 @@ function TemplateForm({
             <SelectContent>
               {eventTypeOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Webhook类型</Label>
+          <Label>{t("admin.webhook.templateFormWebhookType")}</Label>
           <Select
             value={formData.webhookType}
             onValueChange={(value) => setFormData(prev => ({ ...prev, webhookType: value as WebhookType }))}
@@ -1673,16 +1678,16 @@ function TemplateForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="wecom">企业微信</SelectItem>
-              <SelectItem value="dingtalk">钉钉</SelectItem>
-              <SelectItem value="feishu">飞书</SelectItem>
-              <SelectItem value="custom">自定义</SelectItem>
+              <SelectItem value="wecom">{t("admin.webhook.wecom")}</SelectItem>
+              <SelectItem value="dingtalk">{t("admin.webhook.dingtalk")}</SelectItem>
+              <SelectItem value="feishu">{t("admin.webhook.feishu")}</SelectItem>
+              <SelectItem value="custom">{t("admin.webhook.custom")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         
         <div className="flex items-center justify-between pt-6">
-          <Label>设为默认模板</Label>
+          <Label>{t("admin.webhook.templateFormDefault")}</Label>
           <Switch
             checked={formData.isDefault}
             onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isDefault: checked }))}
@@ -1693,10 +1698,10 @@ function TemplateForm({
       {/* Variable Hints - Categorized */}
       {currentHintCategories.length > 0 && (
         <div className="p-3 bg-muted/50 rounded-lg space-y-3">
-          <Label className="text-xs text-muted-foreground">可用变量（点击复制）</Label>
+          <Label className="text-xs text-muted-foreground">{t("admin.webhook.availableVarsLabel")}</Label>
           {currentHintCategories.map((category) => (
-            <div key={category.category}>
-              <span className="text-xs font-medium text-muted-foreground">{category.category}</span>
+            <div key={category.categoryKey}>
+              <span className="text-xs font-medium text-muted-foreground">{t(category.categoryKey)}</span>
               <div className="flex flex-wrap gap-1 mt-1">
                 {category.vars.map((v) => (
                   <Badge
@@ -1705,38 +1710,38 @@ function TemplateForm({
                     className="cursor-pointer hover:bg-primary/10"
                     onClick={() => {
                       navigator.clipboard.writeText(`{{${v.key}}}`);
-                      toast.success(`已复制 {{${v.key}}}`);
+                      toast.success(`${t("admin.webhook.copied")} {{${v.key}}}`);
                     }}
-                    title={`${v.name}: ${v.example}`}
+                    title={`${t(v.nameKey)}: ${v.example}`}
                   >
                     <Copy className="w-3 h-3 mr-1" />
-                    {v.name}
+                    {t(v.nameKey)}
                   </Badge>
                 ))}
               </div>
             </div>
           ))}
           <div className="text-xs text-muted-foreground mt-2">
-            提示：支持条件语法 {`{{#if variable}}...内容...{{/if}}`} 和 {`{{#unless variable}}...内容...{{/unless}}`}
+            {t("admin.webhook.condSyntaxHint")} {`{{#if variable}}...{{/if}}`} & {`{{#unless variable}}...{{/unless}}`}
           </div>
         </div>
       )}
       
       <div className="space-y-2">
-        <Label>标题模板</Label>
+        <Label>{t("admin.webhook.titleTemplateLabel")}</Label>
         <Input
           value={formData.titleTemplate}
           onChange={(e) => setFormData(prev => ({ ...prev, titleTemplate: e.target.value }))}
-          placeholder="如：⚠️ 成本预警: {{title}}"
+          placeholder={t("admin.webhook.titleTemplatePlaceholder")}
         />
       </div>
       
       <div className="space-y-2">
-        <Label>内容模板</Label>
+        <Label>{t("admin.webhook.contentTemplateLabel")}</Label>
         <Textarea
           value={formData.contentTemplate}
           onChange={(e) => setFormData(prev => ({ ...prev, contentTemplate: e.target.value }))}
-          placeholder={`**项目**: {{projectName}}\n**预警级别**: {{alertLevel}}\n**当前值**: {{currentValue}}`}
+          placeholder={t("admin.webhook.contentTemplatePlaceholder")}
           rows={8}
         />
       </div>
@@ -1746,7 +1751,7 @@ function TemplateForm({
           onClick={onSubmit}
           disabled={isLoading || !formData.name || !formData.titleTemplate || !formData.contentTemplate}
         >
-          {isLoading ? "处理中..." : submitLabel}
+          {isLoading ? t("admin.webhook.processing") : submitLabel}
         </Button>
       </div>
     </div>

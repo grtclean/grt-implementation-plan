@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import {
   syncUnifiedProjects,
   listUnifiedProjects,
@@ -94,7 +94,7 @@ const extendedChecklistUpdateSchema = z.object({
 // ============================================================
 
 const unifiedProjectsRouter = router({
-  sync: protectedProcedure.mutation(async () => {
+  sync: requirePermission('system:org:manage').mutation(async () => {
     return syncUnifiedProjects();
   }),
   list: protectedProcedure.input(unifiedProjectFiltersSchema).query(async ({ input }) => {
@@ -103,7 +103,7 @@ const unifiedProjectsRouter = router({
 });
 
 const fkConstraintsRouter = router({
-  register: protectedProcedure.input(fkConstraintInputSchema).mutation(async ({ input }) => {
+  register: requirePermission('system:org:manage').input(fkConstraintInputSchema).mutation(async ({ input }) => {
     return registerFKConstraint(input);
   }),
   list: protectedProcedure.input(fkConstraintFiltersSchema).query(async ({ input }) => {
@@ -112,16 +112,16 @@ const fkConstraintsRouter = router({
 });
 
 const jsonMigrationRouter = router({
-  migrateTasks: protectedProcedure.input(stageIdSchema).mutation(async ({ input }) => {
+  migrateTasks: requirePermission('system:org:manage').input(stageIdSchema).mutation(async ({ input }) => {
     return migrateJsonTasks(input.stageId);
   }),
-  migrateAuditLog: protectedProcedure.input(stageIdSchema).mutation(async ({ input }) => {
+  migrateAuditLog: requirePermission('system:org:manage').input(stageIdSchema).mutation(async ({ input }) => {
     return migrateJsonAuditLog(input.stageId);
   }),
 });
 
 const customerMasterRouter = router({
-  sync: protectedProcedure.mutation(async () => {
+  sync: requirePermission('system:org:manage').mutation(async () => {
     return syncCustomerMaster();
   }),
   list: protectedProcedure.input(customerMasterFiltersSchema).query(async ({ input }) => {
@@ -135,14 +135,14 @@ const extendedChecklistRouter = router({
     .query(async ({ input }) => {
       return listExtendedChecklist(input.stageCode);
     }),
-  create: protectedProcedure.input(extendedChecklistInputSchema).mutation(async ({ input }) => {
+  create: requirePermission('system:org:manage').input(extendedChecklistInputSchema).mutation(async ({ input }) => {
     return createExtendedChecklistItem(input);
   }),
-  update: protectedProcedure.input(extendedChecklistUpdateSchema).mutation(async ({ input }) => {
+  update: requirePermission('system:org:manage').input(extendedChecklistUpdateSchema).mutation(async ({ input }) => {
     const { id, ...data } = input;
     return updateExtendedChecklistItem(id, data);
   }),
-  delete: protectedProcedure
+  delete: requirePermission('system:org:manage')
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input }) => {
       return deleteExtendedChecklistItem(input.id);

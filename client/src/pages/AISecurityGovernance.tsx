@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -105,6 +106,7 @@ function OtpDialog({
 
 // ── Module A: Pipeline Lockdown ──
 function PipelineLockdown() {
+  const { t } = useLanguage();
   const [otpOpen, setOtpOpen] = useState(false);
   const [pendingFrozen, setPendingFrozen] = useState(false);
 
@@ -140,22 +142,22 @@ function PipelineLockdown() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {isFrozen ? <Lock className="w-5 h-5 text-red-500" /> : <Unlock className="w-5 h-5 text-green-500" />}
-          Pipeline Lockdown
+          {t("ai.security.pipelineLockdown")}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-sm font-medium">AI Ingestion Pipeline</p>
+            <p className="text-sm font-medium">{t("ai.security.aiIngestionPipeline")}</p>
             <p className="text-xs text-muted-foreground">
               {isFrozen
-                ? "Pipeline is currently FROZEN — all ingestion halted"
-                : "Pipeline is ACTIVE — documents are being processed"}
+                ? t("ai.security.pipelineFrozenDesc")
+                : t("ai.security.pipelineActiveDesc")}
             </p>
           </div>
           <div className="flex items-center gap-3">
             <Badge variant={isFrozen ? "destructive" : "default"}>
-              {isFrozen ? "Frozen" : "Active"}
+              {isFrozen ? t("ai.security.frozen") : t("ai.security.active")}
             </Badge>
             <Switch
               checked={isFrozen}
@@ -166,7 +168,7 @@ function PipelineLockdown() {
         </div>
         {statusQuery.data?.updatedAt && (
           <p className="text-xs text-muted-foreground mt-3">
-            Last changed: {new Date(statusQuery.data.updatedAt).toLocaleString()}
+            {t("ai.security.lastChanged")}: {new Date(statusQuery.data.updatedAt).toLocaleString()}
           </p>
         )}
       </CardContent>
@@ -189,6 +191,7 @@ function PipelineLockdown() {
 
 // ── Module B: Rollback Console ──
 function RollbackConsole() {
+  const { t } = useLanguage();
   const [otpOpen, setOtpOpen] = useState(false);
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
 
@@ -224,14 +227,14 @@ function RollbackConsole() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <RotateCcw className="w-5 h-5" />
-          Rollback Console
+          {t("ai.security.rollbackConsole")}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {docsQuery.isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading documents...</p>
+          <p className="text-sm text-muted-foreground">{t("ai.security.loadingDocs")}</p>
         ) : !docsQuery.data?.items.length ? (
-          <p className="text-sm text-muted-foreground">No knowledge documents available</p>
+          <p className="text-sm text-muted-foreground">{t("ai.security.noKnowledgeDocs")}</p>
         ) : (
           <div className="border rounded-md">
             <Table>
@@ -274,7 +277,7 @@ function RollbackConsole() {
           </div>
         )}
         <p className="text-xs text-muted-foreground mt-2">
-          Total: {docsQuery.data?.total ?? 0} document(s)
+          {t("ai.security.total")}: {docsQuery.data?.total ?? 0}
         </p>
       </CardContent>
 
@@ -292,6 +295,7 @@ function RollbackConsole() {
 
 // ── Module C: Immutable Audit Log ──
 function AuditLogModule() {
+  const { t } = useLanguage();
   const [actionFilter, setActionFilter] = useState<string | undefined>(undefined);
 
   const logsQuery = trpc.aiSecurityGovernance.listAuditLogs.useQuery({
@@ -319,7 +323,7 @@ function AuditLogModule() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ScrollText className="w-5 h-5" />
-          Immutable Audit Log
+          {t("ai.security.auditLog")}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -335,7 +339,7 @@ function AuditLogModule() {
             </div>
           ))}
           {(!statsQuery.data || statsQuery.data.length === 0) && (
-            <p className="text-sm text-muted-foreground">No governance events yet</p>
+            <p className="text-sm text-muted-foreground">{t("ai.security.noEvents")}</p>
           )}
         </div>
 
@@ -362,9 +366,9 @@ function AuditLogModule() {
 
         {/* Logs table */}
         {logsQuery.isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading audit logs...</p>
+          <p className="text-sm text-muted-foreground">{t("ai.security.loadingLogs")}</p>
         ) : !logsQuery.data?.items.length ? (
-          <p className="text-sm text-muted-foreground">No audit entries found</p>
+          <p className="text-sm text-muted-foreground">{t("ai.security.noAuditEntries")}</p>
         ) : (
           <div className="border rounded-md">
             <Table>
@@ -405,7 +409,7 @@ function AuditLogModule() {
           </div>
         )}
         <p className="text-xs text-muted-foreground mt-2">
-          Total: {logsQuery.data?.total ?? 0} log(s)
+          {t("ai.security.total")}: {logsQuery.data?.total ?? 0}
         </p>
       </CardContent>
     </Card>
@@ -414,12 +418,13 @@ function AuditLogModule() {
 
 // ── Main Page ──
 export default function AISecurityGovernance() {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Shield}
-        title="Zero-Trust Security & Governance Gateway"
-        description="OTP-gated destructive operations, pipeline lockdown, knowledge rollback, and immutable audit trail"
+        title={t("ai.security.title")}
+        description={t("ai.security.description")}
       />
 
       <div className="grid gap-6">

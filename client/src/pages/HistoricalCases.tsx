@@ -16,6 +16,7 @@ import {
   BookOpen, Search, Sparkles, Star, Loader2, ChevronDown, ChevronUp,
   Factory, Wrench, Beaker,
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface SearchForm {
   industry: string;
@@ -45,6 +46,7 @@ const EMPTY_FORM: SearchForm = {
 };
 
 export default function HistoricalCases() {
+  const { t } = useLanguage();
   const [form, setForm] = useState<SearchForm>(EMPTY_FORM);
   const [results, setResults] = useState<SimilarMatch[]>([]);
   const [searched, setSearched] = useState(false);
@@ -120,12 +122,12 @@ export default function HistoricalCases() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={BookOpen}
-          title="相似项目搜索"
-          description="AI语义检索 · 项目经验复用 · 参数匹配"
+          title={t("common.historicalCases.title")}
+          description={t("common.historicalCases.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI增强搜索
+              {t("common.historicalCases.aiEnhancedSearch")}
             </Badge>
           }
         />
@@ -135,56 +137,56 @@ export default function HistoricalCases() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Search className="h-5 w-5 text-primary" />
-              搜索条件
+              {t("common.historicalCases.searchCriteria")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">行业</label>
+                <label className="text-sm text-muted-foreground">{t("common.historicalCases.industry")}</label>
                 <Input
-                  placeholder="如: 汽车、半导体..."
+                  placeholder={t("common.historicalCases.industryPlaceholder")}
                   value={form.industry}
                   onChange={(e) => setForm({ ...form, industry: e.target.value })}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">设备型号</label>
+                <label className="text-sm text-muted-foreground">{t("common.historicalCases.equipmentModel")}</label>
                 <Input
-                  placeholder="如: IC-2000..."
+                  placeholder={t("common.historicalCases.equipmentPlaceholder")}
                   value={form.equipment}
                   onChange={(e) => setForm({ ...form, equipment: e.target.value })}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">工件</label>
+                <label className="text-sm text-muted-foreground">{t("common.historicalCases.workpiece")}</label>
                 <Input
-                  placeholder="如: 缸体、齿轮..."
+                  placeholder={t("common.historicalCases.workpiecePlaceholder")}
                   value={form.workpiece}
                   onChange={(e) => setForm({ ...form, workpiece: e.target.value })}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">材料</label>
+                <label className="text-sm text-muted-foreground">{t("common.historicalCases.material")}</label>
                 <Input
-                  placeholder="如: 铝合金、铸铁..."
+                  placeholder={t("common.historicalCases.materialPlaceholder")}
                   value={form.material}
                   onChange={(e) => setForm({ ...form, material: e.target.value })}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">标准</label>
+                <label className="text-sm text-muted-foreground">{t("common.historicalCases.standard")}</label>
                 <Input
-                  placeholder="如: VDA19.1..."
+                  placeholder={t("common.historicalCases.standardPlaceholder")}
                   value={form.standard}
                   onChange={(e) => setForm({ ...form, standard: e.target.value })}
                 />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">自由描述（语义搜索）</label>
+              <label className="text-sm text-muted-foreground">{t("common.historicalCases.freeDescription")}</label>
               <Textarea
-                placeholder="描述项目需求，例如：客户需要一台年产20万件铝合金缸体的清洗线，清洁度要求ISO16232 A级，节拍30秒..."
+                placeholder={t("common.historicalCases.descriptionPlaceholder")}
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 rows={2}
@@ -192,7 +194,7 @@ export default function HistoricalCases() {
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={handleReset}>
-                重置
+                {t("common.historicalCases.reset")}
               </Button>
               <Button
                 onClick={handleSearch}
@@ -203,7 +205,7 @@ export default function HistoricalCases() {
                 ) : (
                   <Sparkles className="h-4 w-4 mr-2" />
                 )}
-                AI搜索
+                {t("common.historicalCases.aiSearch")}
               </Button>
             </div>
           </CardContent>
@@ -219,7 +221,7 @@ export default function HistoricalCases() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{results.length}</p>
-                  <p className="text-xs text-muted-foreground">匹配命中</p>
+                  <p className="text-xs text-muted-foreground">{t("common.historicalCases.matchHits")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -232,7 +234,7 @@ export default function HistoricalCases() {
                   <p className="text-2xl font-bold">
                     {maxSimilarity > 0 ? `${maxSimilarity}%` : "—"}
                   </p>
-                  <p className="text-xs text-muted-foreground">最高相似度</p>
+                  <p className="text-xs text-muted-foreground">{t("common.historicalCases.highestSimilarity")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -245,7 +247,7 @@ export default function HistoricalCases() {
                   <p className="text-2xl font-bold">
                     {results.length > 0 ? results[0].equipment : "—"}
                   </p>
-                  <p className="text-xs text-muted-foreground">推荐型号</p>
+                  <p className="text-xs text-muted-foreground">{t("common.historicalCases.recommendedModel")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -261,7 +263,7 @@ export default function HistoricalCases() {
                   <CardContent className="pt-4">
                     <div className="flex items-start gap-4">
                       <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-primary/20 flex flex-col items-center justify-center">
-                        <span className="text-xs text-muted-foreground">相似度</span>
+                        <span className="text-xs text-muted-foreground">{t("common.historicalCases.similarity")}</span>
                         <span className="text-xl font-bold text-primary">{r.similarity}%</span>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -277,7 +279,7 @@ export default function HistoricalCases() {
                           {idx === 0 && (
                             <Badge className="bg-green-500/20 text-green-400 gap-1">
                               <Sparkles className="h-3 w-3" />
-                              最佳匹配
+                              {t("common.historicalCases.bestMatch")}
                             </Badge>
                           )}
                         </div>
@@ -286,7 +288,7 @@ export default function HistoricalCases() {
                           onClick={() => toggleExpand(idx)}
                           className="flex items-center gap-1 text-xs text-muted-foreground mt-2 hover:text-foreground"
                         >
-                          AI分析
+                          {t("common.historicalCases.aiAnalysis")}
                           {expandedIdx.has(idx) ? (
                             <ChevronUp className="h-3 w-3" />
                           ) : (
@@ -307,7 +309,7 @@ export default function HistoricalCases() {
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
                   <Beaker className="mx-auto h-12 w-12 mb-3 opacity-50" />
-                  <p>未找到匹配项目，建议拓宽搜索条件或使用自由描述进行语义搜索</p>
+                  <p>{t("common.historicalCases.noResults")}</p>
                 </CardContent>
               </Card>
             )}

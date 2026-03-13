@@ -3,6 +3,7 @@
  * Phase F: 人力需求 · 招聘计划 · 预算分配 · 风险评估
  */
 import { useState, useEffect } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,15 +16,21 @@ import {
   TrendingUp, Shield, Target,
 } from "lucide-react";
 
-const DEPARTMENTS = [
-  "研发中心", "生产制造", "销售市场", "售后服务", "质量管理", "财务行政", "人力资源",
+const DEPARTMENT_KEYS = [
+  "ai.workforce.deptRnD",
+  "ai.workforce.deptManufacturing",
+  "ai.workforce.deptSales",
+  "ai.workforce.deptAfterSales",
+  "ai.workforce.deptQuality",
+  "ai.workforce.deptFinance",
+  "ai.workforce.deptHR",
 ];
 
-const TIME_HORIZONS = [
-  { value: "Q1", label: "Q1 (1个季度)" },
-  { value: "Q2", label: "Q2 (半年)" },
-  { value: "H1", label: "H1 (上半年)" },
-  { value: "全年", label: "全年 (12个月)" },
+const TIME_HORIZON_KEYS = [
+  { value: "Q1", labelKey: "ai.workforce.timeQ1" },
+  { value: "Q2", labelKey: "ai.workforce.timeQ2" },
+  { value: "H1", labelKey: "ai.workforce.timeH1" },
+  { value: "全年", labelKey: "ai.workforce.timeFullYear" },
 ];
 
 interface WorkforceResult {
@@ -36,7 +43,8 @@ interface WorkforceResult {
 }
 
 export default function AIWorkforcePlanning() {
-  const [department, setDepartment] = useState(DEPARTMENTS[0]);
+  const { t } = useLanguage();
+  const [department, setDepartment] = useState(t(DEPARTMENT_KEYS[0]));
   const [currentHeadcount, setCurrentHeadcount] = useState("");
   const [plannedProjects, setPlannedProjects] = useState("");
   const [attritionRate, setAttritionRate] = useState("");
@@ -96,9 +104,9 @@ export default function AIWorkforcePlanning() {
 
   const priorityLabel = (p: string) => {
     switch (p) {
-      case "high": return "高";
-      case "medium": return "中";
-      case "low": return "低";
+      case "high": return t("ai.workforce.priorityHigh");
+      case "medium": return t("ai.workforce.priorityMedium");
+      case "low": return t("ai.workforce.priorityLow");
       default: return p;
     }
   };
@@ -114,9 +122,9 @@ export default function AIWorkforcePlanning() {
 
   const impactLabel = (i: string) => {
     switch (i) {
-      case "high": return "高";
-      case "medium": return "中";
-      case "low": return "低";
+      case "high": return t("ai.workforce.impactHigh");
+      case "medium": return t("ai.workforce.impactMedium");
+      case "low": return t("ai.workforce.impactLow");
       default: return i;
     }
   };
@@ -129,12 +137,12 @@ export default function AIWorkforcePlanning() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Users}
-          title="AI人力规划"
-          description="人力需求 · 招聘计划 · 预算分配 · 风险评估"
+          title={t("ai.workforce.title")}
+          description={t("ai.workforce.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" />
-              AI规划
+              {t("ai.workforce.aiPlanning")}
             </Badge>
           }
         />
@@ -144,66 +152,66 @@ export default function AIWorkforcePlanning() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Users className="h-5 w-5 text-primary" />
-              部门信息
+              {t("ai.workforce.departmentInfo")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">部门名称</label>
+                <label className="text-sm text-muted-foreground">{t("ai.workforce.departmentName")}</label>
                 <Select value={department} onValueChange={(v) => setDepartment(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择部门" />
+                    <SelectValue placeholder={t("ai.workforce.selectDepartment")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    {DEPARTMENT_KEYS.map((key) => <SelectItem key={key} value={t(key)}>{t(key)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">现有人数</label>
-                <Input type="number" placeholder="如: 35" value={currentHeadcount} onChange={(e) => setCurrentHeadcount(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("ai.workforce.currentHeadcount")}</label>
+                <Input type="number" placeholder={t("ai.workforce.headcountPlaceholder")} value={currentHeadcount} onChange={(e) => setCurrentHeadcount(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">计划项目</label>
+              <label className="text-sm text-muted-foreground">{t("ai.workforce.plannedProjects")}</label>
               <textarea
                 className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px] resize-y"
-                placeholder="如: Q1启动3个新项目（半导体清洗线2个、汽车零部件清洗线1个），需增加机械设计和电气调试人员"
+                placeholder={t("ai.workforce.projectsPlaceholder")}
                 value={plannedProjects}
                 onChange={(e) => setPlannedProjects(e.target.value)}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">流失率(%)</label>
-                <Input type="number" placeholder="如: 15" value={attritionRate} onChange={(e) => setAttritionRate(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("ai.workforce.attritionRate")}</label>
+                <Input type="number" placeholder={t("ai.workforce.attritionPlaceholder")} value={attritionRate} onChange={(e) => setAttritionRate(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">预算约束（可选）</label>
-                <Input placeholder="如: 年度人力预算500万" value={budgetConstraint} onChange={(e) => setBudgetConstraint(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("ai.workforce.budgetConstraint")}</label>
+                <Input placeholder={t("ai.workforce.budgetPlaceholder")} value={budgetConstraint} onChange={(e) => setBudgetConstraint(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">增长目标（可选）</label>
-                <Input placeholder="如: 产能提升20%" value={growthTarget} onChange={(e) => setGrowthTarget(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("ai.workforce.growthTarget")}</label>
+                <Input placeholder={t("ai.workforce.growthPlaceholder")} value={growthTarget} onChange={(e) => setGrowthTarget(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">规划周期（可选）</label>
+              <label className="text-sm text-muted-foreground">{t("ai.workforce.planningCycle")}</label>
               <Select value={timeHorizon} onValueChange={(v) => setTimeHorizon(v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="不指定" />
+                  <SelectValue placeholder={t("ai.workforce.unspecified")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">不指定</SelectItem>
-                  {TIME_HORIZONS.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
+                  <SelectItem value="__none__">{t("ai.workforce.unspecified")}</SelectItem>
+                  {TIME_HORIZON_KEYS.map((h) => <SelectItem key={h.value} value={h.value}>{t(h.labelKey)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSubmit} disabled={!currentHeadcount || !plannedProjects.trim() || !attritionRate || mutation.isPending || !!taskId}>
                 {mutation.isPending || !!taskId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                AI规划
+                {t("ai.workforce.aiPlan")}
               </Button>
             </div>
           </CardContent>
@@ -217,26 +225,26 @@ export default function AIWorkforcePlanning() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">最优编制</p>
+                    <p className="text-sm text-muted-foreground">{t("ai.workforce.optimalHeadcount")}</p>
                     <p className="text-5xl font-bold text-primary">{result.optimalHeadcount}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-muted-foreground">现有人数</p>
+                    <p className="text-sm text-muted-foreground">{t("ai.workforce.currentHeadcount")}</p>
                     <p className="text-3xl font-bold text-muted-foreground">{currentHeadcount}</p>
                   </div>
                 </div>
                 {result.optimalHeadcount > Number(currentHeadcount) && (
                   <p className="text-sm text-green-400 mt-2">
-                    需增编 {result.optimalHeadcount - Number(currentHeadcount)} 人
+                    {t("ai.workforce.needToHire")} {result.optimalHeadcount - Number(currentHeadcount)} {t("ai.workforce.people")}
                   </p>
                 )}
                 {result.optimalHeadcount < Number(currentHeadcount) && (
                   <p className="text-sm text-yellow-400 mt-2">
-                    建议优化 {Number(currentHeadcount) - result.optimalHeadcount} 人
+                    {t("ai.workforce.suggestOptimize")} {Number(currentHeadcount) - result.optimalHeadcount} {t("ai.workforce.people")}
                   </p>
                 )}
                 {result.optimalHeadcount === Number(currentHeadcount) && (
-                  <p className="text-sm text-blue-400 mt-2">编制合理，无需调整</p>
+                  <p className="text-sm text-blue-400 mt-2">{t("ai.workforce.headcountReasonable")}</p>
                 )}
               </CardContent>
             </Card>
@@ -247,7 +255,7 @@ export default function AIWorkforcePlanning() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <UserPlus className="h-5 w-5 text-primary" />
-                    招聘需求
+                    {t("ai.workforce.hiringNeeds")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -255,17 +263,17 @@ export default function AIWorkforcePlanning() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">岗位</th>
-                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">人数</th>
-                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">优先级</th>
-                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">时间线</th>
+                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">{t("ai.workforce.role")}</th>
+                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">{t("ai.workforce.headcount")}</th>
+                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">{t("ai.workforce.priority")}</th>
+                          <th className="text-left py-2 px-3 text-muted-foreground font-medium">{t("ai.workforce.timeline")}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {result.hiringNeeds.map((need, idx) => (
                           <tr key={idx} className="border-b border-muted/50">
                             <td className="py-2 px-3 font-medium">{need.role}</td>
-                            <td className="py-2 px-3">{need.count}人</td>
+                            <td className="py-2 px-3">{need.count}{t("ai.workforce.people")}</td>
                             <td className="py-2 px-3">
                               <Badge className={priorityColor(need.priority)}>{priorityLabel(need.priority)}</Badge>
                             </td>
@@ -285,7 +293,7 @@ export default function AIWorkforcePlanning() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Target className="h-5 w-5 text-primary" />
-                    技能需求
+                    {t("ai.workforce.skillRequirements")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -304,7 +312,7 @@ export default function AIWorkforcePlanning() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <TrendingUp className="h-5 w-5 text-primary" />
-                    预算分配
+                    {t("ai.workforce.budgetAllocation")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -331,15 +339,15 @@ export default function AIWorkforcePlanning() {
                   <div className="flex justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded bg-blue-500" />
-                      <span>招聘 ({result.budgetAllocation.hiring}%)</span>
+                      <span>{t("ai.workforce.hiring")} ({result.budgetAllocation.hiring}%)</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded bg-green-500" />
-                      <span>培训 ({result.budgetAllocation.training}%)</span>
+                      <span>{t("ai.workforce.training")} ({result.budgetAllocation.training}%)</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded bg-orange-500" />
-                      <span>留才 ({result.budgetAllocation.retention}%)</span>
+                      <span>{t("ai.workforce.retention")} ({result.budgetAllocation.retention}%)</span>
                     </div>
                   </div>
                 </CardContent>
@@ -352,7 +360,7 @@ export default function AIWorkforcePlanning() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    风险因素
+                    {t("ai.workforce.riskFactors")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -379,7 +387,7 @@ export default function AIWorkforcePlanning() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Shield className="h-5 w-5 text-primary" />
-                    AI建议
+                    {t("ai.workforce.aiRecommendations")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

@@ -29,7 +29,8 @@ export class MenuService {
     const allMenus = await db
       .select()
       .from(menuItems)
-      .where(eq(menuItems.isActive, true));
+      .where(eq(menuItems.isActive, true))
+      .limit(1000);
 
     // 过滤用户可访问的菜单
     const accessibleMenus: MenuItem[] = [];
@@ -223,7 +224,8 @@ export class MenuService {
     return await db
       .select()
       .from(menuItems)
-      .where(inArray(menuItems.id, menuIds));
+      .where(inArray(menuItems.id, menuIds))
+      .limit(1000);
   }
 
   /**
@@ -388,7 +390,8 @@ export class MenuService {
     const children = await db
       .select()
       .from(menuItems)
-      .where(eq(menuItems.parentId, menuItemId));
+      .where(eq(menuItems.parentId, menuItemId))
+      .limit(1000);
 
     if (children.length > 0) {
       throw new TRPCError({

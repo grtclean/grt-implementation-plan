@@ -57,6 +57,12 @@ function createMockDb() {
 
 const mockDb = createMockDb();
 
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../db", () => ({
   getDb: vi.fn(async () => mockDb),
   requireDb: vi.fn(async () => mockDb),
@@ -96,8 +102,9 @@ vi.mock("../../drizzle/kiosk-station-schema", () => ({
 
 // ─── Import caller utility AFTER mocks ──────────────────────────────
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
+  createAuthenticatedCaller,
 } from "../_test/trpc-test-utils";
 
 // ─── Helper to reset everything ──────────────────────────────────────

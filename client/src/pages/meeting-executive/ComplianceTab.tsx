@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { Shield, Plus, Trash2, Search, FileText, AlertTriangle, CheckCircle, XCi
 import { trpc } from "@/lib/trpc";
 
 export function ComplianceTab() {
+  const { t } = useLanguage();
   // Policy form
   const [polName, setPolName] = useState("");
   const [polType, setPolType] = useState("max_duration");
@@ -61,34 +63,34 @@ export function ComplianceTab() {
           <CardContent className="pt-4 text-center">
             <Shield className="h-7 w-7 mx-auto text-blue-500 mb-1" />
             <div className="text-2xl font-bold">{overview?.stats?.complianceRate || 0}%</div>
-            <div className="text-xs text-muted-foreground">合规率</div>
+            <div className="text-xs text-muted-foreground">{t("meeting.compliance.complianceRate")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <div className="text-2xl font-bold">{overview?.stats?.meetingsAudited || 0}</div>
-            <div className="text-xs text-muted-foreground">已审计会议</div>
+            <div className="text-xs text-muted-foreground">{t("meeting.compliance.meetingsAudited")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <CheckCircle className="h-7 w-7 mx-auto text-green-500 mb-1" />
             <div className="text-2xl font-bold">{overview?.stats?.passed || 0}</div>
-            <div className="text-xs text-muted-foreground">合规项</div>
+            <div className="text-xs text-muted-foreground">{t("meeting.compliance.passedItems")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <XCircle className="h-7 w-7 mx-auto text-red-500 mb-1" />
             <div className="text-2xl font-bold">{overview?.stats?.failed || 0}</div>
-            <div className="text-xs text-muted-foreground">不合规项</div>
+            <div className="text-xs text-muted-foreground">{t("meeting.compliance.failedItems")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <AlertTriangle className="h-7 w-7 mx-auto text-orange-500 mb-1" />
             <div className="text-2xl font-bold">{overview?.stats?.critical || 0}</div>
-            <div className="text-xs text-muted-foreground">严重违规</div>
+            <div className="text-xs text-muted-foreground">{t("meeting.compliance.criticalViolations")}</div>
           </CardContent>
         </Card>
       </div>
@@ -98,21 +100,21 @@ export function ComplianceTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            合规策略管理
+            {t("meeting.compliance.policyManagement")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
-            <Input placeholder="策略名称" value={polName} onChange={e => setPolName(e.target.value)} />
+            <Input placeholder={t("meeting.compliance.policyName")} value={polName} onChange={e => setPolName(e.target.value)} />
             <Select value={polType} onValueChange={(v) => { setPolType(v); setPolField(v === "max_duration" ? "duration_minutes" : v === "min_participants" ? "participant_count" : v === "require_agenda" ? "has_agenda" : v === "require_action_items" ? "action_item_count" : v === "min_effectiveness" ? "effectiveness_score" : "duration_minutes"); }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="max_duration">最长时长</SelectItem>
-                <SelectItem value="min_participants">最少参会人</SelectItem>
-                <SelectItem value="require_agenda">需要议程</SelectItem>
-                <SelectItem value="require_action_items">需要行动项</SelectItem>
-                <SelectItem value="min_effectiveness">最低效能</SelectItem>
-                <SelectItem value="max_frequency">最大频率</SelectItem>
+                <SelectItem value="max_duration">{t("meeting.compliance.maxDuration")}</SelectItem>
+                <SelectItem value="min_participants">{t("meeting.compliance.minParticipants")}</SelectItem>
+                <SelectItem value="require_agenda">{t("meeting.compliance.requireAgenda")}</SelectItem>
+                <SelectItem value="require_action_items">{t("meeting.compliance.requireActionItems")}</SelectItem>
+                <SelectItem value="min_effectiveness">{t("meeting.compliance.minEffectiveness")}</SelectItem>
+                <SelectItem value="max_frequency">{t("meeting.compliance.maxFrequency")}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={polOp} onValueChange={setPolOp}>
@@ -122,22 +124,22 @@ export function ComplianceTab() {
                 <SelectItem value=">=">{"≥"}</SelectItem>
                 <SelectItem value="<">{"<"}</SelectItem>
                 <SelectItem value=">">{">"}</SelectItem>
-                <SelectItem value="exists">存在</SelectItem>
+                <SelectItem value="exists">exists</SelectItem>
               </SelectContent>
             </Select>
-            <Input placeholder="阈值" value={polThreshold} onChange={e => setPolThreshold(e.target.value)} />
+            <Input placeholder={t("meeting.compliance.thExpected")} value={polThreshold} onChange={e => setPolThreshold(e.target.value)} />
             <Select value={polSeverity} onValueChange={setPolSeverity}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="info">信息</SelectItem>
-                <SelectItem value="warning">警告</SelectItem>
-                <SelectItem value="violation">违规</SelectItem>
-                <SelectItem value="critical">严重</SelectItem>
+                <SelectItem value="info">{t("meeting.compliance.severityInfo")}</SelectItem>
+                <SelectItem value="warning">{t("meeting.compliance.severityWarning")}</SelectItem>
+                <SelectItem value="violation">{t("meeting.compliance.severityViolation")}</SelectItem>
+                <SelectItem value="critical">{t("meeting.compliance.severityCritical")}</SelectItem>
               </SelectContent>
             </Select>
             <Button onClick={() => createPolMut.mutate({ name: polName, policyType: polType, checkField: polField, operator: polOp, threshold: polThreshold, severity: polSeverity })} disabled={!polName || createPolMut.isPending}>
               <Plus className="h-4 w-4 mr-1" />
-              {createPolMut.isPending ? "添加中..." : "添加策略"}
+              {createPolMut.isPending ? t("meeting.compliance.adding") : t("meeting.compliance.addPolicy")}
             </Button>
           </div>
 
@@ -145,12 +147,12 @@ export function ComplianceTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>策略名称</TableHead>
-                  <TableHead>类型</TableHead>
-                  <TableHead>条件</TableHead>
-                  <TableHead>严重级别</TableHead>
-                  <TableHead>范围</TableHead>
-                  <TableHead>操作</TableHead>
+                  <TableHead>{t("meeting.compliance.thPolicyName")}</TableHead>
+                  <TableHead>{t("meeting.compliance.thType")}</TableHead>
+                  <TableHead>{t("meeting.compliance.thCondition")}</TableHead>
+                  <TableHead>{t("meeting.compliance.thSeverity")}</TableHead>
+                  <TableHead>{t("meeting.compliance.thScope")}</TableHead>
+                  <TableHead>{t("meeting.compliance.thActions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -179,35 +181,35 @@ export function ComplianceTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            会议合规审计
+            {t("meeting.compliance.auditTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-2">
-            <Input placeholder="会议ID" value={auditMeetingId} onChange={e => setAuditMeetingId(e.target.value)} className="flex-1" />
+            <Input placeholder={t("meeting.compliance.auditMeetingIdPlaceholder")} value={auditMeetingId} onChange={e => setAuditMeetingId(e.target.value)} className="flex-1" />
             <Button onClick={() => auditMut.mutate({ meetingId: auditMeetingId })} disabled={!auditMeetingId || auditMut.isPending}>
-              {auditMut.isPending ? "审计中..." : "执行审计"}
+              {auditMut.isPending ? t("meeting.compliance.auditing") : t("meeting.compliance.executeAudit")}
             </Button>
           </div>
           {auditMut.data && (
             <div className="p-4 bg-muted rounded space-y-3">
               <div className="flex items-center gap-4 text-sm">
-                <span>会议: <strong>{(auditMut.data as any).meetingTitle}</strong></span>
-                <span>策略检查: <strong>{(auditMut.data as any).totalPolicies}</strong></span>
-                <span>通过: <strong className="text-green-600">{(auditMut.data as any).passed}</strong></span>
-                <span>不合规: <strong className="text-red-600">{(auditMut.data as any).failed}</strong></span>
+                <span>{t("meeting.compliance.meeting")}: <strong>{(auditMut.data as any).meetingTitle}</strong></span>
+                <span>{t("meeting.compliance.policyChecks")}: <strong>{(auditMut.data as any).totalPolicies}</strong></span>
+                <span>{t("meeting.compliance.passed")}: <strong className="text-green-600">{(auditMut.data as any).passed}</strong></span>
+                <span>{t("meeting.compliance.failed")}: <strong className="text-red-600">{(auditMut.data as any).failed}</strong></span>
                 <Badge variant={(auditMut.data as any).complianceRate >= 80 ? "default" : "destructive"}>
-                  合规率 {(auditMut.data as any).complianceRate}%
+                  {t("meeting.compliance.complianceRateLabel")} {(auditMut.data as any).complianceRate}%
                 </Badge>
               </div>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>策略</TableHead>
-                    <TableHead>结果</TableHead>
-                    <TableHead>严重级</TableHead>
-                    <TableHead>实际值</TableHead>
-                    <TableHead>要求</TableHead>
+                    <TableHead>{t("meeting.compliance.thPolicy")}</TableHead>
+                    <TableHead>{t("meeting.compliance.thResult")}</TableHead>
+                    <TableHead>{t("meeting.compliance.thSeverityLevel")}</TableHead>
+                    <TableHead>{t("meeting.compliance.thActualValue")}</TableHead>
+                    <TableHead>{t("meeting.compliance.thExpected")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -215,9 +217,9 @@ export function ComplianceTab() {
                     <TableRow key={i}>
                       <TableCell className="font-medium">{r.policyName}</TableCell>
                       <TableCell>
-                        {r.result === "pass" ? <Badge className="bg-green-100 text-green-800">通过</Badge>
-                          : r.result === "fail" ? <Badge variant="destructive">不合规</Badge>
-                          : <Badge variant="secondary">N/A</Badge>}
+                        {r.result === "pass" ? <Badge className="bg-green-100 text-green-800">{t("meeting.compliance.resultPass")}</Badge>
+                          : r.result === "fail" ? <Badge variant="destructive">{t("meeting.compliance.resultFail")}</Badge>
+                          : <Badge variant="secondary">{t("meeting.compliance.resultNA")}</Badge>}
                       </TableCell>
                       <TableCell><Badge className={severityColor(r.severity)}>{r.severity}</Badge></TableCell>
                       <TableCell>{r.actual}</TableCell>
@@ -237,17 +239,17 @@ export function ComplianceTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />
-              主要违规项
+              {t("meeting.compliance.topViolations")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>策略</TableHead>
-                  <TableHead>类型</TableHead>
-                  <TableHead>严重级</TableHead>
-                  <TableHead>次数</TableHead>
+                  <TableHead>{t("meeting.compliance.thPolicy")}</TableHead>
+                  <TableHead>{t("meeting.compliance.thType")}</TableHead>
+                  <TableHead>{t("meeting.compliance.thSeverityLevel")}</TableHead>
+                  <TableHead>{t("meeting.compliance.thCount")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -270,7 +272,7 @@ export function ComplianceTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            治理报告
+            {t("meeting.compliance.governanceReport")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -278,25 +280,25 @@ export function ComplianceTab() {
             <Select value={govPeriod} onValueChange={setGovPeriod}>
               <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="weekly">本周</SelectItem>
-                <SelectItem value="monthly">本月</SelectItem>
-                <SelectItem value="quarterly">本季</SelectItem>
+                <SelectItem value="weekly">{t("meeting.compliance.periodWeekly")}</SelectItem>
+                <SelectItem value="monthly">{t("meeting.compliance.periodMonthly")}</SelectItem>
+                <SelectItem value="quarterly">{t("meeting.compliance.periodQuarterly")}</SelectItem>
               </SelectContent>
             </Select>
             <Button onClick={() => govMut.mutate({ period: govPeriod })} disabled={govMut.isPending}>
-              {govMut.isPending ? "生成中..." : "生成治理报告"}
+              {govMut.isPending ? t("meeting.compliance.generating") : t("meeting.compliance.generateReport")}
             </Button>
           </div>
           {govMut.data && (
             <div className="p-4 bg-muted rounded space-y-3">
               <div className="flex items-center gap-4 text-sm">
-                <span>审计会议: <strong>{(govMut.data as any).meetingsAudited}</strong></span>
-                <span>合规率: <strong>{(govMut.data as any).complianceRate}%</strong></span>
-                <span>违规数: <strong className="text-red-600">{(govMut.data as any).totalViolations}</strong></span>
+                <span>{t("meeting.compliance.auditedMeetings")}: <strong>{(govMut.data as any).meetingsAudited}</strong></span>
+                <span>{t("meeting.compliance.complianceRateLabel")}: <strong>{(govMut.data as any).complianceRate}%</strong></span>
+                <span>{t("meeting.compliance.violationCount")}: <strong className="text-red-600">{(govMut.data as any).totalViolations}</strong></span>
               </div>
               {(govMut.data as any).riskAreas?.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold mb-1">风险区域</h4>
+                  <h4 className="text-sm font-semibold mb-1">{t("meeting.compliance.riskAreas")}</h4>
                   <ul className="list-disc list-inside text-sm space-y-1">
                     {(govMut.data as any).riskAreas.map((r: string, i: number) => <li key={i}>{r}</li>)}
                   </ul>
@@ -304,7 +306,7 @@ export function ComplianceTab() {
               )}
               {(govMut.data as any).recommendations?.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold mb-1">改进建议</h4>
+                  <h4 className="text-sm font-semibold mb-1">{t("meeting.compliance.improvementSuggestions")}</h4>
                   <ul className="list-disc list-inside text-sm space-y-1">
                     {(govMut.data as any).recommendations.map((r: string, i: number) => <li key={i}>{r}</li>)}
                   </ul>
@@ -321,11 +323,11 @@ export function ComplianceTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>周期</TableHead>
-                  <TableHead>合规率</TableHead>
-                  <TableHead>审计会议</TableHead>
-                  <TableHead>违规数</TableHead>
-                  <TableHead>生成时间</TableHead>
+                  <TableHead>{t("meeting.compliance.thPeriod")}</TableHead>
+                  <TableHead>{t("meeting.compliance.complianceRateLabel")}</TableHead>
+                  <TableHead>{t("meeting.compliance.thMeetingsAudited")}</TableHead>
+                  <TableHead>{t("meeting.compliance.thViolations")}</TableHead>
+                  <TableHead>{t("meeting.compliance.thGeneratedAt")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -9,15 +9,17 @@
 
 import { t } from "./trpc-base";
 import { TRPCError } from "@trpc/server";
+import { resolveDeptFromRole } from "../services/microsoft-graph/onedrive-sync.service";
 
 export interface BuContext {
   buId: number | null;
   buCode: string | null; // "BU1" | "BU2" | "BU3" | "BU4" | "BU5"
   buName: string | null;
+  departmentCode: string | null; // "RND" | "MKT" | "OPS" | "FIN" | "HR" | "ADM" | "BU1"-"BU5"
 }
 
 /** Null BU context for unauthenticated or global-scope users */
-const NULL_BU: BuContext = { buId: null, buCode: null, buName: null };
+const NULL_BU: BuContext = { buId: null, buCode: null, buName: null, departmentCode: null };
 
 /** Roles that receive global (null BU) scope — can see all BUs */
 const GLOBAL_SCOPE_ROLES = new Set([
@@ -45,7 +47,7 @@ async function resolveBuContext(
 ): Promise<BuContext> {
   // Global-scope roles always get null BU (can see everything)
   if (GLOBAL_SCOPE_ROLES.has(role)) {
-    return NULL_BU;
+    return { ...NULL_BU, departmentCode: resolveDeptFromRole(role, null) };
   }
 
   // Check if this is a BU-scoped role
@@ -62,7 +64,7 @@ async function resolveBuContext(
     };
     const match = buMap[requestBuCode];
     if (match) {
-      return { buId: match.buId, buCode: requestBuCode, buName: match.buName };
+      return { buId: match.buId, buCode: requestBuCode, buName: match.buName, departmentCode: resolveDeptFromRole(role, requestBuCode) };
     }
   }
 
@@ -88,6 +90,7 @@ async function resolveBuContext(
           buId: buMap[row.bu_code] ?? null,
           buCode: row.bu_code,
           buName: row.jdy_dept_name ?? row.bu_code,
+          departmentCode: resolveDeptFromRole(role, row.bu_code),
         };
       }
     } catch {
@@ -95,9 +98,8 @@ async function resolveBuContext(
     }
   }
 
-  // Non-BU roles (employee, team_lead, dept_manager) get null BU for now
-  // In Phase 2, these will be resolved from employee.departmentId → BU mapping
-  return NULL_BU;
+  // Non-BU roles (employee, team_lead, dept_manager) get null BU + resolved dept
+  return { ...NULL_BU, departmentCode: resolveDeptFromRole(role, null) };
 }
 
 /**
@@ -163,7 +165,8 @@ import type { PgColumn } from "drizzle-orm/pg-core";
  *   const buFilter = buScopeCondition(projects.buCode, ctx);
  *   const conditions = [otherCondition];
  *   if (buFilter) conditions.push(buFilter);
- *   db.select().from(projects).where(and(...conditions));
+ *   db.select().from(projects).where(and(...conditions))
+      .limit(1000);
  */
 export function buScopeCondition(
   buCodeColumn: PgColumn,
@@ -183,5 +186,19 @@ export function buScopeCondition(
   }
 
   // No BU context → no filter (graceful fallback for non-BU roles)
+  return undefined;
+}
+
+/** Department-level WHERE condition — support roles (HR/FIN) see all, others see own dept */
+const DEPT_GLOBAL_ROLES = new Set(["admin", "director", "hr_manager", "hr_specialist", "finance_manager", "finance_specialist", "bu_gm"]);
+
+export function deptScopeCondition(
+  deptCodeColumn: PgColumn,
+  ctx: { bu?: BuContext | null; user?: { role: string } | null },
+): SQL | undefined {
+  const role = (ctx.user?.role ?? "") as string;
+  if (DEPT_GLOBAL_ROLES.has(role)) return undefined;
+  const deptCode = (ctx as any).bu?.departmentCode;
+  if (deptCode) return eq(deptCodeColumn, deptCode);
   return undefined;
 }

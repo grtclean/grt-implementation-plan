@@ -6,7 +6,8 @@
  *   Mutations  (6): createArticle, updateArticle, deleteArticle, reorderArticles, askCopilot, recordCopilotFeedback
  */
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { TRPCError } from "@trpc/server";
+import {router, publicProcedure, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { helpArticles, HELP_CATEGORIES } from "../../drizzle/help-schema";
 import { aiLearningRecords, feedback } from "../../drizzle/schema";
@@ -246,7 +247,7 @@ export const helpRouter = router({
           .optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
       const { query, routePath, conversationHistory } = input;
 
@@ -348,23 +349,26 @@ export const helpRouter = router({
       }
       messages.push({ role: "user", content: query });
 
-      // 7. Invoke LLM
-      let answer = "";
-      try {
-        const llmResult = await invokeLLM({ messages });
-        answer = llmResult.choices?.[0]?.message?.content || "抱歉，暂时无法回答您的问题。";
-      } catch (err) {
-        log.error({ err }, "askCopilot LLM error");
-        answer = "AI服务暂时不可用，请查阅帮助文档或稍后重试。";
-      }
+      // 7. GRT开发第一定律: Async task pattern — enqueue LLM call, return taskId
+      const { submitTask } = await import("../services/task-worker.service");
+      const { registerTaskHandler } = await import("../services/task-worker.service");
 
-      // 8. Increment relevance for matched KB docs
-      for (const doc of kbResults) {
-        try { await incrementRelevance(doc.id); } catch { /* non-fatal */ }
-      }
-
-      // 9. Increment appliedCount for used few-shot examples
-      // (tracked via the feedback loop)
+      // Ensure handler is registered (idempotent)
+      const COPILOT_TASK_TYPE = "COPILOT_ASK";
+      registerTaskHandler(COPILOT_TASK_TYPE, async (_taskId, taskInput) => {
+        const llmResult = await invokeLLM({ messages: taskInput.messages as any });
+        const answer = llmResult.choices?.[0]?.message?.content || "抱歉，暂时无法回答您的问题。";
+        // Increment relevance for matched KB docs (fire-and-forget)
+        const kbDocIds = (taskInput.kbDocIds as number[]) || [];
+        for (const docId of kbDocIds) {
+          try { await incrementRelevance(docId); } catch { /* non-fatal */ }
+        }
+        return {
+          answer,
+          sources: taskInput.sources as any,
+          suggestedActions: taskInput.suggestedActions as any,
+        };
+      });
 
       // Build source citations
       const sources = [
@@ -377,7 +381,33 @@ export const helpRouter = router({
         route: a.routePath,
       }));
 
-      return { answer, sources, suggestedActions };
+      const { taskId } = await submitTask(
+        COPILOT_TASK_TYPE,
+        { messages, kbDocIds: kbResults.map(d => d.id), sources, suggestedActions },
+        ctx.user?.name ?? "copilot",
+        { submittedById: ctx.user?.id },
+      );
+
+      return { taskId, sources, suggestedActions, answer: null };
+    }),
+
+  /**
+   * getCopilotResult — poll for async copilot task result
+   * GRT开发第一定律: Frontend polls this instead of blocking on LLM
+   */
+  getCopilotResult: protectedProcedure
+    .input(z.object({ taskId: z.number() }))
+    .query(async ({ input }) => {
+      const { getTaskStatus } = await import("../services/task-worker.service");
+      const task = await getTaskStatus(input.taskId);
+      if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
+      return {
+        status: task.status,
+        answer: (task.resultData as any)?.answer ?? null,
+        sources: (task.resultData as any)?.sources ?? [],
+        suggestedActions: (task.resultData as any)?.suggestedActions ?? [],
+        error: task.errorMessage,
+      };
     }),
 
   recordCopilotFeedback: protectedProcedure
@@ -513,7 +543,7 @@ export const helpRouter = router({
       return item;
     }),
 
-  deleteArticle: protectedProcedure
+  deleteArticle: requirePermission('workspace:preferences:manage')
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();

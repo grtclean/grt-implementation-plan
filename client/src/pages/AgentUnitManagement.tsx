@@ -31,13 +31,14 @@ import {
   Settings,
   Play
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-// 状态配置
+// 状态配置 — labels use i18n keys, resolved via t() at render time
 const STATUS_CONFIG = {
-  pending: { label: "待装配", icon: Clock },
-  calibrating: { label: "标定中", icon: Activity },
-  passed: { label: "合格", icon: CheckCircle2 },
-  rework: { label: "需返工", icon: XCircle },
+  pending: { labelKey: "hr.agentUnit.pending", icon: Clock },
+  calibrating: { labelKey: "hr.agentUnit.calibrating", icon: Activity },
+  passed: { labelKey: "hr.agentUnit.passed", icon: CheckCircle2 },
+  rework: { labelKey: "hr.agentUnit.rework", icon: XCircle },
 };
 
 const statusColors = createStatusColorMap({
@@ -48,8 +49,9 @@ const statusColors = createStatusColorMap({
 });
 
 export default function AgentUnitManagement() {
+  const { t } = useLanguage();
   const { user } = useAuth();
-  
+
   // 状态
   const [activeTab, setActiveTab] = useState("list");
   const [searchSN, setSearchSN] = useState("");
@@ -88,7 +90,7 @@ export default function AgentUnitManagement() {
   // API变更
   const createMutation = trpc.capabilityOs.createAgentUnit.useMutation({
     onSuccess: () => {
-      toast.success("智能体单体创建成功");
+      toast.success(t("hr.agentUnit.createSuccess"));
       setIsCreateDialogOpen(false);
       setNewUnit({ serialNumber: "", equipmentModel: "", batchNumber: "", notes: "" });
       unitsQuery.refetch();
@@ -102,8 +104,8 @@ export default function AgentUnitManagement() {
   const updateStatusMutation = trpc.capabilityOs.updateAgentUnitStatus.useMutation({
     onSuccess: (data: any) => {
       const msg = data.workflowResult
-        ? `工作流执行完成: ${data.workflowResult.recommendation}`
-        : "状态已更新";
+        ? `${t("hr.agentUnit.workflowComplete")}: ${data.workflowResult.recommendation}`
+        : t("hr.agentUnit.statusUpdated");
       toast.success(msg);
       unitsQuery.refetch();
       statisticsQuery.refetch();
@@ -118,7 +120,7 @@ export default function AgentUnitManagement() {
   
   const recordCalibrationMutation = trpc.capabilityOs.recordCalibrationData.useMutation({
     onSuccess: () => {
-      toast.success("标定数据已记录");
+      toast.success(t("hr.agentUnit.calibDataRecorded"));
       setIsCalibrationDialogOpen(false);
       unitsQuery.refetch();
     },
@@ -149,7 +151,7 @@ export default function AgentUnitManagement() {
       const unit = (unitsQuery.data as any)?.units.find(u => u.serialNumber === value);
       if (unit) {
         setSelectedUnit(unit);
-        toast.success(`找到设备: ${value}`);
+        toast.success(`${t("hr.agentUnit.deviceFound")}: ${value}`);
       }
     }
   };
@@ -157,7 +159,7 @@ export default function AgentUnitManagement() {
   // 创建智能体单体
   const handleCreate = () => {
     if (!newUnit.serialNumber) {
-      toast.error("请输入SN码");
+      toast.error(t("hr.agentUnit.enterSN"));
       return;
     }
     createMutation.mutate(newUnit);
@@ -190,64 +192,64 @@ export default function AgentUnitManagement() {
         {/* 页面标题 */}
         <PageHeader
           icon={Cpu}
-          title="GRT-Atom 智能体单体管理"
-          description="SN码扫描 · 状态追踪 · 标定数据管理 · 自动判定工作流"
+          title={t("hr.agentUnit.title")}
+          description={t("hr.agentUnit.desc")}
           actions={
             <>
               <Button variant="outline" onClick={() => setIsScanMode(!isScanMode)}>
                 <QrCode className="w-4 h-4 mr-2" />
-                {isScanMode ? "退出扫描" : "扫描模式"}
+                {isScanMode ? t("hr.agentUnit.exitScan") : t("hr.agentUnit.scanMode")}
               </Button>
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
-                    新建单体
+                    {t("hr.agentUnit.newUnit")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>新建智能体单体</DialogTitle>
-                    <DialogDescription>录入新的智能体单体信息</DialogDescription>
+                    <DialogTitle>{t("hr.agentUnit.newUnitTitle")}</DialogTitle>
+                    <DialogDescription>{t("hr.agentUnit.newUnitDesc")}</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label>SN码 *</Label>
+                      <Label>{t("hr.agentUnit.snCode")} *</Label>
                       <Input
-                        placeholder="扫描或输入SN码..."
+                        placeholder={t("hr.agentUnit.snPlaceholder")}
                         value={newUnit.serialNumber}
                         onChange={(e) => setNewUnit({ ...newUnit, serialNumber: e.target.value })}
                       />
                     </div>
                     <div>
-                      <Label>设备型号</Label>
+                      <Label>{t("hr.agentUnit.equipModel")}</Label>
                       <Input
-                        placeholder="如: GRT-UC-3000"
+                        placeholder="e.g. GRT-UC-3000"
                         value={newUnit.equipmentModel}
                         onChange={(e) => setNewUnit({ ...newUnit, equipmentModel: e.target.value })}
                       />
                     </div>
                     <div>
-                      <Label>批次号</Label>
+                      <Label>{t("hr.agentUnit.batchNo")}</Label>
                       <Input
-                        placeholder="如: 2026-01-001"
+                        placeholder="e.g. 2026-01-001"
                         value={newUnit.batchNumber}
                         onChange={(e) => setNewUnit({ ...newUnit, batchNumber: e.target.value })}
                       />
                     </div>
                     <div>
-                      <Label>备注</Label>
+                      <Label>{t("hr.agentUnit.notes")}</Label>
                       <Textarea
-                        placeholder="备注信息..."
+                        placeholder={t("hr.agentUnit.notesPlaceholder")}
                         value={newUnit.notes}
                         onChange={(e) => setNewUnit({ ...newUnit, notes: e.target.value })}
                       />
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>取消</Button>
+                    <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>{t("hr.agentUnit.cancel")}</Button>
                     <Button onClick={handleCreate} disabled={createMutation.isPending}>
-                      {createMutation.isPending ? "创建中..." : "创建"}
+                      {createMutation.isPending ? t("hr.agentUnit.creating") : t("hr.agentUnit.create")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -258,11 +260,11 @@ export default function AgentUnitManagement() {
         
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <StatCard icon={Cpu} label="总数" value={stats.total} />
-          <StatCard icon={Clock} label="待装配" value={stats.byStatus.pending || 0} iconColor="text-gray-600" iconBg="bg-gray-100" />
-          <StatCard icon={Activity} label="标定中" value={stats.byStatus.calibrating || 0} iconColor="text-blue-600" iconBg="bg-blue-100" />
-          <StatCard icon={CheckCircle2} label="合格" value={stats.byStatus.passed || 0} iconColor="text-green-600" iconBg="bg-green-100" />
-          <StatCard icon={XCircle} label="需返工" value={stats.byStatus.rework || 0} iconColor="text-red-600" iconBg="bg-red-100" />
+          <StatCard icon={Cpu} label={t("hr.agentUnit.total")} value={stats.total} />
+          <StatCard icon={Clock} label={t("hr.agentUnit.pending")} value={stats.byStatus.pending || 0} iconColor="text-gray-600" iconBg="bg-gray-100" />
+          <StatCard icon={Activity} label={t("hr.agentUnit.calibrating")} value={stats.byStatus.calibrating || 0} iconColor="text-blue-600" iconBg="bg-blue-100" />
+          <StatCard icon={CheckCircle2} label={t("hr.agentUnit.passed")} value={stats.byStatus.passed || 0} iconColor="text-green-600" iconBg="bg-green-100" />
+          <StatCard icon={XCircle} label={t("hr.agentUnit.rework")} value={stats.byStatus.rework || 0} iconColor="text-red-600" iconBg="bg-red-100" />
         </div>
         
         {/* 扫描模式 */}
@@ -271,14 +273,14 @@ export default function AgentUnitManagement() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Camera className="w-5 h-5" />
-                扫描模式
+                {t("hr.agentUnit.scanModeTitle")}
               </CardTitle>
-              <CardDescription>扫描二维码或输入SN码快速查找设备</CardDescription>
+              <CardDescription>{t("hr.agentUnit.scanModeDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex gap-4">
                 <Input 
-                  placeholder="扫描二维码或输入SN码..."
+                  placeholder={t("hr.agentUnit.scanPlaceholder")}
                   value={searchSN}
                   onChange={(e) => handleScanInput(e.target.value)}
                   className="text-lg h-12"
@@ -286,7 +288,7 @@ export default function AgentUnitManagement() {
                 />
                 <Button size="lg" onClick={() => handleScanInput(searchSN)}>
                   <Search className="w-5 h-5 mr-2" />
-                  查找
+                  {t("hr.agentUnit.find")}
                 </Button>
               </div>
             </CardContent>
@@ -296,8 +298,8 @@ export default function AgentUnitManagement() {
         {/* 主内容区 */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
-            <TabsTrigger value="list">设备列表</TabsTrigger>
-            <TabsTrigger value="detail" disabled={!selectedUnit}>设备详情</TabsTrigger>
+            <TabsTrigger value="list">{t("hr.agentUnit.tabList")}</TabsTrigger>
+            <TabsTrigger value="detail" disabled={!selectedUnit}>{t("hr.agentUnit.tabDetail")}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="list" className="space-y-4">
@@ -305,19 +307,19 @@ export default function AgentUnitManagement() {
             <div className="flex gap-4 items-center">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-40">
-                  <SelectValue placeholder="状态筛选" />
+                  <SelectValue placeholder={t("hr.agentUnit.statusFilter")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部状态</SelectItem>
-                  <SelectItem value="pending">待装配</SelectItem>
-                  <SelectItem value="calibrating">标定中</SelectItem>
-                  <SelectItem value="passed">合格</SelectItem>
-                  <SelectItem value="rework">需返工</SelectItem>
+                  <SelectItem value="all">{t("hr.agentUnit.allStatus")}</SelectItem>
+                  <SelectItem value="pending">{t("hr.agentUnit.pending")}</SelectItem>
+                  <SelectItem value="calibrating">{t("hr.agentUnit.calibrating")}</SelectItem>
+                  <SelectItem value="passed">{t("hr.agentUnit.passed")}</SelectItem>
+                  <SelectItem value="rework">{t("hr.agentUnit.rework")}</SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="outline" onClick={() => unitsQuery.refetch()}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                刷新
+                {t("hr.agentUnit.refresh")}
               </Button>
             </div>
             
@@ -326,12 +328,12 @@ export default function AgentUnitManagement() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>SN码</TableHead>
-                    <TableHead>设备型号</TableHead>
-                    <TableHead>批次号</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>标定日期</TableHead>
-                    <TableHead>操作</TableHead>
+                    <TableHead>{t("hr.agentUnit.colSN")}</TableHead>
+                    <TableHead>{t("hr.agentUnit.colModel")}</TableHead>
+                    <TableHead>{t("hr.agentUnit.colBatch")}</TableHead>
+                    <TableHead>{t("hr.agentUnit.colStatus")}</TableHead>
+                    <TableHead>{t("hr.agentUnit.colCalibDate")}</TableHead>
+                    <TableHead>{t("hr.agentUnit.colAction")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -348,21 +350,21 @@ export default function AgentUnitManagement() {
                             color={statusColors[unit.status as keyof typeof statusColors] || "gray"}
                             icon={<StatusIcon className="w-3 h-3" />}
                           >
-                            {statusConfig?.label}
+                            {statusConfig ? t(statusConfig.labelKey) : ""}
                           </StatusBadge>
                         </TableCell>
                         <TableCell>{unit.calibrationDate ? new Date(unit.calibrationDate).toLocaleDateString() : "-"}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             {unit.status === "pending" && (
-                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleStatusUpdate(unit.id, "calibrating", "开始标定"); }}>
-                                开始标定
+                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleStatusUpdate(unit.id, "calibrating", t("hr.agentUnit.startCalibration")); }}>
+                                {t("hr.agentUnit.startCalibration")}
                               </Button>
                             )}
                             {unit.status === "calibrating" && unit.calibrationData && (
                               <Button size="sm" onClick={(e) => { e.stopPropagation(); handleExecuteCalibration(unit.id); }}>
                                 <Play className="w-3 h-3 mr-1" />
-                                执行检查
+                                {t("hr.agentUnit.executeCheck")}
                               </Button>
                             )}
                           </div>
@@ -373,7 +375,7 @@ export default function AgentUnitManagement() {
                   {(!(unitsQuery.data as any)?.units || (unitsQuery.data as any).units.length === 0) && (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                        暂无数据
+                        {t("hr.agentUnit.noData")}
                       </TableCell>
                     </TableRow>
                   )}
@@ -394,7 +396,7 @@ export default function AgentUnitManagement() {
                           <Cpu className="w-5 h-5" />
                           {selectedUnit.serialNumber}
                         </CardTitle>
-                        <CardDescription>{selectedUnit.equipmentModel || "未指定型号"}</CardDescription>
+                        <CardDescription>{selectedUnit.equipmentModel || t("hr.agentUnit.unspecifiedModel")}</CardDescription>
                       </div>
                       <StatusBadge color={statusColors[selectedUnit.status as keyof typeof statusColors] || "gray"}>
                         {STATUS_CONFIG[selectedUnit.status as keyof typeof STATUS_CONFIG]?.label}
@@ -404,19 +406,19 @@ export default function AgentUnitManagement() {
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">批次号</p>
+                        <p className="text-sm text-muted-foreground">{t("hr.agentUnit.batchLabel")}</p>
                         <p className="font-medium">{selectedUnit.batchNumber || "-"}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">装配日期</p>
+                        <p className="text-sm text-muted-foreground">{t("hr.agentUnit.assemblyDate")}</p>
                         <p className="font-medium">{selectedUnit.assemblyDate ? new Date(selectedUnit.assemblyDate).toLocaleDateString() : "-"}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">标定日期</p>
+                        <p className="text-sm text-muted-foreground">{t("hr.agentUnit.calibrationDate")}</p>
                         <p className="font-medium">{selectedUnit.calibrationDate ? new Date(selectedUnit.calibrationDate).toLocaleDateString() : "-"}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">创建时间</p>
+                        <p className="text-sm text-muted-foreground">{t("hr.agentUnit.createTime")}</p>
                         <p className="font-medium">{new Date(selectedUnit.createdAt).toLocaleDateString()}</p>
                       </div>
                     </div>
@@ -424,9 +426,9 @@ export default function AgentUnitManagement() {
                     {/* 操作按钮 */}
                     <div className="flex gap-2 mt-6">
                       {selectedUnit.status === "pending" && (
-                        <Button onClick={() => handleStatusUpdate(selectedUnit.id, "calibrating", "开始标定")}>
+                        <Button onClick={() => handleStatusUpdate(selectedUnit.id, "calibrating", t("hr.agentUnit.startCalibration"))}>
                           <Activity className="w-4 h-4 mr-2" />
-                          开始标定
+                          {t("hr.agentUnit.startCalibration")}
                         </Button>
                       )}
                       {selectedUnit.status === "calibrating" && (
@@ -435,18 +437,18 @@ export default function AgentUnitManagement() {
                             <DialogTrigger asChild>
                               <Button variant="outline">
                                 <Settings className="w-4 h-4 mr-2" />
-                                录入标定数据
+                                {t("hr.agentUnit.enterCalibData")}
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-2xl">
                               <DialogHeader>
-                                <DialogTitle>录入标定数据</DialogTitle>
-                                <DialogDescription>输入各项标定测量值</DialogDescription>
+                                <DialogTitle>{t("hr.agentUnit.enterCalibTitle")}</DialogTitle>
+                                <DialogDescription>{t("hr.agentUnit.enterCalibDesc")}</DialogDescription>
                               </DialogHeader>
                               <div className="space-y-4 max-h-96 overflow-y-auto">
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
-                                    <Label>压力 (bar)</Label>
+                                    <Label>{t("hr.agentUnit.pressure")}</Label>
                                     <Input 
                                       type="number"
                                       value={calibrationData.pressure_calibration.pressure}
@@ -457,7 +459,7 @@ export default function AgentUnitManagement() {
                                     />
                                   </div>
                                   <div>
-                                    <Label>流量 (L/min)</Label>
+                                    <Label>{t("hr.agentUnit.flowRate")}</Label>
                                     <Input 
                                       type="number"
                                       value={calibrationData.flow_calibration.flow_rate}
@@ -468,7 +470,7 @@ export default function AgentUnitManagement() {
                                     />
                                   </div>
                                   <div>
-                                    <Label>温度 (°C)</Label>
+                                    <Label>{t("hr.agentUnit.temperature")}</Label>
                                     <Input 
                                       type="number"
                                       value={calibrationData.temperature_calibration.temperature}
@@ -479,7 +481,7 @@ export default function AgentUnitManagement() {
                                     />
                                   </div>
                                   <div>
-                                    <Label>超声波功率 (W)</Label>
+                                    <Label>{t("hr.agentUnit.ultrasonicPower")}</Label>
                                     <Input 
                                       type="number"
                                       value={calibrationData.ultrasonic_calibration.power}
@@ -490,7 +492,7 @@ export default function AgentUnitManagement() {
                                     />
                                   </div>
                                   <div>
-                                    <Label>超声波频率 (kHz)</Label>
+                                    <Label>{t("hr.agentUnit.ultrasonicFreq")}</Label>
                                     <Input 
                                       type="number"
                                       value={calibrationData.ultrasonic_calibration.frequency}
@@ -503,7 +505,7 @@ export default function AgentUnitManagement() {
                                 </div>
                                 <div className="grid grid-cols-3 gap-4">
                                   <div>
-                                    <Label>X位置 (mm)</Label>
+                                    <Label>{t("hr.agentUnit.xPosition")}</Label>
                                     <Input 
                                       type="number"
                                       value={calibrationData.position_calibration.x_position}
@@ -514,7 +516,7 @@ export default function AgentUnitManagement() {
                                     />
                                   </div>
                                   <div>
-                                    <Label>Y位置 (mm)</Label>
+                                    <Label>{t("hr.agentUnit.yPosition")}</Label>
                                     <Input 
                                       type="number"
                                       value={calibrationData.position_calibration.y_position}
@@ -525,7 +527,7 @@ export default function AgentUnitManagement() {
                                     />
                                   </div>
                                   <div>
-                                    <Label>Z位置 (mm)</Label>
+                                    <Label>{t("hr.agentUnit.zPosition")}</Label>
                                     <Input 
                                       type="number"
                                       value={calibrationData.position_calibration.z_position}
@@ -538,9 +540,9 @@ export default function AgentUnitManagement() {
                                 </div>
                               </div>
                               <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsCalibrationDialogOpen(false)}>取消</Button>
+                                <Button variant="outline" onClick={() => setIsCalibrationDialogOpen(false)}>{t("hr.agentUnit.cancel")}</Button>
                                 <Button onClick={handleRecordCalibration} disabled={recordCalibrationMutation.isPending}>
-                                  {recordCalibrationMutation.isPending ? "保存中..." : "保存数据"}
+                                  {recordCalibrationMutation.isPending ? t("hr.agentUnit.saving") : t("hr.agentUnit.saveData")}
                                 </Button>
                               </DialogFooter>
                             </DialogContent>
@@ -548,15 +550,15 @@ export default function AgentUnitManagement() {
                           {selectedUnit.calibrationData && (
                             <Button onClick={() => handleExecuteCalibration(selectedUnit.id)} disabled={executeCalibrationMutation.isPending}>
                               <Play className="w-4 h-4 mr-2" />
-                              {executeCalibrationMutation.isPending ? "检查中..." : "执行自动判定"}
+                              {executeCalibrationMutation.isPending ? t("hr.agentUnit.checking") : t("hr.agentUnit.executeAutoJudge")}
                             </Button>
                           )}
                         </>
                       )}
                       {selectedUnit.status === "rework" && (
-                        <Button variant="outline" onClick={() => handleStatusUpdate(selectedUnit.id, "calibrating", "重新标定")}>
+                        <Button variant="outline" onClick={() => handleStatusUpdate(selectedUnit.id, "calibrating", t("hr.agentUnit.reCalibrate"))}>
                           <RefreshCw className="w-4 h-4 mr-2" />
-                          重新标定
+                          {t("hr.agentUnit.reCalibrate")}
                         </Button>
                       )}
                     </div>
@@ -569,7 +571,7 @@ export default function AgentUnitManagement() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <CheckCircle2 className="w-5 h-5" />
-                        标定检查结果
+                        {t("hr.agentUnit.calibResultTitle")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -577,7 +579,7 @@ export default function AgentUnitManagement() {
                         <div className="p-4 rounded-lg bg-muted">
                           <p className="font-medium">{(selectedUnit.calibrationResult as any).recommendation}</p>
                           <p className="text-sm text-muted-foreground mt-1">
-                            检查时间: {new Date((selectedUnit.calibrationResult as any).checkedAt).toLocaleString()}
+                            {t("hr.agentUnit.checkTime")}: {new Date((selectedUnit.calibrationResult as any).checkedAt).toLocaleString()}
                           </p>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -585,7 +587,7 @@ export default function AgentUnitManagement() {
                             <div key={index} className="p-3 rounded-lg border">
                               <p className="text-sm font-medium">{result.checkType.replace(/_/g, " ")}</p>
                               <StatusBadge color={result.result === "pass" ? "green" : result.result === "warning" ? "yellow" : "red"}>
-                                {result.result === "pass" ? "通过" : result.result === "warning" ? "警告" : "失败"}
+                                {result.result === "pass" ? t("hr.agentUnit.resultPass") : result.result === "warning" ? t("hr.agentUnit.resultWarning") : t("hr.agentUnit.resultFail")}
                               </StatusBadge>
                             </div>
                           ))}
@@ -601,7 +603,7 @@ export default function AgentUnitManagement() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Activity className="w-5 h-5" />
-                        标定原始数据 (只读)
+                        {t("hr.agentUnit.rawDataTitle")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>

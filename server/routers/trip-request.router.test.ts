@@ -31,6 +31,12 @@ const { selectResultsQueue, mockReturningResult } = vi.hoisted(() => {
 });
 
 // Mock DB
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => {
     const chain: any = {
@@ -82,10 +88,10 @@ beforeEach(() => {
 });
 
 // ── Callers ──
-const caller = () => createAuthenticatedCaller();
-const employeeCaller = () => createAuthenticatedCaller({ id: 1, role: "employee" });
-const managerCaller = () => createAuthenticatedCaller({ id: 100, role: "admin" });
-const directorCaller = () => createAuthenticatedCaller({ id: 200, role: "director" });
+const caller = () => createAdminCaller();
+const employeeCaller = () => createAdminCaller({ id: 1, role: "employee" });
+const managerCaller = () => createAdminCaller({ id: 100, role: "admin" });
+const directorCaller = () => createAdminCaller({ id: 200, role: "director" });
 
 // ── Sample data ──
 const sampleTripRequest = {
@@ -883,7 +889,7 @@ describe("tripRequest router", () => {
 
     for (const role of managerRoles) {
       it(`${role} can approve trip requests`, async () => {
-        const mgr = createAuthenticatedCaller({ id: 500, role });
+        const mgr = createAdminCaller({ id: 500, role });
         selectResultsQueue.push([{ userId: 1, status: "submitted" }]);
         mockReturningResult.push({ ...sampleTripRequest, status: "approved" });
 
@@ -892,7 +898,7 @@ describe("tripRequest router", () => {
       });
 
       it(`${role} can reject trip requests`, async () => {
-        const mgr = createAuthenticatedCaller({ id: 500, role });
+        const mgr = createAdminCaller({ id: 500, role });
         selectResultsQueue.push([{ userId: 1, status: "submitted" }]);
         mockReturningResult.push({ ...sampleTripRequest, status: "rejected" });
 
@@ -908,12 +914,12 @@ describe("tripRequest router", () => {
 
     for (const role of nonManagerRoles) {
       it(`${role} cannot approve`, async () => {
-        const c = createAuthenticatedCaller({ id: 1, role });
+        const c = createAdminCaller({ id: 1, role });
         await expect(c.tripRequest.approve({ id: "1" })).rejects.toThrow("仅管理角色可审批出差申请");
       });
 
       it(`${role} cannot reject`, async () => {
-        const c = createAuthenticatedCaller({ id: 1, role });
+        const c = createAdminCaller({ id: 1, role });
         await expect(c.tripRequest.reject({ id: "1" })).rejects.toThrow("仅管理角色可驳回出差申请");
       });
     }

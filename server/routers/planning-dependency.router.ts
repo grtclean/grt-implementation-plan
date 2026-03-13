@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { annualPlanningDependencies } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
@@ -15,7 +15,7 @@ export const planningDependencyRouter = router({
     return await db.select().from(annualPlanningDependencies).limit(1000);
   }),
 
-  add: protectedProcedure.input(z.object({
+  add: requirePermission('project:tasks:manage').input(z.object({
     configId: z.number(),
     sourceItemId: z.number(),
     targetItemId: z.number(),
@@ -33,7 +33,7 @@ export const planningDependencyRouter = router({
     return { success: true, data: dep };
   }),
 
-  remove: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
+  remove: requirePermission('project:tasks:manage').input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(annualPlanningDependencies).where(eq(annualPlanningDependencies.id, toNum(input.id)));
     return { success: true };

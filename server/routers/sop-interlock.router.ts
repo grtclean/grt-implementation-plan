@@ -17,7 +17,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, and, sql, desc, gt } from "drizzle-orm";
 import { qualificationCertificates } from "../../drizzle/schema";
@@ -253,7 +253,7 @@ export const sopInterlockRouter = router({
     }),
 
   /** Record an SOP acknowledgment (operator signs latest version) */
-  acknowledgeSop: protectedProcedure
+  acknowledgeSop: requirePermission('mfg:interlock:manage')
     .input(z.object({
       sopTemplateId: z.number(),
       signatureMethod: z.enum(["badge_scan", "manual", "digital_signature"]).default("badge_scan"),

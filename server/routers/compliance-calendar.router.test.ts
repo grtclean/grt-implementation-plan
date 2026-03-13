@@ -12,7 +12,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 import {
@@ -416,7 +416,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
 
   describe("dashboard", () => {
     it("returns a compliance summary with all expected fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.dashboard();
 
       expect(result).toHaveProperty("total");
@@ -431,7 +431,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("returns exactly 10 mock certifications", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.dashboard();
 
       expect(result.total).toBe(10);
@@ -439,7 +439,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("tier counts sum to total", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.dashboard();
 
       const tierSum = result.safe + result.warning + result.critical + result.danger;
@@ -447,14 +447,14 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("has at least one expired certification in mock data", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.dashboard();
 
       expect(result.expired).toBeGreaterThanOrEqual(1);
     });
 
     it("alerts are sorted by urgency (DANGER first)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.dashboard();
 
       const tierOrder: Record<ComplianceTier, number> = {
@@ -475,7 +475,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("generatedAt is a valid ISO timestamp", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.dashboard();
 
       const parsed = new Date(result.generatedAt);
@@ -483,7 +483,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("each alert has required fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.dashboard();
 
       for (const alert of result.alerts) {
@@ -503,7 +503,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("mock data covers all four categories", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.dashboard();
 
       const categories = new Set(result.alerts.map((a) => a.category));
@@ -514,7 +514,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("mock data covers all four tiers", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.dashboard();
 
       const tiers = new Set(result.alerts.map((a) => a.tier));
@@ -525,7 +525,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("dataSource is always 'mock' in Phase 0", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.dashboard();
 
       expect(result.dataSource).toBe("mock");
@@ -536,7 +536,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
 
   describe("acknowledge", () => {
     it("acknowledges an alert with ACKNOWLEDGED action", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.acknowledge({
         alertId: 1,
         action: "ACKNOWLEDGED",
@@ -550,7 +550,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("supports DELEGATED action with delegatedTo", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.acknowledge({
         alertId: 3,
         action: "DELEGATED",
@@ -564,7 +564,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("supports RENEWED action", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.acknowledge({
         alertId: 5,
         action: "RENEWED",
@@ -576,7 +576,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("supports DISMISSED action", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.acknowledge({
         alertId: 7,
         action: "DISMISSED",
@@ -588,7 +588,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("returns the correct performedBy from context user", async () => {
-      const caller = createAuthenticatedCaller({ id: 42 });
+      const caller = createAdminCaller({ id: 42 });
       const result = await caller.complianceCalendar.acknowledge({
         alertId: 1,
         action: "ACKNOWLEDGED",
@@ -598,7 +598,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("returns a valid ISO timestamp", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.acknowledge({
         alertId: 1,
         action: "ACKNOWLEDGED",
@@ -609,7 +609,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("works without optional fields (delegatedTo, notes)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.acknowledge({
         alertId: 2,
         action: "ACKNOWLEDGED",
@@ -619,7 +619,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("rejects invalid action values", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.complianceCalendar.acknowledge({
           alertId: 1,
@@ -629,7 +629,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("rejects non-number alertId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.complianceCalendar.acknowledge({
           alertId: "abc" as any,
@@ -639,7 +639,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("rejects missing required fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.complianceCalendar.acknowledge({
           alertId: 1,
@@ -652,7 +652,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
 
   describe("history", () => {
     it("returns action history with expected shape", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.history({ limit: 20 });
 
       expect(result).toHaveProperty("actions");
@@ -662,7 +662,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("returns mock actions with correct fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.history({ limit: 20 });
 
       expect(result.actions.length).toBeGreaterThan(0);
@@ -676,7 +676,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("returns exactly 2 mock history entries", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.history({ limit: 20 });
 
       expect(result.actions).toHaveLength(2);
@@ -684,7 +684,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("mock history contains ACKNOWLEDGED and DELEGATED actions", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.history({ limit: 20 });
 
       const actionTypes = result.actions.map((a) => a.action);
@@ -693,7 +693,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("DELEGATED action includes delegatedToName", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.history({ limit: 20 });
 
       const delegated = result.actions.find((a) => a.action === "DELEGATED");
@@ -703,7 +703,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("performedAt timestamps are valid ISO strings", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.history({ limit: 20 });
 
       for (const action of result.actions) {
@@ -713,7 +713,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("accepts the default limit when not specified", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // The input schema has .default(20), so passing {} should work
       // But the input is required with `limit` having a default, let's pass it explicitly
       const result = await caller.complianceCalendar.history({ limit: 10 });
@@ -721,21 +721,21 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("rejects limit below 1", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.complianceCalendar.history({ limit: 0 }),
       ).rejects.toThrow();
     });
 
     it("rejects limit above 100", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.complianceCalendar.history({ limit: 101 }),
       ).rejects.toThrow();
     });
 
     it("accepts boundary limit values (1 and 100)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
 
       const result1 = await caller.complianceCalendar.history({ limit: 1 });
       expect(result1).toHaveProperty("actions");
@@ -745,7 +745,7 @@ describe("complianceCalendar router — tRPC procedures", () => {
     });
 
     it("dataSource is always 'mock' in Phase 0", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.complianceCalendar.history({ limit: 20 });
 
       expect(result.dataSource).toBe("mock");

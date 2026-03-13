@@ -1,10 +1,11 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { capabilityProofConfigs, capabilityEvidences, publicCapabilityShowcase } from "../../drizzle/schema";
 import { eq, desc, count, sql } from "drizzle-orm";
 import { jsonValue } from "../../shared/validators";
 import { createChildLogger } from "../lib/logger";
+import { getAllCleaningStrategies, getAllEngineerCheckpoints, generateTechnicalProposalSummary, generateIOList, analyzePartFeatures } from "../services/grt-cleaning-strategy.service";
 const log = createChildLogger("capability-os");
 
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
@@ -29,8 +30,8 @@ async function ensureCapCertData() {
     const { rows } = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM ai_assistant_dashboard WHERE assistant_type = 'capability'`);
     if ((rows[0] as any).cnt === 0) {
       const certificates = JSON.stringify([
-        { id: "cert1", certificateNumber: "GRT-T-2026-001234", domainCode: "T", domainName: "技术能力", level: 3, userName: "张工程师", issueDate: "2026-01-15", expiryDate: "2027-01-15", status: "valid", pdfUrl: "#" },
-        { id: "cert2", certificateNumber: "GRT-D-2025-005678", domainCode: "D", domainName: "交付能力", level: 4, userName: "张工程师", issueDate: "2025-08-20", expiryDate: "2026-08-20", status: "valid", pdfUrl: "#" },
+        { id: "cert1", certificateNumber: "GRT-T-2026-001234", domainCode: "T", domainName: "技术能力", level: 3, userName: "洪香龙", issueDate: "2026-01-15", expiryDate: "2027-01-15", status: "valid", pdfUrl: "#" },
+        { id: "cert2", certificateNumber: "GRT-D-2025-005678", domainCode: "D", domainName: "交付能力", level: 4, userName: "洪香龙", issueDate: "2025-08-20", expiryDate: "2026-08-20", status: "valid", pdfUrl: "#" },
       ]);
       const eligibility = JSON.stringify({
         eligible: true,
@@ -122,7 +123,7 @@ export const capabilityOsRouter = router({
     return item || null;
   }),
 
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('capability:matrix:manage').input(z.object({
     capabilityCode: z.string().max(50).optional(),
     capabilityName: z.string().max(200).optional(),
     name: z.string().max(200).optional(),
@@ -170,7 +171,7 @@ export const capabilityOsRouter = router({
     return { success: true, message: "更新成功", data: item };
   }),
 
-  delete: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
+  delete: requirePermission('capability:matrix:manage').input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(capabilityProofConfigs).where(eq(capabilityProofConfigs.id, toNum(input.id)));
     return successResponse;
@@ -201,7 +202,7 @@ export const capabilityOsRouter = router({
   }),
 
   getUpgradeRules: protectedProcedure.query(() => UPGRADE_RULES),
-  upgradeCapability: protectedProcedure.input(z.object({ capabilityId: z.union([z.string(), z.number()]), fromLevel: z.string().optional(), toLevel: z.string().optional() })).mutation(() => successResponse),
+  upgradeCapability: requirePermission('capability:matrix:manage').input(z.object({ capabilityId: z.union([z.string(), z.number()]), fromLevel: z.string().optional(), toLevel: z.string().optional() })).mutation(() => successResponse),
 
   listCapabilities: protectedProcedure.query(async () => {
     const db = await requireDb();
@@ -292,7 +293,7 @@ export const capabilityOsRouter = router({
     return { success: true, message: "证据已提交", data: evidence };
   }),
 
-  reviewEvidence: protectedProcedure.input(z.object({
+  reviewEvidence: requirePermission('capability:matrix:manage').input(z.object({
     id: z.union([z.string(), z.number()]).optional(),
     evidenceId: z.union([z.string(), z.number()]).optional(),
     approved: z.boolean().optional(),
@@ -330,7 +331,7 @@ export const capabilityOsRouter = router({
   getUserBadges: protectedProcedure.input(stubInput).query(() => []),
   getBadgeLeaderboard: protectedProcedure.query(() => []),
   getBadgeStatistics: protectedProcedure.query(() => ({ statistics: {} })),
-  updateBadgeDisplay: protectedProcedure.input(stubInput).mutation(() => successResponse),
+  updateBadgeDisplay: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => successResponse),
 
   // --- Leaderboard (no DB table) -------------------------------------------------
   getDomainLeaderboard: protectedProcedure.input(stubInput).query(() => []),
@@ -342,16 +343,16 @@ export const capabilityOsRouter = router({
   getMyCertificates: protectedProcedure.query(async () => {
     await ensureCapCertData();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'capability' AND category = 'certificates'`);
+    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'capability' AND category = 'certificates' LIMIT 1000`);
     return (rows[0] as any)?.items ?? [];
   }),
   checkCertificateEligibility: protectedProcedure.input(stubInput).query(async () => {
     await ensureCapCertData();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'capability' AND category = 'eligibility'`);
+    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'capability' AND category = 'eligibility' LIMIT 1000`);
     return (rows[0] as any)?.items ?? { eligible: false, requirements: [] };
   }),
-  generateCertificate: protectedProcedure.input(stubInput).mutation(async ({ input }) => {
+  generateCertificate: requirePermission('capability:matrix:manage').input(stubInput).mutation(async ({ input }) => {
     await ensureCapCertData();
     const domainCode = (input as any)?.domainCode ?? "T";
     const certNum = `GRT-${domainCode}-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, "0")}`;
@@ -359,33 +360,33 @@ export const capabilityOsRouter = router({
   }),
   verifyCertificateByQR: protectedProcedure.input(stubInput).query(() => ({ valid: false, certificate: null })),
 
-  // --- Engineer Checkpoints (no DB table) ----------------------------------------
-  getAllEngineerCheckpoints: protectedProcedure.query(() => []),
-  approveCheckpoint: protectedProcedure.input(stubInput).mutation(() => successResponse),
-  rejectCheckpoint: protectedProcedure.input(stubInput).mutation(() => successResponse),
-  completePhase: protectedProcedure.input(stubInput).mutation(() => successResponse),
+  // --- Engineer Checkpoints (wired to grt-cleaning-strategy.service) ------------
+  getAllEngineerCheckpoints: protectedProcedure.query(() => getAllEngineerCheckpoints()),
+  approveCheckpoint: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => successResponse),
+  rejectCheckpoint: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => successResponse),
+  completePhase: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => successResponse),
 
   // --- Path Recommendation (DB-backed via ai_assistant_dashboard) ----------------
   getPathRecommendation: protectedProcedure.input(stubInput).query(async () => {
     await ensureCapCertData();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'capability' AND category = 'recommendation'`);
+    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'capability' AND category = 'recommendation' LIMIT 1000`);
     return (rows[0] as any)?.items ?? null;
   }),
 
   // --- Agent Units (no DB table) -------------------------------------------------
   getAgentUnits: protectedProcedure.query(() => []),
-  createAgentUnit: protectedProcedure.input(stubInput).mutation(() => successResponse),
-  updateAgentUnitStatus: protectedProcedure.input(stubInput).mutation(() => successResponse),
-  batchImportAgentUnits: protectedProcedure.input(stubInput).mutation(() => successResponse),
+  createAgentUnit: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => successResponse),
+  updateAgentUnitStatus: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => successResponse),
+  batchImportAgentUnits: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => successResponse),
   getAgentUnitStatistics: protectedProcedure.query(() => ({ statistics: {} })),
   getAgentUnitImportHistory: protectedProcedure.query(() => []),
 
   // --- Approval Chain Configs (no DB table) --------------------------------------
   getApprovalChainConfigs: protectedProcedure.query(() => []),
-  createApprovalChainConfig: protectedProcedure.input(stubInput).mutation(() => successResponse),
-  updateApprovalChainConfig: protectedProcedure.input(stubInput).mutation(() => successResponse),
-  deleteApprovalChainConfig: protectedProcedure.input(stubInput).mutation(() => successResponse),
+  createApprovalChainConfig: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => successResponse),
+  updateApprovalChainConfig: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => successResponse),
+  deleteApprovalChainConfig: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => successResponse),
 
   // --- UWB Positioning (no DB table) ---------------------------------------------
   getAllUWBTags: protectedProcedure.query(() => []),
@@ -393,12 +394,12 @@ export const capabilityOsRouter = router({
   getWorkshopOverview: protectedProcedure.query(() => ({ overview: {} })),
 
   // --- Calibration (no DB table) -------------------------------------------------
-  executeCalibrationCheck: protectedProcedure.input(stubInput).mutation(() => successResponse),
-  recordCalibrationData: protectedProcedure.input(stubInput).mutation(() => successResponse),
+  executeCalibrationCheck: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => successResponse),
+  recordCalibrationData: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => successResponse),
   getCalibrationTrend: protectedProcedure.input(stubInput).query(() => []),
 
-  // --- Cleaning Strategies (no DB table) -----------------------------------------
-  getAllCleaningStrategies: protectedProcedure.query(() => []),
+  // --- Cleaning Strategies (wired to grt-cleaning-strategy.service) -------------
+  getAllCleaningStrategies: protectedProcedure.query(() => getAllCleaningStrategies()),
 
   // --- Toothpaste Test (no DB table) ---------------------------------------------
   getToothpasteTestRecords: protectedProcedure.query(() => []),
@@ -406,10 +407,17 @@ export const capabilityOsRouter = router({
   getToothpasteTestTrend: protectedProcedure.query(() => []),
   getToothpasteTestCount: protectedProcedure.query(() => ({ count: 0 })),
   getToothpasteFeatureTypeStats: protectedProcedure.query(() => ({ stats: {} })),
-  exportToothpasteTestReport: protectedProcedure.input(stubInput).mutation(() => ({ url: "" })),
+  exportToothpasteTestReport: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => ({ url: "" })),
 
-  // --- Technical Proposals (no DB table) -----------------------------------------
-  generateTechnicalProposal: protectedProcedure.input(stubInput).mutation(() => ({ proposal: "" })),
-  generateIOList: protectedProcedure.input(stubInput).mutation(() => ({ ioList: [] })),
-  analyzePartFeatures: protectedProcedure.input(stubInput).mutation(() => []),
+  // --- Technical Proposals (wired to grt-cleaning-strategy.service) ------------
+  generateTechnicalProposal: requirePermission('capability:matrix:manage').input(stubInput).mutation(({ input }) => {
+    const features = (input as any)?.features ?? [];
+    const targetCycleTime = (input as any)?.targetCycleTime ?? 120;
+    return { proposal: generateTechnicalProposalSummary(features, targetCycleTime) };
+  }),
+  generateIOList: requirePermission('capability:matrix:manage').input(stubInput).mutation(() => ({ ioList: generateIOList() })),
+  analyzePartFeatures: requirePermission('capability:matrix:manage').input(stubInput).mutation(({ input }) => {
+    const features = (input as any)?.features ?? [];
+    return analyzePartFeatures(features);
+  }),
 });

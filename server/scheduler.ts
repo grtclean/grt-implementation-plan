@@ -17,6 +17,7 @@ import {
 } from "../drizzle/schema";
 import { eq, and, lte, gte } from "drizzle-orm";
 import { notifyOwner } from "./_core/notification";
+import { processEmpowermentDailyBriefings, processEmpowermentMonthlyReckoning } from "./services/empowerment-scheduler.service";
 import { createChildLogger } from "./lib/logger";
 const log = createChildLogger("scheduler");
 
@@ -300,6 +301,246 @@ function calculateNextRunTime(cronExpression: string): Date | null {
   return next;
 }
 
+// ── Customer Authorization Expiry Checks ──
+
+/**
+ * Expire customer authorizations where valid_until < NOW() AND status='active'.
+ * Runs conceptually daily at 02:00 (triggered each scheduler cycle, deduped by date).
+ */
+async function processCustomerAuthorizationExpiry(): Promise<number> {
+  const db = await requireDb();
+  if (!db) return 0;
+  try {
+    const { customerAuthorizations } = await import("../drizzle/customer-authorization-schema");
+    const now = new Date();
+    const result = await db.update(customerAuthorizations)
+      .set({ status: "expired", updatedAt: now })
+      .where(
+        and(
+          eq(customerAuthorizations.status, "active"),
+          lte(customerAuthorizations.validUntil, now)
+        )
+      )
+      .returning();
+    if (result.length > 0) {
+      log.info({ count: result.length }, "Customer authorizations expired by scheduler");
+    }
+    return result.length;
+  } catch (err) {
+    log.error({ err }, "Error processing customer authorization expiry");
+    return 0;
+  }
+}
+
+/**
+ * Expire NDA tokens where token_expires_at < NOW() AND status='pending'.
+ * Runs conceptually daily at 08:00.
+ */
+async function processNdaTokenExpiry(): Promise<number> {
+  const db = await requireDb();
+  if (!db) return 0;
+  try {
+    const { customerNdaAgreements } = await import("../drizzle/customer-authorization-schema");
+    const now = new Date();
+    const result = await db.update(customerNdaAgreements)
+      .set({ status: "expired", updatedAt: now })
+      .where(
+        and(
+          eq(customerNdaAgreements.status, "pending"),
+          lte(customerNdaAgreements.tokenExpiresAt, now)
+        )
+      )
+      .returning();
+    if (result.length > 0) {
+      log.info({ count: result.length }, "NDA tokens expired by scheduler");
+    }
+    return result.length;
+  } catch (err) {
+    log.error({ err }, "Error processing NDA token expiry");
+    return 0;
+  }
+}
+
+// Document governance freshness check (daily — marks overdue documents)
+async function processDocumentFreshnessCheck(): Promise<number> {
+  try {
+    const db = await requireDb();
+    if (!db) return 0;
+    const { orgDocumentRegistry, orgDocumentReviewSchedule } = await import("../drizzle/org-document-schema");
+    const now = new Date().toISOString();
+
+    const overdue = await db
+      .update(orgDocumentRegistry)
+      .set({ reviewOverdue: true })
+      .where(
+        and(
+          eq(orgDocumentRegistry.reviewOverdue, false),
+          lte(orgDocumentRegistry.nextReviewDueAt, now),
+        ),
+      )
+      .returning();
+
+    await db
+      .update(orgDocumentReviewSchedule)
+      .set({ status: "overdue" })
+      .where(
+        and(
+          eq(orgDocumentReviewSchedule.status, "pending"),
+          lte(orgDocumentReviewSchedule.scheduledDate, now),
+        ),
+      );
+
+    if (overdue.length > 0) {
+      log.info({ overdueCount: overdue.length }, "Document freshness check: marked overdue");
+    }
+    return overdue.length;
+  } catch (err) {
+    log.error({ err }, "Error processing document freshness check");
+    return 0;
+  }
+}
+
+// ── IDO Document Gap Scan (daily) ──
+
+/**
+ * For each active project, check current stage's mandatory docs.
+ * If any missing > 3 days, create notification to PM.
+ */
+async function processIdoDocumentGapScan(): Promise<number> {
+  try {
+    const db = await requireDb();
+    if (!db) return 0;
+    const { projects, projectDocuments } = await import("../drizzle/schema");
+    const { idoStageDocumentUiMap } = await import("../drizzle/ido-schema");
+
+    // Get active projects (currentPhase is the actual column name)
+    const activeProjects = await db
+      .select({ id: projects.id, currentPhase: projects.currentPhase, managerId: projects.managerId })
+      .from(projects)
+      .where(eq(projects.status, "active"))
+      .limit(100);
+
+    let alertCount = 0;
+    for (const project of activeProjects) {
+      if (!project.currentPhase || !project.managerId) continue;
+      try {
+        // Get mandatory docs for current stage
+        const mandatoryDocs = await db
+          .select()
+          .from(idoStageDocumentUiMap)
+          .where(
+            and(
+              eq(idoStageDocumentUiMap.stageCode, project.currentPhase),
+              eq(idoStageDocumentUiMap.isMandatory, true),
+              eq(idoStageDocumentUiMap.isActive, true),
+            ),
+          )
+          .limit(50);
+
+        if (mandatoryDocs.length === 0) continue;
+
+        // Check which docs exist in projectDocuments
+        const existingDocs = await db
+          .select({ name: projectDocuments.name })
+          .from(projectDocuments)
+          .where(eq(projectDocuments.projectId, project.id))
+          .limit(200);
+
+        const existingNames = new Set(existingDocs.map((d) => d.name?.toLowerCase()));
+        const missing = mandatoryDocs.filter(
+          (doc) => !existingNames.has(doc.documentName.toLowerCase()),
+        );
+
+        if (missing.length > 0) {
+          await notifyOwner({
+            title: `文档缺失提醒: 项目#${project.id} ${project.currentPhase}阶段`,
+            content: `${project.currentPhase}阶段缺少${missing.length}份必要文档: ${missing.map((d) => d.documentName).join(", ")}`,
+          }).catch(() => {/* non-critical */});
+          alertCount++;
+        }
+      } catch (err) {
+        log.warn({ err, projectId: project.id }, "IDO gap scan failed for project");
+      }
+    }
+
+    if (alertCount > 0) {
+      log.info({ alertCount }, "IDO document gap scan: notifications created");
+    }
+    return alertCount;
+  } catch (err) {
+    log.error({ err }, "Error processing IDO document gap scan");
+    return 0;
+  }
+}
+
+/**
+ * Pre-gate readiness check: for projects with stages about to advance,
+ * warn PM + reviewers if document completeness < 80%.
+ */
+async function processIdoPreGateReadiness(): Promise<number> {
+  try {
+    const db = await requireDb();
+    if (!db) return 0;
+    const { projects, projectDocuments } = await import("../drizzle/schema");
+    const { idoStageDocumentUiMap } = await import("../drizzle/ido-schema");
+
+    const activeProjects = await db
+      .select({ id: projects.id, currentPhase: projects.currentPhase, managerId: projects.managerId })
+      .from(projects)
+      .where(eq(projects.status, "active"))
+      .limit(100);
+
+    let warnCount = 0;
+    for (const project of activeProjects) {
+      if (!project.currentPhase || !project.managerId) continue;
+      try {
+        const allDocs = await db
+          .select()
+          .from(idoStageDocumentUiMap)
+          .where(
+            and(
+              eq(idoStageDocumentUiMap.stageCode, project.currentPhase),
+              eq(idoStageDocumentUiMap.isActive, true),
+            ),
+          )
+          .limit(50);
+
+        if (allDocs.length === 0) continue;
+
+        const existingDocs = await db
+          .select({ name: projectDocuments.name })
+          .from(projectDocuments)
+          .where(eq(projectDocuments.projectId, project.id))
+          .limit(200);
+
+        const existingNames = new Set(existingDocs.map((d) => d.name?.toLowerCase()));
+        const fulfilled = allDocs.filter(
+          (doc) => existingNames.has(doc.documentName.toLowerCase()),
+        ).length;
+        const completionPct = Math.round((fulfilled / allDocs.length) * 100);
+
+        if (completionPct < 80) {
+          await notifyOwner({
+            title: `Gate准备度不足: 项目#${project.id} ${project.currentPhase} (${completionPct}%)`,
+            content: `${project.currentPhase}阶段文档完成度仅${completionPct}%，需要${allDocs.length - fulfilled}份文档才能达到80%准入门槛`,
+          }).catch(() => {/* non-critical */});
+          warnCount++;
+        }
+      } catch (err) {
+        log.warn({ err, projectId: project.id }, "IDO pre-gate check failed for project");
+      }
+    }
+
+    if (warnCount > 0) {
+      log.info({ warnCount }, "IDO pre-gate readiness: warnings created");
+    }
+    return warnCount;
+  } catch (err) {
+    log.error({ err }, "Error processing IDO pre-gate readiness check");
+    return 0;
+  }
+}
+
 // 运行所有定时任务检查
 export async function runSchedulerCheck(): Promise<{
   performanceReviews: TaskExecutionResult[];
@@ -313,6 +554,17 @@ export async function runSchedulerCheck(): Promise<{
     processPerformanceReviewReminders(),
     processMeetingRemindersScheduled(),
     processScheduledTasks(),
+    // Customer authorization expiry scans (safe to run every cycle — idempotent)
+    processCustomerAuthorizationExpiry(),
+    processNdaTokenExpiry(),
+    // Document governance freshness check (daily — idempotent)
+    processDocumentFreshnessCheck(),
+    // IDO document gap scan + pre-gate readiness (daily — idempotent)
+    processIdoDocumentGapScan(),
+    processIdoPreGateReadiness(),
+    // Empowerment engine: daily 6AM briefings + monthly 1st reckoning (time-gated)
+    processEmpowermentDailyBriefings(),
+    processEmpowermentMonthlyReckoning(),
   ]);
 
   schedulerStatus.isRunning = false;
@@ -379,18 +631,21 @@ export async function getSchedulerStats(): Promise<{
   const pendingPR = await db
     .select()
     .from(hrmPerformanceReviewReminders)
-    .where(eq(hrmPerformanceReviewReminders.status, "pending"));
+    .where(eq(hrmPerformanceReviewReminders.status, "pending"))
+    .limit(1000);
 
   const pendingMR = await db
     .select()
     .from(meetingReminders)
-    .where(eq(meetingReminders.isSent, 0));
+    .where(eq(meetingReminders.isSent, 0))
+    .limit(1000);
 
   const activeTasks = await db
     .select()
     .from(scheduledTasks)
     .where(eq(scheduledTasks.isEnabled, 1))
-    .orderBy(scheduledTasks.nextRunAt);
+    .orderBy(scheduledTasks.nextRunAt)
+    .limit(1000);
 
   return {
     pendingPerformanceReviews: pendingPR.length,

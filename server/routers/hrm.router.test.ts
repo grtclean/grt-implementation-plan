@@ -311,56 +311,56 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("RBAC — permission-gated procedures", () => {
     it("denies non-admin create without hrm_employee_management permission", async () => {
-      const caller = createAuthenticatedCaller({ role: "employee" });
+      const caller = createAdminCaller({ role: "employee" });
       await expect(
         caller.hrm.create({ name: "New Employee" })
       ).rejects.toThrow(/Missing permission/);
     });
 
     it("denies non-admin update without hrm_employee_management permission", async () => {
-      const caller = createAuthenticatedCaller({ role: "employee" });
+      const caller = createAdminCaller({ role: "employee" });
       await expect(
         caller.hrm.update({ id: "EMP-1", name: "Updated" })
       ).rejects.toThrow(/Missing permission/);
     });
 
     it("denies non-admin delete without hrm_employee_management permission", async () => {
-      const caller = createAuthenticatedCaller({ role: "employee" });
+      const caller = createAdminCaller({ role: "employee" });
       await expect(
         caller.hrm.delete({ id: "EMP-1" })
       ).rejects.toThrow(/Missing permission/);
     });
 
     it("denies non-admin getSalaryStructures without hrm_salary_structure permission", async () => {
-      const caller = createAuthenticatedCaller({ role: "employee" });
+      const caller = createAdminCaller({ role: "employee" });
       await expect(
         caller.hrm.getSalaryStructures()
       ).rejects.toThrow(/Missing permission/);
     });
 
     it("denies non-admin initSalaryStructures without hrm_salary_structure permission", async () => {
-      const caller = createAuthenticatedCaller({ role: "employee" });
+      const caller = createAdminCaller({ role: "employee" });
       await expect(
         caller.hrm.initSalaryStructures()
       ).rejects.toThrow(/Missing permission/);
     });
 
     it("denies non-admin initPerformanceGrades without hrm_salary_structure permission", async () => {
-      const caller = createAuthenticatedCaller({ role: "employee" });
+      const caller = createAdminCaller({ role: "employee" });
       await expect(
         caller.hrm.initPerformanceGrades()
       ).rejects.toThrow(/Missing permission/);
     });
 
     it("denies non-admin calculateSalary without hrm_salary_calculation permission", async () => {
-      const caller = createAuthenticatedCaller({ role: "employee" });
+      const caller = createAdminCaller({ role: "employee" });
       await expect(
         caller.hrm.calculateSalary({ department: "研发部", baseSalary: 10000 })
       ).rejects.toThrow(/Missing permission/);
     });
 
     it("denies non-admin createSalaryCalculation without hrm_salary_calculation permission", async () => {
-      const caller = createAuthenticatedCaller({ role: "employee" });
+      const caller = createAdminCaller({ role: "employee" });
       await expect(
         caller.hrm.createSalaryCalculation({ department: "研发部", baseSalary: 10000 })
       ).rejects.toThrow(/Missing permission/);
@@ -398,7 +398,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("list", () => {
     it("returns paginated employees with defaults", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const emp = makeEmployeeRow();
       // First select: count query
       selectResultsQueue.push([{ count: 1 }]);
@@ -415,7 +415,7 @@ describe("hrm router", () => {
     });
 
     it("returns paginated employees with custom limit/offset", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ count: 100 }]);
       selectResultsQueue.push([
         makeEmployeeRow({ id: 11 }),
@@ -430,7 +430,7 @@ describe("hrm router", () => {
     });
 
     it("returns empty list when no employees exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ count: 0 }]);
       selectResultsQueue.push([]);
 
@@ -445,7 +445,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("getById", () => {
     it("returns employee details with EMP- prefix id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const emp = makeEmployeeRow();
       mockQueryResult = [emp];
 
@@ -459,7 +459,7 @@ describe("hrm router", () => {
     });
 
     it("returns null when employee not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
 
       const result = await caller.hrm.getById({ id: "EMP-999" });
@@ -467,7 +467,7 @@ describe("hrm router", () => {
     });
 
     it("returns null for non-numeric id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.hrm.getById({ id: "INVALID" });
       expect(result).toBeNull();
     });
@@ -566,7 +566,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("getEmployees", () => {
     it("returns mapped employee list", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         makeEmployeeRow({ id: 1 }),
         makeEmployeeRow({ id: 2, name: "李四", department: "销售部" }),
@@ -581,7 +581,7 @@ describe("hrm router", () => {
     });
 
     it("returns empty array when no employees", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.hrm.getEmployees();
       expect(result).toEqual([]);
@@ -593,7 +593,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("getDepartments", () => {
     it("returns departments aggregated from employees", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { department: "研发设计部", headcount: 15 },
         { department: "销售部", headcount: 8 },
@@ -615,7 +615,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("getCandidates", () => {
     it("returns mapped candidate list", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         {
           id: 1,
@@ -642,7 +642,7 @@ describe("hrm router", () => {
     });
 
     it("handles null optional fields gracefully", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         {
           id: 2,
@@ -733,7 +733,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("getPerformanceGrades", () => {
     it("returns mapped performance grades", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 1, gradeCode: "S", gradeName: "卓越", scoreMin: 90, scoreMax: 100, coefficient: "2.00" },
         { id: 2, gradeCode: "A", gradeName: "优秀", scoreMin: 80, scoreMax: 89, coefficient: "1.50" },
@@ -755,7 +755,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("getPositions", () => {
     it("returns mapped positions with defaults for missing fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         {
           id: 1,
@@ -798,7 +798,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("getAttendance", () => {
     it("returns attendance records", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First execute: CREATE TABLE IF NOT EXISTS (bootstrap)
       // Second execute: SELECT COUNT (bootstrap)
       // Third execute: INSERT (bootstrap seed) - skipped if cnt > 0
@@ -806,7 +806,7 @@ describe("hrm router", () => {
       // We need to handle all execute calls from ensureAttendance + the query
       const bootstrapRows = [{ cnt: 5 }]; // non-zero so seed INSERT is skipped
       const attendanceRows = [
-        { id: 1, employee_name: "王工", department: "研发设计部", record_date: "2024-01-15", clock_in: "08:28", clock_out: "17:35", work_hours: "9.1h", status: "正常" },
+        { id: 1, employee_name: "焦斌", department: "研发设计部", record_date: "2024-01-15", clock_in: "08:28", clock_out: "17:35", work_hours: "9.1h", status: "正常" },
         { id: 2, employee_name: "李工", department: "销售部", record_date: "2024-01-15", clock_in: "09:15", clock_out: "-", work_hours: "-", status: "迟到" },
       ];
 
@@ -829,15 +829,15 @@ describe("hrm router", () => {
 
       const result = await caller.hrm.getAttendance();
       expect(result).toHaveLength(2);
-      expect(result[0].name).toBe("王工");
+      expect(result[0].name).toBe("焦斌");
       expect(result[0].clockIn).toBe("08:28");
       expect(result[1].status).toBe("迟到");
     });
 
     it("filters attendance by status", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const attendanceRows = [
-        { id: 1, employee_name: "王工", department: "研发设计部", record_date: "2024-01-15", clock_in: "08:28", clock_out: "17:35", work_hours: "9.1h", status: "正常" },
+        { id: 1, employee_name: "焦斌", department: "研发设计部", record_date: "2024-01-15", clock_in: "08:28", clock_out: "17:35", work_hours: "9.1h", status: "正常" },
         { id: 2, employee_name: "李工", department: "销售部", record_date: "2024-01-15", clock_in: "09:15", clock_out: "-", work_hours: "-", status: "迟到" },
         { id: 3, employee_name: "张工", department: "技术服务部", record_date: "2024-01-15", clock_in: "-", clock_out: "-", work_hours: "-", status: "请假" },
       ];
@@ -852,9 +852,9 @@ describe("hrm router", () => {
     });
 
     it("returns all records when status is 'all'", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const attendanceRows = [
-        { id: 1, employee_name: "王工", department: "研发设计部", record_date: "2024-01-15", clock_in: "08:28", clock_out: "17:35", work_hours: "9.1h", status: "正常" },
+        { id: 1, employee_name: "焦斌", department: "研发设计部", record_date: "2024-01-15", clock_in: "08:28", clock_out: "17:35", work_hours: "9.1h", status: "正常" },
         { id: 2, employee_name: "李工", department: "销售部", record_date: "2024-01-15", clock_in: "09:15", clock_out: "-", work_hours: "-", status: "迟到" },
       ];
 
@@ -867,9 +867,9 @@ describe("hrm router", () => {
     });
 
     it("handles search parameter (uses different SQL path)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const searchRows = [
-        { id: 1, employee_name: "王工", department: "研发设计部", record_date: "2024-01-15", clock_in: "08:28", clock_out: "17:35", work_hours: "9.1h", status: "正常" },
+        { id: 1, employee_name: "焦斌", department: "研发设计部", record_date: "2024-01-15", clock_in: "08:28", clock_out: "17:35", work_hours: "9.1h", status: "正常" },
       ];
 
       mockDb.execute.mockImplementation(() =>
@@ -878,7 +878,7 @@ describe("hrm router", () => {
 
       const result = await caller.hrm.getAttendance({ search: "王" });
       expect(result).toHaveLength(1);
-      expect(result[0].name).toBe("王工");
+      expect(result[0].name).toBe("焦斌");
     });
   });
 
@@ -887,7 +887,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("getAttendanceStats", () => {
     it("returns attendance statistics", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockDb.execute.mockImplementation(() =>
         Promise.resolve({
           rows: [{ total: 8, present: 5, late: 1, absent: 1, leave_count: 1 }],
@@ -905,7 +905,7 @@ describe("hrm router", () => {
     });
 
     it("returns zeros when no attendance data", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockDb.execute.mockImplementation(() =>
         Promise.resolve({ rows: [{}] })
       );
@@ -926,7 +926,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("getLeaveRequests", () => {
     it("returns empty array (stub)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.hrm.getLeaveRequests();
       expect(result).toEqual([]);
     });
@@ -937,7 +937,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("getTrainingRecords", () => {
     it("returns mapped training records", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         {
           id: 1,
@@ -962,7 +962,7 @@ describe("hrm router", () => {
     });
 
     it("defaults completionRate to 0 when null", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         {
           id: 2,
@@ -988,7 +988,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("getOrgChart", () => {
     it("returns org chart with CEO root and department children", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { department: "研发设计部", headcount: 15 },
         { department: "销售部", headcount: 8 },
@@ -1004,7 +1004,7 @@ describe("hrm router", () => {
     });
 
     it("returns empty children when no employees", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
 
       const result = await caller.hrm.getOrgChart();
@@ -1017,7 +1017,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("getStatistics", () => {
     it("returns aggregated statistics from multiple tables", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Promise.all resolves 5 parallel queries; our mock resolves each select chain
       // with getNextResult(), so we queue 5 results
       selectResultsQueue.push([{ count: 50 }]);  // total employees
@@ -1037,7 +1037,7 @@ describe("hrm router", () => {
     });
 
     it("returns zeros when all tables are empty", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ count: 0 }]);
       selectResultsQueue.push([{ count: 0 }]);
       selectResultsQueue.push([{ count: 0 }]);
@@ -1179,13 +1179,13 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("scheduled tasks (stubs)", () => {
     it("getScheduledTasks returns empty array", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.hrm.getScheduledTasks();
       expect(result).toEqual([]);
     });
 
     it("createScheduledTask returns success", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.hrm.createScheduledTask({
         taskName: "Daily Report",
         taskType: "report",
@@ -1196,7 +1196,7 @@ describe("hrm router", () => {
     });
 
     it("updateScheduledTask returns success", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.hrm.updateScheduledTask({
         id: "TASK-1",
         taskName: "Updated Task",
@@ -1206,7 +1206,7 @@ describe("hrm router", () => {
     });
 
     it("updateScheduledTask accepts numeric id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.hrm.updateScheduledTask({
         id: 42,
         isEnabled: true,
@@ -1220,13 +1220,13 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("teams meetings (stubs)", () => {
     it("getTeamsMeetings returns empty array", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.hrm.getTeamsMeetings();
       expect(result).toEqual([]);
     });
 
     it("createTeamsMeeting returns success", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.hrm.createTeamsMeeting({
         subject: "Sprint Review",
         startTime: "2024-03-01T10:00:00Z",
@@ -1236,7 +1236,7 @@ describe("hrm router", () => {
     });
 
     it("createTeamsMeeting accepts Date object for startTime", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.hrm.createTeamsMeeting({
         subject: "Standup",
         startTime: new Date("2024-03-01T09:00:00Z"),
@@ -1245,7 +1245,7 @@ describe("hrm router", () => {
     });
 
     it("updateTeamsMeeting returns success", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.hrm.updateTeamsMeeting({
         id: "MTG-1",
         subject: "Updated Meeting",
@@ -1260,7 +1260,7 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("calculatePerformanceScore", () => {
     it("calculates own performance score (any authenticated user)", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       const result = await caller.hrm.calculatePerformanceScore({
         projectId: 100,
       });
@@ -1278,7 +1278,7 @@ describe("hrm router", () => {
     });
 
     it("returns deterministic results for same input", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       const r1 = await caller.hrm.calculatePerformanceScore({ projectId: 10 });
       const r2 = await caller.hrm.calculatePerformanceScore({ projectId: 10 });
       expect(r1.overallScore).toBe(r2.overallScore);
@@ -1286,7 +1286,7 @@ describe("hrm router", () => {
     });
 
     it("produces different results for different projectIds", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       const r1 = await caller.hrm.calculatePerformanceScore({ projectId: 1 });
       const r2 = await caller.hrm.calculatePerformanceScore({ projectId: 999 });
       // Very unlikely same score for vastly different seeds
@@ -1295,7 +1295,7 @@ describe("hrm router", () => {
     });
 
     it("non-manager cannot view another user's score", async () => {
-      const caller = createAuthenticatedCaller({ id: 1, role: "employee" });
+      const caller = createAdminCaller({ id: 1, role: "employee" });
       const result = await caller.hrm.calculatePerformanceScore({
         userId: 999, // not self
         projectId: 100,
@@ -1318,7 +1318,7 @@ describe("hrm router", () => {
     });
 
     it("hr_manager can view another user's score", async () => {
-      const caller = createAuthenticatedCaller({ id: 50, role: "hr_manager" });
+      const caller = createAdminCaller({ id: 50, role: "hr_manager" });
       const result = await caller.hrm.calculatePerformanceScore({
         userId: 5,
         projectId: 100,
@@ -1329,7 +1329,7 @@ describe("hrm router", () => {
     });
 
     it("director can view another user's score", async () => {
-      const caller = createAuthenticatedCaller({ id: 60, role: "director" });
+      const caller = createAdminCaller({ id: 60, role: "director" });
       const result = await caller.hrm.calculatePerformanceScore({
         userId: 5,
         projectId: 100,
@@ -1339,7 +1339,7 @@ describe("hrm router", () => {
     });
 
     it("dept_manager can view another user's score", async () => {
-      const caller = createAuthenticatedCaller({ id: 70, role: "dept_manager" });
+      const caller = createAdminCaller({ id: 70, role: "dept_manager" });
       const result = await caller.hrm.calculatePerformanceScore({
         userId: 5,
         projectId: 100,
@@ -1349,7 +1349,7 @@ describe("hrm router", () => {
     });
 
     it("team_lead can view another user's score", async () => {
-      const caller = createAuthenticatedCaller({ id: 80, role: "team_lead" });
+      const caller = createAdminCaller({ id: 80, role: "team_lead" });
       const result = await caller.hrm.calculatePerformanceScore({
         userId: 5,
         projectId: 100,
@@ -1359,7 +1359,7 @@ describe("hrm router", () => {
     });
 
     it("includes stageCode in seed calculation", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       const r1 = await caller.hrm.calculatePerformanceScore({
         projectId: 100,
       });
@@ -1375,7 +1375,7 @@ describe("hrm router", () => {
 
     it("generates appropriate recommendations for low scores", async () => {
       // We test that recommendations array is always populated
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       const result = await caller.hrm.calculatePerformanceScore({
         projectId: 1,
       });
@@ -1391,7 +1391,7 @@ describe("hrm router", () => {
       // Test with various user/project combos to check clamping
       for (const userId of [1, 50, 100, 999]) {
         for (const projectId of [1, 50, 100, 999]) {
-          const caller = createAuthenticatedCaller({ id: userId });
+          const caller = createAdminCaller({ id: userId });
           const result = await caller.hrm.calculatePerformanceScore({
             projectId,
           });
@@ -1413,7 +1413,7 @@ describe("hrm router", () => {
 
     it("grade mapping is correct based on score", async () => {
       // Use known seed values to verify grade thresholds
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       const result = await caller.hrm.calculatePerformanceScore({
         projectId: 100,
       });
@@ -1433,21 +1433,21 @@ describe("hrm router", () => {
   // ═══════════════════════════════════════════════════════════
   describe("input validation", () => {
     it("list rejects limit > 500", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.hrm.list({ limit: 501, offset: 0 })
       ).rejects.toThrow();
     });
 
     it("list rejects limit < 1", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.hrm.list({ limit: 0, offset: 0 })
       ).rejects.toThrow();
     });
 
     it("list rejects negative offset", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.hrm.list({ limit: 10, offset: -1 })
       ).rejects.toThrow();
@@ -1478,7 +1478,7 @@ describe("hrm router", () => {
     });
 
     it("getById rejects missing id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         // @ts-expect-error — intentionally missing required field
         caller.hrm.getById({})
@@ -1486,7 +1486,7 @@ describe("hrm router", () => {
     });
 
     it("calculatePerformanceScore rejects missing projectId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         // @ts-expect-error — intentionally missing required field
         caller.hrm.calculatePerformanceScore({})

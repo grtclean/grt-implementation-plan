@@ -14,7 +14,7 @@
  *   preview   — Dry-run: desensitize only, no email sent
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import {
   desensitizeOrders,
   type RawUSOrder,
@@ -38,7 +38,7 @@ const rawOrderSchema = z.object({
 
 export const syncDispatchRouter = router({
   // ── Main dispatch: desensitize + email via O365 ──────────
-  dispatch: protectedProcedure
+  dispatch: requirePermission('system:erp:config')
     .input(
       z.object({
         orders: z.array(rawOrderSchema).min(1),
@@ -92,7 +92,7 @@ export const syncDispatchRouter = router({
     }),
 
   // ── Preview: dry-run desensitization without sending email ──
-  preview: protectedProcedure
+  preview: requirePermission('system:erp:config')
     .input(
       z.object({
         orders: z.array(rawOrderSchema).min(1),

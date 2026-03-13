@@ -9,7 +9,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { jsonValue } from "@shared/validators";
 import {
   chatWithAssistant,
@@ -31,7 +31,7 @@ const chatMessageSchema = z.object({
 // AI方案助手路由
 export const aiSolutionRouter = router({
   // 对话接口
-  chat: protectedProcedure
+  chat: requirePermission('ai:hub:access')
     .input(z.object({
       messages: z.array(chatMessageSchema),
       context: z.record(z.string(), jsonValue).optional()
@@ -46,7 +46,7 @@ export const aiSolutionRouter = router({
     }),
 
   // 方案推荐接口
-  recommend: protectedProcedure
+  recommend: requirePermission('ai:hub:access')
     .input(z.object({
       product: z.string().min(1, "产品类型不能为空"),
       cleanlinessLevel: z.string().min(1, "清洁度要求不能为空"),
@@ -81,7 +81,7 @@ export const aiSolutionRouter = router({
 // AI报价助手路由
 export const aiQuotationRouter = router({
   // 对话接口
-  chat: protectedProcedure
+  chat: requirePermission('ai:hub:access')
     .input(z.object({
       messages: z.array(chatMessageSchema),
       context: z.record(z.string(), jsonValue).optional()
@@ -96,7 +96,7 @@ export const aiQuotationRouter = router({
     }),
 
   // 生成报价
-  generate: protectedProcedure
+  generate: requirePermission('ai:hub:access')
     .input(z.object({
       projectName: z.string().min(1, "项目名称不能为空"),
       equipmentType: z.string().min(1, "设备类型不能为空"),
@@ -127,7 +127,7 @@ export const aiQuotationRouter = router({
 // AI计划助手路由
 export const aiPlanningRouter = router({
   // 对话接口
-  chat: protectedProcedure
+  chat: requirePermission('ai:hub:access')
     .input(z.object({
       messages: z.array(chatMessageSchema),
       context: z.record(z.string(), jsonValue).optional()
@@ -183,7 +183,7 @@ export const aiPlanningRouter = router({
 // AI KPI助手路由
 export const aiKpiRouter = router({
   // 对话接口
-  chat: protectedProcedure
+  chat: requirePermission('ai:hub:access')
     .input(z.object({
       messages: z.array(chatMessageSchema),
       context: z.record(z.string(), jsonValue).optional()

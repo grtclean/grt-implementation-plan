@@ -3,7 +3,7 @@
  * IATF 16949 — D0-D8 structured problem solving & Corrective/Preventive Actions
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { eightDReports, capaRecords } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -130,7 +130,7 @@ export const eightDCapaRouter = router({
     return { success: true, message: `8D报告已更新至 ${input.currentStep || ''}`, data: report };
   }),
 
-  delete8D: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete8D: requirePermission('mfg:8d:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     await db.transaction(async (tx) => {
@@ -218,7 +218,7 @@ export const eightDCapaRouter = router({
     return { success: true, message: "CAPA已更新", data: capa };
   }),
 
-  deleteCAPA: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  deleteCAPA: requirePermission('mfg:8d:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(capaRecords).where(eq(capaRecords.id, toNum(input.id)));
     return { success: true, message: "CAPA已删除" };
@@ -227,7 +227,7 @@ export const eightDCapaRouter = router({
   // ===== D5 → CAPA Auto-Suggestion =====
 
   // When 8D reaches D5, auto-create CAPA records from corrective actions
-  suggestCapaFromD5: protectedProcedure.input(z.object({
+  suggestCapaFromD5: requirePermission('mfg:8d:manage').input(z.object({
     eightDReportId: z.number(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();

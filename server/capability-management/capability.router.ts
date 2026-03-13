@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import { router, protectedProcedure, adminProcedure } from '../_core/trpc';
+import {router, protectedProcedure, adminProcedure, requirePermission} from '../_core/trpc';
 import {
   getCapabilityConfigs,
   getCapabilityConfig,
@@ -169,7 +169,7 @@ export const capabilityRouter = router({
     }),
 
   // 记录能力证据（占位符）
-  recordEvidence: protectedProcedure
+  recordEvidence: requirePermission('capability:matrix:manage')
     .input(z.object({
       employeeId: z.string(),
       capabilityDomain: z.string(),

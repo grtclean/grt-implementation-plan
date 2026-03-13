@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,6 +57,7 @@ interface BackupRecord {
 }
 
 export default function MySQLBackupManager() {
+  const { t, tpl } = useLanguage();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [isBackupRunning, setIsBackupRunning] = useState(false);
@@ -65,7 +67,7 @@ export default function MySQLBackupManager() {
   const [configs] = useState<BackupConfig[]>([
     {
       id: '1',
-      name: '每日自动备份',
+      name: t("admin.mysqlBackup.daily"),
       enabled: true,
       scheduleType: 'daily',
       scheduleTime: '02:00',
@@ -74,7 +76,7 @@ export default function MySQLBackupManager() {
     },
     {
       id: '2',
-      name: '每周完整备份',
+      name: t("admin.mysqlBackup.weekly"),
       enabled: true,
       scheduleType: 'weekly',
       scheduleTime: '03:00',
@@ -109,8 +111,8 @@ export default function MySQLBackupManager() {
   const handleManualBackup = async () => {
     setIsBackupRunning(true);
     toast({
-      title: '备份已启动',
-      description: '正在执行数据库备份，请稍候...',
+      title: t("admin.mysqlBackup.backupStarted"),
+      description: t("admin.mysqlBackup.backupStartedDesc"),
     });
 
     // 模拟备份过程
@@ -118,15 +120,15 @@ export default function MySQLBackupManager() {
 
     setIsBackupRunning(false);
     toast({
-      title: '备份完成',
-      description: '数据库备份已成功完成',
+      title: t("admin.mysqlBackup.backupComplete"),
+      description: t("admin.mysqlBackup.backupCompleteDesc"),
     });
   };
 
   const handleRestore = (backupId: string) => {
     toast({
-      title: '确认恢复',
-      description: '即将从备份恢复数据库，此操作将覆盖当前数据',
+      title: t("admin.mysqlBackup.confirmRestore"),
+      description: t("admin.mysqlBackup.confirmRestoreDesc"),
       variant: 'destructive',
     });
   };
@@ -134,8 +136,8 @@ export default function MySQLBackupManager() {
   const copyScript = (script: string) => {
     navigator.clipboard.writeText(script);
     toast({
-      title: '已复制',
-      description: '脚本已复制到剪贴板',
+      title: t("admin.mysqlBackup.copied"),
+      description: t("admin.mysqlBackup.copiedDesc"),
     });
   };
 
@@ -143,24 +145,24 @@ export default function MySQLBackupManager() {
     <div className="space-y-6">
       <PageHeader
         icon={Database}
-        title="MySQL备份管理"
-        description="数据库自动备份、恢复和计划任务管理"
+        title={t("admin.mysqlBackup.title")}
+        description={t("admin.mysqlBackup.description")}
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setShowConfigDialog(true)}>
               <Settings className="w-4 h-4 mr-2" />
-              配置
+              {t("admin.mysqlBackup.config")}
             </Button>
             <Button onClick={handleManualBackup} disabled={isBackupRunning}>
               {isBackupRunning ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  备份中...
+                  {t("admin.mysqlBackup.backingUp")}
                 </>
               ) : (
                 <>
                   <Play className="w-4 h-4 mr-2" />
-                  立即备份
+                  {t("admin.mysqlBackup.backupNow")}
                 </>
               )}
             </Button>
@@ -170,38 +172,38 @@ export default function MySQLBackupManager() {
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <StatCard icon={Database} label="总备份数" value={stats.totalBackups} iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={CheckCircle2} label="成功率" value={`${stats.successRate}%`} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={HardDrive} label="总大小" value={formatSize(stats.totalSize)} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={Clock} label="上次备份" value={stats.lastBackup} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
-        <StatCard icon={Calendar} label="下次备份" value={stats.nextBackup} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+        <StatCard icon={Database} label={t("admin.mysqlBackup.totalBackups")} value={stats.totalBackups} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={CheckCircle2} label={t("admin.mysqlBackup.successRate")} value={`${stats.successRate}%`} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={HardDrive} label={t("admin.mysqlBackup.totalSize")} value={formatSize(stats.totalSize)} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={Clock} label={t("admin.mysqlBackup.lastBackup")} value={stats.lastBackup} iconColor="text-orange-500" iconBg="bg-orange-500/10" />
+        <StatCard icon={Calendar} label={t("admin.mysqlBackup.nextBackup")} value={stats.nextBackup} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       {/* 主要内容 */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="overview">备份记录</TabsTrigger>
-          <TabsTrigger value="configs">备份配置</TabsTrigger>
-          <TabsTrigger value="scripts">脚本生成</TabsTrigger>
+          <TabsTrigger value="overview">{t("admin.mysqlBackup.tabRecords")}</TabsTrigger>
+          <TabsTrigger value="configs">{t("admin.mysqlBackup.tabConfigs")}</TabsTrigger>
+          <TabsTrigger value="scripts">{t("admin.mysqlBackup.tabScripts")}</TabsTrigger>
         </TabsList>
 
         {/* 备份记录 */}
         <TabsContent value="overview" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>备份历史</CardTitle>
-              <CardDescription>查看所有数据库备份记录</CardDescription>
+              <CardTitle>{t("admin.mysqlBackup.backupHistory")}</CardTitle>
+              <CardDescription>{t("admin.mysqlBackup.backupHistoryDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>文件名</TableHead>
-                    <TableHead>大小</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>创建时间</TableHead>
-                    <TableHead>耗时</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
+                    <TableHead>{t("admin.mysqlBackup.filename")}</TableHead>
+                    <TableHead>{t("admin.mysqlBackup.size")}</TableHead>
+                    <TableHead>{t("admin.mysqlBackup.status")}</TableHead>
+                    <TableHead>{t("admin.mysqlBackup.createdAt")}</TableHead>
+                    <TableHead>{t("admin.mysqlBackup.duration")}</TableHead>
+                    <TableHead className="text-right">{t("admin.mysqlBackup.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -212,16 +214,16 @@ export default function MySQLBackupManager() {
                       <TableCell>
                         <Badge variant={record.status === 'success' ? 'default' : 'destructive'}>
                           {record.status === 'success' ? (
-                            <><CheckCircle2 className="w-3 h-3 mr-1" />成功</>
+                            <><CheckCircle2 className="w-3 h-3 mr-1" />{t("admin.mysqlBackup.success")}</>
                           ) : record.status === 'failed' ? (
-                            <><XCircle className="w-3 h-3 mr-1" />失败</>
+                            <><XCircle className="w-3 h-3 mr-1" />{t("admin.mysqlBackup.failed")}</>
                           ) : (
-                            <><Loader2 className="w-3 h-3 mr-1 animate-spin" />进行中</>
+                            <><Loader2 className="w-3 h-3 mr-1 animate-spin" />{t("admin.mysqlBackup.running")}</>
                           )}
                         </Badge>
                       </TableCell>
                       <TableCell>{record.createdAt}</TableCell>
-                      <TableCell>{record.duration > 0 ? `${record.duration}秒` : '-'}</TableCell>
+                      <TableCell>{record.duration > 0 ? `${record.duration}${t("admin.mysqlBackup.seconds")}` : '-'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button variant="ghost" size="sm" disabled={record.status !== 'success'}>
@@ -252,8 +254,8 @@ export default function MySQLBackupManager() {
         <TabsContent value="configs" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>备份计划</CardTitle>
-              <CardDescription>管理自动备份计划和保留策略</CardDescription>
+              <CardTitle>{t("admin.mysqlBackup.backupPlan")}</CardTitle>
+              <CardDescription>{t("admin.mysqlBackup.backupPlanDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -264,16 +266,16 @@ export default function MySQLBackupManager() {
                       <div>
                         <p className="font-medium">{config.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {config.scheduleType === 'daily' && '每天'}
-                          {config.scheduleType === 'weekly' && '每周'}
-                          {config.scheduleType === 'monthly' && '每月'}
-                          {' '}{config.scheduleTime} 执行 | 保留 {config.retention} 份
+                          {config.scheduleType === 'daily' && t("admin.mysqlBackup.daily")}
+                          {config.scheduleType === 'weekly' && t("admin.mysqlBackup.weekly")}
+                          {config.scheduleType === 'monthly' && t("admin.mysqlBackup.monthly")}
+                          {' '}{config.scheduleTime} {t("admin.mysqlBackup.executeAt")} | {tpl("admin.mysqlBackup.retain", { count: config.retention })}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">
-                        {config.compression ? '压缩' : '未压缩'}
+                        {config.compression ? t("admin.mysqlBackup.compressed") : t("admin.mysqlBackup.uncompressed")}
                       </Badge>
                       <Button variant="ghost" size="sm">
                         <Settings className="w-4 h-4" />
@@ -287,25 +289,25 @@ export default function MySQLBackupManager() {
 
           <Card>
             <CardHeader>
-              <CardTitle>保留策略</CardTitle>
-              <CardDescription>配置备份文件的保留规则</CardDescription>
+              <CardTitle>{t("admin.mysqlBackup.retentionPolicy")}</CardTitle>
+              <CardDescription>{t("admin.mysqlBackup.retentionPolicyDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>每日备份保留</Label>
+                  <Label>{t("admin.mysqlBackup.dailyRetention")}</Label>
                   <Input type="number" defaultValue={7} />
-                  <p className="text-xs text-muted-foreground">保留最近N天的每日备份</p>
+                  <p className="text-xs text-muted-foreground">{t("admin.mysqlBackup.dailyRetentionHint")}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label>每周备份保留</Label>
+                  <Label>{t("admin.mysqlBackup.weeklyRetention")}</Label>
                   <Input type="number" defaultValue={4} />
-                  <p className="text-xs text-muted-foreground">保留最近N周的周备份</p>
+                  <p className="text-xs text-muted-foreground">{t("admin.mysqlBackup.weeklyRetentionHint")}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label>每月备份保留</Label>
+                  <Label>{t("admin.mysqlBackup.monthlyRetention")}</Label>
                   <Input type="number" defaultValue={12} />
-                  <p className="text-xs text-muted-foreground">保留最近N月的月备份</p>
+                  <p className="text-xs text-muted-foreground">{t("admin.mysqlBackup.monthlyRetentionHint")}</p>
                 </div>
               </div>
             </CardContent>
@@ -316,16 +318,16 @@ export default function MySQLBackupManager() {
         <TabsContent value="scripts" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Windows计划任务脚本</CardTitle>
-              <CardDescription>生成PowerShell备份脚本和计划任务配置</CardDescription>
+              <CardTitle>{t("admin.mysqlBackup.winTaskScript")}</CardTitle>
+              <CardDescription>{t("admin.mysqlBackup.winTaskScriptDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>PowerShell备份脚本</Label>
+                  <Label>{t("admin.mysqlBackup.psBackupScript")}</Label>
                   <Button variant="outline" size="sm" onClick={() => copyScript('backup.ps1')}>
                     <Copy className="w-4 h-4 mr-2" />
-                    复制
+                    {t("admin.mysqlBackup.copy")}
                   </Button>
                 </div>
                 <pre className="p-4 bg-muted rounded-lg text-sm overflow-x-auto max-h-64">
@@ -349,10 +351,10 @@ Remove-Item $BackupFile`}
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>创建计划任务命令</Label>
+                  <Label>{t("admin.mysqlBackup.createTaskCmd")}</Label>
                   <Button variant="outline" size="sm" onClick={() => copyScript('schtasks')}>
                     <Copy className="w-4 h-4 mr-2" />
-                    复制
+                    {t("admin.mysqlBackup.copy")}
                   </Button>
                 </div>
                 <pre className="p-4 bg-muted rounded-lg text-sm overflow-x-auto">
@@ -363,11 +365,11 @@ Remove-Item $BackupFile`}
               <div className="flex items-center gap-2 pt-4">
                 <Button variant="outline">
                   <FileText className="w-4 h-4 mr-2" />
-                  下载完整脚本包
+                  {t("admin.mysqlBackup.downloadScriptPack")}
                 </Button>
                 <Button variant="outline">
                   <FileText className="w-4 h-4 mr-2" />
-                  下载计划任务XML
+                  {t("admin.mysqlBackup.downloadTaskXml")}
                 </Button>
               </div>
             </CardContent>
@@ -375,8 +377,8 @@ Remove-Item $BackupFile`}
 
           <Card>
             <CardHeader>
-              <CardTitle>恢复脚本</CardTitle>
-              <CardDescription>从备份文件恢复数据库</CardDescription>
+              <CardTitle>{t("admin.mysqlBackup.restoreScript")}</CardTitle>
+              <CardDescription>{t("admin.mysqlBackup.restoreScriptDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <pre className="p-4 bg-muted rounded-lg text-sm overflow-x-auto">

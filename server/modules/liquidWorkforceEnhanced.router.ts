@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { TRPCError } from "@trpc/server";
 import {
@@ -17,7 +17,7 @@ export const liquidWorkforceEnhancedRouter = router({
   // ==================== ZKP技能证明 ====================
 
   // 生成ZKP技能证明
-  generateZKPProof: protectedProcedure
+  generateZKPProof: requirePermission('hr:bu-team:manage')
     .input(
       z.object({
         skillId: z.string(),

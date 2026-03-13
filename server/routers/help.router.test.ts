@@ -9,6 +9,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -72,6 +73,12 @@ function createMockDb() {
 }
 
 const mockDb = createMockDb();
+
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
 
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => mockDb),
@@ -139,6 +146,15 @@ vi.mock("../_core/llm", () => ({
   invokeLLM: (...args: any[]) => mockInvokeLLM(...args),
 }));
 
+// ── Mock task-worker service (GRT开发第一定律) ─────────────────
+const mockSubmitTask = vi.fn().mockResolvedValue({ taskId: 42 });
+const mockGetTaskStatus = vi.fn();
+vi.mock("../services/task-worker.service", () => ({
+  submitTask: (...args: any[]) => mockSubmitTask(...args),
+  getTaskStatus: (...args: any[]) => mockGetTaskStatus(...args),
+  registerTaskHandler: vi.fn(),
+}));
+
 // ── Mock knowledge-base service ─────────────────────────────
 const mockSearchDocuments = vi.fn();
 const mockIncrementRelevance = vi.fn();
@@ -194,6 +210,8 @@ beforeEach(() => {
   mockInvokeLLM.mockReset();
   mockSearchDocuments.mockReset();
   mockIncrementRelevance.mockReset();
+  mockSubmitTask.mockReset().mockResolvedValue({ taskId: 42 });
+  mockGetTaskStatus.mockReset();
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -480,7 +498,7 @@ describe("help.createArticle", () => {
   it("creates an article with all fields", async () => {
     const newArticle = makeArticle({ id: 10, createdBy: 1 });
     mockReturningResult = [newArticle];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.createArticle({
       routePath: "/projects",
       featureKey: "project.gates",
@@ -502,7 +520,7 @@ describe("help.createArticle", () => {
   it("creates an article with minimal required fields", async () => {
     const newArticle = makeArticle({ id: 11 });
     mockReturningResult = [newArticle];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.createArticle({
       title: "Min Title",
       titleZh: "最小标题",
@@ -525,7 +543,7 @@ describe("help.createArticle", () => {
   });
 
   it("rejects when title is empty", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.help.createArticle({
         title: "",
@@ -537,7 +555,7 @@ describe("help.createArticle", () => {
   });
 
   it("rejects when content is empty", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.help.createArticle({
         title: "Title",
@@ -549,7 +567,7 @@ describe("help.createArticle", () => {
   });
 
   it("rejects invalid category", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.help.createArticle({
         title: "Title",
@@ -566,7 +584,7 @@ describe("help.updateArticle", () => {
   it("updates article fields", async () => {
     const updated = makeArticle({ title: "Updated Title" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.updateArticle({
       id: 1,
       title: "Updated Title",
@@ -578,7 +596,7 @@ describe("help.updateArticle", () => {
   it("updates article with string id", async () => {
     const updated = makeArticle({ id: 5, titleZh: "新标题" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.updateArticle({
       id: "5",
       titleZh: "新标题",
@@ -595,7 +613,7 @@ describe("help.updateArticle", () => {
       sortOrder: 5,
     });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.updateArticle({
       id: 1,
       title: "New",
@@ -609,7 +627,7 @@ describe("help.updateArticle", () => {
 
   it("throws when article not found", async () => {
     mockReturningResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.help.updateArticle({ id: 9999, title: "Nope" })
     ).rejects.toThrow("Help article #9999 not found");
@@ -625,7 +643,7 @@ describe("help.updateArticle", () => {
   it("allows setting videoUrl to null", async () => {
     const updated = makeArticle({ videoUrl: null });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.updateArticle({
       id: 1,
       videoUrl: null,
@@ -636,7 +654,7 @@ describe("help.updateArticle", () => {
   it("allows updating relatedRoutes", async () => {
     const updated = makeArticle({ relatedRoutes: ["/a", "/b"] });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.updateArticle({
       id: 1,
       relatedRoutes: ["/a", "/b"],
@@ -647,7 +665,7 @@ describe("help.updateArticle", () => {
   it("allows updating tags", async () => {
     const updated = makeArticle({ tags: ["new-tag"] });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.updateArticle({
       id: 1,
       tags: ["new-tag"],
@@ -660,7 +678,7 @@ describe("help.deleteArticle", () => {
   it("soft-deletes an article (sets isActive=false)", async () => {
     const deleted = makeArticle({ isActive: false });
     mockReturningResult = [deleted];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.deleteArticle({ id: 1 });
     expect(result.isActive).toBe(false);
     expect(mockDb.update).toHaveBeenCalled();
@@ -669,14 +687,14 @@ describe("help.deleteArticle", () => {
   it("soft-deletes with string id", async () => {
     const deleted = makeArticle({ id: 7, isActive: false });
     mockReturningResult = [deleted];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.deleteArticle({ id: "7" });
     expect(result.isActive).toBe(false);
   });
 
   it("throws when article not found", async () => {
     mockReturningResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.help.deleteArticle({ id: 9999 })
     ).rejects.toThrow("Help article #9999 not found");
@@ -696,7 +714,7 @@ describe("help.reorderArticles", () => {
     const item2 = makeArticle({ id: 2, sortOrder: 1 });
     // Each update returns one item via .returning()
     mockReturningResult = [item1];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.reorderArticles({
       items: [
         { id: 1, sortOrder: 0 },
@@ -709,7 +727,7 @@ describe("help.reorderArticles", () => {
   });
 
   it("handles empty items array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.reorderArticles({ items: [] });
     expect(result.updated).toBe(0);
     expect(result.items).toHaveLength(0);
@@ -717,7 +735,7 @@ describe("help.reorderArticles", () => {
 
   it("handles string ids in items", async () => {
     mockReturningResult = [makeArticle({ id: 3, sortOrder: 10 })];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.reorderArticles({
       items: [{ id: "3", sortOrder: 10 }],
     });
@@ -726,7 +744,7 @@ describe("help.reorderArticles", () => {
 
   it("skips items not found (no returning result)", async () => {
     mockReturningResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.reorderArticles({
       items: [{ id: 999, sortOrder: 0 }],
     });
@@ -743,89 +761,55 @@ describe("help.reorderArticles", () => {
   });
 });
 
-describe("help.askCopilot", () => {
-  it("returns an LLM answer with sources and suggestedActions", async () => {
-    // helpResults (search)
+describe("help.askCopilot (async task pattern)", () => {
+  it("enqueues task and returns taskId with sources", async () => {
     const helpArticle = makeArticle({ id: 1, titleZh: "帮助1", contentZh: "内容1" });
-    selectResultsQueue.push([helpArticle]);
-    // pageHelp (routePath match) — we provide routePath so this fires
-    selectResultsQueue.push([makeArticle({ id: 2, titleZh: "页面帮助", contentZh: "页面内容", routePath: "/projects" })]);
-    // fewShotExamples (aiLearningRecords)
-    selectResultsQueue.push([{ learnedContent: "Q: test\nA: test answer" }]);
+    selectResultsQueue.push([helpArticle]); // helpResults
+    selectResultsQueue.push([makeArticle({ id: 2, titleZh: "页面帮助", contentZh: "页面内容", routePath: "/projects" })]); // pageHelp
+    selectResultsQueue.push([{ learnedContent: "Q: test\nA: test answer" }]); // fewShotExamples
 
     mockSearchDocuments.mockResolvedValue([
       { id: 10, title: "KB Doc", content: "Knowledge base content here.", category: "technical" },
     ]);
-    mockIncrementRelevance.mockResolvedValue(undefined);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{ message: { content: "这是AI的回答。" } }],
-    });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.askCopilot({
       query: "如何使用项目门径?",
       routePath: "/projects",
     });
 
-    expect(result.answer).toBe("这是AI的回答。");
-    expect(result.sources).toHaveLength(2); // 1 help + 1 kb
+    // GRT开发第一定律: answer is null (async), taskId returned for polling
+    expect(result.taskId).toBe(42);
+    expect(result.answer).toBeNull();
+    expect(result.sources).toHaveLength(2);
     expect(result.sources[0].type).toBe("help");
     expect(result.sources[1].type).toBe("kb");
     expect(result.suggestedActions).toHaveLength(1);
-    expect(mockInvokeLLM).toHaveBeenCalledTimes(1);
-    expect(mockIncrementRelevance).toHaveBeenCalledTimes(1);
-  });
-
-  it("returns fallback answer when LLM fails", async () => {
-    selectResultsQueue.push([]); // helpResults
-    selectResultsQueue.push([]); // fewShotExamples
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockRejectedValue(new Error("LLM service down"));
-
-    const caller = createAuthenticatedCaller();
-    const result = await caller.help.askCopilot({
-      query: "help me",
-    });
-
-    expect(result.answer).toBe("AI服务暂时不可用，请查阅帮助文档或稍后重试。");
-    expect(result.sources).toEqual([]);
-  });
-
-  it("returns fallback when LLM returns no content", async () => {
-    selectResultsQueue.push([]); // helpResults
-    selectResultsQueue.push([]); // fewShotExamples
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({ choices: [{ message: { content: "" } }] });
-
-    const caller = createAuthenticatedCaller();
-    const result = await caller.help.askCopilot({ query: "something" });
-
-    expect(result.answer).toBe("抱歉，暂时无法回答您的问题。");
+    expect(mockSubmitTask).toHaveBeenCalledWith(
+      "COPILOT_ASK",
+      expect.objectContaining({ messages: expect.any(Array) }),
+      expect.any(String),
+      expect.objectContaining({ submittedById: expect.any(Number) }),
+    );
   });
 
   it("handles knowledge base search failure gracefully", async () => {
     selectResultsQueue.push([]); // helpResults
     selectResultsQueue.push([]); // fewShotExamples
     mockSearchDocuments.mockRejectedValue(new Error("KB connection failed"));
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{ message: { content: "Still works." } }],
-    });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.askCopilot({ query: "query" });
-    expect(result.answer).toBe("Still works.");
-    expect(result.sources).toEqual([]); // no KB sources
+    expect(result.taskId).toBe(42);
+    expect(result.sources).toEqual([]);
   });
 
-  it("passes conversation history to LLM", async () => {
+  it("passes conversation history to task input", async () => {
     selectResultsQueue.push([]); // helpResults
     selectResultsQueue.push([]); // fewShotExamples
     mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{ message: { content: "Multi-turn response." } }],
-    });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.help.askCopilot({
       query: "follow up",
       conversationHistory: [
@@ -834,116 +818,100 @@ describe("help.askCopilot", () => {
       ],
     });
 
-    const llmCall = mockInvokeLLM.mock.calls[0][0];
-    expect(llmCall.messages).toHaveLength(4); // system + 2 history + user query
-    expect(llmCall.messages[1].role).toBe("user");
-    expect(llmCall.messages[1].content).toBe("initial question");
-    expect(llmCall.messages[2].role).toBe("assistant");
-    expect(llmCall.messages[3].role).toBe("user");
-    expect(llmCall.messages[3].content).toBe("follow up");
+    // The messages are passed to submitTask input
+    const submitCall = mockSubmitTask.mock.calls[0];
+    const messages = submitCall[1].messages;
+    expect(messages).toHaveLength(4); // system + 2 history + user query
+    expect(messages[1].role).toBe("user");
+    expect(messages[3].content).toBe("follow up");
   });
 
   it("truncates conversation history to last 10", async () => {
     selectResultsQueue.push([]); // helpResults
     selectResultsQueue.push([]); // fewShotExamples
     mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{ message: { content: "ok" } }],
-    });
 
     const history = Array.from({ length: 20 }, (_, i) => ({
       role: (i % 2 === 0 ? "user" : "assistant") as "user" | "assistant",
       content: `message ${i}`,
     }));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.help.askCopilot({
       query: "latest question",
       conversationHistory: history,
     });
 
-    const llmCall = mockInvokeLLM.mock.calls[0][0];
+    const submitCall = mockSubmitTask.mock.calls[0];
+    const messages = submitCall[1].messages;
     // system + last 10 history + user query = 12
-    expect(llmCall.messages).toHaveLength(12);
+    expect(messages).toHaveLength(12);
   });
 
-  it("works without routePath (no page help query)", async () => {
+  it("works without routePath", async () => {
     selectResultsQueue.push([]); // helpResults
-    selectResultsQueue.push([]); // fewShotExamples (no pageHelp query triggered)
+    selectResultsQueue.push([]); // fewShotExamples
     mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{ message: { content: "Answer without route." } }],
-    });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.askCopilot({ query: "general question" });
-    expect(result.answer).toBe("Answer without route.");
+    expect(result.taskId).toBe(42);
     expect(result.suggestedActions).toEqual([]);
   });
 
   it("rejects unauthenticated users", async () => {
     const caller = createAnonymousCaller();
-    await expect(
-      caller.help.askCopilot({ query: "test" })
-    ).rejects.toThrow();
+    await expect(caller.help.askCopilot({ query: "test" })).rejects.toThrow();
   });
 
   it("rejects empty query", async () => {
-    const caller = createAuthenticatedCaller();
-    await expect(
-      caller.help.askCopilot({ query: "" })
-    ).rejects.toThrow();
+    const caller = createAdminCaller();
+    await expect(caller.help.askCopilot({ query: "" })).rejects.toThrow();
   });
+});
 
-  it("handles few-shot learning records query failure gracefully", async () => {
-    selectResultsQueue.push([]); // helpResults
-    // fewShotExamples query — will throw because we push a special error marker
-    // Actually, the fewShotExamples is inside a try/catch, and uses the standard chain
-    // Let's just push empty for it
-    selectResultsQueue.push([]); // fewShotExamples (empty)
-    mockSearchDocuments.mockResolvedValue([]);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{ message: { content: "Works despite empty learning." } }],
+describe("help.getCopilotResult (polling)", () => {
+  it("returns completed task result", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce({
+      id: 42, taskType: "COPILOT_ASK", status: "completed",
+      resultData: { answer: "这是AI的回答。", sources: [], suggestedActions: [] },
+      errorMessage: null, createdAt: "2026-03-12", completedAt: "2026-03-12", version: 2,
     });
 
-    const caller = createAuthenticatedCaller();
-    const result = await caller.help.askCopilot({ query: "some query" });
-    expect(result.answer).toBe("Works despite empty learning.");
+    const caller = createAdminCaller();
+    const result = await caller.help.getCopilotResult({ taskId: 42 });
+    expect(result.status).toBe("completed");
+    expect(result.answer).toBe("这是AI的回答。");
   });
 
-  it("increments relevance for each KB doc returned", async () => {
-    selectResultsQueue.push([]); // helpResults
-    selectResultsQueue.push([]); // fewShotExamples
-    mockSearchDocuments.mockResolvedValue([
-      { id: 10, title: "Doc A", content: "AAA", category: "technical" },
-      { id: 20, title: "Doc B", content: "BBB", category: "process" },
-    ]);
-    mockIncrementRelevance.mockResolvedValue(undefined);
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{ message: { content: "Using KB docs." } }],
+  it("returns pending status", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce({
+      id: 42, taskType: "COPILOT_ASK", status: "pending",
+      resultData: null, errorMessage: null, createdAt: "2026-03-12", completedAt: null, version: 1,
     });
 
-    const caller = createAuthenticatedCaller();
-    await caller.help.askCopilot({ query: "test" });
-    expect(mockIncrementRelevance).toHaveBeenCalledTimes(2);
-    expect(mockIncrementRelevance).toHaveBeenCalledWith(10);
-    expect(mockIncrementRelevance).toHaveBeenCalledWith(20);
+    const caller = createAdminCaller();
+    const result = await caller.help.getCopilotResult({ taskId: 42 });
+    expect(result.status).toBe("pending");
+    expect(result.answer).toBeNull();
   });
 
-  it("handles incrementRelevance failure gracefully", async () => {
-    selectResultsQueue.push([]); // helpResults
-    selectResultsQueue.push([]); // fewShotExamples
-    mockSearchDocuments.mockResolvedValue([
-      { id: 10, title: "Doc", content: "content", category: "faq" },
-    ]);
-    mockIncrementRelevance.mockRejectedValue(new Error("increment failed"));
-    mockInvokeLLM.mockResolvedValue({
-      choices: [{ message: { content: "Still fine." } }],
+  it("returns error for failed task", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce({
+      id: 42, taskType: "COPILOT_ASK", status: "failed",
+      resultData: null, errorMessage: "LLM timeout", createdAt: "2026-03-12", completedAt: "2026-03-12", version: 3,
     });
 
-    const caller = createAuthenticatedCaller();
-    const result = await caller.help.askCopilot({ query: "q" });
-    expect(result.answer).toBe("Still fine.");
+    const caller = createAdminCaller();
+    const result = await caller.help.getCopilotResult({ taskId: 42 });
+    expect(result.status).toBe("failed");
+    expect(result.error).toBe("LLM timeout");
+  });
+
+  it("throws NOT_FOUND for missing task", async () => {
+    mockGetTaskStatus.mockResolvedValueOnce(null);
+    const caller = createAdminCaller();
+    await expect(caller.help.getCopilotResult({ taskId: 999 })).rejects.toThrow("Task not found");
   });
 });
 
@@ -974,7 +942,7 @@ describe("help.recordCopilotFeedback", () => {
   });
 
   it("records feedback without routePath", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.recordCopilotFeedback({
       query: "general",
       answer: "general answer",
@@ -984,7 +952,7 @@ describe("help.recordCopilotFeedback", () => {
   });
 
   it("records feedback without comment", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.recordCopilotFeedback({
       query: "q",
       answer: "a",
@@ -1027,7 +995,7 @@ describe("help.recordCopilotFeedback", () => {
       return chain;
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.help.recordCopilotFeedback({
       query: "q",
       answer: "a",
@@ -1061,7 +1029,7 @@ describe("help - input validation edge cases", () => {
   });
 
   it("createArticle rejects titleZh empty", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.help.createArticle({
         title: "Title",
@@ -1073,7 +1041,7 @@ describe("help - input validation edge cases", () => {
   });
 
   it("createArticle rejects contentZh empty", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.help.createArticle({
         title: "Title",
@@ -1092,7 +1060,7 @@ describe("help - input validation edge cases", () => {
   });
 
   it("reorderArticles rejects non-array items", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.help.reorderArticles as any)({ items: "not-array" })
     ).rejects.toThrow();

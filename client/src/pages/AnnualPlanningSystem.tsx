@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -40,6 +41,7 @@ interface InterpretationState {
 }
 
 export default function AnnualPlanningSystem() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [planningBatch, setPlanningBatch] = useState<PlanningBatch | null>(null);
@@ -77,12 +79,12 @@ export default function AnnualPlanningSystem() {
         {/* Header */}
         <PageHeader
           icon={BarChart3}
-          title="Annual Planning & Change Management"
-          description="Manage annual KPIs, organization structure, and process improvements with AI assistance"
+          title={t("admin.planning.title")}
+          description={t("admin.planning.description")}
           actions={
             <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(parseInt(v))}>
               <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="选择年份" />
+                <SelectValue placeholder={t("admin.planning.selectYear")} />
               </SelectTrigger>
               <SelectContent>
                 {[2024, 2025, 2026, 2027].map(year => (
@@ -97,37 +99,37 @@ export default function AnnualPlanningSystem() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">KPIs</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t("admin.planning.kpis")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{dashboardQuery.data.dashboard.kpiCount}</div>
-                <p className="text-xs text-muted-foreground mt-1">Defined for {selectedYear}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("admin.planning.definedFor").replace("{year}", String(selectedYear))}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Departments</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t("admin.planning.departments")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{dashboardQuery.data.dashboard.departmentCount}</div>
-                <p className="text-xs text-muted-foreground mt-1">Organization changes</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("admin.planning.orgChanges")}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Processes</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t("admin.planning.processes")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{dashboardQuery.data.dashboard.processCount}</div>
-                <p className="text-xs text-muted-foreground mt-1">Improvements identified</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("admin.planning.improvementsIdentified")}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Status</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t("admin.planning.status")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
@@ -142,20 +144,20 @@ export default function AnnualPlanningSystem() {
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="input">Data Input</TabsTrigger>
-            <TabsTrigger value="interpretation">AI Analysis</TabsTrigger>
-            <TabsTrigger value="confirmation">Confirmation</TabsTrigger>
-            <TabsTrigger value="execution">Execution</TabsTrigger>
+            <TabsTrigger value="overview">{t("admin.planning.overview")}</TabsTrigger>
+            <TabsTrigger value="input">{t("admin.planning.dataInput")}</TabsTrigger>
+            <TabsTrigger value="interpretation">{t("admin.planning.aiAnalysis")}</TabsTrigger>
+            <TabsTrigger value="confirmation">{t("admin.planning.confirmation")}</TabsTrigger>
+            <TabsTrigger value="execution">{t("admin.planning.execution")}</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Annual Planning Process</CardTitle>
+                <CardTitle>{t("admin.planning.processTitle")}</CardTitle>
                 <CardDescription>
-                  Follow these steps to complete your annual planning and implement changes
+                  {t("admin.planning.processDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -163,26 +165,26 @@ export default function AnnualPlanningSystem() {
                   {[
                     {
                       step: 1,
-                      title: 'Data Input',
-                      description: 'Enter KPIs, organization structure, and process improvements',
+                      title: t("admin.planning.step1Title"),
+                      description: t("admin.planning.step1Desc"),
                       icon: FileText
                     },
                     {
                       step: 2,
-                      title: 'AI Interpretation',
-                      description: 'AI analyzes your input and generates insights and recommendations',
+                      title: t("admin.planning.step2Title"),
+                      description: t("admin.planning.step2Desc"),
                       icon: BarChart3
                     },
                     {
                       step: 3,
-                      title: 'Multi-level Confirmation',
-                      description: 'Review and approve changes through 4 confirmation levels',
+                      title: t("admin.planning.step3Title"),
+                      description: t("admin.planning.step3Desc"),
                       icon: CheckCircle2
                     },
                     {
                       step: 4,
-                      title: 'Change Execution',
-                      description: 'Authorized AI engineers execute approved changes',
+                      title: t("admin.planning.step4Title"),
+                      description: t("admin.planning.step4Desc"),
                       icon: GitBranch
                     }
                   ].map(({ step, title, description, icon: Icon }) => (
@@ -205,14 +207,14 @@ export default function AnnualPlanningSystem() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Quick Start</CardTitle>
+                <CardTitle>{t("admin.planning.quickStart")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button className="w-full" onClick={() => setActiveTab('input')}>
-                  Start Data Input
+                  {t("admin.planning.startDataInput")}
                 </Button>
                 <Button variant="outline" className="w-full" onClick={() => setActiveTab('input')}>
-                  Upload Planning Document
+                  {t("admin.planning.uploadDocument")}
                 </Button>
               </CardContent>
             </Card>
@@ -222,10 +224,10 @@ export default function AnnualPlanningSystem() {
           <TabsContent value="input" className="space-y-6">
             <Tabs defaultValue="kpi" className="w-full">
               <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="kpi">KPIs</TabsTrigger>
-                <TabsTrigger value="org">Organization</TabsTrigger>
-                <TabsTrigger value="process">Processes</TabsTrigger>
-                <TabsTrigger value="upload">Upload</TabsTrigger>
+                <TabsTrigger value="kpi">{t("admin.planning.kpis")}</TabsTrigger>
+                <TabsTrigger value="org">{t("admin.planning.organization")}</TabsTrigger>
+                <TabsTrigger value="process">{t("admin.planning.processes")}</TabsTrigger>
+                <TabsTrigger value="upload">{t("admin.planning.upload")}</TabsTrigger>
               </TabsList>
 
               {/* KPI Input */}
@@ -257,7 +259,7 @@ export default function AnnualPlanningSystem() {
                 <CardContent className="py-12 flex items-center justify-center">
                   <div className="text-center">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-                    <p className="text-muted-foreground">Analyzing your input with AI...</p>
+                    <p className="text-muted-foreground">{t("admin.planning.aiAnalyzing")}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -281,7 +283,7 @@ export default function AnnualPlanningSystem() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <p className="text-muted-foreground">
-                    Submit data or upload a document to see AI interpretation results
+                    {t("admin.planning.submitPrompt")}
                   </p>
                 </CardContent>
               </Card>

@@ -199,7 +199,8 @@ export async function sendPerformanceReviewReminderForEmployee(
   const [employee] = await db
     .select()
     .from(hrmEmployees)
-    .where(eq(hrmEmployees.id, employeeId));
+    .where(eq(hrmEmployees.id, employeeId))
+    .limit(1000);
 
   if (!employee) {
     return { success: false, message: "员工不存在" };
@@ -213,7 +214,8 @@ export async function sendPerformanceReviewReminderForEmployee(
         eq(hrmPerformanceReviewReminders.employeeId, employeeId),
         eq(hrmPerformanceReviewReminders.reviewType, reviewType)
       )
-    );
+    )
+    .limit(1000);
 
   if (!reminder) {
     return { success: false, message: "未找到对应的述职提醒配置" };

@@ -30,8 +30,8 @@ export default function Docs() {
     {
       title: "GRT NocoBase 系统开发指南 v1.0",
       titleEn: "GRT NocoBase Development Guide v1.0",
-      desc: "完整的系统开发指南，包含架构设计、数据模型、简道云迁移规划、AI/IoT集成方案及Manus+Claude协作开发流程。",
-      descEn: "Complete development guide including architecture design, data models, Jiandaoyun migration plan, AI/IoT integration, and Manus+Claude collaboration workflow.",
+      desc: "完整的系统开发指南，包含架构设计、数据模型、外部数据平台迁移规划、AI/IoT集成方案及Manus+Claude协作开发流程。",
+      descEn: "Complete development guide including architecture design, data models, External Sync migration plan, AI/IoT integration, and Manus+Claude collaboration workflow.",
       size: "156 KB",
       date: "2026-01-16",
       category: "development",
@@ -52,8 +52,8 @@ export default function Docs() {
     },
     // 数据迁移
     {
-      title: "简道云数据迁移手册",
-      titleEn: "Jiandaoyun Data Migration Manual",
+      title: "外部数据平台迁移手册",
+      titleEn: "External Sync Data Migration Manual",
       desc: "详细的数据迁移步骤、字段映射规则、SQL脚本模板及数据验证方法。",
       descEn: "Detailed migration steps, field mapping rules, SQL script templates, and data validation methods.",
       size: "89 KB",
@@ -64,10 +64,10 @@ export default function Docs() {
     },
     // API文档
     {
-      title: "简道云API集成规范",
-      titleEn: "Jiandaoyun API Integration Specification",
-      desc: "定义了GRT系统与简道云交互的API接口标准、鉴权方式及数据格式。",
-      descEn: "API interface standards, authentication methods, and data formats for Jiandaoyun integration.",
+      title: "外部数据平台API集成规范",
+      titleEn: "External Sync API Integration Specification",
+      desc: "定义了GRT系统与外部数据平台交互的API接口标准、鉴权方式及数据格式。",
+      descEn: "API interface standards, authentication methods, and data formats for External Sync integration.",
       size: "1.1 MB",
       date: "2026-01-14",
       category: "api",
@@ -152,7 +152,7 @@ export default function Docs() {
     { section: "1", title: "文档概述", titleEn: "Document Overview" },
     { section: "2", title: "系统架构设计", titleEn: "System Architecture" },
     { section: "3", title: "数据模型设计", titleEn: "Data Model Design" },
-    { section: "4", title: "简道云数据迁移规划", titleEn: "Jiandaoyun Migration Plan" },
+    { section: "4", title: "外部数据平台迁移规划", titleEn: "External Sync Migration Plan" },
     { section: "5", title: "模块开发指南", titleEn: "Module Development Guide" },
     { section: "6", title: "AI智能化集成", titleEn: "AI Integration" },
     { section: "7", title: "IoT硬件集成", titleEn: "IoT Hardware Integration" },
@@ -189,8 +189,8 @@ export default function Docs() {
                   </div>
                   <CardDescription>
                     {language === 'zh' 
-                      ? '2026-01-16 发布 · 整合简道云数据结构与迁移规划' 
-                      : 'Released 2026-01-16 · Integrated Jiandaoyun data structure and migration plan'}
+                      ? '2026-01-16 发布 · 整合外部数据平台数据结构与迁移规划'
+                      : 'Released 2026-01-16 · Integrated External Sync data structure and migration plan'}
                   </CardDescription>
                 </div>
               </div>
@@ -335,10 +335,10 @@ export default function Docs() {
             {language === 'zh' ? '快速链接' : 'Quick Links'}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <a href="/jiandaoyun" className="p-4 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors group">
+            <a href="/external-sync" className="p-4 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors group">
               <Database className="w-6 h-6 text-primary mb-2" />
               <div className="font-medium group-hover:text-primary transition-colors">
-                {language === 'zh' ? '简道云系统分析' : 'Jiandaoyun Analysis'}
+                {language === 'zh' ? '外部数据平台分析' : 'External Sync Analysis'}
               </div>
               <div className="text-xs text-muted-foreground">
                 {language === 'zh' ? '查看现有系统结构' : 'View existing system'}

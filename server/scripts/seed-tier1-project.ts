@@ -80,7 +80,7 @@ export const SAMPLE_TIER1_CUSTOMERS: Tier1Customer[] = [
     tier: "tier1",
     industry: "变速箱及传动系统",
     region: "华东",
-    contact: "李工",
+    contact: "李振国",
     requirements: "变速箱零件清洗，VDA 19.1标准，颗粒度要求严格",
   },
   {
@@ -89,7 +89,7 @@ export const SAMPLE_TIER1_CUSTOMERS: Tier1Customer[] = [
     tier: "tier1",
     industry: "汽车电子",
     region: "华东",
-    contact: "王总",
+    contact: "王志远",
     requirements: "电子元器件精密清洗，ESD防护要求，洁净度Class 100",
   },
 ];

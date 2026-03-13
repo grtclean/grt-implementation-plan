@@ -36,6 +36,7 @@ export interface EmailConfig {
 // 邮件内容接口
 export interface EmailMessage {
   to: string | string[];
+  cc?: string | string[];
   subject: string;
   text?: string;
   html?: string;
@@ -126,7 +127,8 @@ async function sendViaSendGrid(config: EmailConfig, message: EmailMessage): Prom
   
   try {
     const toAddresses = Array.isArray(message.to) ? message.to : [message.to];
-    
+    const ccAddresses = message.cc ? (Array.isArray(message.cc) ? message.cc : [message.cc]) : [];
+
     const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
@@ -136,6 +138,7 @@ async function sendViaSendGrid(config: EmailConfig, message: EmailMessage): Prom
       body: JSON.stringify({
         personalizations: [{
           to: toAddresses.map(email => ({ email })),
+          ...(ccAddresses.length > 0 ? { cc: ccAddresses.map(email => ({ email })) } : {}),
         }],
         from: {
           email: config.from.email,
@@ -183,10 +186,12 @@ async function sendViaSMTP(config: EmailConfig, message: EmailMessage): Promise<
     });
     
     const toAddresses = Array.isArray(message.to) ? message.to.join(', ') : message.to;
-    
+    const ccAddresses = message.cc ? (Array.isArray(message.cc) ? message.cc.join(', ') : message.cc) : undefined;
+
     const info = await transporter.sendMail({
       from: `"${config.from.name}" <${config.from.email}>`,
       to: toAddresses,
+      cc: ccAddresses,
       subject: message.subject,
       text: message.text,
       html: message.html,

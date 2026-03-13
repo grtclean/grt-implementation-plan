@@ -12,7 +12,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -70,7 +70,7 @@ beforeEach(() => {
 
 describe("aiPlanning.generatePlan", () => {
   it("succeeds with minimal input (planType only)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiPlanning.generatePlan({
       planType: "daily",
     });
@@ -83,7 +83,7 @@ describe("aiPlanning.generatePlan", () => {
   });
 
   it("succeeds with all optional arrays populated", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiPlanning.generatePlan({
       planType: "weekly",
       companyPlans: [
@@ -159,7 +159,7 @@ describe("aiPlanning.generatePlan", () => {
   });
 
   it("passes correct args to generateWorkPlan service", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiPlanning.generatePlan({
       planType: "monthly",
       companyPlans: [
@@ -203,14 +203,14 @@ describe("aiPlanning.generatePlan", () => {
   it("handles service error by propagating it", async () => {
     mockGenerateWorkPlan.mockRejectedValueOnce(new Error("LLM service unavailable"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.aiPlanning.generatePlan({ planType: "daily" }),
     ).rejects.toThrow("LLM service unavailable");
   });
 
   it("rejects invalid planType enum value", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.aiPlanning.generatePlan({ planType: "yearly" as any }),
     ).rejects.toThrow();
@@ -227,7 +227,7 @@ describe("aiPlanning.generatePlan", () => {
     };
     mockGenerateWorkPlan.mockResolvedValueOnce(mockPlan);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiPlanning.generatePlan({ planType: "weekly" });
 
     expect(result).toEqual({ success: true, data: mockPlan });
@@ -242,7 +242,7 @@ describe("aiPlanning.updateTaskStatus", () => {
   it("returns success message when service returns true", async () => {
     mockUpdatePlanStatus.mockReturnValueOnce(true);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiPlanning.updateTaskStatus({
       planId: "plan-1",
       taskId: "t1",
@@ -257,7 +257,7 @@ describe("aiPlanning.updateTaskStatus", () => {
   it("returns failure message when service returns false", async () => {
     mockUpdatePlanStatus.mockReturnValueOnce(false);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiPlanning.updateTaskStatus({
       planId: "plan-nonexistent",
       taskId: "t-unknown",
@@ -269,7 +269,7 @@ describe("aiPlanning.updateTaskStatus", () => {
   });
 
   it("validates status enum — rejects invalid status", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.aiPlanning.updateTaskStatus({
         planId: "plan-1",
@@ -280,7 +280,7 @@ describe("aiPlanning.updateTaskStatus", () => {
   });
 
   it("passes all three arguments to updatePlanStatus", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiPlanning.updateTaskStatus({
       planId: "PLAN-DAILY-123",
       taskId: "TASK-456",
@@ -292,7 +292,7 @@ describe("aiPlanning.updateTaskStatus", () => {
   });
 
   it("accepts all valid status values", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const statuses = ["pending", "in_progress", "completed"] as const;
 
     for (const status of statuses) {
@@ -315,7 +315,7 @@ describe("aiPlanning.updateTaskStatus", () => {
 
 describe("aiPlanning.getExecutionReport", () => {
   it("returns report for a valid planId", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiPlanning.getExecutionReport({
       planId: "plan-1",
     });
@@ -333,7 +333,7 @@ describe("aiPlanning.getExecutionReport", () => {
   it("returns null report when plan not found", async () => {
     mockGetPlanExecutionReport.mockResolvedValueOnce(null);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiPlanning.getExecutionReport({
       planId: "nonexistent-plan",
     });
@@ -345,7 +345,7 @@ describe("aiPlanning.getExecutionReport", () => {
     const mockReport = "计划 plan-42 执行报告：执行中...";
     mockGetPlanExecutionReport.mockResolvedValueOnce(mockReport);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiPlanning.getExecutionReport({
       planId: "plan-42",
     });
@@ -356,7 +356,7 @@ describe("aiPlanning.getExecutionReport", () => {
   it("handles service error by propagating it", async () => {
     mockGetPlanExecutionReport.mockRejectedValueOnce(new Error("DB connection lost"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.aiPlanning.getExecutionReport({ planId: "plan-1" }),
     ).rejects.toThrow("DB connection lost");

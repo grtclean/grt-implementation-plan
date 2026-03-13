@@ -12,7 +12,7 @@
  *   - triggerSupplierPenalty: supplier penalty trigger → creates meeting
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { automationTriggeredMeetings } from "../../drizzle/schema";
 import { eq, desc, sql, count } from "drizzle-orm";
@@ -79,7 +79,7 @@ export const automationRouter = router({
     }),
 
   /** Trigger: M-phase change (e.g., M2 signed) */
-  triggerPhaseChange: protectedProcedure
+  triggerPhaseChange: requirePermission('system:scheduler:manage')
     .input(z.object({
       phase: z.string(),
       projectTitle: z.string(),
@@ -96,7 +96,7 @@ export const automationRouter = router({
     }),
 
   /** Trigger: T-node delay */
-  triggerTNodeDelay: protectedProcedure
+  triggerTNodeDelay: requirePermission('system:scheduler:manage')
     .input(z.object({
       tNode: z.string(),
       projectTitle: z.string(),
@@ -113,7 +113,7 @@ export const automationRouter = router({
     }),
 
   /** Trigger: OKR at risk */
-  triggerOKRAtRisk: protectedProcedure
+  triggerOKRAtRisk: requirePermission('system:scheduler:manage')
     .input(z.object({
       objectiveTitle: z.string(),
       progress: z.number(),
@@ -131,7 +131,7 @@ export const automationRouter = router({
     }),
 
   /** Trigger: Quality escalation (8D) */
-  triggerQualityEscalation: protectedProcedure
+  triggerQualityEscalation: requirePermission('system:scheduler:manage')
     .input(z.object({
       reportTitle: z.string(),
       severity: z.string(),
@@ -149,7 +149,7 @@ export const automationRouter = router({
     }),
 
   /** Trigger: Supplier penalty threshold */
-  triggerSupplierPenalty: protectedProcedure
+  triggerSupplierPenalty: requirePermission('system:scheduler:manage')
     .input(z.object({
       supplierName: z.string(),
       penaltyCount: z.number(),

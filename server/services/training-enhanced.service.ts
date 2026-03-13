@@ -287,7 +287,7 @@ export class TrainingEffectivenessService {
        COUNT(*) as enrollments,
        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completions,
        AVG(score) as avg_score,
-       AVG(TIMESTAMPDIFF(MINUTE, started_at, completed_at)) as avg_duration
+       AVG(EXTRACT(EPOCH FROM completed_at - started_at) / 60) as avg_duration
        FROM training_enrollments
        WHERE created_at BETWEEN ? AND ?
        GROUP BY course_id, course_name

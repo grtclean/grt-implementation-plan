@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import { CertificateService, TrainingEffectivenessService } from "../services/training-enhanced.service";
 
 export const trainingEnhancedRouter = router({

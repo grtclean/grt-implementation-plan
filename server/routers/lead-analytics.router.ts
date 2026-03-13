@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import { crmLeads, crmOpportunitiesV2, crmCustomersV2 } from "../../drizzle/schema";
@@ -78,13 +78,13 @@ export const leadAnalyticsRouter = router({
   }),
 
   // Keep stub CRUD for compat
-  create: protectedProcedure.input(z.object({ data: z.record(z.string(), jsonValue).optional() }).optional()).mutation(async () => {
+  create: requirePermission('crm:leads:manage').input(z.object({ data: z.record(z.string(), jsonValue).optional() }).optional()).mutation(async () => {
     return { success: true, message: "Use crm.leads.create instead" };
   }),
-  update: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), data: z.record(z.string(), jsonValue).optional() }).optional()).mutation(async () => {
+  update: requirePermission('crm:leads:manage').input(z.object({ id: z.union([z.string(), z.number()]), data: z.record(z.string(), jsonValue).optional() }).optional()).mutation(async () => {
     return { success: true, message: "Use crm.leads.update instead" };
   }),
-  delete: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async () => {
+  delete: requirePermission('crm:leads:manage').input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async () => {
     return { success: true, message: "Use crm.leads.update instead" };
   }),
 

@@ -67,7 +67,8 @@ export class PermissionService {
             gte(userRoles.endDate, sql`now()`)
           )
         )
-      );
+      )
+      .limit(1000);
 
     const roleIds = userRoleRecords.map((r: any) => r.roleId);
 
@@ -180,7 +181,8 @@ export class PermissionService {
             gte(userRoles.endDate, sql`now()`)
           )
         )
-      );
+      )
+      .limit(1000);
 
     const roleIds = userRoleRecords.map((r: any) => r.roleId);
 
@@ -192,7 +194,8 @@ export class PermissionService {
     const rolePerms = await db
       .select({ permissionId: rolePermissions.permissionId })
       .from(rolePermissions)
-      .where(inArray(rolePermissions.roleId, roleIds as any));
+      .where(inArray(rolePermissions.roleId, roleIds as any))
+      .limit(1000);
 
     const permissionIds = rolePerms.map((p: any) => p.permissionId);
 
@@ -204,7 +207,8 @@ export class PermissionService {
     const perms = await db
       .select({ code: permissions.code })
       .from(permissions)
-      .where(inArray(permissions.id, permissionIds as any));
+      .where(inArray(permissions.id, permissionIds as any))
+      .limit(1000);
 
     return perms.map((p: any) => p.code);
   }
@@ -605,7 +609,8 @@ export class PermissionService {
           eq((qualificationCertificates as any).userId, userId),
           eq((qualificationCertificates as any).status, 'active')
         )
-      );
+      )
+      .limit(1000);
 
     return certs as any;
   }

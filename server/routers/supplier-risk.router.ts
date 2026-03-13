@@ -30,7 +30,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -390,7 +390,7 @@ export const supplierRiskRouter = router({
    * override — CEO/Director force-unblock a RESTRICTED supplier.
    * Requires authorization PIN (mock: always "888888").
    */
-  override: protectedProcedure
+  override: requirePermission('supply:supplier:assess')
     .input(z.object({
       supplierId: z.number(),
       ceoPin: z.string().min(4),

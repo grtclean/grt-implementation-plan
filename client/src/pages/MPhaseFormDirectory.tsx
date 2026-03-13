@@ -11,6 +11,7 @@
  */
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import {
   FileText, ChevronDown, ChevronRight, Layers,
@@ -66,6 +67,7 @@ function FormCard({
   stageInfo: StageInfo;
   onClick: () => void;
 }) {
+  const { t } = useLanguage();
   const Icon = stageInfo.icon;
   const fields = Array.isArray(template.fields) ? template.fields : [];
   const groups = [...new Set(fields.map((f: any) => f.group).filter(Boolean))];
@@ -90,8 +92,8 @@ function FormCard({
           </h4>
           <p className="text-xs text-[#605e5c] mt-1 line-clamp-2">{template.description}</p>
           <div className="flex items-center gap-3 mt-2 text-[10px] text-[#a19f9d]">
-            <span>{fields.length} 字段</span>
-            {groups.length > 0 && <span>{groups.length} 分组</span>}
+            <span>{fields.length} {t("admin.mPhaseForm.fields")}</span>
+            {groups.length > 0 && <span>{groups.length} {t("admin.mPhaseForm.groups")}</span>}
           </div>
         </div>
         <ChevronRight className="w-4 h-4 text-[#c8c6c4] group-hover:text-[#0078d4] mt-1 flex-shrink-0" />
@@ -113,6 +115,7 @@ function StageSection({
   onSelectTemplate: (t: any) => void;
   defaultExpanded: boolean;
 }) {
+  const { t } = useLanguage();
   const [expanded, setExpanded] = useState(defaultExpanded);
   const Icon = stageInfo.icon;
 
@@ -134,7 +137,7 @@ function StageSection({
           </div>
         </div>
         <span className="text-xs text-[#605e5c] bg-[#f3f2f1] px-2 py-0.5 rounded-full">
-          {templates.length} 表单
+          {templates.length} {t("admin.mPhaseForm.forms")}
         </span>
         {expanded ? (
           <ChevronDown className="w-4 h-4 text-[#605e5c]" />
@@ -165,6 +168,7 @@ function StageSection({
 // ═══════════════════════════════════════════════════════════
 
 export default function MPhaseFormDirectory() {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [, navigate] = useLocation();
 
@@ -224,13 +228,13 @@ export default function MPhaseFormDirectory() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0078d4] to-[#106ebe] flex items-center justify-center">
             <Layers className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-xl font-semibold text-[#323130]">M0-M12 表单目录</h1>
+          <h1 className="text-xl font-semibold text-[#323130]">{t("admin.mPhaseForm.title")}</h1>
           <span className="text-xs text-[#605e5c] bg-[#f3f2f1] px-2 py-0.5 rounded">
             Form Directory
           </span>
         </div>
         <p className="text-xs text-[#a19f9d] ml-11">
-          项目全生命周期动态表单 — 从商机识别(M0)到项目结项(M12)
+          {t("admin.mPhaseForm.subtitle")}
         </p>
       </div>
 
@@ -242,15 +246,15 @@ export default function MPhaseFormDirectory() {
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5 text-sm text-[#605e5c]">
                   <FileText className="w-4 h-4" />
-                  <span className="font-semibold text-[#323130]">{totalForms}</span> 表单
+                  <span className="font-semibold text-[#323130]">{totalForms}</span> {t("admin.mPhaseForm.forms")}
                 </div>
                 <div className="flex items-center gap-1.5 text-sm text-[#605e5c]">
                   <BarChart3 className="w-4 h-4" />
-                  <span className="font-semibold text-[#323130]">{totalFields}</span> 字段
+                  <span className="font-semibold text-[#323130]">{totalFields}</span> {t("admin.mPhaseForm.fields")}
                 </div>
                 <div className="flex items-center gap-1.5 text-sm text-[#605e5c]">
                   <Layers className="w-4 h-4" />
-                  <span className="font-semibold text-[#323130]">13</span> 阶段
+                  <span className="font-semibold text-[#323130]">13</span> {t("admin.mPhaseForm.stages")}
                 </div>
               </div>
 
@@ -259,7 +263,7 @@ export default function MPhaseFormDirectory() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a19f9d]" />
                 <input
                   className="w-full pl-9 pr-8 py-2 bg-[#f3f2f1] rounded-md text-sm text-[#323130] placeholder:text-[#a19f9d] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0078d4] border border-transparent focus:border-[#0078d4]"
-                  placeholder="搜索表单名称或编码..."
+                  placeholder={t("admin.mPhaseForm.searchPlaceholder")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -278,7 +282,7 @@ export default function MPhaseFormDirectory() {
             {templatesQuery.isLoading && (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-8 h-8 animate-spin text-[#0078d4]" />
-                <span className="ml-3 text-sm text-[#605e5c]">加载表单模板...</span>
+                <span className="ml-3 text-sm text-[#605e5c]">{t("admin.mPhaseForm.loadingTemplates")}</span>
               </div>
             )}
 
@@ -286,9 +290,9 @@ export default function MPhaseFormDirectory() {
             {!templatesQuery.isLoading && totalForms === 0 && (
               <div className="text-center py-20 bg-white rounded-lg border border-[#edebe9]">
                 <Layers className="w-16 h-16 mx-auto text-[#c8c6c4] mb-4" />
-                <h3 className="text-lg font-semibold text-[#323130] mb-2">尚未加载M0-M12表单</h3>
+                <h3 className="text-lg font-semibold text-[#323130] mb-2">{t("admin.mPhaseForm.noFormsTitle")}</h3>
                 <p className="text-sm text-[#605e5c] mb-4">
-                  请运行 <code className="bg-[#f3f2f1] px-2 py-0.5 rounded text-xs font-mono">npx tsx scripts/seed_m_forms.ts</code> 导入表单数据
+                  {t("admin.mPhaseForm.noFormsDesc").split("{command}")[0]}<code className="bg-[#f3f2f1] px-2 py-0.5 rounded text-xs font-mono">npx tsx scripts/seed_m_forms.ts</code>{t("admin.mPhaseForm.noFormsDesc").split("{command}")[1] || ""}
                 </p>
               </div>
             )}
@@ -307,7 +311,7 @@ export default function MPhaseFormDirectory() {
                       </div>
                       <span className="text-base font-semibold text-[#323130]">{stage.id}</span>
                       <span className="text-sm text-[#605e5c]">{stage.name}</span>
-                      <span className="text-xs text-[#a19f9d] ml-auto">暂无表单</span>
+                      <span className="text-xs text-[#a19f9d] ml-auto">{t("admin.mPhaseForm.noForms")}</span>
                     </div>
                   );
                 }

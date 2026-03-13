@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+#
+# GRT Pre-Push Hook — Mechanical/Electrical Sync + AI Oiling Simulation
+#
+# Installed by: scripts/grt-init-dev-env.sh
+# Blocks push when: mechanical changes detected without electrical sync
+# Warns (no block) when: oiling simulation detects ΔPos > 0.5mm
+#
+# Requires:
+#   - .grt-dev-token file with API auth token
+#   - GRT API server running at GRT_API_BASE (default: http://localhost:5000)
+#
+
+set -euo pipefail
+
+# ── Configuration ──────────────────────────────────────────────────────
+
+GRT_API_BASE="${GRT_API_BASE:-http://localhost:5000}"
+GRT_PROJECT_ID="${GRT_PROJECT_ID:-1}"
+TOKEN_FILE=".grt-dev-token"
+TIMEOUT=3  # seconds — skip all checks if API unreachable
+
+# ── Color helpers ──────────────────────────────────────────────────────
+
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+NC='\033[0m'  # No Color
+
+# ── Pre-flight checks ─────────────────────────────────────────────────
+
+# Skip if no auth token (dev hasn't initialized env yet)
+if [ ! -f "$TOKEN_FILE" ]; then
+  echo -e "${YELLOW}[GRT] No .grt-dev-token found — skipping pre-push checks.${NC}"
+  echo -e "${YELLOW}[GRT] Run 'bash scripts/grt-init-dev-env.sh' to set up.${NC}"
+  exit 0
+fi
+
+TOKEN=$(cat "$TOKEN_FILE" | tr -d '[:space:]')
+
+# Quick health check — skip everything if API is offline
+if ! curl -sf --max-time "$TIMEOUT" "$GRT_API_BASE/api/trpc/health" > /dev/null 2>&1; then
+  echo -e "${YELLOW}[GRT] API unreachable (${GRT_API_BASE}) — skipping checks.${NC}"
+  exit 0
+fi
+
+# ── Helper: tRPC mutation call ─────────────────────────────────────────
+
+trpc_mutate() {
+  local procedure="$1"
+  local payload="$2"
+  curl -sf --max-time "$TIMEOUT" \
+    -X POST \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d "{\"json\": $payload}" \
+    "$GRT_API_BASE/api/trpc/$procedure" 2>/dev/null || echo '{"error": true}'
+}
+
+# ── Check 1: Mechanical/Electrical Sync ────────────────────────────────
+
+echo -e "${CYAN}[GRT] Check 1/2: Mechanical/Electrical sync...${NC}"
+
+# Detect changes in mechanical/electrical directories
+CHANGED_FILES=$(git diff --name-only HEAD@{1}..HEAD 2>/dev/null || git diff --name-only HEAD~1..HEAD 2>/dev/null || echo "")
+
+HAS_MECH_CHANGES=false
+HAS_ELEC_CHANGES=false
+
+if echo "$CHANGED_FILES" | grep -qi "02_Mechanical\|mechanical"; then
+  HAS_MECH_CHANGES=true
+fi
+if echo "$CHANGED_FILES" | grep -qi "03_Electrical\|electrical\|io.table\|io_table"; then
+  HAS_ELEC_CHANGES=true
+fi
+
+if [ "$HAS_MECH_CHANGES" = true ] && [ "$HAS_ELEC_CHANGES" = false ]; then
+  # Mechanical changes without electrical updates — check for conflicts
+  RESULT=$(trpc_mutate "devEnv.checkMechElecSync" "{\"projectId\": $GRT_PROJECT_ID}")
+
+  if echo "$RESULT" | grep -q '"error"'; then
+    echo -e "${YELLOW}[GRT] Could not reach conflict check API — allowing push.${NC}"
+  elif echo "$RESULT" | grep -q '"blockedPush":true'; then
+    CONFLICT_COUNT=$(echo "$RESULT" | grep -o '"blockingConflictCount":[0-9]*' | grep -o '[0-9]*' || echo "?")
+    echo ""
+    echo -e "${RED}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║  PUSH BLOCKED — Mechanical/Electrical Sync Conflict         ║${NC}"
+    echo -e "${RED}╠══════════════════════════════════════════════════════════════╣${NC}"
+    echo -e "${RED}║  ${CONFLICT_COUNT} blocking conflict(s) detected.                        ║${NC}"
+    echo -e "${RED}║                                                              ║${NC}"
+    echo -e "${RED}║  检测到机械变更，请确认电气逻辑已同步更新               ║${NC}"
+    echo -e "${RED}║  Mechanical changes detected — please sync electrical IO.    ║${NC}"
+    echo -e "${RED}║                                                              ║${NC}"
+    echo -e "${RED}║  Fix: Update 03_Electrical/ files, then push again.          ║${NC}"
+    echo -e "${RED}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    exit 1
+  else
+    echo -e "${GREEN}[GRT] Mech/Elec sync: OK — no blocking conflicts.${NC}"
+  fi
+else
+  echo -e "${GREEN}[GRT] Mech/Elec sync: OK — no mechanical-only changes.${NC}"
+fi
+
+# ── Check 2: AI Oiling Simulation ──────────────────────────────────────
+
+echo -e "${CYAN}[GRT] Check 2/2: AI oiling simulation...${NC}"
+
+OILING_RESULT=$(trpc_mutate "devEnv.runOilingSimulation" "{\"projectId\": $GRT_PROJECT_ID}")
+
+if echo "$OILING_RESULT" | grep -q '"error"'; then
+  echo -e "${YELLOW}[GRT] Could not reach oiling simulation API — skipping.${NC}"
+elif echo "$OILING_RESULT" | grep -q '"pass":false'; then
+  echo -e "${YELLOW}╔══════════════════════════════════════════════════════════════╗${NC}"
+  echo -e "${YELLOW}║  WARNING — Oiling Simulation Pose Deviation Detected        ║${NC}"
+  echo -e "${YELLOW}╠══════════════════════════════════════════════════════════════╣${NC}"
+  echo -e "${YELLOW}║  One or more synthetic readings exceeded ΔPos 0.5mm.        ║${NC}"
+  echo -e "${YELLOW}║  Risk warning logged to CEO dashboard.                      ║${NC}"
+  echo -e "${YELLOW}║                                                              ║${NC}"
+  echo -e "${YELLOW}║  This is a WARNING only — push is NOT blocked.              ║${NC}"
+  echo -e "${YELLOW}╚══════════════════════════════════════════════════════════════╝${NC}"
+else
+  echo -e "${GREEN}[GRT] Oiling simulation: PASS — all readings within tolerance.${NC}"
+fi
+
+# ── Done ───────────────────────────────────────────────────────────────
+
+echo -e "${GREEN}[GRT] Pre-push checks complete.${NC}"
+exit 0

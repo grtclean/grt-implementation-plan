@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -304,7 +304,7 @@ describe("processManagement.getProcessDefinitions", () => {
     const def2 = makeProcessDef({ id: 2, code: "T2", nameZh: "冷作", nameEn: "Cold Work", sortOrder: 2 });
     mockQueryResult = [def1, def2];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessDefinitions();
 
     expect(result).toHaveLength(2);
@@ -316,7 +316,7 @@ describe("processManagement.getProcessDefinitions", () => {
   it("returns fallback T_PROCESS_DEFINITIONS_FALLBACK when DB returns empty", async () => {
     mockQueryResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessDefinitions();
 
     // Fallback has 15 entries (T1-T15)
@@ -335,7 +335,7 @@ describe("processManagement.getProcessDefinitions", () => {
       throw new Error("DB connection failed");
     };
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessDefinitions();
 
     // Should return fallback (15 entries)
@@ -348,7 +348,7 @@ describe("processManagement.getProcessDefinitions", () => {
   it("maps standardDurationHours to standardHours as number", async () => {
     mockQueryResult = [makeProcessDef({ standardDurationHours: "56.5" })];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessDefinitions();
 
     expect(result[0].standardHours).toBe(56.5);
@@ -357,7 +357,7 @@ describe("processManagement.getProcessDefinitions", () => {
   it("handles null standardDurationHours gracefully", async () => {
     mockQueryResult = [makeProcessDef({ standardDurationHours: null })];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessDefinitions();
 
     expect(result[0].standardHours).toBe(0);
@@ -383,7 +383,7 @@ describe("processManagement.getProjectProcessInstances", () => {
     selectResultsQueue.push([instance]);
     selectResultsQueue.push([def]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProjectProcessInstances();
 
     expect(result).toHaveLength(1);
@@ -404,7 +404,7 @@ describe("processManagement.getProjectProcessInstances", () => {
       throw new Error("DB error");
     };
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProjectProcessInstances();
 
     expect(result).toEqual([]);
@@ -415,7 +415,7 @@ describe("processManagement.getProjectProcessInstances", () => {
     selectResultsQueue.push([makeProcessInstance({ projectId: 2 })]);
     selectResultsQueue.push([makeProcessDef()]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProjectProcessInstances({
       projectId: 2,
     });
@@ -428,7 +428,7 @@ describe("processManagement.getProjectProcessInstances", () => {
     selectResultsQueue.push([makeProcessInstance({ status: "COMPLETED" })]);
     selectResultsQueue.push([makeProcessDef()]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProjectProcessInstances({
       status: "COMPLETED",
     });
@@ -441,7 +441,7 @@ describe("processManagement.getProjectProcessInstances", () => {
     selectResultsQueue.push([makeProcessInstance({ workOrderId: null })]);
     selectResultsQueue.push([makeProcessDef()]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProjectProcessInstances();
 
     expect(result[0].workOrderNo).toBeNull();
@@ -451,7 +451,7 @@ describe("processManagement.getProjectProcessInstances", () => {
     selectResultsQueue.push([makeProcessInstance({ processCode: "T99" })]);
     selectResultsQueue.push([makeProcessDef()]); // only T1
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProjectProcessInstances();
 
     expect(result[0].processNameZh).toBe("");
@@ -463,7 +463,7 @@ describe("processManagement.getProjectProcessInstances", () => {
     selectResultsQueue.push([]);
     selectResultsQueue.push([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProjectProcessInstances();
 
     expect(result).toEqual([]);
@@ -490,7 +490,7 @@ describe("processManagement.getProcessGanttData", () => {
     selectResultsQueue.push([inst1, inst2]); // instances
     selectResultsQueue.push([def1, def3]);   // definitions
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessGanttData({ projectId: 1 });
 
     expect(result).toHaveLength(2);
@@ -511,7 +511,7 @@ describe("processManagement.getProcessGanttData", () => {
       throw new Error("DB error");
     };
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessGanttData({ projectId: 1 });
 
     expect(result).toEqual([]);
@@ -526,7 +526,7 @@ describe("processManagement.getProcessGanttData", () => {
     ]);
     selectResultsQueue.push([makeProcessDef()]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessGanttData({ projectId: 1 });
 
     expect(result[0].start).toEqual(actual);
@@ -550,7 +550,7 @@ describe("processManagement.getM2Tags", () => {
     const tag = makeM2Tag();
     mockQueryResult = [tag];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getM2Tags({ projectId: 1 });
 
     expect(result).toHaveLength(1);
@@ -561,7 +561,7 @@ describe("processManagement.getM2Tags", () => {
   it("filters by category", async () => {
     mockQueryResult = [makeM2Tag({ tagCategory: "TECHNICAL_SPEC" })];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getM2Tags({
       projectId: 1,
       category: "TECHNICAL_SPEC",
@@ -573,7 +573,7 @@ describe("processManagement.getM2Tags", () => {
   it("filters by verified flag", async () => {
     mockQueryResult = [makeM2Tag({ isVerified: true })];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getM2Tags({
       projectId: 1,
       verified: true,
@@ -590,7 +590,7 @@ describe("processManagement.getM2Tags", () => {
       throw new Error("DB error");
     };
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getM2Tags({ projectId: 1 });
 
     expect(result).toEqual([]);
@@ -617,7 +617,7 @@ describe("processManagement.getAiSopRecommendations", () => {
     selectResultsQueue.push([rec]);
     selectResultsQueue.push([tmpl]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getAiSopRecommendations({
       projectId: 1,
     });
@@ -636,7 +636,7 @@ describe("processManagement.getAiSopRecommendations", () => {
     selectResultsQueue.push([rec]);
     selectResultsQueue.push([tmpl]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     // processCode "T2" won't match template's T1
     const result = await caller.processManagement.getAiSopRecommendations({
       processCode: "T2",
@@ -653,7 +653,7 @@ describe("processManagement.getAiSopRecommendations", () => {
       throw new Error("DB error");
     };
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getAiSopRecommendations({});
 
     expect(result).toEqual([]);
@@ -666,7 +666,7 @@ describe("processManagement.getAiSopRecommendations", () => {
     selectResultsQueue.push([rec]);
     selectResultsQueue.push([]); // no templates
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getAiSopRecommendations({});
 
     expect(result).toHaveLength(1);
@@ -693,7 +693,7 @@ describe("processManagement.respondToSopRecommendation", () => {
   it("accepts a SOP recommendation", async () => {
     mockReturningResult = [{ id: 1, isAccepted: true }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.respondToSopRecommendation({
       recommendationId: 1,
       accepted: true,
@@ -707,7 +707,7 @@ describe("processManagement.respondToSopRecommendation", () => {
   it("rejects a SOP recommendation", async () => {
     mockReturningResult = [{ id: 1, isAccepted: false }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.respondToSopRecommendation({
       recommendationId: 1,
       accepted: false,
@@ -720,7 +720,7 @@ describe("processManagement.respondToSopRecommendation", () => {
   it("throws NOT_FOUND when recommendation does not exist", async () => {
     mockReturningResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.processManagement.respondToSopRecommendation({
         recommendationId: 999,
@@ -750,7 +750,7 @@ describe("processManagement.getStepSopRecommendation", () => {
     const tmpl = makeSopTemplate({ id: 1, processCode: "T1", qualityCheckpoints: ["尺寸检查", "表面粗糙度"] });
     mockQueryResult = [tmpl];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getStepSopRecommendation({
       projectId: 1,
       processCode: "T1",
@@ -771,7 +771,7 @@ describe("processManagement.getStepSopRecommendation", () => {
   it("returns auto-generated placeholder when no templates found", async () => {
     mockQueryResult = []; // no templates
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getStepSopRecommendation({
       projectId: 1,
       processCode: "T7",
@@ -794,7 +794,7 @@ describe("processManagement.getStepSopRecommendation", () => {
       throw new Error("DB error");
     };
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getStepSopRecommendation({
       projectId: 1,
       processCode: "T1",
@@ -813,7 +813,7 @@ describe("processManagement.getStepSopRecommendation", () => {
     });
     mockQueryResult = [tmpl];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getStepSopRecommendation({
       projectId: 1,
       processCode: "T1",
@@ -829,7 +829,7 @@ describe("processManagement.getStepSopRecommendation", () => {
     const tmpl = makeSopTemplate({ qualityCheckpoints: "not an array" });
     mockQueryResult = [tmpl];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getStepSopRecommendation({
       projectId: 1,
       processCode: "T1",
@@ -857,7 +857,7 @@ describe("processManagement.linkSopToStep", () => {
   });
 
   it("returns success message when accepted", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.linkSopToStep({
       stepId: 5,
       sopRecommendationId: "sop-10-step-5",
@@ -870,7 +870,7 @@ describe("processManagement.linkSopToStep", () => {
   });
 
   it("returns rejection message when not accepted", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.linkSopToStep({
       stepId: 3,
       sopRecommendationId: "sop-2-step-3",
@@ -899,7 +899,7 @@ describe("processManagement.getRiskAlerts", () => {
     const alert2 = makeRiskAlert({ id: 2, severity: "HIGH", processCode: "T4" });
     mockQueryResult = [alert1, alert2];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getRiskAlerts({});
 
     expect(result).toHaveLength(2);
@@ -908,7 +908,7 @@ describe("processManagement.getRiskAlerts", () => {
   it("filters by projectId", async () => {
     mockQueryResult = [makeRiskAlert({ projectId: 2 })];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getRiskAlerts({ projectId: 2 });
 
     expect(result).toHaveLength(1);
@@ -917,7 +917,7 @@ describe("processManagement.getRiskAlerts", () => {
   it("filters by severity", async () => {
     mockQueryResult = [makeRiskAlert({ severity: "CRITICAL" })];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getRiskAlerts({ severity: "CRITICAL" });
 
     expect(result).toHaveLength(1);
@@ -926,7 +926,7 @@ describe("processManagement.getRiskAlerts", () => {
   it("filters by status", async () => {
     mockQueryResult = [makeRiskAlert({ status: "MITIGATED" })];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getRiskAlerts({ status: "MITIGATED" });
 
     expect(result).toHaveLength(1);
@@ -935,7 +935,7 @@ describe("processManagement.getRiskAlerts", () => {
   it("filters by processCode", async () => {
     mockQueryResult = [makeRiskAlert({ processCode: "T5" })];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getRiskAlerts({ processCode: "T5" });
 
     expect(result).toHaveLength(1);
@@ -949,7 +949,7 @@ describe("processManagement.getRiskAlerts", () => {
       throw new Error("DB error");
     };
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getRiskAlerts({});
 
     expect(result).toEqual([]);
@@ -971,7 +971,7 @@ describe("processManagement.acknowledgeRiskAlert", () => {
   it("acknowledges a risk alert successfully", async () => {
     mockReturningResult = [{ id: 1, status: "ACKNOWLEDGED" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.acknowledgeRiskAlert({
       alertId: 1,
       notes: "Will add extra resources",
@@ -984,7 +984,7 @@ describe("processManagement.acknowledgeRiskAlert", () => {
   it("acknowledges without notes", async () => {
     mockReturningResult = [{ id: 1, status: "ACKNOWLEDGED" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.acknowledgeRiskAlert({
       alertId: 1,
     });
@@ -995,7 +995,7 @@ describe("processManagement.acknowledgeRiskAlert", () => {
   it("throws NOT_FOUND when alert does not exist", async () => {
     mockReturningResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.processManagement.acknowledgeRiskAlert({ alertId: 999 })
     ).rejects.toThrow("Risk alert not found");
@@ -1019,7 +1019,7 @@ describe("processManagement.updateProcessStatus", () => {
   it("updates status to IN_PROGRESS (auto-sets actualStartDate)", async () => {
     mockReturningResult = [{ id: 1, status: "IN_PROGRESS" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.updateProcessStatus({
       instanceId: 1,
       status: "IN_PROGRESS",
@@ -1035,7 +1035,7 @@ describe("processManagement.updateProcessStatus", () => {
   it("updates status to COMPLETED (auto-sets actualEndDate + 100%)", async () => {
     mockReturningResult = [{ id: 1, status: "COMPLETED", completionPercentage: 100 }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.updateProcessStatus({
       instanceId: 1,
       status: "COMPLETED",
@@ -1048,7 +1048,7 @@ describe("processManagement.updateProcessStatus", () => {
   it("updates status with optional completionPercentage", async () => {
     mockReturningResult = [{ id: 1, status: "IN_PROGRESS", completionPercentage: 75 }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.updateProcessStatus({
       instanceId: 1,
       status: "IN_PROGRESS",
@@ -1061,7 +1061,7 @@ describe("processManagement.updateProcessStatus", () => {
   it("updates status with notes", async () => {
     mockReturningResult = [{ id: 1, status: "ON_HOLD" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.updateProcessStatus({
       instanceId: 1,
       status: "ON_HOLD",
@@ -1075,7 +1075,7 @@ describe("processManagement.updateProcessStatus", () => {
   it("throws NOT_FOUND when instance does not exist", async () => {
     mockReturningResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.processManagement.updateProcessStatus({
         instanceId: 999,
@@ -1085,7 +1085,7 @@ describe("processManagement.updateProcessStatus", () => {
   });
 
   it("rejects invalid completionPercentage (> 100)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.processManagement.updateProcessStatus({
         instanceId: 1,
@@ -1096,7 +1096,7 @@ describe("processManagement.updateProcessStatus", () => {
   });
 
   it("rejects invalid completionPercentage (< 0)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.processManagement.updateProcessStatus({
         instanceId: 1,
@@ -1107,7 +1107,7 @@ describe("processManagement.updateProcessStatus", () => {
   });
 
   it("rejects invalid status value", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.processManagement.updateProcessStatus({
         instanceId: 1,
@@ -1132,7 +1132,7 @@ describe("processManagement.getProcessDashboardStats", () => {
     // First select = instances (empty)
     selectResultsQueue.push([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessDashboardStats({});
 
     expect(result.summary.total).toBe(0);
@@ -1160,7 +1160,7 @@ describe("processManagement.getProcessDashboardStats", () => {
     selectResultsQueue.push([{ cnt: 3 }]);  // risk count
     selectResultsQueue.push([{ cnt: 5 }]);  // pending SOP
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessDashboardStats({});
 
     expect(result.summary.total).toBe(3);
@@ -1183,7 +1183,7 @@ describe("processManagement.getProcessDashboardStats", () => {
     selectResultsQueue.push([{ cnt: 0 }]);
     selectResultsQueue.push([{ cnt: 0 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessDashboardStats({ projectId: 5 });
 
     expect(result.summary.total).toBe(1);
@@ -1197,7 +1197,7 @@ describe("processManagement.getProcessDashboardStats", () => {
       throw new Error("DB error");
     };
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessDashboardStats({});
 
     expect(result.summary.total).toBe(0);
@@ -1216,7 +1216,7 @@ describe("processManagement.getProcessDashboardStats", () => {
     selectResultsQueue.push([{ cnt: 0 }]);
     selectResultsQueue.push([{ cnt: 0 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessDashboardStats({});
 
     // instance 1 is late (actual > planned), instance 2 is on time
@@ -1232,7 +1232,7 @@ describe("processManagement.getProcessDashboardStats", () => {
     // and fall back to mockQueryResult which is []
     // The code handles missing cnt with ?? 0
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.getProcessDashboardStats({});
 
     expect(result.summary.total).toBe(1);
@@ -1254,7 +1254,7 @@ describe("processManagement.seedDemo", () => {
     // and insert().values() (without returning) for instances (5 times), M2 tags (4 times), risks (2 times)
     mockReturningResult = [{ id: 1 }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.seedDemo();
 
     expect(result.definitions).toHaveLength(15);
@@ -1280,7 +1280,7 @@ describe("processManagement.seedDemo", () => {
       return Promise.resolve([{ id: callCount }]);
     });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.seedDemo();
 
     // First 2 definitions should show "exists", rest "created"
@@ -1299,7 +1299,7 @@ describe("processManagement.seedDemo", () => {
 
     // Override insert chain to make instance inserts fail sometimes
     // The instances are caught in try/catch so they should show "error" status
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.processManagement.seedDemo();
 
     // All 5 instances should be in the result
@@ -1316,7 +1316,7 @@ describe("processManagement.seedDemo", () => {
 // ═══════════════════════════════════════════════════════
 describe("processManagement input validation", () => {
   it("getProjectProcessInstances rejects invalid status enum", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.processManagement.getProjectProcessInstances({
         status: "INVALID" as any,
@@ -1325,28 +1325,28 @@ describe("processManagement input validation", () => {
   });
 
   it("getProcessGanttData requires projectId", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.processManagement as any).getProcessGanttData({})
     ).rejects.toThrow();
   });
 
   it("getM2Tags requires projectId", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.processManagement as any).getM2Tags({})
     ).rejects.toThrow();
   });
 
   it("respondToSopRecommendation requires recommendationId and accepted", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.processManagement as any).respondToSopRecommendation({})
     ).rejects.toThrow();
   });
 
   it("getStepSopRecommendation requires all four fields", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.processManagement as any).getStepSopRecommendation({
         projectId: 1,
@@ -1357,7 +1357,7 @@ describe("processManagement input validation", () => {
   });
 
   it("getRiskAlerts rejects invalid severity", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.processManagement.getRiskAlerts({
         severity: "SUPER_HIGH" as any,
@@ -1366,7 +1366,7 @@ describe("processManagement input validation", () => {
   });
 
   it("getRiskAlerts rejects invalid status", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.processManagement.getRiskAlerts({
         status: "DELETED" as any,
@@ -1375,7 +1375,7 @@ describe("processManagement input validation", () => {
   });
 
   it("updateProcessStatus rejects invalid status enum", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.processManagement.updateProcessStatus({
         instanceId: 1,
@@ -1385,7 +1385,7 @@ describe("processManagement input validation", () => {
   });
 
   it("linkSopToStep requires all three fields", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.processManagement as any).linkSopToStep({
         stepId: 1,

@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import * as ticketService from "./customerTicket.service";
 
 export const customerTicketRouter = router({
@@ -73,7 +73,7 @@ export const customerTicketRouter = router({
       return ticketService.updateTicket(ticketId, ctx.user.id, rest);
     }),
 
-  rate: protectedProcedure
+  rate: requirePermission('service:tickets:manage')
     .input(
       z.object({
         ticketId: z.number(),

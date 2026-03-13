@@ -2,7 +2,7 @@
  * 离职管理增强功能测试
  * 
  * 测试覆盖：
- * 1. 简道云员工数据搜索（自动填充）
+ * 1. 外部数据平台员工数据搜索（自动填充）
  * 2. 离职交接进度看板统计
  * 3. 审批流程通知集成
  */
@@ -40,7 +40,7 @@ vi.mock("../_core/notification", () => ({
   notifyOwner: vi.fn().mockResolvedValue(true),
 }));
 
-describe("Employee Search (Jiandaoyun Auto-Fill)", () => {
+describe("Employee Search (External Sync Auto-Fill)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -51,8 +51,8 @@ describe("Employee Search (Jiandaoyun Auto-Fill)", () => {
       { id: 2, employeeId: "EMP002", name: "张四", department: "销售部", position: "经理", hireDate: "2022-06-01", status: "active" },
     ]]);
 
-    const { searchJiandaoyunEmployees } = await import("./offboarding.service");
-    const result = await searchJiandaoyunEmployees("张");
+    const { searchExtSyncEmployees } = await import("./offboarding.service");
+    const result = await searchExtSyncEmployees("张");
 
     expect(result).toBeDefined();
     expect(result.localEmployees).toBeDefined();
@@ -63,8 +63,8 @@ describe("Employee Search (Jiandaoyun Auto-Fill)", () => {
   it("should return empty results for non-matching keyword", async () => {
     mockDb.execute.mockResolvedValueOnce([[]]);
 
-    const { searchJiandaoyunEmployees } = await import("./offboarding.service");
-    const result = await searchJiandaoyunEmployees("不存在的员工");
+    const { searchExtSyncEmployees } = await import("./offboarding.service");
+    const result = await searchExtSyncEmployees("不存在的员工");
 
     expect(result.localEmployees).toEqual([]);
     expect(result.totalLocal).toBe(0);
@@ -73,8 +73,8 @@ describe("Employee Search (Jiandaoyun Auto-Fill)", () => {
   it("should handle search errors gracefully", async () => {
     mockDb.execute.mockRejectedValueOnce(new Error("DB connection failed"));
 
-    const { searchJiandaoyunEmployees } = await import("./offboarding.service");
-    const result = await searchJiandaoyunEmployees("test");
+    const { searchExtSyncEmployees } = await import("./offboarding.service");
+    const result = await searchExtSyncEmployees("test");
 
     expect(result.localEmployees).toEqual([]);
     expect(result.totalLocal).toBe(0);

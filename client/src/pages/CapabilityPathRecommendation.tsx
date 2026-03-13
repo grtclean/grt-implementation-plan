@@ -17,20 +17,22 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-// 能力域配置
-const DOMAINS: Record<string, { name: string; fullName: string; color: string }> = {
-  T: { name: "技术能力", fullName: "Technology", color: "#f97316" },
-  S: { name: "系统理解", fullName: "System Understanding", color: "#3b82f6" },
-  D: { name: "交付能力", fullName: "Delivery", color: "#22c55e" },
-  C: { name: "客户价值", fullName: "Customer Value", color: "#a855f7" },
-  K: { name: "知识沉淀", fullName: "Knowledge Precipitation", color: "#eab308" },
-  L: { name: "领导力", fullName: "Leadership/Influence", color: "#ec4899" },
+// 能力域配置 — use i18n keys, resolved at render time
+const DOMAINS_CONFIG: Record<string, { nameKey: string; fullName: string; color: string }> = {
+  T: { nameKey: "hr.capPath.domainT", fullName: "Technology", color: "#f97316" },
+  S: { nameKey: "hr.capPath.domainS", fullName: "System Understanding", color: "#3b82f6" },
+  D: { nameKey: "hr.capPath.domainD", fullName: "Delivery", color: "#22c55e" },
+  C: { nameKey: "hr.capPath.domainC", fullName: "Customer Value", color: "#a855f7" },
+  K: { nameKey: "hr.capPath.domainK", fullName: "Knowledge Precipitation", color: "#eab308" },
+  L: { nameKey: "hr.capPath.domainL", fullName: "Leadership/Influence", color: "#ec4899" },
 };
 
 const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 export default function CapabilityPathRecommendation() {
+  const { t } = useLanguage();
   // 获取路径推荐 (DB-backed)
   const recommendationQuery = trpc.capabilityOs.getPathRecommendation.useQuery(undefined, QUERY_OPTS);
 
@@ -42,7 +44,7 @@ export default function CapabilityPathRecommendation() {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-            <p className="text-muted-foreground">AI正在分析您的能力数据...</p>
+            <p className="text-muted-foreground">{t("hr.capPath.loading")}</p>
           </div>
         </div>
     );
@@ -52,8 +54,8 @@ export default function CapabilityPathRecommendation() {
       <div className="space-y-6">
         <PageHeader
           icon={Sparkles}
-          title="能力发展路径推荐"
-          description="AI-Powered Capability Development Path"
+          title={t("hr.capPath.title")}
+          description={t("hr.capPath.subtitle")}
         />
 
         {/* AI分析卡片 */}
@@ -61,7 +63,7 @@ export default function CapabilityPathRecommendation() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              AI智能分析
+              {t("hr.capPath.aiAnalysis")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -76,13 +78,13 @@ export default function CapabilityPathRecommendation() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-yellow-500">
                 <Target className="h-5 w-5" />
-                需要提升的领域
+                {t("hr.capPath.weakAreas")}
               </CardTitle>
-              <CardDescription>这些领域是您当前的能力短板</CardDescription>
+              <CardDescription>{t("hr.capPath.weakAreasDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {recommendation.weakestDomains.map((domain: any) => {
-                const config = DOMAINS[domain.code];
+                const config = DOMAINS_CONFIG[domain.code];
                 return (
                   <div
                     key={domain.code}
@@ -102,7 +104,7 @@ export default function CapabilityPathRecommendation() {
                     </div>
                     <div className="text-right">
                       <span className="text-lg font-bold">L{domain.level}</span>
-                      <p className="text-xs text-yellow-500">差距 {domain.gap}</p>
+                      <p className="text-xs text-yellow-500">{t("hr.capPath.gap")} {domain.gap}</p>
                     </div>
                   </div>
                 );
@@ -115,14 +117,14 @@ export default function CapabilityPathRecommendation() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-green-500">
                 <TrendingUp className="h-5 w-5" />
-                您的能力优势
+                {t("hr.capPath.strengths")}
               </CardTitle>
-              <CardDescription>这些领域是您的核心竞争力</CardDescription>
+              <CardDescription>{t("hr.capPath.strengthsDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {recommendation.strongestDomains.length > 0 ? (
                 recommendation.strongestDomains.map((domain: any) => {
-                  const config = DOMAINS[domain.code];
+                  const config = DOMAINS_CONFIG[domain.code];
                   return (
                     <div
                       key={domain.code}
@@ -146,7 +148,7 @@ export default function CapabilityPathRecommendation() {
                 })
               ) : (
                 <p className="text-muted-foreground text-center py-4">
-                  继续积累经验，培养您的核心优势
+                  {t("hr.capPath.noStrengths")}
                 </p>
               )}
             </CardContent>
@@ -158,15 +160,15 @@ export default function CapabilityPathRecommendation() {
           <TabsList>
             <TabsTrigger value="path" className="gap-2">
               <ArrowRight className="h-4 w-4" />
-              发展路径
+              {t("hr.capPath.tabPath")}
             </TabsTrigger>
             <TabsTrigger value="projects" className="gap-2">
               <Briefcase className="h-4 w-4" />
-              项目机会
+              {t("hr.capPath.tabProjects")}
             </TabsTrigger>
             <TabsTrigger value="training" className="gap-2">
               <BookOpen className="h-4 w-4" />
-              培训资源
+              {t("hr.capPath.tabTraining")}
             </TabsTrigger>
           </TabsList>
 
@@ -178,13 +180,13 @@ export default function CapabilityPathRecommendation() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Zap className="h-5 w-5 text-yellow-500" />
-                    短期行动 (1-3个月)
+                    {t("hr.capPath.shortTerm")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {recommendation.recommendedPath.shortTerm.map((action: any, index: number) => {
-                      const config = DOMAINS[action.domain];
+                      const config = DOMAINS_CONFIG[action.domain];
                       return (
                         <div
                           key={index}
@@ -200,10 +202,10 @@ export default function CapabilityPathRecommendation() {
                                 className="px-2 py-0.5 rounded text-xs text-white"
                                 style={{ backgroundColor: config?.color }}
                               >
-                                {config?.name}
+                                {config ? t(config.nameKey) : ""}
                               </span>
                               <span className="text-xs text-muted-foreground">
-                                预计积分 +{action.expectedPoints}
+                                {t("hr.capPath.expectedPoints")} +{action.expectedPoints}
                               </span>
                             </div>
                           </div>
@@ -220,13 +222,13 @@ export default function CapabilityPathRecommendation() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-blue-500" />
-                    中期行动 (3-6个月)
+                    {t("hr.capPath.midTerm")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {recommendation.recommendedPath.midTerm.map((action: any, index: number) => {
-                      const config = DOMAINS[action.domain];
+                      const config = DOMAINS_CONFIG[action.domain];
                       return (
                         <div
                           key={index}
@@ -242,10 +244,10 @@ export default function CapabilityPathRecommendation() {
                                 className="px-2 py-0.5 rounded text-xs text-white"
                                 style={{ backgroundColor: config?.color }}
                               >
-                                {config?.name}
+                                {config ? t(config.nameKey) : ""}
                               </span>
                               <span className="text-xs text-muted-foreground">
-                                预计积分 +{action.expectedPoints}
+                                {t("hr.capPath.expectedPoints")} +{action.expectedPoints}
                               </span>
                             </div>
                           </div>
@@ -262,13 +264,13 @@ export default function CapabilityPathRecommendation() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Brain className="h-5 w-5 text-purple-500" />
-                    长期行动 (6-12个月)
+                    {t("hr.capPath.longTerm")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {recommendation.recommendedPath.longTerm.map((action: any, index: number) => {
-                      const config = DOMAINS[action.domain];
+                      const config = DOMAINS_CONFIG[action.domain];
                       return (
                         <div
                           key={index}
@@ -284,10 +286,10 @@ export default function CapabilityPathRecommendation() {
                                 className="px-2 py-0.5 rounded text-xs text-white"
                                 style={{ backgroundColor: config?.color }}
                               >
-                                {config?.name}
+                                {config ? t(config.nameKey) : ""}
                               </span>
                               <span className="text-xs text-muted-foreground">
-                                预计积分 +{action.expectedPoints}
+                                {t("hr.capPath.expectedPoints")} +{action.expectedPoints}
                               </span>
                             </div>
                           </div>
@@ -305,13 +307,13 @@ export default function CapabilityPathRecommendation() {
           <TabsContent value="projects">
             <Card>
               <CardHeader>
-                <CardTitle>推荐项目机会</CardTitle>
-                <CardDescription>参与这些项目可以快速积累能力积分</CardDescription>
+                <CardTitle>{t("hr.capPath.projectOpportunities")}</CardTitle>
+                <CardDescription>{t("hr.capPath.projectOpportunitiesDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {recommendation.projectOpportunities.map((project: any) => {
-                    const config = DOMAINS[project.requiredDomains[0]];
+                    const config = DOMAINS_CONFIG[project.requiredDomains[0]];
                     return (
                       <Card key={project.id} className="hover:shadow-lg transition-shadow">
                         <CardHeader className="pb-2">
@@ -320,7 +322,7 @@ export default function CapabilityPathRecommendation() {
                               className="px-2 py-1 rounded text-xs text-white"
                               style={{ backgroundColor: config?.color }}
                             >
-                              {config?.name}
+                              {config ? t(config.nameKey) : ""}
                             </span>
                             <span
                               className={`px-2 py-1 rounded text-xs ${
@@ -332,10 +334,10 @@ export default function CapabilityPathRecommendation() {
                               }`}
                             >
                               {project.difficulty === "easy"
-                                ? "简单"
+                                ? t("hr.capPath.difficultyEasy")
                                 : project.difficulty === "medium"
-                                  ? "中等"
-                                  : "困难"}
+                                  ? t("hr.capPath.difficultyMedium")
+                                  : t("hr.capPath.difficultyHard")}
                             </span>
                           </div>
                         </CardHeader>
@@ -344,9 +346,9 @@ export default function CapabilityPathRecommendation() {
                           <p className="text-sm text-muted-foreground mb-3">{project.description}</p>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">
-                              要求 L{project.requiredLevel}+
+                              {t("hr.capPath.requireLevel")} L{project.requiredLevel}+
                             </span>
-                            <span className="font-bold text-primary">+{project.potentialPoints}分</span>
+                            <span className="font-bold text-primary">+{project.potentialPoints}{t("hr.capPath.points")}</span>
                           </div>
                         </CardContent>
                       </Card>
@@ -361,13 +363,13 @@ export default function CapabilityPathRecommendation() {
           <TabsContent value="training">
             <Card>
               <CardHeader>
-                <CardTitle>推荐培训资源</CardTitle>
-                <CardDescription>通过培训快速提升能力等级</CardDescription>
+                <CardTitle>{t("hr.capPath.trainingResources")}</CardTitle>
+                <CardDescription>{t("hr.capPath.trainingResourcesDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {recommendation.trainingResources.map((resource: any) => {
-                    const config = DOMAINS[resource.targetDomain];
+                    const config = DOMAINS_CONFIG[resource.targetDomain];
                     return (
                       <Card key={resource.id} className="hover:shadow-lg transition-shadow">
                         <CardHeader className="pb-2">
@@ -376,7 +378,7 @@ export default function CapabilityPathRecommendation() {
                               className="px-2 py-1 rounded text-xs text-white"
                               style={{ backgroundColor: config?.color }}
                             >
-                              {config?.name}
+                              {config ? t(config.nameKey) : ""}
                             </span>
                             <span
                               className={`px-2 py-1 rounded text-xs ${
@@ -388,10 +390,10 @@ export default function CapabilityPathRecommendation() {
                               }`}
                             >
                               {resource.type === "online"
-                                ? "在线"
+                                ? t("hr.capPath.typeOnline")
                                 : resource.type === "offline"
-                                  ? "线下"
-                                  : "实操"}
+                                  ? t("hr.capPath.typeOffline")
+                                  : t("hr.capPath.typePractice")}
                             </span>
                           </div>
                         </CardHeader>
@@ -403,7 +405,7 @@ export default function CapabilityPathRecommendation() {
                               <Clock className="h-4 w-4" />
                               {resource.duration}
                             </span>
-                            <span className="font-medium">目标 L{resource.targetLevel}</span>
+                            <span className="font-medium">{t("hr.capPath.targetLevel")} L{resource.targetLevel}</span>
                           </div>
                         </CardContent>
                       </Card>

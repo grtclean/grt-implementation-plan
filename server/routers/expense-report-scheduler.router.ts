@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 const emptyListResponse = { items: [] as any[], total: 0, page: 1, pageSize: 10 };
@@ -17,7 +17,7 @@ export const expenseReportSchedulerRouter = router({
   }),
 
   // 创建报销计划
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('finance:expense:create').input(z.object({
     name: z.string().min(1).max(200),
     description: z.string().max(2000).optional(),
     frequency: z.string().max(50).optional(),
@@ -27,7 +27,7 @@ export const expenseReportSchedulerRouter = router({
   }),
 
   // 更新报销计划
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('finance:expense:create').input(z.object({
     id: z.string(),
     name: z.string().min(1).max(200).optional(),
     description: z.string().max(2000).optional(),
@@ -38,7 +38,7 @@ export const expenseReportSchedulerRouter = router({
   }),
 
   // 删除报销计划
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async () => {
+  delete: requirePermission('finance:expense:create').input(z.object({ id: z.string() })).mutation(async () => {
     return successResponse;
   }),
 
@@ -66,7 +66,7 @@ export const expenseReportSchedulerRouter = router({
   }),
 
   // 更新调度
-  updateSchedule: protectedProcedure.input(z.object({
+  updateSchedule: requirePermission('finance:expense:create').input(z.object({
     scheduleId: z.string(),
     enabled: z.boolean().optional(),
     cronExpression: z.string().max(100).optional(),
@@ -79,14 +79,14 @@ export const expenseReportSchedulerRouter = router({
   }),
 
   // 删除调度
-  deleteSchedule: protectedProcedure.input(z.object({
+  deleteSchedule: requirePermission('finance:expense:create').input(z.object({
     scheduleId: z.string(),
   })).mutation(async () => {
     return successResponse;
   }),
 
   // 启停调度
-  toggleSchedule: protectedProcedure.input(z.object({
+  toggleSchedule: requirePermission('finance:expense:create').input(z.object({
     scheduleId: z.string(),
     enabled: z.boolean(),
   })).mutation(async () => {
@@ -94,7 +94,7 @@ export const expenseReportSchedulerRouter = router({
   }),
 
   // 立即触发
-  triggerNow: protectedProcedure.input(z.object({
+  triggerNow: requirePermission('finance:expense:create').input(z.object({
     scheduleId: z.string(),
   })).mutation(async () => {
     return successResponse;
@@ -166,7 +166,7 @@ export const expenseReportSchedulerRouter = router({
     }),
 
   /** 移除接收人 */
-  removeRecipient: protectedProcedure
+  removeRecipient: requirePermission('finance:expense:create')
     .input(z.object({
       scheduleId: z.string(),
       recipientId: z.string(),
@@ -176,7 +176,7 @@ export const expenseReportSchedulerRouter = router({
     }),
 
   /** 手动触发发送 */
-  triggerSend: protectedProcedure
+  triggerSend: requirePermission('finance:expense:create')
     .input(z.object({
       scheduleId: z.string(),
     }))

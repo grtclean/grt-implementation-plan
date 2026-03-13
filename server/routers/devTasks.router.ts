@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import {
   createDevTask,
   getAllDevTasks,
@@ -135,7 +135,7 @@ export const devTasksRouter = router({
     }),
 
   // 删除任务
-  delete: protectedProcedure
+  delete: requirePermission('devops:concurrent:operate')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       try {
@@ -147,7 +147,7 @@ export const devTasksRouter = router({
     }),
 
   // 初始化默认任务
-  init: protectedProcedure.mutation(async () => {
+  init: requirePermission('devops:concurrent:operate').mutation(async () => {
     try {
       return await initDefaultDevTasks();
     } catch (error) {
@@ -157,7 +157,7 @@ export const devTasksRouter = router({
   }),
 
   // 批量删除测试任务
-  deleteTestTasks: protectedProcedure.mutation(async () => {
+  deleteTestTasks: requirePermission('devops:concurrent:operate').mutation(async () => {
     try {
       const tasks = await getAllDevTasks({});
       const testTasks = tasks.filter((task: any) => 

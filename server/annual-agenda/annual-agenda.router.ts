@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql, SQL } from "drizzle-orm";
 import {
@@ -91,7 +91,7 @@ export const annualAgendaRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const result = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.id}`);
+      const result = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.id} LIMIT 1000`);
       return (result[0] as any[])[0] || null;
     }),
 
@@ -186,7 +186,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 删除日程
-  delete: protectedProcedure
+  delete: requirePermission('strategy:agenda:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -195,13 +195,13 @@ export const annualAgendaRouter = router({
     }),
 
   // 同步单个日程到Microsoft Graph
-  syncToGraph: protectedProcedure
+  syncToGraph: requirePermission('strategy:agenda:manage')
     .input(z.object({ id: z.number(), userId: z.string() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
 
       // 获取日程详情
-      const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.id}`);
+      const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.id} LIMIT 1000`);
       const event = (eventResult[0] as any[])[0];
       if (!event) return { success: false, error: "Event not found" };
 
@@ -249,7 +249,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 批量同步到Microsoft Graph
-  batchSyncToGraph: protectedProcedure
+  batchSyncToGraph: requirePermission('strategy:agenda:manage')
     .input(z.object({
       eventIds: z.array(z.number()),
       userId: z.string(),
@@ -265,7 +265,7 @@ export const annualAgendaRouter = router({
       }
 
       for (const eventId of input.eventIds) {
-        const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${eventId}`);
+        const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${eventId} LIMIT 1000`);
         const event = (eventResult[0] as any[])[0];
 
         if (!event) {
@@ -318,7 +318,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 从Microsoft Graph拉取日程
-  pullFromGraph: protectedProcedure
+  pullFromGraph: requirePermission('strategy:agenda:manage')
     .input(z.object({
       userId: z.string(),
       startDate: z.string(),
@@ -401,7 +401,7 @@ export const annualAgendaRouter = router({
   }),
 
   // 更新日程状态
-  updateStatus: protectedProcedure
+  updateStatus: requirePermission('strategy:agenda:manage')
     .input(z.object({
       id: z.number(),
       status: eventStatusEnum,
@@ -413,7 +413,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 批量同步年度日程到Graph（简化版，不需要userId）
-  syncAllToGraph: protectedProcedure
+  syncAllToGraph: requirePermission('strategy:agenda:manage')
     .input(z.object({
       year: z.number().default(2026),
     }))
@@ -474,7 +474,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 从 Graph 拉取日程（简化版）
-  pullAllFromGraph: protectedProcedure
+  pullAllFromGraph: requirePermission('strategy:agenda:manage')
     .input(z.object({
       startDate: z.string(),
       endDate: z.string(),
@@ -534,7 +534,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 拖拽调整日程日期
-  reschedule: protectedProcedure
+  reschedule: requirePermission('strategy:agenda:manage')
     .input(z.object({
       id: z.number(),
       newDate: z.string(),
@@ -544,7 +544,7 @@ export const annualAgendaRouter = router({
       const db = await requireDb();
 
       // 获取原日程信息
-      const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.id}`);
+      const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.id} LIMIT 1000`);
       const event = (eventResult[0] as any[])[0];
       if (!event) return { success: false, error: "日程不存在" };
 
@@ -779,7 +779,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 生成年度日程（基于模板）
-  generateYearAgenda: protectedProcedure
+  generateYearAgenda: requirePermission('strategy:agenda:manage')
     .input(z.object({
       year: z.number(),
       includeHolidays: z.boolean().default(true),
@@ -846,7 +846,7 @@ export const annualAgendaRouter = router({
         ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
         : sql``;
 
-      const result = await db.execute(sql`SELECT * FROM agenda_templates ${whereClause} ORDER BY frequency, name`);
+      const result = await db.execute(sql`SELECT * FROM agenda_templates ${whereClause} ORDER BY frequency, name LIMIT 1000`);
       return (result[0] as any[]);
     }),
 
@@ -923,7 +923,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 删除模板
-  deleteTemplate: protectedProcedure
+  deleteTemplate: requirePermission('strategy:agenda:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -932,7 +932,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 从模板生成日程
-  generateFromTemplate: protectedProcedure
+  generateFromTemplate: requirePermission('strategy:agenda:manage')
     .input(z.object({
       templateId: z.number(),
       year: z.number(),
@@ -943,7 +943,7 @@ export const annualAgendaRouter = router({
       const db = await requireDb();
 
       // 获取模板
-      const templateResult = await db.execute(sql`SELECT * FROM agenda_templates WHERE id = ${input.templateId}`);
+      const templateResult = await db.execute(sql`SELECT * FROM agenda_templates WHERE id = ${input.templateId} LIMIT 1000`);
       const template = (templateResult[0] as any[])[0];
       if (!template) return { success: false, error: "Template not found", created: 0 };
 
@@ -1031,12 +1031,12 @@ export const annualAgendaRouter = router({
     .input(z.object({ eventId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const result = await db.execute(sql`SELECT * FROM event_attendees WHERE event_id = ${input.eventId} ORDER BY role, name`);
+      const result = await db.execute(sql`SELECT * FROM event_attendees WHERE event_id = ${input.eventId} ORDER BY role, name LIMIT 1000`);
       return (result[0] as any[]);
     }),
 
   // 添加参与人员
-  addAttendee: protectedProcedure
+  addAttendee: requirePermission('strategy:agenda:manage')
     .input(z.object({
       eventId: z.number(),
       userId: z.number().optional(),
@@ -1057,7 +1057,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 更新参与人员状态
-  updateAttendeeStatus: protectedProcedure
+  updateAttendeeStatus: requirePermission('strategy:agenda:manage')
     .input(z.object({
       id: z.number(),
       responseStatus: z.enum(['pending', 'accepted', 'declined', 'tentative']),
@@ -1075,7 +1075,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 删除参与人员
-  removeAttendee: protectedProcedure
+  removeAttendee: requirePermission('strategy:agenda:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -1108,7 +1108,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 发送会议邀请
-  sendInvitations: protectedProcedure
+  sendInvitations: requirePermission('strategy:agenda:manage')
     .input(z.object({
       eventId: z.number(),
       attendeeIds: z.array(z.number()).optional(),
@@ -1117,7 +1117,7 @@ export const annualAgendaRouter = router({
       const db = await requireDb();
 
       // 获取日程信息
-      const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.eventId}`);
+      const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.eventId} LIMIT 1000`);
       const event = (eventResult[0] as any[])[0];
       if (!event) return { success: false, error: "Event not found", sent: 0 };
 
@@ -1128,7 +1128,7 @@ export const annualAgendaRouter = router({
         conditions.push(sql`id IN (${sql.join(idPlaceholders, sql`, `)})`);
       }
       const whereClause = sql.join(conditions, sql` AND `);
-      const attendeesResult = await db.execute(sql`SELECT * FROM event_attendees WHERE ${whereClause}`);
+      const attendeesResult = await db.execute(sql`SELECT * FROM event_attendees WHERE ${whereClause} LIMIT 1000`);
       const attendees = attendeesResult[0] as any[];
 
       // TODO: 集成邮件/钉钉发送邀请
@@ -1137,7 +1137,7 @@ export const annualAgendaRouter = router({
       for (const attendee of attendees) {
         await db.execute(sql`
           UPDATE event_attendees
-          SET notes = CONCAT(IFNULL(notes, ''), ${invitationNote})
+          SET notes = CONCAT(COALESCE(notes, ''), ${invitationNote})
           WHERE id = ${attendee.id}
         `);
       }
@@ -1164,7 +1164,7 @@ export const annualAgendaRouter = router({
 
       const result = await db.execute(sql`
         SELECT e.*,
-          DATEDIFF(e.scheduled_date, CURDATE()) as days_until,
+          (e.scheduled_date::date - CURRENT_DATE) as days_until,
           (SELECT COUNT(*) FROM event_attendees WHERE event_id = e.id) as attendee_count
         FROM annual_agenda_events e
         WHERE ${dateCondition} AND status = 'pending'
@@ -1181,7 +1181,7 @@ export const annualAgendaRouter = router({
     }),
 
   // 发送日程提醒通知
-  sendReminder: protectedProcedure
+  sendReminder: requirePermission('strategy:agenda:manage')
     .input(z.object({
       eventId: z.number(),
       channels: z.array(z.enum(['email', 'dingtalk', 'wechat', 'system'])).default(['system']),
@@ -1193,7 +1193,7 @@ export const annualAgendaRouter = router({
       const { sendNotification } = await import('../notification-service');
 
       // 获取日程详情
-      const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.eventId}`);
+      const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.eventId} LIMIT 1000`);
       const event = (eventResult[0] as any[])[0];
       if (!event) return { success: false, error: 'Event not found' };
 

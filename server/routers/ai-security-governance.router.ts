@@ -11,7 +11,7 @@
  *   7. getAuditStats        — Count of logs by action type
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { requireDb } from "../db";
 import { sysGlobalControls } from "../../drizzle/security-gateway-schema";
 import { knowledgeDocuments } from "../../drizzle/ai-genesis-schema";
@@ -35,7 +35,7 @@ export const aiSecurityGovernanceRouter = router({
   // 1. verifyOtp — Validate a 6-digit OTP code
   // ══════════════════════════════════════════════════
 
-  verifyOtp: protectedProcedure
+  verifyOtp: requirePermission('ai:security:governance')
     .input(z.object({ code: z.string() }))
     .mutation(async ({ input }) => {
       return { valid: verifyOtpCode(input.code) };
@@ -50,7 +50,8 @@ export const aiSecurityGovernanceRouter = router({
     const [control] = await db
       .select()
       .from(sysGlobalControls)
-      .where(eq(sysGlobalControls.controlKey, "PIPELINE_FROZEN"));
+      .where(eq(sysGlobalControls.controlKey, "PIPELINE_FROZEN"))
+      .limit(1000);
 
     return {
       pipelineFrozen: control?.controlValue === "true",
@@ -63,7 +64,7 @@ export const aiSecurityGovernanceRouter = router({
   // 3. togglePipelineFreeze — Freeze/unfreeze (OTP-gated)
   // ══════════════════════════════════════════════════
 
-  togglePipelineFreeze: protectedProcedure
+  togglePipelineFreeze: requirePermission('ai:security:governance')
     .input(
       z.object({
         frozen: z.boolean(),
@@ -83,7 +84,8 @@ export const aiSecurityGovernanceRouter = router({
       const [existing] = await db
         .select()
         .from(sysGlobalControls)
-        .where(eq(sysGlobalControls.controlKey, "PIPELINE_FROZEN"));
+        .where(eq(sysGlobalControls.controlKey, "PIPELINE_FROZEN"))
+      .limit(1000);
 
       if (existing) {
         await db
@@ -123,7 +125,7 @@ export const aiSecurityGovernanceRouter = router({
   // 4. rollbackKnowledge — Purge a knowledge doc (OTP-gated)
   // ══════════════════════════════════════════════════
 
-  rollbackKnowledge: protectedProcedure
+  rollbackKnowledge: requirePermission('ai:security:governance')
     .input(
       z.object({
         documentId: z.number(),
@@ -142,7 +144,8 @@ export const aiSecurityGovernanceRouter = router({
       const [doc] = await db
         .select()
         .from(knowledgeDocuments)
-        .where(eq(knowledgeDocuments.id, input.documentId));
+        .where(eq(knowledgeDocuments.id, input.documentId))
+        .limit(1000);
 
       if (!doc) {
         throw new Error("Document not found");

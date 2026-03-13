@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS meeting_action_items (
   -- 关联信息
   source_agenda_item_id VARCHAR(100),
   related_project_id VARCHAR(36),
+  planner_task_id VARCHAR(255),
   
   -- 元数据
   metadata JSON,

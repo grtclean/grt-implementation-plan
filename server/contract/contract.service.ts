@@ -392,7 +392,8 @@ export async function getDocuments(contractId: number, docType?: string) {
     .select()
     .from(contractDocuments)
     .where(and(...conditions))
-    .orderBy(desc(contractDocuments.createdAt));
+    .orderBy(desc(contractDocuments.createdAt))
+    .limit(1000);
 }
 
 export async function getDocumentById(id: number) {
@@ -645,7 +646,8 @@ export async function getAnalysesByContract(contractId: number) {
     .select()
     .from(contractAiAnalyses)
     .where(eq(contractAiAnalyses.contractId, contractId))
-    .orderBy(desc(contractAiAnalyses.createdAt));
+    .orderBy(desc(contractAiAnalyses.createdAt))
+    .limit(1000);
 }
 
 export async function applyAnalysis(analysisId: number, userId: number) {

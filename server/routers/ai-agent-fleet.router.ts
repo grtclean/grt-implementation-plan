@@ -9,7 +9,7 @@
  * - Analytics & dashboards
  */
 
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
 import { requireDb } from "../db";
@@ -41,7 +41,7 @@ export const aiAgentFleetRouter = router({
   /**
    * 为当前用户创建L1-L5军团
    */
-  provisionMyFleet: protectedProcedure.mutation(async ({ ctx }) => {
+  provisionMyFleet: requirePermission('ai:agents:manage').mutation(async ({ ctx }) => {
     try {
       const userId = ctx.user?.id;
       if (!userId) return { success: false, error: "用户未认证" };
@@ -55,7 +55,7 @@ export const aiAgentFleetRouter = router({
   /**
    * 管理员：批量为所有有Master助理的员工创建军团
    */
-  provisionAll: protectedProcedure.mutation(async () => {
+  provisionAll: requirePermission('ai:agents:manage').mutation(async () => {
     try {
       const result = await provisionFleetForAll();
       return { success: true, ...result };
@@ -97,7 +97,7 @@ export const aiAgentFleetRouter = router({
   /**
    * 激活Agent
    */
-  activateAgent: protectedProcedure
+  activateAgent: requirePermission('ai:agents:manage')
     .input(z.object({ agentId: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       try {
@@ -111,7 +111,7 @@ export const aiAgentFleetRouter = router({
   /**
    * 暂停Agent
    */
-  deactivateAgent: protectedProcedure
+  deactivateAgent: requirePermission('ai:agents:manage')
     .input(z.object({ agentId: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       try {
@@ -202,7 +202,7 @@ export const aiAgentFleetRouter = router({
   /**
    * 人类审核任务输出
    */
-  reviewTaskOutput: protectedProcedure
+  reviewTaskOutput: requirePermission('ai:agents:manage')
     .input(
       z.object({
         executionId: z.union([z.string(), z.number()]),

@@ -5,8 +5,9 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
+  createAuthenticatedCaller,
 } from "../_test/trpc-test-utils";
 
 const { mockSubmitTask, selectResultsQueue, returningQueue } = vi.hoisted(() => {
@@ -16,7 +17,14 @@ const { mockSubmitTask, selectResultsQueue, returningQueue } = vi.hoisted(() => 
   return { mockSubmitTask, selectResultsQueue, returningQueue };
 });
 
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../services/task-worker.service", () => ({
+  registerTaskHandler: vi.fn(),
   submitTask: mockSubmitTask,
 }));
 

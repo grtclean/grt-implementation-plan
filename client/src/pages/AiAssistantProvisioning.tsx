@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,38 +20,39 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-const ASSISTANT_TYPE_LABELS: Record<string, string> = {
-  general: "通用",
-  pm: "项目管理",
-  sales: "销售",
-  engineering: "工程",
-  tech: "技术",
-  hr: "人力资源",
-  finance: "财务",
-  production: "生产",
+const ASSISTANT_TYPE_KEYS: Record<string, string> = {
+  general: "ai.provisioning.typeGeneral",
+  pm: "ai.provisioning.typePm",
+  sales: "ai.provisioning.typeSales",
+  engineering: "ai.provisioning.typeEngineering",
+  tech: "ai.provisioning.typeTech",
+  hr: "ai.provisioning.typeHr",
+  finance: "ai.provisioning.typeFinance",
+  production: "ai.provisioning.typeProduction",
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: "系统管理员",
-  director: "总监",
-  bu_gm: "事业部总经理",
-  bu_pm: "项目经理",
-  bu_sales: "销售工程师",
-  bu_mech: "机械工程师",
-  bu_elec: "电气工程师",
-  procurement_eng: "采购工程师",
-  cs_engineer: "客服工程师",
-  dept_manager: "部门经理",
-  team_lead: "组长/主管",
-  hr_manager: "HR经理",
-  hr_specialist: "HR专员",
-  finance_manager: "财务经理",
-  finance_specialist: "财务专员",
-  production_worker: "产线员工",
-  employee: "员工",
+const ROLE_KEYS: Record<string, string> = {
+  admin: "ai.provisioning.roleAdmin",
+  director: "ai.provisioning.roleDirector",
+  bu_gm: "ai.provisioning.roleBuGm",
+  bu_pm: "ai.provisioning.roleBuPm",
+  bu_sales: "ai.provisioning.roleBuSales",
+  bu_mech: "ai.provisioning.roleBuMech",
+  bu_elec: "ai.provisioning.roleBuElec",
+  procurement_eng: "ai.provisioning.roleProcurement",
+  cs_engineer: "ai.provisioning.roleCsEngineer",
+  dept_manager: "ai.provisioning.roleDeptManager",
+  team_lead: "ai.provisioning.roleTeamLead",
+  hr_manager: "ai.provisioning.roleHrManager",
+  hr_specialist: "ai.provisioning.roleHrSpecialist",
+  finance_manager: "ai.provisioning.roleFinanceManager",
+  finance_specialist: "ai.provisioning.roleFinanceSpecialist",
+  production_worker: "ai.provisioning.roleProductionWorker",
+  employee: "ai.provisioning.roleEmployee",
 };
 
 export default function AiAssistantProvisioning() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [department, setDepartment] = useState("");
   const [page, setPage] = useState(0);
@@ -103,9 +105,9 @@ export default function AiAssistantProvisioning() {
             <Bot className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold">AI助理配置中心</h1>
+            <h1 className="text-xl font-semibold">{t("ai.provisioning.title")}</h1>
             <p className="text-sm text-muted-foreground">
-              自动为每位员工配置基于岗位的AI助理
+              {t("ai.provisioning.description")}
             </p>
           </div>
         </div>
@@ -120,7 +122,7 @@ export default function AiAssistantProvisioning() {
                 <Users className="h-4 w-4 text-blue-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">总员工数</p>
+                <p className="text-xs text-muted-foreground">{t("ai.provisioning.totalEmployees")}</p>
                 <p className="text-xl font-bold">{status?.totalEmployees ?? "-"}</p>
               </div>
             </div>
@@ -133,7 +135,7 @@ export default function AiAssistantProvisioning() {
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">已配置</p>
+                <p className="text-xs text-muted-foreground">{t("ai.provisioning.provisioned")}</p>
                 <p className="text-xl font-bold">{status?.provisionedCount ?? "-"}</p>
               </div>
             </div>
@@ -146,7 +148,7 @@ export default function AiAssistantProvisioning() {
                 <Clock className="h-4 w-4 text-amber-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">待配置</p>
+                <p className="text-xs text-muted-foreground">{t("ai.provisioning.pending")}</p>
                 <p className="text-xl font-bold">{status?.pendingCount ?? "-"}</p>
               </div>
             </div>
@@ -159,7 +161,7 @@ export default function AiAssistantProvisioning() {
                 <Zap className="h-4 w-4 text-purple-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">配置率</p>
+                <p className="text-xs text-muted-foreground">{t("ai.provisioning.provisionRate")}</p>
                 <p className="text-xl font-bold">{provisionRate}%</p>
               </div>
             </div>
@@ -181,7 +183,7 @@ export default function AiAssistantProvisioning() {
               ) : (
                 <Zap className="mr-2 h-4 w-4" />
               )}
-              一键配置所有员工
+              {t("ai.provisioning.provisionAll")}
             </Button>
             <Button
               variant="outline"
@@ -193,7 +195,7 @@ export default function AiAssistantProvisioning() {
               ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
               )}
-              刷新预设
+              {t("ai.provisioning.refreshPresets")}
             </Button>
 
             <div className="ml-auto flex items-center gap-2">
@@ -202,7 +204,7 @@ export default function AiAssistantProvisioning() {
                 value={department}
                 onChange={(e) => { setDepartment(e.target.value); setPage(0); }}
               >
-                <option value="">全部部门</option>
+                <option value="">{t("ai.provisioning.allDepartments")}</option>
                 {departments.map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}
@@ -210,7 +212,7 @@ export default function AiAssistantProvisioning() {
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="搜索姓名/工卡号..."
+                  placeholder={t("ai.provisioning.searchPlaceholder")}
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                   className="pl-9 w-48"
@@ -225,11 +227,11 @@ export default function AiAssistantProvisioning() {
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-blue-600" />
                 <span>
-                  配置完成：新建 <strong>{provisionAllMut.data.created}</strong> 个，
-                  跳过 <strong>{provisionAllMut.data.skipped}</strong> 个
+                  {t("ai.provisioning.provisionDone")} <strong>{provisionAllMut.data.created}</strong>{t("ai.provisioning.created")}
+                  {t("ai.provisioning.skipped")} <strong>{provisionAllMut.data.skipped}</strong>{t("ai.provisioning.errors")}
                   {provisionAllMut.data.errors.length > 0 && (
                     <span className="text-red-600">
-                      ，错误 {provisionAllMut.data.errors.length} 个
+                      {t("ai.provisioning.errorCount")} {provisionAllMut.data.errors.length}{t("ai.provisioning.errors")}
                     </span>
                   )}
                 </span>
@@ -248,8 +250,8 @@ export default function AiAssistantProvisioning() {
               <div className="flex items-center gap-2">
                 <RefreshCw className="h-4 w-4 text-green-600" />
                 <span>
-                  预设刷新完成：更新 <strong>{refreshPresetsMut.data.created}</strong> 个，
-                  跳过 <strong>{refreshPresetsMut.data.skipped}</strong> 个
+                  {t("ai.provisioning.presetRefreshDone")} <strong>{refreshPresetsMut.data.created}</strong>{t("ai.provisioning.created")}
+                  {t("ai.provisioning.skipped")} <strong>{refreshPresetsMut.data.skipped}</strong>{t("ai.provisioning.errors")}
                 </span>
               </div>
             </div>
@@ -261,7 +263,7 @@ export default function AiAssistantProvisioning() {
       {status && Object.keys(status.byDepartment).length > 0 && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">部门配置概览</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("ai.provisioning.deptOverview")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6">
@@ -297,8 +299,8 @@ export default function AiAssistantProvisioning() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <UserCog className="h-4 w-4" />
-            AI助理列表
-            {list && <Badge variant="secondary">{list.total} 条</Badge>}
+            {t("ai.provisioning.assistantList")}
+            {list && <Badge variant="secondary">{list.total} {t("ai.provisioning.records")}</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -306,15 +308,15 @@ export default function AiAssistantProvisioning() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/30">
-                  <th className="px-4 py-2.5 text-left font-medium">工卡号</th>
-                  <th className="px-4 py-2.5 text-left font-medium">姓名</th>
-                  <th className="px-4 py-2.5 text-left font-medium">部门</th>
-                  <th className="px-4 py-2.5 text-left font-medium">岗位</th>
-                  <th className="px-4 py-2.5 text-left font-medium">AI助理名称</th>
-                  <th className="px-4 py-2.5 text-left font-medium">角色预设</th>
-                  <th className="px-4 py-2.5 text-left font-medium">类型</th>
-                  <th className="px-4 py-2.5 text-left font-medium">状态</th>
-                  <th className="px-4 py-2.5 text-left font-medium">操作</th>
+                  <th className="px-4 py-2.5 text-left font-medium">{t("ai.provisioning.colEmpCode")}</th>
+                  <th className="px-4 py-2.5 text-left font-medium">{t("ai.provisioning.colName")}</th>
+                  <th className="px-4 py-2.5 text-left font-medium">{t("ai.provisioning.colDept")}</th>
+                  <th className="px-4 py-2.5 text-left font-medium">{t("ai.provisioning.colPosition")}</th>
+                  <th className="px-4 py-2.5 text-left font-medium">{t("ai.provisioning.colAssistantName")}</th>
+                  <th className="px-4 py-2.5 text-left font-medium">{t("ai.provisioning.colRolePreset")}</th>
+                  <th className="px-4 py-2.5 text-left font-medium">{t("ai.provisioning.colType")}</th>
+                  <th className="px-4 py-2.5 text-left font-medium">{t("ai.provisioning.colStatus")}</th>
+                  <th className="px-4 py-2.5 text-left font-medium">{t("ai.provisioning.colAction")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -338,19 +340,19 @@ export default function AiAssistantProvisioning() {
                     </td>
                     <td className="px-4 py-2.5">
                       <Badge variant="outline" className="text-xs">
-                        {ROLE_LABELS[(item as any).rolePreset] || (item as any).rolePreset || "-"}
+                        {ROLE_KEYS[(item as any).rolePreset] ? t(ROLE_KEYS[(item as any).rolePreset]) : (item as any).rolePreset || "-"}
                       </Badge>
                     </td>
                     <td className="px-4 py-2.5">
                       <Badge variant="secondary" className="text-xs">
-                        {ASSISTANT_TYPE_LABELS[item.assistantType || "general"] || item.assistantType}
+                        {ASSISTANT_TYPE_KEYS[item.assistantType || "general"] ? t(ASSISTANT_TYPE_KEYS[item.assistantType || "general"]) : item.assistantType}
                       </Badge>
                     </td>
                     <td className="px-4 py-2.5">
                       {item.status === "active" ? (
                         <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 text-xs">
                           <CheckCircle2 className="mr-1 h-3 w-3" />
-                          活跃
+                          {t("ai.provisioning.statusActive")}
                         </Badge>
                       ) : (
                         <Badge variant="secondary" className="text-xs">
@@ -371,7 +373,7 @@ export default function AiAssistantProvisioning() {
                         ) : (
                           <RefreshCw className="mr-1 h-3 w-3" />
                         )}
-                        重新配置
+                        {t("ai.provisioning.reprovision")}
                       </Button>
                     </td>
                   </tr>
@@ -381,8 +383,8 @@ export default function AiAssistantProvisioning() {
                     <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
                       <div className="flex flex-col items-center gap-2">
                         <AlertCircle className="h-8 w-8 text-muted-foreground/50" />
-                        <p>暂无AI助理记录</p>
-                        <p className="text-xs">点击「一键配置所有员工」开始</p>
+                        <p>{t("ai.provisioning.noRecords")}</p>
+                        <p className="text-xs">{t("ai.provisioning.noRecordsHint")}</p>
                       </div>
                     </td>
                   </tr>
@@ -395,8 +397,7 @@ export default function AiAssistantProvisioning() {
           {list && list.total > PAGE_SIZE && (
             <div className="flex items-center justify-between border-t px-4 py-3">
               <p className="text-xs text-muted-foreground">
-                第 {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, list.total)} 条，
-                共 {list.total} 条
+                {t("ai.provisioning.pageInfo").replace("{start}", String(page * PAGE_SIZE + 1)).replace("{end}", String(Math.min((page + 1) * PAGE_SIZE, list.total))).replace("{total}", String(list.total))}
               </p>
               <div className="flex gap-1">
                 <Button

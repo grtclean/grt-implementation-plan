@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 // ============================================
 // 扩展角色类型定义 - 与 shared/permissions.ts 对齐
@@ -28,11 +29,14 @@ export type UserRole =
   // 基础角色
   | "employee"           // 普通员工 (level 1)
   | "production_worker"  // 产线员工 (level 1)
+  // 外部角色
+  | "customer"           // 客户代表 (level 0)
   | "guest";             // 访客 (level 0)
 
 // 角色层级映射 - 数字越大权限越高
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   guest: 0,
+  customer: 0,
   employee: 1,
   production_worker: 1,
   team_lead: 2,
@@ -235,6 +239,15 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     level: 1,
     category: "basic",
   },
+  customer: {
+    label: "客户代表",
+    labelEn: "Customer Representative",
+    description: "外部客户在GRT客户门户中的受控访问角色",
+    color: "bg-teal-500",
+    icon: "UserCheck",
+    level: 0,
+    category: "basic",
+  },
   guest: {
     label: "访客",
     labelEn: "Guest",
@@ -402,6 +415,8 @@ interface UserProfileProviderProps {
 
 // Provider 组件
 export function UserProfileProvider({ children, defaultRole = "employee" }: UserProfileProviderProps) {
+  const { user } = useAuth();
+
   // 从本地存储读取角色（支持旧格式兼容）
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>(() => {
     if (typeof window !== "undefined") {
@@ -418,6 +433,24 @@ export function UserProfileProvider({ children, defaultRole = "employee" }: User
     }
     return defaultRole;
   });
+
+  // Sync server-provided effectiveRole from RBAC into default role.
+  // Only applies once (on first auth load) and only if user hasn't
+  // explicitly chosen a role via ProfileSwitcher (localStorage).
+  const serverRoleSynced = useRef(false);
+  useEffect(() => {
+    if (serverRoleSynced.current || !user?.effectiveRole) return;
+    const serverRole = user.effectiveRole as string;
+    if (!VALID_ROLES.includes(serverRole as UserRole)) return;
+    serverRoleSynced.current = true;
+
+    // Only override if no explicit ProfileSwitcher choice exists
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored || stored === "employee" || stored === "staff") {
+      setCurrentUserRole(serverRole as UserRole);
+      localStorage.setItem(STORAGE_KEY, serverRole);
+    }
+  }, [user?.effectiveRole]);
 
   // BU选择状态
   const [currentBU, setCurrentBU] = useState<string | null>(() => {

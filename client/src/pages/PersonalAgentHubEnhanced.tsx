@@ -2,6 +2,7 @@
  * 个人智能体中心增强版 - 行为数据聚合、技能推断、知识图谱
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ const learningRecommendations = [
 ];
 
 export default function PersonalAgentHubEnhanced() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("behavior");
 
@@ -77,23 +79,23 @@ export default function PersonalAgentHubEnhanced() {
     <div className="space-y-6">
       <PageHeader
         icon={Brain}
-        title="个人智能体中心 (增强版)"
-        description="行为数据聚合、技能自动推断、知识图谱可视化"
+        title={t("ai.personalAgentHubEnh.title")}
+        description={t("ai.personalAgentHubEnh.description")}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
           <TabsTrigger value="behavior" className="flex items-center gap-2">
-            <Activity className="w-4 h-4" />行为数据
+            <Activity className="w-4 h-4" />{t("ai.personalAgentHubEnh.tabBehavior")}
           </TabsTrigger>
           <TabsTrigger value="skills" className="flex items-center gap-2">
-            <Target className="w-4 h-4" />技能推断
+            <Target className="w-4 h-4" />{t("ai.personalAgentHubEnh.tabSkills")}
           </TabsTrigger>
           <TabsTrigger value="knowledge" className="flex items-center gap-2">
-            <Network className="w-4 h-4" />知识图谱
+            <Network className="w-4 h-4" />{t("ai.personalAgentHubEnh.tabKnowledge")}
           </TabsTrigger>
           <TabsTrigger value="growth" className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />成长路径
+            <TrendingUp className="w-4 h-4" />{t("ai.personalAgentHubEnh.tabGrowth")}
           </TabsTrigger>
         </TabsList>
 
@@ -101,8 +103,8 @@ export default function PersonalAgentHubEnhanced() {
         <TabsContent value="behavior" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>行为探针数据聚合</CardTitle>
-              <CardDescription>从日常工作行为中自动采集的能力证据</CardDescription>
+              <CardTitle>{t("ai.personalAgentHubEnh.behaviorTitle")}</CardTitle>
+              <CardDescription>{t("ai.personalAgentHubEnh.behaviorDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -113,13 +115,13 @@ export default function PersonalAgentHubEnhanced() {
                         <Activity className="w-5 h-5 text-primary/50" />
                         <div>
                           <p className="font-medium">{item.context}</p>
-                          <p className="text-xs text-muted-foreground">最后活动: {item.lastTime}</p>
+                          <p className="text-xs text-muted-foreground">{t("ai.personalAgentHubEnh.lastActivity")}: {item.lastTime}</p>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-primary">{item.count} 次</Badge>
+                      <Badge variant="outline" className="text-primary">{item.count} {t("ai.personalAgentHubEnh.times")}</Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">推断技能:</span>
+                      <span className="text-muted-foreground">{t("ai.personalAgentHubEnh.inferredSkill")}</span>
                       <Badge className="bg-primary/20 text-primary">{item.impliedSkill}</Badge>
                     </div>
                   </div>
@@ -133,8 +135,8 @@ export default function PersonalAgentHubEnhanced() {
         <TabsContent value="skills" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>AI技能自动推断</CardTitle>
-              <CardDescription>基于行为数据的技能等级推断结果</CardDescription>
+              <CardTitle>{t("ai.personalAgentHubEnh.skillTitle")}</CardTitle>
+              <CardDescription>{t("ai.personalAgentHubEnh.skillDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -145,7 +147,7 @@ export default function PersonalAgentHubEnhanced() {
                         <Award className="w-5 h-5 text-primary/50" />
                         <div>
                           <p className="font-medium">{skill.name}</p>
-                          <p className="text-xs text-muted-foreground">证据: {skill.evidence}</p>
+                          <p className="text-xs text-muted-foreground">{t("ai.personalAgentHubEnh.evidenceLabel")}: {skill.evidence}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -155,7 +157,7 @@ export default function PersonalAgentHubEnhanced() {
                     </div>
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">置信度</span>
+                        <span className="text-muted-foreground">{t("ai.personalAgentHubEnh.confidence")}</span>
                         <span className="text-primary">{skill.confidence}%</span>
                       </div>
                       <Progress value={skill.confidence} className="h-2" />
@@ -171,8 +173,8 @@ export default function PersonalAgentHubEnhanced() {
         <TabsContent value="knowledge" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>知识图谱可视化</CardTitle>
-              <CardDescription>个人知识体系和技能关联网络</CardDescription>
+              <CardTitle>{t("ai.personalAgentHubEnh.graphTitle")}</CardTitle>
+              <CardDescription>{t("ai.personalAgentHubEnh.graphDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-64 flex items-center justify-center bg-muted rounded-lg border border-border mb-4">
@@ -197,7 +199,7 @@ export default function PersonalAgentHubEnhanced() {
                         }}
                       >
                         <p className="text-xs font-medium">{node.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{node.connections}个关联</p>
+                        <p className="text-[10px] text-muted-foreground">{node.connections}{t("ai.personalAgentHubEnh.connections")}</p>
                       </div>
                     );
                   })}
@@ -220,8 +222,8 @@ export default function PersonalAgentHubEnhanced() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>能力成长路径</CardTitle>
-                <CardDescription>L1-L5能力等级晋升规划</CardDescription>
+                <CardTitle>{t("ai.personalAgentHubEnh.growthPathTitle")}</CardTitle>
+                <CardDescription>{t("ai.personalAgentHubEnh.growthPathDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -238,7 +240,7 @@ export default function PersonalAgentHubEnhanced() {
                         <div className="flex items-center justify-between">
                           <p className="font-medium">{stage.stage}</p>
                           <Badge className={getStatusColor(stage.status)}>
-                            {stage.status === "completed" ? "已完成" : stage.status === "current" ? "进行中" : "待解锁"}
+                            {stage.status === "completed" ? t("ai.personalAgentHubEnh.completed") : stage.status === "current" ? t("ai.personalAgentHubEnh.inProgress") : t("ai.personalAgentHubEnh.toUnlock")}
                           </Badge>
                         </div>
                         {stage.progress && (
@@ -254,8 +256,8 @@ export default function PersonalAgentHubEnhanced() {
 
             <Card>
               <CardHeader>
-                <CardTitle>学习推荐</CardTitle>
-                <CardDescription>基于成长路径的个性化学习建议</CardDescription>
+                <CardTitle>{t("ai.personalAgentHubEnh.learningTitle")}</CardTitle>
+                <CardDescription>{t("ai.personalAgentHubEnh.learningDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -272,13 +274,13 @@ export default function PersonalAgentHubEnhanced() {
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />{rec.duration}
                         </span>
-                        <span className="text-primary">相关度 {rec.relevance}%</span>
+                        <span className="text-primary">{t("ai.personalAgentHubEnh.relevance")} {rec.relevance}%</span>
                       </div>
                     </div>
                   ))}
                 </div>
                 <Button className="w-full mt-4" variant="outline">
-                  查看更多推荐 <ChevronRight className="w-4 h-4 ml-1" />
+                  {t("ai.personalAgentHubEnh.viewMore")} <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </CardContent>
             </Card>

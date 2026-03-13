@@ -5,7 +5,7 @@
  * dashboard, pendingReviews
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAuthenticatedCaller, createAdminCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 
 // ── Mock state ──────────────────────────────────────────────
 let mockQueryResult: any[] = [];
@@ -47,6 +47,12 @@ function createMockDb() {
 }
 
 const mockDb = createMockDb();
+
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
 
 vi.mock("../db", () => ({
   getDb: vi.fn(async () => mockDb),
@@ -127,7 +133,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("returns items with custom limit and offset", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 3, year: 2026, departmentId: "BU03" }]);
       selectResultsQueue.push([{ count: 10 }]);
       const result = await caller.buSalesTarget.list({ limit: 5, offset: 5 });
@@ -136,7 +142,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("returns empty result when no plans exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ count: 0 }]);
       const result = await caller.buSalesTarget.list();
@@ -145,7 +151,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("returns empty result when input is undefined (no params)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ count: 0 }]);
       const result = await caller.buSalesTarget.list(undefined);
@@ -154,7 +160,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("handles DB count with null gracefully", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1 }]);
       selectResultsQueue.push([{ count: null }]);
       const result = await caller.buSalesTarget.list();
@@ -165,7 +171,7 @@ describe("buSalesTarget router", () => {
   // ─── getById ──────────────────────────────────────────────
   describe("getById", () => {
     it("returns plan with details and adjustments", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First query: plan
       selectResultsQueue.push([{
         id: 1, year: 2026, departmentId: "BU01",
@@ -187,7 +193,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("returns plan with adjustments when they exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, year: 2026, departmentId: "BU01", status: "submitted" }]);
       selectResultsQueue.push([
         { id: 10, buSalesPlanId: 1, periodType: "month", periodValue: 1 },
@@ -202,7 +208,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("returns null when plan not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       const result = await caller.buSalesTarget.getById({ id: 999 });
       expect(result).toBeNull();
@@ -210,7 +216,7 @@ describe("buSalesTarget router", () => {
 
     it("returns null when details query fails but plan found", async () => {
       // The catch block in router returns null on any error
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, year: 2026 }]);
       // Details query - still returns normally in mock
       selectResultsQueue.push([]);
@@ -224,7 +230,7 @@ describe("buSalesTarget router", () => {
   // ─── create ───────────────────────────────────────────────
   describe("create", () => {
     it("creates plan with auto-generated monthly breakdown", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const newPlan = {
         id: 1, year: 2026, departmentId: "BU01",
         totalSalesTarget: "1200000.00", totalOutputTarget: "960000.00",
@@ -247,7 +253,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("uses default growth rules when not provided", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const newPlan = {
         id: 2, year: 2026, departmentId: "BU02",
         status: "draft",
@@ -284,7 +290,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("correctly calculates quarterly distribution with zero growth", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 4, year: 2026, departmentId: "BU04", status: "draft" }];
 
       const result = await caller.buSalesTarget.create({
@@ -301,7 +307,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("handles high growth rates correctly", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 5, year: 2026, departmentId: "BU05", status: "draft" }];
 
       const result = await caller.buSalesTarget.create({
@@ -316,7 +322,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("rejects missing year", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.buSalesTarget.create({
           departmentId: "BU01",
@@ -328,7 +334,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("rejects missing departmentId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.buSalesTarget.create({
           year: 2026,
@@ -343,7 +349,7 @@ describe("buSalesTarget router", () => {
   // ─── updateDetail ─────────────────────────────────────────
   describe("updateDetail", () => {
     it("updates salesTarget and marks isAdjusted", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 10, salesTarget: "120000.00", isAdjusted: true }];
 
       const result = await caller.buSalesTarget.updateDetail({
@@ -356,7 +362,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("updates outputTarget only", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 11, outputTarget: "95000.00", isAdjusted: true }];
 
       const result = await caller.buSalesTarget.updateDetail({
@@ -369,7 +375,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("updates kpiTarget and capabilityLevel", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{
         id: 12, kpiTarget: "82.50", capabilityLevel: "3.00", isAdjusted: true,
       }];
@@ -385,7 +391,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("updates all fields at once", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{
         id: 13, salesTarget: "150000.00", outputTarget: "120000.00",
         kpiTarget: "90.00", capabilityLevel: "3.50", isAdjusted: true,
@@ -406,7 +412,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("updates with no optional fields (only isAdjusted set)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 14, isAdjusted: true }];
 
       const result = await caller.buSalesTarget.updateDetail({ detailId: 14 });
@@ -417,7 +423,7 @@ describe("buSalesTarget router", () => {
   // ─── submitPlan ───────────────────────────────────────────
   describe("submitPlan", () => {
     it("transitions plan from draft to submitted", async () => {
-      const caller = createAuthenticatedCaller({ name: "Zhang Wei" });
+      const caller = createAdminCaller({ name: "Zhang Wei" });
       mockReturningResult = [{
         id: 1, status: "submitted", submittedBy: "Zhang Wei",
       }];
@@ -428,7 +434,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("uses fallback name when user.name is null", async () => {
-      const caller = createAuthenticatedCaller({ id: 42, name: null as any });
+      const caller = createAdminCaller({ id: 42, name: null as any });
       mockReturningResult = [{
         id: 1, status: "submitted", submittedBy: "User#42",
       }];
@@ -438,7 +444,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("sets submittedAt timestamp", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{
         id: 1, status: "submitted", submittedAt: "2026-03-01T00:00:00.000Z",
       }];
@@ -456,7 +462,7 @@ describe("buSalesTarget router", () => {
     ];
 
     it("submits normal adjustment with zero-sum details", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const proposed = [
         { detailId: 1, month: 1, salesTarget: 120000, outputTarget: 90000 },
         { detailId: 2, month: 2, salesTarget: 80000, outputTarget: 70000 },
@@ -481,7 +487,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("rejects normal adjustment when sales targets do not sum to zero", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const proposed = [
         { detailId: 1, month: 1, salesTarget: 150000, outputTarget: 80000 },
         { detailId: 2, month: 2, salesTarget: 100000, outputTarget: 80000 },
@@ -500,7 +506,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("rejects normal adjustment when output targets do not sum to zero", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const proposed = [
         { detailId: 1, month: 1, salesTarget: 100000, outputTarget: 100000 },
         { detailId: 2, month: 2, salesTarget: 100000, outputTarget: 80000 },
@@ -519,7 +525,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("allows exception adjustment even when sums differ", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const proposed = [
         { detailId: 1, month: 1, salesTarget: 150000, outputTarget: 100000 },
         { detailId: 2, month: 2, salesTarget: 100000, outputTarget: 80000 },
@@ -544,7 +550,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("passes zero-sum check within tolerance (0.01)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Sums differ by less than 0.01 (floating point precision)
       const proposed = [
         { detailId: 1, month: 1, salesTarget: 100000.005, outputTarget: 80000.005 },
@@ -568,7 +574,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("defaults adjustmentType to normal", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const proposed = [
         { detailId: 1, month: 1, salesTarget: 120000, outputTarget: 90000 },
         { detailId: 2, month: 2, salesTarget: 80000, outputTarget: 70000 },
@@ -591,7 +597,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("also updates plan status to submitted if still draft", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const proposed = [
         { detailId: 1, month: 1, salesTarget: 120000, outputTarget: 90000 },
         { detailId: 2, month: 2, salesTarget: 80000, outputTarget: 70000 },
@@ -613,7 +619,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("stores kpiTarget and capabilityLevel when provided in details", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const orig = [
         { detailId: 1, month: 1, salesTarget: 100000, outputTarget: 80000, kpiTarget: 75, capabilityLevel: 2.5 },
       ];
@@ -640,7 +646,7 @@ describe("buSalesTarget router", () => {
   // ─── financeReview ────────────────────────────────────────
   describe("financeReview", () => {
     it("approves adjustment and moves to CEO step", async () => {
-      const caller = createAuthenticatedCaller({ name: "Finance Manager Li" });
+      const caller = createAdminCaller({ name: "Finance Manager Li" });
       mockReturningResult = [{
         id: 100, buSalesPlanId: 1,
         financePmoStatus: "approved",
@@ -661,7 +667,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("rejects adjustment at finance level", async () => {
-      const caller = createAuthenticatedCaller({ name: "Finance Manager Li" });
+      const caller = createAdminCaller({ name: "Finance Manager Li" });
       mockReturningResult = [{
         id: 100, buSalesPlanId: 1,
         financePmoStatus: "rejected",
@@ -681,7 +687,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("reverts plan to draft when finance rejects", async () => {
-      const caller = createAuthenticatedCaller({ name: "Finance Reviewer" });
+      const caller = createAdminCaller({ name: "Finance Reviewer" });
       mockReturningResult = [{
         id: 100, buSalesPlanId: 1, approvalStatus: "rejected",
       }];
@@ -696,7 +702,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("does not revert plan on approval", async () => {
-      const caller = createAuthenticatedCaller({ name: "Finance Approver" });
+      const caller = createAdminCaller({ name: "Finance Approver" });
       mockReturningResult = [{
         id: 100, buSalesPlanId: 1, approvalStatus: "finance_approved",
       }];
@@ -711,7 +717,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("uses fallback name when user.name is null", async () => {
-      const caller = createAuthenticatedCaller({ id: 77, name: null as any });
+      const caller = createAdminCaller({ id: 77, name: null as any });
       mockReturningResult = [{
         id: 100, buSalesPlanId: 1, financePmoReviewedBy: "User#77",
         approvalStatus: "finance_approved",
@@ -726,7 +732,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("sets comment to null when omitted", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{
         id: 100, buSalesPlanId: 1, financePmoComment: null,
         approvalStatus: "finance_approved",
@@ -744,7 +750,7 @@ describe("buSalesTarget router", () => {
   // ─── ceoReview ────────────────────────────────────────────
   describe("ceoReview", () => {
     it("approves adjustment, applies proposed data, and marks plan approved", async () => {
-      const caller = createAuthenticatedCaller({ name: "CEO Wang" });
+      const caller = createAdminCaller({ name: "CEO Wang" });
       mockReturningResult = [{
         id: 100, buSalesPlanId: 1,
         ceoStatus: "approved",
@@ -772,7 +778,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("rejects adjustment and reverts plan to draft", async () => {
-      const caller = createAuthenticatedCaller({ name: "CEO Wang" });
+      const caller = createAdminCaller({ name: "CEO Wang" });
       mockReturningResult = [{
         id: 100, buSalesPlanId: 1,
         ceoStatus: "rejected",
@@ -793,7 +799,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("throws error when adjustment not found", async () => {
-      const caller = createAuthenticatedCaller({ name: "CEO Wang" });
+      const caller = createAdminCaller({ name: "CEO Wang" });
       mockReturningResult = [];
 
       await expect(
@@ -805,7 +811,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("handles proposedData with no details array gracefully", async () => {
-      const caller = createAuthenticatedCaller({ name: "CEO Wang" });
+      const caller = createAdminCaller({ name: "CEO Wang" });
       mockReturningResult = [{
         id: 100, buSalesPlanId: 1,
         ceoStatus: "approved", approvalStatus: "approved",
@@ -823,7 +829,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("handles null proposedData on approval gracefully", async () => {
-      const caller = createAuthenticatedCaller({ name: "CEO Wang" });
+      const caller = createAdminCaller({ name: "CEO Wang" });
       mockReturningResult = [{
         id: 100, buSalesPlanId: 1,
         ceoStatus: "approved", approvalStatus: "approved",
@@ -841,7 +847,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("updates detail rows with kpiTarget and capabilityLevel when present", async () => {
-      const caller = createAuthenticatedCaller({ name: "CEO Wang" });
+      const caller = createAdminCaller({ name: "CEO Wang" });
       mockReturningResult = [{
         id: 100, buSalesPlanId: 1,
         ceoStatus: "approved", approvalStatus: "approved",
@@ -862,7 +868,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("uses fallback name when user.name is null", async () => {
-      const caller = createAuthenticatedCaller({ id: 88, name: null as any });
+      const caller = createAdminCaller({ id: 88, name: null as any });
       mockReturningResult = [{
         id: 100, buSalesPlanId: 1,
         ceoStatus: "rejected", approvalStatus: "rejected",
@@ -881,7 +887,7 @@ describe("buSalesTarget router", () => {
   // ─── approveAdjustment (legacy) ───────────────────────────
   describe("approveAdjustment", () => {
     it("approves adjustment with legacy shortcut", async () => {
-      const caller = createAuthenticatedCaller({ name: "Legacy Approver" });
+      const caller = createAdminCaller({ name: "Legacy Approver" });
       mockReturningResult = [{
         id: 100, approvalStatus: "approved", approvedBy: "Legacy Approver",
       }];
@@ -896,7 +902,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("rejects adjustment with legacy shortcut", async () => {
-      const caller = createAuthenticatedCaller({ name: "Legacy Reviewer" });
+      const caller = createAdminCaller({ name: "Legacy Reviewer" });
       mockReturningResult = [{
         id: 100, approvalStatus: "rejected", approvedBy: "Legacy Reviewer",
       }];
@@ -910,7 +916,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("uses fallback name when user.name is null", async () => {
-      const caller = createAuthenticatedCaller({ id: 55, name: null as any });
+      const caller = createAdminCaller({ id: 55, name: null as any });
       mockReturningResult = [{
         id: 100, approvalStatus: "approved", approvedBy: "User#55",
       }];
@@ -927,7 +933,7 @@ describe("buSalesTarget router", () => {
   // ─── delete ───────────────────────────────────────────────
   describe("delete", () => {
     it("deletes plan and cascades to details and adjustments", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
 
       const result = await caller.buSalesTarget.delete({ id: 1 });
 
@@ -937,7 +943,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("returns success even when plan does not exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
 
       const result = await caller.buSalesTarget.delete({ id: 999 });
 
@@ -948,7 +954,7 @@ describe("buSalesTarget router", () => {
   // ─── dashboard ────────────────────────────────────────────
   describe("dashboard", () => {
     it("returns aggregate KPIs", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{
         totalPlans: 5,
         totalSalesTarget: 6000000,
@@ -966,7 +972,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("returns zeros when no plans exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{
         totalPlans: 0,
         totalSalesTarget: 0,
@@ -983,7 +989,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("handles null aggregated values gracefully", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{
         totalPlans: null,
         totalSalesTarget: null,
@@ -1000,7 +1006,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("handles empty result array", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([]);
 
@@ -1014,7 +1020,7 @@ describe("buSalesTarget router", () => {
   // ─── pendingReviews ───────────────────────────────────────
   describe("pendingReviews", () => {
     it("returns all pending reviews with no step filter", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 100, buSalesPlanId: 1, approvalStatus: "pending", reviewStep: "finance_pmo" },
         { id: 101, buSalesPlanId: 2, approvalStatus: "finance_approved", reviewStep: "ceo" },
@@ -1026,7 +1032,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("filters by finance_pmo step", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 100, buSalesPlanId: 1, approvalStatus: "pending", reviewStep: "finance_pmo" },
       ];
@@ -1038,7 +1044,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("filters by CEO step", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 101, buSalesPlanId: 2, approvalStatus: "finance_approved", reviewStep: "ceo" },
       ];
@@ -1050,7 +1056,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("returns empty array when no pending reviews exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
 
       const result = await caller.buSalesTarget.pendingReviews();
@@ -1059,7 +1065,7 @@ describe("buSalesTarget router", () => {
     });
 
     it("handles undefined input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 100, buSalesPlanId: 1, approvalStatus: "pending" },
       ];
@@ -1160,7 +1166,7 @@ describe("buSalesTarget router", () => {
   // ─── Input validation ─────────────────────────────────────
   describe("input validation", () => {
     it("rejects create with non-number year", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.buSalesTarget.create({
           year: "abc" as any,
@@ -1173,21 +1179,21 @@ describe("buSalesTarget router", () => {
     });
 
     it("rejects getById with non-number id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.buSalesTarget.getById({ id: "abc" as any })
       ).rejects.toThrow();
     });
 
     it("rejects updateDetail with non-number detailId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.buSalesTarget.updateDetail({ detailId: "abc" as any })
       ).rejects.toThrow();
     });
 
     it("rejects submitAdjustment with invalid adjustmentType", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.buSalesTarget.submitAdjustment({
           buSalesPlanId: 1,
@@ -1201,21 +1207,21 @@ describe("buSalesTarget router", () => {
     });
 
     it("rejects financeReview with missing approved field", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.buSalesTarget.financeReview({ adjustmentId: 1 } as any)
       ).rejects.toThrow();
     });
 
     it("rejects pendingReviews with invalid step value", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.buSalesTarget.pendingReviews({ step: "invalid" as any })
       ).rejects.toThrow();
     });
 
     it("rejects delete with missing id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.buSalesTarget.delete({} as any)
       ).rejects.toThrow();

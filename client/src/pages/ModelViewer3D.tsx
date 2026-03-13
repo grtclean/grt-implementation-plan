@@ -3,6 +3,7 @@
  * WebGL在线预览 · 支持STL/OBJ格式 · 旋转/缩放/平移
  */
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,7 @@ function parseOBJ(text: string): THREE.BufferGeometry {
 }
 
 export default function ModelViewer3D() {
+  const { t } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -324,12 +326,12 @@ export default function ModelViewer3D() {
       <div className="space-y-6 p-6">
         <PageHeader
           icon={Box}
-          title="3D模型在线预览"
-          description="WebGL在线预览 · 支持STL/OBJ格式 · 旋转/缩放/平移"
+          title={t("ai.modelViewer.title")}
+          description={t("ai.modelViewer.description")}
           actions={
             <Badge variant="outline" className="gap-1">
               <Box className="h-3 w-3" />
-              WebGL渲染
+              {t("ai.modelViewer.webglRendering")}
             </Badge>
           }
         />
@@ -339,7 +341,7 @@ export default function ModelViewer3D() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Upload className="h-5 w-5 text-primary" />
-              模型上传与控制
+              {t("ai.modelViewer.uploadControl")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -353,13 +355,13 @@ export default function ModelViewer3D() {
               />
               <Button onClick={() => fileInputRef.current?.click()}>
                 <Upload className="h-4 w-4 mr-2" />
-                上传模型文件
+                {t("ai.modelViewer.uploadModel")}
               </Button>
-              <span className="text-xs text-muted-foreground">支持 .stl / .obj 格式</span>
+              <span className="text-xs text-muted-foreground">{t("ai.modelViewer.supportedFormats")}</span>
               <div className="flex-1" />
               <Button variant="outline" size="sm" onClick={handleResetView}>
                 <RotateCw className="h-4 w-4 mr-1" />
-                重置视角
+                {t("ai.modelViewer.resetView")}
               </Button>
               <Button variant="outline" size="sm" onClick={handleZoomIn}>
                 <ZoomIn className="h-4 w-4" />
@@ -386,8 +388,8 @@ export default function ModelViewer3D() {
               {!modelInfo && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <Box className="h-16 w-16 text-muted-foreground/30 mb-4" />
-                  <p className="text-muted-foreground text-lg font-medium">请上传 STL 或 OBJ 模型文件</p>
-                  <p className="text-muted-foreground/70 text-sm mt-1">支持鼠标拖拽旋转、滚轮缩放</p>
+                  <p className="text-muted-foreground text-lg font-medium">{t("ai.modelViewer.uploadPrompt")}</p>
+                  <p className="text-muted-foreground/70 text-sm mt-1">{t("ai.modelViewer.dragHint")}</p>
                 </div>
               )}
             </CardContent>
@@ -399,26 +401,26 @@ export default function ModelViewer3D() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Box className="h-5 w-5 text-primary" />
-                  模型信息
+                  {t("ai.modelViewer.modelInfo")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {modelInfo ? (
                   <div className="space-y-3">
                     <div>
-                      <p className="text-xs text-muted-foreground">文件名</p>
+                      <p className="text-xs text-muted-foreground">{t("ai.modelViewer.fileName")}</p>
                       <p className="text-sm font-medium truncate">{modelInfo.fileName}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">顶点数</p>
+                      <p className="text-xs text-muted-foreground">{t("ai.modelViewer.vertices")}</p>
                       <p className="text-sm font-medium">{modelInfo.vertices.toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">面数</p>
+                      <p className="text-xs text-muted-foreground">{t("ai.modelViewer.faces")}</p>
                       <p className="text-sm font-medium">{modelInfo.faces.toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">包围盒尺寸 (mm)</p>
+                      <p className="text-xs text-muted-foreground">{t("ai.modelViewer.boundingBox")}</p>
                       <div className="flex gap-2 mt-1">
                         <Badge variant="secondary">X: {modelInfo.boundingBox.x}</Badge>
                         <Badge variant="secondary">Y: {modelInfo.boundingBox.y}</Badge>
@@ -428,7 +430,7 @@ export default function ModelViewer3D() {
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    暂无模型数据
+                    {t("ai.modelViewer.noModelData")}
                   </p>
                 )}
               </CardContent>
@@ -436,25 +438,25 @@ export default function ModelViewer3D() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">操作提示</CardTitle>
+                <CardTitle className="text-base">{t("ai.modelViewer.tips")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <span className="text-primary font-medium flex-shrink-0">1.</span>
-                    <span>左键拖拽旋转模型</span>
+                    <span>{t("ai.modelViewer.tip1")}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-primary font-medium flex-shrink-0">2.</span>
-                    <span>滚轮缩放视图</span>
+                    <span>{t("ai.modelViewer.tip2")}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-primary font-medium flex-shrink-0">3.</span>
-                    <span>点击按钮重置 / 缩放 / 全屏</span>
+                    <span>{t("ai.modelViewer.tip3")}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-primary font-medium flex-shrink-0">4.</span>
-                    <span>支持二进制 STL 和 OBJ 格式</span>
+                    <span>{t("ai.modelViewer.tip4")}</span>
                   </li>
                 </ul>
               </CardContent>

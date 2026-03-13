@@ -35,6 +35,12 @@ const mockDbChain = {
   returning: vi.fn().mockResolvedValue([{ id: 1, success: true, ...mockMigrationTasks[0] }]),
 };
 
+vi.mock("./permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock('./db', () => ({
   requireDb: vi.fn().mockResolvedValue({
     select: vi.fn(() => mockDbChain),
@@ -93,9 +99,9 @@ vi.mock('./db', () => ({
   initDefaultMigrationTasks: vi.fn().mockResolvedValue({ success: true, message: 'Tasks initialized' }),
 }));
 
-// Mock jiandaoyun service
-vi.mock('./jiandaoyun', () => ({
-  getJiandaoyunSyncService: vi.fn().mockReturnValue({
+// Mock external sync service
+vi.mock('./external-sync', () => ({
+  getExternalSyncService: vi.fn().mockReturnValue({
     isConfigured: () => true,
     getCorpId: () => 'test-corp',
     getStats: () => ({
@@ -113,12 +119,12 @@ vi.mock('./jiandaoyun', () => ({
       formCounts: { '项目管理/M0-1_客户管理': 350 },
     }),
   }),
-  getJiandaoyunUserSyncService: vi.fn().mockReturnValue({
+  getExternalSyncUserService: vi.fn().mockReturnValue({
     syncMembers: vi.fn().mockResolvedValue({ synced: 0 }),
     syncDepartments: vi.fn().mockResolvedValue({ synced: 0 }),
     syncRoles: vi.fn().mockResolvedValue({ synced: 0 }),
   }),
-  mockJiandaoyunData: {
+  mockExternalSyncData: {
     apps: [
       { _id: 'app1', name: '项目管理', createTime: '2024-01-01', updateTime: '2026-01-15' },
     ],
@@ -134,9 +140,9 @@ vi.mock('./jiandaoyun', () => ({
   },
 }));
 
-// Mock jiandaoyun-scheduler service
-vi.mock('./services/jiandaoyun-scheduler.service', () => ({
-  getJiandaoyunScheduler: vi.fn().mockReturnValue({
+// Mock external-sync-scheduler service
+vi.mock('./services/external-sync-scheduler.service', () => ({
+  getExternalSyncScheduler: vi.fn().mockReturnValue({
     getStats: vi.fn().mockResolvedValue({ totalTasks: 0, completedTasks: 0 }),
   }),
 }));
@@ -251,13 +257,13 @@ describe('Migration Tasks API', () => {
   });
 });
 
-describe('Jiandaoyun API', () => {
-  describe('jiandaoyun.getStatus', () => {
+describe('ExternalSync API', () => {
+  describe('externalSync.getStatus', () => {
     it('should return API status for authenticated user', async () => {
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
 
-      const status = await caller.jiandaoyun.getStatus();
+      const status = await caller.externalSync.getStatus();
 
       expect(status).toBeDefined();
       expect(status).toHaveProperty('configured');
@@ -268,12 +274,12 @@ describe('Jiandaoyun API', () => {
     });
   });
 
-  describe('jiandaoyun.getApps', () => {
+  describe('externalSync.getApps', () => {
     it('should return apps result for authenticated user', async () => {
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.jiandaoyun.getApps();
+      const result = await caller.externalSync.getApps();
 
       expect(result).toBeDefined();
       expect(Array.isArray(result.apps)).toBe(true);
@@ -283,24 +289,24 @@ describe('Jiandaoyun API', () => {
     });
   });
 
-  describe('jiandaoyun.getSyncStats', () => {
+  describe('externalSync.getSyncStats', () => {
     it('should return sync stats for authenticated user', async () => {
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.jiandaoyun.getSyncStats();
+      const result = await caller.externalSync.getSyncStats();
 
       expect(result).toBeDefined();
       expect(typeof result).toBe('object');
     });
   });
 
-  describe('jiandaoyun.fullSync', () => {
+  describe('externalSync.fullSync', () => {
     it('should perform sync and return stats', async () => {
       const ctx = createAuthContext('admin');
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.jiandaoyun.fullSync();
+      const result = await caller.externalSync.fullSync();
 
       expect(result).toBeDefined();
       expect(result.success).toBe(true);

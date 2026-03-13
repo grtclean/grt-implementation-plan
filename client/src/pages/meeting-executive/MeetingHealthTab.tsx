@@ -25,6 +25,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const GRADE_COLORS: Record<string, string> = {
   A: "bg-green-500",
@@ -54,22 +55,23 @@ const PRIORITY_BADGE: Record<string, string> = {
   low: "outline",
 };
 
-const DIMENSION_LABELS: Record<string, string> = {
-  effectiveness: "效能",
-  costEfficiency: "成本效率",
-  sentiment: "情感",
-  actionCompletion: "行动完成",
-  topicResolution: "议题解决",
-  participationBalance: "参与均衡",
+const DIMENSION_LABEL_KEYS: Record<string, string> = {
+  effectiveness: "meeting.health.dimEffectiveness",
+  costEfficiency: "meeting.health.dimCostEfficiency",
+  sentiment: "meeting.health.dimSentiment",
+  actionCompletion: "meeting.health.dimActionCompletion",
+  topicResolution: "meeting.health.dimTopicResolution",
+  participationBalance: "meeting.health.dimParticipationBalance",
 };
 
-const SCOPE_OPTIONS = [
-  { value: "meeting", label: "会议" },
-  { value: "department", label: "部门" },
-  { value: "organization", label: "组织" },
-];
+const SCOPE_OPTION_KEYS: Record<string, string> = {
+  meeting: "meeting.health.scopeMeeting",
+  department: "meeting.health.scopeDepartment",
+  organization: "meeting.health.scopeOrganization",
+};
 
 export function MeetingHealthTab() {
+  const { t } = useLanguage();
   const [scope, setScope] = useState("organization");
   const [scopeId, setScopeId] = useState("");
   const [period, setPeriod] = useState("");
@@ -102,13 +104,16 @@ export function MeetingHealthTab() {
 
   const radarData = displayData?.dimensions
     ? Object.entries(displayData.dimensions).map(([key, value]) => ({
-        dimension: DIMENSION_LABELS[key] || key,
+        dimension: t(DIMENSION_LABEL_KEYS[key] || `meeting.health.dim.${key}`),
         value: Math.round(Number(value)),
       }))
     : [];
 
   const recommendations = computeResult?.recommendations || current?.recommendations || [];
   const optimizationRecs = (optimizationQuery.data as any)?.recommendations || [];
+
+  const priorityLabel = (p: string) =>
+    p === "high" ? t("meeting.health.priorityHigh") : p === "medium" ? t("meeting.health.priorityMedium") : t("meeting.health.priorityLow");
 
   return (
     <div className="space-y-6">
@@ -117,34 +122,34 @@ export function MeetingHealthTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Activity className="h-4 w-4 text-emerald-500" />
-            会议健康度
+            {t("meeting.health.title")}
           </CardTitle>
-          <CardDescription>计算综合健康评分，获取优化建议</CardDescription>
+          <CardDescription>{t("meeting.health.desc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3 flex-wrap">
             <div className="flex gap-1">
-              {SCOPE_OPTIONS.map((opt) => (
+              {(["meeting", "department", "organization"] as const).map((opt) => (
                 <Button
-                  key={opt.value}
-                  variant={scope === opt.value ? "default" : "outline"}
+                  key={opt}
+                  variant={scope === opt ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setScope(opt.value)}
+                  onClick={() => setScope(opt)}
                 >
-                  {opt.label}
+                  {t(SCOPE_OPTION_KEYS[opt])}
                 </Button>
               ))}
             </div>
             {scope !== "organization" && (
               <Input
-                placeholder={scope === "meeting" ? "会议ID..." : "部门/频道ID..."}
+                placeholder={scope === "meeting" ? t("meeting.health.meetingIdPlaceholder") : t("meeting.health.deptIdPlaceholder")}
                 value={scopeId}
                 onChange={(e) => setScopeId(e.target.value)}
                 className="max-w-[200px]"
               />
             )}
             <Input
-              placeholder="时段 (如 30 days, 90 days)"
+              placeholder={t("meeting.health.periodPlaceholder")}
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
               className="max-w-[200px]"
@@ -158,7 +163,7 @@ export function MeetingHealthTab() {
               ) : (
                 <Activity className="h-4 w-4 mr-2" />
               )}
-              计算健康度
+              {t("meeting.health.computeHealth")}
             </Button>
             <Button
               variant="outline"
@@ -170,11 +175,11 @@ export function MeetingHealthTab() {
               ) : (
                 <Lightbulb className="h-4 w-4 mr-2" />
               )}
-              获取优化建议
+              {t("meeting.health.getOptimization")}
             </Button>
           </div>
           {computeMutation.isError && (
-            <p className="text-sm text-red-500">计算失败: {computeMutation.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.health.computeFailed")}: {computeMutation.error.message}</p>
           )}
         </CardContent>
       </Card>
@@ -205,14 +210,14 @@ export function MeetingHealthTab() {
               <div className={`text-4xl font-bold ${GRADE_TEXT_COLORS[displayData.grade] || ""}`}>
                 {displayData.grade}
               </div>
-              <div className="text-sm text-muted-foreground mt-1">健康等级</div>
+              <div className="text-sm text-muted-foreground mt-1">{t("meeting.health.healthGrade")}</div>
             </CardContent>
           </Card>
 
           {/* Radar chart */}
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle className="text-base">六维度分析</CardTitle>
+              <CardTitle className="text-base">{t("meeting.health.sixDimensions")}</CardTitle>
             </CardHeader>
             <CardContent>
               {radarData.length > 0 ? (
@@ -226,13 +231,13 @@ export function MeetingHealthTab() {
                       stroke="#6366f1"
                       fill="#6366f1"
                       fillOpacity={0.3}
-                      name="得分"
+                      name={t("meeting.health.score")}
                     />
                     <Tooltip />
                   </RadarChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-center py-8 text-muted-foreground">暂无维度数据</p>
+                <p className="text-center py-8 text-muted-foreground">{t("meeting.health.noDimensionData")}</p>
               )}
             </CardContent>
           </Card>
@@ -243,8 +248,8 @@ export function MeetingHealthTab() {
       {trend.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">健康度趋势</CardTitle>
-            <CardDescription>Health Score Trend (last 6 periods)</CardDescription>
+            <CardTitle className="text-base">{t("meeting.health.healthTrend")}</CardTitle>
+            <CardDescription>{t("meeting.health.healthTrendDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
@@ -257,7 +262,7 @@ export function MeetingHealthTab() {
                 />
                 <YAxis domain={[0, 100]} />
                 <Tooltip labelFormatter={(v) => new Date(v).toLocaleString()} />
-                <Line type="monotone" dataKey="healthScore" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} name="健康度" />
+                <Line type="monotone" dataKey="healthScore" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} name={t("meeting.health.healthScore")} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -270,7 +275,7 @@ export function MeetingHealthTab() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-blue-500" />
-              改进建议
+              {t("meeting.health.improvements")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -278,7 +283,7 @@ export function MeetingHealthTab() {
               <div key={i} className={`p-4 rounded-lg border ${PRIORITY_COLORS[rec.priority] || "border-gray-200"}`}>
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant={PRIORITY_BADGE[rec.priority] as any || "outline"}>
-                    {rec.priority === "high" ? "高优先" : rec.priority === "medium" ? "中优先" : "低优先"}
+                    {priorityLabel(rec.priority)}
                   </Badge>
                   <Badge variant="outline">{rec.type}</Badge>
                   <span className="font-medium text-sm">{rec.title}</span>
@@ -286,7 +291,7 @@ export function MeetingHealthTab() {
                 <p className="text-sm text-muted-foreground">{rec.description}</p>
                 <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                   <ArrowRight className="h-3 w-3" />
-                  预期效果: {rec.expectedImpact}
+                  {t("meeting.health.expectedImpact")}: {rec.expectedImpact}
                 </div>
               </div>
             ))}
@@ -300,16 +305,16 @@ export function MeetingHealthTab() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Lightbulb className="h-4 w-4 text-amber-500" />
-              综合优化建议
+              {t("meeting.health.optimizationTitle")}
             </CardTitle>
-            <CardDescription>基于全面数据分析的优化策略</CardDescription>
+            <CardDescription>{t("meeting.health.optimizationDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {optimizationRecs.map((rec: any, i: number) => (
               <div key={i} className={`p-4 rounded-lg border ${PRIORITY_COLORS[rec.priority] || "border-gray-200"}`}>
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant={PRIORITY_BADGE[rec.priority] as any || "outline"}>
-                    {rec.priority === "high" ? "高优先" : rec.priority === "medium" ? "中优先" : "低优先"}
+                    {priorityLabel(rec.priority)}
                   </Badge>
                   <Badge variant="outline">{rec.type}</Badge>
                   <span className="font-medium text-sm">{rec.title}</span>
@@ -317,7 +322,7 @@ export function MeetingHealthTab() {
                 <p className="text-sm text-muted-foreground">{rec.description}</p>
                 <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                   <ArrowRight className="h-3 w-3" />
-                  预期效果: {rec.expectedImpact}
+                  {t("meeting.health.expectedImpact")}: {rec.expectedImpact}
                 </div>
               </div>
             ))}
@@ -329,7 +334,7 @@ export function MeetingHealthTab() {
       {deptComparison.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">部门健康度对比</CardTitle>
+            <CardTitle className="text-base">{t("meeting.health.deptComparison")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -352,8 +357,8 @@ export function MeetingHealthTab() {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <Activity className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>暂无健康度数据</p>
-            <p className="text-sm">请点击"计算健康度"开始分析</p>
+            <p>{t("meeting.health.noHealthData")}</p>
+            <p className="text-sm">{t("meeting.health.pleaseCompute")}</p>
           </CardContent>
         </Card>
       )}

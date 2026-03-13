@@ -2,6 +2,7 @@
  * 社群管理中心 - 消息审核、AI回复、脱敏测试、群消息统计
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +22,7 @@ const mockMessages = [
 ];
 
 export default function SocialCommunityHub() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("review");
   const [testInput, setTestInput] = useState("");
 
@@ -28,50 +30,50 @@ export default function SocialCommunityHub() {
     <div className="space-y-6">
       <PageHeader
         icon={MessageSquare}
-        title="社群管理中心"
-        description="消息审核、AI回复、脱敏过滤、统计分析"
-        actions={<Button size="sm"><Bot className="w-4 h-4 mr-2" />配置AI助手</Button>}
+        title={t("common.socialHub.title")}
+        description={t("common.socialHub.description")}
+        actions={<Button size="sm"><Bot className="w-4 h-4 mr-2" />{t("common.socialHub.configAi")}</Button>}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={MessageSquare} label="待审核回复" value={8} iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={Send} label="今日已发布" value={23} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={Shield} label="脱敏处理" value={156} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={BarChart3} label="活跃群组" value={12} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+        <StatCard icon={MessageSquare} label={t("common.socialHub.pendingReplies")} value={8} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Send} label={t("common.socialHub.todayPublished")} value={23} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={Shield} label={t("common.socialHub.desensitization")} value={156} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={BarChart3} label={t("common.socialHub.activeGroups")} value={12} iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-5 bg-card border border-border">
-          <TabsTrigger value="review"><MessageSquare className="w-4 h-4 mr-2" />消息审核</TabsTrigger>
-          <TabsTrigger value="ai"><Bot className="w-4 h-4 mr-2" />AI回复</TabsTrigger>
-          <TabsTrigger value="desensitize"><Shield className="w-4 h-4 mr-2" />脱敏测试</TabsTrigger>
-          <TabsTrigger value="stats"><BarChart3 className="w-4 h-4 mr-2" />消息统计</TabsTrigger>
-          <TabsTrigger value="templates"><Edit className="w-4 h-4 mr-2" />模板管理</TabsTrigger>
+          <TabsTrigger value="review"><MessageSquare className="w-4 h-4 mr-2" />{t("common.socialHub.tabReview")}</TabsTrigger>
+          <TabsTrigger value="ai"><Bot className="w-4 h-4 mr-2" />{t("common.socialHub.tabAi")}</TabsTrigger>
+          <TabsTrigger value="desensitize"><Shield className="w-4 h-4 mr-2" />{t("common.socialHub.tabDesensitize")}</TabsTrigger>
+          <TabsTrigger value="stats"><BarChart3 className="w-4 h-4 mr-2" />{t("common.socialHub.tabStats")}</TabsTrigger>
+          <TabsTrigger value="templates"><Edit className="w-4 h-4 mr-2" />{t("common.socialHub.tabTemplates")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="review" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>待审核回复队列</CardTitle><CardDescription>AI草拟的回复等待人工审核</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("common.socialHub.pendingQueueTitle")}</CardTitle><CardDescription>{t("common.socialHub.pendingQueueDesc")}</CardDescription></CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {mockPendingReplies.map((reply) => (
                   <div key={reply.id} className="p-4 bg-muted rounded-lg space-y-3">
                     <div className="flex items-center justify-between">
                       <Badge variant="outline">{reply.groupName}</Badge>
-                      <Badge variant="secondary">待审核</Badge>
+                      <Badge variant="secondary">{t("common.socialHub.pendingBadge")}</Badge>
                     </div>
                     <div className="p-3 bg-background rounded border border-border">
-                      <p className="text-sm text-muted-foreground mb-1">原始消息:</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t("common.socialHub.originalMessage")}</p>
                       <p>{reply.originalMsg}</p>
                     </div>
                     <div className="p-3 bg-primary/5 rounded border border-primary/20">
-                      <p className="text-sm text-primary mb-1">AI草拟回复:</p>
+                      <p className="text-sm text-primary mb-1">{t("common.socialHub.aiDraftReply")}</p>
                       <p>{reply.aiDraft}</p>
                     </div>
                     <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="outline"><Edit className="w-4 h-4 mr-1" />修改</Button>
-                      <Button size="sm" variant="destructive"><X className="w-4 h-4 mr-1" />驳回</Button>
-                      <Button size="sm"><Check className="w-4 h-4 mr-1" />批准发布</Button>
+                      <Button size="sm" variant="outline"><Edit className="w-4 h-4 mr-1" />{t("common.socialHub.modify")}</Button>
+                      <Button size="sm" variant="destructive"><X className="w-4 h-4 mr-1" />{t("common.socialHub.dismiss")}</Button>
+                      <Button size="sm"><Check className="w-4 h-4 mr-1" />{t("common.socialHub.approvePublish")}</Button>
                     </div>
                   </div>
                 ))}
@@ -82,11 +84,11 @@ export default function SocialCommunityHub() {
 
         <TabsContent value="ai" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>AI回复编辑器</CardTitle><CardDescription>手动触发AI生成回复</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("common.socialHub.aiReplyEditor")}</CardTitle><CardDescription>{t("common.socialHub.aiReplyEditorDesc")}</CardDescription></CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Textarea placeholder="输入需要回复的消息内容..." rows={4} />
-                <Button><Bot className="w-4 h-4 mr-2" />生成AI回复</Button>
+                <Textarea placeholder={t("common.socialHub.inputPlaceholder")} rows={4} />
+                <Button><Bot className="w-4 h-4 mr-2" />{t("common.socialHub.generateAiReply")}</Button>
               </div>
             </CardContent>
           </Card>
@@ -94,19 +96,19 @@ export default function SocialCommunityHub() {
 
         <TabsContent value="desensitize" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>脱敏规则测试</CardTitle><CardDescription>测试脱敏规则效果</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("common.socialHub.desensitizeRulesTitle")}</CardTitle><CardDescription>{t("common.socialHub.desensitizeRulesDesc")}</CardDescription></CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <Textarea 
-                  placeholder="输入测试文本，如：张三的手机号是13812345678，邮箱是zhangsan@company.com" 
+                  placeholder={t("common.socialHub.desensitizeTestPlaceholder")} 
                   rows={4}
                   value={testInput}
                   onChange={(e) => setTestInput(e.target.value)}
                 />
-                <Button><Shield className="w-4 h-4 mr-2" />测试脱敏</Button>
+                <Button><Shield className="w-4 h-4 mr-2" />{t("common.socialHub.testDesensitize")}</Button>
                 {testInput && (
                   <div className="p-3 bg-muted rounded">
-                    <p className="text-sm text-muted-foreground mb-1">脱敏结果:</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t("common.socialHub.desensitizeResult")}</p>
                     <p>***的手机号是***，邮箱是***@***.com</p>
                   </div>
                 )}
@@ -117,18 +119,18 @@ export default function SocialCommunityHub() {
 
         <TabsContent value="stats" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>群消息统计</CardTitle><CardDescription>消息量、活跃度、响应时间分析</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("common.socialHub.messageStatsTitle")}</CardTitle><CardDescription>{t("common.socialHub.messageStatsDesc")}</CardDescription></CardHeader>
             <CardContent>
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">[消息统计图表 - 按群组/时间段统计]</div>
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">{t("common.socialHub.messageStatsPlaceholder")}</div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="templates" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>回复模板管理</CardTitle><CardDescription>预设回复模板库</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("common.socialHub.templateTitle")}</CardTitle><CardDescription>{t("common.socialHub.templateDesc")}</CardDescription></CardHeader>
             <CardContent>
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">[模板列表 - 分类管理回复模板]</div>
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">{t("common.socialHub.templatePlaceholder")}</div>
             </CardContent>
           </Card>
         </TabsContent>

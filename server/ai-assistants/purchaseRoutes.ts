@@ -168,7 +168,7 @@ export const purchaseAssistantRouter = router({
   getDashboard: protectedProcedure.query(async () => {
     await ensurePurchaseDashboard();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT category, items FROM ai_assistant_dashboard WHERE assistant_type = 'purchase'`);
+    const { rows } = await db.execute(sql`SELECT category, items FROM ai_assistant_dashboard WHERE assistant_type = 'purchase' LIMIT 1000`);
     const data: Record<string, any[]> = { suppliers: [], prices: [], strategies: [], plan: [] };
     for (const r of rows as any[]) {
       data[r.category] = r.items;

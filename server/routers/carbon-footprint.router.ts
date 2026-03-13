@@ -32,7 +32,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -369,14 +369,14 @@ export function generateCbamDeclaration(
 // ─── Mock Data — GRT Industrial Washing Equipment ─────────────────────
 
 // 3 products: standard washer, ultrasonic cleaner, large custom system
-const MOCK_PRODUCTS = [
+const DEMO_PRODUCTS = [
   { code: "GWM-3000", name: "GRT Spray Wash Machine 3000", euThreshold: 2000 },
   { code: "GUC-500",  name: "GRT Ultrasonic Cleaner 500",  euThreshold: 2000 },
   { code: "GSC-200",  name: "GRT Custom Wash System 200",  euThreshold: 5000 },
 ];
 
 // BOM materials with weights (per unit of finished product)
-const MOCK_BOM_MATERIALS: BomMaterial[] = [
+const DEMO_BOM_MATERIALS: BomMaterial[] = [
   // GWM-3000 BOM (Spray Wash Machine)
   { partNumber: "SS316-PLATE",    partName: "Stainless Steel 316L Plate",    qtyPerUnit: 8,  weightKg: 25.0 },
   { partNumber: "CS-FRAME",       partName: "Carbon Steel Frame Section",    qtyPerUnit: 4,  weightKg: 30.0 },
@@ -400,7 +400,7 @@ const MOCK_BOM_MATERIALS: BomMaterial[] = [
 ];
 
 // Carbon factors (kg CO₂e per kg of material)
-const MOCK_CARBON_FACTORS: MaterialCarbonFactor[] = [
+const DEMO_CARBON_FACTORS: MaterialCarbonFactor[] = [
   { partNumber: "SS316-PLATE",    partName: "Stainless Steel 316L Plate",    materialType: "Stainless Steel 316L", co2PerKg: 6.15,  region: "CN" },
   { partNumber: "CS-FRAME",       partName: "Carbon Steel Frame Section",    materialType: "Carbon Steel Q235B",   co2PerKg: 2.33,  region: "CN" },
   { partNumber: "PUMP-HIGH-P",    partName: "High-Pressure Wash Pump",       materialType: "Cast Iron + Steel",    co2PerKg: 3.80,  region: "CN" },
@@ -411,7 +411,7 @@ const MOCK_CARBON_FACTORS: MaterialCarbonFactor[] = [
 ];
 
 // Machine energy profiles
-const MOCK_ENERGY_PROFILES: MachineEnergyProfile[] = [
+const DEMO_ENERGY_PROFILES: MachineEnergyProfile[] = [
   { machineCode: "CNC-001", machineName: "CNC Machining Center #1",  kwPerHour: 25.0, gridCo2Factor: 0.5810 }, // CN East Grid
   { machineCode: "CNC-002", machineName: "CNC Machining Center #2",  kwPerHour: 25.0, gridCo2Factor: 0.5810 },
   { machineCode: "WLD-TIG-001", machineName: "TIG Welding Station",  kwPerHour: 18.0, gridCo2Factor: 0.5810 },
@@ -421,7 +421,7 @@ const MOCK_ENERGY_PROFILES: MachineEnergyProfile[] = [
 ];
 
 // Standard machining steps per product (routing)
-const MOCK_MACHINING_STEPS: Record<string, MachiningStep[]> = {
+const DEMO_MACHINING_STEPS: Record<string, MachiningStep[]> = {
   "GWM-3000": [
     { machineCode: "LASER-001",    machineName: "Fiber Laser Cutter",    durationHours: 6.0 },
     { machineCode: "CNC-001",      machineName: "CNC Machining Center",  durationHours: 8.0 },
@@ -456,7 +456,7 @@ function getBomForProduct(productCode: string): BomMaterial[] {
   const items = productBomMap[productCode] ?? [];
   return items.map(spec => {
     const [partNumber, qty, weight] = spec.split(":");
-    const fullPart = MOCK_BOM_MATERIALS.find(b => b.partNumber === partNumber);
+    const fullPart = DEMO_BOM_MATERIALS.find(b => b.partNumber === partNumber);
     return {
       partNumber,
       partName: fullPart?.partName ?? partNumber,
@@ -473,10 +473,10 @@ export const carbonFootprintRouter = router({
    * Dashboard — all products with their carbon footprints
    */
   dashboard: protectedProcedure.query(async () => {
-    const products = MOCK_PRODUCTS.map(p => {
+    const products = DEMO_PRODUCTS.map(p => {
       const bom = getBomForProduct(p.code);
-      const steps = MOCK_MACHINING_STEPS[p.code] ?? [];
-      return calculateProductFootprint(p.code, p.name, bom, MOCK_CARBON_FACTORS, steps, MOCK_ENERGY_PROFILES, p.euThreshold);
+      const steps = DEMO_MACHINING_STEPS[p.code] ?? [];
+      return calculateProductFootprint(p.code, p.name, bom, DEMO_CARBON_FACTORS, steps, DEMO_ENERGY_PROFILES, p.euThreshold);
     });
 
     const totalCo2 = products.reduce((s, p) => s + p.totalCo2, 0);
@@ -502,18 +502,18 @@ export const carbonFootprintRouter = router({
   productDetail: protectedProcedure
     .input(z.object({ productCode: z.string() }))
     .query(async ({ input }) => {
-      const product = MOCK_PRODUCTS.find(p => p.code === input.productCode);
+      const product = DEMO_PRODUCTS.find(p => p.code === input.productCode);
       if (!product) return null;
 
       const bom = getBomForProduct(product.code);
-      const steps = MOCK_MACHINING_STEPS[product.code] ?? [];
-      return calculateProductFootprint(product.code, product.name, bom, MOCK_CARBON_FACTORS, steps, MOCK_ENERGY_PROFILES, product.euThreshold);
+      const steps = DEMO_MACHINING_STEPS[product.code] ?? [];
+      return calculateProductFootprint(product.code, product.name, bom, DEMO_CARBON_FACTORS, steps, DEMO_ENERGY_PROFILES, product.euThreshold);
     }),
 
   /**
    * Simulate ECO material swap — what-if analysis
    */
-  simulateSwap: protectedProcedure
+  simulateSwap: requirePermission('system:compliance:manage')
     .input(z.object({
       productCode: z.string(),
       oldPartNumber: z.string(),
@@ -522,12 +522,12 @@ export const carbonFootprintRouter = router({
       newCo2PerKg: z.number(),
     }))
     .mutation(async ({ input }) => {
-      const product = MOCK_PRODUCTS.find(p => p.code === input.productCode);
+      const product = DEMO_PRODUCTS.find(p => p.code === input.productCode);
       if (!product) return null;
 
       const bom = getBomForProduct(product.code);
-      const steps = MOCK_MACHINING_STEPS[product.code] ?? [];
-      const original = calculateProductFootprint(product.code, product.name, bom, MOCK_CARBON_FACTORS, steps, MOCK_ENERGY_PROFILES, product.euThreshold);
+      const steps = DEMO_MACHINING_STEPS[product.code] ?? [];
+      const original = calculateProductFootprint(product.code, product.name, bom, DEMO_CARBON_FACTORS, steps, DEMO_ENERGY_PROFILES, product.euThreshold);
 
       return simulateEcoSwap(
         original,
@@ -536,9 +536,9 @@ export const carbonFootprintRouter = router({
         input.newPartName,
         input.newCo2PerKg,
         bom,
-        MOCK_CARBON_FACTORS,
+        DEMO_CARBON_FACTORS,
         steps,
-        MOCK_ENERGY_PROFILES,
+        DEMO_ENERGY_PROFILES,
         product.euThreshold,
       );
     }),
@@ -546,15 +546,15 @@ export const carbonFootprintRouter = router({
   /**
    * Generate CBAM customs declaration
    */
-  generateDeclaration: protectedProcedure
+  generateDeclaration: requirePermission('system:compliance:manage')
     .input(z.object({ productCode: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const product = MOCK_PRODUCTS.find(p => p.code === input.productCode);
+      const product = DEMO_PRODUCTS.find(p => p.code === input.productCode);
       if (!product) return null;
 
       const bom = getBomForProduct(product.code);
-      const steps = MOCK_MACHINING_STEPS[product.code] ?? [];
-      const footprint = calculateProductFootprint(product.code, product.name, bom, MOCK_CARBON_FACTORS, steps, MOCK_ENERGY_PROFILES, product.euThreshold);
+      const steps = DEMO_MACHINING_STEPS[product.code] ?? [];
+      const footprint = calculateProductFootprint(product.code, product.name, bom, DEMO_CARBON_FACTORS, steps, DEMO_ENERGY_PROFILES, product.euThreshold);
 
       const declId = `CBAM-${product.code}-${Date.now()}`;
       const certifiedBy = (ctx as any).user?.username ?? "ESG Officer";

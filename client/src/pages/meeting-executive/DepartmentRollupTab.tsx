@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Building2,
   RefreshCw,
@@ -41,7 +42,15 @@ import {
   Legend,
 } from "recharts";
 
-const DEPARTMENTS = ["研发部", "产品部", "销售部", "市场部", "人力资源部", "财务部", "运营部"];
+const DEPARTMENT_KEYS = [
+  "meeting.dept.deptRnD",
+  "meeting.dept.deptProduct",
+  "meeting.dept.deptSales",
+  "meeting.dept.deptMarketing",
+  "meeting.dept.deptHR",
+  "meeting.dept.deptFinance",
+  "meeting.dept.deptOperations",
+];
 
 function getCurrentPeriod() {
   const now = new Date();
@@ -49,6 +58,8 @@ function getCurrentPeriod() {
 }
 
 export function DepartmentRollupTab() {
+  const { t } = useLanguage();
+  const DEPARTMENTS = DEPARTMENT_KEYS.map((k) => t(k));
   const [department, setDepartment] = useState(DEPARTMENTS[0]);
   const [period, setPeriod] = useState(getCurrentPeriod());
   const [compareDepts, setCompareDepts] = useState<string[]>(DEPARTMENTS.slice(0, 4));
@@ -79,7 +90,7 @@ export function DepartmentRollupTab() {
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-3 items-end">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">部门</label>
+              <label className="text-sm font-medium">{t("meeting.dept.department")}</label>
               <Select value={department} onValueChange={setDepartment}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue />
@@ -92,7 +103,7 @@ export function DepartmentRollupTab() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">时段</label>
+              <label className="text-sm font-medium">{t("meeting.dept.period")}</label>
               <Input
                 value={period}
                 onChange={(e) => setPeriod(e.target.value)}
@@ -110,7 +121,7 @@ export function DepartmentRollupTab() {
               ) : (
                 <RefreshCw className="h-4 w-4 mr-2" />
               )}
-              刷新汇总
+              {t("meeting.dept.refreshRollup")}
             </Button>
           </div>
         </CardContent>
@@ -121,13 +132,13 @@ export function DepartmentRollupTab() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             icon={Building2}
-            label="会议数"
+            label={t("meeting.dept.meetingCount")}
             value={rollup.meetingCount ?? 0}
             subtitle={`${department} · ${period}`}
           />
           <StatCard
             icon={Target}
-            label="平均效能"
+            label={t("meeting.dept.avgEffectiveness")}
             value={`${Math.round(rollup.avgEffectiveness ?? 0)}%`}
             subtitle="Avg Effectiveness"
             iconColor="text-green-600"
@@ -135,7 +146,7 @@ export function DepartmentRollupTab() {
           />
           <StatCard
             icon={Users}
-            label="活跃参与者"
+            label={t("meeting.dept.activeParticipants")}
             value={rollup.activeParticipants ?? 0}
             subtitle="Active Participants"
             iconColor="text-blue-600"
@@ -143,7 +154,7 @@ export function DepartmentRollupTab() {
           />
           <StatCard
             icon={CheckCircle2}
-            label="总决策数"
+            label={t("meeting.dept.totalDecisions")}
             value={rollup.totalDecisions ?? 0}
             subtitle="Total Decisions"
             iconColor="text-amber-600"
@@ -155,7 +166,7 @@ export function DepartmentRollupTab() {
       {/* Department Comparison Bar Chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">部门对比</CardTitle>
+          <CardTitle className="text-base">{t("meeting.dept.comparison")}</CardTitle>
           <CardDescription>Department comparison by effectiveness & contribution</CardDescription>
         </CardHeader>
         <CardContent>
@@ -172,12 +183,12 @@ export function DepartmentRollupTab() {
                 <YAxis domain={[0, 100]} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="avgEffectiveness" fill="#6366f1" name="平均效能" />
-                <Bar dataKey="avgContribution" fill="#22c55e" name="平均贡献分" />
+                <Bar dataKey="avgEffectiveness" fill="#6366f1" name={t("meeting.dept.chartAvgEffectiveness")} />
+                <Bar dataKey="avgContribution" fill="#22c55e" name={t("meeting.dept.chartAvgContribution")} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-center py-8 text-muted-foreground">暂无对比数据</p>
+            <p className="text-center py-8 text-muted-foreground">{t("meeting.dept.noComparisonData")}</p>
           )}
         </CardContent>
       </Card>
@@ -187,18 +198,18 @@ export function DepartmentRollupTab() {
         {/* Rankings */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">部门排名</CardTitle>
+            <CardTitle className="text-base">{t("meeting.dept.rankingTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
             {mgmt?.rankings && (mgmt.rankings as any[]).length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-10">#</TableHead>
-                    <TableHead>部门</TableHead>
-                    <TableHead className="text-center">会议</TableHead>
-                    <TableHead className="text-center">效能</TableHead>
-                    <TableHead className="text-center">贡献</TableHead>
+                    <TableHead className="w-10">{t("meeting.dept.thRank")}</TableHead>
+                    <TableHead>{t("meeting.dept.thDept")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.dept.thMeetings")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.dept.thEffectiveness")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.dept.thContribution")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -218,7 +229,7 @@ export function DepartmentRollupTab() {
                 </TableBody>
               </Table>
             ) : (
-              <p className="text-center py-6 text-muted-foreground">暂无排名数据</p>
+              <p className="text-center py-6 text-muted-foreground">{t("meeting.dept.noRankingData")}</p>
             )}
           </CardContent>
         </Card>
@@ -228,7 +239,7 @@ export function DepartmentRollupTab() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
-              效能趋势
+              {t("meeting.dept.trendTitle")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -244,12 +255,12 @@ export function DepartmentRollupTab() {
                     dataKey="avg_effectiveness"
                     stroke="#6366f1"
                     strokeWidth={2}
-                    name="平均效能"
+                    name={t("meeting.dept.chartTrendEffectiveness")}
                   />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center py-8 text-muted-foreground">暂无趋势数据</p>
+              <p className="text-center py-8 text-muted-foreground">{t("meeting.dept.noTrendData")}</p>
             )}
           </CardContent>
         </Card>

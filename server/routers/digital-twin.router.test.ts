@@ -12,6 +12,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -44,6 +45,12 @@ const {
 });
 
 // Mock service functions
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../services/digital-twin.service", () => ({
   createAsset: mockCreateAsset,
   publishAssetVersion: mockPublishAssetVersion,

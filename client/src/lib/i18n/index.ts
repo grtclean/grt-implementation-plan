@@ -32,6 +32,18 @@ import { rndTranslations } from "./rnd";
 import { supplyChainTranslations } from "./supply-chain";
 import { afterSalesTranslations } from "./after-sales";
 import { aiTranslations } from "./ai";
+import { meetingIntelligenceTranslations } from "./meeting-intelligence";
+import { workspaceTranslations } from "./workspace";
+import { marketingTranslations } from "./marketing";
+import { robotCleaningTranslations } from "./robot-cleaning";
+import { documentGovernanceTranslations } from "./document-governance";
+import { idoTranslations } from "./ido";
+import { copilotTranslations } from "./copilot";
+import { uiTranslations } from "./ui";
+import { autoPageTranslations } from "./auto-pages";
+import { adminPagesTranslations } from "./admin-pages";
+import { empowermentTranslations } from "./empowerment";
+import { meetingExecutiveTranslations } from "./meeting-executive";
 
 const modules: TranslationModule[] = [
   commonTranslations,
@@ -50,6 +62,18 @@ const modules: TranslationModule[] = [
   supplyChainTranslations,
   afterSalesTranslations,
   aiTranslations,
+  meetingIntelligenceTranslations,
+  workspaceTranslations,
+  marketingTranslations,
+  robotCleaningTranslations,
+  documentGovernanceTranslations,
+  idoTranslations,
+  copilotTranslations,
+  uiTranslations,
+  autoPageTranslations,
+  adminPagesTranslations,
+  empowermentTranslations,
+  meetingExecutiveTranslations,
 ];
 
 // ── Merge all modules into one translations record ──────────────────

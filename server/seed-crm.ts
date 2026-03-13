@@ -142,13 +142,13 @@ export async function seedCrmData() {
 
   // 2. 创建测试联系人
   const testContacts = [
-    { customerId: 1, name: "张伟", title: "信息化部总监", phone: "13800138001", email: "zhangwei@dlvw.com", isPrimary: true },
-    { customerId: 1, name: "李明", title: "MES项目经理", phone: "13800138002", email: "liming@dlvw.com", isPrimary: false },
-    { customerId: 2, name: "王强", title: "智能制造部长", phone: "13800138003", email: "wangqiang@smtcl.com", isPrimary: true },
-    { customerId: 3, name: "刘洋", title: "信息中心主任", phone: "13800138004", email: "liuyang@ansteel.cn", isPrimary: true },
+    { customerId: 1, name: "吴卫成", title: "信息化部总监", phone: "13800138001", email: "wuweib@dlvw.com", isPrimary: true },
+    { customerId: 1, name: "李兴伟", title: "MES项目经理", phone: "13800138002", email: "lixingw@dlvw.com", isPrimary: false },
+    { customerId: 2, name: "杜显文", title: "智能制造部长", phone: "13800138003", email: "duxianw@smtcl.com", isPrimary: true },
+    { customerId: 3, name: "廉龙海", title: "信息中心主任", phone: "13800138004", email: "qulongh@ansteel.cn", isPrimary: true },
     { customerId: 4, name: "陈晨", title: "数字化转型负责人", phone: "13800138005", email: "chenchen@dsic.cn", isPrimary: true },
-    { customerId: 5, name: "赵磊", title: "IT总监", phone: "13800138006", email: "zhaolei@bmw-brilliance.cn", isPrimary: true },
-    { customerId: 6, name: "孙涛", title: "工程部经理", phone: "13800138007", email: "suntao@hengli.com", isPrimary: true },
+    { customerId: 5, name: "焦斌", title: "IT总监", phone: "13800138006", email: "jiaobin@bmw-brilliance.cn", isPrimary: true },
+    { customerId: 6, name: "杨勇", title: "工程部经理", phone: "13800138007", email: "yangyong@hengli.com", isPrimary: true },
     { customerId: 7, name: "周教授", title: "智能制造研究中心主任", phone: "13800138008", email: "zhouprof@dlut.edu.cn", isPrimary: true },
   ];
 

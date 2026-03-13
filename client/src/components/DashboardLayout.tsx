@@ -131,7 +131,7 @@ const menuItems: MenuItem[] = [
       { icon: Database, label: "ERP配置", path: "/admin/erp-configuration" },
       { icon: Webhook, label: "Webhook管理", path: "/admin/webhooks" },
       { icon: Award, label: "证书模板", path: "/admin/certificates" },
-      { icon: CloudCog, label: "简道云集成", path: "/jiandaoyun-integration" },
+      { icon: CloudCog, label: "外部数据平台集成", path: "/external-sync-integration" },
       { icon: Timer, label: "定时任务管理", path: "/scheduler-management" },
       { icon: UserCog, label: "用户状态管理", path: "/user-status-management" },
       { icon: UserCheck, label: "用户配置设置", path: "/user-profile" },

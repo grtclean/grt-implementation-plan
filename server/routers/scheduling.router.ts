@@ -126,7 +126,7 @@ export const schedulingRouter = router({
   /**
    * 创建排程任务
    */
-  createTask: protectedProcedure
+  createTask: requirePermission('mfg:scheduling:run')
     .input(taskInputSchema)
     .mutation(async ({ input, ctx }) => {
       const db: any = await getDb();
@@ -159,7 +159,7 @@ export const schedulingRouter = router({
   /**
    * 更新排程任务
    */
-  updateTask: protectedProcedure
+  updateTask: requirePermission('mfg:scheduling:run')
     .input(z.object({
       id: z.string(),
       ...taskInputSchema.partial().shape,
@@ -210,7 +210,7 @@ export const schedulingRouter = router({
   /**
    * 删除排程任务
    */
-  deleteTask: protectedProcedure
+  deleteTask: requirePermission('mfg:scheduling:run')
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       const db: any = await getDb();
@@ -258,7 +258,7 @@ export const schedulingRouter = router({
   /**
    * 创建资源
    */
-  createResource: protectedProcedure
+  createResource: requirePermission('mfg:scheduling:run')
     .input(resourceInputSchema)
     .mutation(async ({ input }) => {
       const db: any = await getDb();
@@ -285,7 +285,7 @@ export const schedulingRouter = router({
   /**
    * 更新资源可用性
    */
-  updateResourceAvailability: protectedProcedure
+  updateResourceAvailability: requirePermission('mfg:scheduling:run')
     .input(z.object({
       resourceId: z.string(),
       date: z.string(), // YYYY-MM-DD
@@ -367,7 +367,7 @@ export const schedulingRouter = router({
   /**
    * 创建约束
    */
-  createConstraint: protectedProcedure
+  createConstraint: requirePermission('mfg:scheduling:run')
     .input(constraintInputSchema)
     .mutation(async ({ input }) => {
       const db: any = await getDb();
@@ -395,7 +395,7 @@ export const schedulingRouter = router({
   /**
    * 切换约束启用状态
    */
-  toggleConstraint: protectedProcedure
+  toggleConstraint: requirePermission('mfg:scheduling:run')
     .input(z.object({
       id: z.string(),
       isActive: z.boolean(),
@@ -774,7 +774,7 @@ export const schedulingRouter = router({
   /**
    * 导出排程结果为Excel
    */
-  exportToExcel: protectedProcedure
+  exportToExcel: requirePermission('mfg:scheduling:run')
     .input(z.object({
       jobId: z.string().optional(),
       projectId: z.string().optional(),
@@ -858,7 +858,7 @@ export const schedulingRouter = router({
   /**
    * 导出排程结果为PDF
    */
-  exportToPDF: protectedProcedure
+  exportToPDF: requirePermission('mfg:scheduling:run')
     .input(z.object({
       jobId: z.string().optional(),
       projectId: z.string().optional(),
@@ -942,7 +942,7 @@ export const schedulingRouter = router({
   /**
    * 导出排程结果为CSV
    */
-  exportToCSV: protectedProcedure
+  exportToCSV: requirePermission('mfg:scheduling:run')
     .input(z.object({
       projectId: z.string().optional(),
     }))
@@ -996,7 +996,7 @@ export const schedulingRouter = router({
   /**
    * 更新自动刷新配置
    */
-  updateAutoRefreshConfig: protectedProcedure
+  updateAutoRefreshConfig: requirePermission('mfg:scheduling:run')
     .input(z.object({
       enabled: z.boolean().optional(),
       triggerDelay: z.number().min(1000).optional(),
@@ -1011,7 +1011,7 @@ export const schedulingRouter = router({
   /**
    * 手动触发刷新
    */
-  triggerManualRefresh: protectedProcedure
+  triggerManualRefresh: requirePermission('mfg:scheduling:run')
     .mutation(async () => {
       return await triggerManualRefresh();
     }),
@@ -1019,7 +1019,7 @@ export const schedulingRouter = router({
   /**
    * 接收报工事件（用于触发自动刷新）
    */
-  reportWorkEvent: protectedProcedure
+  reportWorkEvent: requirePermission('mfg:scheduling:run')
     .input(z.object({
       taskId: z.string(),
       resourceId: z.string(),
@@ -1041,7 +1041,7 @@ export const schedulingRouter = router({
   /**
    * 模拟报工事件（用于测试）
    */
-  simulateWorkReport: protectedProcedure
+  simulateWorkReport: requirePermission('mfg:scheduling:run')
     .input(z.object({
       taskId: z.string(),
       resourceId: z.string(),

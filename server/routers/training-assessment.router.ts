@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jsonValue } from "@shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { trainingAssessments, trainingAssessmentResults } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -27,7 +27,7 @@ export const trainingAssessmentRouter = router({
   }),
 
   // 创建评估
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('hr:training:manage').input(z.object({
     trainingId: z.number(),
     assessmentType: z.string().optional(),
     name: z.string().optional(),
@@ -51,7 +51,7 @@ export const trainingAssessmentRouter = router({
   }),
 
   // 更新评估
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('hr:training:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     name: z.string().optional(),
     description: z.string().optional(),
@@ -78,7 +78,7 @@ export const trainingAssessmentRouter = router({
   }),
 
   // 删除评估
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  delete: requirePermission('hr:training:manage').input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     await db.delete(trainingAssessmentResults).where(eq(trainingAssessmentResults.assessmentId, id));

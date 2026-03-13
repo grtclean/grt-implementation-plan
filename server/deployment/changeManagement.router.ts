@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import { router, protectedProcedure } from '../_core/trpc';
+import {router, protectedProcedure, requirePermission} from '../_core/trpc';
 import { 
   changeManagementService,
   type ChangeType,
@@ -103,7 +103,7 @@ export const changeManagementRouter = router({
   /**
    * 创建变更申请
    */
-  createRequest: protectedProcedure
+  createRequest: requirePermission('strategy:change:manage')
     .input(createChangeRequestSchema)
     .mutation(async ({ ctx, input }) => {
       const user = ctx.user;
@@ -168,7 +168,7 @@ export const changeManagementRouter = router({
   /**
    * 提交变更申请
    */
-  submitRequest: protectedProcedure
+  submitRequest: requirePermission('strategy:change:manage')
     .input(z.object({ requestId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       try {
@@ -189,7 +189,7 @@ export const changeManagementRouter = router({
   /**
    * 更新变更申请
    */
-  updateRequest: protectedProcedure
+  updateRequest: requirePermission('strategy:change:manage')
     .input(z.object({
       id: z.number(),
       data: createChangeRequestSchema.partial(),
@@ -219,7 +219,7 @@ export const changeManagementRouter = router({
   /**
    * 技术审核
    */
-  reviewRequest: protectedProcedure
+  reviewRequest: requirePermission('strategy:change:manage')
     .input(reviewRequestSchema)
     .mutation(async ({ ctx, input }) => {
       const user = ctx.user;
@@ -251,7 +251,7 @@ export const changeManagementRouter = router({
   /**
    * 管理员审批
    */
-  approveRequest: protectedProcedure
+  approveRequest: requirePermission('strategy:change:manage')
     .input(approveRequestSchema)
     .mutation(async ({ ctx, input }) => {
       const user = ctx.user;
@@ -297,7 +297,7 @@ export const changeManagementRouter = router({
   /**
    * 开始执行变更
    */
-  startExecution: protectedProcedure
+  startExecution: requirePermission('strategy:change:manage')
     .input(startExecutionSchema)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -326,7 +326,7 @@ export const changeManagementRouter = router({
   /**
    * 记录变更
    */
-  recordChange: protectedProcedure
+  recordChange: requirePermission('strategy:change:manage')
     .input(recordChangeSchema)
     .mutation(async ({ input }) => {
       switch (input.type) {
@@ -347,7 +347,7 @@ export const changeManagementRouter = router({
   /**
    * 执行一致性检查
    */
-  checkConsistency: protectedProcedure
+  checkConsistency: requirePermission('strategy:change:manage')
     .input(z.object({ executionId: z.number() }))
     .mutation(async ({ input }) => {
       try {
@@ -374,7 +374,7 @@ export const changeManagementRouter = router({
   /**
    * 完成执行
    */
-  completeExecution: protectedProcedure
+  completeExecution: requirePermission('strategy:change:manage')
     .input(completeExecutionSchema)
     .mutation(async ({ input }) => {
       const execution = changeManagementService.completeExecution(
@@ -407,7 +407,7 @@ export const changeManagementRouter = router({
   /**
    * 回滚执行
    */
-  rollbackExecution: protectedProcedure
+  rollbackExecution: requirePermission('strategy:change:manage')
     .input(rollbackExecutionSchema)
     .mutation(async ({ ctx, input }) => {
       // 检查权限
@@ -459,7 +459,7 @@ export const changeManagementRouter = router({
   /**
    * 部署到正式环境
    */
-  deployToProduction: protectedProcedure
+  deployToProduction: requirePermission('strategy:change:manage')
     .input(deployToProductionSchema)
     .mutation(async ({ ctx, input }) => {
       // 检查权限
@@ -562,7 +562,7 @@ export const changeManagementRouter = router({
   /**
    * 设置环境配置
    */
-  setEnvironmentConfig: protectedProcedure
+  setEnvironmentConfig: requirePermission('strategy:change:manage')
     .input(z.object({
       environment: z.enum(['test', 'production']),
       key: z.string().min(1),
@@ -584,7 +584,7 @@ export const changeManagementRouter = router({
   /**
    * 删除环境配置
    */
-  deleteEnvironmentConfig: protectedProcedure
+  deleteEnvironmentConfig: requirePermission('strategy:change:manage')
     .input(z.object({
       environment: z.enum(['test', 'production']),
       key: z.string().min(1),
@@ -606,7 +606,7 @@ export const changeManagementRouter = router({
   /**
    * 同步测试环境到正式环境
    */
-  syncTestToProduction: protectedProcedure
+  syncTestToProduction: requirePermission('strategy:change:manage')
     .input(z.object({
       configKeys: z.array(z.string()).optional(),
     }).optional())

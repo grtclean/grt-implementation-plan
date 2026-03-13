@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { PageHeader } from '@/components/grt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +40,7 @@ interface AIInsight {
  * 包含：计时器、议程、协作画布、AI洞察、行动项
  */
 export default function SmartMeetingOptimized() {
+  const { t } = useLanguage();
   // 会议基本信息
   const [meetingTitle, setMeetingTitle] = useState('产品迭代规划会议');
   const [meetingDate, setMeetingDate] = useState(new Date().toISOString().split('T')[0]);
@@ -64,7 +66,7 @@ export default function SmartMeetingOptimized() {
 ## 会议信息
 - **日期**: 2026-02-06
 - **会议类型**: 周会
-- **参会人员**: 张伟, 李明, 王芳, 陈强, 刘洋, 赵六
+- **参会人员**: 吴卫成, 李明, 孙淼, 陈强, 刘建年, 赵六 {/* demo */}
 
 ## 关键讨论点
 
@@ -107,7 +109,7 @@ export default function SmartMeetingOptimized() {
     {
       id: '2',
       title: '周五前完成首页改版设计稿的定稿',
-      owner: '王芳',
+      owner: '孙淼', // demo
       dueDate: '2026-02-12',
       priority: 'medium',
       status: 'pending',
@@ -155,7 +157,7 @@ export default function SmartMeetingOptimized() {
   const handleAddAgenda = () => {
     const newAgenda: Agenda = {
       id: Date.now().toString(),
-      title: '新议程...',
+      title: t("mi.smart.newAgenda"),
       duration: 10,
       status: 'pending',
     };
@@ -174,7 +176,7 @@ export default function SmartMeetingOptimized() {
   const handleAddActionItem = () => {
     const newItem: ActionItem = {
       id: Date.now().toString(),
-      title: '新行动项...',
+      title: t("mi.smart.newActionItem"),
       owner: '',
       dueDate: new Date().toISOString().split('T')[0],
       priority: 'medium',
@@ -195,26 +197,26 @@ export default function SmartMeetingOptimized() {
   const handleExportMinutes = () => {
     const content = `# ${meetingTitle}
 
-## 会议信息
-- **日期**: ${meetingDate}
-- **参会人数**: ${participants}
-- **会议时长**: ${formatTime(timerSeconds)}
+## ${t("mi.smart.exportMeetingInfo")}
+- **${t("mi.smart.exportDate")}**: ${meetingDate}
+- **${t("mi.smart.exportParticipants")}**: ${participants}
+- **${t("mi.smart.exportDuration")}**: ${formatTime(timerSeconds)}
 
-## 议程执行情况
-${agendas.map((a, i) => `${i + 1}. ${a.title} (${a.duration}分钟) - ${a.status}`).join('\n')}
+## ${t("mi.smart.exportAgendaStatus")}
+${agendas.map((a, i) => `${i + 1}. ${a.title} (${a.duration}${t("mi.smart.exportMinutesUnit")}) - ${a.status}`).join('\n')}
 
-## 会议纪要
+## ${t("mi.smart.exportMinutesLabel")}
 ${collaborativeNotes}
 
-## 行动项
+## ${t("mi.smart.exportActionsLabel")}
 ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
-   - 负责人: ${item.owner}
-   - 截止日期: ${item.dueDate}
-   - 优先级: ${item.priority}
-   - 状态: ${item.status}`).join('\n\n')}
+   - ${t("mi.smart.exportOwner")}: ${item.owner}
+   - ${t("mi.smart.exportDeadline")}: ${item.dueDate}
+   - ${t("mi.smart.exportPriority")}: ${item.priority}
+   - ${t("mi.smart.exportStatus")}: ${item.status}`).join('\n\n')}
 
 ---
-生成时间: ${new Date().toLocaleString()}
+${t("mi.smart.exportGeneratedAt")}: ${new Date().toLocaleString()}
 `;
 
     const blob = new Blob([content], { type: 'text/markdown' });
@@ -259,16 +261,16 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
         <PageHeader
           icon={Clock}
           title={meetingTitle}
-          description="智慧会议管理系统 - 优化版本"
+          description={t("mi.smart.description")}
           actions={
             <>
               <Button variant="outline" size="sm" onClick={handleExportMinutes}>
                 <Download className="w-4 h-4 mr-2" />
-                导出纪要
+                {t("mi.smart.exportMinutes")}
               </Button>
               <Button variant="outline" size="sm">
                 <Share2 className="w-4 h-4 mr-2" />
-                分享
+                {t("mi.smart.share")}
               </Button>
             </>
           }
@@ -283,36 +285,36 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Clock className="w-5 h-5" />
-                  会议计时
+                  {t("mi.smart.meetingTimer")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="bg-slate-900 text-white rounded-lg p-6 text-center">
                   <div className="text-4xl font-mono font-bold">{formatTime(timerSeconds)}</div>
-                  <p className="text-sm text-slate-400 mt-2">当前议程：{agendas.find(a => a.status === 'in-progress')?.title || '未开始'}</p>
+                  <p className="text-sm text-slate-400 mt-2">{t("mi.smart.currentAgenda")}: {agendas.find(a => a.status === 'in-progress')?.title || t("mi.smart.notStarted")}</p>
                 </div>
 
                 <div className="flex gap-2">
                   {!isTimerRunning ? (
                     <Button onClick={handleTimerStart} className="flex-1 bg-green-600 hover:bg-green-700">
                       <Play className="w-4 h-4 mr-1" />
-                      开始
+                      {t("mi.smart.start")}
                     </Button>
                   ) : (
                     <Button onClick={handleTimerPause} className="flex-1 bg-yellow-600 hover:bg-yellow-700">
                       <Pause className="w-4 h-4 mr-1" />
-                      暂停
+                      {t("mi.smart.pause")}
                     </Button>
                   )}
                   <Button onClick={handleTimerReset} variant="outline" className="flex-1">
                     <RotateCcw className="w-4 h-4 mr-1" />
-                    重置
+                    {t("mi.smart.reset")}
                   </Button>
                 </div>
 
                 <div className="text-xs text-slate-600 space-y-1">
-                  <p>• 总议程：{agendas.reduce((sum, a) => sum + a.duration, 0)} 分钟</p>
-                  <p>• 已完成：{agendas.filter(a => a.status === 'completed').length}/{agendas.length}</p>
+                  <p>• {t("mi.smart.totalAgenda")}: {agendas.reduce((sum, a) => sum + a.duration, 0)} {t("mi.smart.minutes")}</p>
+                  <p>• {t("mi.smart.completed")}: {agendas.filter(a => a.status === 'completed').length}/{agendas.length}</p>
                 </div>
               </CardContent>
             </Card>
@@ -320,8 +322,8 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
             {/* 议程列表 */}
             <Card className="bg-white shadow-lg border-0">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">会议议程</CardTitle>
-                <CardDescription>{agendas.filter(a => a.status === 'completed').length}/{agendas.length} 已完成</CardDescription>
+                <CardTitle className="text-lg">{t("mi.smart.meetingAgenda")}</CardTitle>
+                <CardDescription>{agendas.filter(a => a.status === 'completed').length}/{agendas.length} {t("mi.smart.agendaCompleted")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
                 {agendas.map((agenda, index) => (
@@ -330,7 +332,7 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
                       <div className="flex items-center gap-2">
                         {getStatusIcon(agenda.status)}
                         <span className="text-sm font-medium text-slate-900 flex-1">{agenda.title}</span>
-                        <Badge variant="outline" className="text-xs">{agenda.duration}分钟</Badge>
+                        <Badge variant="outline" className="text-xs">{agenda.duration}{t("mi.smart.minutesUnit")}</Badge>
                       </div>
                     </div>
                     <Button
@@ -345,7 +347,7 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
                 ))}
                 <Button onClick={handleAddAgenda} variant="outline" size="sm" className="w-full mt-2">
                   <Plus className="w-3 h-3 mr-1" />
-                  添加议程
+                  {t("mi.smart.addAgenda")}
                 </Button>
               </CardContent>
             </Card>
@@ -355,18 +357,18 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
           <div className="lg:col-span-2">
             <Card className="bg-white shadow-lg border-0 h-full">
               <CardHeader>
-                <CardTitle className="text-lg">协作画布</CardTitle>
-                <CardDescription>支持Markdown格式、TODO、Action、Decision标记</CardDescription>
+                <CardTitle className="text-lg">{t("mi.smart.collaborativeCanvas")}</CardTitle>
+                <CardDescription>{t("mi.smart.canvasDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Textarea
                   value={collaborativeNotes}
                   onChange={(e) => setCollaborativeNotes(e.target.value)}
-                  placeholder="输入会议笔记..."
+                  placeholder={t("mi.smart.notesPlaceholder")}
                   className="min-h-96 font-mono text-sm resize-none"
                 />
                 <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                  <p className="text-xs font-semibold text-slate-600 mb-2">Markdown预览：</p>
+                  <p className="text-xs font-semibold text-slate-600 mb-2">{t("mi.smart.markdownPreview")}</p>
                   <div className="prose prose-sm max-w-none">
                     <Streamdown>{collaborativeNotes}</Streamdown>
                   </div>
@@ -382,7 +384,7 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <BarChart3 className="w-5 h-5" />
-                  AI洞察
+                  {t("mi.smart.aiInsights")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -390,10 +392,10 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
                   <div key={index} className="p-3 bg-white rounded-lg border border-blue-200">
                     <div className="flex items-start justify-between mb-2">
                       <Badge variant="secondary" className="text-xs">
-                        {insight.type === 'summary' && '摘要'}
-                        {insight.type === 'keypoint' && '关键点'}
-                        {insight.type === 'action' && '行动'}
-                        {insight.type === 'decision' && '决策'}
+                        {insight.type === 'summary' && t("mi.smart.insightSummary")}
+                        {insight.type === 'keypoint' && t("mi.smart.insightKeypoint")}
+                        {insight.type === 'action' && t("mi.smart.insightAction")}
+                        {insight.type === 'decision' && t("mi.smart.insightDecision")}
                       </Badge>
                       <span className="text-xs text-slate-500">{Math.round(insight.confidence * 100)}%</span>
                     </div>
@@ -401,7 +403,7 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
                   </div>
                 ))}
                 <Button variant="outline" size="sm" className="w-full">
-                  生成AI洞察
+                  {t("mi.smart.generateInsights")}
                 </Button>
               </CardContent>
             </Card>
@@ -411,9 +413,9 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Users className="w-5 h-5" />
-                  行动项
+                  {t("mi.smart.actionItems")}
                 </CardTitle>
-                <CardDescription>{actionItems.filter(a => a.status !== 'completed').length} 待完成</CardDescription>
+                <CardDescription>{actionItems.filter(a => a.status !== 'completed').length} {t("mi.smart.pendingCount")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 max-h-96 overflow-y-auto">
                 {actionItems.map((item) => (
@@ -433,9 +435,9 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
                         <p className="text-xs font-semibold text-slate-900 truncate">{item.title}</p>
                         <div className="flex items-center gap-1 mt-1">
                           <Badge variant="outline" className={`text-xs ${getPriorityColor(item.priority)}`}>
-                            {item.priority === 'high' && '🔴 高'}
-                            {item.priority === 'medium' && '🟡 中'}
-                            {item.priority === 'low' && '🟢 低'}
+                            {item.priority === 'high' && `🔴 ${t("mi.smart.priorityHigh")}`}
+                            {item.priority === 'medium' && `🟡 ${t("mi.smart.priorityMedium")}`}
+                            {item.priority === 'low' && `🟢 ${t("mi.smart.priorityLow")}`}
                           </Badge>
                           <span className="text-xs text-slate-600">{item.owner}</span>
                         </div>
@@ -454,7 +456,7 @@ ${actionItems.map((item, i) => `${i + 1}. **${item.title}**
                 ))}
                 <Button onClick={handleAddActionItem} variant="outline" size="sm" className="w-full mt-2">
                   <Plus className="w-3 h-3 mr-1" />
-                  添加行动项
+                  {t("mi.smart.addActionItem")}
                 </Button>
               </CardContent>
             </Card>

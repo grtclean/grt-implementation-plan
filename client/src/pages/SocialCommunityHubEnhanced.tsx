@@ -2,6 +2,7 @@
  * 社群管理中心增强版 - 批量审核、AI评分、脱敏测试
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +48,7 @@ const groupActivityData = [
 ];
 
 export default function SocialCommunityHubEnhanced() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("review");
   const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
   const [testInput, setTestInput] = useState("");
@@ -79,23 +81,23 @@ export default function SocialCommunityHubEnhanced() {
     <div className="space-y-6">
       <PageHeader
         icon={MessageSquare}
-        title="社群管理中心 (增强版)"
-        description="批量审核、AI回复评分、脱敏规则测试、活跃度分析"
+        title={t("common.socialHubEnh.title")}
+        description={t("common.socialHubEnh.description")}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
           <TabsTrigger value="review" className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4" />批量审核
+            <CheckCircle className="w-4 h-4" />{t("common.socialHubEnh.tabReview")}
           </TabsTrigger>
           <TabsTrigger value="ai" className="flex items-center gap-2">
-            <Bot className="w-4 h-4" />AI评分
+            <Bot className="w-4 h-4" />{t("common.socialHubEnh.tabAi")}
           </TabsTrigger>
           <TabsTrigger value="desensitize" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />脱敏测试
+            <Shield className="w-4 h-4" />{t("common.socialHubEnh.tabDesensitize")}
           </TabsTrigger>
           <TabsTrigger value="activity" className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />活跃度
+            <BarChart3 className="w-4 h-4" />{t("common.socialHubEnh.tabActivity")}
           </TabsTrigger>
         </TabsList>
 
@@ -105,15 +107,15 @@ export default function SocialCommunityHubEnhanced() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>消息批量审核</CardTitle>
-                  <CardDescription>审核AI生成的回复，批量通过或修改</CardDescription>
+                  <CardTitle>{t("common.socialHubEnh.batchReviewTitle")}</CardTitle>
+                  <CardDescription>{t("common.socialHubEnh.batchReviewDesc")}</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={handleSelectAll}>
-                    {selectedMessages.length === pendingMessages.length ? "取消全选" : "全选"}
+                    {selectedMessages.length === pendingMessages.length ? t("common.socialHubEnh.deselectAll") : t("common.socialHubEnh.selectAll")}
                   </Button>
                   <Button size="sm" disabled={selectedMessages.length === 0}>
-                    批量通过 ({selectedMessages.length})
+                    {t("common.socialHubEnh.batchApprove")} ({selectedMessages.length})
                   </Button>
                 </div>
               </div>
@@ -134,7 +136,7 @@ export default function SocialCommunityHubEnhanced() {
                             <Badge variant="outline" className="text-xs">{msg.group}</Badge>
                             <span className="text-xs text-muted-foreground">{msg.time}</span>
                           </div>
-                          <Badge className="bg-primary/20 text-primary">AI评分: {msg.aiScore}</Badge>
+                          <Badge className="bg-primary/20 text-primary">{t("common.socialHubEnh.aiScore")}: {msg.aiScore}</Badge>
                         </div>
                         <div className="p-3 bg-background rounded mb-2">
                           <p className="text-sm">{msg.content}</p>
@@ -147,13 +149,13 @@ export default function SocialCommunityHubEnhanced() {
                         </div>
                         <div className="flex items-center gap-2 mt-3">
                           <Button size="sm" variant="outline" className="text-green-400 border-green-500/30">
-                            <ThumbsUp className="w-4 h-4 mr-1" />通过
+                            <ThumbsUp className="w-4 h-4 mr-1" />{t("common.socialHubEnh.approve")}
                           </Button>
                           <Button size="sm" variant="outline" className="text-yellow-400 border-yellow-500/30">
-                            编辑
+                            {t("common.socialHubEnh.edit")}
                           </Button>
                           <Button size="sm" variant="outline" className="text-red-400 border-red-500/30">
-                            <ThumbsDown className="w-4 h-4 mr-1" />拒绝
+                            <ThumbsDown className="w-4 h-4 mr-1" />{t("common.socialHubEnh.reject")}
                           </Button>
                         </div>
                       </div>
@@ -172,7 +174,7 @@ export default function SocialCommunityHubEnhanced() {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-primary">{aiQualityStats.totalReplies}</p>
-                  <p className="text-sm text-muted-foreground">总回复数</p>
+                  <p className="text-sm text-muted-foreground">{t("common.socialHubEnh.totalReplies")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -180,7 +182,7 @@ export default function SocialCommunityHubEnhanced() {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-green-400">{aiQualityStats.avgScore}</p>
-                  <p className="text-sm text-muted-foreground">平均评分</p>
+                  <p className="text-sm text-muted-foreground">{t("common.socialHubEnh.avgScore")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -188,7 +190,7 @@ export default function SocialCommunityHubEnhanced() {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-blue-400">{aiQualityStats.approvalRate}%</p>
-                  <p className="text-sm text-muted-foreground">通过率</p>
+                  <p className="text-sm text-muted-foreground">{t("common.socialHubEnh.approvalRate")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -196,7 +198,7 @@ export default function SocialCommunityHubEnhanced() {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-yellow-400">{aiQualityStats.editRate}%</p>
-                  <p className="text-sm text-muted-foreground">修改率</p>
+                  <p className="text-sm text-muted-foreground">{t("common.socialHubEnh.editRate")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -208,8 +210,8 @@ export default function SocialCommunityHubEnhanced() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>脱敏规则配置</CardTitle>
-                <CardDescription>启用或禁用脱敏规则</CardDescription>
+                <CardTitle>{t("common.socialHubEnh.desensitizeRulesConfig")}</CardTitle>
+                <CardDescription>{t("common.socialHubEnh.desensitizeRulesConfigDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -230,25 +232,25 @@ export default function SocialCommunityHubEnhanced() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>实时测试</CardTitle>
-                <CardDescription>输入文本测试脱敏效果</CardDescription>
+                <CardTitle>{t("common.socialHubEnh.realtimeTest")}</CardTitle>
+                <CardDescription>{t("common.socialHubEnh.realtimeTestDesc")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">输入文本</label>
-                  <Textarea 
-                    placeholder="输入包含敏感信息的文本..."
+                  <label className="text-sm font-medium mb-2 block">{t("common.socialHubEnh.inputText")}</label>
+                  <Textarea
+                    placeholder={t("common.socialHubEnh.inputSensitivePlaceholder")}
                     value={testInput}
                     onChange={(e) => setTestInput(e.target.value)}
                     rows={4}
                   />
                 </div>
                 <Button onClick={handleTestDesensitization} className="w-full">
-                  <Shield className="w-4 h-4 mr-2" />测试脱敏
+                  <Shield className="w-4 h-4 mr-2" />{t("common.socialHubEnh.testDesensitize")}
                 </Button>
                 {testOutput && (
                   <div>
-                    <label className="text-sm font-medium mb-2 block">脱敏结果</label>
+                    <label className="text-sm font-medium mb-2 block">{t("common.socialHubEnh.desensitizeResult")}</label>
                     <div className="p-3 bg-green-500/10 border border-green-500/20 rounded">
                       <p className="text-sm">{testOutput}</p>
                     </div>
@@ -263,8 +265,8 @@ export default function SocialCommunityHubEnhanced() {
         <TabsContent value="activity" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>群活跃度分析</CardTitle>
-              <CardDescription>各群组的消息量和响应时间统计</CardDescription>
+              <CardTitle>{t("common.socialHubEnh.activityAnalysis")}</CardTitle>
+              <CardDescription>{t("common.socialHubEnh.activityAnalysisDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -278,11 +280,11 @@ export default function SocialCommunityHubEnhanced() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">消息数量</p>
+                        <p className="text-xs text-muted-foreground mb-1">{t("common.socialHubEnh.messageCount")}</p>
                         <p className="text-xl font-bold text-primary">{group.messages}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">活跃用户</p>
+                        <p className="text-xs text-muted-foreground mb-1">{t("common.socialHubEnh.activeUsers")}</p>
                         <p className="text-xl font-bold text-green-400">{group.activeUsers}</p>
                       </div>
                     </div>

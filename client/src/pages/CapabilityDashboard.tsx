@@ -101,7 +101,7 @@ const organizationCapabilityData = {
   recentUpgrades: [
     { engineer: "张工", domain: "T", from: "L2", to: "L3", date: "2026-01-25" },
     { engineer: "李工", domain: "D", from: "L3", to: "L4", date: "2026-01-24" },
-    { engineer: "王工", domain: "C", from: "L1", to: "L2", date: "2026-01-23" },
+    { engineer: "焦斌", domain: "C", from: "L1", to: "L2", date: "2026-01-23" },
     { engineer: "赵工", domain: "S", from: "L2", to: "L3", date: "2026-01-22" },
     { engineer: "陈工", domain: "K", from: "L1", to: "L2", date: "2026-01-21" }
   ],

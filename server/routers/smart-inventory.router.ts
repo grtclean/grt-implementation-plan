@@ -25,7 +25,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 
@@ -502,7 +502,7 @@ export const smartInventoryRouter = router({
   /**
    * recalculate — trigger manual recalculation.
    */
-  recalculate: protectedProcedure.mutation(async () => {
+  recalculate: requirePermission('mfg:inventory:manage').mutation(async () => {
     const [{ forecasts }, { bom }, { rules }] = await Promise.all([
       loadForecasts(), loadBom(), loadMaterialRules(),
     ]);
@@ -543,7 +543,7 @@ export const smartInventoryRouter = router({
   /**
    * seedDemo — create sales_forecasts table and seed demo data.
    */
-  seedDemo: protectedProcedure.mutation(async () => {
+  seedDemo: requirePermission('mfg:inventory:manage').mutation(async () => {
     const db = await requireDb();
 
     // Create sales_forecasts table

@@ -428,7 +428,7 @@ async function saveNotificationRecords(records: NotificationRecord[]): Promise<v
 export async function getNotificationConfig(meetingType: string): Promise<NotificationConfig | null> {
   const db = await requireDb();
 
-  const result = await db.execute(sql`SELECT * FROM meeting_notification_configs WHERE meeting_type = ${meetingType} AND enabled = 1`);
+  const result = await db.execute(sql`SELECT * FROM meeting_notification_configs WHERE meeting_type = ${meetingType} AND enabled = 1 LIMIT 1000`);
 
   if (result.rows.length === 0) {
     return null;
@@ -481,7 +481,7 @@ export async function notifyMeetingOwnerOnTaskCompletion(
   const db = await requireDb();
 
   // 获取MO信息
-  const moResult = await db.execute(sql`SELECT * FROM meeting_owners WHERE meeting_type = ${meetingType}`);
+  const moResult = await db.execute(sql`SELECT * FROM meeting_owners WHERE meeting_type = ${meetingType} LIMIT 1000`);
 
   if (moResult.rows.length === 0) {
     return { success: false, message: 'No Meeting Owner configured for this meeting type' };
@@ -550,6 +550,7 @@ export async function sendOverdueReminders(): Promise<{ sent: number; failed: nu
           JOIN meeting_records m ON t.meeting_id = m.id
           WHERE t.status NOT IN ('completed', 'rejected')
           AND t.due_date < NOW()
+          LIMIT 1000
           AND t.overdue_notified = 0`);
 
   let sent = 0;

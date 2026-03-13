@@ -126,7 +126,7 @@ vi.mock("drizzle-orm", () => ({
 // ---------------------------------------------------------------------------
 
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -148,7 +148,7 @@ describe("aiTrigger.list", () => {
   it("returns empty list when no triggers exist", async () => {
     selectResultsQueue.push([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.list();
 
     expect(result.items).toEqual([]);
@@ -165,7 +165,7 @@ describe("aiTrigger.list", () => {
     ];
     selectResultsQueue.push(triggers);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.list();
 
     expect(result.items).toHaveLength(3);
@@ -177,7 +177,7 @@ describe("aiTrigger.list", () => {
   it("calls select().from().orderBy() on the db", async () => {
     selectResultsQueue.push([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiTrigger.list();
 
     expect(mockDb.select).toHaveBeenCalled();
@@ -192,7 +192,7 @@ describe("aiTrigger.getExecutionHistory", () => {
   it("returns empty array when no executions exist", async () => {
     selectResultsQueue.push([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.getExecutionHistory();
 
     expect(result).toEqual([]);
@@ -205,7 +205,7 @@ describe("aiTrigger.getExecutionHistory", () => {
     ];
     selectResultsQueue.push(executions);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.getExecutionHistory();
 
     expect(result).toHaveLength(2);
@@ -216,7 +216,7 @@ describe("aiTrigger.getExecutionHistory", () => {
   it("calls select().from().orderBy().limit(100)", async () => {
     selectResultsQueue.push([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiTrigger.getExecutionHistory();
 
     expect(mockDb.select).toHaveBeenCalled();
@@ -232,7 +232,7 @@ describe("aiTrigger.create", () => {
     const created = { id: 1, triggerCode: "TRG-AUTO", name: "新触发器" };
     returningQueue.push([created]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.create({});
 
     expect(result.success).toBe(true);
@@ -244,7 +244,7 @@ describe("aiTrigger.create", () => {
     const created = { id: 2, triggerCode: "MY-CODE", name: "Custom" };
     returningQueue.push([created]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.create({
       triggerCode: "MY-CODE",
       name: "Custom",
@@ -257,7 +257,7 @@ describe("aiTrigger.create", () => {
   it("generates triggerCode when not provided", async () => {
     returningQueue.push([{ id: 3, triggerCode: "TRG-AUTO" }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.create({ name: "Auto" });
 
     expect(result.success).toBe(true);
@@ -268,7 +268,7 @@ describe("aiTrigger.create", () => {
   it("defaults name to '新触发器' when not provided", async () => {
     returningQueue.push([{ id: 4, name: "新触发器" }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.create({});
 
     expect(result.success).toBe(true);
@@ -296,7 +296,7 @@ describe("aiTrigger.create", () => {
     };
     returningQueue.push([fullTrigger]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.create({
       triggerCode: "TRG-FULL",
       name: "Full Trigger",
@@ -323,7 +323,7 @@ describe("aiTrigger.create", () => {
   it("handles string triggerConditions without JSON.stringify", async () => {
     returningQueue.push([{ id: 6 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiTrigger.create({
       triggerConditions: '{"raw":"json"}',
     });
@@ -335,7 +335,7 @@ describe("aiTrigger.create", () => {
   it("handles string triggerOnStages without JSON.stringify", async () => {
     returningQueue.push([{ id: 7 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiTrigger.create({
       triggerOnStages: '["M1","M2"]',
     });
@@ -346,7 +346,7 @@ describe("aiTrigger.create", () => {
   it("handles string triggerOnEvents without JSON.stringify", async () => {
     returningQueue.push([{ id: 8 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiTrigger.create({
       triggerOnEvents: '["gate_failed"]',
     });
@@ -357,7 +357,7 @@ describe("aiTrigger.create", () => {
   it("handles string inputTemplate without JSON.stringify", async () => {
     returningQueue.push([{ id: 9 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiTrigger.create({
       inputTemplate: '{"template":true}',
     });
@@ -368,7 +368,7 @@ describe("aiTrigger.create", () => {
   it("handles string notifyRecipients without JSON.stringify", async () => {
     returningQueue.push([{ id: 10 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiTrigger.create({
       notifyRecipients: '["admin"]',
     });
@@ -379,7 +379,7 @@ describe("aiTrigger.create", () => {
   it("sets autoApplyResult=0 when false", async () => {
     returningQueue.push([{ id: 11, autoApplyResult: 0 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.create({ autoApplyResult: false });
 
     expect(result.success).toBe(true);
@@ -388,7 +388,7 @@ describe("aiTrigger.create", () => {
   it("sets isEnabled=0 when false", async () => {
     returningQueue.push([{ id: 12, isEnabled: 0 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.create({ isEnabled: false });
 
     expect(result.success).toBe(true);
@@ -397,7 +397,7 @@ describe("aiTrigger.create", () => {
   it("sets createdBy from context user id", async () => {
     returningQueue.push([{ id: 13, createdBy: 42 }]);
 
-    const caller = createAuthenticatedCaller({ id: 42 });
+    const caller = createAdminCaller({ id: 42 });
     const result = await caller.aiTrigger.create({ name: "User 42's Trigger" });
 
     expect(result.success).toBe(true);
@@ -413,7 +413,7 @@ describe("aiTrigger.update", () => {
   it("updates trigger name", async () => {
     returningQueue.push([{ id: 1, name: "Updated Name" }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({ id: 1, name: "Updated Name" });
 
     expect(result.success).toBe(true);
@@ -424,7 +424,7 @@ describe("aiTrigger.update", () => {
   it("accepts string id and coerces to number", async () => {
     returningQueue.push([{ id: 5, name: "Coerced" }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({ id: "5", name: "Coerced" });
 
     expect(result.success).toBe(true);
@@ -433,7 +433,7 @@ describe("aiTrigger.update", () => {
   it("updates description", async () => {
     returningQueue.push([{ id: 1, description: "New desc" }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({ id: 1, description: "New desc" });
 
     expect(result.success).toBe(true);
@@ -443,7 +443,7 @@ describe("aiTrigger.update", () => {
   it("updates agentType and triggerType", async () => {
     returningQueue.push([{ id: 1, agentType: "fmea", triggerType: "cron" }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       agentType: "fmea",
@@ -456,7 +456,7 @@ describe("aiTrigger.update", () => {
   it("updates triggerConditions as object (JSON.stringify)", async () => {
     returningQueue.push([{ id: 1, triggerConditions: '{"threshold":80}' }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       triggerConditions: { threshold: 80 },
@@ -468,7 +468,7 @@ describe("aiTrigger.update", () => {
   it("updates triggerConditions as string (passthrough)", async () => {
     returningQueue.push([{ id: 1, triggerConditions: '{"raw":true}' }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       triggerConditions: '{"raw":true}',
@@ -480,7 +480,7 @@ describe("aiTrigger.update", () => {
   it("updates cronExpression", async () => {
     returningQueue.push([{ id: 1, cronExpression: "*/5 * * * *" }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       cronExpression: "*/5 * * * *",
@@ -492,7 +492,7 @@ describe("aiTrigger.update", () => {
   it("updates triggerOnStages as array (JSON.stringify)", async () => {
     returningQueue.push([{ id: 1 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       triggerOnStages: ["M3", "M5"],
@@ -504,7 +504,7 @@ describe("aiTrigger.update", () => {
   it("updates triggerOnStages as string (passthrough)", async () => {
     returningQueue.push([{ id: 1 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       triggerOnStages: '["M3","M5"]',
@@ -516,7 +516,7 @@ describe("aiTrigger.update", () => {
   it("updates triggerOnEvents as array", async () => {
     returningQueue.push([{ id: 1 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       triggerOnEvents: ["gate_failed", "issue_created"],
@@ -528,7 +528,7 @@ describe("aiTrigger.update", () => {
   it("updates triggerOnEvents as string", async () => {
     returningQueue.push([{ id: 1 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       triggerOnEvents: '["gate_failed"]',
@@ -540,7 +540,7 @@ describe("aiTrigger.update", () => {
   it("updates inputTemplate as object", async () => {
     returningQueue.push([{ id: 1 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       inputTemplate: { prompt: "Analyze risk" },
@@ -552,7 +552,7 @@ describe("aiTrigger.update", () => {
   it("updates inputTemplate as string", async () => {
     returningQueue.push([{ id: 1 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       inputTemplate: '{"prompt":"Analyze risk"}',
@@ -566,7 +566,7 @@ describe("aiTrigger.update", () => {
       id: 1, autoApplyResult: 1, notifyOnSuccess: 0, notifyOnFailure: 0,
     }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       autoApplyResult: true,
@@ -580,7 +580,7 @@ describe("aiTrigger.update", () => {
   it("updates notifyRecipients as array", async () => {
     returningQueue.push([{ id: 1 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       notifyRecipients: ["admin@example.com"],
@@ -592,7 +592,7 @@ describe("aiTrigger.update", () => {
   it("updates notifyRecipients as string", async () => {
     returningQueue.push([{ id: 1 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       notifyRecipients: '["admin@example.com"]',
@@ -604,7 +604,7 @@ describe("aiTrigger.update", () => {
   it("updates isEnabled", async () => {
     returningQueue.push([{ id: 1, isEnabled: 0 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       isEnabled: false,
@@ -616,7 +616,7 @@ describe("aiTrigger.update", () => {
   it("updates priority", async () => {
     returningQueue.push([{ id: 1, priority: 10 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({
       id: 1,
       priority: 10,
@@ -629,7 +629,7 @@ describe("aiTrigger.update", () => {
   it("only updates fields present in input (updatedAt always set)", async () => {
     returningQueue.push([{ id: 1 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     // Only name provided — no other optional fields set
     const result = await caller.aiTrigger.update({ id: 1, name: "Only name" });
 
@@ -644,7 +644,7 @@ describe("aiTrigger.update", () => {
 
 describe("aiTrigger.delete", () => {
   it("deletes trigger and execution records", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.delete({ id: 1 });
 
     expect(result.success).toBe(true);
@@ -652,14 +652,14 @@ describe("aiTrigger.delete", () => {
   });
 
   it("accepts string id and coerces to number", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.delete({ id: "7" });
 
     expect(result.success).toBe(true);
   });
 
   it("calls delete on executions before triggers", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiTrigger.delete({ id: 10 });
 
     // delete is called twice: once for executions, once for triggers
@@ -675,7 +675,7 @@ describe("aiTrigger.toggle", () => {
   it("enables a disabled trigger", async () => {
     selectResultsQueue.push([{ id: 1, isEnabled: 0 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.toggle({ id: 1 });
 
     expect(result.success).toBe(true);
@@ -686,7 +686,7 @@ describe("aiTrigger.toggle", () => {
   it("disables an enabled trigger", async () => {
     selectResultsQueue.push([{ id: 2, isEnabled: 1 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.toggle({ id: 2 });
 
     expect(result.success).toBe(true);
@@ -697,7 +697,7 @@ describe("aiTrigger.toggle", () => {
   it("returns failure when trigger not found", async () => {
     selectResultsQueue.push([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.toggle({ id: 999 });
 
     expect(result.success).toBe(false);
@@ -707,7 +707,7 @@ describe("aiTrigger.toggle", () => {
   it("accepts string id and coerces to number", async () => {
     selectResultsQueue.push([{ id: 3, isEnabled: 1 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.toggle({ id: "3" });
 
     expect(result.success).toBe(true);
@@ -717,7 +717,7 @@ describe("aiTrigger.toggle", () => {
   it("calls update after select to flip isEnabled", async () => {
     selectResultsQueue.push([{ id: 5, isEnabled: 0 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiTrigger.toggle({ id: 5 });
 
     expect(mockDb.select).toHaveBeenCalled();
@@ -736,7 +736,7 @@ describe("aiTrigger.execute", () => {
     // Insert returns execution record
     returningQueue.push([{ id: 100, triggerId: 1, status: "Completed" }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.execute({ id: 1 });
 
     expect(result.success).toBe(true);
@@ -747,7 +747,7 @@ describe("aiTrigger.execute", () => {
   it("returns failure when trigger not found", async () => {
     selectResultsQueue.push([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.execute({ id: 999 });
 
     expect(result.success).toBe(false);
@@ -757,7 +757,7 @@ describe("aiTrigger.execute", () => {
   it("returns failure when trigger is disabled", async () => {
     selectResultsQueue.push([{ id: 2, isEnabled: 0 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.execute({ id: 2 });
 
     expect(result.success).toBe(false);
@@ -768,7 +768,7 @@ describe("aiTrigger.execute", () => {
     selectResultsQueue.push([{ id: 3, isEnabled: 1, executionCount: 0, successCount: 0 }]);
     returningQueue.push([{ id: 101, triggerId: 3 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.execute({
       id: 3,
       context: { projectId: 42, reason: "Manual test" },
@@ -781,7 +781,7 @@ describe("aiTrigger.execute", () => {
     selectResultsQueue.push([{ id: 4, isEnabled: 1, executionCount: 0, successCount: 0 }]);
     returningQueue.push([{ id: 102, triggerId: 4 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.execute({
       id: 4,
       triggerSource: "api-call",
@@ -794,7 +794,7 @@ describe("aiTrigger.execute", () => {
     selectResultsQueue.push([{ id: 5, isEnabled: 1, executionCount: 0, successCount: 0 }]);
     returningQueue.push([{ id: 103, triggerId: 5 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.execute({ id: 5 });
 
     expect(result.success).toBe(true);
@@ -805,7 +805,7 @@ describe("aiTrigger.execute", () => {
     selectResultsQueue.push([{ id: 6, isEnabled: 1, executionCount: 0, successCount: 0 }]);
     returningQueue.push([{ id: 104, triggerId: 6 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.execute({ id: "6" });
 
     expect(result.success).toBe(true);
@@ -815,7 +815,7 @@ describe("aiTrigger.execute", () => {
     selectResultsQueue.push([{ id: 7, isEnabled: 1, executionCount: 10, successCount: 8 }]);
     returningQueue.push([{ id: 105, triggerId: 7 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.aiTrigger.execute({ id: 7 });
 
     // Verify update was called to update statistics
@@ -829,7 +829,7 @@ describe("aiTrigger.execute", () => {
     }]);
     returningQueue.push([{ id: 106, triggerId: 8 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.execute({ id: 8 });
 
     expect(result.success).toBe(true);
@@ -893,49 +893,49 @@ describe("aiTrigger input validation", () => {
   it("create accepts empty object (all fields optional)", async () => {
     returningQueue.push([{ id: 1 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.create({});
 
     expect(result.success).toBe(true);
   });
 
   it("update requires id field", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.aiTrigger.update as any)({ name: "No ID" })
     ).rejects.toThrow();
   });
 
   it("delete requires id field", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.aiTrigger.delete as any)({})
     ).rejects.toThrow();
   });
 
   it("toggle requires id field", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.aiTrigger.toggle as any)({})
     ).rejects.toThrow();
   });
 
   it("execute requires id field", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.aiTrigger.execute as any)({})
     ).rejects.toThrow();
   });
 
   it("create rejects invalid priority type", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.aiTrigger.create({ priority: "high" as any })
     ).rejects.toThrow();
   });
 
   it("create rejects invalid autoApplyResult type", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.aiTrigger.create({ autoApplyResult: "yes" as any })
     ).rejects.toThrow();
@@ -944,7 +944,7 @@ describe("aiTrigger input validation", () => {
   it("update accepts numeric id", async () => {
     returningQueue.push([{ id: 42 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({ id: 42, name: "Numeric" });
 
     expect(result.success).toBe(true);
@@ -953,7 +953,7 @@ describe("aiTrigger input validation", () => {
   it("update accepts string id", async () => {
     returningQueue.push([{ id: 42 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.update({ id: "42", name: "String" });
 
     expect(result.success).toBe(true);
@@ -963,7 +963,7 @@ describe("aiTrigger input validation", () => {
     selectResultsQueue.push([{ id: 1, isEnabled: 1, executionCount: 0, successCount: 0 }]);
     returningQueue.push([{ id: 200 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiTrigger.execute({
       id: 1,
       context: { key1: "value1", key2: 123, key3: true },

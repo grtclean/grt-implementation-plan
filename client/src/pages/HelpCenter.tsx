@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
@@ -180,6 +181,7 @@ const categories = [
 ];
 
 export default function HelpCenter() {
+  const { t } = useLanguage();
   const { user, loading } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -275,15 +277,15 @@ export default function HelpCenter() {
         {/* 页面标题和搜索 */}
         <PageHeader
           icon={HelpCircle}
-          title="帮助中心"
-          description="搜索帮助文档，快速找到您需要的答案"
+          title={t("common.help.title")}
+          description={t("common.help.description")}
         />
         <div className="text-center space-y-4">
           <div className="max-w-2xl mx-auto">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input 
-                placeholder="输入关键词搜索..." 
+                placeholder={t("common.help.searchPlaceholder")} 
                 className="pl-12 h-12 text-lg"
                 value={searchQuery}
                 onChange={e => handleSearch(e.target.value)}
@@ -291,7 +293,7 @@ export default function HelpCenter() {
             </div>
             {/* 热门搜索 */}
             <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
-              <span className="text-sm text-muted-foreground">热门搜索：</span>
+              <span className="text-sm text-muted-foreground">{t("common.help.hotSearch")}</span>
               {hotSearches.map(term => (
                 <Badge 
                   key={term} 
@@ -310,7 +312,7 @@ export default function HelpCenter() {
           {/* 左侧分类 */}
           <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="text-base">分类浏览</CardTitle>
+              <CardTitle className="text-base">{t("common.help.categoryBrowse")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1">
               {categories.map(cat => (
@@ -348,7 +350,7 @@ export default function HelpCenter() {
                       size="sm"
                       onClick={() => setSelectedArticle(null)}
                     >
-                      ← 返回列表
+                      {t("common.help.backToList")}
                     </Button>
                     <Badge variant="outline">{selectedArticle.category}</Badge>
                   </div>
@@ -356,11 +358,11 @@ export default function HelpCenter() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {selectedArticle.views} 次浏览
+                      {selectedArticle.views} {t("common.help.views")}
                     </span>
                     <span className="flex items-center gap-1">
                       <Star className="h-3 w-3" />
-                      {selectedArticle.helpful}% 觉得有帮助
+                      {selectedArticle.helpful}% {t("common.help.helpful")}
                     </span>
                   </div>
                 </CardHeader>
@@ -386,7 +388,7 @@ export default function HelpCenter() {
                     </ul>
                   </div>
                   <div className="flex items-center gap-2 mt-6 pt-6 border-t">
-                    <span className="text-sm text-muted-foreground">这篇文章对您有帮助吗？</span>
+                    <span className="text-sm text-muted-foreground">{t("common.help.wasHelpful")}</span>
                     <Button variant="outline" size="sm">👍 有帮助</Button>
                     <Button variant="outline" size="sm">👎 没帮助</Button>
                   </div>
@@ -397,7 +399,7 @@ export default function HelpCenter() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">
-                    {searchQuery ? `搜索结果 (${searchResults.length})` : "帮助文章"}
+                    {searchQuery ? `${t("common.help.searchResults")} (${searchResults.length})` : t("common.help.helpArticles")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -434,8 +436,8 @@ export default function HelpCenter() {
                       ) : (
                         <div className="text-center text-muted-foreground py-12">
                           <HelpCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>未找到相关帮助文章</p>
-                          <p className="text-sm mt-2">尝试使用其他关键词搜索</p>
+                          <p>{t("common.help.noResults")}</p>
+                          <p className="text-sm mt-2">{t("common.help.tryOtherKeywords")}</p>
                         </div>
                       )}
                     </div>
@@ -452,7 +454,7 @@ export default function HelpCenter() {
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <TrendingUp className="h-4 w-4" />
-                  热门文章
+                  {t("common.help.popularArticles")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -475,7 +477,7 @@ export default function HelpCenter() {
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
                     <Lightbulb className="h-4 w-4" />
-                    相关文章
+                    {t("common.help.relatedArticles")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -495,20 +497,20 @@ export default function HelpCenter() {
             {/* 快速入口 */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">快速入口</CardTitle>
+                <CardTitle className="text-base">{t("common.help.quickEntry")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <Button variant="outline" className="w-full justify-start" size="sm">
                   <Video className="h-4 w-4 mr-2" />
-                  视频教程
+                  {t("common.help.videoTutorials")}
                 </Button>
                 <Button variant="outline" className="w-full justify-start" size="sm">
                   <FileText className="h-4 w-4 mr-2" />
-                  用户手册
+                  {t("common.help.userManual")}
                 </Button>
                 <Button variant="outline" className="w-full justify-start" size="sm">
                   <MessageSquare className="h-4 w-4 mr-2" />
-                  在线客服
+                  {t("common.help.onlineSupport")}
                 </Button>
               </CardContent>
             </Card>
@@ -519,7 +521,7 @@ export default function HelpCenter() {
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
                     <Clock className="h-4 w-4" />
-                    搜索历史
+                    {t("common.help.searchHistory")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

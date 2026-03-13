@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -112,13 +113,14 @@ function CategoryBadge({ category }: { category: ComplianceCategory }) {
 }
 
 function AlertRow({ alert, onAcknowledge, isPending }: { alert: ComplianceAlert; onAcknowledge: (id: number, action: string) => void; isPending: boolean }) {
+  const { t } = useLanguage();
   const cfg = TIER_CONFIG[alert.tier];
   const isExpired = alert.status === "expired";
   const daysText = isExpired
-    ? `Expired ${Math.abs(alert.daysRemaining)}d ago`
+    ? t("admin.compliance.expiredAgo").replace("{days}", String(Math.abs(alert.daysRemaining)))
     : alert.daysRemaining === 0
-      ? "Expires today"
-      : `${alert.daysRemaining} days remaining`;
+      ? t("admin.compliance.expiresToday")
+      : t("admin.compliance.daysRemaining").replace("{days}", String(alert.daysRemaining));
 
   return (
     <div style={{
@@ -149,9 +151,9 @@ function AlertRow({ alert, onAcknowledge, isPending }: { alert: ComplianceAlert;
           <TierBadge tier={alert.tier} />
         </div>
         <div style={{ display: "flex", gap: 16, marginTop: 6, fontSize: 12, color: "#94a3b8" }}>
-          <span>Expiry: {alert.expiryDate}</span>
+          <span>{t("admin.compliance.expiry")} {alert.expiryDate}</span>
           <span style={{ color: cfg.color, fontWeight: 600 }}>{daysText}</span>
-          <span>Owner: {alert.ownerName}</span>
+          <span>{t("admin.compliance.owner")} {alert.ownerName}</span>
         </div>
       </div>
 
@@ -168,7 +170,7 @@ function AlertRow({ alert, onAcknowledge, isPending }: { alert: ComplianceAlert;
               opacity: isPending ? 0.5 : 1,
             }}
           >
-            Acknowledge
+            {t("admin.compliance.acknowledge")}
           </button>
           <button
             onClick={() => onAcknowledge(alert.id, "DELEGATED")}
@@ -180,13 +182,13 @@ function AlertRow({ alert, onAcknowledge, isPending }: { alert: ComplianceAlert;
               opacity: isPending ? 0.5 : 1,
             }}
           >
-            Delegate
+            {t("admin.compliance.delegate")}
           </button>
         </div>
       )}
 
       {alert.isAcknowledged && (
-        <span style={{ color: "#22c55e", fontSize: 12, fontWeight: 500 }}>✓ Acknowledged</span>
+        <span style={{ color: "#22c55e", fontSize: 12, fontWeight: 500 }}>{t("admin.compliance.acknowledged")}</span>
       )}
     </div>
   );
@@ -225,6 +227,7 @@ function ProgressRing({ value, max, color, label, size = 80 }: { value: number; 
 // ─── Main Page ───────────────────────────────────────────────────────
 
 export default function ComplianceCalendar() {
+  const { t } = useLanguage();
   const [acknowledged, setAcknowledged] = useState<Set<number>>(new Set());
   const [filterTier, setFilterTier] = useState<ComplianceTier | "ALL">("ALL");
   const [filterCategory, setFilterCategory] = useState<ComplianceCategory | "ALL">("ALL");
@@ -261,7 +264,7 @@ export default function ComplianceCalendar() {
       <div style={{ minHeight: "100vh", background: "#0f172a", color: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ width: 48, height: 48, border: "4px solid #3b82f6", borderTop: "4px solid transparent", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto" }} />
-          <p style={{ color: "#64748b", marginTop: 16, fontSize: 14 }}>Loading compliance data...</p>
+          <p style={{ color: "#64748b", marginTop: 16, fontSize: 14 }}>{t("admin.compliance.loading")}</p>
         </div>
       </div>
     );
@@ -278,10 +281,10 @@ export default function ComplianceCalendar() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
-              Compliance Calendar & Risk Radar
+              {t("admin.compliance.title")}
             </h1>
             <p style={{ color: "#64748b", margin: "6px 0 0", fontSize: 14 }}>
-              IATF 16949 / ISO / CE — Certification Expiry Tracking & Auto-Reminder
+              {t("admin.compliance.subtitle")}
             </p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -304,22 +307,22 @@ export default function ComplianceCalendar() {
         {/* Metric Cards Row */}
         <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
           <MetricCard
-            label="Action Required"
+            label={t("admin.compliance.actionRequired")}
             value={actionRequired}
             color={actionRequired > 0 ? "#ef4444" : "#22c55e"}
-            subtext={`${data.danger} danger + ${data.critical} critical`}
+            subtext={t("admin.compliance.dangerCritical").replace("{danger}", String(data.danger)).replace("{critical}", String(data.critical))}
           />
           <MetricCard
-            label="Upcoming Warnings"
+            label={t("admin.compliance.upcomingWarnings")}
             value={data.warning}
             color="#eab308"
-            subtext="60–89 days to expiry"
+            subtext={t("admin.compliance.warningRange")}
           />
           <MetricCard
-            label="Compliance Health"
+            label={t("admin.compliance.complianceHealth")}
             value={healthPct}
             color={healthPct >= 80 ? "#22c55e" : healthPct >= 60 ? "#eab308" : "#ef4444"}
-            subtext={`${healthPct}% of certs in safe/warning zone`}
+            subtext={t("admin.compliance.healthSubtext").replace("{pct}", String(healthPct))}
           />
         </div>
 
@@ -336,7 +339,7 @@ export default function ComplianceCalendar() {
             <ProgressRing value={data.danger} max={data.total} color="#ef4444" label="Danger" size={90} />
           </div>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", paddingLeft: 24, borderLeft: "1px solid #1e293b" }}>
-            <div style={{ fontSize: 13, color: "#64748b", marginBottom: 8 }}>Tier Distribution</div>
+            <div style={{ fontSize: 13, color: "#64748b", marginBottom: 8 }}>{t("admin.compliance.tierDistribution")}</div>
             {(["SAFE", "WARNING", "CRITICAL", "DANGER"] as ComplianceTier[]).map(tier => {
               const count = (data as any)[tier.toLowerCase()] as number ?? 0;
               const pct = data.total > 0 ? (count / data.total) * 100 : 0;
@@ -353,7 +356,7 @@ export default function ComplianceCalendar() {
             })}
             {data.expired > 0 && (
               <div style={{ fontSize: 12, color: "#ef4444", marginTop: 4, fontWeight: 500 }}>
-                {data.expired} certification{data.expired > 1 ? "s" : ""} already expired
+                {t("admin.compliance.alreadyExpired").replace("{count}", String(data.expired))}
               </div>
             )}
           </div>
@@ -361,7 +364,7 @@ export default function ComplianceCalendar() {
 
         {/* Filters */}
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-          <span style={{ color: "#64748b", fontSize: 13, lineHeight: "32px", marginRight: 8 }}>Filter:</span>
+          <span style={{ color: "#64748b", fontSize: 13, lineHeight: "32px", marginRight: 8 }}>{t("admin.compliance.filter")}</span>
           {(["ALL", "DANGER", "CRITICAL", "WARNING", "SAFE"] as const).map(tier => (
             <button
               key={tier}
@@ -390,7 +393,7 @@ export default function ComplianceCalendar() {
                 fontSize: 12, fontWeight: 500, cursor: "pointer",
               }}
             >
-              {cat === "ALL" ? "All Categories" : CATEGORY_LABELS[cat as ComplianceCategory]}
+              {cat === "ALL" ? t("admin.compliance.allCategories") : CATEGORY_LABELS[cat as ComplianceCategory]}
             </button>
           ))}
         </div>
@@ -398,7 +401,7 @@ export default function ComplianceCalendar() {
         {/* Timeline Section Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: "#e2e8f0" }}>
-            Certification Timeline
+            {t("admin.compliance.certTimeline")}
             <span style={{ color: "#64748b", fontWeight: 400, fontSize: 13, marginLeft: 8 }}>
               ({filteredAlerts.length} of {data.total})
             </span>
@@ -418,7 +421,7 @@ export default function ComplianceCalendar() {
               textAlign: "center", padding: "48px 0", color: "#64748b",
               background: "rgba(255,255,255,0.02)", borderRadius: 12,
             }}>
-              No certifications match the current filter.
+              {t("admin.compliance.noMatch")}
             </div>
           ) : (
             filteredAlerts.map(alert => (
@@ -435,11 +438,11 @@ export default function ComplianceCalendar() {
           fontSize: 12, color: "#64748b",
         }}>
           <div>
-            <strong style={{ color: "#94a3b8" }}>Tier Thresholds:</strong>{" "}
+            <strong style={{ color: "#94a3b8" }}>{t("admin.compliance.tierThresholds")}</strong>{" "}
             SAFE ≥90d · WARNING 60–89d · CRITICAL 30–59d · DANGER &lt;30d
           </div>
           <div>
-            IATF 16949 Compliance Calendar · GRT System v4.5
+            {t("admin.compliance.footer")} · GRT System v4.5
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import FeatureGuide from "@/components/FeatureGuide";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -191,13 +192,13 @@ const categoryColors: Record<string, string> = {
   other: "bg-gray-500/20 text-gray-400",
 };
 
-const categoryLabels: Record<string, string> = {
-  hr: "人力资源",
-  procurement: "采购",
-  delivery: "交付",
-  meeting: "会议",
-  performance: "绩效",
-  other: "其他",
+const categoryLabelKeys: Record<string, string> = {
+  hr: "common.tasks.catHr",
+  procurement: "common.tasks.catProcurement",
+  delivery: "common.tasks.catDelivery",
+  meeting: "common.tasks.catMeeting",
+  performance: "common.tasks.catPerformance",
+  other: "common.tasks.catOther",
 };
 
 const priorityColors: Record<string, string> = {
@@ -206,10 +207,10 @@ const priorityColors: Record<string, string> = {
   low: "bg-green-500/20 text-green-400",
 };
 
-const priorityLabels: Record<string, string> = {
-  high: "高",
-  medium: "中",
-  low: "低",
+const priorityLabelKeys: Record<string, string> = {
+  high: "common.tasks.highPriority",
+  medium: "common.tasks.mediumPriority",
+  low: "common.tasks.lowPriority",
 };
 
 const statusColors: Record<string, string> = {
@@ -219,11 +220,11 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-gray-500/20 text-gray-400",
 };
 
-const statusLabels: Record<string, string> = {
-  todo: "待处理",
-  in_progress: "进行中",
-  completed: "已完成",
-  cancelled: "已取消",
+const statusLabelKeys: Record<string, string> = {
+  todo: "common.tasks.todo",
+  in_progress: "common.tasks.inProgress",
+  completed: "common.tasks.completed",
+  cancelled: "common.tasks.cancelled",
 };
 
 function getDaysUntilDue(dueDate: string): number {
@@ -239,6 +240,7 @@ function TaskCard({ task, onToggleStatus, onToggleStar, onEdit }: {
   onToggleStar: (id: string) => void;
   onEdit: (task: Task) => void;
 }) {
+  const { t } = useLanguage();
   const CategoryIcon = categoryIcons[task.category];
   const daysUntilDue = getDaysUntilDue(task.dueDate);
 
@@ -263,12 +265,12 @@ function TaskCard({ task, onToggleStatus, onToggleStar, onEdit }: {
                     {task.title}
                   </h3>
                   <Badge className={priorityColors[task.priority]}>
-                    {priorityLabels[task.priority]}
+                    {t(priorityLabelKeys[task.priority])}
                   </Badge>
                   {task.aiSuggestion && (
                     <Badge className="bg-purple-500/20 text-purple-400 text-xs flex items-center gap-1">
                       <Bot className="w-3 h-3" />
-                      AI建议
+                      {t("common.tasks.aiSuggestLabel")}
                     </Badge>
                   )}
                 </div>
@@ -290,7 +292,7 @@ function TaskCard({ task, onToggleStatus, onToggleStar, onEdit }: {
                   <div className="flex items-center gap-1">
                     <CategoryIcon className="w-3 h-3" />
                     <span className={`px-2 py-0.5 rounded ${categoryColors[task.category]}`}>
-                      {categoryLabels[task.category]}
+                      {t(categoryLabelKeys[task.category])}
                     </span>
                   </div>
                   <div className={`flex items-center gap-1 ${daysUntilDue < 0 ? "text-red-400" : daysUntilDue <= 3 ? "text-yellow-400" : ""}`}>
@@ -309,7 +311,7 @@ function TaskCard({ task, onToggleStatus, onToggleStar, onEdit }: {
                 {task.status === "in_progress" && task.progress !== undefined && (
                   <div className="mt-3">
                     <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                      <span>进度</span>
+                      <span>{t("common.tasks.progress")}</span>
                       <span>{task.progress}%</span>
                     </div>
                     <Progress value={task.progress} className="h-1" />
@@ -331,7 +333,7 @@ function TaskCard({ task, onToggleStatus, onToggleStar, onEdit }: {
                   variant="ghost"
                   size="sm"
                   onClick={() => onToggleStar(task.id)}
-                  title={task.isStarred ? "取消收藏" : "收藏"}
+                  title={task.isStarred ? t("common.tasks.removeStar") : t("common.tasks.addStar")}
                 >
                   <Star className={`w-4 h-4 ${task.isStarred ? "fill-yellow-400 text-yellow-400" : ""}`} />
                 </Button>
@@ -357,6 +359,7 @@ function TaskCard({ task, onToggleStatus, onToggleStar, onEdit }: {
 // ============================================================================
 
 export default function MyTasks() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
@@ -396,10 +399,10 @@ export default function MyTasks() {
 
   const handleCreateTask = () => {
     if (!newTask.title.trim()) {
-      toast.error("请输入任务标题");
+      toast.error(t("common.tasks.titleRequired"));
       return;
     }
-    toast.success("任务已创建");
+    toast.success(t("common.tasks.created"));
     setIsCreateDialogOpen(false);
     setNewTask({
       title: "",
@@ -412,11 +415,11 @@ export default function MyTasks() {
   };
 
   const handleToggleStatus = (id: string) => {
-    toast.success("任务状态已更新");
+    toast.success(t("common.tasks.statusUpdated"));
   };
 
   const handleToggleStar = (id: string) => {
-    toast.success("已更新收藏状态");
+    toast.success(t("common.tasks.starUpdated"));
   };
 
   const handleEdit = (task: Task) => {
@@ -440,13 +443,13 @@ export default function MyTasks() {
       <>
       <FeatureGuide
         featureId="my-tasks"
-        title="我的任务"
-        description="集中展示和管理个人任务，提高工作效率"
+        title={t("common.tasks.title")}
+        description={t("common.tasks.description")}
         steps={[
-          { title: "查看任务", description: "浏览所有待办和进行中的任务" },
-          { title: "创建任务", description: "快速创建新任务" },
-          { title: "跟踪进度", description: "更新任务进度和状态" },
-          { title: "完成任务", description: "标记任务完成" },
+          { title: t("common.tasks.stepView"), description: t("common.tasks.stepViewDesc") },
+          { title: t("common.tasks.stepCreate"), description: t("common.tasks.stepCreateDesc") },
+          { title: t("common.tasks.stepTrack"), description: t("common.tasks.stepTrackDesc") },
+          { title: t("common.tasks.stepComplete"), description: t("common.tasks.stepCompleteDesc") },
         ]}
       />
 
@@ -454,53 +457,53 @@ export default function MyTasks() {
         {/* Header */}
         <PageHeader
           icon={ListTodo}
-          title="我的任务"
-          description={`${todoCount} 个待办 · ${inProgressCount} 个进行中`}
+          title={t("common.tasks.title")}
+          description={`${todoCount} ${t("common.tasks.todo")} · ${inProgressCount} ${t("common.tasks.inProgress")}`}
           actions={
             <div className="flex gap-2">
               <Button variant="outline">
                 <Filter className="w-4 h-4 mr-2" />
-                筛选
+                {t("common.tasks.filter")}
               </Button>
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-primary hover:bg-primary/90">
                     <Plus className="w-4 h-4 mr-2" />
-                    新建任务
+                    {t("common.tasks.newTask")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[600px]">
                   <DialogHeader>
-                    <DialogTitle>创建新任务</DialogTitle>
+                    <DialogTitle>{t("common.tasks.createNewTask")}</DialogTitle>
                     <DialogDescription>
-                      填写任务信息，AI 可以帮助您优化任务描述
+                      {t("common.tasks.createNewTaskDesc")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="title">任务标题 *</Label>
+                      <Label htmlFor="title">{t("common.tasks.taskTitle")}</Label>
                       <Input
                         id="title"
                         value={newTask.title}
                         onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                        placeholder="任务标题"
+                        placeholder={t("common.tasks.taskTitlePlaceholder")}
                       />
                     </div>
 
                     <div className="grid gap-2">
-                      <Label htmlFor="description">任务描述</Label>
+                      <Label htmlFor="description">{t("common.tasks.taskDescription")}</Label>
                       <Textarea
                         id="description"
                         value={newTask.description}
                         onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                        placeholder="任务详细描述"
+                        placeholder={t("common.tasks.taskDescPlaceholder")}
                         rows={3}
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="category">分类</Label>
+                        <Label htmlFor="category">{t("common.tasks.category")}</Label>
                         <Select
                           value={newTask.category}
                           onValueChange={(value: any) => setNewTask({ ...newTask, category: value })}
@@ -509,18 +512,18 @@ export default function MyTasks() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="hr">人力资源</SelectItem>
-                            <SelectItem value="procurement">采购</SelectItem>
-                            <SelectItem value="delivery">交付</SelectItem>
-                            <SelectItem value="meeting">会议</SelectItem>
-                            <SelectItem value="performance">绩效</SelectItem>
-                            <SelectItem value="other">其他</SelectItem>
+                            <SelectItem value="hr">{t("common.tasks.catHr")}</SelectItem>
+                            <SelectItem value="procurement">{t("common.tasks.catProcurement")}</SelectItem>
+                            <SelectItem value="delivery">{t("common.tasks.catDelivery")}</SelectItem>
+                            <SelectItem value="meeting">{t("common.tasks.catMeeting")}</SelectItem>
+                            <SelectItem value="performance">{t("common.tasks.catPerformance")}</SelectItem>
+                            <SelectItem value="other">{t("common.tasks.catOther")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       <div className="grid gap-2">
-                        <Label htmlFor="priority">优先级</Label>
+                        <Label htmlFor="priority">{t("common.tasks.priority")}</Label>
                         <Select
                           value={newTask.priority}
                           onValueChange={(value: any) => setNewTask({ ...newTask, priority: value })}
@@ -529,16 +532,16 @@ export default function MyTasks() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="high">高</SelectItem>
-                            <SelectItem value="medium">中</SelectItem>
-                            <SelectItem value="low">低</SelectItem>
+                            <SelectItem value="high">{t("common.tasks.highPriority")}</SelectItem>
+                            <SelectItem value="medium">{t("common.tasks.mediumPriority")}</SelectItem>
+                            <SelectItem value="low">{t("common.tasks.lowPriority")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
 
                     <div className="grid gap-2">
-                      <Label htmlFor="dueDate">截止日期</Label>
+                      <Label htmlFor="dueDate">{t("common.tasks.dueDate")}</Label>
                       <Input
                         id="dueDate"
                         type="date"
@@ -548,28 +551,28 @@ export default function MyTasks() {
                     </div>
 
                     <div className="grid gap-2">
-                      <Label htmlFor="tags">标签</Label>
+                      <Label htmlFor="tags">{t("common.tasks.tagsLabel")}</Label>
                       <Input
                         id="tags"
                         value={newTask.tags}
                         onChange={(e) => setNewTask({ ...newTask, tags: e.target.value })}
-                        placeholder="用逗号分隔多个标签"
+                        placeholder={t("common.tasks.tagsPlaceholder")}
                       />
                     </div>
 
                     <div className="flex items-center space-x-2 p-3 bg-purple-500/10 rounded-lg">
                       <Bot className="w-5 h-5 text-purple-400" />
                       <span className="text-sm text-purple-400">
-                        AI 可以帮助您优化任务描述和预估完成时间
+                        {t("common.tasks.aiOptimizeHint")}
                       </span>
                     </div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                      取消
+                      {t("common.cancel")}
                     </Button>
                     <Button onClick={handleCreateTask}>
-                      创建任务
+                      {t("common.tasks.newTask")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -580,11 +583,11 @@ export default function MyTasks() {
 
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <StatCard icon={ListTodo} label="待处理" value={todoCount} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
-          <StatCard icon={ArrowRight} label="进行中" value={inProgressCount} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
-          <StatCard icon={CheckCircle2} label="已完成" value={completedCount} iconColor="text-green-400" iconBg="bg-green-500/10" />
-          <StatCard icon={Star} label="已收藏" value={starredCount} iconColor="text-yellow-400" iconBg="bg-yellow-500/10" />
-          <StatCard icon={AlertTriangle} label="已逾期" value={overdueCount} iconColor="text-red-400" iconBg="bg-red-500/10" />
+          <StatCard icon={ListTodo} label={t("common.tasks.todo")} value={todoCount} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+          <StatCard icon={ArrowRight} label={t("common.tasks.inProgress")} value={inProgressCount} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
+          <StatCard icon={CheckCircle2} label={t("common.tasks.completed")} value={completedCount} iconColor="text-green-400" iconBg="bg-green-500/10" />
+          <StatCard icon={Star} label={t("common.tasks.starred")} value={starredCount} iconColor="text-yellow-400" iconBg="bg-yellow-500/10" />
+          <StatCard icon={AlertTriangle} label={t("common.tasks.overdue")} value={overdueCount} iconColor="text-red-400" iconBg="bg-red-500/10" />
         </div>
 
         {/* Main Tabs */}
@@ -595,19 +598,19 @@ export default function MyTasks() {
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="bg-card/50 border border-border">
                   <TabsTrigger value="all" className="data-[state=active]:bg-primary/20">
-                    全部
+                    {t("common.tasks.all")}
                   </TabsTrigger>
                   <TabsTrigger value="todo" className="data-[state=active]:bg-primary/20">
-                    待处理 {todoCount > 0 && <Badge className="ml-2">{todoCount}</Badge>}
+                    {t("common.tasks.todo")} {todoCount > 0 && <Badge className="ml-2">{todoCount}</Badge>}
                   </TabsTrigger>
                   <TabsTrigger value="in_progress" className="data-[state=active]:bg-primary/20">
-                    进行中 {inProgressCount > 0 && <Badge className="ml-2">{inProgressCount}</Badge>}
+                    {t("common.tasks.inProgress")} {inProgressCount > 0 && <Badge className="ml-2">{inProgressCount}</Badge>}
                   </TabsTrigger>
                   <TabsTrigger value="completed" className="data-[state=active]:bg-primary/20">
-                    已完成
+                    {t("common.tasks.completed")}
                   </TabsTrigger>
                   <TabsTrigger value="starred" className="data-[state=active]:bg-primary/20">
-                    已收藏
+                    {t("common.tasks.starred")}
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -615,7 +618,7 @@ export default function MyTasks() {
               <div className="flex gap-2 ml-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input placeholder="搜索任务..." className="pl-10 w-64" />
+                  <Input placeholder={t("common.tasks.searchPlaceholder")} className="pl-10 w-64" />
                 </div>
               </div>
             </div>
@@ -629,12 +632,12 @@ export default function MyTasks() {
                   onCheckedChange={handleSelectAll}
                 />
                 <label htmlFor="select-all-tasks" className="text-sm cursor-pointer">
-                  全选 ({filteredTasks.length} 个任务)
+                  {t("common.tasks.selectAll")} ({filteredTasks.length})
                 </label>
                 {selectedTasks.size > 0 && (
                   <Button size="sm" onClick={handleCompleteSelected} className="ml-auto">
                     <CheckCircle2 className="w-4 h-4 mr-1" />
-                    完成选中 ({selectedTasks.size})
+                    {t("common.tasks.completeSelected")} ({selectedTasks.size})
                   </Button>
                 )}
               </div>
@@ -656,9 +659,9 @@ export default function MyTasks() {
                 <Card className="bg-card/50 border-border">
                   <CardContent className="p-8 text-center">
                     <ListTodo className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-30" />
-                    <h3 className="text-lg font-medium mb-2">暂无任务</h3>
+                    <h3 className="text-lg font-medium mb-2">{t("common.tasks.noTasks")}</h3>
                     <p className="text-muted-foreground">
-                      {activeTab === "all" ? "点击「新建任务」开始创建" : "该分类下暂无任务"}
+                      {activeTab === "all" ? t("common.tasks.noTasksAll") : t("common.tasks.noTasksFiltered")}
                     </p>
                   </CardContent>
                 </Card>
@@ -670,24 +673,24 @@ export default function MyTasks() {
           <div className="w-64 hidden lg:block">
             <Card className="bg-card/50 border-border">
               <CardHeader>
-                <CardTitle className="text-lg">快捷操作</CardTitle>
+                <CardTitle className="text-lg">{t("common.tasks.quickActions")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/offboarding"}>
                   <UserPlus className="w-4 h-4 mr-2" />
-                  离职审批
+                  {t("common.tasks.offboardingApproval")}
                 </Button>
                 <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/employee-management"}>
                   <Target className="w-4 h-4 mr-2" />
-                  转正评估
+                  {t("common.tasks.probationReview")}
                 </Button>
                 <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/stage-gate"}>
                   <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Gate检查
+                  {t("common.tasks.gateCheck")}
                 </Button>
                 <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/pos/procurement"}>
                   <ShoppingCart className="w-4 h-4 mr-2" />
-                  采购订单
+                  {t("common.tasks.purchaseOrder")}
                 </Button>
               </CardContent>
             </Card>
@@ -696,19 +699,19 @@ export default function MyTasks() {
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Bot className="w-5 h-5 text-purple-400" />
-                  AI 建议
+                  {t("common.tasks.aiSuggestions")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="p-3 bg-purple-500/10 rounded-lg">
-                    <div className="text-sm font-medium text-purple-400 mb-1">优先处理高优先级任务</div>
+                    <div className="text-sm font-medium text-purple-400 mb-1">{t("common.tasks.prioritizeHigh")}</div>
                     <p className="text-xs text-muted-foreground">
                       您有 {mockTasks.filter(t => t.priority === "high" && t.status !== "completed").length} 个高优先级待办任务
                     </p>
                   </div>
                   <div className="p-3 bg-blue-500/10 rounded-lg">
-                    <div className="text-sm font-medium text-blue-400 mb-1">关注即将到期的任务</div>
+                    <div className="text-sm font-medium text-blue-400 mb-1">{t("common.tasks.watchDeadline")}</div>
                     <p className="text-xs text-muted-foreground">
                       {mockTasks.filter(t => {
                         const days = getDaysUntilDue(t.dueDate);

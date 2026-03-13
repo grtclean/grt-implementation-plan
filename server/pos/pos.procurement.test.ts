@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -12,7 +12,7 @@ beforeEach(() => {
 
 describe("pos.procurement.list", () => {
   it("returns sample data with expected structure", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.pos.procurement.list({
       page: 1,
       pageSize: 20,
@@ -39,7 +39,7 @@ describe("pos.procurement.list", () => {
   });
 
   it("contains 5 sample items", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.pos.procurement.list({
       page: 1,
       pageSize: 20,
@@ -53,7 +53,7 @@ describe("pos.procurement.list", () => {
 
 describe("pos.procurement.engineerConfirm", () => {
   it("returns success for valid confirmation (happy path)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.pos.procurement.engineerConfirm({
       id: 1,
       approved: true,
@@ -81,7 +81,7 @@ describe("pos.procurement.engineerConfirm", () => {
 
 describe("pos.procurement.procurementConfirm", () => {
   it("returns success with PO reference (happy path)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.pos.procurement.procurementConfirm({
       id: 1,
       approved: true,

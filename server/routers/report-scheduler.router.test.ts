@@ -8,11 +8,11 @@
  */
 import { describe, it, expect } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
-const caller = () => createAuthenticatedCaller();
+const caller = () => createAdminCaller();
 
 describe("reportScheduler router", () => {
 

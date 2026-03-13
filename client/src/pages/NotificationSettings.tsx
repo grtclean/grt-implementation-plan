@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -112,6 +113,7 @@ interface ChannelState {
 }
 
 export default function NotificationSettings() {
+  const { t } = useLanguage();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   
@@ -165,7 +167,7 @@ export default function NotificationSettings() {
     const config = channels[channel];
     if (!config.webhookUrl) {
       toast({
-        title: "请先配置Webhook URL",
+        title: t("common.notifSettings.configWebhookFirst"),
         variant: "destructive",
       });
       return;
@@ -182,14 +184,14 @@ export default function NotificationSettings() {
       
       updateChannel(channel, { testing: false, testResult: "success" });
       toast({
-        title: "测试成功",
-        description: `${channelConfigs.find(c => c.id === channel)?.name}消息发送成功`,
+        title: t("common.notifSettings.testSuccess"),
+        description: `${channelConfigs.find(c => c.id === channel)?.name}`,
       });
     } catch (error) {
       updateChannel(channel, { testing: false, testResult: "failed" });
       toast({
-        title: "测试失败",
-        description: "请检查Webhook配置是否正确",
+        title: t("common.notifSettings.testFailed"),
+        description: t("common.notifSettings.configWebhookFirst"),
         variant: "destructive",
       });
     }
@@ -201,12 +203,12 @@ export default function NotificationSettings() {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       toast({
-        title: "保存成功",
-        description: "通知渠道配置已更新",
+        title: t("common.notifSettings.saveSuccess"),
+        description: t("common.notifSettings.saveSuccessDesc"),
       });
     } catch (error) {
       toast({
-        title: "保存失败",
+        title: t("common.notifSettings.saveFailed"),
         variant: "destructive",
       });
     } finally {
@@ -218,7 +220,7 @@ export default function NotificationSettings() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({
-      title: "已复制到剪贴板",
+      title: t("common.notifSettings.copied"),
     });
   };
 
@@ -246,19 +248,19 @@ export default function NotificationSettings() {
       <div className="space-y-6">
         <PageHeader
           icon={Bell}
-          title="多渠道通知管理"
-          description="配置钉钉、企业微信、飞书等通知渠道"
+          title={t("common.notifSettings.title")}
+          description={t("common.notifSettings.description")}
           actions={
             <Button onClick={saveConfig} disabled={saving}>
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  保存中...
+                  {t("common.notifSettings.saving")}
                 </>
               ) : (
                 <>
                   <Settings className="w-4 h-4 mr-2" />
-                  保存配置
+                  {t("common.notifSettings.saveConfig")}
                 </>
               )}
             </Button>
@@ -286,7 +288,7 @@ export default function NotificationSettings() {
                       {config.name}
                     </CardTitle>
                     <Badge variant={channelState.enabled ? "default" : "secondary"}>
-                      {channelState.enabled ? "已启用" : "未启用"}
+                      {channelState.enabled ? t("common.notifSettings.enabled") : t("common.notifSettings.disabled")}
                     </Badge>
                   </div>
                   <CardDescription>{config.description}</CardDescription>
@@ -296,25 +298,25 @@ export default function NotificationSettings() {
                     {channelState.testResult === "success" && (
                       <span className="flex items-center gap-1 text-green-500">
                         <CheckCircle2 className="w-4 h-4" />
-                        连接正常
+                        {t("common.notifSettings.connectionOk")}
                       </span>
                     )}
                     {channelState.testResult === "failed" && (
                       <span className="flex items-center gap-1 text-red-500">
                         <XCircle className="w-4 h-4" />
-                        连接失败
+                        {t("common.notifSettings.connectionFailed")}
                       </span>
                     )}
                     {!channelState.testResult && channelState.webhookUrl && (
                       <span className="flex items-center gap-1">
                         <MessageSquare className="w-4 h-4" />
-                        已配置
+                        {t("common.notifSettings.configured")}
                       </span>
                     )}
                     {!channelState.webhookUrl && (
                       <span className="flex items-center gap-1">
                         <Settings className="w-4 h-4" />
-                        待配置
+                        {t("common.notifSettings.notConfigured")}
                       </span>
                     )}
                   </div>
@@ -336,7 +338,7 @@ export default function NotificationSettings() {
                 <CardDescription>{currentConfig.description}</CardDescription>
               </div>
               <div className="flex items-center gap-2">
-                <Label htmlFor={`${activeChannel}-enabled`}>启用</Label>
+                <Label htmlFor={`${activeChannel}-enabled`}>{t("common.notifSettings.enable")}</Label>
                 <Switch
                   id={`${activeChannel}-enabled`}
                   checked={currentChannel.enabled}
@@ -348,8 +350,8 @@ export default function NotificationSettings() {
           <CardContent>
             <Tabs defaultValue="config" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="config">Webhook配置</TabsTrigger>
-                <TabsTrigger value="notifications">通知设置</TabsTrigger>
+                <TabsTrigger value="config">{t("common.notifSettings.webhookConfig")}</TabsTrigger>
+                <TabsTrigger value="notifications">{t("common.notifSettings.notifTypes")}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="config" className="space-y-4 mt-4">
@@ -382,7 +384,7 @@ export default function NotificationSettings() {
                       rel="noopener noreferrer"
                       className="text-primary hover:underline ml-1"
                     >
-                      查看文档
+                      Docs
                     </a>
                   </p>
                 </div>
@@ -390,7 +392,7 @@ export default function NotificationSettings() {
                 {/* 加签密钥 (仅钉钉和飞书支持) */}
                 {currentConfig.supportsSign && (
                   <div className="space-y-2">
-                    <Label htmlFor={`${activeChannel}-secret`}>加签密钥 (可选)</Label>
+                    <Label htmlFor={`${activeChannel}-secret`}>{t("common.notifSettings.signSecret")}</Label>
                     <div className="flex gap-2">
                       <Input
                         id={`${activeChannel}-secret`}
@@ -413,7 +415,7 @@ export default function NotificationSettings() {
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      如果启用了加签安全设置，请填写密钥
+                      {t("common.notifSettings.signSecretHint")}
                     </p>
                   </div>
                 )}
@@ -421,7 +423,7 @@ export default function NotificationSettings() {
                 {/* 自定义关键词 (仅钉钉和飞书支持) */}
                 {currentConfig.supportsKeyword && (
                   <div className="space-y-2">
-                    <Label htmlFor={`${activeChannel}-keyword`}>自定义关键词 (可选)</Label>
+                    <Label htmlFor={`${activeChannel}-keyword`}>{t("common.notifSettings.customKeyword")}</Label>
                     <Input
                       id={`${activeChannel}-keyword`}
                       type="text"
@@ -430,7 +432,7 @@ export default function NotificationSettings() {
                       onChange={(e) => updateChannel(activeChannel, { keyword: e.target.value })}
                     />
                     <p className="text-xs text-muted-foreground">
-                      如果启用了自定义关键词安全设置，消息内容需包含该关键词
+                      {t("common.notifSettings.keywordHint")}
                     </p>
                   </div>
                 )}
@@ -440,9 +442,9 @@ export default function NotificationSettings() {
                 {/* 测试连接 */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">测试连接</p>
+                    <p className="font-medium">{t("common.notifSettings.testConnection")}</p>
                     <p className="text-sm text-muted-foreground">
-                      发送测试消息验证配置是否正确
+                      {t("common.notifSettings.testConnectionDesc")}
                     </p>
                   </div>
                   <Button
@@ -452,12 +454,12 @@ export default function NotificationSettings() {
                     {currentChannel.testing ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        发送中...
+                        {t("common.notifSettings.sending")}
                       </>
                     ) : (
                       <>
                         <Send className="w-4 h-4 mr-2" />
-                        发送测试
+                        {t("common.notifSettings.sendTest")}
                       </>
                     )}
                   </Button>
@@ -475,19 +477,19 @@ export default function NotificationSettings() {
                       {currentChannel.testResult === "success" ? (
                         <>
                           <CheckCircle2 className="w-5 h-5 text-green-500" />
-                          <span className="font-medium text-green-500">测试成功</span>
+                          <span className="font-medium text-green-500">{t("common.notifSettings.testSuccess")}</span>
                         </>
                       ) : (
                         <>
                           <XCircle className="w-5 h-5 text-red-500" />
-                          <span className="font-medium text-red-500">测试失败</span>
+                          <span className="font-medium text-red-500">{t("common.notifSettings.testFailed")}</span>
                         </>
                       )}
                     </div>
                     <p className="text-sm mt-1 text-muted-foreground">
                       {currentChannel.testResult === "success"
-                        ? `消息已成功发送到${currentConfig.name}群`
-                        : "请检查Webhook配置是否正确"}
+                        ? `${currentConfig.name} OK`
+                        : t("common.notifSettings.configWebhookFirst")}
                     </p>
                   </div>
                 )}
@@ -524,13 +526,13 @@ export default function NotificationSettings() {
 
                 <div className="flex items-center justify-between p-4 rounded-lg bg-accent/30">
                   <div>
-                    <p className="font-medium">已启用 {currentChannel.enabledNotifications.length} 种通知</p>
+                    <p className="font-medium">{t("common.notifSettings.enabled")} ({currentChannel.enabledNotifications.length})</p>
                     <p className="text-sm text-muted-foreground">
-                      {currentChannel.enabled ? "通知将通过此渠道发送" : "请先启用此渠道"}
+                      {currentChannel.enabled ? t("common.notifSettings.enabled") : t("common.notifSettings.channelDisabled")}
                     </p>
                   </div>
                   <Badge variant={currentChannel.enabled ? "default" : "secondary"}>
-                    {currentChannel.enabled ? "已启用" : "未启用"}
+                    {currentChannel.enabled ? t("common.notifSettings.enabled") : t("common.notifSettings.disabled")}
                   </Badge>
                 </div>
               </TabsContent>
@@ -543,7 +545,7 @@ export default function NotificationSettings() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Smartphone className="w-5 h-5" />
-              渠道状态汇总
+              {t("common.notifSettings.channelSummary")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -564,19 +566,19 @@ export default function NotificationSettings() {
                         {config.name}
                       </span>
                       <Badge variant={state.enabled ? "default" : "secondary"} className="text-xs">
-                        {state.enabled ? "启用" : "禁用"}
+                        {state.enabled ? t("common.notifSettings.enabledLabel") : t("common.notifSettings.disabledLabel")}
                       </Badge>
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {state.enabled ? (
                         <>
-                          <p>已配置 {enabledCount} 种通知</p>
+                          <p>{t("common.notifSettings.configuredNotifCount").replace("{count}", String(enabledCount))}</p>
                           <p className="text-xs mt-1">
-                            {state.webhookUrl ? "Webhook已配置" : "Webhook未配置"}
+                            {state.webhookUrl ? t("common.notifSettings.webhookConfigured") : t("common.notifSettings.webhookNotConfigured")}
                           </p>
                         </>
                       ) : (
-                        <p>渠道未启用</p>
+                        <p>{t("common.notifSettings.channelDisabled")}</p>
                       )}
                     </div>
                   </div>

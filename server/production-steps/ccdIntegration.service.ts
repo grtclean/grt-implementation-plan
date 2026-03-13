@@ -455,13 +455,13 @@ export async function getCcdDetectionStats(projectId: string, timeRange?: { star
   // 最近趋势（按天聚合）
   const trendData = (await db.execute(sql`
     SELECT
-      DATE(FROM_UNIXTIME(detected_at / 1000)) as detection_date,
+      to_timestamp(detected_at / 1000)::date as detection_date,
       COUNT(*) as total,
       AVG(overall_score) as avg_score,
       SUM(CASE WHEN severity IN ('critical', 'major') THEN 1 ELSE 0 END) as serious_count
     FROM ccd_detection_log
     WHERE project_id = ${projectId}
-    GROUP BY DATE(FROM_UNIXTIME(detected_at / 1000))
+    GROUP BY to_timestamp(detected_at / 1000)::date
     ORDER BY detection_date DESC
     LIMIT 30
   `)).rows;

@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatCard } from "@/components/grt";
 import FeatureGuide from "@/components/FeatureGuide";
 import { Button } from "@/components/ui/button";
@@ -233,11 +234,11 @@ const categoryColors: Record<string, string> = {
   quality: "bg-orange-500/20 text-orange-400",
 };
 
-const categoryLabels: Record<string, string> = {
-  process: "流程优化",
-  efficiency: "效率提升",
-  cost: "成本优化",
-  quality: "质量改进",
+const categoryLabelKeys: Record<string, string> = {
+  process: "ai.processOpt.categoryProcess",
+  efficiency: "ai.processOpt.categoryEfficiency",
+  cost: "ai.processOpt.categoryCost",
+  quality: "ai.processOpt.categoryQuality",
 };
 
 const severityColors: Record<string, string> = {
@@ -246,10 +247,10 @@ const severityColors: Record<string, string> = {
   low: "bg-green-500/20 text-green-400",
 };
 
-const severityLabels: Record<string, string> = {
-  high: "高优先级",
-  medium: "中优先级",
-  low: "低优先级",
+const severityLabelKeys: Record<string, string> = {
+  high: "ai.processOpt.severityHigh",
+  medium: "ai.processOpt.severityMedium",
+  low: "ai.processOpt.severityLow",
 };
 
 const statusColors: Record<string, string> = {
@@ -259,22 +260,23 @@ const statusColors: Record<string, string> = {
   rejected: "bg-red-500/20 text-red-400",
 };
 
-const statusLabels: Record<string, string> = {
-  pending: "待处理",
-  in_progress: "执行中",
-  completed: "已完成",
-  rejected: "已拒绝",
+const statusLabelKeys: Record<string, string> = {
+  pending: "ai.processOpt.statusPending",
+  in_progress: "ai.processOpt.statusInProgress",
+  completed: "ai.processOpt.statusCompleted",
+  rejected: "ai.processOpt.statusRejected",
 };
 
 function SuggestionCard({ suggestion }: { suggestion: OptimizationSuggestion }) {
+  const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
 
   const handleStart = () => {
-    toast.success(`已开始执行: ${suggestion.title}`);
+    toast.success(`${t("ai.processOpt.startedExecution")}: ${suggestion.title}`);
   };
 
   const handleComplete = () => {
-    toast.success(`已标记为完成: ${suggestion.title}`);
+    toast.success(`${t("ai.processOpt.markedComplete")}: ${suggestion.title}`);
   };
 
   return (
@@ -285,10 +287,10 @@ function SuggestionCard({ suggestion }: { suggestion: OptimizationSuggestion }) 
             <div className="flex items-center gap-2 mb-2">
               <h3 className="font-semibold">{suggestion.title}</h3>
               <Badge className={categoryColors[suggestion.category]}>
-                {categoryLabels[suggestion.category]}
+                {t(categoryLabelKeys[suggestion.category])}
               </Badge>
               <Badge className={severityColors[suggestion.severity]}>
-                {severityLabels[suggestion.severity]}
+                {t(severityLabelKeys[suggestion.severity])}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground mb-3">
@@ -301,11 +303,11 @@ function SuggestionCard({ suggestion }: { suggestion: OptimizationSuggestion }) 
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                <span>{suggestion.estimatedHours} 小时</span>
+                <span>{suggestion.estimatedHours} {t("ai.processOpt.hours")}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Sparkles className="w-3 h-3" />
-                <span>预期提升 {suggestion.impact}%</span>
+                <span>{t("ai.processOpt.expectedImprovement")} {suggestion.impact}%</span>
               </div>
             </div>
           </div>
@@ -327,15 +329,15 @@ function SuggestionCard({ suggestion }: { suggestion: OptimizationSuggestion }) 
             {/* 预期效果 */}
             <div>
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="text-muted-foreground">预期效果</span>
+                <span className="text-muted-foreground">{t("ai.processOpt.expectedEffect")}</span>
                 <span className="text-green-400 font-medium">
-                  +{suggestion.impact}% 提升
+                  +{suggestion.impact}% {t("ai.processOpt.improvement")}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">优化前</span>
+                    <span className="text-muted-foreground">{t("ai.processOpt.beforeOpt")}</span>
                     <span>{suggestion.metrics.before} {suggestion.metrics.unit}</span>
                   </div>
                   <Progress value={suggestion.metrics.before / 2} className="h-1" />
@@ -343,7 +345,7 @@ function SuggestionCard({ suggestion }: { suggestion: OptimizationSuggestion }) 
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
                 <div className="flex-1">
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">优化后</span>
+                    <span className="text-muted-foreground">{t("ai.processOpt.afterOpt")}</span>
                     <span className="text-green-400">
                       {suggestion.metrics.after} {suggestion.metrics.unit}
                     </span>
@@ -359,11 +361,11 @@ function SuggestionCard({ suggestion }: { suggestion: OptimizationSuggestion }) 
                 <>
                   <Button size="sm" onClick={handleStart}>
                     <Play className="w-3 h-3 mr-1" />
-                    开始执行
+                    {t("ai.processOpt.startExecution")}
                   </Button>
                   <Button size="sm" variant="outline">
                     <Eye className="w-3 h-3 mr-1" />
-                    查看详情
+                    {t("ai.processOpt.viewDetails")}
                   </Button>
                 </>
               )}
@@ -371,11 +373,11 @@ function SuggestionCard({ suggestion }: { suggestion: OptimizationSuggestion }) 
                 <>
                   <Button size="sm">
                     <CheckCircle2 className="w-3 h-3 mr-1" />
-                    标记完成
+                    {t("ai.processOpt.markComplete")}
                   </Button>
                   <Button size="sm" variant="outline">
                     <PauseCircle className="w-3 h-3 mr-1" />
-                    暂停
+                    {t("ai.processOpt.pause")}
                   </Button>
                 </>
               )}
@@ -383,11 +385,11 @@ function SuggestionCard({ suggestion }: { suggestion: OptimizationSuggestion }) 
                 <>
                   <Button size="sm" variant="outline">
                     <BarChart3 className="w-3 h-3 mr-1" />
-                    查看效果
+                    {t("ai.processOpt.viewEffect")}
                   </Button>
                   <Button size="sm" variant="ghost">
                     <FileText className="w-3 h-3 mr-1" />
-                    执行报告
+                    {t("ai.processOpt.executionReport")}
                   </Button>
                 </>
               )}
@@ -404,6 +406,7 @@ function SuggestionCard({ suggestion }: { suggestion: OptimizationSuggestion }) 
 // ============================================================================
 
 export default function AIProcessOptimization() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("overview");
 
   // 统计数据
@@ -431,13 +434,13 @@ export default function AIProcessOptimization() {
       <>
       <FeatureGuide
         featureId="ai-process-optimization"
-        title="AI 流程优化建议中心"
-        description="基于 AI 分析，提供业务流程优化建议，持续提升运营效率"
+        title={t("ai.processOpt.title")}
+        description={t("ai.processOpt.description")}
         steps={[
-          { title: "查看建议", description: "浏览 AI 生成的流程优化建议" },
-          { title: "评估影响", description: "分析优化建议的预期效果" },
-          { title: "执行优化", description: "开始实施优化措施" },
-          { title: "跟踪效果", description: "监控优化实施后的效果" },
+          { title: t("ai.processOpt.guideStep1Title"), description: t("ai.processOpt.guideStep1Desc") },
+          { title: t("ai.processOpt.guideStep2Title"), description: t("ai.processOpt.guideStep2Desc") },
+          { title: t("ai.processOpt.guideStep3Title"), description: t("ai.processOpt.guideStep3Desc") },
+          { title: t("ai.processOpt.guideStep4Title"), description: t("ai.processOpt.guideStep4Desc") },
         ]}
       />
 
@@ -445,17 +448,17 @@ export default function AIProcessOptimization() {
         {/* Header */}
         <PageHeader
           icon={Sparkles}
-          title="AI 流程优化建议中心"
-          description="基于 AI 分析的智能流程优化建议，持续提升运营效率"
+          title={t("ai.processOpt.title")}
+          description={t("ai.processOpt.description")}
           actions={
             <div className="flex gap-2">
               <Button variant="outline">
                 <Settings className="w-4 h-4 mr-2" />
-                优化设置
+                {t("ai.processOpt.optSettings")}
               </Button>
               <Button className="bg-primary hover:bg-primary/90">
                 <Zap className="w-4 h-4 mr-2" />
-                生成新建议
+                {t("ai.processOpt.generateNew")}
               </Button>
             </div>
           }
@@ -465,35 +468,35 @@ export default function AIProcessOptimization() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <StatCard
             icon={Lightbulb}
-            label="总建议数"
+            label={t("ai.processOpt.totalSuggestions")}
             value={stats.total}
             iconColor="text-blue-400"
             iconBg="bg-blue-500/10"
           />
           <StatCard
             icon={AlertTriangle}
-            label="待处理"
+            label={t("ai.processOpt.statusPending")}
             value={stats.pending}
             iconColor="text-yellow-400"
             iconBg="bg-yellow-500/10"
           />
           <StatCard
             icon={Play}
-            label="执行中"
+            label={t("ai.processOpt.statusInProgress")}
             value={stats.inProgress}
             iconColor="text-blue-400"
             iconBg="bg-blue-500/10"
           />
           <StatCard
             icon={CheckCircle2}
-            label="已完成"
+            label={t("ai.processOpt.statusCompleted")}
             value={stats.completed}
             iconColor="text-green-400"
             iconBg="bg-green-500/10"
           />
           <StatCard
             icon={TrendingUp}
-            label="平均提升"
+            label={t("ai.processOpt.avgImprovement")}
             value={`+${stats.avgImpact}%`}
             iconColor="text-purple-400"
             iconBg="bg-purple-500/10"
@@ -505,11 +508,11 @@ export default function AIProcessOptimization() {
           <TabsList className="bg-card/50 border border-border">
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary/20">
               <BarChart3 className="w-4 h-4 mr-2" />
-              总览
+              {t("ai.processOpt.tabOverview")}
             </TabsTrigger>
             <TabsTrigger value="hr" className="data-[state=active]:bg-primary/20">
               <Users className="w-4 h-4 mr-2" />
-              人员流程
+              {t("ai.processOpt.tabHR")}
               {hrOptimizationSuggestions.filter(s => s.status === "pending").length > 0 && (
                 <Badge variant="destructive" className="ml-2">
                   {hrOptimizationSuggestions.filter(s => s.status === "pending").length}
@@ -518,7 +521,7 @@ export default function AIProcessOptimization() {
             </TabsTrigger>
             <TabsTrigger value="procurement" className="data-[state=active]:bg-primary/20">
               <ShoppingCart className="w-4 h-4 mr-2" />
-              采购流程
+              {t("ai.processOpt.tabProcurement")}
               {procurementOptimizationSuggestions.filter(s => s.status === "pending").length > 0 && (
                 <Badge variant="destructive" className="ml-2">
                   {procurementOptimizationSuggestions.filter(s => s.status === "pending").length}
@@ -527,7 +530,7 @@ export default function AIProcessOptimization() {
             </TabsTrigger>
             <TabsTrigger value="delivery" className="data-[state=active]:bg-primary/20">
               <Truck className="w-4 h-4 mr-2" />
-              交付流程
+              {t("ai.processOpt.tabDelivery")}
               {deliveryOptimizationSuggestions.filter(s => s.status === "pending").length > 0 && (
                 <Badge variant="destructive" className="ml-2">
                   {deliveryOptimizationSuggestions.filter(s => s.status === "pending").length}
@@ -543,35 +546,35 @@ export default function AIProcessOptimization() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Users className="w-5 h-5 text-blue-400" />
-                    人员流程优化
+                    {t("ai.processOpt.hrProcessOpt")}
                   </CardTitle>
                   <CardDescription>
-                    {hrOptimizationSuggestions.length} 条建议
+                    {hrOptimizationSuggestions.length} {t("ai.processOpt.suggestions")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span>待处理</span>
+                      <span>{t("ai.processOpt.statusPending")}</span>
                       <Badge variant="outline" className="bg-yellow-500/10 text-yellow-400">
                         {hrOptimizationSuggestions.filter(s => s.status === "pending").length}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span>执行中</span>
+                      <span>{t("ai.processOpt.statusInProgress")}</span>
                       <Badge variant="outline" className="bg-blue-500/10 text-blue-400">
                         {hrOptimizationSuggestions.filter(s => s.status === "in_progress").length}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span>已完成</span>
+                      <span>{t("ai.processOpt.statusCompleted")}</span>
                       <Badge variant="outline" className="bg-green-500/10 text-green-400">
                         {hrOptimizationSuggestions.filter(s => s.status === "completed").length}
                       </Badge>
                     </div>
                   </div>
                   <Button variant="outline" className="w-full mt-4">
-                    查看详情
+                    {t("ai.processOpt.viewDetails")}
                   </Button>
                 </CardContent>
               </Card>
@@ -580,35 +583,35 @@ export default function AIProcessOptimization() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <ShoppingCart className="w-5 h-5 text-purple-400" />
-                    采购流程优化
+                    {t("ai.processOpt.procurementProcessOpt")}
                   </CardTitle>
                   <CardDescription>
-                    {procurementOptimizationSuggestions.length} 条建议
+                    {procurementOptimizationSuggestions.length} {t("ai.processOpt.suggestions")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span>待处理</span>
+                      <span>{t("ai.processOpt.statusPending")}</span>
                       <Badge variant="outline" className="bg-yellow-500/10 text-yellow-400">
                         {procurementOptimizationSuggestions.filter(s => s.status === "pending").length}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span>执行中</span>
+                      <span>{t("ai.processOpt.statusInProgress")}</span>
                       <Badge variant="outline" className="bg-blue-500/10 text-blue-400">
                         {procurementOptimizationSuggestions.filter(s => s.status === "in_progress").length}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span>已完成</span>
+                      <span>{t("ai.processOpt.statusCompleted")}</span>
                       <Badge variant="outline" className="bg-green-500/10 text-green-400">
                         {procurementOptimizationSuggestions.filter(s => s.status === "completed").length}
                       </Badge>
                     </div>
                   </div>
                   <Button variant="outline" className="w-full mt-4">
-                    查看详情
+                    {t("ai.processOpt.viewDetails")}
                   </Button>
                 </CardContent>
               </Card>
@@ -617,35 +620,35 @@ export default function AIProcessOptimization() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Truck className="w-5 h-5 text-orange-400" />
-                    交付流程优化
+                    {t("ai.processOpt.deliveryProcessOpt")}
                   </CardTitle>
                   <CardDescription>
-                    {deliveryOptimizationSuggestions.length} 条建议
+                    {deliveryOptimizationSuggestions.length} {t("ai.processOpt.suggestions")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span>待处理</span>
+                      <span>{t("ai.processOpt.statusPending")}</span>
                       <Badge variant="outline" className="bg-yellow-500/10 text-yellow-400">
                         {deliveryOptimizationSuggestions.filter(s => s.status === "pending").length}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span>执行中</span>
+                      <span>{t("ai.processOpt.statusInProgress")}</span>
                       <Badge variant="outline" className="bg-blue-500/10 text-blue-400">
                         {deliveryOptimizationSuggestions.filter(s => s.status === "in_progress").length}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span>已完成</span>
+                      <span>{t("ai.processOpt.statusCompleted")}</span>
                       <Badge variant="outline" className="bg-green-500/10 text-green-400">
                         {deliveryOptimizationSuggestions.filter(s => s.status === "completed").length}
                       </Badge>
                     </div>
                   </div>
                   <Button variant="outline" className="w-full mt-4">
-                    查看详情
+                    {t("ai.processOpt.viewDetails")}
                   </Button>
                 </CardContent>
               </Card>
@@ -654,8 +657,8 @@ export default function AIProcessOptimization() {
             {/* Recent Suggestions */}
             <Card className="bg-card/50 border-border">
               <CardHeader>
-                <CardTitle>最新建议</CardTitle>
-                <CardDescription>最近生成的 AI 优化建议</CardDescription>
+                <CardTitle>{t("ai.processOpt.latestSuggestions")}</CardTitle>
+                <CardDescription>{t("ai.processOpt.latestSuggestionsDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -672,10 +675,10 @@ export default function AIProcessOptimization() {
                         </div>
                         <div className="flex items-center gap-3">
                           <Badge className={severityColors[suggestion.severity]}>
-                            {severityLabels[suggestion.severity]}
+                            {t(severityLabelKeys[suggestion.severity])}
                           </Badge>
                           <Badge className={statusColors[suggestion.status]}>
-                            {statusLabels[suggestion.status]}
+                            {t(statusLabelKeys[suggestion.status])}
                           </Badge>
                         </div>
                       </div>

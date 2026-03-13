@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { PageHeader, StatCard } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 
 export default function SocialCommunityAnalytics() {
+  const { t } = useLanguage();
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [dateRange, setDateRange] = useState<string>("7d");
 
@@ -50,16 +52,16 @@ export default function SocialCommunityAnalytics() {
         {/* 页面标题 */}
         <PageHeader
           icon={BarChart3}
-          title="消息统计分析"
-          description="社群消息数据分析、成员画像、活跃度统计"
+          title={t("common.socialAnalytics.title")}
+          description={t("common.socialAnalytics.description")}
           actions={
             <div className="flex gap-2">
               <Select value={selectedGroup} onValueChange={setSelectedGroup}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="选择群组" />
+                  <SelectValue placeholder={t("common.socialAnalytics.selectGroup")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部群组</SelectItem>
+                  <SelectItem value="all">{t("common.socialAnalytics.allGroups")}</SelectItem>
                   {groups?.items?.map((group: any) => (
                     <SelectItem key={group.id} value={group.id.toString()}>
                       {group.name}
@@ -72,9 +74,9 @@ export default function SocialCommunityAnalytics() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="7d">近7天</SelectItem>
-                  <SelectItem value="30d">近30天</SelectItem>
-                  <SelectItem value="90d">近90天</SelectItem>
+                  <SelectItem value="7d">{t("common.socialAnalytics.last7days")}</SelectItem>
+                  <SelectItem value="30d">{t("common.socialAnalytics.last30days")}</SelectItem>
+                  <SelectItem value="90d">{t("common.socialAnalytics.last90days")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -85,33 +87,33 @@ export default function SocialCommunityAnalytics() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard
             icon={MessageSquare}
-            label="总消息数"
+            label={t("common.socialAnalytics.totalMessages")}
             value={stats?.totalMessages || 0}
-            subtitle={`${trendChange >= 0 ? '+' : ''}${trendChange}% 较上周`}
+            subtitle={`${trendChange >= 0 ? '+' : ''}${trendChange}% ${t("common.socialAnalytics.vsLastWeek")}`}
             iconColor="text-blue-500"
             iconBg="bg-blue-500/10"
           />
           <StatCard
             icon={Activity}
-            label="今日消息"
+            label={t("common.socialAnalytics.todayMessages")}
             value={stats?.todayMessages || 0}
-            subtitle="实时更新"
+            subtitle={t("common.socialAnalytics.realtimeUpdate")}
             iconColor="text-green-500"
             iconBg="bg-green-500/10"
           />
           <StatCard
             icon={AlertTriangle}
-            label="敏感消息"
+            label={t("common.socialAnalytics.sensitiveMessages")}
             value={stats?.sensitiveMessages || 0}
-            subtitle={`占比 ${stats?.totalMessages ? Math.round((stats.sensitiveMessages / stats.totalMessages) * 100) : 0}%`}
+            subtitle={`${t("common.socialAnalytics.percentage")} ${stats?.totalMessages ? Math.round((stats.sensitiveMessages / stats.totalMessages) * 100) : 0}%`}
             iconColor="text-yellow-500"
             iconBg="bg-yellow-500/10"
           />
           <StatCard
             icon={Clock}
-            label="待回复"
+            label={t("common.socialAnalytics.pendingReply")}
             value={stats?.needsReplyMessages || 0}
-            subtitle={`平均响应 ${stats?.avgResponseTime || 0} 分钟`}
+            subtitle={`${t("common.socialAnalytics.avgResponse")} ${stats?.avgResponseTime || 0} ${t("common.socialAnalytics.minutes")}`}
             iconColor="text-purple-500"
             iconBg="bg-purple-500/10"
           />
@@ -123,10 +125,10 @@ export default function SocialCommunityAnalytics() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
-                消息趋势
+                {t("common.socialAnalytics.messageTrend")}
               </CardTitle>
               <CardDescription>
-                {dateRange === "7d" ? "近7天" : dateRange === "30d" ? "近30天" : "近90天"}消息数量变化
+                {dateRange === "7d" ? t("common.socialAnalytics.messageTrendDesc7") : dateRange === "30d" ? t("common.socialAnalytics.messageTrendDesc30") : t("common.socialAnalytics.messageTrendDesc90")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -158,9 +160,9 @@ export default function SocialCommunityAnalytics() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="w-5 h-5" />
-                活跃时段
+                {t("common.socialAnalytics.activeTimeSlots")}
               </CardTitle>
-              <CardDescription>24小时消息分布</CardDescription>
+              <CardDescription>{t("common.socialAnalytics.hourlyDistribution")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -177,7 +179,7 @@ export default function SocialCommunityAnalytics() {
                   </div>
                 ))}
                 {(!stats?.messagesByHour || stats.messagesByHour.length === 0) && (
-                  <p className="text-sm text-muted-foreground text-center py-8">暂无数据</p>
+                  <p className="text-sm text-muted-foreground text-center py-8">{t("common.socialAnalytics.noData")}</p>
                 )}
               </div>
             </CardContent>
@@ -190,9 +192,9 @@ export default function SocialCommunityAnalytics() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <PieChart className="w-5 h-5" />
-                群组消息分布
+                {t("common.socialAnalytics.groupDistribution")}
               </CardTitle>
-              <CardDescription>各群组消息占比</CardDescription>
+              <CardDescription>{t("common.socialAnalytics.groupDistributionDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -210,7 +212,7 @@ export default function SocialCommunityAnalytics() {
                   );
                 })}
                 {(!stats?.messagesByGroup || stats.messagesByGroup.length === 0) && (
-                  <p className="text-sm text-muted-foreground text-center py-8">暂无数据</p>
+                  <p className="text-sm text-muted-foreground text-center py-8">{t("common.socialAnalytics.noData")}</p>
                 )}
               </div>
             </CardContent>
@@ -221,9 +223,9 @@ export default function SocialCommunityAnalytics() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Star className="w-5 h-5" />
-                活跃用户排行
+                {t("common.socialAnalytics.activeUsersRank")}
               </CardTitle>
-              <CardDescription>消息数量TOP10</CardDescription>
+              <CardDescription>{t("common.socialAnalytics.top10Messages")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -242,12 +244,12 @@ export default function SocialCommunityAnalytics() {
                       <p className="text-xs text-muted-foreground">{user.group_name}</p>
                     </div>
                     <Badge variant="outline" className="shrink-0">
-                      {user.message_count} 条
+                      {user.message_count} {t("common.socialAnalytics.messagesUnit")}
                     </Badge>
                   </div>
                 ))}
                 {(!influencers || influencers.length === 0) && (
-                  <p className="text-sm text-muted-foreground text-center py-8">暂无数据</p>
+                  <p className="text-sm text-muted-foreground text-center py-8">{t("common.socialAnalytics.noData")}</p>
                 )}
               </div>
             </CardContent>

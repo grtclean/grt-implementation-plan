@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { webhookConfigs, webhookLogs, webhookTemplates, webhookTriggerConditions } from "../../drizzle/schema";
 import { eq, desc, and, count, sql } from "drizzle-orm";
@@ -35,7 +35,7 @@ export const webhookRouter = router({
   }),
 
   // 创建Webhook
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('system:webhooks:manage').input(z.object({
     name: z.string(),
     type: z.enum(["wecom", "dingtalk", "feishu", "custom"]),
     url: z.string().url(),
@@ -55,7 +55,7 @@ export const webhookRouter = router({
   }),
 
   // 更新Webhook
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('system:webhooks:manage').input(z.object({
     id: z.string(),
     name: z.string().optional(),
     url: z.string().url().optional(),
@@ -79,7 +79,7 @@ export const webhookRouter = router({
   }),
 
   // 删除Webhook
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  delete: requirePermission('system:webhooks:manage').input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     const deleted = await db.delete(webhookConfigs).where(eq(webhookConfigs.id, id)).returning();
@@ -87,7 +87,7 @@ export const webhookRouter = router({
   }),
 
   // 测试Webhook连接
-  test: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  test: requirePermission('system:webhooks:manage').input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     const [webhook] = await db.select().from(webhookConfigs).where(eq(webhookConfigs.id, id)).limit(1000);
@@ -123,7 +123,7 @@ export const webhookRouter = router({
   }),
 
   // 切换Webhook状态
-  toggle: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  toggle: requirePermission('system:webhooks:manage').input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     const [webhook] = await db.select().from(webhookConfigs).where(eq(webhookConfigs.id, id)).limit(1000);
@@ -161,7 +161,7 @@ export const webhookRouter = router({
   }),
 
   // 发送告警到Webhook
-  sendAlert: protectedProcedure.input(z.object({
+  sendAlert: requirePermission('system:webhooks:manage').input(z.object({
     level: z.enum(["info", "warning", "critical", "emergency"]),
     title: z.string(),
     description: z.string(),
@@ -188,7 +188,7 @@ export const webhookRouter = router({
   }),
 
   // 发送会议提醒到Webhook
-  sendMeetingReminder: protectedProcedure.input(z.object({
+  sendMeetingReminder: requirePermission('system:webhooks:manage').input(z.object({
     id: z.string(),
     title: z.string(),
     startTime: z.string(),
@@ -221,7 +221,7 @@ export const webhookRouter = router({
     return await db.select().from(webhookTemplates).orderBy(desc(webhookTemplates.createdAt)).limit(1000);
   }),
 
-  createTemplate: protectedProcedure.input(z.object({
+  createTemplate: requirePermission('system:webhooks:manage').input(z.object({
     name: z.string(),
     eventType: z.string(),
     webhookType: z.enum(["wecom", "dingtalk", "feishu", "custom"]),
@@ -234,7 +234,7 @@ export const webhookRouter = router({
     return { success: true, message: "模板创建成功", data: template };
   }),
 
-  updateTemplate: protectedProcedure.input(z.object({
+  updateTemplate: requirePermission('system:webhooks:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     name: z.string().optional(),
     eventType: z.string().optional(),
@@ -256,17 +256,17 @@ export const webhookRouter = router({
     return { success: true, message: "模板更新成功", data: template };
   }),
 
-  deleteTemplate: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
+  deleteTemplate: requirePermission('system:webhooks:manage').input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = typeof input.id === "string" ? parseInt(input.id) : input.id;
     await db.delete(webhookTemplates).where(eq(webhookTemplates.id, numId));
     return { success: true, message: "模板删除成功" };
   }),
 
-  previewTemplate: protectedProcedure.input(z.object({ template: z.string().optional(), variables: z.record(z.string(), jsonValue).optional() }).optional()).mutation(() => ({ preview: "" })),
+  previewTemplate: requirePermission('system:webhooks:manage').input(z.object({ template: z.string().optional(), variables: z.record(z.string(), jsonValue).optional() }).optional()).mutation(() => ({ preview: "" })),
 
   // 初始化默认模板
-  initTemplates: protectedProcedure.mutation(async () => {
+  initTemplates: requirePermission('system:webhooks:manage').mutation(async () => {
     const db = await requireDb();
     const existing = await db.select({ count: count() }).from(webhookTemplates);
     if (existing[0].count > 0) return { success: true, message: "模板已存在" };
@@ -284,7 +284,7 @@ export const webhookRouter = router({
   }),
 
   // 初始化默认Webhook
-  seedDefaultWebhooks: protectedProcedure.mutation(async () => {
+  seedDefaultWebhooks: requirePermission('system:webhooks:manage').mutation(async () => {
     const db = await requireDb();
     const existing = await db.select({ count: count() }).from(webhookConfigs);
     if (existing[0].count > 0) return { success: true, message: "Webhook已存在" };

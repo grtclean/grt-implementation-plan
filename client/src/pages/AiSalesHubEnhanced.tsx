@@ -2,6 +2,7 @@
  * AI销售中心增强版 - 谈判可视化、ZOPA计算、情绪分析
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +50,7 @@ const emotionAnalysis = [
 ];
 
 export default function AiSalesHubEnhanced() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("sessions");
   const [selectedSession, setSelectedSession] = useState(negotiationSessions[0]);
@@ -77,20 +79,20 @@ export default function AiSalesHubEnhanced() {
     <div className="space-y-6">
       <PageHeader
         icon={TrendingUp}
-        title="AI销售中心 (增强版)"
-        description="AI谈判可视化、ZOPA计算、情绪分析"
+        title={t("ai.salesHubEnh.title")}
+        description={t("ai.salesHubEnh.description")}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 bg-card border border-border">
           <TabsTrigger value="sessions" className="flex items-center gap-2">
-            <MessageCircle className="w-4 h-4" />谈判会话
+            <MessageCircle className="w-4 h-4" />{t("ai.salesHubEnh.tabSessions")}
           </TabsTrigger>
           <TabsTrigger value="zopa" className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />ZOPA分析
+            <BarChart3 className="w-4 h-4" />{t("ai.salesHubEnh.tabZopa")}
           </TabsTrigger>
           <TabsTrigger value="emotion" className="flex items-center gap-2">
-            <Activity className="w-4 h-4" />情绪分析
+            <Activity className="w-4 h-4" />{t("ai.salesHubEnh.tabEmotion")}
           </TabsTrigger>
         </TabsList>
 
@@ -98,8 +100,8 @@ export default function AiSalesHubEnhanced() {
         <TabsContent value="sessions" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>AI谈判会话</CardTitle>
-              <CardDescription>实时谈判轮次和报价跟踪</CardDescription>
+              <CardTitle>{t("ai.salesHubEnh.aiNegotiationSessions")}</CardTitle>
+              <CardDescription>{t("ai.salesHubEnh.realTimeTracking")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -112,23 +114,23 @@ export default function AiSalesHubEnhanced() {
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="font-medium">{session.clientName}</p>
-                        <p className="text-sm text-muted-foreground">第 {session.round} 轮谈判</p>
+                        <p className="text-sm text-muted-foreground">{t("ai.salesHubEnh.roundN").replace("{n}", String(session.round))}</p>
                       </div>
                       <Badge className={getSentimentBadge(session.sentiment)}>
-                        {session.sentiment === "positive" ? "积极" : session.sentiment === "neutral" ? "中立" : "消极"}
+                        {session.sentiment === "positive" ? t("ai.salesHubEnh.sentimentPositive") : session.sentiment === "neutral" ? t("ai.salesHubEnh.sentimentNeutral") : t("ai.salesHubEnh.sentimentNegative")}
                       </Badge>
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
-                        <p className="text-muted-foreground">我方报价</p>
+                        <p className="text-muted-foreground">{t("ai.salesHubEnh.ourOffer")}</p>
                         <p className="font-bold text-primary">¥{session.ourOffer.toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">客户还价</p>
+                        <p className="text-muted-foreground">{t("ai.salesHubEnh.clientOffer")}</p>
                         <p className="font-bold text-green-400">¥{session.clientOffer.toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">价差</p>
+                        <p className="text-muted-foreground">{t("ai.salesHubEnh.priceDiff")}</p>
                         <p className="font-bold text-yellow-400">¥{(session.ourOffer - session.clientOffer).toLocaleString()}</p>
                       </div>
                     </div>
@@ -143,16 +145,16 @@ export default function AiSalesHubEnhanced() {
         <TabsContent value="zopa" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>ZOPA区间分析</CardTitle>
+              <CardTitle>{t("ai.salesHubEnh.zopaTitle")}</CardTitle>
               <CardDescription>{selectedSession.clientName}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
                 <div className="p-4 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-2">协议达成区间 (ZOPA)</p>
+                  <p className="text-sm text-muted-foreground mb-2">{t("ai.salesHubEnh.zopaRange")}</p>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span>底价 (我方底线)</span>
+                      <span>{t("ai.salesHubEnh.floorPrice")}</span>
                       <span className="font-bold text-primary">¥{selectedSession.zopaMin.toLocaleString()}</span>
                     </div>
                     <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
@@ -165,7 +167,7 @@ export default function AiSalesHubEnhanced() {
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>目标价 (理想价格)</span>
+                      <span>{t("ai.salesHubEnh.targetPrice")}</span>
                       <span className="font-bold text-green-400">¥{selectedSession.zopaMax.toLocaleString()}</span>
                     </div>
                   </div>
@@ -173,20 +175,20 @@ export default function AiSalesHubEnhanced() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                    <p className="text-xs text-muted-foreground">当前我方报价</p>
+                    <p className="text-xs text-muted-foreground">{t("ai.salesHubEnh.currentOurOffer")}</p>
                     <p className="text-lg font-bold text-primary">¥{selectedSession.ourOffer.toLocaleString()}</p>
-                    <p className="text-xs text-green-400 mt-1">在ZOPA区间内 ✓</p>
+                    <p className="text-xs text-green-400 mt-1">{t("ai.salesHubEnh.inZopa")}</p>
                   </div>
                   <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                    <p className="text-xs text-muted-foreground">客户还价</p>
+                    <p className="text-xs text-muted-foreground">{t("ai.salesHubEnh.clientCounterOffer")}</p>
                     <p className="text-lg font-bold text-green-400">¥{selectedSession.clientOffer.toLocaleString()}</p>
-                    <p className="text-xs text-yellow-400 mt-1">接近底价 ⚠</p>
+                    <p className="text-xs text-yellow-400 mt-1">{t("ai.salesHubEnh.nearFloor")}</p>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  <Button className="flex-1" variant="outline">降价建议</Button>
-                  <Button className="flex-1">接受报价</Button>
+                  <Button className="flex-1" variant="outline">{t("ai.salesHubEnh.priceCutSuggestion")}</Button>
+                  <Button className="flex-1">{t("ai.salesHubEnh.acceptOffer")}</Button>
                 </div>
               </div>
             </CardContent>
@@ -197,8 +199,8 @@ export default function AiSalesHubEnhanced() {
         <TabsContent value="emotion" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>谈判情绪趋势</CardTitle>
-              <CardDescription>{selectedSession.clientName} - 多轮谈判情绪变化</CardDescription>
+              <CardTitle>{t("ai.salesHubEnh.emotionTrend")}</CardTitle>
+              <CardDescription>{selectedSession.clientName} - {t("ai.salesHubEnh.emotionTrendDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -217,10 +219,10 @@ export default function AiSalesHubEnhanced() {
                 <div className="space-y-2">
                   {sessionEmotions.map((emotion, idx) => (
                     <div key={idx} className="flex items-center justify-between p-2 bg-muted rounded">
-                      <span className="text-sm">第 {emotion.round} 轮</span>
+                      <span className="text-sm">{t("ai.salesHubEnh.roundLabel").replace("{n}", String(emotion.round))}</span>
                       <div className="flex items-center gap-2">
                         <Badge className={getSentimentBadge(emotion.sentiment)} variant="outline">
-                          {emotion.sentiment === "positive" ? "积极" : emotion.sentiment === "neutral" ? "中立" : "消极"}
+                          {emotion.sentiment === "positive" ? t("ai.salesHubEnh.sentimentPositive") : emotion.sentiment === "neutral" ? t("ai.salesHubEnh.sentimentNeutral") : t("ai.salesHubEnh.sentimentNegative")}
                         </Badge>
                         <span className="text-sm font-medium">{(emotion.score * 100).toFixed(0)}%</span>
                       </div>

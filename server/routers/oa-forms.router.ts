@@ -8,7 +8,7 @@
  *   Template CRUD (5)  |  Submission CRUD (5)  |  Approval Actions (2)
  *   Approval History (1)  |  Favorites (3)  |  Stats (1)
  */
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
 import { TRPCError } from "@trpc/server";
@@ -80,7 +80,8 @@ export const oaFormsRouter = router({
         .select()
         .from(oaFormTemplates)
         .where(whereClause)
-        .orderBy(desc(oaFormTemplates.createdAt));
+        .orderBy(desc(oaFormTemplates.createdAt))
+        .limit(1000);
 
       return { items, total: items.length };
     }),
@@ -203,7 +204,7 @@ export const oaFormsRouter = router({
     }),
 
   /** Soft-delete template (set isActive = false) */
-  deleteTemplate: protectedProcedure
+  deleteTemplate: requirePermission('oa:forms:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -370,7 +371,7 @@ export const oaFormsRouter = router({
     }),
 
   /** Withdraw a submission (only if pending or draft, only by owner) */
-  withdrawSubmission: protectedProcedure
+  withdrawSubmission: requirePermission('oa:forms:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -427,7 +428,8 @@ export const oaFormsRouter = router({
             eq(oaFormSubmissions.status, "pending"),
           ),
         )
-        .orderBy(desc(oaFormSubmissions.priority), asc(oaFormSubmissions.createdAt));
+        .orderBy(desc(oaFormSubmissions.priority), asc(oaFormSubmissions.createdAt))
+        .limit(1000);
 
       return { items, total: items.length };
     }),
@@ -437,7 +439,7 @@ export const oaFormsRouter = router({
   // ─────────────────────────────────────────────────
 
   /** Approve a submission at its current step */
-  approveSubmission: protectedProcedure
+  approveSubmission: requirePermission('oa:forms:manage')
     .input(
       z.object({
         submissionId: z.number(),
@@ -572,7 +574,7 @@ export const oaFormsRouter = router({
     }),
 
   /** Reject a submission */
-  rejectSubmission: protectedProcedure
+  rejectSubmission: requirePermission('oa:forms:manage')
     .input(
       z.object({
         submissionId: z.number(),
@@ -666,7 +668,8 @@ export const oaFormsRouter = router({
         .select()
         .from(oaFormApprovalRecords)
         .where(eq(oaFormApprovalRecords.submissionId, toNum(input.submissionId)))
-        .orderBy(asc(oaFormApprovalRecords.actionAt));
+        .orderBy(asc(oaFormApprovalRecords.actionAt))
+        .limit(1000);
 
       return { items, total: items.length };
     }),
@@ -699,13 +702,14 @@ export const oaFormsRouter = router({
         .from(oaFormFavorites)
         .innerJoin(oaFormTemplates, eq(oaFormFavorites.templateId, oaFormTemplates.id))
         .where(eq(oaFormFavorites.userId, ctx.user.id))
-        .orderBy(asc(oaFormFavorites.sortOrder));
+        .orderBy(asc(oaFormFavorites.sortOrder))
+        .limit(1000);
 
       return { items, total: items.length };
     }),
 
   /** Add a template to current user's favorites */
-  addFavorite: protectedProcedure
+  addFavorite: requirePermission('oa:forms:manage')
     .input(z.object({ templateId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -729,7 +733,7 @@ export const oaFormsRouter = router({
     }),
 
   /** Remove a template from current user's favorites */
-  removeFavorite: protectedProcedure
+  removeFavorite: requirePermission('oa:forms:manage')
     .input(z.object({ templateId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();

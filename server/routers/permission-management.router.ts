@@ -10,7 +10,7 @@
  *   - permission (server/permission-management/) = DB-backed RBAC source of truth
  *   - rolePermission (server/permissions/) = fast config-based checks
  */
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { invokeLLM } from "../_core/llm";
@@ -24,7 +24,7 @@ export const permissionManagementRouter = router({
    * 用户登录
    * 支持用户名/密码认证
    */
-  login: protectedProcedure
+  login: requirePermission('system:permissions:assign')
     .input(z.object({
       username: z.string().min(3),
       password: z.string().min(6),
@@ -134,7 +134,7 @@ export const permissionManagementRouter = router({
   /**
    * 创建新用户（仅管理员）
    */
-  createUser: protectedProcedure
+  createUser: requirePermission('system:permissions:assign')
     .input(z.object({
       username: z.string().min(3),
       password: z.string().min(6),
@@ -161,7 +161,7 @@ export const permissionManagementRouter = router({
   /**
    * 更新用户权限（仅管理员）
    */
-  updateUserPermissions: protectedProcedure
+  updateUserPermissions: requirePermission('system:permissions:assign')
     .input(z.object({
       userId: z.number(),
       permissions: z.array(z.string()),
@@ -216,7 +216,7 @@ export const permissionManagementRouter = router({
   /**
    * 创建讨论池
    */
-  createDiscussionPool: protectedProcedure
+  createDiscussionPool: requirePermission('system:permissions:assign')
     .input(z.object({
       name: z.string(),
       description: z.string(),
@@ -242,7 +242,7 @@ export const permissionManagementRouter = router({
   /**
    * 邀请外部用户
    */
-  inviteExternalUser: protectedProcedure
+  inviteExternalUser: requirePermission('system:permissions:assign')
     .input(z.object({
       email: z.string().email(),
       companyName: z.string(),
@@ -318,10 +318,10 @@ export const permissionManagementRouter = router({
     }),
 
   /**
-   * 获取权限建议
-   * 使用LLM分析用户的工作内容，建议合适的权限
+   * startPermissionSuggestions — GRT开发第一定律: async task queue for LLM
+   * Enqueues AI permission analysis, returns taskId for polling
    */
-  getPermissionSuggestions: protectedProcedure
+  startPermissionSuggestions: requirePermission('system:permissions:assign')
     .input(z.object({
       userId: z.number(),
       jobTitle: z.string(),
@@ -329,30 +329,56 @@ export const permissionManagementRouter = router({
       responsibilities: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
-      // 检查建议权限
       const canSuggest = await verifyPermission(ctx.user!.id, "admin:permissions:suggest");
       if (!canSuggest) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
-      // 使用LLM生成权限建议
-      const response = await invokeLLM({
-        messages: [
-          {
-            role: "system",
-            content: `You are a permission management expert. Based on the user's job title, department, and responsibilities, suggest appropriate permissions and roles.`,
-          },
-          {
-            role: "user",
-            content: `Job Title: ${input.jobTitle}\nDepartment: ${input.department}\nResponsibilities: ${input.responsibilities}\n\nSuggest appropriate roles and permissions for this user.`,
-          },
-        ],
+      const { submitTask, registerTaskHandler } = await import("../services/task-worker.service");
+
+      // Register handler (idempotent)
+      registerTaskHandler("PERMISSION_SUGGEST", async (_taskId, taskInput) => {
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `You are a permission management expert. Based on the user's job title, department, and responsibilities, suggest appropriate permissions and roles.`,
+            },
+            {
+              role: "user",
+              content: `Job Title: ${taskInput.jobTitle}\nDepartment: ${taskInput.department}\nResponsibilities: ${taskInput.responsibilities}\n\nSuggest appropriate roles and permissions for this user.`,
+            },
+          ],
+        });
+        return {
+          userId: taskInput.userId,
+          suggestions: response.choices[0].message.content,
+          confidence: 0.85,
+        };
       });
 
+      const { taskId } = await submitTask(
+        "PERMISSION_SUGGEST",
+        { userId: input.userId, jobTitle: input.jobTitle, department: input.department, responsibilities: input.responsibilities },
+        ctx.user?.name ?? "system",
+        { submittedById: ctx.user?.id },
+      );
+      return { taskId };
+    }),
+
+  /**
+   * getPermissionSuggestionsResult — poll for async permission suggestion result
+   */
+  getPermissionSuggestionsResult: protectedProcedure
+    .input(z.object({ taskId: z.number() }))
+    .query(async ({ input }) => {
+      const { getTaskStatus } = await import("../services/task-worker.service");
+      const task = await getTaskStatus(input.taskId);
+      if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
       return {
-        userId: input.userId,
-        suggestions: response.choices[0].message.content,
-        confidence: 0.85,
+        status: task.status,
+        result: task.resultData,
+        error: task.errorMessage,
       };
     }),
 });

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { expenseClaims } from "../../drizzle/schema";
 import { desc, count, sql, eq } from "drizzle-orm";
@@ -101,7 +101,7 @@ export const expenseComparisonRouter = router({
   }),
 
   // 导出
-  expenseComparisonExport: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).mutation(async () => {
+  expenseComparisonExport: requirePermission('finance:expense:view').input(z.record(z.string(), jsonValue).optional()).mutation(async () => {
     return { url: "" };
   }),
 });

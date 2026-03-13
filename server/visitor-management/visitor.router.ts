@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { protectedProcedure, router } from '../_core/trpc';
+import {protectedProcedure, router, requirePermission} from '../_core/trpc';
 import { visitorService } from './visitor.service';
 import { createRoleMiddleware } from '../permission-management/permission.middleware';
 import { TRPCError } from '@trpc/server';
@@ -59,7 +59,7 @@ export const visitorRouter = router({
   /**
    * 提交来访申请
    */
-  submitRequest: protectedProcedure
+  submitRequest: requirePermission('hr:visitor:request')
     .input(z.object({ requestId: z.number() }))
     .mutation(async ({ input }) => {
       try {
@@ -122,7 +122,7 @@ export const visitorRouter = router({
   /**
    * 管理员：审批来访申请
    */
-  approveRequest: protectedProcedure
+  approveRequest: requirePermission('hr:visitor:request')
     .use(createRoleMiddleware(['admin', 'supervisor']))
     .input(
       z.object({
@@ -151,7 +151,7 @@ export const visitorRouter = router({
   /**
    * 管理员：拒绝来访申请
    */
-  rejectRequest: protectedProcedure
+  rejectRequest: requirePermission('hr:visitor:request')
     .use(createRoleMiddleware(['admin', 'supervisor']))
     .input(
       z.object({
@@ -179,7 +179,7 @@ export const visitorRouter = router({
   /**
    * 签到来访者
    */
-  checkInVisitor: protectedProcedure
+  checkInVisitor: requirePermission('hr:visitor:request')
     .input(
       z.object({
         passCode: z.string().min(1),
@@ -204,7 +204,7 @@ export const visitorRouter = router({
   /**
    * 签出来访者
    */
-  checkOutVisitor: protectedProcedure
+  checkOutVisitor: requirePermission('hr:visitor:request')
     .input(
       z.object({
         passCode: z.string().min(1),

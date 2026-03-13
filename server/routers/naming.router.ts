@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   namingChangeRequests,
@@ -38,7 +38,7 @@ export const namingRouter = router({
   }),
 
   // 创建命名版本
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('system:naming:manage').input(z.object({
     versionCode: z.string(),
     versionName: z.string().optional(),
     ruleType: z.enum(["equipment", "project", "material"]),
@@ -59,7 +59,7 @@ export const namingRouter = router({
   }),
 
   // 更新命名版本
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('system:naming:manage').input(z.object({
     id: z.string(),
     versionName: z.string().optional(),
     changeDescription: z.string().optional(),
@@ -74,7 +74,7 @@ export const namingRouter = router({
   }),
 
   // 删除命名版本
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  delete: requirePermission('system:naming:manage').input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(namingVersions).where(eq(namingVersions.id, parseInt(input.id)));
     return { success: true, message: "删除成功" };
@@ -146,7 +146,7 @@ export const namingRouter = router({
       }));
     }),
 
-    initCounters: protectedProcedure.mutation(async () => {
+    initCounters: requirePermission('system:naming:manage').mutation(async () => {
       const db = await requireDb();
       const existing = await db.select({ count: count() }).from(projectNumberCounters);
       if (existing[0].count > 0) return { success: true, message: "计数器已存在" };
@@ -162,7 +162,7 @@ export const namingRouter = router({
       return { success: true, message: "计数器已初始化" };
     }),
 
-    generateNext: protectedProcedure.input(z.object({ prefix: z.string() })).mutation(async ({ input }) => {
+    generateNext: requirePermission('system:naming:manage').input(z.object({ prefix: z.string() })).mutation(async ({ input }) => {
       const db = await requireDb();
       const [counter] = await db.select().from(projectNumberCounters)
         .where(eq(projectNumberCounters.prefix, input.prefix)).limit(1000);
@@ -181,7 +181,7 @@ export const namingRouter = router({
       return `${input.prefix}001`;
     }),
 
-    convert: protectedProcedure.input(z.object({
+    convert: requirePermission('system:naming:manage').input(z.object({
       tempCode: z.string(),
       contractNo: z.string().optional(),
     })).mutation(async ({ input }) => {
@@ -238,7 +238,7 @@ export const namingRouter = router({
       }));
     }),
 
-    create: protectedProcedure.input(z.object({
+    create: requirePermission('system:naming:manage').input(z.object({
       requestType: z.string(),
       ruleType: z.string(),
       title: z.string(),
@@ -261,7 +261,7 @@ export const namingRouter = router({
       return { success: true, message: "变更请求已创建", data: request };
     }),
 
-    approve: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+    approve: requirePermission('system:naming:manage').input(z.object({ id: z.string() })).mutation(async ({ input }) => {
       const db = await requireDb();
       const [request] = await db.update(namingChangeRequests)
         .set({
@@ -274,7 +274,7 @@ export const namingRouter = router({
       return { success: true, message: "已批准", data: request };
     }),
 
-    reject: protectedProcedure.input(z.object({ id: z.string(), notes: z.string().optional() })).mutation(async ({ input }) => {
+    reject: requirePermission('system:naming:manage').input(z.object({ id: z.string(), notes: z.string().optional() })).mutation(async ({ input }) => {
       const db = await requireDb();
       const [request] = await db.update(namingChangeRequests)
         .set({
@@ -335,7 +335,7 @@ export const namingRouter = router({
       return { success: true, message: "设备型号已创建", data: model };
     }),
 
-    initSample: protectedProcedure.mutation(async () => {
+    initSample: requirePermission('system:naming:manage').mutation(async () => {
       const db = await requireDb();
       const existing = await db.select({ count: count() }).from(equipmentModels);
       if (existing[0].count > 0) return { created: 0 };
@@ -369,7 +369,7 @@ export const namingRouter = router({
       }));
     }),
 
-    create: protectedProcedure.input(z.object({
+    create: requirePermission('system:naming:manage').input(z.object({
       userId: z.number(),
       ruleType: z.string(),
       changeType: z.string(),
@@ -387,7 +387,7 @@ export const namingRouter = router({
       return { success: true, message: "审批人已添加", data: approver };
     }),
 
-    delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+    delete: requirePermission('system:naming:manage').input(z.object({ id: z.string() })).mutation(async ({ input }) => {
       const db = await requireDb();
       await db.delete(namingRuleApprovers).where(eq(namingRuleApprovers.id, parseInt(input.id)));
       return { success: true, message: "审批人已删除" };
@@ -411,7 +411,7 @@ export const namingRouter = router({
       }));
     }),
 
-    initDefault: protectedProcedure.mutation(async () => {
+    initDefault: requirePermission('system:naming:manage').mutation(async () => {
       const db = await requireDb();
       const existing = await db.select({ count: count() }).from(namingVersions);
       if (existing[0].count > 0) return { success: true, message: "版本已存在" };

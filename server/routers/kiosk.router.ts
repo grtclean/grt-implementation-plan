@@ -9,7 +9,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import { createChildLogger } from "../lib/logger";
 
 const log = createChildLogger("kiosk");
@@ -406,7 +406,7 @@ export const kioskRouter = router({
   /**
    * Operator punch-in at kiosk — VDA 6.3 P6.3 qualification verification
    */
-  operatorPunchIn: protectedProcedure
+  operatorPunchIn: requirePermission('mfg:kiosk:access')
     .input(
       z.object({
         stationId: z.string(),
@@ -466,7 +466,7 @@ export const kioskRouter = router({
   /**
    * Create a new QR session — kiosk displays the resulting QR code
    */
-  createQrSession: protectedProcedure
+  createQrSession: requirePermission('mfg:kiosk:access')
     .input(z.object({ stationId: z.string(), departmentCode: z.string() }))
     .mutation(({ input }) => {
       const sessionId = randomUUID();
@@ -494,7 +494,7 @@ export const kioskRouter = router({
   /**
    * Confirm QR session — called from mobile page after operator enters employee ID
    */
-  confirmQrSession: protectedProcedure
+  confirmQrSession: requirePermission('mfg:kiosk:access')
     .input(z.object({ sessionId: z.string(), employeeId: z.string().min(1) }))
     .mutation(async ({ input }) => {
       const session = qrSessions.get(input.sessionId);

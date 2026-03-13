@@ -138,7 +138,7 @@ vi.mock("drizzle-orm", () => ({
 
 // ─── Import test utilities ──────────────────────────────────────────
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -156,13 +156,13 @@ beforeEach(() => {
 // ─── 1. getStageDefinitions ─────────────────────────────────────────
 describe("projectGate.getStageDefinitions", () => {
   it("returns exactly 13 M-stage definitions (M0-M12)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getStageDefinitions();
     expect(result).toHaveLength(13);
   });
 
   it("each definition has code, nameZh, nameEn, category, description, requiredDeliverables", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getStageDefinitions();
     for (const def of result) {
       expect(def).toHaveProperty("code");
@@ -176,7 +176,7 @@ describe("projectGate.getStageDefinitions", () => {
   });
 
   it("stages are ordered M0 through M12", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getStageDefinitions();
     const codes = result.map((d: any) => d.code);
     expect(codes).toEqual([
@@ -205,7 +205,7 @@ describe("projectGate.getProjectStages", () => {
       // 2nd select: gates (empty — no gate records)
       [],
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getProjectStages({});
 
     expect(result).toHaveLength(1);
@@ -217,7 +217,7 @@ describe("projectGate.getProjectStages", () => {
 
   it("returns empty array when no projects exist", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getProjectStages({});
     expect(result).toEqual([]);
   });
@@ -235,7 +235,7 @@ describe("projectGate.getProjectStages", () => {
       ],
       [], // gates
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getProjectStages({});
     // M6 is index 6; progress = round(6/12 * 100) = 50
     expect(result[0].stageProgress).toBe(50);
@@ -254,7 +254,7 @@ describe("projectGate.getProjectStageDetail", () => {
         actualEndDate: null, createdAt: "2026-02-01",
       },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getProjectStageDetail({ projectId: 10 });
 
     expect(result.projectId).toBe(10);
@@ -271,7 +271,7 @@ describe("projectGate.getProjectStageDetail", () => {
 
   it("throws when project not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.projectGate.getProjectStageDetail({ projectId: 999 })
     ).rejects.toThrow("项目不存在");
@@ -294,7 +294,7 @@ describe("projectGate.getGateChecklist", () => {
         verifiedBy: null, verifiedAt: null, notes: null, sortOrder: 2,
       },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getGateChecklist({
       projectId: 1,
       stageCode: "M4",
@@ -320,7 +320,7 @@ describe("projectGate.getGateChecklist", () => {
 // ─── 5. updateChecklistItem ─────────────────────────────────────────
 describe("projectGate.updateChecklistItem", () => {
   it("updates status and returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.updateChecklistItem({
       checklistId: 100,
       status: "PASSED",
@@ -331,7 +331,7 @@ describe("projectGate.updateChecklistItem", () => {
   });
 
   it("maps WAIVED status to waived in DB", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.updateChecklistItem({
       checklistId: 101,
       status: "WAIVED",
@@ -348,7 +348,7 @@ describe("projectGate.requestGatePass", () => {
     mockQueryResult = [];
     mockReturningResult = [{ id: 42 }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.requestGatePass({
       projectId: 1,
       stageCode: "M3",
@@ -364,7 +364,7 @@ describe("projectGate.requestGatePass", () => {
     // First query finds existing gate
     mockQueryResult = [{ id: 10, projectId: 1, phaseCode: "M3", status: "pending" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.requestGatePass({
       projectId: 1,
       stageCode: "M3",
@@ -387,7 +387,7 @@ describe("projectGate.approveGatePass", () => {
       { id: 5, projectId: 1, phaseCode: "M3", status: "approved", version: 2 },
     ];
 
-    const caller = createAuthenticatedCaller({ id: 2 }); // different from REQ:99
+    const caller = createAdminCaller({ id: 2 }); // different from REQ:99
     const result = await caller.projectGate.approveGatePass({
       requestId: 5,
       approved: true,
@@ -406,7 +406,7 @@ describe("projectGate.approveGatePass", () => {
       { id: 6, projectId: 2, phaseCode: "M5", status: "rejected", version: 2 },
     ];
 
-    const caller = createAuthenticatedCaller({ id: 3 });
+    const caller = createAdminCaller({ id: 3 });
     const result = await caller.projectGate.approveGatePass({
       requestId: 6,
       approved: false,
@@ -419,7 +419,7 @@ describe("projectGate.approveGatePass", () => {
   it("throws NOT_FOUND when gate does not exist", async () => {
     mockQueryResult = [];
 
-    const caller = createAuthenticatedCaller({ id: 2 });
+    const caller = createAdminCaller({ id: 2 });
     await expect(
       caller.projectGate.approveGatePass({
         requestId: 999,
@@ -433,7 +433,7 @@ describe("projectGate.approveGatePass", () => {
       { id: 7, projectId: 1, phaseCode: "M4", status: "approved", remark: "[REQ:99]", version: 1 },
     ];
 
-    const caller = createAuthenticatedCaller({ id: 2 });
+    const caller = createAdminCaller({ id: 2 });
     await expect(
       caller.projectGate.approveGatePass({
         requestId: 7,
@@ -448,7 +448,7 @@ describe("projectGate.approveGatePass", () => {
     ];
 
     // Default user id is 1, matching [REQ:1]
-    const caller = createAuthenticatedCaller({ id: 1 });
+    const caller = createAdminCaller({ id: 1 });
     await expect(
       caller.projectGate.approveGatePass({
         requestId: 8,
@@ -474,7 +474,7 @@ describe("projectGate.approveGatePass", () => {
       ],
     ];
 
-    const caller = createAuthenticatedCaller({ id: 2 });
+    const caller = createAdminCaller({ id: 2 });
     await expect(
       caller.projectGate.approveGatePass({
         requestId: 9,
@@ -496,7 +496,7 @@ describe("projectGate.approveGatePass", () => {
       ],
     ];
 
-    const caller = createAuthenticatedCaller({ id: 2 });
+    const caller = createAdminCaller({ id: 2 });
     await expect(
       caller.projectGate.approveGatePass({
         requestId: 11,
@@ -508,7 +508,7 @@ describe("projectGate.approveGatePass", () => {
   it("throws CONFLICT on version mismatch (optimistic lock)", async () => {
     mockQueryResult = [{ version: 5 }]; // DB version is 5
 
-    const caller = createAuthenticatedCaller({ id: 2 });
+    const caller = createAdminCaller({ id: 2 });
     await expect(
       caller.projectGate.approveGatePass({
         requestId: 12,
@@ -533,7 +533,7 @@ describe("projectGate.getRedBlueRecords", () => {
         createdAt: "2026-03-01T08:00:00Z",
       },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getRedBlueRecords({ projectId: 1 });
 
     expect(result).toHaveLength(1);
@@ -551,7 +551,7 @@ describe("projectGate.createRedBlueSession", () => {
   it("creates session and returns sessionId", async () => {
     mockReturningResult = [{ id: 77 }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.createRedBlueSession({
       projectId: 1,
       stageCode: "M4",
@@ -568,7 +568,7 @@ describe("projectGate.createRedBlueSession", () => {
 
 describe("projectGate.recordRedBlueResult", () => {
   it("records results and returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.recordRedBlueResult({
       sessionId: 77,
       redTeamFindings: ["Found risk A", "Found risk B"],
@@ -589,7 +589,7 @@ describe("projectGate.validateGateReadiness", () => {
       { id: 2, isMandatory: true, status: "waived", checkItem: "B" },
       { id: 3, isMandatory: false, status: "not_started", checkItem: "C" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.validateGateReadiness({
       projectId: 1,
       stageCode: "M4",
@@ -609,7 +609,7 @@ describe("projectGate.validateGateReadiness", () => {
     mockQueryResult = [
       { id: 1, isMandatory: false, status: "not_started", checkItem: "Optional" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.validateGateReadiness({
       projectId: 1,
       stageCode: "M0",
@@ -623,7 +623,7 @@ describe("projectGate.validateGateReadiness", () => {
       { id: 1, isMandatory: true, status: "failed", checkItem: "设计报告" },
       { id: 2, isMandatory: true, status: "verified", checkItem: "BOM确认" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.validateGateReadiness({
       projectId: 1,
       stageCode: "M4",
@@ -640,7 +640,7 @@ describe("projectGate.validateGateReadiness", () => {
       { id: 1, isMandatory: true, status: "not_started", checkItem: "测试报告" },
       { id: 2, isMandatory: true, status: "in_progress", checkItem: "验收记录" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.validateGateReadiness({
       projectId: 1,
       stageCode: "M7",
@@ -667,7 +667,7 @@ describe("projectGate.advancePhaseV2", () => {
       [{ auditLog: null }],              // current stage row
     ];
 
-    const caller = createAuthenticatedCaller({ id: 5, name: "王工" });
+    const caller = createAdminCaller({ id: 5, name: "焦斌" });
     const result = await caller.projectGate.advancePhaseV2({
       projectId: 1,
       currentStageCode: "M3",
@@ -681,14 +681,14 @@ describe("projectGate.advancePhaseV2", () => {
     expect(result.audit.type).toBe("ADVANCE");
     expect(result.audit.from).toBe("M3");
     expect(result.audit.to).toBe("M4");
-    expect(result.audit.approvedBy).toBe("王工");
+    expect(result.audit.approvedBy).toBe("焦斌");
     expect(result.audit.score).toBe(95);
   });
 
   it("throws on stage mismatch (stale-race guard)", async () => {
     mockQueryResult = [{ id: 1, currentStage: "M5" }]; // DB has M5
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.projectGate.advancePhaseV2({
         projectId: 1,
@@ -700,7 +700,7 @@ describe("projectGate.advancePhaseV2", () => {
   it("throws on M12 (terminal stage)", async () => {
     mockQueryResult = [{ id: 1, currentStage: "M12" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.projectGate.advancePhaseV2({
         projectId: 1,
@@ -712,7 +712,7 @@ describe("projectGate.advancePhaseV2", () => {
   it("throws when project not found", async () => {
     mockQueryResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.projectGate.advancePhaseV2({
         projectId: 999,
@@ -727,7 +727,7 @@ describe("projectGate.advancePhaseV2", () => {
       [{ id: 1, isMandatory: true, status: "failed", checkItem: "设计报告" }],  // checklist
     ];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.projectGate.advancePhaseV2({
         projectId: 1,
@@ -742,7 +742,7 @@ describe("projectGate.advancePhaseV2", () => {
       [{ id: 1, isMandatory: true, status: "not_started", checkItem: "未完成项" }],  // checklist
     ];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.projectGate.advancePhaseV2({
         projectId: 1,
@@ -767,7 +767,7 @@ describe("projectGate.regressPhaseV2", () => {
       [{ auditLog: null }],             // M3 target stage row
     ];
 
-    const caller = createAuthenticatedCaller({ id: 5, name: "赵经理" });
+    const caller = createAdminCaller({ id: 5, name: "赵经理" });
     const result = await caller.projectGate.regressPhaseV2({
       projectId: 1,
       targetStageCode: "M3",
@@ -783,7 +783,7 @@ describe("projectGate.regressPhaseV2", () => {
   it("throws when target stage >= current stage", async () => {
     mockQueryResult = [{ id: 1, currentStage: "M4" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.projectGate.regressPhaseV2({
         projectId: 1,
@@ -796,7 +796,7 @@ describe("projectGate.regressPhaseV2", () => {
   it("throws when target equals current stage", async () => {
     mockQueryResult = [{ id: 1, currentStage: "M4" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.projectGate.regressPhaseV2({
         projectId: 1,
@@ -809,7 +809,7 @@ describe("projectGate.regressPhaseV2", () => {
   it("throws when project not found", async () => {
     mockQueryResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.projectGate.regressPhaseV2({
         projectId: 999,
@@ -841,7 +841,7 @@ describe("projectGate.getPhaseTransitionHistory", () => {
         actualEndDate: null, auditLog: null,
       },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getPhaseTransitionHistory({ projectId: 1 });
 
     expect(result).toHaveLength(2);
@@ -866,7 +866,7 @@ describe("projectGate.getStageStats", () => {
       { id: 4, currentPhase: "M12", status: "completed", completionPercent: 100 },
       { id: 5, currentPhase: "M1", status: "on_hold", completionPercent: 10 },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getStageStats();
 
     expect(result.totalProjects).toBe(5);
@@ -890,7 +890,7 @@ describe("projectGate.getStageStats", () => {
 
   it("handles empty project list", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getStageStats();
 
     expect(result.totalProjects).toBe(0);
@@ -917,7 +917,7 @@ describe("projectGate.getUpcomingGates", () => {
         plannedDate: inTenDays, checklistCompleted: null, checklistTotal: null,
       },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getUpcomingGates({ days: 7 });
 
     // Only the gate due in 3 days should be included (within 7-day window)
@@ -931,7 +931,7 @@ describe("projectGate.getUpcomingGates", () => {
 
   it("returns empty when no gates are pending", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getUpcomingGates({ days: 7 });
     expect(result).toEqual([]);
   });
@@ -944,7 +944,7 @@ describe("projectGate.getUpcomingGates", () => {
         plannedDate: yesterday, checklistCompleted: 0, checklistTotal: 0,
       },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.projectGate.getUpcomingGates({ days: 7 });
     // Past gate should be filtered out (diff < 0)
     expect(result).toHaveLength(0);

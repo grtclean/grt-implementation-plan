@@ -26,6 +26,12 @@ const { selectResultsQueue, executeResults } = vi.hoisted(() => {
   return { selectResultsQueue, executeResults };
 });
 
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => {
     const chain: any = {

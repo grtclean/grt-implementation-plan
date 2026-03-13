@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ interface Meeting {
 }
 
 export default function MeetingDashboard() {
+  const { t } = useLanguage();
   const [selectedChannel, setSelectedChannel] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("");
@@ -106,7 +108,7 @@ export default function MeetingDashboard() {
 
   const handleCreateMeeting = async () => {
     if (!newMeeting.title || !newMeeting.channelId || !newMeeting.startTime) {
-      alert("请填写必填字段");
+      alert(t("mi.dashboard.fillRequired"));
       return;
     }
 
@@ -120,7 +122,7 @@ export default function MeetingDashboard() {
   };
 
   const handleDeleteMeeting = async (meetingId: string) => {
-    if (window.confirm("确定要删除这个会议吗？")) {
+    if (window.confirm(t("mi.dashboard.confirmDelete"))) {
       await deleteMeetingMutation.mutateAsync({ id: meetingId });
     }
   };
@@ -141,13 +143,13 @@ export default function MeetingDashboard() {
   };
 
   const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      scheduled: "已计划",
-      in_progress: "进行中",
-      completed: "已完成",
-      cancelled: "已取消",
+    const keyMap: Record<string, string> = {
+      scheduled: "mi.dashboard.statusScheduled",
+      in_progress: "mi.dashboard.statusInProgress",
+      completed: "mi.dashboard.statusCompleted",
+      cancelled: "mi.dashboard.statusCancelled",
     };
-    return labels[status] || status;
+    return keyMap[status] ? t(keyMap[status]) : status;
   };
 
   return (
@@ -155,27 +157,27 @@ export default function MeetingDashboard() {
       {/* 页面标题 */}
       <PageHeader
         icon={Calendar}
-        title="会议管理"
-        description="会议列表和管理界面"
+        title={t("mi.dashboard.title")}
+        description={t("mi.dashboard.desc")}
         actions={
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="w-4 h-4" />
-              创建会议
+              {t("mi.dashboard.createMeeting")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>创建新会议</DialogTitle>
+              <DialogTitle>{t("mi.dashboard.createNew")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  会议标题 *
+                  {t("mi.dashboard.meetingTitleRequired")}
                 </label>
                 <Input
-                  placeholder="输入会议标题"
+                  placeholder={t("mi.dashboard.enterTitle")}
                   value={newMeeting.title}
                   onChange={(e) =>
                     setNewMeeting({ ...newMeeting, title: e.target.value })
@@ -185,10 +187,10 @@ export default function MeetingDashboard() {
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  描述
+                  {t("mi.dashboard.description")}
                 </label>
                 <Input
-                  placeholder="输入会议描述"
+                  placeholder={t("mi.dashboard.enterDescription")}
                   value={newMeeting.description}
                   onChange={(e) =>
                     setNewMeeting({
@@ -201,7 +203,7 @@ export default function MeetingDashboard() {
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  频道 *
+                  {t("mi.dashboard.channelRequired")}
                 </label>
                 <Select
                   value={newMeeting.channelId}
@@ -210,7 +212,7 @@ export default function MeetingDashboard() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="选择频道" />
+                    <SelectValue placeholder={t("mi.dashboard.selectChannel")} />
                   </SelectTrigger>
                   <SelectContent>
                     {channels.map((channel: any) => (
@@ -224,7 +226,7 @@ export default function MeetingDashboard() {
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  开始时间 *
+                  {t("mi.dashboard.startTimeRequired")}
                 </label>
                 <Input
                   type="datetime-local"
@@ -237,7 +239,7 @@ export default function MeetingDashboard() {
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  会议类型
+                  {t("mi.dashboard.meetingType")}
                 </label>
                 <Select
                   value={newMeeting.meetingType}
@@ -249,18 +251,18 @@ export default function MeetingDashboard() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="standup">站会</SelectItem>
-                    <SelectItem value="review">评审</SelectItem>
-                    <SelectItem value="planning">计划</SelectItem>
-                    <SelectItem value="retrospective">回顾</SelectItem>
-                    <SelectItem value="other">其他</SelectItem>
+                    <SelectItem value="standup">{t("mi.dashboard.typeStandup")}</SelectItem>
+                    <SelectItem value="review">{t("mi.dashboard.typeReview")}</SelectItem>
+                    <SelectItem value="planning">{t("mi.dashboard.typePlanning")}</SelectItem>
+                    <SelectItem value="retrospective">{t("mi.dashboard.typeRetrospective")}</SelectItem>
+                    <SelectItem value="other">{t("mi.dashboard.typeOther")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  项目阶段
+                  {t("mi.dashboard.projectPhase")}
                 </label>
                 <Select
                   value={newMeeting.projectPhase}
@@ -291,10 +293,10 @@ export default function MeetingDashboard() {
                 {createMeetingMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    创建中...
+                    {t("mi.dashboard.creating")}
                   </>
                 ) : (
-                  "创建会议"
+                  t("mi.dashboard.createMeeting")
                 )}
               </Button>
             </div>
@@ -308,22 +310,22 @@ export default function MeetingDashboard() {
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">搜索</label>
+              <label className="block text-sm font-medium mb-1">{t("mi.dashboard.search")}</label>
               <Input
-                placeholder="搜索会议标题..."
+                placeholder={t("mi.dashboard.searchPlaceholder")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">频道</label>
+              <label className="block text-sm font-medium mb-1">{t("mi.dashboard.channel")}</label>
               <Select value={selectedChannel || "__all__"} onValueChange={(v) => setSelectedChannel(v === "__all__" ? "" : v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="所有频道" />
+                  <SelectValue placeholder={t("mi.dashboard.allChannels")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">所有频道</SelectItem>
+                  <SelectItem value="__all__">{t("mi.dashboard.allChannels")}</SelectItem>
                   {channels.map((channel: any) => (
                     <SelectItem key={channel.id} value={channel.id}>
                       {channel.name}
@@ -334,33 +336,33 @@ export default function MeetingDashboard() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">状态</label>
+              <label className="block text-sm font-medium mb-1">{t("mi.dashboard.status")}</label>
               <Select value={selectedStatus || "__all__"} onValueChange={(v) => setSelectedStatus(v === "__all__" ? "" : v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="所有状态" />
+                  <SelectValue placeholder={t("mi.dashboard.allStatuses")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">所有状态</SelectItem>
-                  <SelectItem value="scheduled">已计划</SelectItem>
-                  <SelectItem value="in_progress">进行中</SelectItem>
-                  <SelectItem value="completed">已完成</SelectItem>
-                  <SelectItem value="cancelled">已取消</SelectItem>
+                  <SelectItem value="__all__">{t("mi.dashboard.allStatuses")}</SelectItem>
+                  <SelectItem value="scheduled">{t("mi.dashboard.statusScheduled")}</SelectItem>
+                  <SelectItem value="in_progress">{t("mi.dashboard.statusInProgress")}</SelectItem>
+                  <SelectItem value="completed">{t("mi.dashboard.statusCompleted")}</SelectItem>
+                  <SelectItem value="cancelled">{t("mi.dashboard.statusCancelled")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">类型</label>
+              <label className="block text-sm font-medium mb-1">{t("mi.dashboard.type")}</label>
               <Select value={selectedType || "__all__"} onValueChange={(v) => setSelectedType(v === "__all__" ? "" : v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="所有类型" />
+                  <SelectValue placeholder={t("mi.dashboard.allTypes")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">所有类型</SelectItem>
-                  <SelectItem value="standup">站会</SelectItem>
-                  <SelectItem value="review">评审</SelectItem>
-                  <SelectItem value="planning">计划</SelectItem>
-                  <SelectItem value="retrospective">回顾</SelectItem>
+                  <SelectItem value="__all__">{t("mi.dashboard.allTypes")}</SelectItem>
+                  <SelectItem value="standup">{t("mi.dashboard.typeStandup")}</SelectItem>
+                  <SelectItem value="review">{t("mi.dashboard.typeReview")}</SelectItem>
+                  <SelectItem value="planning">{t("mi.dashboard.typePlanning")}</SelectItem>
+                  <SelectItem value="retrospective">{t("mi.dashboard.typeRetrospective")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -376,7 +378,7 @@ export default function MeetingDashboard() {
       ) : filteredMeetings.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500">暂无会议</p>
+            <p className="text-gray-500">{t("mi.dashboard.noMeetings")}</p>
           </CardContent>
         </Card>
       ) : (
@@ -412,14 +414,14 @@ export default function MeetingDashboard() {
                         )}
                       </div>
 
-                      <div>类型: {meeting.meetingType}</div>
+                      <div>{t("mi.dashboard.typeLabel")}: {meeting.meetingType}</div>
 
                       {meeting.revenueTarget && (
-                        <div>收入目标: ¥{meeting.revenueTarget}M</div>
+                        <div>{t("mi.dashboard.revenueTarget")}: ¥{meeting.revenueTarget}M</div>
                       )}
 
                       {meeting.profitMargin && (
-                        <div>利润率: {meeting.profitMargin}%</div>
+                        <div>{t("mi.dashboard.profitMargin")}: {meeting.profitMargin}%</div>
                       )}
                     </div>
                   </div>
@@ -435,7 +437,7 @@ export default function MeetingDashboard() {
                       }}
                     >
                       <Eye className="w-4 h-4" />
-                      查看
+                      {t("mi.dashboard.view")}
                     </Button>
 
                     <Button
@@ -448,7 +450,7 @@ export default function MeetingDashboard() {
                       }}
                     >
                       <Edit2 className="w-4 h-4" />
-                      编辑
+                      {t("mi.dashboard.edit")}
                     </Button>
 
                     <Button
@@ -459,7 +461,7 @@ export default function MeetingDashboard() {
                       disabled={deleteMeetingMutation.isPending}
                     >
                       <Trash2 className="w-4 h-4" />
-                      删除
+                      {t("mi.dashboard.delete")}
                     </Button>
                   </div>
                 </div>

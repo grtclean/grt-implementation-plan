@@ -11,6 +11,7 @@
  *   4. Green "Compliance Verification" panel: shows EXACT stripped JSON
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,6 +83,7 @@ interface SyncResult {
 
 // ── Component ──────────────────────────────────────────────
 export default function CrossBorderSync() {
+  const { t, tpl } = useLanguage();
   const [result, setResult] = useState<SyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,14 +97,14 @@ export default function CrossBorderSync() {
       if (data.success) {
         setResult(data as any);
         setError(null);
-        toast.success("Cross-border sync dispatched successfully");
+        toast.success(t("admin.crossBorder.syncSuccess"));
       } else {
-        setError((data as any).error || "Dispatch failed");
+        setError((data as any).error || t("admin.crossBorder.syncFailed"));
       }
     },
     onError: (err) => {
       setError(err.message || "Network error");
-      toast.error("Dispatch failed");
+      toast.error(t("admin.crossBorder.syncFailed"));
     },
   });
 
@@ -133,11 +135,10 @@ export default function CrossBorderSync() {
               >
                 <Shield className="w-5 h-5" style={{ color: FLUENT_ACCENT }} />
               </div>
-              Office 365 Encrypted Email Ferry
+              {t("admin.crossBorder.title")}
             </h1>
             <p className="text-sm mt-1" style={{ color: FLUENT_SUBTLE }}>
-              Cross-border data synchronisation: US Global Hub → China
-              On-Premise Hub
+              {t("admin.crossBorder.subtitle")}
             </p>
           </div>
           <Badge
@@ -146,7 +147,7 @@ export default function CrossBorderSync() {
             style={{ borderColor: FLUENT_SUCCESS, color: FLUENT_SUCCESS }}
           >
             <Lock className="w-3 h-3 mr-1" />
-            TLS 1.2+ Encrypted
+            {t("admin.crossBorder.encrypted")}
           </Badge>
         </div>
 
@@ -162,8 +163,8 @@ export default function CrossBorderSync() {
               <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 border border-blue-200">
                 <Globe className="w-4 h-4 text-blue-600" />
                 <div>
-                  <div className="font-semibold text-blue-800">US Global Hub</div>
-                  <div className="text-xs text-blue-600">Raw Orders + PII</div>
+                  <div className="font-semibold text-blue-800">{t("admin.crossBorder.usGlobalHub")}</div>
+                  <div className="text-xs text-blue-600">{t("admin.crossBorder.rawOrdersPii")}</div>
                 </div>
               </div>
 
@@ -172,8 +173,8 @@ export default function CrossBorderSync() {
               <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 border border-red-200">
                 <ShieldCheck className="w-4 h-4 text-red-600" />
                 <div>
-                  <div className="font-semibold text-red-800">Desensitizer</div>
-                  <div className="text-xs text-red-600">Whitelist Filter</div>
+                  <div className="font-semibold text-red-800">{t("admin.crossBorder.desensitizer")}</div>
+                  <div className="text-xs text-red-600">{t("admin.crossBorder.whitelistFilter")}</div>
                 </div>
               </div>
 
@@ -197,7 +198,7 @@ export default function CrossBorderSync() {
                 <Server className="w-4 h-4 text-green-600" />
                 <div>
                   <div className="font-semibold text-green-800">
-                    China On-Prem
+                    {t("admin.crossBorder.chinaOnPrem")}
                   </div>
                   <div className="text-xs text-green-600">
                     cn-receive@gerrytech.com
@@ -218,11 +219,10 @@ export default function CrossBorderSync() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" style={{ color: FLUENT_WARN }} />
-              Pending US Orders — Raw Data (Contains PII)
+              {t("admin.crossBorder.rawDataPii")}
             </CardTitle>
             <p className="text-xs" style={{ color: FLUENT_SUBTLE }}>
-              These orders contain customer PII that must be stripped before
-              cross-border transmission
+              {t("admin.crossBorder.piiWarning")}
             </p>
           </CardHeader>
           <CardContent>
@@ -359,7 +359,7 @@ export default function CrossBorderSync() {
                   style={{ background: `${FLUENT_DANGER}15` }}
                 />
                 <span style={{ color: FLUENT_DANGER }}>
-                  Red = PII (will be stripped)
+                  {t("admin.crossBorder.piiWillStrip")}
                 </span>
               </div>
               <div className="flex items-center gap-1 text-xs">
@@ -368,7 +368,7 @@ export default function CrossBorderSync() {
                   style={{ background: FLUENT_CARD, border: `1px solid ${FLUENT_BORDER}` }}
                 />
                 <span style={{ color: FLUENT_SUBTLE }}>
-                  White = Safe (will be transmitted)
+                  {t("admin.crossBorder.safeWillTransmit")}
                 </span>
               </div>
             </div>
@@ -393,8 +393,8 @@ export default function CrossBorderSync() {
               <Send className="w-5 h-5 mr-3" />
             )}
             {syncing
-              ? "Desensitizing & Dispatching..."
-              : "Desensitize & Sync to China via Office 365"}
+              ? t("admin.crossBorder.btnDispatching")
+              : t("admin.crossBorder.btnDesensitize")}
           </Button>
         </div>
 
@@ -410,7 +410,7 @@ export default function CrossBorderSync() {
               <XCircle className="w-5 h-5 shrink-0" style={{ color: FLUENT_DANGER }} />
               <div>
                 <p className="font-semibold" style={{ color: FLUENT_DANGER }}>
-                  Dispatch Failed
+                  {t("admin.crossBorder.dispatchFailed")}
                 </p>
                 <p className="text-sm" style={{ color: FLUENT_DANGER }}>
                   {error}
@@ -444,12 +444,12 @@ export default function CrossBorderSync() {
                     className="text-lg font-bold"
                     style={{ color: FLUENT_SUCCESS }}
                   >
-                    Compliance Verification — PII Successfully Stripped
+                    {t("admin.crossBorder.complianceTitle")}
                   </div>
                   <div className="text-sm font-normal" style={{ color: FLUENT_SUBTLE }}>
-                    The following is the EXACT JSON payload that was{" "}
-                    {result.simulated ? "prepared for" : "sent via"} Office 365
-                    SMTP
+                    {tpl("admin.crossBorder.exactPayloadDesc", {
+                      action: result.simulated ? t("admin.crossBorder.preparedFor") : t("admin.crossBorder.sentVia"),
+                    })}
                   </div>
                 </div>
               </CardTitle>
@@ -490,7 +490,7 @@ export default function CrossBorderSync() {
                 <div>
                   <div className="text-xs font-semibold mb-1" style={{ color: FLUENT_SUCCESS }}>
                     <Eye className="w-3 h-3 inline mr-1" />
-                    Fields RETAINED (transmitted)
+                    {t("admin.crossBorder.fieldsRetained")}
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {result.audit.fieldsRetained.map((f) => (
@@ -510,7 +510,7 @@ export default function CrossBorderSync() {
                 <div>
                   <div className="text-xs font-semibold mb-1" style={{ color: FLUENT_DANGER }}>
                     <EyeOff className="w-3 h-3 inline mr-1" />
-                    Fields DROPPED (PII stripped)
+                    {t("admin.crossBorder.fieldsDropped")}
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {result.audit.fieldsDropped.map((f) => (
@@ -534,10 +534,10 @@ export default function CrossBorderSync() {
                 <div className="flex items-center gap-2 mb-2">
                   <FileJson className="w-4 h-4" style={{ color: FLUENT_ACCENT }} />
                   <span className="text-sm font-semibold">
-                    Exact Emailed Payload (JSON)
+                    {t("admin.crossBorder.exactPayload")}
                   </span>
                   <span className="text-xs" style={{ color: FLUENT_SUBTLE }}>
-                    — verify: no names, emails, prices, or phone numbers
+                    {t("admin.crossBorder.verifyNoFields")}
                   </span>
                 </div>
                 <pre
@@ -561,7 +561,7 @@ export default function CrossBorderSync() {
                 }}
               >
                 <div className="text-sm font-semibold mb-2" style={{ color: FLUENT_SUCCESS }}>
-                  PII Removal Checklist
+                  {t("admin.crossBorder.piiChecklist")}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   {[
@@ -587,7 +587,7 @@ export default function CrossBorderSync() {
                         className="text-xs font-bold ml-auto"
                         style={{ color: FLUENT_SUCCESS }}
                       >
-                        STRIPPED
+                        {t("admin.crossBorder.stripped")}
                       </span>
                     </div>
                   ))}

@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { protectedProcedure, router } from '../_core/trpc';
+import {protectedProcedure, router, requirePermission} from '../_core/trpc';
 import {
   ProjectLifecycleStateMachine,
   ProjectPhase,
@@ -61,7 +61,7 @@ export const lifecycleRouter = router({
   // ---------------------------------------------------------------------------
   // 创建新项目生命周期
   // ---------------------------------------------------------------------------
-  createProject: protectedProcedure
+  createProject: requirePermission('hr:lifecycle:view')
     .input(z.object({
       projectId: z.string().uuid(),
       initialPhase: projectPhaseSchema.optional().default(ProjectPhase.M0_OPPORTUNITY),
@@ -78,7 +78,7 @@ export const lifecycleRouter = router({
   // ---------------------------------------------------------------------------
   // 开始阶段
   // ---------------------------------------------------------------------------
-  startPhase: protectedProcedure
+  startPhase: requirePermission('hr:lifecycle:view')
     .input(z.object({
       serializedState: z.string(),
     }))
@@ -95,7 +95,7 @@ export const lifecycleRouter = router({
   // ---------------------------------------------------------------------------
   // 转换到下一阶段
   // ---------------------------------------------------------------------------
-  transitionPhase: protectedProcedure
+  transitionPhase: requirePermission('hr:lifecycle:view')
     .input(z.object({
       serializedState: z.string(),
       targetPhase: projectPhaseSchema,
@@ -117,7 +117,7 @@ export const lifecycleRouter = router({
   // ---------------------------------------------------------------------------
   // 提交Gate审批
   // ---------------------------------------------------------------------------
-  submitGateApproval: protectedProcedure
+  submitGateApproval: requirePermission('hr:lifecycle:view')
     .input(z.object({
       serializedState: z.string(),
       gateType: gateTypeSchema,
@@ -142,7 +142,7 @@ export const lifecycleRouter = router({
   // ---------------------------------------------------------------------------
   // 标记文档完成
   // ---------------------------------------------------------------------------
-  markDocumentComplete: protectedProcedure
+  markDocumentComplete: requirePermission('hr:lifecycle:view')
     .input(z.object({
       serializedState: z.string(),
       documentName: z.string(),
@@ -160,7 +160,7 @@ export const lifecycleRouter = router({
   // ---------------------------------------------------------------------------
   // 添加AI洞察
   // ---------------------------------------------------------------------------
-  addAIInsight: protectedProcedure
+  addAIInsight: requirePermission('hr:lifecycle:view')
     .input(z.object({
       serializedState: z.string(),
       type: aiActionTypeSchema,

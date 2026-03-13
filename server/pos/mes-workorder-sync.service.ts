@@ -450,7 +450,8 @@ export async function getProjectWorkOrders(
     .select()
     .from(mesSync)
     .where(eq(mesSync.projectId, projectId))
-    .orderBy(desc(mesSync.createdAt));
+    .orderBy(desc(mesSync.createdAt))
+    .limit(1000);
 
   return syncRecords.map(record => {
     const data = record.syncData ? JSON.parse(record.syncData) : {};

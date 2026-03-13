@@ -194,7 +194,8 @@ export async function getStageRequirements(stageCode: string): Promise<StageDocu
     .select()
     .from(stageDocumentRequirements)
     .where(eq(stageDocumentRequirements.stageCode, stageCode))
-    .orderBy(stageDocumentRequirements.sortOrder);
+    .orderBy(stageDocumentRequirements.sortOrder)
+    .limit(1000);
 
   return rows.map((r) => ({
     id: r.id,
@@ -218,7 +219,8 @@ export async function getAllStageRequirements(): Promise<Record<string, StageDoc
   const rows = await db
     .select()
     .from(stageDocumentRequirements)
-    .orderBy(stageDocumentRequirements.stageCode, stageDocumentRequirements.sortOrder);
+    .orderBy(stageDocumentRequirements.stageCode, stageDocumentRequirements.sortOrder)
+    .limit(1000);
 
   const grouped: Record<string, StageDocumentRequirement[]> = {};
   for (const r of rows) {
@@ -263,7 +265,8 @@ export async function checkDocumentCompleteness(
         eq(projectDocuments.projectId, projectId),
         eq(projectDocuments.phaseCode, stageCode)
       )
-    );
+    )
+    .limit(1000);
 
   // 检查每个需求是否满足（简单的名称匹配）
   const statuses: StageRequirementStatus[] = requirements.map((req) => {

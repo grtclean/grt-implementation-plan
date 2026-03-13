@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -43,48 +44,49 @@ import {
   Keyboard,
 } from "lucide-react";
 
-// ── Quick Actions by route prefix ──
+// ── Quick Actions by route prefix (i18n key-based) ──
 
-const ROUTE_QUICK_ACTIONS: Record<string, { label: string; query: string }[]> = {
+type QuickActionDef = { labelKey: string; queryKey: string };
+const ROUTE_QUICK_ACTION_KEYS: Record<string, QuickActionDef[]> = {
   "/projects": [
-    { label: "创建新项目", query: "如何创建新项目？" },
-    { label: "阶段门审批", query: "项目阶段门审批流程是什么？" },
-    { label: "项目看板", query: "如何使用项目看板视图？" },
+    { labelKey: "copilot.qa.projects.create", queryKey: "copilot.qa.projects.createQ" },
+    { labelKey: "copilot.qa.projects.gate", queryKey: "copilot.qa.projects.gateQ" },
+    { labelKey: "copilot.qa.projects.board", queryKey: "copilot.qa.projects.boardQ" },
   ],
   "/fmea": [
-    { label: "创建FMEA", query: "如何创建新的FMEA分析？" },
-    { label: "风险优先级", query: "FMEA风险优先级(AP)如何计算？" },
-    { label: "关联控制计划", query: "如何将FMEA关联到控制计划？" },
+    { labelKey: "copilot.qa.fmea.create", queryKey: "copilot.qa.fmea.createQ" },
+    { labelKey: "copilot.qa.fmea.priority", queryKey: "copilot.qa.fmea.priorityQ" },
+    { labelKey: "copilot.qa.fmea.link", queryKey: "copilot.qa.fmea.linkQ" },
   ],
   "/production": [
-    { label: "工单管理", query: "如何创建和管理生产工单？" },
-    { label: "工序步骤", query: "T1-T15工序步骤说明" },
-    { label: "设备状态", query: "如何查看设备利用率？" },
+    { labelKey: "copilot.qa.production.workorder", queryKey: "copilot.qa.production.workorderQ" },
+    { labelKey: "copilot.qa.production.steps", queryKey: "copilot.qa.production.stepsQ" },
+    { labelKey: "copilot.qa.production.equipment", queryKey: "copilot.qa.production.equipmentQ" },
   ],
   "/crm": [
-    { label: "客户管理", query: "如何管理客户信息？" },
-    { label: "线索跟进", query: "销售线索自动跟进规则" },
-    { label: "商机分析", query: "如何使用商机分析功能？" },
+    { labelKey: "copilot.qa.crm.customers", queryKey: "copilot.qa.crm.customersQ" },
+    { labelKey: "copilot.qa.crm.leads", queryKey: "copilot.qa.crm.leadsQ" },
+    { labelKey: "copilot.qa.crm.opportunity", queryKey: "copilot.qa.crm.opportunityQ" },
   ],
   "/oa": [
-    { label: "请假申请", query: "如何提交请假申请？" },
-    { label: "审批流程", query: "OA审批流程怎么操作？" },
-    { label: "用车申请", query: "用车申请步骤" },
+    { labelKey: "copilot.qa.oa.leave", queryKey: "copilot.qa.oa.leaveQ" },
+    { labelKey: "copilot.qa.oa.approval", queryKey: "copilot.qa.oa.approvalQ" },
+    { labelKey: "copilot.qa.oa.vehicle", queryKey: "copilot.qa.oa.vehicleQ" },
   ],
   "/": [
-    { label: "快速入门", query: "GRT系统快速入门指南" },
-    { label: "切换事业部", query: "如何切换事业部上下文？" },
-    { label: "全局搜索", query: "全局搜索(Ctrl+K)怎么用？" },
+    { labelKey: "copilot.qa.default.start", queryKey: "copilot.qa.default.startQ" },
+    { labelKey: "copilot.qa.default.bu", queryKey: "copilot.qa.default.buQ" },
+    { labelKey: "copilot.qa.default.search", queryKey: "copilot.qa.default.searchQ" },
   ],
 };
 
-function getQuickActions(route: string) {
-  for (const prefix of Object.keys(ROUTE_QUICK_ACTIONS)) {
+function getQuickActionKeys(route: string): QuickActionDef[] {
+  for (const prefix of Object.keys(ROUTE_QUICK_ACTION_KEYS)) {
     if (prefix !== "/" && route.startsWith(prefix)) {
-      return ROUTE_QUICK_ACTIONS[prefix];
+      return ROUTE_QUICK_ACTION_KEYS[prefix];
     }
   }
-  return ROUTE_QUICK_ACTIONS["/"];
+  return ROUTE_QUICK_ACTION_KEYS["/"];
 }
 
 // ── Sub-components ──
@@ -141,9 +143,11 @@ function HelpMatchCard({ match }: { match: HelpMatch }) {
 function ChatBubble({
   message,
   onFeedback,
+  t,
 }: {
   message: ConversationMessage;
   onFeedback?: (isPositive: boolean) => void;
+  t: (key: string) => string;
 }) {
   const isUser = message.role === "user";
   return (
@@ -163,7 +167,7 @@ function ChatBubble({
         {/* Sources */}
         {message.sources && message.sources.length > 0 && (
           <div className="mt-2 pt-2 border-t border-border/30">
-            <p className="text-[10px] font-medium opacity-70 mb-1">参考来源:</p>
+            <p className="text-[10px] font-medium opacity-70 mb-1">{t("copilot.sources")}:</p>
             <div className="flex flex-wrap gap-1">
               {message.sources.map((s, i) => (
                 <Badge key={i} variant="outline" className="text-[10px] px-1 py-0 h-4">
@@ -176,7 +180,7 @@ function ChatBubble({
         {/* Feedback */}
         {!isUser && onFeedback && (
           <div className="flex items-center gap-1 mt-2 pt-1.5 border-t border-border/20">
-            <span className="text-[10px] opacity-50 mr-1">有帮助吗？</span>
+            <span className="text-[10px] opacity-50 mr-1">{t("copilot.feedback.helpful")}</span>
             <button
               onClick={() => onFeedback(true)}
               className="p-0.5 rounded hover:bg-background/50 transition-colors"
@@ -199,6 +203,7 @@ function ChatBubble({
 // ── Main Component ──
 
 export default function CopilotBar() {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [location, navigate] = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -269,7 +274,7 @@ export default function CopilotBar() {
     askAI(q);
   };
 
-  const quickActions = getQuickActions(location);
+  const quickActionKeys = getQuickActionKeys(location);
   const hasResults = menuMatches.length > 0 || helpMatches.length > 0;
   const hasConversation = conversation.length > 0;
 
@@ -318,8 +323,8 @@ export default function CopilotBar() {
               <Bot className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold">GRT 智能助手</h3>
-              <p className="text-[10px] text-muted-foreground">Copilot v2.0</p>
+              <h3 className="text-sm font-semibold">{t("copilot.title")}</h3>
+              <p className="text-[10px] text-muted-foreground">{t("copilot.version")}</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -329,7 +334,7 @@ export default function CopilotBar() {
                 size="icon"
                 className="h-7 w-7"
                 onClick={clearConversation}
-                title="新对话"
+                title={t("copilot.newConversation")}
               >
                 <RotateCcw className="w-3.5 h-3.5" />
               </Button>
@@ -353,7 +358,7 @@ export default function CopilotBar() {
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="告诉我你想做什么..."
+              placeholder={t("copilot.placeholder")}
               className="pl-9 pr-9 h-9 text-sm bg-muted/50 border-0 focus-visible:ring-1"
             />
             {query ? (
@@ -383,6 +388,7 @@ export default function CopilotBar() {
                   <ChatBubble
                     key={msg.id}
                     message={msg}
+                    t={t}
                     onFeedback={
                       msg.role === "assistant"
                         ? (isPositive) => sendFeedback(msg.id, isPositive)
@@ -396,7 +402,7 @@ export default function CopilotBar() {
                       <Loader2 className="w-4 h-4 text-primary animate-spin" />
                     </div>
                     <div className="bg-muted rounded-lg px-3 py-2">
-                      <p className="text-sm text-muted-foreground">思考中...</p>
+                      <p className="text-sm text-muted-foreground">{t("copilot.thinking")}</p>
                     </div>
                   </div>
                 )}
@@ -409,7 +415,7 @@ export default function CopilotBar() {
                 {menuMatches.length > 0 && (
                   <div>
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                      导航
+                      {t("copilot.nav")}
                     </p>
                     <div className="space-y-0.5">
                       {menuMatches.map((m, i) => (
@@ -425,7 +431,7 @@ export default function CopilotBar() {
                 {helpMatches.length > 0 && (
                   <div>
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                      帮助文档
+                      {t("copilot.helpDocs")}
                     </p>
                     <div className="space-y-0.5">
                       {helpMatches.map((m) => (
@@ -435,7 +441,7 @@ export default function CopilotBar() {
                   </div>
                 )}
                 <p className="text-[10px] text-muted-foreground text-center pt-1">
-                  按 <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-[9px]">Enter</kbd> 向AI提问
+                  {t("copilot.pressEnter")}
                 </p>
               </>
             )}
@@ -446,17 +452,17 @@ export default function CopilotBar() {
                 {/* Quick actions */}
                 <div>
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                    快速操作
+                    {t("copilot.quickActions")}
                   </p>
                   <div className="space-y-1">
-                    {quickActions.map((action) => (
+                    {quickActionKeys.map((action) => (
                       <button
-                        key={action.label}
-                        onClick={() => handleQuickAction(action.query)}
+                        key={action.labelKey}
+                        onClick={() => handleQuickAction(t(action.queryKey))}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors text-left"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-primary/60 shrink-0" />
-                        <span className="text-sm">{action.label}</span>
+                        <span className="text-sm">{t(action.labelKey)}</span>
                       </button>
                     ))}
                   </div>
@@ -467,7 +473,7 @@ export default function CopilotBar() {
                   <div>
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        最新更新
+                        {t("copilot.whatsNew")}
                       </p>
                       <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5">
                         NEW
@@ -500,25 +506,25 @@ export default function CopilotBar() {
         <div className="flex items-center justify-between px-4 py-2 border-t text-[10px] text-muted-foreground">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => handleQuickAction("GRT系统有哪些功能？")}
+              onClick={() => handleQuickAction(t("copilot.footer.allHelpQuery"))}
               className="hover:text-foreground transition-colors flex items-center gap-1"
             >
               <HelpCircle className="w-3 h-3" />
-              全部帮助
+              {t("copilot.footer.allHelp")}
             </button>
             <button
-              onClick={() => handleQuickAction("操作指南")}
+              onClick={() => handleQuickAction(t("copilot.footer.guideQuery"))}
               className="hover:text-foreground transition-colors flex items-center gap-1"
             >
               <BookOpen className="w-3 h-3" />
-              操作指南
+              {t("copilot.footer.guide")}
             </button>
             <button
-              onClick={() => handleQuickAction("版本更新内容")}
+              onClick={() => handleQuickAction(t("copilot.footer.changelogQuery"))}
               className="hover:text-foreground transition-colors flex items-center gap-1"
             >
               <History className="w-3 h-3" />
-              版本日志
+              {t("copilot.footer.changelog")}
             </button>
           </div>
           <div className="flex items-center gap-1 opacity-60">

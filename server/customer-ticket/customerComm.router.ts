@@ -4,7 +4,7 @@
 
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import * as commService from "./customerComm.service";
 
 export const customerCommRouter = router({

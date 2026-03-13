@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -84,7 +84,7 @@ describe("syncDispatch router", () => {
 
   describe("dispatch", () => {
     it("calls desensitize + sendMail and returns success with desensitizedPayload and audit", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.syncDispatch.dispatch({
         orders: [sampleOrder],
       });
@@ -111,7 +111,7 @@ describe("syncDispatch router", () => {
 
     it("passes the orders array to desensitizeOrders", async () => {
       const orders = [sampleOrder, sampleOrder2];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.syncDispatch.dispatch({ orders });
 
       // The first argument to desensitizeOrders should be the orders array
@@ -126,7 +126,7 @@ describe("syncDispatch router", () => {
         error: "SMTP connection refused",
       });
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.syncDispatch.dispatch({
         orders: [sampleOrder],
       });
@@ -146,7 +146,7 @@ describe("syncDispatch router", () => {
     });
 
     it("rejects empty orders array (min 1)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.syncDispatch.dispatch({ orders: [] })
       ).rejects.toThrow();
@@ -161,7 +161,7 @@ describe("syncDispatch router", () => {
 
   describe("preview", () => {
     it("returns desensitized payload without sending email", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.syncDispatch.preview({
         orders: [sampleOrder],
       });
@@ -190,14 +190,14 @@ describe("syncDispatch router", () => {
     });
 
     it("does NOT call sendSecureMail", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.syncDispatch.preview({ orders: [sampleOrder] });
 
       expect(mockSendMail).not.toHaveBeenCalled();
     });
 
     it("rejects empty orders array (min 1)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.syncDispatch.preview({ orders: [] })
       ).rejects.toThrow();

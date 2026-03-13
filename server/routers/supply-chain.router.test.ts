@@ -137,7 +137,7 @@ vi.mock("../../drizzle/procurement-schema", () => ({
 
 // ─── Import AFTER mocks are in place ─────────────────────────────────
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -155,7 +155,7 @@ beforeEach(() => {
 describe("supplyChain.label", () => {
   it("label.list returns items and total", async () => {
     mockQueryResult = [{ count: 2 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.label.list();
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total");
@@ -163,7 +163,7 @@ describe("supplyChain.label", () => {
 
   it("label.list accepts filter parameters", async () => {
     mockQueryResult = [{ count: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.label.list({
       supplierId: 1,
       materialCode: "MAT-001",
@@ -176,21 +176,21 @@ describe("supplyChain.label", () => {
 
   it("label.get returns single item or null", async () => {
     mockQueryResult = [{ id: 1, materialCode: "MAT-001", supplierSerialNumber: "SN-001" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.label.get({ id: 1 });
     expect(result).toEqual({ id: 1, materialCode: "MAT-001", supplierSerialNumber: "SN-001" });
   });
 
   it("label.get returns null when not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.label.get({ id: 999 });
     expect(result).toBeNull();
   });
 
   it("label.create inserts and returns label", async () => {
     mockReturningResult = [{ id: 10, materialCode: "MAT-NEW", supplierSerialNumber: "SN-NEW" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.label.create({
       supplierSerialNumber: "SN-NEW",
       materialCode: "MAT-NEW",
@@ -202,14 +202,14 @@ describe("supplyChain.label", () => {
   it("label.validate updates validation status", async () => {
     mockQueryResult = [{ id: 1, materialCode: "MAT-001", poNumber: "PO-001", supplierSerialNumber: "SN-001" }];
     mockReturningResult = [{ id: 1, isValidated: true }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.label.validate({ id: 1 });
     expect(result).toHaveProperty("isValidated", true);
   });
 
   it("label.validate throws when label not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.supplyChain.label.validate({ id: 999 })).rejects.toThrow("Label not found");
   });
 
@@ -219,7 +219,7 @@ describe("supplyChain.label", () => {
       { id: 1, materialCode: "MAT-001", poNumber: "PO-001" },
       { id: 2, materialCode: "MAT-002", poNumber: "PO-002" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.label.batchValidate({ ids: [1, 2] });
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
@@ -229,13 +229,13 @@ describe("supplyChain.label", () => {
 
   it("label.markPrinted increments print count", async () => {
     mockReturningResult = [{ id: 1, printCount: 2 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.label.markPrinted({ id: 1 });
     expect(result).toHaveProperty("printCount", 2);
   });
 
   it("label.delete returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.label.delete({ id: 1 });
     expect(result).toEqual({ success: true });
   });
@@ -248,7 +248,7 @@ describe("supplyChain.label", () => {
       [{ count: 3 }],  // total
       [{ count: 2 }],  // validated
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.label.stats();
     expect(result).toHaveProperty("total", 3);
     expect(result).toHaveProperty("validated", 2);
@@ -263,7 +263,7 @@ describe("supplyChain.label", () => {
 describe("supplyChain.inspection", () => {
   it("inspection.list returns items and total", async () => {
     mockQueryResult = [{ count: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.inspection.list();
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total");
@@ -271,21 +271,21 @@ describe("supplyChain.inspection", () => {
 
   it("inspection.get returns single record", async () => {
     mockQueryResult = [{ id: 1, inspectionCode: "IQC-001", inspectionResult: "PENDING" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.inspection.get({ id: 1 });
     expect(result).toHaveProperty("inspectionCode", "IQC-001");
   });
 
   it("inspection.get returns null for missing record", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.inspection.get({ id: 999 });
     expect(result).toBeNull();
   });
 
   it("inspection.create inserts and returns record", async () => {
     mockReturningResult = [{ id: 5, inspectionCode: "IQC-20260301-1234", materialCode: "MAT-001" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.inspection.create({
       materialCode: "MAT-001",
       hasTestReport: true,
@@ -296,7 +296,7 @@ describe("supplyChain.inspection", () => {
 
   it("inspection.create with lotId creates traceability edge", async () => {
     mockReturningResult = [{ id: 5, lotId: 10, materialCode: "MAT-001" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.inspection.create({
       materialCode: "MAT-001",
       lotId: 10,
@@ -307,7 +307,7 @@ describe("supplyChain.inspection", () => {
   it("inspection.submitResult updates inspection record", async () => {
     mockQueryResult = [{ id: 1, inspectionCode: "IQC-001" }];
     mockReturningResult = [{ id: 1, inspectionResult: "PASS", disposition: "accept" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.inspection.submitResult({
       id: 1,
       inspectionResult: "PASS",
@@ -318,7 +318,7 @@ describe("supplyChain.inspection", () => {
 
   it("inspection.submitResult throws for missing record", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.supplyChain.inspection.submitResult({
         id: 999,
@@ -331,7 +331,7 @@ describe("supplyChain.inspection", () => {
   it("inspection.rejectReceipt auto-rejects when test report missing", async () => {
     mockQueryResult = [{ id: 1, hasTestReport: false, testReportGrtMaterialMatch: false, testReportOrderMatch: false, supplierId: 5, supplierName: "Supplier A" }];
     mockReturningResult = [{ id: 1, inspectionResult: "FAIL", disposition: "reject" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.inspection.rejectReceipt({ id: 1 });
     expect(result).toHaveProperty("autoRejected", true);
     expect(result.reasons).toContain("检测报告缺失");
@@ -339,14 +339,14 @@ describe("supplyChain.inspection", () => {
 
   it("inspection.rejectReceipt returns no-reject when all checks pass", async () => {
     mockQueryResult = [{ id: 1, hasTestReport: true, testReportGrtMaterialMatch: true, testReportOrderMatch: true }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.inspection.rejectReceipt({ id: 1 });
     expect(result).toHaveProperty("autoRejected", false);
   });
 
   it("inspection.linkTo8D updates the record", async () => {
     mockReturningResult = [{ id: 1, eightDReportId: 42 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.inspection.linkTo8D({
       inspectionId: 1,
       eightDReportId: 42,
@@ -360,7 +360,7 @@ describe("supplyChain.inspection", () => {
       { inspectionResult: "FAIL", hasTestReport: true },
       { inspectionResult: "PENDING", hasTestReport: false },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.inspection.stats();
     expect(result).toHaveProperty("total", 3);
     expect(result).toHaveProperty("pass", 1);
@@ -371,13 +371,13 @@ describe("supplyChain.inspection", () => {
 
   it("inspection.approve updates approval timestamp", async () => {
     mockReturningResult = [{ id: 1, approvedAt: "2026-03-01T00:00:00Z" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.inspection.approve({ id: 1 });
     expect(result).toHaveProperty("approvedAt");
   });
 
   it("inspection.delete returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.inspection.delete({ id: 1 });
     expect(result).toEqual({ success: true });
   });
@@ -389,7 +389,7 @@ describe("supplyChain.inspection", () => {
 describe("supplyChain.bomScan", () => {
   it("bomScan.list returns items and total", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.bomScan.list();
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total", 0);
@@ -400,7 +400,7 @@ describe("supplyChain.bomScan", () => {
       { projectNumber: "PRJ-001", processCode: "P01", bomMatchResult: "MATCH" },
       { projectNumber: "PRJ-002", processCode: "P02", bomMatchResult: "MISMATCH" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.bomScan.list({ projectNumber: "PRJ-001" });
     expect(result.items).toHaveLength(1);
     expect(result.items[0].projectNumber).toBe("PRJ-001");
@@ -414,7 +414,7 @@ describe("supplyChain.bomScan", () => {
       id: 10, projectNumber: "PRJ-001", processCode: "P01",
       bomMatchResult: "NOT_FOUND", scannedBarcode: "SN-001",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.bomScan.scanAndVerify({
       projectNumber: "PRJ-001",
       processCode: "P01",
@@ -426,7 +426,7 @@ describe("supplyChain.bomScan", () => {
 
   it("bomScan.confirmDeviation updates deviation fields", async () => {
     mockReturningResult = [{ id: 1, deviationConfirmed: true, deviationReason: "Approved substitute" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.bomScan.confirmDeviation({
       id: 1,
       deviationReason: "Approved substitute",
@@ -440,7 +440,7 @@ describe("supplyChain.bomScan", () => {
       { processCode: "P01", bomMatchResult: "MISMATCH", deviationConfirmed: true },
       { processCode: "P02", bomMatchResult: "MATCH", deviationConfirmed: false },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.bomScan.processProgress({
       projectNumber: "PRJ-001",
     });
@@ -456,7 +456,7 @@ describe("supplyChain.bomScan", () => {
       { bomMatchResult: "MISMATCH" },
       { bomMatchResult: "SUBSTITUTE" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.bomScan.stats();
     expect(result).toEqual({
       total: 4,
@@ -470,13 +470,13 @@ describe("supplyChain.bomScan", () => {
 
   it("bomScan.get returns single scan log", async () => {
     mockQueryResult = [{ id: 1, bomMatchResult: "MATCH" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.bomScan.get({ id: 1 });
     expect(result).toHaveProperty("bomMatchResult", "MATCH");
   });
 
   it("bomScan.delete returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.bomScan.delete({ id: 1 });
     expect(result).toEqual({ success: true });
   });
@@ -488,7 +488,7 @@ describe("supplyChain.bomScan", () => {
 describe("supplyChain.labor", () => {
   it("labor.list returns items and total", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.labor.list();
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total", 0);
@@ -499,21 +499,21 @@ describe("supplyChain.labor", () => {
       { workerId: 1, projectNumber: "PRJ-001", processCode: "P01" },
       { workerId: 2, projectNumber: "PRJ-001", processCode: "P02" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.labor.list({ workerId: 1 });
     expect(result.items).toHaveLength(1);
   });
 
   it("labor.get returns single record", async () => {
     mockQueryResult = [{ id: 1, workerId: 1, processCode: "P01" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.labor.get({ id: 1 });
     expect(result).toHaveProperty("workerId", 1);
   });
 
   it("labor.clockIn creates a new labor record", async () => {
     mockReturningResult = [{ id: 1, projectNumber: "PRJ-001", processCode: "P01", workerId: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.labor.clockIn({
       projectNumber: "PRJ-001",
       processCode: "P01",
@@ -526,20 +526,20 @@ describe("supplyChain.labor", () => {
     const clockInTime = new Date(Date.now() - 60 * 60000).toISOString(); // 60 min ago
     mockQueryResult = [{ id: 1, clockInTime, plannedMinutes: 50 }];
     mockReturningResult = [{ id: 1, clockOutTime: new Date().toISOString(), netWorkMinutes: 60, efficiencyPercent: "83" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.labor.clockOut({ id: 1 });
     expect(result).toHaveProperty("clockOutTime");
   });
 
   it("labor.clockOut throws for missing record", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.supplyChain.labor.clockOut({ id: 999 })).rejects.toThrow("Labor record not found");
   });
 
   it("labor.supervisorConfirm sets supervisor fields", async () => {
     mockReturningResult = [{ id: 1, confirmedBySupervisor: true }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.labor.supervisorConfirm({ id: 1 });
     expect(result).toHaveProperty("confirmedBySupervisor", true);
   });
@@ -550,7 +550,7 @@ describe("supplyChain.labor", () => {
       { workerId: 1, clockOutTime: "2026-03-01T12:00:00Z", netWorkMinutes: 45, defectsFound: 0, efficiencyPercent: "110" },
       { workerId: 1, clockInTime: "2026-03-01T14:00:00Z", clockOutTime: null },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.labor.workerSummary({ workerId: 1 });
     expect(result).toHaveProperty("workerId", 1);
     expect(result).toHaveProperty("totalRecords", 3);
@@ -565,7 +565,7 @@ describe("supplyChain.labor", () => {
       { clockInTime: "2026-03-01T08:00:00Z", clockOutTime: null, efficiencyPercent: null },
       { clockInTime: "2026-03-01T08:00:00Z", clockOutTime: "2026-03-01T09:00:00Z", efficiencyPercent: "95" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.labor.stats();
     expect(result).toHaveProperty("total", 2);
     expect(result).toHaveProperty("active", 1);
@@ -574,14 +574,14 @@ describe("supplyChain.labor", () => {
   });
 
   it("labor.delete returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.labor.delete({ id: 1 });
     expect(result).toEqual({ success: true });
   });
 
   it("labor.update modifies record", async () => {
     mockReturningResult = [{ id: 1, notes: "Updated", qualityResult: "PASS" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.labor.update({
       id: 1,
       notes: "Updated",
@@ -597,7 +597,7 @@ describe("supplyChain.labor", () => {
 describe("supplyChain.complaint", () => {
   it("complaint.list returns items and total", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.complaint.list();
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total", 0);
@@ -608,7 +608,7 @@ describe("supplyChain.complaint", () => {
       { severity: "critical", status: "open", customerId: 1 },
       { severity: "low", status: "open", customerId: 2 },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.complaint.list({ severity: "critical" });
     expect(result.items).toHaveLength(1);
     expect(result.items[0].severity).toBe("critical");
@@ -616,14 +616,14 @@ describe("supplyChain.complaint", () => {
 
   it("complaint.get returns single complaint", async () => {
     mockQueryResult = [{ id: 1, complaintCode: "CQC-001", severity: "high" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.complaint.get({ id: 1 });
     expect(result).toHaveProperty("complaintCode", "CQC-001");
   });
 
   it("complaint.create inserts and returns complaint", async () => {
     mockReturningResult = [{ id: 3, complaintCode: "CQC-20260301-5678", severity: "medium", status: "open" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.complaint.create({
       description: "Defective part received",
       severity: "medium",
@@ -634,7 +634,7 @@ describe("supplyChain.complaint", () => {
 
   it("complaint.update modifies complaint fields", async () => {
     mockReturningResult = [{ id: 1, status: "investigating", rootCause: "Material defect" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.complaint.update({
       id: 1,
       status: "investigating",
@@ -645,7 +645,7 @@ describe("supplyChain.complaint", () => {
 
   it("complaint.linkTo8D creates traceability edge", async () => {
     mockReturningResult = [{ id: 1, eightDReportId: 42 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.complaint.linkTo8D({
       complaintId: 1,
       eightDReportId: 42,
@@ -655,7 +655,7 @@ describe("supplyChain.complaint", () => {
 
   it("complaint.linkToCAPA updates CAPA reference", async () => {
     mockReturningResult = [{ id: 1, capaId: 7 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.complaint.linkToCAPA({
       complaintId: 1,
       capaId: 7,
@@ -665,14 +665,14 @@ describe("supplyChain.complaint", () => {
 
   it("complaint.traceToSupplier returns null for missing complaint", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.complaint.traceToSupplier({ complaintId: 999 });
     expect(result).toBeNull();
   });
 
   it("complaint.traceToSupplier returns complaint + edges", async () => {
     mockQueryResult = [{ id: 1, projectNumber: "PRJ-001" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.complaint.traceToSupplier({ complaintId: 1 });
     expect(result).toHaveProperty("complaint");
     expect(result).toHaveProperty("traceEdges");
@@ -684,7 +684,7 @@ describe("supplyChain.complaint", () => {
       { status: "investigating", severity: "high", satisfactionScore: null },
       { status: "resolved", severity: "medium", satisfactionScore: 4 },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.complaint.stats();
     expect(result).toHaveProperty("total", 3);
     expect(result).toHaveProperty("open", 1);
@@ -695,7 +695,7 @@ describe("supplyChain.complaint", () => {
   });
 
   it("complaint.delete returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.complaint.delete({ id: 1 });
     expect(result).toEqual({ success: true });
   });
@@ -707,7 +707,7 @@ describe("supplyChain.complaint", () => {
 describe("supplyChain.maintenance", () => {
   it("maintenance.list returns items and total", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.maintenance.list();
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total", 0);
@@ -715,14 +715,14 @@ describe("supplyChain.maintenance", () => {
 
   it("maintenance.get returns single record", async () => {
     mockQueryResult = [{ id: 1, maintenanceCode: "MNT-001", status: "scheduled" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.maintenance.get({ id: 1 });
     expect(result).toHaveProperty("maintenanceCode", "MNT-001");
   });
 
   it("maintenance.create inserts with scheduled status", async () => {
     mockReturningResult = [{ id: 2, maintenanceCode: "MNT-20260301-0001", status: "scheduled", equipmentId: 10 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.maintenance.create({
       equipmentId: 10,
       maintenanceType: "preventive",
@@ -733,7 +733,7 @@ describe("supplyChain.maintenance", () => {
 
   it("maintenance.start transitions to in_progress", async () => {
     mockReturningResult = [{ id: 1, status: "in_progress", startedAt: "2026-03-01T10:00:00Z" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.maintenance.start({ id: 1 });
     expect(result).toHaveProperty("status", "in_progress");
     expect(result).toHaveProperty("startedAt");
@@ -742,7 +742,7 @@ describe("supplyChain.maintenance", () => {
   it("maintenance.complete calculates downtime and cost", async () => {
     mockQueryResult = [{ id: 1, startedAt: new Date(Date.now() - 120 * 60000).toISOString() }];
     mockReturningResult = [{ id: 1, status: "completed", downtimeMinutes: 120, totalCost: "150" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.maintenance.complete({
       id: 1,
       laborCost: "100",
@@ -754,7 +754,7 @@ describe("supplyChain.maintenance", () => {
 
   it("maintenance.complete throws for missing record", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.supplyChain.maintenance.complete({ id: 999 }),
     ).rejects.toThrow("Maintenance record not found");
@@ -765,7 +765,7 @@ describe("supplyChain.maintenance", () => {
       { id: 2, scheduledDate: "2026-03-10", status: "scheduled" },
       { id: 1, scheduledDate: "2026-03-05", status: "scheduled" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.maintenance.upcoming();
     expect(result[0].scheduledDate).toBe("2026-03-05");
   });
@@ -776,7 +776,7 @@ describe("supplyChain.maintenance", () => {
       { status: "in_progress", downtimeMinutes: 0, totalCost: "0" },
       { status: "completed", downtimeMinutes: 90, totalCost: "200" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.maintenance.stats();
     expect(result).toEqual({
       total: 3,
@@ -795,7 +795,7 @@ describe("supplyChain.maintenance", () => {
 describe("supplyChain.scrap", () => {
   it("scrap.list returns items and total", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.scrap.list();
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total", 0);
@@ -803,7 +803,7 @@ describe("supplyChain.scrap", () => {
 
   it("scrap.get returns single record", async () => {
     mockQueryResult = [{ id: 1, scrapCode: "SCR-001", disposalMethod: "recycle" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.scrap.get({ id: 1 });
     expect(result).toHaveProperty("scrapCode", "SCR-001");
   });
@@ -812,7 +812,7 @@ describe("supplyChain.scrap", () => {
     mockReturningResult = [{ id: 1, scrapCode: "SCR-20260301-0001", totalScrapCost: "500" }];
     // The lot lookup returns empty, traceability insert is separate
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.scrap.create({
       materialCode: "MAT-001",
       scrapReason: "Defective material",
@@ -824,7 +824,7 @@ describe("supplyChain.scrap", () => {
 
   it("scrap.update modifies fields", async () => {
     mockReturningResult = [{ id: 1, disposalMethod: "destroy", notes: "Hazardous" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.scrap.update({
       id: 1,
       disposalMethod: "destroy",
@@ -839,7 +839,7 @@ describe("supplyChain.scrap", () => {
       { disposalMethod: "recycle", totalScrapCost: "200", replacementRequired: false },
       { disposalMethod: "destroy", totalScrapCost: "300", replacementRequired: true },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.scrap.stats();
     expect(result).toHaveProperty("total", 3);
     expect(result).toHaveProperty("totalCost", 600);
@@ -849,7 +849,7 @@ describe("supplyChain.scrap", () => {
   });
 
   it("scrap.delete returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.scrap.delete({ id: 1 });
     expect(result).toEqual({ success: true });
   });
@@ -860,7 +860,7 @@ describe("supplyChain.scrap", () => {
       { scrapCategory: "dimensional", totalScrapCost: "200" },
       { scrapCategory: "surface", totalScrapCost: "50" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.scrap.byCategory();
     expect(result).toHaveProperty("dimensional");
     expect(result.dimensional).toEqual({ count: 2, cost: 300 });
@@ -869,7 +869,7 @@ describe("supplyChain.scrap", () => {
 
   it("scrap.linkToPenalty associates penalty", async () => {
     mockReturningResult = [{ id: 1, supplierPenaltyId: 5 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.scrap.linkToPenalty({
       scrapId: 1,
       penaltyId: 5,
@@ -887,7 +887,7 @@ describe("supplyChain.sparePart", () => {
       { isActive: true, category: "electrical", currentStock: 10, reorderPoint: 5, isCritical: false },
       { isActive: false, category: "mechanical", currentStock: 2, reorderPoint: 5, isCritical: true },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.sparePart.list();
     expect(result.items).toHaveLength(1);
     expect(result.items[0].isActive).toBe(true);
@@ -898,7 +898,7 @@ describe("supplyChain.sparePart", () => {
       { isActive: true, category: "electrical", currentStock: 3, reorderPoint: 5 },
       { isActive: true, category: "mechanical", currentStock: 10, reorderPoint: 5 },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.sparePart.list({ lowStockOnly: true });
     expect(result.items).toHaveLength(1);
     expect(result.items[0].currentStock).toBeLessThanOrEqual(result.items[0].reorderPoint);
@@ -906,14 +906,14 @@ describe("supplyChain.sparePart", () => {
 
   it("sparePart.get returns single part", async () => {
     mockQueryResult = [{ id: 1, partCode: "SP-001", materialCode: "MAT-001", currentStock: 50 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.sparePart.get({ id: 1 });
     expect(result).toHaveProperty("partCode", "SP-001");
   });
 
   it("sparePart.create inserts new part", async () => {
     mockReturningResult = [{ id: 5, partCode: "SP-20260301-0001", materialCode: "MAT-NEW" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.sparePart.create({
       materialCode: "MAT-NEW",
       materialName: "New Part",
@@ -923,7 +923,7 @@ describe("supplyChain.sparePart", () => {
 
   it("sparePart.update modifies part fields", async () => {
     mockReturningResult = [{ id: 1, reorderPoint: 20, isCritical: true }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.sparePart.update({
       id: 1,
       reorderPoint: 20,
@@ -936,7 +936,7 @@ describe("supplyChain.sparePart", () => {
   it("sparePart.consume deducts stock and logs consumption", async () => {
     mockQueryResult = [{ id: 1, currentStock: 10, autoReorderEnabled: true, reorderPoint: 5 }];
     mockReturningResult = [{ id: 100, sparePartId: 1, quantityConsumed: 3, newStock: 7 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.sparePart.consume({
       sparePartId: 1,
       quantityConsumed: 3,
@@ -948,7 +948,7 @@ describe("supplyChain.sparePart", () => {
   it("sparePart.consume triggers auto-reorder when stock drops below reorder point", async () => {
     mockQueryResult = [{ id: 1, currentStock: 8, autoReorderEnabled: true, reorderPoint: 5 }];
     mockReturningResult = [{ id: 101, sparePartId: 1, quantityConsumed: 5, newStock: 3 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.sparePart.consume({
       sparePartId: 1,
       quantityConsumed: 5,
@@ -958,7 +958,7 @@ describe("supplyChain.sparePart", () => {
 
   it("sparePart.consume throws for insufficient stock", async () => {
     mockQueryResult = [{ id: 1, currentStock: 2, autoReorderEnabled: false, reorderPoint: 5 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.supplyChain.sparePart.consume({ sparePartId: 1, quantityConsumed: 10 }),
     ).rejects.toThrow("库存不足");
@@ -966,7 +966,7 @@ describe("supplyChain.sparePart", () => {
 
   it("sparePart.consume throws for non-existent part", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.supplyChain.sparePart.consume({ sparePartId: 999, quantityConsumed: 1 }),
     ).rejects.toThrow("Spare part not found");
@@ -977,7 +977,7 @@ describe("supplyChain.sparePart", () => {
       { id: 1, sparePartId: 1, quantityConsumed: 3 },
       { id: 2, sparePartId: 2, quantityConsumed: 1 },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.sparePart.consumptionHistory();
     expect(result).toHaveLength(2);
   });
@@ -987,7 +987,7 @@ describe("supplyChain.sparePart", () => {
       { id: 1, sparePartId: 1, quantityConsumed: 3 },
       { id: 2, sparePartId: 2, quantityConsumed: 1 },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.sparePart.consumptionHistory({ sparePartId: 1 });
     expect(result).toHaveLength(1);
     expect(result[0].sparePartId).toBe(1);
@@ -996,7 +996,7 @@ describe("supplyChain.sparePart", () => {
   it("sparePart.restock increases stock", async () => {
     mockQueryResult = [{ id: 1, currentStock: 10 }];
     mockReturningResult = [{ id: 1, currentStock: 30 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.sparePart.restock({
       sparePartId: 1,
       quantity: 20,
@@ -1006,7 +1006,7 @@ describe("supplyChain.sparePart", () => {
 
   it("sparePart.restock throws for non-existent part", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.supplyChain.sparePart.restock({ sparePartId: 999, quantity: 10 }),
     ).rejects.toThrow("Spare part not found");
@@ -1018,7 +1018,7 @@ describe("supplyChain.sparePart", () => {
       { id: 2, isActive: true, currentStock: 10, reorderPoint: 5 },
       { id: 3, isActive: false, currentStock: 1, reorderPoint: 5 },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.sparePart.lowStockAlerts();
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(1);
@@ -1029,7 +1029,7 @@ describe("supplyChain.sparePart", () => {
       { currentStock: 3, reorderPoint: 5, isCritical: true, unitPrice: "100" },
       { currentStock: 10, reorderPoint: 5, isCritical: false, unitPrice: "50" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.sparePart.stats();
     expect(result).toHaveProperty("total", 2);
     expect(result).toHaveProperty("lowStock", 1);
@@ -1044,7 +1044,7 @@ describe("supplyChain.sparePart", () => {
 describe("supplyChain.penalty", () => {
   it("penalty.list returns items and total", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.penalty.list();
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total", 0);
@@ -1055,14 +1055,14 @@ describe("supplyChain.penalty", () => {
       { supplierId: 1, triggerType: "quality_reject", isBlacklisted: false, isActive: true },
       { supplierId: 2, triggerType: "late_delivery", isBlacklisted: false, isActive: true },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.penalty.list({ supplierId: 1 });
     expect(result.items).toHaveLength(1);
   });
 
   it("penalty.get returns single penalty", async () => {
     mockQueryResult = [{ id: 1, penaltyCode: "PEN-001", penaltyType: "warning" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.penalty.get({ id: 1 });
     expect(result).toHaveProperty("penaltyCode", "PEN-001");
   });
@@ -1071,7 +1071,7 @@ describe("supplyChain.penalty", () => {
     // First call: select existing penalties for this supplier (empty = first)
     mockQueryResult = [];
     mockReturningResult = [{ id: 1, penaltyType: "warning", escalationLevel: 1, occurrenceCount: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.penalty.create({
       supplierId: 1,
       triggerType: "quality_reject",
@@ -1083,7 +1083,7 @@ describe("supplyChain.penalty", () => {
 
   it("penalty.resolve deactivates penalty", async () => {
     mockReturningResult = [{ id: 1, isActive: false, resolvedAt: "2026-03-01T10:00:00Z" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.penalty.resolve({ id: 1 });
     expect(result).toHaveProperty("isActive", false);
     expect(result).toHaveProperty("resolvedAt");
@@ -1092,7 +1092,7 @@ describe("supplyChain.penalty", () => {
   it("penalty.supplierScorecard calculates composite score", async () => {
     // First call: penalties for supplier; Second call: inspections for supplier
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.penalty.supplierScorecard({ supplierId: 1 });
     expect(result).toHaveProperty("supplierId", 1);
     expect(result).toHaveProperty("qualityRate");
@@ -1107,7 +1107,7 @@ describe("supplyChain.penalty", () => {
       { triggerType: "late_delivery", isActive: false, isBlacklisted: false },
       { triggerType: "quality_reject", isActive: true, isBlacklisted: true },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.penalty.stats();
     expect(result).toHaveProperty("total", 3);
     expect(result).toHaveProperty("active", 2);
@@ -1118,7 +1118,7 @@ describe("supplyChain.penalty", () => {
   });
 
   it("penalty.delete returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.penalty.delete({ id: 1 });
     expect(result).toEqual({ success: true });
   });
@@ -1131,7 +1131,7 @@ describe("supplyChain.trace", () => {
   it("trace.forward returns root and edges", async () => {
     // Traverse returns empty edge set (no children)
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.trace.forward({
       entityType: "label",
       entityId: 1,
@@ -1148,7 +1148,7 @@ describe("supplyChain.trace", () => {
     mockQueryResult = [
       { fromEntityType: "label", fromEntityId: 1, toEntityType: "bom_scan", toEntityId: 5, relationshipType: "assembled_in" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.trace.forward({
       entityType: "label",
       entityId: 1,
@@ -1159,7 +1159,7 @@ describe("supplyChain.trace", () => {
 
   it("trace.backward returns root and edges", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.trace.backward({
       entityType: "bom_scan",
       entityId: 5,
@@ -1176,7 +1176,7 @@ describe("supplyChain.trace", () => {
       { fromEntityType: "label", fromEntityId: 1, toEntityType: "bom_scan", toEntityId: 5 },
       { fromEntityType: "bom_scan", fromEntityId: 5, toEntityType: "inspection", toEntityId: 10 },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.trace.projectGraph({
       projectNumber: "PRJ-001",
     });
@@ -1192,7 +1192,7 @@ describe("supplyChain.trace", () => {
       { fromEntityType: "label", fromEntityId: 2, toEntityType: "bom_scan", toEntityId: 6, relationshipType: "assembled_in" },
       { fromEntityType: "complaint", fromEntityId: 3, toEntityType: "eight_d", toEntityId: 7, relationshipType: "resolved_by" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.trace.stats();
     expect(result).toHaveProperty("totalEdges", 3);
     expect(result).toHaveProperty("totalNodes", 6);
@@ -1208,7 +1208,7 @@ describe("supplyChain.dashboardStats", () => {
   it("returns unified dashboard metrics", async () => {
     // Promise.all resolves 6 arrays — all share the same mockQueryResult
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.dashboardStats();
     expect(result).toHaveProperty("iqc");
     expect(result.iqc).toHaveProperty("total");
@@ -1237,7 +1237,7 @@ describe("supplyChain.dashboardStats", () => {
     mockQueryResult = [
       { inspectionResult: "PASS", bomMatchResult: "MATCH", status: "resolved", severity: "low", isActive: false, isBlacklisted: false, currentStock: 10, reorderPoint: 5, totalScrapCost: "100", triggerType: "quality_reject" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.dashboardStats();
     // With one record that is PASS and not PENDING, pass rate = 100
     expect(result.iqc.passRate).toBe(100);
@@ -1278,7 +1278,7 @@ describe("supplyChain authentication", () => {
 // ═════════════════════════════════════════════════════════════════════
 describe("supplyChain input validation", () => {
   it("label.create rejects missing materialCode", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       // @ts-expect-error intentionally missing required field
       caller.supplyChain.label.create({ supplierSerialNumber: "SN-001" }),
@@ -1286,14 +1286,14 @@ describe("supplyChain input validation", () => {
   });
 
   it("label.list rejects limit > 500", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.supplyChain.label.list({ limit: 1000, offset: 0 }),
     ).rejects.toThrow();
   });
 
   it("complaint.create rejects invalid severity", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       // @ts-expect-error intentionally invalid enum value
       caller.supplyChain.complaint.create({ description: "test", severity: "extreme" }),
@@ -1301,7 +1301,7 @@ describe("supplyChain input validation", () => {
   });
 
   it("maintenance.create rejects invalid maintenanceType", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       // @ts-expect-error intentionally invalid enum value
       caller.supplyChain.maintenance.create({ equipmentId: 1, maintenanceType: "magic" }),
@@ -1309,7 +1309,7 @@ describe("supplyChain input validation", () => {
   });
 
   it("penalty.create rejects invalid triggerType", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       // @ts-expect-error intentionally invalid enum value
       caller.supplyChain.penalty.create({ supplierId: 1, triggerType: "bad_weather" }),
@@ -1318,7 +1318,7 @@ describe("supplyChain input validation", () => {
 
   it("label.get accepts string id (flexible input)", async () => {
     mockQueryResult = [{ id: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplyChain.label.get({ id: "1" });
     expect(result).toHaveProperty("id", 1);
   });

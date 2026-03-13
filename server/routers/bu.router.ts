@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import * as buQueries from "../db/bu-queries";
 import { createChildLogger } from "../lib/logger";
 
@@ -124,7 +124,7 @@ export const buRouter = router({
     }
   }),
 
-  create: protectedProcedure.input(createBuSchema).mutation(async ({ input }) => {
+  create: requirePermission('system:org:manage').input(createBuSchema).mutation(async ({ input }) => {
     try {
       const result = await buQueries.createBusinessUnit(input);
       return { success: true, data: result[0] };
@@ -134,7 +134,7 @@ export const buRouter = router({
     }
   }),
 
-  update: protectedProcedure.input(updateBuSchema).mutation(async ({ input }) => {
+  update: requirePermission('system:org:manage').input(updateBuSchema).mutation(async ({ input }) => {
     try {
       const { id, ...data } = input;
       const result = await buQueries.updateBusinessUnit(id, data);
@@ -145,7 +145,7 @@ export const buRouter = router({
     }
   }),
 
-  delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+  delete: requirePermission('system:org:manage').input(z.object({ id: z.number() })).mutation(async ({ input }) => {
     try {
       await buQueries.deleteBusinessUnit(input.id);
       return { success: true };
@@ -168,7 +168,7 @@ export const buRouter = router({
       }
     }),
 
-  savePerformance: protectedProcedure.input(performanceSchema).mutation(async ({ input }) => {
+  savePerformance: requirePermission('system:org:manage').input(performanceSchema).mutation(async ({ input }) => {
     try {
       const existing = await buQueries.getPerformanceByBuAndYear(input.buId, input.fiscalYear);
 
@@ -215,7 +215,7 @@ export const buRouter = router({
       }
     }),
 
-  createKpi: protectedProcedure.input(kpiSchema).mutation(async ({ input }) => {
+  createKpi: requirePermission('system:org:manage').input(kpiSchema).mutation(async ({ input }) => {
     try {
       const result = await buQueries.createKpi(input);
       return { success: true, data: result[0] };
@@ -225,7 +225,7 @@ export const buRouter = router({
     }
   }),
 
-  updateKpi: protectedProcedure
+  updateKpi: requirePermission('system:org:manage')
     .input(z.object({ id: z.number(), ...kpiSchema.omit({ buId: true, kpiCode: true, fiscalYear: true }).shape }))
     .mutation(async ({ input }) => {
       try {
@@ -285,7 +285,7 @@ export const buRouter = router({
       }
     }),
 
-  removeEmployee: protectedProcedure
+  removeEmployee: requirePermission('system:org:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       try {

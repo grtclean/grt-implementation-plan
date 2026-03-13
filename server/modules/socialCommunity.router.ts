@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { invokeLLM } from "../_core/llm";
 import { TRPCError } from "@trpc/server";
@@ -200,7 +200,7 @@ export const socialCommunityRouter = router({
     }),
 
   // 接收消息（来自Social Bridge的Webhook）
-  receiveMessage: protectedProcedure
+  receiveMessage: requirePermission('collab:community:post')
     .input(z.object({
       groupWxId: z.string(),
       senderWxId: z.string(),
@@ -300,7 +300,7 @@ export const socialCommunityRouter = router({
     }),
 
   // 审核草稿
-  reviewDraft: protectedProcedure
+  reviewDraft: requirePermission('collab:community:post')
     .input(z.object({
       draftId: z.number(),
       action: z.enum(['approve', 'reject', 'modify']),
@@ -350,7 +350,7 @@ export const socialCommunityRouter = router({
     }),
 
   // 重新生成AI草稿
-  regenerateDraft: protectedProcedure
+  regenerateDraft: requirePermission('collab:community:post')
     .input(z.object({
       messageId: z.number(),
       additionalContext: z.string().optional(),
@@ -532,7 +532,7 @@ export const socialCommunityRouter = router({
       
       // 消息统计（今日）
       const [messageStatsResult] = await db.execute(
-        `SELECT COUNT(*) as total FROM social_messages WHERE DATE(received_at) = CURDATE()`
+        `SELECT COUNT(*) as total FROM social_messages WHERE DATE(received_at) = CURRENT_DATE`
       );
       const todayMessages = (messageStatsResult as any[])[0]?.total || 0;
       

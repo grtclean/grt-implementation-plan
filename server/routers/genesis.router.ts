@@ -10,7 +10,7 @@
  */
 import { z } from "zod";
 import { jsonValue } from "@shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   knowledgeDocuments,
@@ -181,7 +181,7 @@ export const genesisRouter = router({
       });
     }),
 
-  reanalyzeDocument: protectedProcedure
+  reanalyzeDocument: requirePermission('ai:genesis:generate')
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -314,7 +314,7 @@ export const genesisRouter = router({
       return updated;
     }),
 
-  archiveDocument: protectedProcedure
+  archiveDocument: requirePermission('ai:genesis:generate')
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -400,7 +400,7 @@ export const genesisRouter = router({
       return getProposalWithChat(toNum(input.id));
     }),
 
-  generateProposal: protectedProcedure
+  generateProposal: requirePermission('ai:genesis:generate')
     .input(
       z.object({
         documentId: z.union([z.string(), z.number()]),
@@ -413,7 +413,7 @@ export const genesisRouter = router({
       );
     }),
 
-  updateProposalStatus: protectedProcedure
+  updateProposalStatus: requirePermission('ai:genesis:generate')
     .input(
       z.object({
         id: z.union([z.string(), z.number()]).optional(),
@@ -433,7 +433,7 @@ export const genesisRouter = router({
       );
     }),
 
-  commitProposal: protectedProcedure
+  commitProposal: requirePermission('ai:genesis:generate')
     .input(
       z.object({
         id: z.union([z.string(), z.number()]).optional(),
@@ -449,7 +449,7 @@ export const genesisRouter = router({
       );
     }),
 
-  updateProposalDiff: protectedProcedure
+  updateProposalDiff: requirePermission('ai:genesis:generate')
     .input(
       z.object({
         proposalId: z.union([z.string(), z.number()]),
@@ -521,7 +521,7 @@ export const genesisRouter = router({
       return { messages, total: messages.length };
     }),
 
-  sendMessage: protectedProcedure
+  sendMessage: requirePermission('ai:genesis:generate')
     .input(
       z.object({
         proposalId: z.union([z.string(), z.number()]),
@@ -538,7 +538,7 @@ export const genesisRouter = router({
       );
     }),
 
-  generateAIResponse: protectedProcedure
+  generateAIResponse: requirePermission('ai:genesis:generate')
     .input(
       z.object({
         proposalId: z.union([z.string(), z.number()]),
@@ -717,7 +717,7 @@ export const genesisRouter = router({
    * Simulates a 2-second LLM call, persists to ai_proposal_history (DB if available,
    * in-memory fallback otherwise), and returns the generated content + history ID.
    */
-  simulateGeneration: protectedProcedure
+  simulateGeneration: requirePermission('ai:genesis:generate')
     .input(
       z.object({
         documentId: z.union([z.string(), z.number()]),
@@ -845,7 +845,7 @@ This proposal outlines the design and commissioning plan for a **GRT Non-Standar
     }),
 
   /** Update a proposal history entry (status, feedbackScore, content edits) */
-  updateProposalHistory: protectedProcedure
+  updateProposalHistory: requirePermission('ai:genesis:generate')
     .input(
       z.object({
         id: z.number(),
@@ -884,7 +884,7 @@ This proposal outlines the design and commissioning plan for a **GRT Non-Standar
     }),
 
   /** Feed a finalized proposal back to the knowledge base (反馈至知识炼金炉) */
-  feedbackToKnowledgeBase: protectedProcedure
+  feedbackToKnowledgeBase: requirePermission('ai:genesis:generate')
     .input(z.object({ historyId: z.number() }))
     .mutation(async ({ input }) => {
       // Mark as FINALIZED

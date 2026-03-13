@@ -3,7 +3,7 @@
  * 包含：液态用工、AI销售、门径管理、个人智能体、核心业务模型、社群管理
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql, type SQL } from "drizzle-orm";
 import { jsonValue } from "../../shared/validators";
@@ -37,7 +37,7 @@ export const liquidWorkforceRouter = router({
         };
       }),
 
-    create: protectedProcedure
+    create: requirePermission('devops:gemini:view')
       .input(z.object({
         skillId: z.string(),
         name: z.string(),
@@ -53,7 +53,7 @@ export const liquidWorkforceRouter = router({
         return { success: true };
       }),
 
-    incrementUsage: protectedProcedure
+    incrementUsage: requirePermission('devops:gemini:view')
       .input(z.object({ skillId: z.string() }))
       .mutation(async ({ input }) => {
         await (await requireDb()).execute(sql`
@@ -86,7 +86,7 @@ export const liquidWorkforceRouter = router({
         return result[0] as any[];
       }),
 
-    submit: protectedProcedure
+    submit: requirePermission('devops:gemini:view')
       .input(z.object({
         taskId: z.number(),
         bidderAgentId: z.string(),
@@ -105,7 +105,7 @@ export const liquidWorkforceRouter = router({
         return { success: true, aiJudgeScore };
       }),
 
-    accept: protectedProcedure
+    accept: requirePermission('devops:gemini:view')
       .input(z.object({ bidId: z.number() }))
       .mutation(async ({ input }) => {
         await (await requireDb()).execute(sql`UPDATE grt_task_bids SET status = 'accepted' WHERE id = ${input.bidId}`);
@@ -131,7 +131,7 @@ export const liquidWorkforceRouter = router({
         return result[0] as any[];
       }),
 
-    create: protectedProcedure
+    create: requirePermission('devops:gemini:view')
       .input(z.object({
         contractAddress: z.string(),
         paymentType: z.enum(['e-CNY', 'USDT', 'G-Token']),
@@ -147,7 +147,7 @@ export const liquidWorkforceRouter = router({
         return { success: true };
       }),
 
-    release: protectedProcedure
+    release: requirePermission('devops:gemini:view')
       .input(z.object({ contractId: z.number() }))
       .mutation(async ({ input }) => {
         await (await requireDb()).execute(sql`UPDATE grt_smart_contracts SET execution_status = 'released' WHERE id = ${input.contractId}`);
@@ -183,7 +183,7 @@ export const autonomousSalesRouter = router({
         return result[0] as any[];
       }),
 
-    create: protectedProcedure
+    create: requirePermission('devops:gemini:view')
       .input(z.object({
         sessionId: z.string(),
         clientAgentId: z.string().optional(),
@@ -198,7 +198,7 @@ export const autonomousSalesRouter = router({
         return { success: true };
       }),
 
-    submitCounterOffer: protectedProcedure
+    submitCounterOffer: requirePermission('devops:gemini:view')
       .input(z.object({
         sessionId: z.string(),
         clientCounterOffer: z.number(),
@@ -215,7 +215,7 @@ export const autonomousSalesRouter = router({
         return { success: true };
       }),
 
-    calculateZopa: protectedProcedure
+    calculateZopa: requirePermission('devops:gemini:view')
       .input(z.object({
         sessionId: z.string(),
         ourFloorPrice: z.number(),
@@ -231,7 +231,7 @@ export const autonomousSalesRouter = router({
         return { success: true, zopaRange };
       }),
 
-    closeDeal: protectedProcedure
+    closeDeal: requirePermission('devops:gemini:view')
       .input(z.object({
         sessionId: z.string(),
         status: z.enum(['deal_reached', 'walk_away'])
@@ -261,7 +261,7 @@ export const autonomousSalesRouter = router({
         return result[0] as any[];
       }),
 
-    register: protectedProcedure
+    register: requirePermission('devops:gemini:view')
       .input(z.object({
         proofId: z.string(),
         proofType: z.enum(['capacity', 'compliance', 'green_energy']),
@@ -278,7 +278,7 @@ export const autonomousSalesRouter = router({
         return { success: true };
       }),
 
-    verify: protectedProcedure
+    verify: requirePermission('devops:gemini:view')
       .input(z.object({ proofId: z.string() }))
       .mutation(async ({ input }) => {
         await (await requireDb()).execute(sql`
@@ -312,7 +312,7 @@ export const stageGateRouter = router({
         return result[0] as any[];
       }),
 
-    create: protectedProcedure
+    create: requirePermission('devops:gemini:view')
       .input(z.object({
         projectId: z.number(),
         gateStage: z.enum(['M3', 'M4', 'M5', 'M7', 'M12']),
@@ -328,7 +328,7 @@ export const stageGateRouter = router({
         return { success: true };
       }),
 
-    updateStatus: protectedProcedure
+    updateStatus: requirePermission('devops:gemini:view')
       .input(z.object({
         checklistId: z.number(),
         status: z.enum(['pending', 'pass', 'fail']),
@@ -390,7 +390,7 @@ export const stageGateRouter = router({
         return result[0] as any[];
       }),
 
-    create: protectedProcedure
+    create: requirePermission('devops:gemini:view')
       .input(z.object({
         signalId: z.string(),
         upstreamGate: z.string(),
@@ -407,7 +407,7 @@ export const stageGateRouter = router({
         return { success: true };
       }),
 
-    execute: protectedProcedure
+    execute: requirePermission('devops:gemini:view')
       .input(z.object({ signalId: z.string() }))
       .mutation(async ({ input }) => {
         // 模拟发送信号到AAS设备
@@ -419,7 +419,7 @@ export const stageGateRouter = router({
         return { success: true };
       }),
 
-    acknowledge: protectedProcedure
+    acknowledge: requirePermission('devops:gemini:view')
       .input(z.object({ signalId: z.string() }))
       .mutation(async ({ input }) => {
         await (await requireDb()).execute(sql`
@@ -514,7 +514,7 @@ export const personalAgentRouter = router({
         return result[0] as any[];
       }),
 
-    create: protectedProcedure
+    create: requirePermission('devops:gemini:view')
       .input(z.object({
         noteId: z.string(),
         projectId: z.number().optional(),
@@ -604,7 +604,7 @@ export const coreBusinessRouter = router({
         return { success: true };
       }),
 
-    advancePhase: protectedProcedure
+    advancePhase: requirePermission('devops:gemini:view')
       .input(z.object({
         projectId: z.number(),
         newPhase: z.string()
@@ -688,7 +688,7 @@ export const coreBusinessRouter = router({
         return result[0] as any[];
       }),
 
-    create: protectedProcedure
+    create: requirePermission('devops:gemini:view')
       .input(z.object({
         projectId: z.number(),
         phase: z.string(),
@@ -703,7 +703,7 @@ export const coreBusinessRouter = router({
         return { success: true };
       }),
 
-    approve: protectedProcedure
+    approve: requirePermission('devops:gemini:view')
       .input(z.object({
         deliverableId: z.number(),
       }))
@@ -737,7 +737,7 @@ export const coreBusinessRouter = router({
         return result[0] as any[];
       }),
 
-    record: protectedProcedure
+    record: requirePermission('devops:gemini:view')
       .input(z.object({
         projectId: z.number(),
         testType: z.enum(['Toothpaste_Test', 'Cycle_Time', 'Vacuum_Test', 'Particle_Count']),
@@ -811,7 +811,7 @@ export const socialCommunityRouter = router({
         return { success: true, sanitizedContent, isSensitive };
       }),
 
-    generateAiReply: protectedProcedure
+    generateAiReply: requirePermission('devops:gemini:view')
       .input(z.object({ messageId: z.number() }))
       .mutation(async ({ input }) => {
         // 模拟AI生成回复
@@ -830,7 +830,7 @@ export const socialCommunityRouter = router({
         return { success: true, aiDraftReply };
       }),
 
-    approveReply: protectedProcedure
+    approveReply: requirePermission('devops:gemini:view')
       .input(z.object({
         messageId: z.number(),
         approvedReply: z.string(),
@@ -845,7 +845,7 @@ export const socialCommunityRouter = router({
         return { success: true };
       }),
 
-    sendReply: protectedProcedure
+    sendReply: requirePermission('devops:gemini:view')
       .input(z.object({ messageId: z.number() }))
       .mutation(async ({ input }) => {
         // 模拟发送到Social Bridge
@@ -876,7 +876,7 @@ export const socialCommunityRouter = router({
         return result[0] as any[];
       }),
 
-    review: protectedProcedure
+    review: requirePermission('devops:gemini:view')
       .input(z.object({
         queueId: z.number(),
         reviewStatus: z.enum(['approved', 'rejected', 'modified']),
@@ -905,7 +905,7 @@ export const erpConnectionRouter = router({
       return result[0] as any[];
     }),
 
-    create: protectedProcedure
+    create: requirePermission('devops:gemini:view')
       .input(z.object({
         name: z.string(),
         erpType: z.enum(['SAP', 'Oracle', 'Kingdee', 'Custom']),
@@ -921,7 +921,7 @@ export const erpConnectionRouter = router({
         return { success: true };
       }),
 
-    update: protectedProcedure
+    update: requirePermission('devops:gemini:view')
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
@@ -946,7 +946,7 @@ export const erpConnectionRouter = router({
         return { success: true };
       }),
 
-    testConnection: protectedProcedure
+    testConnection: requirePermission('devops:gemini:view')
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         // 模拟连接测试
@@ -954,7 +954,7 @@ export const erpConnectionRouter = router({
         return { success, message: success ? '连接成功' : '连接失败：无法访问ERP服务器' };
       }),
 
-    sync: protectedProcedure
+    sync: requirePermission('devops:gemini:view')
       .input(z.object({
         connectionId: z.number(),
         syncType: z.enum(['full', 'incremental', 'manual']),

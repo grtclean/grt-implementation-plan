@@ -49,7 +49,7 @@ vi.mock("../services/scheduler.service", () => ({
 // ---------------------------------------------------------------------------
 
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -67,7 +67,7 @@ beforeEach(() => {
 
 describe("scheduler.getStatus", () => {
   it("returns the tasks status array from the service", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.scheduler.getStatus();
 
     expect(mockGetScheduledTasksStatus).toHaveBeenCalledOnce();
@@ -80,7 +80,7 @@ describe("scheduler.getStatus", () => {
   it("returns an empty array when no tasks are registered", async () => {
     mockGetScheduledTasksStatus.mockReturnValueOnce([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.scheduler.getStatus();
 
     expect(result).toEqual([]);
@@ -96,7 +96,7 @@ describe("scheduler.setEnabled", () => {
   it("returns success=true with enable message when task exists", async () => {
     mockSetTaskEnabled.mockReturnValueOnce(true);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.scheduler.setEnabled({
       taskName: "delayPrediction",
       enabled: true,
@@ -112,7 +112,7 @@ describe("scheduler.setEnabled", () => {
   it("returns success=true with disable message when task exists", async () => {
     mockSetTaskEnabled.mockReturnValueOnce(true);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.scheduler.setEnabled({
       taskName: "reportGeneration",
       enabled: false,
@@ -128,7 +128,7 @@ describe("scheduler.setEnabled", () => {
   it("returns success=false with '不存在' message when task does not exist", async () => {
     mockSetTaskEnabled.mockReturnValueOnce(false);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.scheduler.setEnabled({
       taskName: "nonExistentTask",
       enabled: true,
@@ -148,7 +148,7 @@ describe("scheduler.setEnabled", () => {
 
 describe("scheduler.trigger", () => {
   it("returns the trigger result from the service", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.scheduler.trigger({ taskName: "delayPrediction" });
 
     expect(mockTriggerTask).toHaveBeenCalledWith("delayPrediction");
@@ -158,7 +158,7 @@ describe("scheduler.trigger", () => {
   it("handles trigger failure gracefully", async () => {
     mockTriggerTask.mockResolvedValueOnce({ success: false, message: "任务执行失败" });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.scheduler.trigger({ taskName: "brokenTask" });
 
     expect(mockTriggerTask).toHaveBeenCalledWith("brokenTask");
@@ -174,7 +174,7 @@ describe("scheduler.updateCron", () => {
   it("returns success with update message when task exists", async () => {
     mockUpdateTaskCron.mockReturnValueOnce(true);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.scheduler.updateCron({
       taskName: "delayPrediction",
       cronExpression: "0 */12 * * *",
@@ -190,7 +190,7 @@ describe("scheduler.updateCron", () => {
   it("returns failure when task does not exist", async () => {
     mockUpdateTaskCron.mockReturnValueOnce(false);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.scheduler.updateCron({
       taskName: "ghostTask",
       cronExpression: "0 0 * * *",
@@ -210,7 +210,7 @@ describe("scheduler.updateCron", () => {
 
 describe("scheduler.checkAndRun", () => {
   it("returns the execution summary from the service", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.scheduler.checkAndRun();
 
     expect(mockCheckAndRunScheduledTasks).toHaveBeenCalledOnce();

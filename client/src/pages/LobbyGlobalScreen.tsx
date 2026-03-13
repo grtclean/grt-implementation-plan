@@ -8,6 +8,7 @@
  * CSS/SVG globe animation — no WebGL dependency for prototype.
  */
 import { useState, useEffect, useRef } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import {
   DashboardModeProvider,
@@ -53,6 +54,7 @@ interface LocationPin {
 }
 
 function AnimatedGlobe({ locations, showRevenue }: { locations: LocationPin[]; showRevenue: boolean }) {
+  const { tpl } = useLanguage();
   const [activePin, setActivePin] = useState<number | null>(null);
   const [rotation, setRotation] = useState(0);
 
@@ -157,9 +159,9 @@ function AnimatedGlobe({ locations, showRevenue }: { locations: LocationPin[]; s
             {isActive && (
               <div className="absolute left-5 top-1/2 -translate-y-1/2 bg-black/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg px-3 py-2 whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-500 z-20">
                 <p className="text-cyan-300 text-sm font-bold">{loc.city}, {loc.country}</p>
-                <p className="text-white/70 text-xs">{loc.count} 台设备运行中</p>
+                <p className="text-white/70 text-xs">{tpl("common.lobby.devicesRunning", { count: loc.count })}</p>
                 {showRevenue && (
-                  <p className="text-amber-400 text-xs font-medium mt-0.5">营收 {loc.revenue}</p>
+                  <p className="text-amber-400 text-xs font-medium mt-0.5">{tpl("common.lobby.revenue", { value: loc.revenue || "" })}</p>
                 )}
               </div>
             )}
@@ -188,6 +190,7 @@ function AnimatedGlobe({ locations, showRevenue }: { locations: LocationPin[]; s
 // ─── Unlock Dialog ──────────────────────────────────────────
 
 function UnlockDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useLanguage();
   const { unlockInternalMode, unlockError, isUnlocking } = useDashboardMode();
   const [pin, setPin] = useState("");
   const [localError, setLocalError] = useState(false);
@@ -210,26 +213,26 @@ function UnlockDialog({ onClose }: { onClose: () => void }) {
       <div className="bg-gray-900 border border-cyan-500/30 rounded-2xl p-8 w-80" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-6">
           <Lock className="w-6 h-6 text-cyan-400" />
-          <h3 className="text-white text-lg font-bold">切换内部模式</h3>
+          <h3 className="text-white text-lg font-bold">{t("common.lobby.switchInternal")}</h3>
         </div>
-        <p className="text-white/50 text-sm mb-4">输入管理PIN码以解锁内部运营视图（30分钟后自动恢复）</p>
+        <p className="text-white/50 text-sm mb-4">{t("common.lobby.enterPinDesc")}</p>
         <input
           type="password"
           value={pin}
           onChange={(e) => setPin(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !isUnlocking && handleSubmit()}
-          placeholder="输入PIN码"
+          placeholder={t("common.lobby.enterPin")}
           maxLength={8}
           className={`w-full bg-gray-800 border ${hasError ? "border-red-500" : "border-gray-700"} rounded-lg px-4 py-3 text-white text-center text-2xl tracking-[0.5em] placeholder:text-gray-600 placeholder:text-base placeholder:tracking-normal focus:outline-none focus:border-cyan-500`}
           autoFocus
         />
-        {hasError && <p className="text-red-400 text-sm mt-2 text-center">{unlockError || "PIN码错误"}</p>}
+        {hasError && <p className="text-red-400 text-sm mt-2 text-center">{unlockError || t("common.lobby.pinError")}</p>}
         <button
           onClick={handleSubmit}
           disabled={isUnlocking}
           className="w-full mt-4 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white rounded-lg py-3 font-medium transition-colors"
         >
-          {isUnlocking ? "验证中..." : "解锁"}
+          {isUnlocking ? t("common.lobby.verifying") : t("common.lobby.unlock")}
         </button>
       </div>
     </div>
@@ -239,6 +242,7 @@ function UnlockDialog({ onClose }: { onClose: () => void }) {
 // ─── Mode Badge ─────────────────────────────────────────────
 
 function ModeBadge() {
+  const { t, tpl } = useLanguage();
   const { displayMode, timeRemainingMs, lockExternalMode } = useDashboardMode();
   const [showUnlock, setShowUnlock] = useState(false);
 
@@ -251,14 +255,14 @@ function ModeBadge() {
           <>
             <span className="text-amber-400 text-xs flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {mins}分钟后自动锁定
+              {tpl("common.lobby.autoLockIn", { mins })}
             </span>
             <button
               onClick={lockExternalMode}
               className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 rounded-lg px-3 py-1.5 text-xs transition-colors"
             >
               <Lock className="w-3 h-3" />
-              锁定
+              {t("common.lobby.lock")}
             </button>
           </>
         )}
@@ -271,7 +275,7 @@ function ModeBadge() {
           }`}
         >
           {displayMode === "INTERNAL" ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-          {displayMode === "INTERNAL" ? "内部运营" : "展示模式"}
+          {displayMode === "INTERNAL" ? t("common.lobby.internalMode") : t("common.lobby.displayMode")}
         </button>
       </div>
       {showUnlock && <UnlockDialog onClose={() => setShowUnlock(false)} />}
@@ -284,6 +288,7 @@ function ModeBadge() {
 // ═══════════════════════════════════════════════════════════
 
 function LobbyContent() {
+  const { t } = useLanguage();
   const { displayMode } = useDashboardMode();
   const [time, setTime] = useState(new Date());
 
@@ -329,9 +334,9 @@ function LobbyContent() {
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-8 py-4">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-wide">
-            GRT 全球运营中心
+            {t("common.lobby.title")}
           </h1>
-          <p className="text-white/40 text-sm">Global Operations Command Center</p>
+          <p className="text-white/40 text-sm">{t("common.lobby.subtitle")}</p>
         </div>
         <div className="text-right">
           <p className="text-cyan-300 text-3xl font-mono font-bold tabular-nums">
@@ -383,7 +388,7 @@ function LobbyContent() {
               <>
                 <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 rounded-lg px-4 py-2 whitespace-nowrap">
                   <BarChart3 className="w-4 h-4 text-cyan-400" />
-                  <span className="text-cyan-300 text-sm">内部运营模式已激活 · 显示完整数据</span>
+                  <span className="text-cyan-300 text-sm">{t("common.lobby.internalActivated")}</span>
                 </div>
                 {internalKpis.map((kpi, idx) => (
                   <div key={idx} className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-2 whitespace-nowrap">
@@ -394,7 +399,7 @@ function LobbyContent() {
               </>
             ) : (
               <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-4 py-2 whitespace-nowrap">
-                <span className="text-white/30 text-sm">暂无运营数据</span>
+                <span className="text-white/30 text-sm">{t("common.lobby.noData")}</span>
               </div>
             )}
           </div>

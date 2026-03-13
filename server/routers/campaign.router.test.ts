@@ -9,6 +9,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -65,6 +66,12 @@ function createMockDb() {
 }
 
 const mockDb = createMockDb();
+
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
 
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => mockDb),
@@ -151,7 +158,7 @@ describe("campaign router", () => {
 
   describe("listCampaigns", () => {
     it("returns paginated campaigns with total count", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         { id: 1, code: "ROLL-2026-Q1", name: "Q1 Rollover", status: "DRAFT" },
         { id: 2, code: "ROLL-2026-Q2", name: "Q2 Rollover", status: "SIMULATED" },
@@ -163,7 +170,7 @@ describe("campaign router", () => {
     });
 
     it("returns empty list when no campaigns exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
       const result = await caller.campaign.listCampaigns({});
@@ -172,7 +179,7 @@ describe("campaign router", () => {
     });
 
     it("filters by campaignType", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         { id: 1, code: "INV-001", campaignType: "INVENTORY_ROLLOVER" },
       ]);
@@ -185,7 +192,7 @@ describe("campaign router", () => {
     });
 
     it("filters by status", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
       const result = await caller.campaign.listCampaigns({
@@ -196,7 +203,7 @@ describe("campaign router", () => {
     });
 
     it("filters by both campaignType and status", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         { id: 1, campaignType: "PRICE_UPDATE", status: "DRAFT" },
       ]);
@@ -209,7 +216,7 @@ describe("campaign router", () => {
     });
 
     it("applies pagination with limit and offset", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 3, code: "CAM-003" }]);
       selectResultsQueue.push([{ value: 10 }]);
       const result = await caller.campaign.listCampaigns({
@@ -221,7 +228,7 @@ describe("campaign router", () => {
     });
 
     it("works with no input (defaults)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
       const result = await caller.campaign.listCampaigns();
@@ -229,7 +236,7 @@ describe("campaign router", () => {
     });
 
     it("rejects invalid campaignType", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.campaign.listCampaigns({
           campaignType: "NONEXISTENT" as any,
@@ -238,7 +245,7 @@ describe("campaign router", () => {
     });
 
     it("rejects invalid status", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.campaign.listCampaigns({ status: "BOGUS" as any })
       ).rejects.toThrow();
@@ -247,7 +254,7 @@ describe("campaign router", () => {
 
   describe("getCampaign", () => {
     it("returns campaign with payload count", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         {
           id: 1,
@@ -265,14 +272,14 @@ describe("campaign router", () => {
     });
 
     it("returns null when campaign not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       const result = await caller.campaign.getCampaign({ id: 999 });
       expect(result).toBeNull();
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 5, code: "STR-005", status: "DRAFT" }]);
       selectResultsQueue.push([{ value: 0 }]);
       const result = await caller.campaign.getCampaign({ id: "5" });
@@ -283,7 +290,7 @@ describe("campaign router", () => {
 
   describe("createCampaign", () => {
     it("creates a campaign in DRAFT status", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [
         {
           id: 1,
@@ -305,7 +312,7 @@ describe("campaign router", () => {
     });
 
     it("creates a campaign with optional fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [
         {
           id: 2,
@@ -328,7 +335,7 @@ describe("campaign router", () => {
     });
 
     it("rejects empty code", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.campaign.createCampaign({
           code: "",
@@ -339,7 +346,7 @@ describe("campaign router", () => {
     });
 
     it("rejects empty name", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.campaign.createCampaign({
           code: "TEST-001",
@@ -350,7 +357,7 @@ describe("campaign router", () => {
     });
 
     it("rejects invalid campaignType", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.campaign.createCampaign({
           code: "TEST-001",
@@ -363,7 +370,7 @@ describe("campaign router", () => {
 
   describe("updateCampaign", () => {
     it("updates a DRAFT campaign", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First select: verify existing campaign is DRAFT
       selectResultsQueue.push([{ id: 1, status: "DRAFT" }]);
       mockReturningResult = [
@@ -377,7 +384,7 @@ describe("campaign router", () => {
     });
 
     it("throws when campaign not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(
         caller.campaign.updateCampaign({ id: 999, name: "X" })
@@ -385,7 +392,7 @@ describe("campaign router", () => {
     });
 
     it("throws when campaign is not DRAFT", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, status: "APPROVED" }]);
       await expect(
         caller.campaign.updateCampaign({ id: 1, name: "X" })
@@ -393,7 +400,7 @@ describe("campaign router", () => {
     });
 
     it("throws when campaign is COMPLETED", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, status: "COMPLETED" }]);
       await expect(
         caller.campaign.updateCampaign({ id: 1, name: "X" })
@@ -401,7 +408,7 @@ describe("campaign router", () => {
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 3, status: "DRAFT" }]);
       mockReturningResult = [{ id: 3, code: "UPD-003" }];
       const result = await caller.campaign.updateCampaign({
@@ -414,7 +421,7 @@ describe("campaign router", () => {
 
   describe("deleteCampaign", () => {
     it("deletes a DRAFT campaign and its payloads", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First select: verify existing campaign is DRAFT
       selectResultsQueue.push([{ id: 1, status: "DRAFT" }]);
       mockReturningResult = [{ id: 1 }];
@@ -424,7 +431,7 @@ describe("campaign router", () => {
     });
 
     it("throws when campaign not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(
         caller.campaign.deleteCampaign({ id: 999 })
@@ -432,7 +439,7 @@ describe("campaign router", () => {
     });
 
     it("throws when campaign is not DRAFT", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, status: "EXECUTING" }]);
       await expect(
         caller.campaign.deleteCampaign({ id: 1 })
@@ -440,7 +447,7 @@ describe("campaign router", () => {
     });
 
     it("throws when campaign is ROLLED_BACK", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, status: "ROLLED_BACK" }]);
       await expect(
         caller.campaign.deleteCampaign({ id: 1 })
@@ -448,7 +455,7 @@ describe("campaign router", () => {
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 7, status: "DRAFT" }]);
       mockReturningResult = [{ id: 7 }];
       const result = await caller.campaign.deleteCampaign({ id: "7" });
@@ -463,7 +470,7 @@ describe("campaign router", () => {
 
   describe("listPayloads", () => {
     it("returns payloads for a campaign", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 1, campaignId: 1, entityType: "users", operation: "UPDATE", executionOrder: 0 },
         { id: 2, campaignId: 1, entityType: "projects", operation: "CREATE", executionOrder: 1 },
@@ -474,7 +481,7 @@ describe("campaign router", () => {
     });
 
     it("returns empty list when no payloads", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.campaign.listPayloads({ campaignId: 99 });
       expect(result.items).toHaveLength(0);
@@ -482,7 +489,7 @@ describe("campaign router", () => {
     });
 
     it("accepts string campaignId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ id: 10, campaignId: 5 }];
       const result = await caller.campaign.listPayloads({ campaignId: "5" });
       expect(result.items).toHaveLength(1);
@@ -491,7 +498,7 @@ describe("campaign router", () => {
 
   describe("addPayload", () => {
     it("adds a payload to a DRAFT campaign", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First select: verify campaign exists and is DRAFT
       selectResultsQueue.push([{ id: 1, status: "DRAFT" }]);
       mockReturningResult = [
@@ -515,7 +522,7 @@ describe("campaign router", () => {
     });
 
     it("adds a payload with entityId and executionOrder", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, status: "DRAFT" }]);
       mockReturningResult = [
         {
@@ -539,7 +546,7 @@ describe("campaign router", () => {
     });
 
     it("throws when campaign not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(
         caller.campaign.addPayload({
@@ -551,7 +558,7 @@ describe("campaign router", () => {
     });
 
     it("throws when campaign is not DRAFT", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, status: "COMPLETED" }]);
       await expect(
         caller.campaign.addPayload({
@@ -563,7 +570,7 @@ describe("campaign router", () => {
     });
 
     it("rejects invalid operation", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.campaign.addPayload({
           campaignId: 1,
@@ -574,7 +581,7 @@ describe("campaign router", () => {
     });
 
     it("rejects empty entityType", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.campaign.addPayload({
           campaignId: 1,
@@ -587,7 +594,7 @@ describe("campaign router", () => {
 
   describe("updatePayload", () => {
     it("updates payload fields when campaign is DRAFT", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First select: fetch existing payload
       selectResultsQueue.push([{ id: 10, campaignId: 1 }]);
       // Second select: verify parent campaign is DRAFT
@@ -605,7 +612,7 @@ describe("campaign router", () => {
     });
 
     it("throws when payload not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(
         caller.campaign.updatePayload({ id: 999, entityType: "users" })
@@ -613,7 +620,7 @@ describe("campaign router", () => {
     });
 
     it("throws when parent campaign is not DRAFT", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 10, campaignId: 1 }]);
       selectResultsQueue.push([{ id: 1, status: "APPROVED" }]);
       await expect(
@@ -624,7 +631,7 @@ describe("campaign router", () => {
     });
 
     it("throws when no fields to update", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 10, campaignId: 1 }]);
       selectResultsQueue.push([{ id: 1, status: "DRAFT" }]);
       await expect(
@@ -633,7 +640,7 @@ describe("campaign router", () => {
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 10, campaignId: 1 }]);
       selectResultsQueue.push([{ id: 1, status: "DRAFT" }]);
       mockReturningResult = [{ id: 10, entityType: "warehouses" }];
@@ -647,7 +654,7 @@ describe("campaign router", () => {
 
   describe("deletePayload", () => {
     it("deletes a payload when campaign is DRAFT", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First select: fetch existing payload
       selectResultsQueue.push([{ id: 10, campaignId: 1 }]);
       // Second select: verify parent campaign is DRAFT
@@ -659,7 +666,7 @@ describe("campaign router", () => {
     });
 
     it("throws when payload not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(
         caller.campaign.deletePayload({ id: 999 })
@@ -667,7 +674,7 @@ describe("campaign router", () => {
     });
 
     it("throws when parent campaign is not DRAFT", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 10, campaignId: 1 }]);
       selectResultsQueue.push([{ id: 1, status: "SIMULATED" }]);
       await expect(
@@ -678,7 +685,7 @@ describe("campaign router", () => {
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 5, campaignId: 2 }]);
       selectResultsQueue.push([{ id: 2, status: "DRAFT" }]);
       mockReturningResult = [{ id: 5 }];
@@ -689,7 +696,7 @@ describe("campaign router", () => {
 
   describe("reorderPayloads", () => {
     it("reorders payloads for a DRAFT campaign", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First select: verify campaign is DRAFT
       selectResultsQueue.push([{ id: 1, status: "DRAFT" }]);
       const result = await caller.campaign.reorderPayloads({
@@ -704,7 +711,7 @@ describe("campaign router", () => {
     });
 
     it("returns zero for empty items array", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, status: "DRAFT" }]);
       const result = await caller.campaign.reorderPayloads({
         campaignId: 1,
@@ -714,7 +721,7 @@ describe("campaign router", () => {
     });
 
     it("throws when campaign not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(
         caller.campaign.reorderPayloads({
@@ -725,7 +732,7 @@ describe("campaign router", () => {
     });
 
     it("throws when campaign is not DRAFT", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, status: "EXECUTING" }]);
       await expect(
         caller.campaign.reorderPayloads({
@@ -738,7 +745,7 @@ describe("campaign router", () => {
     });
 
     it("accepts string campaignId and item ids", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 2, status: "DRAFT" }]);
       const result = await caller.campaign.reorderPayloads({
         campaignId: "2",
@@ -754,7 +761,7 @@ describe("campaign router", () => {
 
   describe("simulateCampaign", () => {
     it("calls simulateOrgShift service and returns result", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const simResult = {
         campaignId: 1,
         warnings: [],
@@ -770,14 +777,14 @@ describe("campaign router", () => {
     });
 
     it("converts string campaignId to number", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockSimulateOrgShift.mockResolvedValue({ campaignId: 5 });
       await caller.campaign.simulateCampaign({ campaignId: "5" });
       expect(mockSimulateOrgShift).toHaveBeenCalledWith(5);
     });
 
     it("propagates service errors", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockSimulateOrgShift.mockRejectedValue(
         new Error("Campaign #1 not found")
       );
@@ -789,7 +796,7 @@ describe("campaign router", () => {
 
   describe("approveCampaign", () => {
     it("approves a SIMULATED campaign", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First select: verify existing campaign is SIMULATED
       selectResultsQueue.push([{ id: 1, status: "SIMULATED" }]);
       mockReturningResult = [
@@ -806,7 +813,7 @@ describe("campaign router", () => {
     });
 
     it("throws when campaign not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(
         caller.campaign.approveCampaign({ campaignId: 999 })
@@ -814,7 +821,7 @@ describe("campaign router", () => {
     });
 
     it("throws when campaign is DRAFT (not SIMULATED)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, status: "DRAFT" }]);
       await expect(
         caller.campaign.approveCampaign({ campaignId: 1 })
@@ -822,7 +829,7 @@ describe("campaign router", () => {
     });
 
     it("throws when campaign is already APPROVED", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, status: "APPROVED" }]);
       await expect(
         caller.campaign.approveCampaign({ campaignId: 1 })
@@ -830,7 +837,7 @@ describe("campaign router", () => {
     });
 
     it("accepts string campaignId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 3, status: "SIMULATED" }]);
       mockReturningResult = [{ id: 3, status: "APPROVED" }];
       const result = await caller.campaign.approveCampaign({
@@ -864,7 +871,7 @@ describe("campaign router", () => {
     });
 
     it("propagates service errors", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockExecuteCampaign.mockRejectedValue(
         new Error("Campaign #1 is DRAFT; expected one of [APPROVED]")
       );
@@ -874,7 +881,7 @@ describe("campaign router", () => {
     });
 
     it("passes different user id from context", async () => {
-      const caller = createAuthenticatedCaller({ id: 42 });
+      const caller = createAdminCaller({ id: 42 });
       mockExecuteCampaign.mockResolvedValue({ campaignId: 1, status: "COMPLETED" });
       await caller.campaign.executeCampaign({ campaignId: 1 });
       expect(mockExecuteCampaign).toHaveBeenCalledWith(1, 42);
@@ -883,7 +890,7 @@ describe("campaign router", () => {
 
   describe("rollbackCampaign", () => {
     it("calls rollbackCampaign service and returns structured result", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockRollbackCampaign.mockResolvedValue(undefined);
       const result = await caller.campaign.rollbackCampaign({
         campaignId: 1,
@@ -901,7 +908,7 @@ describe("campaign router", () => {
     });
 
     it("converts string campaignId to number", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockRollbackCampaign.mockResolvedValue(undefined);
       const result = await caller.campaign.rollbackCampaign({
         campaignId: "3",
@@ -913,7 +920,7 @@ describe("campaign router", () => {
     });
 
     it("propagates service errors", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockRollbackCampaign.mockRejectedValue(
         new Error("Campaign #1 is DRAFT; expected one of [COMPLETED]")
       );
@@ -927,7 +934,7 @@ describe("campaign router", () => {
     });
 
     it("rejects empty reason", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.campaign.rollbackCampaign({
           campaignId: 1,
@@ -938,7 +945,7 @@ describe("campaign router", () => {
     });
 
     it("rejects reason exceeding 1000 chars", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.campaign.rollbackCampaign({
           campaignId: 1,
@@ -955,7 +962,7 @@ describe("campaign router", () => {
 
   describe("listFreezeLogs", () => {
     it("returns freeze logs for a campaign", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         {
           id: 1,
@@ -978,7 +985,7 @@ describe("campaign router", () => {
     });
 
     it("returns empty list when no freeze logs", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.campaign.listFreezeLogs({ campaignId: 99 });
       expect(result.items).toHaveLength(0);
@@ -986,7 +993,7 @@ describe("campaign router", () => {
     });
 
     it("accepts string campaignId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ id: 1, campaignId: 5 }];
       const result = await caller.campaign.listFreezeLogs({
         campaignId: "5",
@@ -997,7 +1004,7 @@ describe("campaign router", () => {
 
   describe("freezeInventory", () => {
     it("calls freezeInventory service and returns result", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockFreezeInventory.mockResolvedValue(42);
       const result = await caller.campaign.freezeInventory({
         campaignId: 1,
@@ -1011,7 +1018,7 @@ describe("campaign router", () => {
     });
 
     it("passes freezeScope to service", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockFreezeInventory.mockResolvedValue(43);
       const scope = {
         skus: ["SKU-001", "SKU-002"],
@@ -1037,7 +1044,7 @@ describe("campaign router", () => {
     });
 
     it("converts string campaignId to number", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockFreezeInventory.mockResolvedValue(44);
       const result = await caller.campaign.freezeInventory({
         campaignId: "7",
@@ -1049,7 +1056,7 @@ describe("campaign router", () => {
     });
 
     it("rejects invalid freezeType", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.campaign.freezeInventory({
           campaignId: 1,
@@ -1061,7 +1068,7 @@ describe("campaign router", () => {
     });
 
     it("propagates service errors", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockFreezeInventory.mockRejectedValue(
         new Error("Campaign #999 not found")
       );
@@ -1078,7 +1085,7 @@ describe("campaign router", () => {
 
   describe("unfreezeInventory", () => {
     it("calls unfreezeInventory service and returns result", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockUnfreezeInventory.mockResolvedValue(undefined);
       const result = await caller.campaign.unfreezeInventory({
         freezeLogId: 42,
@@ -1089,7 +1096,7 @@ describe("campaign router", () => {
     });
 
     it("converts string freezeLogId to number", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockUnfreezeInventory.mockResolvedValue(undefined);
       const result = await caller.campaign.unfreezeInventory({
         freezeLogId: "7",
@@ -1099,7 +1106,7 @@ describe("campaign router", () => {
     });
 
     it("propagates service errors (not found)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockUnfreezeInventory.mockRejectedValue(
         new Error("Inventory freeze log #999 not found")
       );
@@ -1109,7 +1116,7 @@ describe("campaign router", () => {
     });
 
     it("propagates service errors (already unfrozen)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockUnfreezeInventory.mockRejectedValue(
         new Error("Inventory freeze log #42 is already unfrozen")
       );

@@ -112,7 +112,7 @@ vi.mock("../../drizzle/oee-schema", () => ({
 // ─── Import callers AFTER mocks ────────────────────────────────────
 
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -434,7 +434,7 @@ describe("oeeDashboard.dashboard", () => {
   it("returns mock data when DB has no machines", async () => {
     // safeQuery: first select returns empty machines → live = null
     selectResultsQueue.push([]); // machines query
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.oeeDashboard.dashboard();
     expect(result.isLive).toBe(false);
     expect(result.machines).toBeDefined();
@@ -445,7 +445,7 @@ describe("oeeDashboard.dashboard", () => {
 
   it("returns mock data machine codes CNC-001, WASH-003, WELD-007, PAINT-002", async () => {
     selectResultsQueue.push([]); // no machines → fallback
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.oeeDashboard.dashboard();
     const codes = result.machines.map((m: any) => m.machineCode);
     expect(codes).toContain("CNC-001");
@@ -473,7 +473,7 @@ describe("oeeDashboard.dashboard", () => {
       },
     ]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.oeeDashboard.dashboard();
     expect(result.isLive).toBe(true);
     expect(result.machines).toHaveLength(1);
@@ -504,7 +504,7 @@ describe("oeeDashboard.dashboard", () => {
       },
     ]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.oeeDashboard.dashboard();
     expect(result.isLive).toBe(true);
     expect(result.machines[0].shiftsToday).toBe(0);
@@ -530,7 +530,7 @@ describe("oeeDashboard.dashboard", () => {
     // Logs for machine 2
     selectResultsQueue.push([]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.oeeDashboard.dashboard();
     expect(result.isLive).toBe(true);
     expect(result.machines).toHaveLength(2);
@@ -545,7 +545,7 @@ describe("oeeDashboard.dashboard", () => {
     ]);
     selectResultsQueue.push([]); // no shift logs
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.oeeDashboard.dashboard();
     expect(result.isLive).toBe(true);
     expect(result.machines[0].location).toBe("");
@@ -556,7 +556,7 @@ describe("oeeDashboard.dashboard", () => {
     const { requireDb } = await import("../db");
     (requireDb as any).mockRejectedValueOnce(new Error("DB connection failed"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.oeeDashboard.dashboard();
     expect(result.isLive).toBe(false);
     expect(result.machines.length).toBe(4); // mock data
@@ -564,7 +564,7 @@ describe("oeeDashboard.dashboard", () => {
 
   it("includes lastUpdated timestamp on each machine entry", async () => {
     selectResultsQueue.push([]); // no machines → fallback to mock
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.oeeDashboard.dashboard();
     for (const machine of result.machines) {
       expect(machine.lastUpdated).toBeDefined();
@@ -575,7 +575,7 @@ describe("oeeDashboard.dashboard", () => {
 
   it("each mock machine has valid OEE with grade", async () => {
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.oeeDashboard.dashboard();
     for (const machine of result.machines) {
       expect(machine.oee).toBeDefined();
@@ -597,7 +597,7 @@ describe("oeeDashboard.dashboard", () => {
 describe("oeeDashboard.machineHistory", () => {
   it("returns empty history with isLive=false when no snapshots exist", async () => {
     selectResultsQueue.push([]); // empty snapshots
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.oeeDashboard.machineHistory({ machineId: 1 });
     expect(result.history).toEqual([]);
     expect(result.isLive).toBe(false);
@@ -622,7 +622,7 @@ describe("oeeDashboard.machineHistory", () => {
         quality: "1.0000",
       },
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.oeeDashboard.machineHistory({ machineId: 1 });
     expect(result.isLive).toBe(true);
     expect(result.history).toHaveLength(2);
@@ -636,7 +636,7 @@ describe("oeeDashboard.machineHistory", () => {
 
   it("uses default days=30 when not specified", async () => {
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.oeeDashboard.machineHistory({ machineId: 1 });
     // The limit mock should have been called
     // We verify DB chain was invoked
@@ -645,7 +645,7 @@ describe("oeeDashboard.machineHistory", () => {
 
   it("uses custom days parameter", async () => {
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.oeeDashboard.machineHistory({ machineId: 5, days: 7 });
     expect(mockDb.select).toHaveBeenCalled();
   });
@@ -662,7 +662,7 @@ describe("oeeDashboard.machineHistory", () => {
         quality: "0.8333",
       },
     ]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.oeeDashboard.machineHistory({ machineId: 1 });
     expect(result.history[0].oee).toBe(50);
     expect(result.history[0].availability).toBe(75);
@@ -675,7 +675,7 @@ describe("oeeDashboard.machineHistory", () => {
     const { requireDb } = await import("../db");
     (requireDb as any).mockRejectedValueOnce(new Error("DB down"));
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.oeeDashboard.machineHistory({ machineId: 1 });
     expect(result.history).toEqual([]);
     expect(result.isLive).toBe(false);
@@ -689,7 +689,7 @@ describe("oeeDashboard.machineHistory", () => {
   });
 
   it("rejects invalid input (machineId must be number)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.oeeDashboard.machineHistory as any)({ machineId: "abc" })
     ).rejects.toThrow();

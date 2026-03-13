@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { travelRecords } from "../../drizzle/schema";
 import { desc, count, sql, eq } from "drizzle-orm";

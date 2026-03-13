@@ -4,7 +4,7 @@
  * + 4 tRPC procedures (listEcos, getEcoImpact, approveEco, rejectEco)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAdminCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 import {
   calculateEcoFinancialImpact,
   classifyRisk,
@@ -187,7 +187,7 @@ describe("eco-impact router", () => {
 
   describe("listEcos", () => {
     it("returns list of ECOs with impact summaries", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.ecoImpact.listEcos();
       expect(result).toHaveProperty("ecos");
       expect(result).toHaveProperty("dataSource", "mock");
@@ -202,7 +202,7 @@ describe("eco-impact router", () => {
 
   describe("getEcoImpact", () => {
     it("returns full impact analysis for known ECO", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.ecoImpact.getEcoImpact({ ecoId: "ECO-2026-001" });
       expect(result.found).toBe(true);
       if (result.found) {
@@ -214,13 +214,13 @@ describe("eco-impact router", () => {
     });
 
     it("returns found=false for unknown ECO", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.ecoImpact.getEcoImpact({ ecoId: "ECO-UNKNOWN" });
       expect(result.found).toBe(false);
     });
 
     it("ECO-001 has bearing substitution scrap cost", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.ecoImpact.getEcoImpact({ ecoId: "ECO-2026-001" });
       if (result.found) {
         expect(result.impact.scrapRiskValue).toBeGreaterThan(0);
@@ -229,7 +229,7 @@ describe("eco-impact router", () => {
     });
 
     it("ECO-003 is QUANTITY change with nozzles", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.ecoImpact.getEcoImpact({ ecoId: "ECO-2026-003" });
       if (result.found) {
         expect(result.impact.scrapRiskValue).toBe(0);
@@ -240,7 +240,7 @@ describe("eco-impact router", () => {
 
   describe("approveEco", () => {
     it("approves ECO", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.ecoImpact.approveEco({ ecoId: "ECO-2026-001" });
       expect(result).toHaveProperty("success", true);
       expect(result).toHaveProperty("newStatus", "approved");
@@ -248,7 +248,7 @@ describe("eco-impact router", () => {
     });
 
     it("approves with notes", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.ecoImpact.approveEco({
         ecoId: "ECO-2026-002", approverNotes: "Approved by engineering review board",
       });
@@ -258,7 +258,7 @@ describe("eco-impact router", () => {
 
   describe("rejectEco", () => {
     it("rejects ECO with reason", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.ecoImpact.rejectEco({
         ecoId: "ECO-2026-001", rejectReason: "Cost too high",
       });
@@ -268,7 +268,7 @@ describe("eco-impact router", () => {
     });
 
     it("rejects empty reason", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.ecoImpact.rejectEco({
         ecoId: "ECO-2026-001", rejectReason: "",
       })).rejects.toThrow();

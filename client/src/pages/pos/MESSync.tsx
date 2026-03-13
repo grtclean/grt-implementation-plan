@@ -20,6 +20,7 @@ import {
   Package, Timer, TrendingUp, BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const workOrderStatusMap = createStatusColorMap({
   Created: 'gray',
@@ -30,13 +31,13 @@ const workOrderStatusMap = createStatusColorMap({
   Cancelled: 'red',
 });
 
-const workOrderStatusLabels: Record<string, string> = {
-  Created: '已创建',
-  Pending: '待开始',
-  InProgress: '进行中',
-  Completed: '已完成',
-  OnHold: '暂停',
-  Cancelled: '已取消',
+const workOrderStatusLabelKeys: Record<string, string> = {
+  Created: 'projects.pos.mes.statusCreated',
+  Pending: 'projects.pos.mes.statusPending',
+  InProgress: 'projects.pos.mes.statusInProgress',
+  Completed: 'projects.pos.mes.statusCompleted',
+  OnHold: 'projects.pos.mes.statusOnHold',
+  Cancelled: 'projects.pos.mes.statusCancelled',
 };
 
 // 工序状态颜色
@@ -69,6 +70,7 @@ interface Operation {
 }
 
 export default function POSMESSync() {
+  const { t } = useLanguage();
   const [, setLocation] = useLocation();
   const [syncing, setSyncing] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
@@ -84,28 +86,28 @@ export default function POSMESSync() {
 
   const syncMutation = trpc.pos.mes.sync.useMutation({
     onSuccess: () => {
-      toast.success('同步成功');
+      toast.success(t("projects.pos.mes.syncSuccess"));
       refetch();
     },
-    onError: () => toast.error('同步失败'),
+    onError: () => toast.error(t("projects.pos.mes.syncFailed")),
   });
 
   const createWorkOrderMutation = trpc.pos.mes.createWorkOrderFromProject.useMutation({
     onSuccess: (result) => {
-      toast.success(`工单 ${result.workOrderCode} 创建成功`);
+      toast.success(`${t("projects.pos.mes.workOrder")} ${result.workOrderCode} ${t("projects.pos.mes.createSuccess")}`);
       setShowCreateDialog(false);
       refetch();
     },
-    onError: () => toast.error('创建工单失败'),
+    onError: () => toast.error(t("projects.pos.mes.createFailed")),
   });
 
   const trpcUtils = trpc.useUtils();
 
   const writeBackMutation = trpc.pos.mes.writeBackProgress.useMutation({
     onSuccess: () => {
-      toast.success('进度已回写到项目阶段');
+      toast.success(t("projects.pos.mes.writeBackSuccess"));
     },
-    onError: () => toast.error('回写失败'),
+    onError: () => toast.error(t("projects.pos.mes.writeBackFailed")),
   });
 
   const handleSync = async () => {
@@ -123,7 +125,7 @@ export default function POSMESSync() {
       toast.success(`进度已更新: ${Math.round(result.completionRate * 100)}%`);
       refetch();
     } catch {
-      toast.error('拉取进度失败');
+      toast.error(t("projects.pos.mes.pullFailed"));
     }
   };
 
@@ -157,27 +159,27 @@ export default function POSMESSync() {
       {/* 页面标题 */}
       <PageHeader
         icon={Factory}
-        title="MES同步"
-        description="工单与进度看板 - 双向数据同步"
+        title={t("projects.pos.mes.title")}
+        description={t("projects.pos.mes.description")}
         actions={
           <div className="flex gap-2">
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogTrigger asChild>
                 <Button variant="outline">
                   <Plus className="w-4 h-4 mr-2" />
-                  创建工单
+                  {t("projects.pos.mes.createWorkOrder")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>从项目创建工单</DialogTitle>
-                  <DialogDescription>选择项目并创建MES工单</DialogDescription>
+                  <DialogTitle>{t("projects.pos.mes.createFromProject")}</DialogTitle>
+                  <DialogDescription>{t("projects.pos.mes.selectProjectCreateWorkOrder")}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div>
-                    <Label>项目ID</Label>
+                    <Label>{t("projects.pos.mes.projectId")}</Label>
                     <Input
-                      placeholder="输入项目ID"
+                      placeholder={t("projects.pos.mes.enterProjectId")}
                       value={newWorkOrder.projectId}
                       onChange={(e) => setNewWorkOrder({ ...newWorkOrder, projectId: e.target.value })}
                     />
@@ -200,14 +202,14 @@ export default function POSMESSync() {
                     ) : (
                       <Plus className="w-4 h-4 mr-2" />
                     )}
-                    创建工单
+                    {t("projects.pos.mes.createWorkOrder")}
                   </Button>
                 </div>
               </DialogContent>
             </Dialog>
             <Button variant="outline" onClick={() => setLocation('/pos/connectors')}>
               <Settings className="w-4 h-4 mr-2" />
-              配置连接
+              {t("projects.pos.mes.configConnection")}
             </Button>
             <Button onClick={handleSync} disabled={syncing}>
               {syncing ? (
@@ -215,7 +217,7 @@ export default function POSMESSync() {
               ) : (
                 <RefreshCw className="w-4 h-4 mr-2" />
               )}
-              同步MES
+              {t("projects.pos.mes.syncMes")}
             </Button>
           </div>
         }
@@ -227,14 +229,14 @@ export default function POSMESSync() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`w-3 h-3 rounded-full ${mesConnected ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`} />
-              <span className="font-medium">MES连接状态</span>
+              <span className="font-medium">{t("projects.pos.mes.connectionStatus")}</span>
               <Badge variant={mesConnected ? 'default' : 'secondary'}>
-                {mesConnected ? '已连接' : '未连接'}
+                {mesConnected ? t("projects.pos.mes.connected") : t("projects.pos.mes.disconnected")}
               </Badge>
             </div>
             {connectionStatus?.mes?.lastSync && (
               <span className="text-sm text-muted-foreground">
-                上次同步: {connectionStatus.mes.lastSync}
+                {t("projects.pos.mes.lastSync")}: {connectionStatus.mes.lastSync}
               </span>
             )}
           </div>
@@ -243,11 +245,11 @@ export default function POSMESSync() {
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatCard icon={Factory} label="工单总数" value={stats.total} subtitle="活跃工单" />
-        <StatCard icon={Activity} label="进行中" value={stats.inProgress} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={CheckCircle2} label="已完成" value={stats.completed} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={AlertTriangle} label="异常暂停" value={stats.onHold} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
-        <StatCard icon={TrendingUp} label="平均进度" value={`${stats.avgProgress}%`} subtitle="整体完成度" />
+        <StatCard icon={Factory} label={t("projects.pos.mes.totalWorkOrders")} value={stats.total} subtitle={t("projects.pos.mes.activeWorkOrders")} />
+        <StatCard icon={Activity} label={t("projects.pos.mes.inProgress")} value={stats.inProgress} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={CheckCircle2} label={t("projects.pos.mes.completed")} value={stats.completed} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={AlertTriangle} label={t("projects.pos.mes.onHold")} value={stats.onHold} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+        <StatCard icon={TrendingUp} label={t("projects.pos.mes.avgProgress")} value={`${stats.avgProgress}%`} subtitle={t("projects.pos.mes.overallCompletion")} />
       </div>
 
       {/* 工单看板 - 可视化视图 */}
@@ -255,15 +257,15 @@ export default function POSMESSync() {
         <TabsList>
           <TabsTrigger value="kanban" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
-            看板视图
+            {t("projects.pos.mes.kanbanView")}
           </TabsTrigger>
           <TabsTrigger value="table" className="flex items-center gap-2">
             <Factory className="w-4 h-4" />
-            列表视图
+            {t("projects.pos.mes.listView")}
           </TabsTrigger>
           <TabsTrigger value="timeline" className="flex items-center gap-2">
             <Timer className="w-4 h-4" />
-            工序详情
+            {t("projects.pos.mes.processDetails")}
           </TabsTrigger>
         </TabsList>
 
@@ -275,7 +277,7 @@ export default function POSMESSync() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  待开始
+                  {t("projects.pos.mes.pending")}
                   <Badge variant="secondary">{displayWorkOrders.filter((w: WorkOrder) => w.status === 'Pending' || w.status === 'Created').length}</Badge>
                 </CardTitle>
               </CardHeader>
@@ -302,7 +304,7 @@ export default function POSMESSync() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Activity className="w-4 h-4 text-blue-500" />
-                  进行中
+                  {t("projects.pos.mes.inProgress")}
                   <Badge className="bg-blue-500">{stats.inProgress}</Badge>
                 </CardTitle>
               </CardHeader>
@@ -314,7 +316,7 @@ export default function POSMESSync() {
                       <p className="text-sm text-muted-foreground truncate">{wo.productName}</p>
                       <div className="mt-2">
                         <div className="flex items-center justify-between text-xs mb-1">
-                          <span>进度</span>
+                          <span>{t("projects.pos.mes.progress")}</span>
                           <span className="font-medium">{wo.progress}%</span>
                         </div>
                         <Progress value={wo.progress} className="h-2" />
@@ -341,7 +343,7 @@ export default function POSMESSync() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                  异常暂停
+                  {t("projects.pos.mes.onHold")}
                   <Badge className="bg-yellow-500">{stats.onHold}</Badge>
                 </CardTitle>
               </CardHeader>
@@ -355,7 +357,7 @@ export default function POSMESSync() {
                         <Progress value={wo.progress} className="h-2 bg-yellow-200" />
                       </div>
                       <div className="flex items-center justify-between mt-2">
-                        <Badge variant="destructive" className="text-xs">需处理</Badge>
+                        <Badge variant="destructive" className="text-xs">{t("projects.pos.mes.needsAction")}</Badge>
                         <Button size="sm" variant="ghost" className="h-6 px-2">
                           <Eye className="w-3 h-3" />
                         </Button>
@@ -371,7 +373,7 @@ export default function POSMESSync() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
-                  已完成
+                  {t("projects.pos.mes.completed")}
                   <Badge className="bg-green-500">{stats.completed}</Badge>
                 </CardTitle>
               </CardHeader>
@@ -399,9 +401,9 @@ export default function POSMESSync() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Factory className="h-5 w-5" />
-                工单列表
+                {t("projects.pos.mes.workOrderList")}
               </CardTitle>
-              <CardDescription>MES系统工单状态与进度</CardDescription>
+              <CardDescription>{t("projects.pos.mes.workOrderListDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -411,20 +413,20 @@ export default function POSMESSync() {
               ) : displayWorkOrders.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <Factory className="w-12 h-12 mb-3 opacity-50" />
-                  <p className="font-medium">暂无工单数据</p>
-                  <p className="text-sm">创建工单或同步MES系统获取数据</p>
+                  <p className="font-medium">{t("projects.pos.mes.noWorkOrders")}</p>
+                  <p className="text-sm">{t("projects.pos.mes.noWorkOrdersDesc")}</p>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>工单编号</TableHead>
-                      <TableHead>项目编号</TableHead>
-                      <TableHead>产品名称</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead>进度</TableHead>
-                      <TableHead>最后同步</TableHead>
-                      <TableHead>操作</TableHead>
+                      <TableHead>{t("projects.pos.mes.workOrderCode")}</TableHead>
+                      <TableHead>{t("projects.pos.mes.projectCode")}</TableHead>
+                      <TableHead>{t("projects.pos.mes.productName")}</TableHead>
+                      <TableHead>{t("projects.pos.mes.status")}</TableHead>
+                      <TableHead>{t("projects.pos.mes.progress")}</TableHead>
+                      <TableHead>{t("projects.pos.mes.lastSync")}</TableHead>
+                      <TableHead>{t("projects.pos.mes.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -435,7 +437,7 @@ export default function POSMESSync() {
                         <TableCell>{wo.productName}</TableCell>
                         <TableCell>
                           <StatusBadge color={workOrderStatusMap[wo.status as keyof typeof workOrderStatusMap] ?? 'gray'}>
-                            {workOrderStatusLabels[wo.status]}
+                            {t(workOrderStatusLabelKeys[wo.status])}
                           </StatusBadge>
                         </TableCell>
                         <TableCell>
@@ -470,9 +472,9 @@ export default function POSMESSync() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Timer className="h-5 w-5" />
-                工序进度详情
+                {t("projects.pos.mes.processProgress")}
               </CardTitle>
-              <CardDescription>查看各工单的工序执行状态</CardDescription>
+              <CardDescription>{t("projects.pos.mes.processProgressDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
@@ -485,7 +487,7 @@ export default function POSMESSync() {
                       </div>
                       <div className="flex items-center gap-2">
                         <StatusBadge color={workOrderStatusMap[wo.status as keyof typeof workOrderStatusMap] ?? 'gray'}>
-                          {workOrderStatusLabels[wo.status]}
+                          {t(workOrderStatusLabelKeys[wo.status])}
                         </StatusBadge>
                         <span className="text-lg font-bold">{wo.progress}%</span>
                       </div>
@@ -533,56 +535,56 @@ export default function POSMESSync() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ArrowLeftRight className="h-5 w-5" />
-            双向数据同步
+            {t("projects.pos.mes.bidirectionalSync")}
           </CardTitle>
-          <CardDescription>POS与MES系统的数据同步关系</CardDescription>
+          <CardDescription>{t("projects.pos.mes.bidirectionalSyncDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center gap-4 py-4">
             <div className="text-center p-4 border rounded-lg bg-primary/5">
               <Package className="w-8 h-8 mx-auto mb-2 text-primary" />
-              <p className="font-medium">POS系统</p>
-              <p className="text-sm text-muted-foreground">项目管理</p>
+              <p className="font-medium">{t("projects.pos.mes.posSystem")}</p>
+              <p className="text-sm text-muted-foreground">{t("projects.pos.mes.projectManagement")}</p>
             </div>
             <div className="flex flex-col items-center gap-2">
               <div className="flex items-center gap-1">
                 <ArrowRight className="w-6 h-6 text-primary" />
-                <span className="text-xs bg-primary/10 px-2 py-1 rounded">创建工单</span>
+                <span className="text-xs bg-primary/10 px-2 py-1 rounded">{t("projects.pos.mes.createWorkOrder")}</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-xs bg-green-500/10 px-2 py-1 rounded">回写进度</span>
+                <span className="text-xs bg-green-500/10 px-2 py-1 rounded">{t("projects.pos.mes.writeBackProgress")}</span>
                 <ArrowRight className="w-6 h-6 text-green-500 rotate-180" />
               </div>
             </div>
             <div className="text-center p-4 border rounded-lg bg-orange-500/5">
               <Factory className="w-8 h-8 mx-auto mb-2 text-orange-500" />
-              <p className="font-medium">MES系统</p>
-              <p className="text-sm text-muted-foreground">生产执行</p>
+              <p className="font-medium">{t("projects.pos.mes.mesSystem")}</p>
+              <p className="text-sm text-muted-foreground">{t("projects.pos.mes.productionExecution")}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div className="p-3 bg-muted/50 rounded-lg">
               <h5 className="font-medium flex items-center gap-2 mb-2">
                 <Download className="w-4 h-4 text-primary" />
-                从MES拉取
+                {t("projects.pos.mes.pullFromMes")}
               </h5>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• 工单执行状态</li>
-                <li>• 工序完成进度</li>
-                <li>• 操作人员信息</li>
-                <li>• 异常报警记录</li>
+                <li>• {t("projects.pos.mes.pullWorkOrderStatus")}</li>
+                <li>• {t("projects.pos.mes.pullProcessProgress")}</li>
+                <li>• {t("projects.pos.mes.pullOperatorInfo")}</li>
+                <li>• {t("projects.pos.mes.pullAlertRecords")}</li>
               </ul>
             </div>
             <div className="p-3 bg-muted/50 rounded-lg">
               <h5 className="font-medium flex items-center gap-2 mb-2">
                 <Upload className="w-4 h-4 text-green-500" />
-                回写到项目
+                {t("projects.pos.mes.writeBackToProject")}
               </h5>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• 更新项目阶段进度</li>
-                <li>• 同步实际完成时间</li>
-                <li>• 记录生产异常</li>
-                <li>• 触发后续流程</li>
+                <li>• {t("projects.pos.mes.writeBackStageProgress")}</li>
+                <li>• {t("projects.pos.mes.writeBackActualTime")}</li>
+                <li>• {t("projects.pos.mes.writeBackExceptions")}</li>
+                <li>• {t("projects.pos.mes.writeBackTriggerProcess")}</li>
               </ul>
             </div>
           </div>

@@ -16,7 +16,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -108,7 +108,7 @@ describe("leadAutoFollow router", () => {
 
   describe("list", () => {
     it("returns leads with total count (2 sequential DB calls)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First DB call: count query → [{ count: N }]
       selectResultsQueue.push([{ count: 3 }]);
       // Second DB call: items query → [...leads]
@@ -121,7 +121,7 @@ describe("leadAutoFollow router", () => {
     });
 
     it("returns empty list when no leads exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ count: 0 }]);
       selectResultsQueue.push([]);
       const result = await caller.leadAutoFollow.list();
@@ -130,7 +130,7 @@ describe("leadAutoFollow router", () => {
     });
 
     it("respects limit and offset parameters", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ count: 10 }]);
       selectResultsQueue.push([sampleLead2]);
       const result = await caller.leadAutoFollow.list({ limit: 1, offset: 1 });
@@ -146,21 +146,21 @@ describe("leadAutoFollow router", () => {
 
   describe("getById", () => {
     it("returns a lead when found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([sampleLead]);
       const result = await caller.leadAutoFollow.getById({ id: 1 });
       expect(result).toEqual(sampleLead);
     });
 
     it("returns null when lead is not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       const result = await caller.leadAutoFollow.getById({ id: 999 });
       expect(result).toBeNull();
     });
 
     it("accepts string id and converts to number", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([sampleLead]);
       const result = await caller.leadAutoFollow.getById({ id: "1" });
       expect(result).toEqual(sampleLead);
@@ -173,7 +173,7 @@ describe("leadAutoFollow router", () => {
 
   describe("getConfig", () => {
     it("returns hardcoded config with 5 templates", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.leadAutoFollow.getConfig();
       expect(result.enabled).toBe(true);
       expect(result.followUpIntervalDays).toBe(3);
@@ -199,7 +199,7 @@ describe("leadAutoFollow router", () => {
 
   describe("updateConfig", () => {
     it("returns success message", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.leadAutoFollow.updateConfig({
         enabled: false,
         followUpIntervalDays: 7,
@@ -215,7 +215,7 @@ describe("leadAutoFollow router", () => {
 
   describe("create", () => {
     it("returns success message", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.leadAutoFollow.create({
         data: { name: "test" },
       });
@@ -230,7 +230,7 @@ describe("leadAutoFollow router", () => {
 
   describe("update", () => {
     it("returns success message", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.leadAutoFollow.update({
         id: 1,
         data: { status: "contacted" },
@@ -246,7 +246,7 @@ describe("leadAutoFollow router", () => {
 
   describe("delete", () => {
     it("returns success message", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.leadAutoFollow.delete({ id: 1 });
       expect(result.success).toBe(true);
       expect(result.message).toBe("Auto-follow deleted");
@@ -259,7 +259,7 @@ describe("leadAutoFollow router", () => {
 
   describe("getLeads", () => {
     it("returns all leads when no filters applied", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([sampleLead, sampleLead2, sampleLead3]);
       const result = await caller.leadAutoFollow.getLeads();
       expect(result.items).toHaveLength(3);
@@ -267,7 +267,7 @@ describe("leadAutoFollow router", () => {
     });
 
     it("filters by status (client-side)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([sampleLead, sampleLead2, sampleLead3]);
       const result = await caller.leadAutoFollow.getLeads({ status: "new" });
       expect(result.items).toHaveLength(1);
@@ -276,7 +276,7 @@ describe("leadAutoFollow router", () => {
     });
 
     it("filters by priority (client-side)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([sampleLead, sampleLead2, sampleLead3]);
       const result = await caller.leadAutoFollow.getLeads({
         priority: "high",
@@ -287,7 +287,7 @@ describe("leadAutoFollow router", () => {
     });
 
     it("returns empty when no leads match", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       const result = await caller.leadAutoFollow.getLeads({ status: "lost" });
       expect(result.items).toHaveLength(0);
@@ -301,7 +301,7 @@ describe("leadAutoFollow router", () => {
 
   describe("getFollowUpTasks", () => {
     it("always returns empty items and zero total", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.leadAutoFollow.getFollowUpTasks();
       expect(result.items).toEqual([]);
       expect(result.total).toBe(0);

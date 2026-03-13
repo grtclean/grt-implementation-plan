@@ -21,7 +21,7 @@ const gradeColorMap = createStatusColorMap({
 
 // TODO: 接入 tRPC 后端接口替换
 const TEAM_MEMBERS = [
-  { name: "王工", role: "机械工程师", score: 92, grade: "A", trend: "up", goals: "4/4" },
+  { name: "焦斌", role: "机械工程师", score: 92, grade: "A", trend: "up", goals: "4/4" },
   { name: "李工", role: "电气工程师", score: 87, grade: "B+", trend: "up", goals: "3/4" },
   { name: "张工", role: "项目经理", score: 85, grade: "B+", trend: "stable", goals: "3/4" },
   { name: "赵工", role: "销售工程师", score: 78, grade: "B", trend: "down", goals: "2/4" },

@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 import {
@@ -25,7 +25,7 @@ import {
 
 export const qualityInterlockRouter = router({
   // ============ 工序锁定 ============
-  triggerLock: protectedProcedure
+  triggerLock: requirePermission('mfg:interlock:manage')
     .input(z.object({
       projectId: z.string(),
       processCode: z.string(),
@@ -56,7 +56,7 @@ export const qualityInterlockRouter = router({
       return isProcessLocked(input.projectId, input.processCode);
     }),
 
-  requestUnlock: protectedProcedure
+  requestUnlock: requirePermission('mfg:interlock:manage')
     .input(z.object({
       lockId: z.number(),
       unlockReason: z.string(),
@@ -69,7 +69,7 @@ export const qualityInterlockRouter = router({
       });
     }),
 
-  approveUnlock: protectedProcedure
+  approveUnlock: requirePermission('mfg:interlock:manage')
     .input(z.object({
       lockId: z.number(),
       approved: z.boolean(),
@@ -102,13 +102,13 @@ export const qualityInterlockRouter = router({
       return getQualityAlerts(input.projectId, input);
     }),
 
-  markRead: protectedProcedure
+  markRead: requirePermission('mfg:interlock:manage')
     .input(z.object({ alertId: z.number() }))
     .mutation(async ({ input }) => {
       return markAlertRead(input.alertId);
     }),
 
-  markActioned: protectedProcedure
+  markActioned: requirePermission('mfg:interlock:manage')
     .input(z.object({
       alertId: z.number(),
       actionTaken: z.string(),
@@ -117,7 +117,7 @@ export const qualityInterlockRouter = router({
       return markAlertActioned(input.alertId, input.actionTaken);
     }),
 
-  markAllRead: protectedProcedure
+  markAllRead: requirePermission('mfg:interlock:manage')
     .input(z.object({ projectId: z.string() }))
     .mutation(async ({ input }) => {
       return markAllAlertsRead(input.projectId);
@@ -163,7 +163,7 @@ export const qualityInterlockRouter = router({
     }),
 
   // ============ 质量缺陷附件管理 ============
-  addDefectAttachment: protectedProcedure
+  addDefectAttachment: requirePermission('mfg:interlock:manage')
     .input(z.object({
       lockId: z.string(),
       fileName: z.string(),
@@ -202,7 +202,7 @@ export const qualityInterlockRouter = router({
       return (result[0] as any[]) || [];
     }),
 
-  deleteDefectAttachment: protectedProcedure
+  deleteDefectAttachment: requirePermission('mfg:interlock:manage')
     .input(z.object({
       id: z.number(),
     }))

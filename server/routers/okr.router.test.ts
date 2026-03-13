@@ -5,7 +5,7 @@
  * updateKeyResult, checkIn, dashboard, decomposeToOkr, seedDemo
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAdminCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 
 // ── Mock state ──────────────────────────────────────────
 let mockQueryResult: any[] = [];
@@ -66,7 +66,7 @@ describe("okr router", () => {
       // items query + count query
       selectResultsQueue.push([{ id: 1, title: "OKR 1" }]);
       selectResultsQueue.push([{ value: 10 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.list({});
       expect(result).toHaveProperty("items");
       expect(result).toHaveProperty("total");
@@ -75,7 +75,7 @@ describe("okr router", () => {
     it("handles no input", async () => {
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.list();
       expect(result.items).toHaveLength(0);
       expect(result.total).toBe(0);
@@ -85,7 +85,7 @@ describe("okr router", () => {
       // Force error by pushing an error-triggering result
       selectResultsQueue.push([]);
       selectResultsQueue.push([]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.list({});
       // try-catch fallback → { items: [], total: 0 } OR actual empty result
       expect(result).toHaveProperty("items");
@@ -95,7 +95,7 @@ describe("okr router", () => {
   describe("listObjectives", () => {
     it("returns objectives with filters", async () => {
       mockQueryResult = [{ id: 1, level: "company", title: "Revenue" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.listObjectives({
         level: "company", limit: 10,
       });
@@ -103,14 +103,14 @@ describe("okr router", () => {
     });
 
     it("returns empty on no match", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.listObjectives({ level: "bu", limit: 50 });
       expect(result).toHaveLength(0);
     });
 
     it("filters by multiple criteria", async () => {
       mockQueryResult = [{ id: 1 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.listObjectives({
         level: "bu", status: "active", period: "2026-Q1", buCode: "overseas", limit: 50,
       });
@@ -128,7 +128,7 @@ describe("okr router", () => {
       ]);
       // check-ins
       selectResultsQueue.push([{ id: 100, keyResultId: 10, value: 50 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.getObjective({ id: 1 });
       expect(result).toHaveProperty("title", "Revenue");
       expect(result).toHaveProperty("keyResults");
@@ -138,7 +138,7 @@ describe("okr router", () => {
 
     it("returns null when not found", async () => {
       selectResultsQueue.push([]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.getObjective({ id: 999 });
       expect(result).toBeNull();
     });
@@ -146,7 +146,7 @@ describe("okr router", () => {
     it("returns objective without check-ins when no KRs", async () => {
       selectResultsQueue.push([{ id: 1, title: "Test" }]);
       selectResultsQueue.push([]); // no KRs
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.getObjective({ id: 1 });
       expect(result).toHaveProperty("keyResults");
       expect(result!.keyResults).toHaveLength(0);
@@ -157,7 +157,7 @@ describe("okr router", () => {
   describe("createObjective", () => {
     it("creates objective", async () => {
       mockReturningResult = [{ id: 1 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.createObjective({
         title: "Q1 Revenue", period: "2026-Q1",
       });
@@ -167,7 +167,7 @@ describe("okr router", () => {
 
     it("creates with all optional fields", async () => {
       mockReturningResult = [{ id: 2 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.createObjective({
         title: "BU Target", period: "2026-Q1",
         level: "bu", priority: "P0", buCode: "overseas",
@@ -178,7 +178,7 @@ describe("okr router", () => {
     });
 
     it("rejects empty title", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.okr.createObjective({
         title: "", period: "2026-Q1",
       })).rejects.toThrow();
@@ -187,7 +187,7 @@ describe("okr router", () => {
 
   describe("updateObjective", () => {
     it("updates objective", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.updateObjective({
         id: 1, title: "Updated Title", status: "active", progress: 50,
       });
@@ -199,14 +199,14 @@ describe("okr router", () => {
     it("deletes objective with cascading KRs and check-ins", async () => {
       // KR select
       selectResultsQueue.push([{ id: 10 }, { id: 11 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.deleteObjective({ id: 1 });
       expect(result).toHaveProperty("ok", true);
     });
 
     it("deletes objective with no KRs", async () => {
       selectResultsQueue.push([]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.deleteObjective({ id: 2 });
       expect(result).toHaveProperty("ok", true);
     });
@@ -215,7 +215,7 @@ describe("okr router", () => {
   describe("createKeyResult", () => {
     it("creates key result", async () => {
       mockReturningResult = [{ id: 10 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.createKeyResult({
         objectiveId: 1, title: "Revenue KR",
       });
@@ -225,7 +225,7 @@ describe("okr router", () => {
 
     it("creates with all fields", async () => {
       mockReturningResult = [{ id: 11 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.createKeyResult({
         objectiveId: 1, title: "Custom KR",
         metricType: "currency", startValue: 0, targetValue: 5000,
@@ -235,7 +235,7 @@ describe("okr router", () => {
     });
 
     it("rejects empty title", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.okr.createKeyResult({
         objectiveId: 1, title: "",
       })).rejects.toThrow();
@@ -251,7 +251,7 @@ describe("okr router", () => {
         { id: 10, startValue: 0, targetValue: 100, currentValue: 75 },
         { id: 11, startValue: 0, targetValue: 100, currentValue: 50 },
       ]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.updateKeyResult({
         id: 10, currentValue: 75, status: "on_track",
       });
@@ -261,7 +261,7 @@ describe("okr router", () => {
 
   describe("checkIn", () => {
     it("records check-in and updates KR", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.checkIn({
         keyResultId: 10, value: 80, confidence: 0.8, note: "Good progress",
       });
@@ -269,7 +269,7 @@ describe("okr router", () => {
     });
 
     it("records check-in with defaults", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.checkIn({ keyResultId: 10, value: 50 });
       expect(result).toHaveProperty("ok", true);
     });
@@ -283,7 +283,7 @@ describe("okr router", () => {
         { id: 3, level: "department", progress: 30, status: "active" },
         { id: 4, level: "individual", progress: 90, status: "active" },
       ];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.dashboard();
       expect(result).toHaveProperty("totalObjectives", 4);
       expect(result).toHaveProperty("avgProgress");
@@ -297,7 +297,7 @@ describe("okr router", () => {
     });
 
     it("returns zeros when empty", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.dashboard();
       expect(result.totalObjectives).toBe(0);
       expect(result.avgProgress).toBe(0);
@@ -316,7 +316,7 @@ describe("okr router", () => {
       selectResultsQueue.push([]);
       // Step 4: insert objective
       mockReturningResult = [{ id: 200 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.decomposeToOkr({ year: 2026 });
       expect(result).toHaveProperty("ok", true);
       expect(result).toHaveProperty("created");
@@ -324,7 +324,7 @@ describe("okr router", () => {
 
     it("returns message when no plans found", async () => {
       mockDb.execute.mockResolvedValueOnce({ rows: [] });
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.decomposeToOkr({ year: 2026 });
       expect(result).toHaveProperty("ok", true);
       expect(result).toHaveProperty("message");
@@ -338,14 +338,14 @@ describe("okr router", () => {
       selectResultsQueue.push([{ value: 0 }]);
       // Each objective insert returns with id
       mockReturningResult = [{ id: 1 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.seedDemo();
       expect(result).toHaveProperty("ok", true);
     });
 
     it("skips when data already exists", async () => {
       selectResultsQueue.push([{ value: 10 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.okr.seedDemo();
       expect(result).toHaveProperty("ok", true);
       expect(result.message).toContain("already exists");

@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -160,6 +161,7 @@ const mockDiagnosticResult = {
 };
 
 export default function AIDiagnostic() {
+  const { t } = useLanguage();
   const { user, loading } = useAuth();
   const [selectedDevice, setSelectedDevice] = useState<string>("");
   const [symptomDescription, setSymptomDescription] = useState("");
@@ -169,7 +171,7 @@ export default function AIDiagnostic() {
 
   const handleStartDiagnosis = async () => {
     if (!selectedDevice) {
-      toast.error("请选择要诊断的设备");
+      toast.error(t("ai.diagnostic.selectDeviceError"));
       return;
     }
 
@@ -178,7 +180,7 @@ export default function AIDiagnostic() {
     await new Promise(resolve => setTimeout(resolve, 2000));
     setDiagnosticResult(mockDiagnosticResult);
     setIsAnalyzing(false);
-    toast.success("诊断完成");
+    toast.success(t("ai.diagnostic.diagComplete"));
   };
 
   const getSeverityColor = (severity: string) => {
@@ -192,10 +194,10 @@ export default function AIDiagnostic() {
 
   const getSeverityText = (severity: string) => {
     switch (severity) {
-      case "high": return "高";
-      case "medium": return "中";
-      case "low": return "低";
-      default: return "未知";
+      case "high": return t("ai.diagnostic.severityHigh");
+      case "medium": return t("ai.diagnostic.severityMedium");
+      case "low": return t("ai.diagnostic.severityLow");
+      default: return t("ai.diagnostic.severityUnknown");
     }
   };
 
@@ -210,10 +212,10 @@ export default function AIDiagnostic() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "running": return "运行中";
-      case "warning": return "警告";
-      case "error": return "故障";
-      default: return "未知";
+      case "running": return t("ai.diagnostic.statusRunning");
+      case "warning": return t("ai.diagnostic.statusWarning");
+      case "error": return t("ai.diagnostic.statusError");
+      default: return t("ai.diagnostic.statusUnknown");
     }
   };
 
@@ -230,12 +232,12 @@ export default function AIDiagnostic() {
         {/* 页面标题 */}
         <PageHeader
           icon={Cpu}
-          title="AI智能诊断"
-          description="基于Gemini AI的设备故障诊断与解决方案推荐系统"
+          title={t("ai.diagnostic.title")}
+          description={t("ai.diagnostic.description")}
           actions={
             <Badge variant="outline" className="flex items-center gap-1">
               <Cpu className="h-3 w-3" />
-              Gemini AI 驱动
+              {t("ai.diagnostic.geminiPowered")}
             </Badge>
           }
         />
@@ -244,19 +246,19 @@ export default function AIDiagnostic() {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="diagnosis" className="flex items-center gap-2">
               <Search className="h-4 w-4" />
-              故障诊断
+              {t("ai.diagnostic.faultDiagnosis")}
             </TabsTrigger>
             <TabsTrigger value="monitoring" className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
-              实时监控
+              {t("ai.diagnostic.realtimeMonitoring")}
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-2">
               <History className="h-4 w-4" />
-              历史案例
+              {t("ai.diagnostic.historyCases")}
             </TabsTrigger>
             <TabsTrigger value="knowledge" className="flex items-center gap-2">
               <Lightbulb className="h-4 w-4" />
-              知识库
+              {t("ai.diagnostic.knowledgeBase")}
             </TabsTrigger>
           </TabsList>
 
@@ -268,16 +270,16 @@ export default function AIDiagnostic() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Settings className="h-5 w-5" />
-                    诊断设置
+                    {t("ai.diagnostic.diagSettings")}
                   </CardTitle>
-                  <CardDescription>选择设备并描述故障症状</CardDescription>
+                  <CardDescription>{t("ai.diagnostic.diagSettingsDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>选择设备</Label>
+                    <Label>{t("ai.diagnostic.selectDevice")}</Label>
                     <Select value={selectedDevice} onValueChange={setSelectedDevice}>
                       <SelectTrigger>
-                        <SelectValue placeholder="选择要诊断的设备" />
+                        <SelectValue placeholder={t("ai.diagnostic.selectDevicePlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
                         {mockDevices.map(device => (
@@ -296,9 +298,9 @@ export default function AIDiagnostic() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>故障描述（可选）</Label>
+                    <Label>{t("ai.diagnostic.faultDescOptional")}</Label>
                     <Textarea
-                      placeholder="描述观察到的故障现象，如：设备运行时有异常噪音，清洗效果下降..."
+                      placeholder={t("ai.diagnostic.faultDescPlaceholder")}
                       value={symptomDescription}
                       onChange={e => setSymptomDescription(e.target.value)}
                       rows={4}
@@ -313,12 +315,12 @@ export default function AIDiagnostic() {
                     {isAnalyzing ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                        AI分析中...
+                        {t("ai.diagnostic.aiAnalyzing")}
                       </>
                     ) : (
                       <>
                         <Zap className="h-4 w-4 mr-2" />
-                        开始诊断
+                        {t("ai.diagnostic.startDiagnosis")}
                       </>
                     )}
                   </Button>
@@ -330,10 +332,10 @@ export default function AIDiagnostic() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Activity className="h-5 w-5" />
-                    传感器数据
+                    {t("ai.diagnostic.sensorData")}
                   </CardTitle>
                   <CardDescription>
-                    {selectedDevice ? `设备 ${selectedDevice} 的实时传感器数据` : "请选择设备查看传感器数据"}
+                    {selectedDevice ? t("ai.diagnostic.sensorDataForDevice").replace("{id}", selectedDevice) : t("ai.diagnostic.selectDeviceToView")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -370,7 +372,7 @@ export default function AIDiagnostic() {
                     </div>
                   ) : (
                     <div className="text-center text-muted-foreground py-8">
-                      请选择设备以查看传感器数据
+                      {t("ai.diagnostic.selectDeviceToViewSensor")}
                     </div>
                   )}
                 </CardContent>
@@ -387,14 +389,14 @@ export default function AIDiagnostic() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <TrendingUp className="h-5 w-5" />
-                      诊断结果概览
+                      {t("ai.diagnostic.diagResultOverview")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center gap-8">
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-muted-foreground">设备健康度</span>
+                          <span className="text-sm text-muted-foreground">{t("ai.diagnostic.deviceHealth")}</span>
                           <span className="text-2xl font-bold">{diagnosticResult.overallHealth}%</span>
                         </div>
                         <Progress value={diagnosticResult.overallHealth} className="h-3" />
@@ -404,19 +406,19 @@ export default function AIDiagnostic() {
                           <div className="text-2xl font-bold text-red-500">
                             {diagnosticResult.issues.filter(i => i.severity === "high").length}
                           </div>
-                          <div className="text-sm text-muted-foreground">高风险</div>
+                          <div className="text-sm text-muted-foreground">{t("ai.diagnostic.highRisk")}</div>
                         </div>
                         <div className="text-center">
                           <div className="text-2xl font-bold text-yellow-500">
                             {diagnosticResult.issues.filter(i => i.severity === "medium").length}
                           </div>
-                          <div className="text-sm text-muted-foreground">中风险</div>
+                          <div className="text-sm text-muted-foreground">{t("ai.diagnostic.mediumRisk")}</div>
                         </div>
                         <div className="text-center">
                           <div className="text-2xl font-bold text-blue-500">
                             {diagnosticResult.issues.filter(i => i.severity === "low").length}
                           </div>
-                          <div className="text-sm text-muted-foreground">低风险</div>
+                          <div className="text-sm text-muted-foreground">{t("ai.diagnostic.lowRisk")}</div>
                         </div>
                       </div>
                     </div>
@@ -429,7 +431,7 @@ export default function AIDiagnostic() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <AlertTriangle className="h-5 w-5" />
-                        检测到的问题
+                        {t("ai.diagnostic.detectedIssues")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -438,17 +440,17 @@ export default function AIDiagnostic() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <Badge variant={getSeverityColor(issue.severity) as any}>
-                                {getSeverityText(issue.severity)}风险
+                                {getSeverityText(issue.severity)}{t("ai.diagnostic.riskSuffix")}
                               </Badge>
                               <span className="font-medium">{issue.component}</span>
                             </div>
                             <span className="text-sm text-muted-foreground">
-                              置信度: {Math.round(issue.confidence * 100)}%
+                              {t("ai.diagnostic.confidence")}: {Math.round(issue.confidence * 100)}%
                             </span>
                           </div>
                           <p className="text-sm">{issue.symptom}</p>
                           <div className="text-sm text-muted-foreground">
-                            <span className="font-medium">可能原因：</span>
+                            <span className="font-medium">{t("ai.diagnostic.possibleCauses")}</span>
                             {issue.possibleCauses.join("、")}
                           </div>
                         </div>
@@ -461,7 +463,7 @@ export default function AIDiagnostic() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Wrench className="h-5 w-5" />
-                        AI推荐解决方案
+                        {t("ai.diagnostic.aiRecommendedSolution")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -469,7 +471,7 @@ export default function AIDiagnostic() {
                         <div key={rec.priority} className="p-4 border rounded-lg space-y-3">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline">优先级 {rec.priority}</Badge>
+                              <Badge variant="outline">{t("ai.diagnostic.priority")} {rec.priority}</Badge>
                               <span className="font-medium">{rec.action}</span>
                             </div>
                             <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -478,11 +480,11 @@ export default function AIDiagnostic() {
                             </div>
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            <span className="font-medium">所需工具：</span>
+                            <span className="font-medium">{t("ai.diagnostic.requiredTools")}</span>
                             {rec.requiredTools.join("、")}
                           </div>
                           <div className="space-y-1">
-                            <span className="text-sm font-medium">操作步骤：</span>
+                            <span className="text-sm font-medium">{t("ai.diagnostic.operationSteps")}</span>
                             <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
                               {rec.steps.map((step, idx) => (
                                 <li key={idx}>{step}</li>
@@ -500,7 +502,7 @@ export default function AIDiagnostic() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <FileText className="h-5 w-5" />
-                      相似历史案例
+                      {t("ai.diagnostic.similarHistoryCases")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -510,7 +512,7 @@ export default function AIDiagnostic() {
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-medium">{case_.caseId}</span>
                             <Badge variant="secondary">
-                              相似度 {Math.round(case_.similarity * 100)}%
+                              {t("ai.diagnostic.similarity")} {Math.round(case_.similarity * 100)}%
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground mb-2">
@@ -532,8 +534,8 @@ export default function AIDiagnostic() {
           <TabsContent value="monitoring" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>设备状态监控</CardTitle>
-                <CardDescription>实时监控所有设备的运行状态</CardDescription>
+                <CardTitle>{t("ai.diagnostic.deviceStatusMonitoring")}</CardTitle>
+                <CardDescription>{t("ai.diagnostic.deviceStatusMonitoringDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -549,7 +551,7 @@ export default function AIDiagnostic() {
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        设备ID: {device.id}
+                        {t("ai.diagnostic.deviceId")}: {device.id}
                       </div>
                       <Button 
                         variant="outline" 
@@ -561,7 +563,7 @@ export default function AIDiagnostic() {
                         }}
                       >
                         <Search className="h-3 w-3 mr-1" />
-                        诊断
+                        {t("ai.diagnostic.diagnose")}
                       </Button>
                     </div>
                   ))}
@@ -574,19 +576,19 @@ export default function AIDiagnostic() {
           <TabsContent value="history" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>历史故障案例库</CardTitle>
-                <CardDescription>查看和搜索历史故障案例</CardDescription>
+                <CardTitle>{t("ai.diagnostic.historyCaseLib")}</CardTitle>
+                <CardDescription>{t("ai.diagnostic.historyCaseLibDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-4 mb-4">
-                  <Input placeholder="搜索案例..." className="max-w-sm" />
+                  <Input placeholder={t("ai.diagnostic.searchCases")} className="max-w-sm" />
                   <Button variant="outline">
                     <Search className="h-4 w-4 mr-2" />
-                    搜索
+                    {t("ai.diagnostic.search")}
                   </Button>
                 </div>
                 <div className="text-center text-muted-foreground py-8">
-                  历史案例库功能开发中...
+                  {t("ai.diagnostic.historyCaseDev")}
                 </div>
               </CardContent>
             </Card>
@@ -596,12 +598,12 @@ export default function AIDiagnostic() {
           <TabsContent value="knowledge" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>设备知识库</CardTitle>
-                <CardDescription>设备维护手册和故障排除指南</CardDescription>
+                <CardTitle>{t("ai.diagnostic.knowledgeBaseTitle")}</CardTitle>
+                <CardDescription>{t("ai.diagnostic.knowledgeBaseDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center text-muted-foreground py-8">
-                  知识库功能开发中...
+                  {t("ai.diagnostic.knowledgeBaseDev")}
                 </div>
               </CardContent>
             </Card>

@@ -6,6 +6,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from '@/lib/trpc';
 import { PageHeader, StatCard } from '@/components/grt';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,13 +79,13 @@ interface TrendDataPoint {
 
 // ==================== 常量 ====================
 
-const MODEL_NAMES: Record<ModelType, string> = {
-  cost_prediction: '成本预测',
-  demand_forecast: '需求预测',
-  quality_prediction: '质量预测',
-  delivery_time_estimation: '交付时间估算',
-  resource_allocation: '资源分配',
-  anomaly_detection: '异常检测'
+const MODEL_NAME_KEYS: Record<ModelType, string> = {
+  cost_prediction: 'ai.modelPerf.costPrediction',
+  demand_forecast: 'ai.modelPerf.demandForecast',
+  quality_prediction: 'ai.modelPerf.qualityPrediction',
+  delivery_time_estimation: 'ai.modelPerf.deliveryTimeEstimation',
+  resource_allocation: 'ai.modelPerf.resourceAllocation',
+  anomaly_detection: 'ai.modelPerf.anomalyDetection'
 };
 
 const MODEL_TYPES: ModelType[] = [
@@ -99,11 +100,12 @@ const MODEL_TYPES: ModelType[] = [
 // ==================== 子组件 ====================
 
 function ModelStatusBadge({ status }: { status: HealthStatus['status'] }) {
+  const { t } = useLanguage();
   const config = {
-    healthy: { label: '健康', icon: CheckCircle2, className: 'bg-green-500/10 text-green-500 border-green-500/20' },
-    degraded: { label: '降级', icon: AlertTriangle, className: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
-    critical: { label: '严重', icon: XCircle, className: 'bg-red-500/10 text-red-500 border-red-500/20' },
-    unknown: { label: '未知', icon: Activity, className: 'bg-gray-500/10 text-gray-500 border-gray-500/20' }
+    healthy: { label: t('ai.modelPerf.statusHealthy'), icon: CheckCircle2, className: 'bg-green-500/10 text-green-500 border-green-500/20' },
+    degraded: { label: t('ai.modelPerf.statusDegraded'), icon: AlertTriangle, className: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
+    critical: { label: t('ai.modelPerf.statusCritical'), icon: XCircle, className: 'bg-red-500/10 text-red-500 border-red-500/20' },
+    unknown: { label: t('ai.modelPerf.statusUnknown'), icon: Activity, className: 'bg-gray-500/10 text-gray-500 border-gray-500/20' }
   };
   const { label, icon: Icon, className } = config[status];
   return (
@@ -157,6 +159,7 @@ function ModelCard({
   health: HealthStatus;
   onSelect: () => void;
 }) {
+  const { t } = useLanguage();
   return (
     <Card
       className="bg-card/50 border-border hover:border-primary/50 transition-colors cursor-pointer"
@@ -164,38 +167,38 @@ function ModelCard({
     >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">{MODEL_NAMES[modelType]}</CardTitle>
+          <CardTitle className="text-base">{t(MODEL_NAME_KEYS[modelType])}</CardTitle>
           <ModelStatusBadge status={health.status} />
         </div>
-        <CardDescription>版本 {metrics.modelVersion}</CardDescription>
+        <CardDescription>{t("ai.modelPerf.version")} {metrics.modelVersion}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-muted-foreground mb-1">准确率</p>
+            <p className="text-xs text-muted-foreground mb-1">{t("ai.modelPerf.accuracy")}</p>
             <div className="flex items-center gap-2">
               <Progress value={metrics.accuracy * 100} className="h-2 flex-1" />
               <span className="text-sm font-medium">{(metrics.accuracy * 100).toFixed(1)}%</span>
             </div>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-1">调用次数</p>
+            <p className="text-xs text-muted-foreground mb-1">{t("ai.modelPerf.callCount")}</p>
             <p className="text-lg font-bold">{metrics.totalCalls.toLocaleString()}</p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-xs text-muted-foreground">平均延迟</p>
+            <p className="text-xs text-muted-foreground">{t("ai.modelPerf.avgLatency")}</p>
             <p className="font-medium">{metrics.avgLatency.toFixed(0)}ms</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">P95延迟</p>
+            <p className="text-xs text-muted-foreground">{t("ai.modelPerf.p95Latency")}</p>
             <p className="font-medium">{metrics.p95Latency.toFixed(0)}ms</p>
           </div>
         </div>
         {health.issues.length > 0 && (
           <div className="pt-2 border-t border-border">
-            <p className="text-xs text-muted-foreground mb-1">问题 ({health.issues.length})</p>
+            <p className="text-xs text-muted-foreground mb-1">{t("ai.modelPerf.issues")} ({health.issues.length})</p>
             {health.issues.slice(0, 2).map((issue, i) => (
               <div key={i} className="flex items-center gap-1 text-xs">
                 <AlertTriangle className={`w-3 h-3 ${issue.severity === 'critical' ? 'text-red-500' : 'text-yellow-500'}`} />
@@ -212,6 +215,7 @@ function ModelCard({
 // ==================== 主组件 ====================
 
 export default function ModelPerformanceMonitor() {
+  const { t } = useLanguage();
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('day');
   const [selectedModel, setSelectedModel] = useState<ModelType | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -255,7 +259,7 @@ export default function ModelPerformanceMonitor() {
   if (dashQuery.isLoading) {
     return (
       <div className="space-y-6">
-        <PageHeader icon={Gauge} title="模型性能监控" description="..." />
+        <PageHeader icon={Gauge} title={t("ai.modelPerf.title")} description="..." />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
         </div>
@@ -273,12 +277,12 @@ export default function ModelPerformanceMonitor() {
       <div className="space-y-6">
         <PageHeader
           icon={Gauge}
-          title="模型性能监控"
-          description="实时监控AI模型的预测准确率、调用次数和响应时间"
+          title={t("ai.modelPerf.title")}
+          description={t("ai.modelPerf.description")}
           actions={
             <>
               <div className="flex items-center gap-2">
-                <Label htmlFor="auto-refresh" className="text-sm">自动刷新</Label>
+                <Label htmlFor="auto-refresh" className="text-sm">{t("ai.modelPerf.autoRefresh")}</Label>
                 <Switch
                   id="auto-refresh"
                   checked={autoRefresh}
@@ -290,15 +294,15 @@ export default function ModelPerformanceMonitor() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="hour">最近1小时</SelectItem>
-                  <SelectItem value="day">最近24小时</SelectItem>
-                  <SelectItem value="week">最近7天</SelectItem>
-                  <SelectItem value="month">最近30天</SelectItem>
+                  <SelectItem value="hour">{t("ai.modelPerf.lastHour")}</SelectItem>
+                  <SelectItem value="day">{t("ai.modelPerf.last24h")}</SelectItem>
+                  <SelectItem value="week">{t("ai.modelPerf.last7d")}</SelectItem>
+                  <SelectItem value="month">{t("ai.modelPerf.last30d")}</SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" onClick={handleRefresh}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                刷新
+                {t("ai.modelPerf.refresh")}
               </Button>
             </>
           }
@@ -308,27 +312,27 @@ export default function ModelPerformanceMonitor() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard
             icon={Activity}
-            label="总调用次数"
+            label={t("ai.modelPerf.totalCalls")}
             value={summary.totalCalls.toLocaleString()}
-            trend={{ value: 12, label: "vs 上期" }}
+            trend={{ value: 12, label: t("ai.modelPerf.vsPrev") }}
           />
           <StatCard
             icon={Target}
-            label="平均准确率"
+            label={t("ai.modelPerf.avgAccuracy")}
             value={`${(summary.avgAccuracy * 100).toFixed(1)}%`}
             iconColor="text-green-600"
             iconBg="bg-green-100"
-            trend={{ value: 3, label: "vs 上期" }}
+            trend={{ value: 3, label: t("ai.modelPerf.vsPrev") }}
           />
           <StatCard
             icon={Clock}
-            label="平均响应时间"
+            label={t("ai.modelPerf.avgResponseTime")}
             value={`${summary.avgLatency.toFixed(0)}ms`}
-            trend={{ value: -5, label: "vs 上期" }}
+            trend={{ value: -5, label: t("ai.modelPerf.vsPrev") }}
           />
           <StatCard
             icon={CheckCircle2}
-            label="健康模型"
+            label={t("ai.modelPerf.healthyModels")}
             value={`${summary.healthyCount}/${MODEL_TYPES.length}`}
             iconColor={summary.healthyCount === MODEL_TYPES.length ? "text-green-600" : "text-yellow-600"}
             iconBg={summary.healthyCount === MODEL_TYPES.length ? "bg-green-100" : "bg-yellow-100"}
@@ -341,7 +345,7 @@ export default function ModelPerformanceMonitor() {
           <div className="lg:col-span-1 space-y-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Cpu className="w-5 h-5" />
-              模型列表
+              {t("ai.modelPerf.modelList")}
             </h2>
             <div className="space-y-3">
               {MODEL_TYPES.map((type) => {
@@ -370,57 +374,57 @@ export default function ModelPerformanceMonitor() {
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="flex items-center gap-2">
-                          {MODEL_NAMES[selectedModel]}
+                          {t(MODEL_NAME_KEYS[selectedModel])}
                           <ModelStatusBadge status={selectedHealth.status} />
                         </CardTitle>
-                        <CardDescription>版本 {selectedMetrics.modelVersion}</CardDescription>
+                        <CardDescription>{t("ai.modelPerf.version")} {selectedMetrics.modelVersion}</CardDescription>
                       </div>
                       <Button variant="outline" size="sm" onClick={() => setSelectedModel(null)}>
-                        返回概览
+                        {t("ai.modelPerf.backToOverview")}
                       </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <Tabs defaultValue="metrics">
                       <TabsList>
-                        <TabsTrigger value="metrics">性能指标</TabsTrigger>
-                        <TabsTrigger value="trends">趋势图表</TabsTrigger>
-                        <TabsTrigger value="health">健康状态</TabsTrigger>
+                        <TabsTrigger value="metrics">{t("ai.modelPerf.tabMetrics")}</TabsTrigger>
+                        <TabsTrigger value="trends">{t("ai.modelPerf.tabTrends")}</TabsTrigger>
+                        <TabsTrigger value="health">{t("ai.modelPerf.tabHealth")}</TabsTrigger>
                       </TabsList>
 
                       <TabsContent value="metrics" className="space-y-4 mt-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div className="p-4 bg-secondary/30 rounded-lg">
-                            <p className="text-xs text-muted-foreground mb-1">准确率</p>
+                            <p className="text-xs text-muted-foreground mb-1">{t("ai.modelPerf.accuracy")}</p>
                             <p className="text-2xl font-bold">{(selectedMetrics.accuracy * 100).toFixed(1)}%</p>
                           </div>
                           <div className="p-4 bg-secondary/30 rounded-lg">
-                            <p className="text-xs text-muted-foreground mb-1">调用次数</p>
+                            <p className="text-xs text-muted-foreground mb-1">{t("ai.modelPerf.callCount")}</p>
                             <p className="text-2xl font-bold">{selectedMetrics.totalCalls.toLocaleString()}</p>
                           </div>
                           <div className="p-4 bg-secondary/30 rounded-lg">
-                            <p className="text-xs text-muted-foreground mb-1">平均延迟</p>
+                            <p className="text-xs text-muted-foreground mb-1">{t("ai.modelPerf.avgLatency")}</p>
                             <p className="text-2xl font-bold">{selectedMetrics.avgLatency.toFixed(0)}ms</p>
                           </div>
                           <div className="p-4 bg-secondary/30 rounded-lg">
-                            <p className="text-xs text-muted-foreground mb-1">置信度</p>
+                            <p className="text-xs text-muted-foreground mb-1">{t("ai.modelPerf.confidenceLevel")}</p>
                             <p className="text-2xl font-bold">{(selectedMetrics.avgConfidence * 100).toFixed(1)}%</p>
                           </div>
                         </div>
                         {selectedMetrics.mae && (
                           <div className="grid grid-cols-2 gap-4">
                             <div className="p-4 bg-secondary/30 rounded-lg">
-                              <p className="text-xs text-muted-foreground mb-1">MAE (平均绝对误差)</p>
+                              <p className="text-xs text-muted-foreground mb-1">{t("ai.modelPerf.mae")}</p>
                               <p className="text-xl font-bold">{selectedMetrics.mae.toFixed(2)}</p>
                             </div>
                             <div className="p-4 bg-secondary/30 rounded-lg">
-                              <p className="text-xs text-muted-foreground mb-1">RMSE (均方根误差)</p>
+                              <p className="text-xs text-muted-foreground mb-1">{t("ai.modelPerf.rmse")}</p>
                               <p className="text-xl font-bold">{selectedMetrics.rmse?.toFixed(2)}</p>
                             </div>
                           </div>
                         )}
                         <div className="p-4 bg-secondary/30 rounded-lg">
-                          <p className="text-xs text-muted-foreground mb-2">延迟分布</p>
+                          <p className="text-xs text-muted-foreground mb-2">{t("ai.modelPerf.latencyDistribution")}</p>
                           <div className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
                               <span>P50</span>
@@ -443,21 +447,21 @@ export default function ModelPerformanceMonitor() {
                           <div>
                             <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                               <Activity className="w-4 h-4" />
-                              调用次数趋势
+                              {t("ai.modelPerf.callTrend")}
                             </h4>
                             <TrendChart data={trendData} metric="calls" />
                           </div>
                           <div>
                             <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                               <Target className="w-4 h-4" />
-                              准确率趋势
+                              {t("ai.modelPerf.accuracyTrend")}
                             </h4>
                             <TrendChart data={trendData} metric="accuracy" />
                           </div>
                           <div>
                             <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                               <Clock className="w-4 h-4" />
-                              响应时间趋势
+                              {t("ai.modelPerf.responseTimeTrend")}
                             </h4>
                             <TrendChart data={trendData} metric="avgLatency" />
                           </div>
@@ -484,19 +488,19 @@ export default function ModelPerformanceMonitor() {
                           </div>
                           <div>
                             <h4 className="font-semibold">
-                              {selectedHealth.status === 'healthy' ? '模型运行正常' :
-                               selectedHealth.status === 'degraded' ? '模型性能降级' :
-                               selectedHealth.status === 'critical' ? '模型存在严重问题' :
-                               '状态未知'}
+                              {selectedHealth.status === 'healthy' ? t("ai.modelPerf.modelHealthy") :
+                               selectedHealth.status === 'degraded' ? t("ai.modelPerf.modelDegraded") :
+                               selectedHealth.status === 'critical' ? t("ai.modelPerf.modelCritical") :
+                               t("ai.modelPerf.modelUnknown")}
                             </h4>
                             <p className="text-sm text-muted-foreground">
-                              最后检查: {new Date().toLocaleString()}
+                              {t("ai.modelPerf.lastCheck")}: {new Date().toLocaleString()}
                             </p>
                           </div>
                         </div>
                         {selectedHealth.issues.length > 0 && (
                           <div className="space-y-2">
-                            <h4 className="font-medium">发现的问题</h4>
+                            <h4 className="font-medium">{t("ai.modelPerf.issuesFound")}</h4>
                             {selectedHealth.issues.map((issue, i) => (
                               <div
                                 key={i}
@@ -518,7 +522,7 @@ export default function ModelPerformanceMonitor() {
                         )}
                         {selectedHealth.recommendations.length > 0 && (
                           <div className="space-y-2">
-                            <h4 className="font-medium">建议措施</h4>
+                            <h4 className="font-medium">{t("ai.modelPerf.recommendations")}</h4>
                             <ul className="space-y-1">
                               {selectedHealth.recommendations.map((rec, i) => (
                                 <li key={i} className="flex items-start gap-2 text-sm">
@@ -538,9 +542,9 @@ export default function ModelPerformanceMonitor() {
               <Card className="bg-card/50 border-border h-full flex items-center justify-center">
                 <CardContent className="text-center py-12">
                   <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">选择一个模型</h3>
+                  <h3 className="text-lg font-medium mb-2">{t("ai.modelPerf.selectModel")}</h3>
                   <p className="text-muted-foreground">
-                    点击左侧的模型卡片查看详细性能数据和趋势图表
+                    {t("ai.modelPerf.selectModelHint")}
                   </p>
                 </CardContent>
               </Card>
@@ -550,8 +554,8 @@ export default function ModelPerformanceMonitor() {
 
         {/* 最后更新时间 */}
         <div className="text-center text-sm text-muted-foreground">
-          最后更新: {new Date(dashQuery.dataUpdatedAt).toLocaleString()}
-          {autoRefresh && ' (每30秒自动刷新)'}
+          {t("ai.modelPerf.lastUpdate")}: {new Date(dashQuery.dataUpdatedAt).toLocaleString()}
+          {autoRefresh && ` ${t("ai.modelPerf.autoRefreshInterval")}`}
         </div>
       </div>
   );

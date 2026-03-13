@@ -8,7 +8,7 @@
  *   - list: legacy stub
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 // ── Workflow Rule Definitions ──
 
@@ -258,7 +258,7 @@ export const aiCanvasRouter = router({
     }),
 
   /** Lightweight quick parse — returns top match only (for live intent bar) */
-  quickParse: protectedProcedure
+  quickParse: requirePermission('ai:hub:access')
     .input(z.object({
       text: z.string().min(1),
       language: z.enum(["zh", "en"]).default("zh"),
@@ -296,7 +296,7 @@ export const aiCanvasRouter = router({
     }),
 
   /** Full workflow parse — returns ranked suggestions with entity extraction */
-  parseWorkflow: protectedProcedure
+  parseWorkflow: requirePermission('ai:hub:access')
     .input(z.object({
       text: z.string().min(1),
       language: z.enum(["zh", "en"]).default("zh"),

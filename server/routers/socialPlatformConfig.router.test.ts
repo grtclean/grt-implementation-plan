@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -101,7 +101,7 @@ vi.mock("../services/dingtalk.service", () => ({
 
 // ── Helpers ─────────────────────────────────────────────
 function caller() {
-  return createAuthenticatedCaller();
+  return createAdminCaller();
 }
 
 function anonCaller() {

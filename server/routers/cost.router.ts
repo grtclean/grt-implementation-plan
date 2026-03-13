@@ -138,7 +138,7 @@ export const costRouter = router({
     return successResponse;
   }),
 
-  delete: protectedProcedure
+  delete: requirePermission('finance:cost:manage')
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -310,7 +310,7 @@ export const costRouter = router({
     return db.select().from(costCategories).orderBy(costCategories.sortOrder).limit(1000);
   }),
 
-  initCategories: protectedProcedure.mutation(async () => {
+  initCategories: requirePermission('finance:cost:manage').mutation(async () => {
     const db = await requireDb();
     // Check if already populated
     const existing = await db.select({ count: count() }).from(costCategories);

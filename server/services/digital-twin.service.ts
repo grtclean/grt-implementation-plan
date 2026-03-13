@@ -175,7 +175,7 @@ export async function publishAssetVersion(input: {
 
   // 2. Fetch previous asset for version chain
   const prevResults = await db.select().from(dtAssets)
-    .where(eq(dtAssets.id, input.previousAssetId));
+    .where(eq(dtAssets.id, input.previousAssetId)).limit(1000);
   const prevAsset = prevResults[0];
 
   if (!prevAsset) {
@@ -267,7 +267,7 @@ export async function approveAsset(input: {
   const db = await requireDb();
 
   const approveResults = await db.select().from(dtAssets)
-    .where(eq(dtAssets.id, input.assetId));
+    .where(eq(dtAssets.id, input.assetId)).limit(1000);
   const asset = approveResults[0];
 
   if (!asset) throw new Error(`Asset ${input.assetId} not found`);
@@ -316,7 +316,7 @@ export async function freezeAsset(input: {
   const db = await requireDb();
 
   const freezeResults = await db.select().from(dtAssets)
-    .where(eq(dtAssets.id, input.assetId));
+    .where(eq(dtAssets.id, input.assetId)).limit(1000);
   const asset = freezeResults[0];
 
   if (!asset) throw new Error(`Asset ${input.assetId} not found`);
@@ -367,7 +367,7 @@ export async function verifyHash(input: {
   const db = await requireDb();
 
   const verifyResults = await db.select().from(dtAssets)
-    .where(eq(dtAssets.id, input.assetId));
+    .where(eq(dtAssets.id, input.assetId)).limit(1000);
   const asset = verifyResults[0];
 
   if (!asset) throw new Error(`Asset ${input.assetId} not found`);

@@ -9,16 +9,16 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, requirePermission } from "../_core/trpc";
 
 export const expenseComparisonExportRouter = router({
-  export: protectedProcedure
+  export: requirePermission('finance:expense:view')
     .input(z.object({ startDate: z.string().optional(), endDate: z.string().optional(), format: z.string().optional() }).optional())
     .mutation(() => {
       return { url: "" };
     }),
 
-  exportReport: protectedProcedure
+  exportReport: requirePermission('finance:expense:view')
     .input(z.object({ startDate: z.string().optional(), endDate: z.string().optional(), format: z.string().optional() }).optional())
     .mutation(() => {
       return {

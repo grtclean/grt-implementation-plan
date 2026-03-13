@@ -3,20 +3,25 @@
  *
  * Three core tables (in-memory mock for Phase 0):
  *   1. capability_dictionary — 6 TSDCKL pillars with scoring rubrics
- *   2. role_capability_criteria — target scores per role
- *   3. employee_assessments — Feb 2026 actual assessment data
+ *   2. role_capability_criteria — target scores per role (15 roles)
+ *   3. employee_assessments — Feb 2026 actual assessment data (30 employees from CEO Excel)
  *
  * Procedures:
  *   - getDictionary: returns the 6 pillars
  *   - getRoleCriteria: returns target scores for a given role
+ *   - getAllRoleCriteria: returns all 15 role criteria
  *   - getMyAssessment: returns current user's Feb 2026 scores
  *   - getTeamAssessments: returns all team data (HR/admin only)
- *   - aiCompensationAnalysis: mock AI analysis of capability gaps → salary recommendations
- *   - aiImprovementTips: mock AI-generated improvement tips per pillar
+ *   - getDepartments: returns unique department list
+ *   - aiCompensationAnalysis: AI analysis of capability gaps → salary recommendations
+ *   - aiImprovementTips: AI-generated improvement tips per pillar
+ *   - getEmployeeProfile: returns full employee profile with gap analysis and training plan
+ *   - getTrainingPlan: returns detailed training plan with courses per capability domain
+ *   - getTeamTrainingOverview: returns team-wide training needs aggregation
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router, requirePermission } from "../_core/trpc";
 
 // ─── Capability Dictionary (6 TSDCKL Pillars) ───────────────────────
 
@@ -129,9 +134,10 @@ export const ROLE_CRITERIA: RoleCriteria[] = [
   { role: "finance_manager", roleName: "财务经理", targets: { T: 45, S: 78, D: 45, C: 72, K: 88, L: 78 } },
   { role: "employee",      roleName: "普通员工",   targets: { T: 60, S: 65, D: 55, C: 60, K: 60, L: 35 } },
   { role: "procurement_eng", roleName: "采购工程师", targets: { T: 55, S: 72, D: 50, C: 82, K: 75, L: 40 } },
+  { role: "it_engineer",   roleName: "IT工程师",   targets: { T: 85, S: 65, D: 75, C: 65, K: 70, L: 40 } },
 ];
 
-// ─── Employee Assessments (Feb 2026 Real Data) ───────────────────────
+// ─── Employee Assessments (Feb 2026 Real Data — CEO's Excel) ─────────
 
 export interface EmployeeAssessment {
   id: number;
@@ -175,35 +181,203 @@ function makeAssessment(
   };
 }
 
+// Real 30-employee TSDCKL data — CEO's Feb 2026 evaluation (exact scores from Excel)
 export const EMPLOYEE_ASSESSMENTS: EmployeeAssessment[] = [
-  makeAssessment(1,  1001, "王磊",   "Wang Lei",    "海外BU",     "bu_gm",       "BU总经理",   82, 88, 85, 91, 83, 92),
-  makeAssessment(2,  1002, "张伟",   "Zhang Wei",   "海外BU",     "bu_mech",     "机械工程师", 91, 62, 85, 58, 80, 42),
-  makeAssessment(3,  1003, "李娜",   "Li Na",       "海外BU",     "bu_elec",     "电气工程师", 88, 68, 82, 55, 76, 40),
-  makeAssessment(4,  1004, "陈明",   "Chen Ming",   "商用车BU",   "bu_pm",       "项目经理",   72, 82, 78, 85, 74, 70),
-  makeAssessment(5,  1005, "赵敏",   "Zhao Min",    "商用车BU",   "bu_sales",    "销售工程师", 55, 88, 52, 92, 62, 48),
-  makeAssessment(6,  1006, "刘洋",   "Liu Yang",    "乘用车BU",   "bu_mech",     "机械工程师", 86, 60, 78, 56, 72, 38),
-  makeAssessment(7,  1007, "孙婷",   "Sun Ting",    "乘用车BU",   "cs_engineer", "售后工程师", 76, 78, 58, 90, 70, 42),
-  makeAssessment(8,  1008, "周勇",   "Zhou Yong",   "半导体BU",   "bu_mech",     "机械工程师", 93, 58, 88, 52, 82, 35),
-  makeAssessment(9,  1009, "吴静",   "Wu Jing",     "半导体BU",   "team_lead",   "组长",       78, 75, 72, 74, 68, 68),
-  makeAssessment(10, 1010, "郑浩",   "Zheng Hao",   "工业通用BU", "bu_pm",       "项目经理",   68, 80, 82, 78, 72, 65),
-  makeAssessment(11, 1011, "黄丽",   "Huang Li",    "人力资源部", "hr_manager",  "HR经理",     38, 92, 48, 88, 82, 86),
-  makeAssessment(12, 1012, "马超",   "Ma Chao",     "财务部",     "finance_manager", "财务经理", 42, 76, 40, 70, 90, 78),
-  makeAssessment(13, 1013, "林峰",   "Lin Feng",    "海外BU",     "bu_sales",    "销售工程师", 58, 85, 50, 88, 60, 52),
-  makeAssessment(14, 1014, "徐霞",   "Xu Xia",      "商用车BU",   "bu_elec",     "电气工程师", 85, 65, 80, 62, 75, 44),
-  makeAssessment(15, 1015, "杨洁",   "Yang Jie",    "人力资源部", "hr_specialist","HR专员",     32, 84, 38, 80, 70, 48),
-  makeAssessment(16, 1016, "胡伟",   "Hu Wei",      "工业通用BU", "team_lead",   "组长",       80, 72, 70, 68, 66, 62),
-  makeAssessment(17, 1017, "Donnie", "Donnie",      "总经办",     "director",    "总监",       78, 90, 82, 88, 85, 88),
-  makeAssessment(18, 1018, "Camilla","Camilla",      "人力资源部", "hr_manager",  "HR经理",     35, 88, 45, 86, 78, 82),
+  makeAssessment(1,  1,   "倪亚东", "Ni Yadong",       "总裁办",     "bu_gm",          "董事长",                      85, 92, 80, 95, 88, 96),
+  makeAssessment(2,  80,  "刘奥运", "Liu Aoyun",        "AI数智部",   "director",       "董事长助理",                  82, 78, 72, 85, 80, 75),
+  makeAssessment(3,  2,   "黄晓兰", "Huang Xiaolan",    "财务部",     "finance_manager", "会计",                       45, 68, 30, 65, 82, 25),
+  makeAssessment(4,  54,  "王秀萍", "Wang Xiuping",     "财务部",     "finance_manager", "总账会计",                   48, 65, 28, 62, 85, 22),
+  makeAssessment(5,  101, "王汝月", "Wang Ruyue",       "财务部",     "employee",       "会计助理",                    32, 52, 25, 55, 68, 18),
+  makeAssessment(6,  66,  "李新正", "Li Xinzheng",      "财务部",     "employee",       "仓库管理员",                  42, 55, 28, 58, 65, 20),
+  makeAssessment(7,  67,  "沙建梅", "Sha Jianmei",      "人事行政部", "hr_manager",     "人事行政主管",                40, 82, 45, 85, 72, 70),
+  makeAssessment(8,  53,  "段天珠", "Duan Tianzhu",     "人事行政部", "hr_specialist",  "前法",                        38, 65, 42, 68, 80, 48),
+  makeAssessment(9,  100, "田炜钰", "Tian Weiyu",       "人事行政部", "employee",       "行政前台",                    30, 62, 25, 65, 55, 22),
+  makeAssessment(10, 49,  "胡杨",   "Hu Yang",          "AI数智部",   "it_engineer",    "IT工程师",                    88, 65, 72, 68, 70, 42),
+  makeAssessment(11, 62,  "朱宇浩", "Zhu Yuhao",        "事业二部",   "bu_pm",          "生产工程师兼项目及IT工程师",   85, 62, 70, 65, 68, 40),
+  makeAssessment(12, 96,  "侯晓薇", "Hou Xiaowei",      "AI数智部",   "dept_manager",   "部门经理",                   72, 68, 75, 62, 65, 38),
+  makeAssessment(13, 83,  "刘坤",   "Liu Kun",          "AI数智部",   "bu_sales",       "销售与项目工程师",            68, 72, 55, 80, 65, 45),
+  makeAssessment(14, 103, "朱文韬", "Zhu Wentao",       "AI数智部",   "bu_sales",       "市场专员",                    48, 65, 52, 78, 62, 42),
+  makeAssessment(15, 4,   "戴晓燕", "Dai Xiaoyan",      "事业一部",   "bu_sales",       "高级销售经理",                65, 82, 48, 90, 72, 78),
+  makeAssessment(16, 5,   "金晓锋", "Jin Xiaofeng",     "事业一部",   "dept_manager",   "制造质量经理",                85, 68, 72, 70, 88, 68),
+  makeAssessment(17, 22,  "李大鹏", "Li Dapeng",        "事业一部",   "bu_elec",        "电气工程师",                  82, 55, 75, 52, 70, 28),
+  makeAssessment(18, 63,  "刘健康", "Liu Jiankang",     "事业一部",   "bu_sales",       "销售经理",                    62, 78, 45, 85, 68, 65),
+  makeAssessment(19, 6,   "洪香龙", "Hong Xianglong",   "事业二部",   "dept_manager",   "机械设计经理",                92, 68, 90, 65, 82, 72),
+  makeAssessment(20, 44,  "洪小东", "Hong Xiaodong",    "事业二部",   "bu_mech",        "机械研发工程师",              80, 55, 82, 52, 70, 28),
+  makeAssessment(21, 97,  "钱佳奇", "Qian Jiaqi",       "事业二部",   "bu_elec",        "电气工程师",                  78, 52, 72, 55, 68, 25),
+  makeAssessment(22, 3,   "倪亚琴", "Ni Yaqin",         "事业三部",   "procurement_eng","采购与项目工程师",            65, 68, 52, 72, 70, 45),
+  makeAssessment(23, 7,   "孙坚",   "Sun Jian",         "事业三部",   "team_lead",      "电气主管",                    85, 65, 78, 62, 80, 68),
+  makeAssessment(24, 55,  "沈迎凤", "Shen Yingfeng",    "事业三部",   "dept_manager",   "商务经理",                    48, 80, 45, 82, 68, 65),
+  makeAssessment(25, 19,  "冯艳",   "Feng Yan",         "事业三部",   "bu_sales",       "销售与项目工程师",            62, 72, 48, 78, 65, 42),
+  makeAssessment(26, 18,  "孙国祥", "Sun Guoxiang",     "事业四部",   "bu_elec",        "电气工程师",                  82, 55, 72, 52, 70, 28),
+  makeAssessment(27, 24,  "张腾飞", "Zhang Tengfei",    "事业四部",   "team_lead",      "机加工班组长",                72, 65, 48, 68, 72, 52),
+  makeAssessment(28, 8,   "马柯",   "Ma Ke",            "事业十部",   "employee",       "质量专员",                    68, 62, 48, 65, 80, 42),
+  makeAssessment(29, 9,   "史龙昌", "Shi Longchang",    "事业十部",   "team_lead",      "激光切作班组长",              72, 55, 45, 58, 68, 40),
+  makeAssessment(30, 45,  "杨勇",   "Yang Yong",        "事业三部",   "bu_pm",          "生产工程师兼项目经理",        65, 78, 48, 82, 72, 68),
 ];
+
+// ─── Employee Profile Data (from CEO's salary-summary Excel) ─────────
+
+export interface EmployeeProfileData {
+  grtId: string;
+  grade: string;
+  hireDate: string;
+  performanceJan2026: number | null;
+  avg2024: number | null;
+  avg2025: number | null;
+  comprehensiveSalary: number | null;
+}
+
+export const EMPLOYEE_PROFILES: Record<number, EmployeeProfileData> = {
+  1:   { grtId: "GRT001", grade: "CEO",  hireDate: "2008-01-01", performanceJan2026: null, avg2024: null,  avg2025: null, comprehensiveSalary: 35000 },
+  80:  { grtId: "GRT080", grade: "8",    hireDate: "2024-06-01", performanceJan2026: 81,   avg2024: 0,     avg2025: 80,   comprehensiveSalary: 17000 },
+  2:   { grtId: "GRT002", grade: "CFO",  hireDate: "2010-03-01", performanceJan2026: null, avg2024: null,  avg2025: null, comprehensiveSalary: 35000 },
+  54:  { grtId: "GRT054", grade: "7",    hireDate: "2019-06-01", performanceJan2026: 92,   avg2024: 81.75, avg2025: 85,   comprehensiveSalary: 11311 },
+  101: { grtId: "GRT101", grade: "4",    hireDate: "2025-06-01", performanceJan2026: null, avg2024: 0,     avg2025: 0,    comprehensiveSalary: 6320 },
+  66:  { grtId: "GRT066", grade: "5",    hireDate: "2020-03-01", performanceJan2026: null, avg2024: null,  avg2025: null, comprehensiveSalary: null },
+  67:  { grtId: "GRT067", grade: "8",    hireDate: "2018-05-01", performanceJan2026: 82,   avg2024: 0,     avg2025: 80,   comprehensiveSalary: 13000 },
+  53:  { grtId: "GRT053", grade: "5",    hireDate: "2019-01-01", performanceJan2026: null, avg2024: null,  avg2025: null, comprehensiveSalary: null },
+  100: { grtId: "GRT100", grade: "4",    hireDate: "2025-08-01", performanceJan2026: null, avg2024: 0,     avg2025: 0,    comprehensiveSalary: 6517 },
+  49:  { grtId: "GRT049", grade: "8",    hireDate: "2022-04-01", performanceJan2026: 81,   avg2024: 78,    avg2025: 82,   comprehensiveSalary: 11430 },
+  62:  { grtId: "GRT062", grade: "8",    hireDate: "2021-02-01", performanceJan2026: 81,   avg2024: 82,    avg2025: 82,   comprehensiveSalary: 8000 },
+  96:  { grtId: "GRT096", grade: "7",    hireDate: "2024-09-01", performanceJan2026: null, avg2024: null,  avg2025: null, comprehensiveSalary: null },
+  83:  { grtId: "GRT083", grade: "8",    hireDate: "2024-01-01", performanceJan2026: 78,   avg2024: 0,     avg2025: 75,   comprehensiveSalary: 16500 },
+  103: { grtId: "GRT103", grade: "4",    hireDate: "2025-09-01", performanceJan2026: null, avg2024: 0,     avg2025: 0,    comprehensiveSalary: 6800 },
+  4:   { grtId: "GRT004", grade: "10C",  hireDate: "2014-06-01", performanceJan2026: 59.2, avg2024: 45.13, avg2025: 75,   comprehensiveSalary: 25315 },
+  5:   { grtId: "GRT005", grade: "9B",   hireDate: "2016-08-01", performanceJan2026: 81.2, avg2024: 65.89, avg2025: 77,   comprehensiveSalary: 21428 },
+  22:  { grtId: "GRT022", grade: "6",    hireDate: "2019-03-01", performanceJan2026: 85.6, avg2024: 69,    avg2025: 80,   comprehensiveSalary: 13675 },
+  63:  { grtId: "GRT063", grade: "9A",   hireDate: "2017-11-01", performanceJan2026: 61.2, avg2024: 62,    avg2025: 75,   comprehensiveSalary: 19000 },
+  6:   { grtId: "GRT006", grade: "10B",  hireDate: "2015-04-01", performanceJan2026: 79.6, avg2024: 51.87, avg2025: 80,   comprehensiveSalary: 25200 },
+  44:  { grtId: "GRT044", grade: "7",    hireDate: "2019-09-01", performanceJan2026: 78.6, avg2024: 65.28, avg2025: 80,   comprehensiveSalary: 15338 },
+  97:  { grtId: "GRT097", grade: "9A",   hireDate: "2024-10-01", performanceJan2026: 88.6, avg2024: 0,     avg2025: 80,   comprehensiveSalary: 18000 },
+  3:   { grtId: "GRT003", grade: "5",    hireDate: "2018-07-01", performanceJan2026: 87.1, avg2024: 82,    avg2025: 85,   comprehensiveSalary: 8484 },
+  7:   { grtId: "GRT007", grade: "8A",   hireDate: "2016-03-01", performanceJan2026: 81,   avg2024: 70.56, avg2025: 80,   comprehensiveSalary: 18434 },
+  55:  { grtId: "GRT055", grade: "10B",  hireDate: "2015-10-01", performanceJan2026: 77.8, avg2024: 83.8,  avg2025: 85,   comprehensiveSalary: 24112 },
+  19:  { grtId: "GRT019", grade: "7",    hireDate: "2018-01-01", performanceJan2026: 60,   avg2024: 57.26, avg2025: 75,   comprehensiveSalary: 11193 },
+  18:  { grtId: "GRT018", grade: "7",    hireDate: "2017-06-01", performanceJan2026: 77,   avg2024: 68.22, avg2025: 80,   comprehensiveSalary: 15790 },
+  24:  { grtId: "GRT024", grade: "6",    hireDate: "2018-11-01", performanceJan2026: null, avg2024: null,  avg2025: null, comprehensiveSalary: null },
+  8:   { grtId: "GRT008", grade: "4",    hireDate: "2021-05-01", performanceJan2026: null, avg2024: null,  avg2025: null, comprehensiveSalary: 6406 },
+  9:   { grtId: "GRT009", grade: "6",    hireDate: "2017-09-01", performanceJan2026: null, avg2024: null,  avg2025: null, comprehensiveSalary: 8823 },
+  45:  { grtId: "GRT045", grade: "11B",  hireDate: "2014-03-01", performanceJan2026: 74,   avg2024: 60,    avg2025: 80,   comprehensiveSalary: 32100 },
+};
+
+// ─── Training Course Catalog ─────────────────────────────────────────
+
+const TRAINING_COURSES: Record<string, string[]> = {
+  T: ["产品结构原理培训", "AutoCAD/SolidWorks实操", "工艺流程标准化", "PLC编程进阶"],
+  S: ["高效沟通工作坊", "时间管理与GTD", "压力管理与情商", "客户服务意识"],
+  D: ["创新设计思维(Design Thinking)", "DFMEA方法论", "专利撰写培训", "工艺改善案例"],
+  C: ["跨部门协作演练", "商务谈判技巧", "会议主持与效能", "客户关系管理"],
+  K: ["IATF 16949内审员培训", "ISO 14001环境管理", "VDA 6.3过程审核", "法规合规更新"],
+  L: ["新任管理者训练营", "OKR目标管理", "教练技术与带教", "战略思维与决策"],
+};
 
 // ─── ROLE_LEVELS (mirrors client) ────────────────────────────────────
 
 const ROLE_LEVELS: Record<string, number> = {
   guest: 0, employee: 1, production_worker: 1,
-  team_lead: 2, bu_sales: 2, bu_mech: 2, bu_elec: 2, procurement_eng: 2, cs_engineer: 2,
+  team_lead: 2, bu_sales: 2, bu_mech: 2, bu_elec: 2, procurement_eng: 2, cs_engineer: 2, it_engineer: 2,
   dept_manager: 3, bu_pm: 3, hr_specialist: 3, finance_specialist: 3,
   hr_manager: 4, finance_manager: 4, director: 5, bu_gm: 6, admin: 10,
 };
+
+// ─── Helper: build gap analysis for an employee ──────────────────────
+
+function buildGapAnalysis(emp: EmployeeAssessment) {
+  const criteria = ROLE_CRITERIA.find(r => r.role === emp.role) || ROLE_CRITERIA.find(r => r.role === "employee")!;
+  return CAPABILITY_DICTIONARY.map(pillar => {
+    const actual = emp.scores[pillar.code] || 0;
+    const target = criteria.targets[pillar.code] || 60;
+    const gap = target - actual;
+    let level: string;
+    if (gap > 15) level = "critical";
+    else if (gap > 5) level = "significant";
+    else if (gap > 0) level = "minor";
+    else level = "exceeds";
+    return { code: pillar.code, name: pillar.name, actual, target, gap, level };
+  });
+}
+
+// ─── Helper: build training plan for an employee ─────────────────────
+
+function buildTrainingPlan(emp: EmployeeAssessment) {
+  const gapAnalysis = buildGapAnalysis(emp);
+  return gapAnalysis
+    .filter(g => g.gap > 0)
+    .sort((a, b) => b.gap - a.gap)
+    .map(g => {
+      let priority: "critical" | "important" | "recommended" | "optional";
+      let timeline: string;
+      let expectedImprovement: string;
+      if (g.gap > 20) {
+        priority = "critical";
+        timeline = "1-3个月内完成";
+        expectedImprovement = `预计可提升${Math.min(g.gap, 25)}分`;
+      } else if (g.gap > 10) {
+        priority = "important";
+        timeline = "3-6个月内完成";
+        expectedImprovement = `预计可提升${Math.min(g.gap, 15)}分`;
+      } else if (g.gap > 5) {
+        priority = "recommended";
+        timeline = "6-12个月内完成";
+        expectedImprovement = `预计可提升${Math.min(g.gap, 10)}分`;
+      } else {
+        priority = "optional";
+        timeline = "12个月内完成";
+        expectedImprovement = `预计可提升${g.gap}分`;
+      }
+      const allCourses = TRAINING_COURSES[g.code] || [];
+      // Select courses based on gap severity
+      const courseCount = g.gap > 15 ? 3 : g.gap > 5 ? 2 : 1;
+      const courses = allCourses.slice(0, courseCount);
+      return {
+        code: g.code,
+        name: g.name,
+        priority,
+        courses,
+        timeline,
+        expectedImprovement,
+      };
+    });
+}
+
+// ─── Helper: identify strengths and improvement areas ────────────────
+
+function identifyStrengths(emp: EmployeeAssessment): string[] {
+  const criteria = ROLE_CRITERIA.find(r => r.role === emp.role) || ROLE_CRITERIA.find(r => r.role === "employee")!;
+  const strengths: string[] = [];
+  for (const pillar of CAPABILITY_DICTIONARY) {
+    const actual = emp.scores[pillar.code] || 0;
+    const target = criteria.targets[pillar.code] || 60;
+    if (actual >= target) {
+      const surplus = actual - target;
+      if (surplus >= 10) {
+        strengths.push(`${pillar.name}表现卓越，超出目标${surplus}分，可担任该领域导师`);
+      } else if (surplus >= 0) {
+        strengths.push(`${pillar.name}达标，具备扎实基础`);
+      }
+    }
+  }
+  if (emp.overallScore >= 80) {
+    strengths.push("综合能力评分优秀，具备跨岗位发展潜力");
+  }
+  return strengths;
+}
+
+function identifyImprovementAreas(emp: EmployeeAssessment): string[] {
+  const criteria = ROLE_CRITERIA.find(r => r.role === emp.role) || ROLE_CRITERIA.find(r => r.role === "employee")!;
+  const areas: string[] = [];
+  for (const pillar of CAPABILITY_DICTIONARY) {
+    const actual = emp.scores[pillar.code] || 0;
+    const target = criteria.targets[pillar.code] || 60;
+    const gap = target - actual;
+    if (gap > 15) {
+      areas.push(`${pillar.name}差距显著(${gap}分)，需制定专项提升计划`);
+    } else if (gap > 5) {
+      areas.push(`${pillar.name}存在提升空间(${gap}分)，建议通过项目实战补强`);
+    }
+  }
+  return areas;
+}
 
 // ─── Router ──────────────────────────────────────────────────────────
 
@@ -226,8 +400,8 @@ export const capabilitySystemRouter = router({
   getMyAssessment: protectedProcedure
     .input(z.object({ employeeId: z.number().optional() }))
     .query(({ input }) => {
-      // Default to Donnie (1017) if no ID provided — the logged-in user
-      const id = input.employeeId || 1017;
+      // Default to 刘奥运 (80/GRT080) if no ID provided — the logged-in user
+      const id = input.employeeId || 80;
       return EMPLOYEE_ASSESSMENTS.find(e => e.employeeId === id) || EMPLOYEE_ASSESSMENTS[0];
     }),
 
@@ -270,7 +444,7 @@ export const capabilitySystemRouter = router({
   }),
 
   /** AI Compensation & Performance Analysis */
-  aiCompensationAnalysis: protectedProcedure
+  aiCompensationAnalysis: requirePermission('capability:matrix:manage')
     .input(z.object({ userRole: z.string().optional() }))
     .mutation(({ input }) => {
       const roleLevel = ROLE_LEVELS[input?.userRole ?? "employee"] ?? 1;
@@ -346,7 +520,7 @@ export const capabilitySystemRouter = router({
     }),
 
   /** AI Improvement Tips for a specific employee */
-  aiImprovementTips: protectedProcedure
+  aiImprovementTips: requirePermission('capability:matrix:manage')
     .input(z.object({
       employeeId: z.number(),
       role: z.string(),
@@ -400,6 +574,165 @@ export const capabilitySystemRouter = router({
         name: emp.name,
         generatedAt: new Date().toISOString(),
         tips: tips.sort((a, b) => b.gap - a.gap), // highest gap first
+      };
+    }),
+
+  /** Get full employee profile with gap analysis, training plan, strengths/weaknesses */
+  getEmployeeProfile: protectedProcedure
+    .input(z.object({ employeeId: z.number() }))
+    .query(({ input }) => {
+      const emp = EMPLOYEE_ASSESSMENTS.find(e => e.employeeId === input.employeeId);
+      if (!emp) throw new Error("Employee not found");
+
+      const profile = EMPLOYEE_PROFILES[input.employeeId] || null;
+      const gapAnalysis = buildGapAnalysis(emp);
+      const trainingPlan = buildTrainingPlan(emp);
+      const strengths = identifyStrengths(emp);
+      const improvementAreas = identifyImprovementAreas(emp);
+
+      return {
+        ...emp,
+        profile,
+        gapAnalysis,
+        trainingPlan,
+        strengths,
+        improvementAreas,
+      };
+    }),
+
+  /** Get detailed training plan with courses for a specific employee */
+  getTrainingPlan: protectedProcedure
+    .input(z.object({ employeeId: z.number() }))
+    .query(({ input }) => {
+      const emp = EMPLOYEE_ASSESSMENTS.find(e => e.employeeId === input.employeeId);
+      if (!emp) throw new Error("Employee not found");
+
+      const profile = EMPLOYEE_PROFILES[input.employeeId] || null;
+      const trainingPlan = buildTrainingPlan(emp);
+      const gapAnalysis = buildGapAnalysis(emp);
+
+      // Compute total training hours estimate
+      let totalHoursEstimate = 0;
+      for (const plan of trainingPlan) {
+        if (plan.priority === "critical") totalHoursEstimate += plan.courses.length * 16;
+        else if (plan.priority === "important") totalHoursEstimate += plan.courses.length * 12;
+        else if (plan.priority === "recommended") totalHoursEstimate += plan.courses.length * 8;
+        else totalHoursEstimate += plan.courses.length * 4;
+      }
+
+      return {
+        employeeId: emp.employeeId,
+        name: emp.name,
+        nameEn: emp.nameEn,
+        department: emp.department,
+        role: emp.role,
+        roleName: emp.roleName,
+        grtId: profile?.grtId || null,
+        grade: profile?.grade || null,
+        overallScore: emp.overallScore,
+        overallGrade: emp.overallGrade,
+        gapAnalysis,
+        trainingPlan,
+        totalHoursEstimate,
+        generatedAt: new Date().toISOString(),
+      };
+    }),
+
+  /** Get team-wide training needs aggregation */
+  getTeamTrainingOverview: protectedProcedure
+    .query(() => {
+      // Aggregate critical gaps across all employees
+      const gapCounts: Record<string, { count: number; totalGap: number }> = {};
+      const courseDemand: Record<string, { count: number; priority: string }> = {};
+      const deptStats: Record<string, { totalScore: number; count: number; pillarSums: Record<string, number> }> = {};
+
+      for (const emp of EMPLOYEE_ASSESSMENTS) {
+        // Department stats
+        if (!deptStats[emp.department]) {
+          deptStats[emp.department] = { totalScore: 0, count: 0, pillarSums: {} };
+          for (const p of CAPABILITY_DICTIONARY) {
+            deptStats[emp.department].pillarSums[p.code] = 0;
+          }
+        }
+        deptStats[emp.department].totalScore += emp.overallScore;
+        deptStats[emp.department].count += 1;
+        for (const p of CAPABILITY_DICTIONARY) {
+          deptStats[emp.department].pillarSums[p.code] += (emp.scores[p.code] || 0);
+        }
+
+        // Gap analysis
+        const gaps = buildGapAnalysis(emp);
+        for (const g of gaps) {
+          if (g.gap > 0) {
+            if (!gapCounts[g.code]) {
+              gapCounts[g.code] = { count: 0, totalGap: 0 };
+            }
+            gapCounts[g.code].count += 1;
+            gapCounts[g.code].totalGap += g.gap;
+          }
+        }
+
+        // Training course demand
+        const plan = buildTrainingPlan(emp);
+        for (const p of plan) {
+          for (const course of p.courses) {
+            if (!courseDemand[course]) {
+              courseDemand[course] = { count: 0, priority: p.priority };
+            }
+            courseDemand[course].count += 1;
+            // Upgrade priority if any employee has higher need
+            if (p.priority === "critical" && courseDemand[course].priority !== "critical") {
+              courseDemand[course].priority = "critical";
+            } else if (p.priority === "important" && courseDemand[course].priority === "recommended") {
+              courseDemand[course].priority = "important";
+            }
+          }
+        }
+      }
+
+      // Build criticalGaps sorted by count descending
+      const criticalGaps = Object.entries(gapCounts)
+        .map(([code, data]) => ({
+          code,
+          name: CAPABILITY_DICTIONARY.find(p => p.code === code)?.name || code,
+          count: data.count,
+          avgGap: Math.round((data.totalGap / data.count) * 10) / 10,
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      // Build topTrainingNeeds sorted by target employees descending
+      const topTrainingNeeds = Object.entries(courseDemand)
+        .map(([course, data]) => ({
+          course,
+          targetEmployees: data.count,
+          priority: data.priority,
+        }))
+        .sort((a, b) => b.targetEmployees - a.targetEmployees)
+        .slice(0, 15);
+
+      // Build departmentSummary
+      const departmentSummary = Object.entries(deptStats)
+        .map(([dept, data]) => {
+          const avgScore = Math.round(data.totalScore / data.count);
+          // Find weakest pillar by average
+          let weakestPillar = "T";
+          let weakestAvg = Infinity;
+          for (const p of CAPABILITY_DICTIONARY) {
+            const avg = data.pillarSums[p.code] / data.count;
+            if (avg < weakestAvg) {
+              weakestAvg = avg;
+              weakestPillar = p.name;
+            }
+          }
+          return { dept, avgScore, weakestPillar, count: data.count };
+        })
+        .sort((a, b) => a.avgScore - b.avgScore);
+
+      return {
+        totalEmployees: EMPLOYEE_ASSESSMENTS.length,
+        criticalGaps,
+        topTrainingNeeds,
+        departmentSummary,
       };
     }),
 });

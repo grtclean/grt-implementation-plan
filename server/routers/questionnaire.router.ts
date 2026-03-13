@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 import { jsonValue } from "@shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 // 模拟问卷数据
 const mockQuestionnaires = [
@@ -13,7 +13,7 @@ const mockQuestionnaires = [
     id: 1,
     questionnaireNo: "QN-2026-001",
     status: "APPROVED",
-    contactPerson: "张工",
+    contactPerson: "张建华",
     company: "某汽车零部件公司",
     email: "zhang@example.com",
     phone: "13800138001",
@@ -64,9 +64,9 @@ const mockQuestionnaires = [
     id: 2,
     questionnaireNo: "QN-2026-002",
     status: "UNDER_REVIEW",
-    contactPerson: "李经理",
+    contactPerson: "陈明辉",
     company: "精密机械有限公司",
-    email: "li@precision.com",
+    email: "chen.mh@precision.com",
     phone: "13900139002",
     quoteType: "NEW_PROJECT",
     projectName: "精密零件超声波清洗",
@@ -238,7 +238,7 @@ export const questionnaireRouter = router({
     }),
 
   // 更新问卷
-  update: protectedProcedure
+  update: requirePermission('oa:questionnaire:manage')
     .input(z.object({
       id: z.number(),
       data: z.record(z.string(), jsonValue),
@@ -251,7 +251,7 @@ export const questionnaireRouter = router({
     }),
 
   // 提交问卷
-  submit: protectedProcedure
+  submit: requirePermission('oa:questionnaire:manage')
     .input(z.object({
       id: z.number(),
     }))
@@ -263,7 +263,7 @@ export const questionnaireRouter = router({
     }),
 
   // 审核问卷
-  review: protectedProcedure
+  review: requirePermission('oa:questionnaire:manage')
     .input(z.object({
       id: z.number(),
       approved: z.boolean(),
@@ -297,7 +297,7 @@ export const questionnaireRouter = router({
     }),
 
   // 触发AI分析
-  triggerAiAnalysis: protectedProcedure
+  triggerAiAnalysis: requirePermission('oa:questionnaire:manage')
     .input(z.object({
       id: z.number(),
     }))
@@ -310,7 +310,7 @@ export const questionnaireRouter = router({
     }),
 
   // 转换为项目
-  convertToProject: protectedProcedure
+  convertToProject: requirePermission('oa:questionnaire:manage')
     .input(z.object({
       id: z.number(),
       projectName: z.string(),

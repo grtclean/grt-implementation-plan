@@ -14,6 +14,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ─── Types (mirrors server) ──────────────────────────────────────
 
@@ -218,6 +219,7 @@ const PRODUCT_STEPS: Record<string, MachiningStep[]> = {
 // ─── Component ───────────────────────────────────────────────────────
 
 export default function CbamDashboard() {
+  const { t, tpl } = useLanguage();
   const [selectedProduct, setSelectedProduct] = useState<string>("GWM-3000");
   const [activeTab, setActiveTab] = useState<"overview" | "materials" | "energy" | "eco-sim">("overview");
   const [showDeclaration, setShowDeclaration] = useState(false);
@@ -254,34 +256,34 @@ export default function CbamDashboard() {
       <div style={{ marginBottom: "24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
           <span style={{ fontSize: "32px" }}>🌱</span>
-          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: 0 }}>ESG & CBAM Compliance Control Tower</h1>
+          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: 0 }}>{t("admin.cbam.title")}</h1>
         </div>
         <p style={{ color: "#6b7280", margin: 0 }}>
-          产品碳足迹追踪 — EU Carbon Border Adjustment Mechanism Readiness
+          {t("admin.cbam.subtitle")}
         </p>
       </div>
 
       {/* Summary Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
         <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "12px", padding: "20px" }}>
-          <div style={{ fontSize: "12px", color: "#166534", fontWeight: 600, textTransform: "uppercase" }}>Total Portfolio CO₂e</div>
+          <div style={{ fontSize: "12px", color: "#166534", fontWeight: 600, textTransform: "uppercase" }}>{t("admin.cbam.totalPortfolioCo2")}</div>
           <div style={{ fontSize: "28px", fontWeight: 700, color: "#166534" }}>{summary.totalCo2.toLocaleString()} kg</div>
-          <div style={{ fontSize: "12px", color: "#6b7280" }}>{allFootprints.length} products tracked</div>
+          <div style={{ fontSize: "12px", color: "#6b7280" }}>{tpl("admin.cbam.productsTracked", { count: String(allFootprints.length) })}</div>
         </div>
         <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: "12px", padding: "20px" }}>
-          <div style={{ fontSize: "12px", color: "#166534", fontWeight: 600, textTransform: "uppercase" }}>Compliant</div>
+          <div style={{ fontSize: "12px", color: "#166534", fontWeight: 600, textTransform: "uppercase" }}>{t("admin.cbam.compliant")}</div>
           <div style={{ fontSize: "28px", fontWeight: 700, color: "#166534" }}>{summary.compliant}</div>
-          <div style={{ fontSize: "12px", color: "#6b7280" }}>Ready for EU export</div>
+          <div style={{ fontSize: "12px", color: "#6b7280" }}>{t("admin.cbam.readyForExport")}</div>
         </div>
         <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: "12px", padding: "20px" }}>
-          <div style={{ fontSize: "12px", color: "#92400e", fontWeight: 600, textTransform: "uppercase" }}>At Risk</div>
+          <div style={{ fontSize: "12px", color: "#92400e", fontWeight: 600, textTransform: "uppercase" }}>{t("admin.cbam.atRisk")}</div>
           <div style={{ fontSize: "28px", fontWeight: 700, color: "#92400e" }}>{summary.atRisk}</div>
-          <div style={{ fontSize: "12px", color: "#6b7280" }}>Within 10% of limit</div>
+          <div style={{ fontSize: "12px", color: "#6b7280" }}>{t("admin.cbam.within10Pct")}</div>
         </div>
         <div style={{ background: summary.nonCompliant > 0 ? "#fecaca" : "#f3f4f6", border: `1px solid ${summary.nonCompliant > 0 ? "#fca5a5" : "#d1d5db"}`, borderRadius: "12px", padding: "20px" }}>
-          <div style={{ fontSize: "12px", color: summary.nonCompliant > 0 ? "#991b1b" : "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>Non-Compliant</div>
+          <div style={{ fontSize: "12px", color: summary.nonCompliant > 0 ? "#991b1b" : "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>{t("admin.cbam.nonCompliant")}</div>
           <div style={{ fontSize: "28px", fontWeight: 700, color: summary.nonCompliant > 0 ? "#991b1b" : "#374151" }}>{summary.nonCompliant}</div>
-          <div style={{ fontSize: "12px", color: "#6b7280" }}>Blocked from EU export</div>
+          <div style={{ fontSize: "12px", color: "#6b7280" }}>{t("admin.cbam.blockedExport")}</div>
         </div>
       </div>
 
@@ -322,7 +324,7 @@ export default function CbamDashboard() {
               <div style={{ marginBottom: "8px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "4px" }}>
                   <span style={{ fontWeight: 600 }}>{fp.totalCo2.toLocaleString()} kg CO₂e</span>
-                  <span style={{ color: "#6b7280" }}>/ {fp.euThreshold.toLocaleString()} kg limit</span>
+                  <span style={{ color: "#6b7280" }}>{tpl("admin.cbam.kgLimit", { limit: fp.euThreshold.toLocaleString() })}</span>
                 </div>
                 <div style={{ height: "8px", background: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
                   <div style={{
@@ -337,8 +339,8 @@ export default function CbamDashboard() {
 
               {/* Split indicator */}
               <div style={{ display: "flex", gap: "8px", fontSize: "11px" }}>
-                <span style={{ color: "#2563eb" }}>● Materials: {fp.materialPercent}%</span>
-                <span style={{ color: "#d97706" }}>● Energy: {fp.energyPercent}%</span>
+                <span style={{ color: "#2563eb" }}>● {tpl("admin.cbam.materials", { pct: String(fp.materialPercent) })}</span>
+                <span style={{ color: "#d97706" }}>● {tpl("admin.cbam.energy", { pct: String(fp.energyPercent) })}</span>
               </div>
             </div>
           );
@@ -360,7 +362,7 @@ export default function CbamDashboard() {
                 color: activeTab === tab ? "#2563eb" : "#6b7280",
               }}
             >
-              {tab === "overview" ? "📊 Overview" : tab === "materials" ? "🏭 Scope 3 — Materials" : tab === "energy" ? "⚡ Scope 2 — Energy" : "🌿 ECO Simulation"}
+              {tab === "overview" ? t("admin.cbam.tabOverview") : tab === "materials" ? t("admin.cbam.tabMaterials") : tab === "energy" ? t("admin.cbam.tabEnergy") : t("admin.cbam.tabEcoSim")}
             </button>
           ))}
         </div>
@@ -369,7 +371,7 @@ export default function CbamDashboard() {
           {/* OVERVIEW TAB */}
           {activeTab === "overview" && (
             <div>
-              <h3 style={{ marginTop: 0, fontSize: "18px" }}>{selectedFootprint.productCode}: Carbon Breakdown</h3>
+              <h3 style={{ marginTop: 0, fontSize: "18px" }}>{selectedFootprint.productCode}: {t("admin.cbam.carbonBreakdown")}</h3>
 
               {/* SVG Pie-like visual */}
               <div style={{ display: "flex", gap: "40px", alignItems: "center", marginBottom: "24px" }}>
@@ -397,22 +399,22 @@ export default function CbamDashboard() {
                   <div style={{ marginBottom: "16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
                       <span style={{ width: "12px", height: "12px", borderRadius: "2px", background: "#3b82f6", display: "inline-block" }} />
-                      <span style={{ fontWeight: 600 }}>Scope 3 — Materials</span>
+                      <span style={{ fontWeight: 600 }}>{t("admin.cbam.scope3Materials")}</span>
                     </div>
                     <div style={{ fontSize: "24px", fontWeight: 700, color: "#3b82f6" }}>
                       {selectedFootprint.materialCo2.toLocaleString()} kg CO₂e
                     </div>
-                    <div style={{ fontSize: "13px", color: "#6b7280" }}>{selectedFootprint.materialPercent}% of total — upstream supply chain</div>
+                    <div style={{ fontSize: "13px", color: "#6b7280" }}>{tpl("admin.cbam.upstreamSupplyChain", { pct: String(selectedFootprint.materialPercent) })}</div>
                   </div>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
                       <span style={{ width: "12px", height: "12px", borderRadius: "2px", background: "#f59e0b", display: "inline-block" }} />
-                      <span style={{ fontWeight: 600 }}>Scope 2 — Energy</span>
+                      <span style={{ fontWeight: 600 }}>{t("admin.cbam.scope2Energy")}</span>
                     </div>
                     <div style={{ fontSize: "24px", fontWeight: 700, color: "#d97706" }}>
                       {selectedFootprint.energyCo2.toLocaleString()} kg CO₂e
                     </div>
-                    <div style={{ fontSize: "13px", color: "#6b7280" }}>{selectedFootprint.energyPercent}% of total — manufacturing electricity</div>
+                    <div style={{ fontSize: "13px", color: "#6b7280" }}>{tpl("admin.cbam.mfgElectricity", { pct: String(selectedFootprint.energyPercent) })}</div>
                   </div>
                 </div>
               </div>
@@ -420,9 +422,9 @@ export default function CbamDashboard() {
               {/* EU CBAM Threshold Bar */}
               <div style={{ background: "#f9fafb", borderRadius: "8px", padding: "16px", marginBottom: "24px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                  <span style={{ fontWeight: 600 }}>EU CBAM Threshold</span>
+                  <span style={{ fontWeight: 600 }}>{t("admin.cbam.euCbamThreshold")}</span>
                   <span style={{ fontWeight: 700, color: statusColor(selectedFootprint.status).text }}>
-                    {selectedFootprint.status === "COMPLIANT" ? "✅ COMPLIANT" : selectedFootprint.status === "AT_RISK" ? "⚠️ AT RISK" : "🛑 NON-COMPLIANT"}
+                    {selectedFootprint.status === "COMPLIANT" ? t("admin.cbam.statusCompliant") : selectedFootprint.status === "AT_RISK" ? t("admin.cbam.statusAtRisk") : t("admin.cbam.statusNonCompliant")}
                   </span>
                 </div>
                 <div style={{ height: "24px", background: "#e5e7eb", borderRadius: "12px", position: "relative", overflow: "hidden" }}>
@@ -441,7 +443,7 @@ export default function CbamDashboard() {
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px", color: "#9ca3af" }}>
                   <span>0</span>
-                  <span style={{ marginLeft: "80%" }}>90% line</span>
+                  <span style={{ marginLeft: "80%" }}>{t("admin.cbam.ninetyPctLine")}</span>
                   <span>{selectedFootprint.euThreshold.toLocaleString()} kg</span>
                 </div>
               </div>
@@ -456,11 +458,11 @@ export default function CbamDashboard() {
                   opacity: selectedFootprint.status === "COMPLIANT" ? 1 : 0.6,
                 }}
               >
-                📋 Generate EU CBAM Customs Declaration
+                {t("admin.cbam.generateDeclaration")}
               </button>
               {selectedFootprint.status !== "COMPLIANT" && (
                 <p style={{ fontSize: "12px", color: "#ef4444", marginTop: "4px", textAlign: "center" }}>
-                  ⚠ Product must be COMPLIANT before declaration can be submitted to EU customs
+                  {t("admin.cbam.mustBeCompliant")}
                 </p>
               )}
             </div>
@@ -469,17 +471,17 @@ export default function CbamDashboard() {
           {/* MATERIALS TAB (Scope 3) */}
           {activeTab === "materials" && (
             <div>
-              <h3 style={{ marginTop: 0 }}>Scope 3 — Material Carbon Breakdown ({selectedFootprint.productCode})</h3>
+              <h3 style={{ marginTop: 0 }}>{tpl("admin.cbam.materialBreakdownTitle", { code: selectedFootprint.productCode })}</h3>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
                 <thead>
                   <tr style={{ borderBottom: "2px solid #e5e7eb", textAlign: "left" }}>
-                    <th style={{ padding: "8px 12px" }}>Part</th>
-                    <th style={{ padding: "8px 12px" }}>Material</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Weight (kg)</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>CO₂/kg</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Total CO₂e</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>% Share</th>
-                    <th style={{ padding: "8px 12px" }}>Impact</th>
+                    <th style={{ padding: "8px 12px" }}>{t("admin.cbam.thPart")}</th>
+                    <th style={{ padding: "8px 12px" }}>{t("admin.cbam.thMaterial")}</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>{t("admin.cbam.thWeight")}</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>{t("admin.cbam.thCo2PerKg")}</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>{t("admin.cbam.thTotalCo2e")}</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>{t("admin.cbam.thShare")}</th>
+                    <th style={{ padding: "8px 12px" }}>{t("admin.cbam.thImpact")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -506,7 +508,7 @@ export default function CbamDashboard() {
                 </tbody>
                 <tfoot>
                   <tr style={{ borderTop: "2px solid #111827", fontWeight: 700 }}>
-                    <td colSpan={4} style={{ padding: "8px 12px" }}>Total Scope 3</td>
+                    <td colSpan={4} style={{ padding: "8px 12px" }}>{t("admin.cbam.totalScope3")}</td>
                     <td style={{ padding: "8px 12px", textAlign: "right", color: "#3b82f6" }}>{selectedFootprint.materialCo2.toLocaleString()} kg</td>
                     <td style={{ padding: "8px 12px", textAlign: "right" }}>100%</td>
                     <td />
@@ -519,17 +521,17 @@ export default function CbamDashboard() {
           {/* ENERGY TAB (Scope 2) */}
           {activeTab === "energy" && (
             <div>
-              <h3 style={{ marginTop: 0 }}>Scope 2 — Manufacturing Energy Breakdown ({selectedFootprint.productCode})</h3>
+              <h3 style={{ marginTop: 0 }}>{tpl("admin.cbam.energyBreakdownTitle", { code: selectedFootprint.productCode })}</h3>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
                 <thead>
                   <tr style={{ borderBottom: "2px solid #e5e7eb", textAlign: "left" }}>
-                    <th style={{ padding: "8px 12px" }}>Machine</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Duration (h)</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Power (kW)</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Energy (kWh)</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Grid Factor</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>CO₂e (kg)</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>% Share</th>
+                    <th style={{ padding: "8px 12px" }}>{t("admin.cbam.thMachine")}</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>{t("admin.cbam.thDuration")}</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>{t("admin.cbam.thPower")}</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>{t("admin.cbam.thEnergy")}</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>{t("admin.cbam.thGridFactor")}</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>{t("admin.cbam.thCo2e")}</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>{t("admin.cbam.thShare")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -552,7 +554,7 @@ export default function CbamDashboard() {
                 </tbody>
                 <tfoot>
                   <tr style={{ borderTop: "2px solid #111827", fontWeight: 700 }}>
-                    <td colSpan={5} style={{ padding: "8px 12px" }}>Total Scope 2</td>
+                    <td colSpan={5} style={{ padding: "8px 12px" }}>{t("admin.cbam.totalScope2")}</td>
                     <td style={{ padding: "8px 12px", textAlign: "right", color: "#d97706" }}>{selectedFootprint.energyCo2.toFixed(2)} kg</td>
                     <td style={{ padding: "8px 12px", textAlign: "right" }}>100%</td>
                   </tr>
@@ -560,7 +562,7 @@ export default function CbamDashboard() {
               </table>
 
               <div style={{ marginTop: "16px", padding: "12px", background: "#fffbeb", borderRadius: "8px", fontSize: "13px", color: "#92400e" }}>
-                💡 Grid CO₂ Factor: 0.581 kg CO₂e/kWh (China East Grid 2025). Switching to on-site solar could reduce Scope 2 by up to 80%.
+                {t("admin.cbam.gridFactorNote")}
               </div>
             </div>
           )}
@@ -574,7 +576,7 @@ export default function CbamDashboard() {
 
       {/* Architecture Diagram */}
       <div style={{ marginTop: "24px", border: "1px solid #e5e7eb", borderRadius: "12px", padding: "24px", background: "#fafafa" }}>
-        <h3 style={{ marginTop: 0, fontSize: "16px" }}>Carbon Calculation Architecture — EU CBAM Compliance Engine</h3>
+        <h3 style={{ marginTop: 0, fontSize: "16px" }}>{t("admin.cbam.architectureTitle")}</h3>
         <svg viewBox="0 0 900 220" style={{ width: "100%", maxWidth: "900px" }}>
           {/* Step boxes */}
           {[
@@ -610,34 +612,34 @@ export default function CbamDashboard() {
           position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
         }}>
           <div style={{ background: "#fff", borderRadius: "16px", padding: "32px", maxWidth: "600px", width: "100%" }}>
-            <h2 style={{ marginTop: 0 }}>📋 EU CBAM Customs Declaration</h2>
+            <h2 style={{ marginTop: 0 }}>{t("admin.cbam.declarationTitle")}</h2>
             <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
               <table style={{ width: "100%", fontSize: "14px" }}>
                 <tbody>
-                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>Declaration ID</td><td style={{ fontWeight: 600 }}>CBAM-{selectedFootprint.productCode}-{Date.now()}</td></tr>
-                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>Product</td><td style={{ fontWeight: 600 }}>{selectedFootprint.productName}</td></tr>
-                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>Total CO₂e</td><td style={{ fontWeight: 600 }}>{selectedFootprint.totalCo2.toLocaleString()} kg</td></tr>
-                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>- Scope 3 (Materials)</td><td>{selectedFootprint.materialCo2.toLocaleString()} kg</td></tr>
-                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>- Scope 2 (Energy)</td><td>{selectedFootprint.energyCo2.toLocaleString()} kg</td></tr>
-                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>EU Threshold</td><td>{selectedFootprint.euThreshold.toLocaleString()} kg</td></tr>
-                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>Status</td><td style={{ fontWeight: 700, color: statusColor(selectedFootprint.status).text }}>{selectedFootprint.status}</td></tr>
-                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>Date</td><td>{new Date().toISOString().split("T")[0]}</td></tr>
-                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>Certified By</td><td>ESG Compliance Officer</td></tr>
+                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>{t("admin.cbam.declarationId")}</td><td style={{ fontWeight: 600 }}>CBAM-{selectedFootprint.productCode}-{Date.now()}</td></tr>
+                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>{t("admin.cbam.product")}</td><td style={{ fontWeight: 600 }}>{selectedFootprint.productName}</td></tr>
+                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>{t("admin.cbam.totalCo2e")}</td><td style={{ fontWeight: 600 }}>{selectedFootprint.totalCo2.toLocaleString()} kg</td></tr>
+                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>{t("admin.cbam.scope3Label")}</td><td>{selectedFootprint.materialCo2.toLocaleString()} kg</td></tr>
+                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>{t("admin.cbam.scope2Label")}</td><td>{selectedFootprint.energyCo2.toLocaleString()} kg</td></tr>
+                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>{t("admin.cbam.euThreshold")}</td><td>{selectedFootprint.euThreshold.toLocaleString()} kg</td></tr>
+                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>{t("admin.cbam.status")}</td><td style={{ fontWeight: 700, color: statusColor(selectedFootprint.status).text }}>{selectedFootprint.status}</td></tr>
+                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>{t("admin.cbam.date")}</td><td>{new Date().toISOString().split("T")[0]}</td></tr>
+                  <tr><td style={{ color: "#6b7280", padding: "4px 0" }}>{t("admin.cbam.certifiedBy")}</td><td>{t("admin.cbam.esgComplianceOfficer")}</td></tr>
                 </tbody>
               </table>
             </div>
             <div style={{ display: "flex", gap: "12px" }}>
               <button
-                onClick={() => { alert("CBAM Declaration PDF generated! Ready for EU customs submission."); setShowDeclaration(false); }}
+                onClick={() => { alert(t("admin.cbam.pdfGenerated")); setShowDeclaration(false); }}
                 style={{ flex: 1, padding: "12px", borderRadius: "8px", border: "none", background: "#166534", color: "#fff", fontWeight: 700, cursor: "pointer" }}
               >
-                📥 Download PDF
+                {t("admin.cbam.downloadPdf")}
               </button>
               <button
                 onClick={() => setShowDeclaration(false)}
                 style={{ padding: "12px 24px", borderRadius: "8px", border: "1px solid #d1d5db", background: "#fff", cursor: "pointer" }}
               >
-                Close
+                {t("admin.cbam.close")}
               </button>
             </div>
           </div>
@@ -657,6 +659,7 @@ export default function CbamDashboard() {
 // ─── ECO Simulation Sub-component ────────────────────────────────────
 
 function EcoSimulationTab({ footprint }: { footprint: ProductFootprint }) {
+  const { t, tpl } = useLanguage();
   const [swapResult, setSwapResult] = useState<{
     beforeTotalCo2: number; afterTotalCo2: number; co2Reduction: number;
     reductionPercent: number; beforeStatus: CbamStatus; afterStatus: CbamStatus;
@@ -682,12 +685,11 @@ function EcoSimulationTab({ footprint }: { footprint: ProductFootprint }) {
 
   return (
     <div>
-      <h3 style={{ marginTop: 0 }}>ECO Material Swap Simulation — {footprint.productCode}</h3>
+      <h3 style={{ marginTop: 0 }}>{tpl("admin.cbam.ecoSimTitle", { code: footprint.productCode })}</h3>
       <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
-        <div style={{ fontWeight: 700, marginBottom: "8px" }}>🌿 Proposed ECO: Switch to Green Steel (H2-DRI)</div>
+        <div style={{ fontWeight: 700, marginBottom: "8px" }}>{t("admin.cbam.proposedEco")}</div>
         <div style={{ fontSize: "14px", color: "#374151" }}>
-          Replace <strong>SS316-PLATE</strong> (Stainless Steel 316L, 6.15 kg CO₂/kg) with <strong>Green Stainless Steel (H2-DRI)</strong> (2.50 kg CO₂/kg).
-          H2-DRI (Hydrogen Direct Reduced Iron) eliminates coal from steelmaking, cutting emissions by ~59%.
+          {t("admin.cbam.ecoDescription")}
         </div>
       </div>
 
@@ -699,7 +701,7 @@ function EcoSimulationTab({ footprint }: { footprint: ProductFootprint }) {
           marginBottom: "24px",
         }}
       >
-        ▶ Run ECO Impact Simulation
+        {t("admin.cbam.runSimulation")}
       </button>
 
       {swapResult && (
@@ -710,7 +712,7 @@ function EcoSimulationTab({ footprint }: { footprint: ProductFootprint }) {
               border: `2px solid ${swapResult.beforeStatus === "COMPLIANT" ? "#22c55e" : swapResult.beforeStatus === "AT_RISK" ? "#f59e0b" : "#ef4444"}`,
               borderRadius: "12px", padding: "20px", textAlign: "center",
             }}>
-              <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>Before ECO</div>
+              <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>{t("admin.cbam.beforeEco")}</div>
               <div style={{ fontSize: "28px", fontWeight: 700 }}>{swapResult.beforeTotalCo2.toLocaleString()}</div>
               <div style={{ fontSize: "14px", color: "#6b7280" }}>kg CO₂e</div>
               <span style={{
@@ -734,7 +736,7 @@ function EcoSimulationTab({ footprint }: { footprint: ProductFootprint }) {
               borderRadius: "12px", padding: "20px", textAlign: "center",
               background: swapResult.afterStatus === "COMPLIANT" ? "#f0fdf4" : undefined,
             }}>
-              <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>After ECO</div>
+              <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>{t("admin.cbam.afterEco")}</div>
               <div style={{ fontSize: "28px", fontWeight: 700, color: "#166534" }}>{swapResult.afterTotalCo2.toLocaleString()}</div>
               <div style={{ fontSize: "14px", color: "#6b7280" }}>kg CO₂e</div>
               <span style={{
@@ -750,12 +752,10 @@ function EcoSimulationTab({ footprint }: { footprint: ProductFootprint }) {
           {/* Savings summary */}
           <div style={{ background: "#f0fdf4", borderRadius: "12px", padding: "20px", border: "1px solid #86efac" }}>
             <div style={{ fontSize: "16px", fontWeight: 700, color: "#166534", marginBottom: "8px" }}>
-              🌱 CO₂ Reduction: {swapResult.co2Reduction.toLocaleString()} kg CO₂e ({swapResult.reductionPercent}%)
+              {tpl("admin.cbam.co2Reduction", { amount: swapResult.co2Reduction.toLocaleString(), pct: String(swapResult.reductionPercent) })}
             </div>
             <div style={{ fontSize: "13px", color: "#374151" }}>
-              By switching to H2-DRI Green Steel, this product saves <strong>{swapResult.co2Reduction.toLocaleString()} kg of CO₂</strong> per unit.
-              At 50 units/year production, that is <strong>{(swapResult.co2Reduction * 50).toLocaleString()} kg CO₂/year</strong> eliminated.
-              This also reduces EU CBAM carbon tax liability.
+              {tpl("admin.cbam.savingsDescription", { amount: swapResult.co2Reduction.toLocaleString(), annual: (swapResult.co2Reduction * 50).toLocaleString() })}
             </div>
           </div>
         </div>

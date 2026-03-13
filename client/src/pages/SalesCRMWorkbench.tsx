@@ -175,7 +175,7 @@ function PipelineTab() {
     <div className="space-y-4">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label={t("crm.workbench.pipelineTotal")} value={stats ? `¥${(Number(stats.pipelineValue) / 10000).toFixed(0)}万` : '--'} icon={DollarSign} color="#0078d4" />
+        <StatCard label={t("crm.workbench.pipelineTotal")} value={stats ? `¥${(Number(stats.pipelineValue) / 10000).toFixed(0)}${t("crm.currencyUnit10k")}` : '--'} icon={DollarSign} color="#0078d4" />
         <StatCard label={t("crm.workbench.oppCount")} value={stats?.pipelineCount ?? '--'} icon={Target} color="#f7630c" />
         <StatCard label={t("crm.workbench.winRate")} value={stats ? `${(Number(stats.winRate) * 100).toFixed(1)}%` : '--'} icon={TrendingUp} color="#107c10" />
         <StatCard label={t("crm.workbench.lostCount")} value={stats?.lostCount ?? '--'} icon={XCircle} color="#d13438" />
@@ -193,7 +193,7 @@ function PipelineTab() {
                 <span className="text-xs text-[#605e5c] w-16 shrink-0">{stage?.label || f.stage}</span>
                 <div className="flex-1 bg-[#f3f2f1] rounded-full h-6 overflow-hidden">
                   <div className="h-full rounded-full flex items-center px-2" style={{ width: `${Math.max(pct, 8)}%`, backgroundColor: stage?.color || '#0078d4' }}>
-                    <span className="text-xs text-white font-medium whitespace-nowrap">{f.count}{t("crm.workbench.countUnit")} / ¥{(Number(f.totalValue) / 10000).toFixed(0)}万</span>
+                    <span className="text-xs text-white font-medium whitespace-nowrap">{f.count}{t("crm.workbench.countUnit")} / ¥{(Number(f.totalValue) / 10000).toFixed(0)}{t("crm.currencyUnit10k")}</span>
                   </div>
                 </div>
               </div>
@@ -230,7 +230,7 @@ function PipelineTab() {
                 {stageOpps.map((opp: any) => (
                   <FluentCard key={opp.id} className="p-3 hover:shadow-md transition-shadow cursor-pointer">
                     <p className="text-sm font-medium text-[#323130] truncate">{opp.name}</p>
-                    <p className="text-xs text-[#605e5c] mt-1">¥{(Number(opp.value) / 10000).toFixed(1)}万</p>
+                    <p className="text-xs text-[#605e5c] mt-1">¥{(Number(opp.value) / 10000).toFixed(1)}{t("crm.currencyUnit10k")}</p>
                     <div className="flex items-center justify-between mt-2">
                       <div className="w-full bg-[#f3f2f1] rounded-full h-1.5">
                         <div className="h-full rounded-full" style={{ width: `${opp.probability || 0}%`, backgroundColor: stage.color }} />
@@ -671,7 +671,7 @@ function AnalyticsTab() {
       )}
       {/* Top Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label={t("crm.workbench.pipelineTotal")} value={oppStats ? `¥${(Number(oppStats.pipelineValue) / 10000).toFixed(0)}万` : '--'} icon={DollarSign} color="#0078d4" />
+        <StatCard label={t("crm.workbench.pipelineTotal")} value={oppStats ? `¥${(Number(oppStats.pipelineValue) / 10000).toFixed(0)}${t("crm.currencyUnit10k")}` : '--'} icon={DollarSign} color="#0078d4" />
         <StatCard label={t("crm.workbench.winRate")} value={oppStats ? `${(Number(oppStats.winRate) * 100).toFixed(1)}%` : '--'} icon={TrendingUp} color="#107c10" />
         <StatCard label={t("crm.totalCustomers")} value={custStats?.total ?? '--'} icon={Users} color="#f7630c" />
         <StatCard label={t("crm.workbench.interactionCount")} value={intStats?.total ?? '--'} icon={MessageSquare} color="#8764b8" />
@@ -692,7 +692,7 @@ function AnalyticsTab() {
                     <span className="text-sm text-[#323130]">{stage?.label || f.stage}</span>
                   </div>
                   <div className="text-xs text-[#605e5c]">
-                    {f.count}{t("crm.workbench.oppUnit")} · ¥{(Number(f.totalValue) / 10000).toFixed(1)}万
+                    {f.count}{t("crm.workbench.oppUnit")} · ¥{(Number(f.totalValue) / 10000).toFixed(1)}{t("crm.currencyUnit10k")}
                   </div>
                 </div>
                 <div className="bg-[#f3f2f1] rounded-full h-5 overflow-hidden">

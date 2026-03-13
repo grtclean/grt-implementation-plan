@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { TRPCError } from "@trpc/server";
 import {
@@ -89,7 +89,7 @@ export const aiSalesEnhancedRouter = router({
   // ==================== 情绪分析 ====================
 
   // 分析单条消息情绪
-  analyzeEmotion: protectedProcedure
+  analyzeEmotion: requirePermission('crm:leads:manage')
     .input(
       z.object({
         text: z.string().min(1),

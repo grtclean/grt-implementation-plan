@@ -11,7 +11,7 @@
  *  - seedDemo              — Seed demo reviews for 2 sample projects
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { projectAgentReviews } from "../../drizzle/project-agent-schema";
 import { projects } from "../../drizzle/schema";
@@ -198,7 +198,7 @@ export const projectAgentRouter = router({
     }),
 
   // ── Seed Demo ───────────────────────────────────────────────
-  seedDemo: protectedProcedure
+  seedDemo: requirePermission('project:edit')
     .mutation(async () => {
       const db = await requireDb();
 

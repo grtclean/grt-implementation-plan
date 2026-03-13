@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import {
   // BOM步骤
   createBomStep,
@@ -111,7 +111,7 @@ export const processStepsRouter = router({
     }),
 
   // P0: 工时自动推断 - 完成步骤时自动创建工时记录
-  completeStepWithAutoTime: protectedProcedure
+  completeStepWithAutoTime: requirePermission('mfg:steps:manage')
     .input(z.object({
       stepId: z.number(),
       projectId: z.number(),
@@ -129,7 +129,7 @@ export const processStepsRouter = router({
       );
     }),
 
-  deleteBomStep: protectedProcedure
+  deleteBomStep: requirePermission('mfg:steps:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return deleteBomStep(input.id);
@@ -156,7 +156,7 @@ export const processStepsRouter = router({
       return getBomStepById(input.id);
     }),
 
-  reorderBomSteps: protectedProcedure
+  reorderBomSteps: requirePermission('mfg:steps:manage')
     .input(z.object({
       processInstanceId: z.number(),
       stepIds: z.array(z.number()),
@@ -199,7 +199,7 @@ export const processStepsRouter = router({
       return confirmAiPresetStep(input.id, ctx.user.id, input.status, input.modifications);
     }),
 
-  batchConfirmAiPresetSteps: protectedProcedure
+  batchConfirmAiPresetSteps: requirePermission('mfg:steps:manage')
     .input(z.object({
       ids: z.array(z.number()),
       status: z.enum(["confirmed", "modified", "rejected"]),
@@ -208,20 +208,20 @@ export const processStepsRouter = router({
       return batchConfirmAiPresetSteps(input.ids, ctx.user.id, input.status);
     }),
 
-  adoptAiPresetAsBomStep: protectedProcedure
+  adoptAiPresetAsBomStep: requirePermission('mfg:steps:manage')
     .input(z.object({ aiPresetId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       return adoptAiPresetAsBomStep(input.aiPresetId, ctx.user.id);
     }),
 
-  batchAdoptAiPresets: protectedProcedure
+  batchAdoptAiPresets: requirePermission('mfg:steps:manage')
     .input(z.object({ aiPresetIds: z.array(z.number()) }))
     .mutation(async ({ input, ctx }) => {
       return batchAdoptAiPresets(input.aiPresetIds, ctx.user.id);
     }),
 
   // P0: AI预设工步批量采纳（按项目/工序，支持选择性或全量采纳）
-  batchAdoptAiPresetsByProject: protectedProcedure
+  batchAdoptAiPresetsByProject: requirePermission('mfg:steps:manage')
     .input(z.object({
       projectId: z.number(),
       processCode: z.string(),
@@ -240,7 +240,7 @@ export const processStepsRouter = router({
   // 产线员工工时打卡
   // ============================================================
 
-  startTimeLog: protectedProcedure
+  startTimeLog: requirePermission('mfg:steps:manage')
     .input(z.object({ bomStepId: z.number() }))
     .mutation(async ({ ctx }) => {
       // 使用当前登录用户作为打卡员工
@@ -248,7 +248,7 @@ export const processStepsRouter = router({
     }),
 
   // 允许指定员工（管理员安排）
-  startTimeLogForWorker: protectedProcedure
+  startTimeLogForWorker: requirePermission('mfg:steps:manage')
     .input(z.object({
       bomStepId: z.number(),
       workerId: z.number(),
@@ -258,7 +258,7 @@ export const processStepsRouter = router({
       return startTimeLog(input.bomStepId, input.workerId, input.workerName);
     }),
 
-  endTimeLog: protectedProcedure
+  endTimeLog: requirePermission('mfg:steps:manage')
     .input(z.object({
       timeLogId: z.number(),
       notes: z.string().optional(),
@@ -288,7 +288,7 @@ export const processStepsRouter = router({
   // 附件管理
   // ============================================================
 
-  addStepAttachment: protectedProcedure
+  addStepAttachment: requirePermission('mfg:steps:manage')
     .input(z.object({
       stepId: z.number(),
       stepType: z.enum(["bom", "ai_preset"]),
@@ -310,7 +310,7 @@ export const processStepsRouter = router({
       return getStepAttachments(input.stepId, input.stepType);
     }),
 
-  deleteStepAttachment: protectedProcedure
+  deleteStepAttachment: requirePermission('mfg:steps:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return deleteStepAttachment(input.id);
@@ -320,7 +320,7 @@ export const processStepsRouter = router({
   // AI智慧预设（历史项目参照）
   // ============================================================
 
-  generateAiPresetSteps: protectedProcedure
+  generateAiPresetSteps: requirePermission('mfg:steps:manage')
     .input(z.object({
       targetProjectId: z.number(),
       processInstanceId: z.number(),
@@ -338,7 +338,7 @@ export const processStepsRouter = router({
       );
     }),
 
-  generateAiPresetsForRange: protectedProcedure
+  generateAiPresetsForRange: requirePermission('mfg:steps:manage')
     .input(z.object({
       targetProjectId: z.number(),
       sourceProjectId: z.number(),
@@ -452,7 +452,7 @@ export const processStepsRouter = router({
   // 物料-工步关联与备料校验
   // ============================================================
 
-  linkMaterial: protectedProcedure
+  linkMaterial: requirePermission('mfg:steps:manage')
     .input(z.object({
       bomStepId: z.number(),
       materialCode: z.string(),
@@ -482,7 +482,7 @@ export const processStepsRouter = router({
       return checkMaterialReadiness(input.bomStepId);
     }),
 
-  updateMaterialAvailability: protectedProcedure
+  updateMaterialAvailability: requirePermission('mfg:steps:manage')
     .input(z.object({
       stepMaterialId: z.number(),
       availableQty: z.number(),
@@ -495,7 +495,7 @@ export const processStepsRouter = router({
   // BOM步骤返工流程
   // ============================================================
 
-  triggerRework: protectedProcedure
+  triggerRework: requirePermission('mfg:steps:manage')
     .input(z.object({
       stepId: z.number(),
       reason: z.string(),

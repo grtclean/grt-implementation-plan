@@ -95,7 +95,7 @@ const ENGINEER_CHECKPOINTS: EngineerCheckpoint[] = [
       '风险评估完成',
     ],
     status: 'in_progress',
-    assignedEngineer: '王工',
+    assignedEngineer: '焦斌',
     dueDate: '2024-02-20',
   },
   {

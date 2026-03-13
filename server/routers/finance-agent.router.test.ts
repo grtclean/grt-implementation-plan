@@ -5,7 +5,7 @@
  * recentReviews, seedDemo
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAdminCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 
 // ── Mock state ──────────────────────────────────────────────
 let mockQueryResult: any[] = [];
@@ -46,6 +46,12 @@ function createMockDb() {
 
 const mockDb = createMockDb();
 
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => mockDb),
 }));
@@ -66,6 +72,7 @@ vi.mock("../../drizzle/schema", () => ({
 }));
 
 vi.mock("../services/task-worker.service", () => ({
+  registerTaskHandler: vi.fn(),
   submitTask: vi.fn().mockResolvedValue({ taskId: 42 }),
 }));
 
@@ -97,7 +104,7 @@ describe("financeAgent router", () => {
   // ─── submitForReview ───────────────────────────────────
   describe("submitForReview", () => {
     it("submits claim for AI review and returns taskId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{
         id: 10, submitterId: 1, status: "submitted",
       }]);
@@ -108,28 +115,28 @@ describe("financeAgent router", () => {
     });
 
     it("throws NOT_FOUND when claim does not exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       await expect(caller.financeAgent.submitForReview({ claimId: 999 }))
         .rejects.toThrow("报销单不存在");
     });
 
     it("throws FORBIDDEN when non-owner non-finance submits", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, role: "employee" });
+      const caller = createAdminCaller({ id: 5, role: "employee" });
       selectResultsQueue.push([{ id: 10, submitterId: 99, status: "submitted" }]);
       await expect(caller.financeAgent.submitForReview({ claimId: 10 }))
         .rejects.toThrow("只能提交自己的报销单");
     });
 
     it("allows finance_manager to submit any claim", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, role: "finance_manager" });
+      const caller = createAdminCaller({ id: 5, role: "finance_manager" });
       selectResultsQueue.push([{ id: 10, submitterId: 99, status: "submitted" }]);
       const result = await caller.financeAgent.submitForReview({ claimId: 10 });
       expect(result.taskId).toBe(42);
     });
 
     it("throws BAD_REQUEST when claim status is not submitted/draft", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 10, submitterId: 1, status: "approved" }]);
       await expect(caller.financeAgent.submitForReview({ claimId: 10 }))
         .rejects.toThrow("无法提交AI审核");
@@ -139,7 +146,7 @@ describe("financeAgent router", () => {
   // ─── getReviewStatus ───────────────────────────────────
   describe("getReviewStatus", () => {
     it("returns completed status with report when task is done", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const report = { decision: "pass", score: 85 };
       selectResultsQueue.push([{ id: 42, status: "completed", resultData: report }]);
       const result = await caller.financeAgent.getReviewStatus({ taskId: 42 });
@@ -148,14 +155,14 @@ describe("financeAgent router", () => {
     });
 
     it("returns not_found when task does not exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.financeAgent.getReviewStatus({ taskId: 999 });
       expect(result.taskStatus).toBe("not_found");
     });
 
     it("returns failed status with error message", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 42, status: "failed", errorMessage: "timeout" }]);
       const result = await caller.financeAgent.getReviewStatus({ taskId: 42 });
       expect(result.taskStatus).toBe("failed");
@@ -163,14 +170,14 @@ describe("financeAgent router", () => {
     });
 
     it("returns processing status when task is in progress", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 42, status: "processing", resultData: null }]);
       const result = await caller.financeAgent.getReviewStatus({ taskId: 42 });
       expect(result.taskStatus).toBe("processing");
     });
 
     it("returns claim status when queried by claimId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{
         id: 10, status: "pending_review", aiAuditResult: { decision: "warn", score: 68 }, aiAuditScore: 68,
       }]);
@@ -180,7 +187,7 @@ describe("financeAgent router", () => {
     });
 
     it("returns processing when claim is ai_reviewing", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 10, status: "ai_reviewing", aiAuditResult: null }]);
       const result = await caller.financeAgent.getReviewStatus({ claimId: 10 });
       expect(result.taskStatus).toBe("processing");
@@ -190,7 +197,7 @@ describe("financeAgent router", () => {
   // ─── getAiDiagnosticReport ─────────────────────────────
   describe("getAiDiagnosticReport", () => {
     it("returns diagnostic report for own claim", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{
         id: 10, submitterId: 1,
         aiAuditResult: { decision: "pass", score: 85, diagnosis: "合规" },
@@ -203,21 +210,21 @@ describe("financeAgent router", () => {
     });
 
     it("throws NOT_FOUND when claim missing", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       await expect(caller.financeAgent.getAiDiagnosticReport({ claimId: 999 }))
         .rejects.toThrow("报销单不存在");
     });
 
     it("throws FORBIDDEN for non-owner non-finance", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, role: "employee" });
+      const caller = createAdminCaller({ id: 5, role: "employee" });
       selectResultsQueue.push([{ id: 10, submitterId: 99, aiAuditResult: { score: 50 } }]);
       await expect(caller.financeAgent.getAiDiagnosticReport({ claimId: 10 }))
         .rejects.toThrow("无权查看");
     });
 
     it("returns null when no AI result yet", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 10, submitterId: 1, aiAuditResult: null }]);
       const result = await caller.financeAgent.getAiDiagnosticReport({ claimId: 10 });
       expect(result).toBeNull();
@@ -227,7 +234,7 @@ describe("financeAgent router", () => {
   // ─── overrideAndApprove ────────────────────────────────
   describe("overrideAndApprove", () => {
     it("overrides AI intercept with justification", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([{
         id: 10, submitterId: 99, status: "ai_reviewing",
         aiAuditResult: { decision: "intercept", score: 35 },
@@ -241,7 +248,7 @@ describe("financeAgent router", () => {
     });
 
     it("throws FORBIDDEN when submitter tries to override own claim", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       selectResultsQueue.push([{ id: 10, submitterId: 1, status: "ai_reviewing" }]);
       await expect(caller.financeAgent.overrideAndApprove({
         claimId: 10, justification: "理由至少十个字符才行",
@@ -249,7 +256,7 @@ describe("financeAgent router", () => {
     });
 
     it("throws BAD_REQUEST when claim not in ai_reviewing status", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([{ id: 10, submitterId: 99, status: "approved" }]);
       await expect(caller.financeAgent.overrideAndApprove({
         claimId: 10, justification: "理由至少十个字符才行",
@@ -257,7 +264,7 @@ describe("financeAgent router", () => {
     });
 
     it("throws CONFLICT when atomic guard fails (race)", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([{ id: 10, submitterId: 99, status: "ai_reviewing" }]);
       mockReturningResult = [];
       await expect(caller.financeAgent.overrideAndApprove({
@@ -266,7 +273,7 @@ describe("financeAgent router", () => {
     });
 
     it("rejects justification shorter than 10 chars", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       await expect(caller.financeAgent.overrideAndApprove({
         claimId: 10, justification: "短",
       })).rejects.toThrow();
@@ -276,7 +283,7 @@ describe("financeAgent router", () => {
   // ─── listPendingReviews ────────────────────────────────
   describe("listPendingReviews", () => {
     it("returns paginated pending reviews", async () => {
-      const caller = createAuthenticatedCaller({ role: "finance_manager" });
+      const caller = createAdminCaller({ role: "finance_manager" });
       selectResultsQueue.push([
         { id: 1, claimCode: "FA-001", status: "ai_reviewing" },
         { id: 2, claimCode: "FA-002", status: "pending_review" },
@@ -289,7 +296,7 @@ describe("financeAgent router", () => {
     });
 
     it("returns only own claims for non-finance users", async () => {
-      const caller = createAuthenticatedCaller({ id: 1, role: "employee" });
+      const caller = createAdminCaller({ id: 1, role: "employee" });
       selectResultsQueue.push([{ id: 1, claimCode: "FA-001", status: "ai_reviewing" }]);
       selectResultsQueue.push([{ count: 1 }]);
       const result = await caller.financeAgent.listPendingReviews({});
@@ -300,7 +307,7 @@ describe("financeAgent router", () => {
   // ─── getBudgetContext ──────────────────────────────────
   describe("getBudgetContext", () => {
     it("returns BU budget context", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.financeAgent.getBudgetContext({ departmentId: null });
       expect(result).toHaveProperty("buName", "事业一部");
       expect(result).toHaveProperty("quarterTarget", 12000000);
@@ -311,7 +318,7 @@ describe("financeAgent router", () => {
   // ─── getPolicyRules ────────────────────────────────────
   describe("getPolicyRules", () => {
     it("returns hardcoded policy rules", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.financeAgent.getPolicyRules();
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThan(0);
@@ -322,7 +329,7 @@ describe("financeAgent router", () => {
   // ─── recentReviews ─────────────────────────────────────
   describe("recentReviews", () => {
     it("returns recent reviewed claims with decision", async () => {
-      const caller = createAuthenticatedCaller({ role: "finance_manager" });
+      const caller = createAdminCaller({ role: "finance_manager" });
       mockQueryResult = [
         { id: 1, claimCode: "FA-001", aiAuditResult: { decision: "pass" }, status: "approved" },
         { id: 2, claimCode: "FA-002", aiAuditResult: { decision: "intercept" }, status: "ai_reviewing" },
@@ -334,7 +341,7 @@ describe("financeAgent router", () => {
     });
 
     it("returns null decision when aiAuditResult has no decision", async () => {
-      const caller = createAuthenticatedCaller({ role: "finance_manager" });
+      const caller = createAdminCaller({ role: "finance_manager" });
       mockQueryResult = [{ id: 1, claimCode: "FA-003", aiAuditResult: {}, status: "pending" }];
       const result = await caller.financeAgent.recentReviews();
       expect(result[0].decision).toBeNull();
@@ -344,7 +351,7 @@ describe("financeAgent router", () => {
   // ─── seedDemo ──────────────────────────────────────────
   describe("seedDemo", () => {
     it("inserts demo claims and returns count", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 100 }];
       const result = await caller.financeAgent.seedDemo();
       expect(result).toHaveProperty("inserted");

@@ -4,7 +4,7 @@
  * CRUD + publish for executive reports with JSON content blocks.
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sysReports } from "../../drizzle/report-center-schema";
 import { eq, desc, and, or, sql, ilike } from "drizzle-orm";
@@ -137,7 +137,7 @@ export const reportCenterRouter = router({
     }),
 
   /** Delete a report */
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('oa:reports:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db
       .delete(sysReports)
@@ -146,7 +146,7 @@ export const reportCenterRouter = router({
   }),
 
   /** Publish a report (set status to PUBLISHED) */
-  publish: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  publish: requirePermission('oa:reports:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const rows = await db
       .update(sysReports)

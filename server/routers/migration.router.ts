@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { migrationTasks } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -12,7 +12,7 @@ export const migrationRouter = router({
     return await db.select().from(migrationTasks).orderBy(desc(migrationTasks.createdAt)).limit(1000);
   }),
 
-  init: protectedProcedure.input(z.object({
+  init: requirePermission('system:data:migrate').input(z.object({
     moduleName: z.string(),
     sourceTable: z.string().optional(),
     targetTable: z.string().optional(),
@@ -34,7 +34,7 @@ export const migrationRouter = router({
     return { success: true, data: task };
   }),
 
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('system:data:migrate').input(z.object({
     id: z.union([z.string(), z.number()]),
     status: z.enum(["pending", "in_progress", "completed", "failed", "paused"]).optional(),
     migratedRecords: z.number().optional(),

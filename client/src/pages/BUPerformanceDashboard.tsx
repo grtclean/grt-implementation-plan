@@ -5,6 +5,7 @@
 
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,13 +45,13 @@ const BU_COLORS: Record<string, { bg: string; text: string; border: string; char
   'BU5': { bg: 'bg-cyan-500/10', text: 'text-cyan-500', border: 'border-cyan-500/30', chart: '#06b6d4' },
 };
 
-// BU名称映射
-const BU_NAMES: Record<string, string> = {
-  'BU1': '海外事业部',
-  'BU2': '商用车事业部',
-  'BU3': '乘用车事业部',
-  'BU4': '半导体事业部',
-  'BU5': '工业通用事业部',
+// BU名称映射 — resolved at render time via t()
+const BU_NAME_KEYS: Record<string, string> = {
+  'BU1': 'admin.buPerf.buNames.BU1',
+  'BU2': 'admin.buPerf.buNames.BU2',
+  'BU3': 'admin.buPerf.buNames.BU3',
+  'BU4': 'admin.buPerf.buNames.BU4',
+  'BU5': 'admin.buPerf.buNames.BU5',
 };
 
 // 获取当前月份
@@ -136,6 +137,7 @@ function ProgressBar({ value, max = 100, color = 'primary' }: { value: number; m
 }
 
 export default function BUPerformanceDashboard() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [selectedPeriod, setSelectedPeriod] = useState(getCurrentPeriod());
   const [selectedBU, setSelectedBU] = useState<string | null>(null);
@@ -155,14 +157,14 @@ export default function BUPerformanceDashboard() {
   const initSampleDataMutation = trpc.buMapping.initSamplePerformanceData.useMutation({
     onSuccess: (data) => {
       toast({
-        title: "示例数据初始化成功",
-        description: `已创建 ${data.created} 条绩效记录`,
+        title: t("admin.buPerf.initSuccess"),
+        description: t("admin.buPerf.initSuccessDesc").replace("{count}", String(data.created)),
       });
       refetchStats();
     },
     onError: (error) => {
       toast({
-        title: "初始化失败",
+        title: t("admin.buPerf.initFailed"),
         description: error.message,
         variant: "destructive",
       });
@@ -216,24 +218,23 @@ export default function BUPerformanceDashboard() {
           <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700">
             <Lock className="h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
-              <span className="font-medium">绩效冻结警告：</span>
-              {perfData.frozenCount}个BU的Q{perfData.quarter}绩效记录已被冻结
-              （因风控事件触发自动冻结）
+              <span className="font-medium">{t("admin.buPerf.frozenWarning")}</span>
+              {t("admin.buPerf.frozenDesc").replace("{count}", String(perfData.frozenCount)).replace("{quarter}", String(perfData.quarter))}
             </div>
-            <Badge className="bg-red-100 text-red-700">{perfData.frozenCount} 冻结</Badge>
+            <Badge className="bg-red-100 text-red-700">{t("admin.buPerf.frozenBadge").replace("{count}", String(perfData.frozenCount))}</Badge>
           </div>
         )}
 
         {/* 页面标题 */}
         <PageHeader
           icon={Building2}
-          title="BU事业部绩效看板"
-          description="查看各事业部的项目数量、营收、人员利用率等KPI指标"
+          title={t("admin.buPerf.title")}
+          description={t("admin.buPerf.description")}
           actions={
             <div className="flex gap-2">
               <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="选择周期" />
+                  <SelectValue placeholder={t("admin.buPerf.selectPeriod")} />
                 </SelectTrigger>
                 <SelectContent>
                   {periodOptions.map((option) => (
@@ -245,10 +246,10 @@ export default function BUPerformanceDashboard() {
               </Select>
               <Select value={selectedBU || 'all'} onValueChange={(v) => setSelectedBU(v === 'all' ? null : v)}>
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="选择事业部" />
+                  <SelectValue placeholder={t("admin.buPerf.selectBU")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部事业部</SelectItem>
+                  <SelectItem value="all">{t("admin.buPerf.allBUs")}</SelectItem>
                   {busData?.bus.map((bu) => (
                     <SelectItem key={bu.code} value={bu.code}>{bu.name}</SelectItem>
                   ))}
@@ -256,14 +257,14 @@ export default function BUPerformanceDashboard() {
               </Select>
               <Button variant="outline" onClick={() => refetchStats()}>
                 <RefreshCw className="h-4 w-4 mr-2" />
-                刷新
+                {t("admin.buPerf.refresh")}
               </Button>
               {(!statsData?.stats || statsData.stats.length === 0) && (
                 <Button
                   onClick={() => initSampleDataMutation.mutate()}
                   disabled={initSampleDataMutation.isPending}
                 >
-                  {initSampleDataMutation.isPending ? "初始化中..." : "初始化示例数据"}
+                  {initSampleDataMutation.isPending ? t("admin.buPerf.initializing") : t("admin.buPerf.initSampleData")}
                 </Button>
               )}
             </div>
@@ -280,9 +281,9 @@ export default function BUPerformanceDashboard() {
           <Card>
             <CardContent className="pt-6 text-center">
               <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">暂无绩效数据</p>
+              <p className="text-muted-foreground">{t("admin.buPerf.noData")}</p>
               <p className="text-sm text-muted-foreground mt-2">
-                点击"初始化示例数据"按钮生成示例绩效数据
+                {t("admin.buPerf.noDataHint")}
               </p>
             </CardContent>
           </Card>
@@ -290,37 +291,37 @@ export default function BUPerformanceDashboard() {
           <>
             {/* 汇总KPI卡片 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KPICard 
-                title="总项目数" 
-                value={summaryData.totalProjects} 
-                unit="个"
+              <KPICard
+                title={t("admin.buPerf.totalProjects")}
+                value={summaryData.totalProjects}
+                unit={t("admin.buPerf.projectUnit")}
                 icon={FolderKanban}
                 trend="up"
-                trendValue={`进行中 ${summaryData.activeProjects} 个`}
+                trendValue={t("admin.buPerf.activeProjects").replace("{count}", String(summaryData.activeProjects))}
               />
-              <KPICard 
-                title="总营收" 
-                value={summaryData.totalRevenue.toFixed(0)} 
-                unit="万元"
+              <KPICard
+                title={t("admin.buPerf.totalRevenue")}
+                value={summaryData.totalRevenue.toFixed(0)}
+                unit={t("admin.buPerf.revenueUnit")}
                 icon={DollarSign}
                 trend="up"
-                trendValue={`毛利 ${summaryData.grossProfit.toFixed(0)} 万元`}
+                trendValue={t("admin.buPerf.grossProfit").replace("{amount}", summaryData.grossProfit.toFixed(0))}
               />
-              <KPICard 
-                title="团队规模" 
-                value={summaryData.totalTeamSize} 
-                unit="人"
+              <KPICard
+                title={t("admin.buPerf.teamSize")}
+                value={summaryData.totalTeamSize}
+                unit={t("admin.buPerf.personUnit")}
                 icon={Users}
                 trend="neutral"
-                trendValue={`利用率 ${summaryData.avgUtilization.toFixed(1)}%`}
+                trendValue={t("admin.buPerf.utilizationRate").replace("{rate}", summaryData.avgUtilization.toFixed(1))}
               />
-              <KPICard 
-                title="客户满意度" 
-                value={summaryData.avgSatisfaction.toFixed(1)} 
-                unit="分"
+              <KPICard
+                title={t("admin.buPerf.customerSatisfaction")}
+                value={summaryData.avgSatisfaction.toFixed(1)}
+                unit={t("admin.buPerf.scoreUnit")}
                 icon={Star}
                 trend={summaryData.avgSatisfaction >= 4.5 ? 'up' : summaryData.avgSatisfaction >= 4 ? 'neutral' : 'down'}
-                trendValue={summaryData.avgSatisfaction >= 4.5 ? '优秀' : summaryData.avgSatisfaction >= 4 ? '良好' : '待提升'}
+                trendValue={summaryData.avgSatisfaction >= 4.5 ? t("admin.buPerf.excellent") : summaryData.avgSatisfaction >= 4 ? t("admin.buPerf.good") : t("admin.buPerf.needsImprovement")}
               />
             </div>
 
@@ -330,7 +331,7 @@ export default function BUPerformanceDashboard() {
                 .filter(stat => !selectedBU || stat.buCode === selectedBU)
                 .map((stat) => {
                   const colors = BU_COLORS[stat.buCode] || BU_COLORS['BU1'];
-                  const buName = BU_NAMES[stat.buCode] || stat.buCode;
+                  const buName = BU_NAME_KEYS[stat.buCode] ? t(BU_NAME_KEYS[stat.buCode]) : stat.buCode;
                   
                   return (
                     <Card key={stat.buCode} className={`${colors.border} border-l-4`}>
@@ -351,34 +352,34 @@ export default function BUPerformanceDashboard() {
                         <div className="grid grid-cols-3 gap-4 text-center">
                           <div className="p-3 rounded-lg bg-muted/30">
                             <p className="text-2xl font-bold">{stat.projectCount}</p>
-                            <p className="text-xs text-muted-foreground">总项目</p>
+                            <p className="text-xs text-muted-foreground">{t("admin.buPerf.totalProjectsLabel")}</p>
                           </div>
                           <div className="p-3 rounded-lg bg-muted/30">
                             <p className="text-2xl font-bold text-blue-500">{stat.activeProjectCount}</p>
-                            <p className="text-xs text-muted-foreground">进行中</p>
+                            <p className="text-xs text-muted-foreground">{t("admin.buPerf.inProgress")}</p>
                           </div>
                           <div className="p-3 rounded-lg bg-muted/30">
                             <p className="text-2xl font-bold text-green-500">{stat.completedProjectCount}</p>
-                            <p className="text-xs text-muted-foreground">已完成</p>
+                            <p className="text-xs text-muted-foreground">{t("admin.buPerf.completed")}</p>
                           </div>
                         </div>
 
                         {/* 财务指标 */}
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">营收</span>
-                            <span className="font-medium">{stat.totalRevenue.toFixed(0)} 万元</span>
+                            <span className="text-muted-foreground">{t("admin.buPerf.revenue")}</span>
+                            <span className="font-medium">{stat.totalRevenue.toFixed(0)} {t("admin.buPerf.revenueUnit")}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">成本</span>
-                            <span className="font-medium">{stat.totalCost.toFixed(0)} 万元</span>
+                            <span className="text-muted-foreground">{t("admin.buPerf.costLabel")}</span>
+                            <span className="font-medium">{stat.totalCost.toFixed(0)} {t("admin.buPerf.revenueUnit")}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">毛利润</span>
-                            <span className="font-medium text-green-500">{stat.grossProfit.toFixed(0)} 万元</span>
+                            <span className="text-muted-foreground">{t("admin.buPerf.grossProfitLabel")}</span>
+                            <span className="font-medium text-green-500">{stat.grossProfit.toFixed(0)} {t("admin.buPerf.revenueUnit")}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">毛利率</span>
+                            <span className="text-muted-foreground">{t("admin.buPerf.grossMargin")}</span>
                             <span className="font-medium">{stat.grossMargin.toFixed(1)}%</span>
                           </div>
                         </div>
@@ -389,7 +390,7 @@ export default function BUPerformanceDashboard() {
                             <div className="flex justify-between text-sm mb-1">
                               <span className="text-muted-foreground flex items-center gap-1">
                                 <Activity className="h-3 w-3" />
-                                人员利用率
+                                {t("admin.buPerf.staffUtilization")}
                               </span>
                               <span className="font-medium">{stat.utilizationRate.toFixed(1)}%</span>
                             </div>
@@ -399,7 +400,7 @@ export default function BUPerformanceDashboard() {
                             <div className="flex justify-between text-sm mb-1">
                               <span className="text-muted-foreground flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                准时交付率
+                                {t("admin.buPerf.onTimeDelivery")}
                               </span>
                               <span className="font-medium">{stat.onTimeDeliveryRate.toFixed(1)}%</span>
                             </div>
@@ -409,7 +410,7 @@ export default function BUPerformanceDashboard() {
                             <div className="flex justify-between text-sm mb-1">
                               <span className="text-muted-foreground flex items-center gap-1">
                                 <Star className="h-3 w-3" />
-                                客户满意度
+                                {t("admin.buPerf.custSatisfaction")}
                               </span>
                               <span className="font-medium">{stat.customerSatisfaction.toFixed(1)} / 5.0</span>
                             </div>
@@ -430,10 +431,10 @@ export default function BUPerformanceDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
-                  事业部绩效对比
+                  {t("admin.buPerf.comparison")}
                 </CardTitle>
                 <CardDescription>
-                  {selectedPeriod.replace('-', '年')}月各事业部关键指标对比
+                  {t("admin.buPerf.comparisonDesc").replace("{period}", selectedPeriod)}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -441,14 +442,14 @@ export default function BUPerformanceDashboard() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left py-3 px-2">事业部</th>
-                        <th className="text-right py-3 px-2">项目数</th>
-                        <th className="text-right py-3 px-2">营收(万)</th>
-                        <th className="text-right py-3 px-2">毛利率</th>
-                        <th className="text-right py-3 px-2">团队</th>
-                        <th className="text-right py-3 px-2">利用率</th>
-                        <th className="text-right py-3 px-2">交付率</th>
-                        <th className="text-right py-3 px-2">满意度</th>
+                        <th className="text-left py-3 px-2">{t("admin.buPerf.thBU")}</th>
+                        <th className="text-right py-3 px-2">{t("admin.buPerf.thProjects")}</th>
+                        <th className="text-right py-3 px-2">{t("admin.buPerf.thRevenue")}</th>
+                        <th className="text-right py-3 px-2">{t("admin.buPerf.thMargin")}</th>
+                        <th className="text-right py-3 px-2">{t("admin.buPerf.thTeam")}</th>
+                        <th className="text-right py-3 px-2">{t("admin.buPerf.thUtilization")}</th>
+                        <th className="text-right py-3 px-2">{t("admin.buPerf.thDelivery")}</th>
+                        <th className="text-right py-3 px-2">{t("admin.buPerf.thSatisfaction")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -456,7 +457,7 @@ export default function BUPerformanceDashboard() {
                         .filter(stat => !selectedBU || stat.buCode === selectedBU)
                         .map((stat) => {
                           const colors = BU_COLORS[stat.buCode] || BU_COLORS['BU1'];
-                          const buName = BU_NAMES[stat.buCode] || stat.buCode;
+                          const buName = BU_NAME_KEYS[stat.buCode] ? t(BU_NAME_KEYS[stat.buCode]) : stat.buCode;
                           
                           return (
                             <tr key={stat.buCode} className="border-b hover:bg-muted/50">
@@ -506,6 +507,7 @@ export default function BUPerformanceDashboard() {
 
 // ── Performance Records + Violations Section ─────────────
 function PerformanceRiskSection({ selectedBU }: { selectedBU: string | null }) {
+  const { t } = useLanguage();
   const buId = selectedBU ? Number(selectedBU.replace("BU", "")) : undefined;
 
   const perfQuery = trpc.performanceRecord.list.useQuery(
@@ -532,18 +534,18 @@ function PerformanceRiskSection({ selectedBU }: { selectedBU: string | null }) {
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Target className="h-4 w-4" />
-            季度绩效记录
+            {t("admin.buPerf.quarterlyRecords")}
             {records.some(r => r.isFrozen) && (
               <Badge className="bg-red-100 text-red-700 ml-2">
                 <Lock className="h-3 w-3 mr-1" />
-                含冻结项
+                {t("admin.buPerf.containsFrozen")}
               </Badge>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {records.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">暂无绩效记录</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t("admin.buPerf.noRecords")}</p>
           ) : (
             <div className="space-y-2">
               {records.map(r => (
@@ -584,9 +586,9 @@ function PerformanceRiskSection({ selectedBU }: { selectedBU: string | null }) {
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <ShieldAlert className="h-4 w-4" />
-            风控事件
+            {t("admin.buPerf.riskEvents")}
             {vStats && vStats.activeCount > 0 && (
-              <Badge className="bg-red-100 text-red-700 ml-2">{vStats.activeCount} 活跃</Badge>
+              <Badge className="bg-red-100 text-red-700 ml-2">{vStats.activeCount} {t("admin.buPerf.active")}</Badge>
             )}
           </CardTitle>
         </CardHeader>
@@ -594,17 +596,17 @@ function PerformanceRiskSection({ selectedBU }: { selectedBU: string | null }) {
           {violations.length === 0 ? (
             <div className="text-center py-4">
               <CheckCircle2 className="h-6 w-6 mx-auto text-green-400 mb-1" />
-              <p className="text-sm text-muted-foreground">暂无风控事件</p>
+              <p className="text-sm text-muted-foreground">{t("admin.buPerf.noRiskEvents")}</p>
             </div>
           ) : (
             <ViolationAlert violations={violations as any} compact />
           )}
           {vStats && vStats.total > 0 && (
             <div className="flex items-center gap-3 mt-3 pt-2 border-t text-xs text-muted-foreground">
-              <span>一般: {vStats.bySeverity.MINOR}</span>
-              <span>重大: <strong className="text-orange-600">{vStats.bySeverity.MAJOR}</strong></span>
-              <span>严重: <strong className="text-red-600">{vStats.bySeverity.CRITICAL}</strong></span>
-              <span className="ml-auto">已解决: {vStats.byStatus.resolved}</span>
+              <span>{t("admin.buPerf.minor")} {vStats.bySeverity.MINOR}</span>
+              <span>{t("admin.buPerf.major")} <strong className="text-orange-600">{vStats.bySeverity.MAJOR}</strong></span>
+              <span>{t("admin.buPerf.criticalSeverity")} <strong className="text-red-600">{vStats.bySeverity.CRITICAL}</strong></span>
+              <span className="ml-auto">{t("admin.buPerf.resolved")} {vStats.byStatus.resolved}</span>
             </div>
           )}
         </CardContent>

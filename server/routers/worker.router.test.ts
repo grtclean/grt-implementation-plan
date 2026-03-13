@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -61,7 +61,7 @@ beforeEach(() => {
   returningQueue.length = 0;
 });
 
-const caller = () => createAuthenticatedCaller();
+const caller = () => createAdminCaller();
 
 const sampleWorkers = [
   { id: 1, name: "张三", employeeCode: "W-001", department: "生产部", position: "焊工", skillLevel: "L4", status: "Active", phone: "13800001111", email: "z3@test.com" },

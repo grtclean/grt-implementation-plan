@@ -3,7 +3,7 @@
  * 跨模块任务管理，支持看板视图
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { requireDb } from "../db";
 import { projectTasks, projects } from "../../drizzle/schema";
 import { eq, desc, and, count, sql, inArray } from "drizzle-orm";
@@ -63,7 +63,7 @@ export const taskBoardRouter = router({
     if (!task) return null;
     // Get project info
     const [project] = task.projectId
-      ? await db.select({ name: projects.name, projectCode: projects.projectCode }).from(projects).where(eq(projects.id, task.projectId))
+      ? await db.select({ name: projects.name, projectCode: projects.projectCode }).from(projects).where(eq(projects.id, task.projectId)).limit(1000)
       : [null];
     // Get subtasks
     const subtasks = await db.select().from(projectTasks).where(eq(projectTasks.parentTaskId, task.id)).limit(1000);
@@ -71,7 +71,7 @@ export const taskBoardRouter = router({
   }),
 
   // 创建任务
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('project:tasks:manage').input(z.object({
     projectId: z.number(),
     milestoneId: z.number().optional(),
     phaseCode: z.string().optional(),
@@ -109,7 +109,7 @@ export const taskBoardRouter = router({
   }),
 
   // 更新任务
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('project:tasks:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     name: z.string().optional(),
     description: z.string().optional(),
@@ -151,7 +151,7 @@ export const taskBoardRouter = router({
   }),
 
   // 移动任务状态（看板拖拽）— includes QMS safety guard
-  moveStatus: protectedProcedure.input(z.object({
+  moveStatus: requirePermission('project:tasks:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     status: z.enum(["backlog", "todo", "in_progress", "review", "done", "cancelled"]),
   })).mutation(async ({ input }) => {
@@ -179,7 +179,7 @@ export const taskBoardRouter = router({
   }),
 
   // 删除任务
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('project:tasks:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     await db.transaction(async (tx) => {
@@ -191,7 +191,7 @@ export const taskBoardRouter = router({
   }),
 
   // 批量更新状态
-  batchUpdateStatus: protectedProcedure.input(z.object({
+  batchUpdateStatus: requirePermission('project:tasks:manage').input(z.object({
     ids: z.array(z.number()),
     status: z.enum(["backlog", "todo", "in_progress", "review", "done", "cancelled"]),
   })).mutation(async ({ input }) => {

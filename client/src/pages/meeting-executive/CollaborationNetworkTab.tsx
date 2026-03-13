@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ const RISK_COLORS: Record<string, string> = {
 };
 
 export function CollaborationNetworkTab() {
+  const { t } = useLanguage();
   // Build network form
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -82,9 +84,9 @@ export function CollaborationNetworkTab() {
     const counts = { high: 0, medium: 0, low: 0 };
     silos.forEach((s: any) => { counts[s.riskLevel as keyof typeof counts]++; });
     return [
-      { name: "高风险", value: counts.high, color: "#ef4444" },
-      { name: "中风险", value: counts.medium, color: "#f59e0b" },
-      { name: "低风险", value: counts.low, color: "#22c55e" },
+      { name: t("meeting.collab.riskHigh"), value: counts.high, color: "#ef4444" },
+      { name: t("meeting.collab.riskMedium"), value: counts.medium, color: "#f59e0b" },
+      { name: t("meeting.collab.riskLow"), value: counts.low, color: "#22c55e" },
     ].filter(d => d.value > 0);
   })();
 
@@ -93,19 +95,19 @@ export function CollaborationNetworkTab() {
     const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, F: 0 };
     necessityScores.forEach((s: any) => { counts[s.necessity_grade]++; });
     return [
-      { name: "A (必要)", value: counts.A, color: "#22c55e" },
-      { name: "B (有价值)", value: counts.B, color: "#6366f1" },
-      { name: "C (一般)", value: counts.C, color: "#f59e0b" },
-      { name: "D (可疑)", value: counts.D, color: "#f97316" },
-      { name: "F (不必要)", value: counts.F, color: "#ef4444" },
+      { name: t("meeting.collab.gradeA"), value: counts.A, color: "#22c55e" },
+      { name: t("meeting.collab.gradeB"), value: counts.B, color: "#6366f1" },
+      { name: t("meeting.collab.gradeC"), value: counts.C, color: "#f59e0b" },
+      { name: t("meeting.collab.gradeD"), value: counts.D, color: "#f97316" },
+      { name: t("meeting.collab.gradeF"), value: counts.F, color: "#ef4444" },
     ].filter(d => d.value > 0);
   })();
 
   // Cross-dept chart data
   const chartData = crossDeptData.map((d: any) => ({
-    department: d.dept || "未知",
-    内部协作: Number(d.internal_edges || 0),
-    跨部门协作: Number(d.cross_dept_edges || 0),
+    department: d.dept || t("meeting.collab.unknown"),
+    internal: Number(d.internal_edges || 0),
+    crossDept: Number(d.cross_dept_edges || 0),
   }));
 
   return (
@@ -114,18 +116,18 @@ export function CollaborationNetworkTab() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Network className="h-5 w-5" /> 构建协作网络
+            <Network className="h-5 w-5" /> {t("meeting.collab.buildTitle")}
           </CardTitle>
-          <CardDescription>分析参会者之间的协作关系，构建协作网络图谱</CardDescription>
+          <CardDescription>{t("meeting.collab.buildDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-end gap-3">
             <div>
-              <label className="text-sm text-muted-foreground">开始日期</label>
+              <label className="text-sm text-muted-foreground">{t("meeting.collab.dateFrom")}</label>
               <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-40" />
             </div>
             <div>
-              <label className="text-sm text-muted-foreground">结束日期</label>
+              <label className="text-sm text-muted-foreground">{t("meeting.collab.dateTo")}</label>
               <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-40" />
             </div>
             <Button
@@ -133,12 +135,12 @@ export function CollaborationNetworkTab() {
               disabled={buildMut.isPending}
             >
               {buildMut.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
-              构建协作网络
+              {t("meeting.collab.buildBtn")}
             </Button>
           </div>
           {buildMut.data && (
             <p className="mt-3 text-sm text-green-600">
-              构建完成：扫描 {(buildMut.data as any).meetingsScanned} 场会议，创建 {(buildMut.data as any).edgesCreated} 条协作边
+              {t("meeting.collab.buildComplete")} {(buildMut.data as any).meetingsScanned} {t("meeting.collab.meetingsScanned")} {(buildMut.data as any).edgesCreated} {t("meeting.collab.edgesCreated")}
             </p>
           )}
         </CardContent>
@@ -148,31 +150,27 @@ export function CollaborationNetworkTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Network}
-          label="协作边总数"
+          label={t("meeting.collab.totalEdges")}
           value={statsQuery.isLoading ? "..." : stats?.totalEdges ?? 0}
-          subtitle="Total Collaboration Edges"
         />
         <StatCard
           icon={Users}
-          label="活跃协作者"
+          label={t("meeting.collab.activeCollaborators")}
           value={statsQuery.isLoading ? "..." : stats?.uniqueParticipants ?? 0}
-          subtitle="Unique Participants"
           iconColor="text-blue-600"
           iconBg="bg-blue-50"
         />
         <StatCard
           icon={Building2}
-          label="跨部门协作%"
+          label={t("meeting.collab.crossDeptPercent")}
           value={statsQuery.isLoading ? "..." : `${stats?.crossDeptPercentage ?? 0}%`}
-          subtitle="Cross-Department Rate"
           iconColor="text-green-600"
           iconBg="bg-green-50"
         />
         <StatCard
           icon={Network}
-          label="平均协作分"
+          label={t("meeting.collab.avgScore")}
           value={statsQuery.isLoading ? "..." : stats?.avgScore ?? 0}
-          subtitle="Avg Collaboration Score"
           iconColor="text-amber-600"
           iconBg="bg-amber-50"
         />
@@ -181,23 +179,23 @@ export function CollaborationNetworkTab() {
       {/* Section 3: Top Collaborator Pairs */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">协作排行榜</CardTitle>
-          <CardDescription>按协作分数排名的协作者配对</CardDescription>
+          <CardTitle className="text-base">{t("meeting.collab.pairsTitle")}</CardTitle>
+          <CardDescription>{t("meeting.collab.pairsDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 mb-4">
             <Select value={pairsRelType} onValueChange={setPairsRelType}>
               <SelectTrigger className="w-40">
-                <SelectValue placeholder="关系类型" />
+                <SelectValue placeholder={t("meeting.collab.relTypePlaceholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部</SelectItem>
-                <SelectItem value="same_dept">同部门</SelectItem>
-                <SelectItem value="cross_dept">跨部门</SelectItem>
+                <SelectItem value="all">{t("meeting.collab.relAll")}</SelectItem>
+                <SelectItem value="same_dept">{t("meeting.collab.relSameDept")}</SelectItem>
+                <SelectItem value="cross_dept">{t("meeting.collab.relCrossDept")}</SelectItem>
               </SelectContent>
             </Select>
             <Input
-              placeholder="按部门筛选..."
+              placeholder={t("meeting.collab.filterDeptPlaceholder")}
               value={pairsDept}
               onChange={e => setPairsDept(e.target.value)}
               className="w-48"
@@ -207,13 +205,13 @@ export function CollaborationNetworkTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12">#</TableHead>
-                  <TableHead>协作者 A</TableHead>
-                  <TableHead>协作者 B</TableHead>
-                  <TableHead>关系</TableHead>
-                  <TableHead className="text-right">会议次数</TableHead>
-                  <TableHead className="text-right">总时长(分钟)</TableHead>
-                  <TableHead className="text-right">协作分</TableHead>
+                  <TableHead className="w-12">{t("meeting.collab.thRank")}</TableHead>
+                  <TableHead>{t("meeting.collab.thCollabA")}</TableHead>
+                  <TableHead>{t("meeting.collab.thCollabB")}</TableHead>
+                  <TableHead>{t("meeting.collab.thRelation")}</TableHead>
+                  <TableHead className="text-right">{t("meeting.collab.thMeetingCount")}</TableHead>
+                  <TableHead className="text-right">{t("meeting.collab.thTotalMinutes")}</TableHead>
+                  <TableHead className="text-right">{t("meeting.collab.thCollabScore")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -230,7 +228,7 @@ export function CollaborationNetworkTab() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={p.relationship_type === "cross_dept" ? "border-green-500 text-green-700" : ""}>
-                        {p.relationship_type === "cross_dept" ? "跨部门" : "同部门"}
+                        {p.relationship_type === "cross_dept" ? t("meeting.collab.crossDept") : t("meeting.collab.sameDept")}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">{p.meeting_count}</TableCell>
@@ -243,8 +241,8 @@ export function CollaborationNetworkTab() {
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Users className="h-12 w-12 mb-3 opacity-30" />
-              <p>暂无协作数据</p>
-              <p className="text-sm">请先构建协作网络</p>
+              <p>{t("meeting.collab.noCollabData")}</p>
+              <p className="text-sm">{t("meeting.collab.noCollabHint")}</p>
             </div>
           )}
         </CardContent>
@@ -253,8 +251,8 @@ export function CollaborationNetworkTab() {
       {/* Section 4: Cross-Department Bar Chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">跨部门协作分布</CardTitle>
-          <CardDescription>各部门内部协作 vs 跨部门协作对比</CardDescription>
+          <CardTitle className="text-base">{t("meeting.collab.crossDeptDistTitle")}</CardTitle>
+          <CardDescription>{t("meeting.collab.crossDeptDistDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {chartData.length > 0 ? (
@@ -265,14 +263,14 @@ export function CollaborationNetworkTab() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="内部协作" stackId="a" fill="#6366f1" />
-                <Bar dataKey="跨部门协作" stackId="a" fill="#22c55e" />
+                <Bar dataKey="internal" stackId="a" fill="#6366f1" name={t("meeting.collab.internalCollab")} />
+                <Bar dataKey="crossDept" stackId="a" fill="#22c55e" name={t("meeting.collab.crossDeptCollab")} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Building2 className="h-12 w-12 mb-3 opacity-30" />
-              <p>暂无跨部门数据</p>
+              <p>{t("meeting.collab.noCrossDeptData")}</p>
             </div>
           )}
         </CardContent>
@@ -282,16 +280,16 @@ export function CollaborationNetworkTab() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" /> 协作孤岛检测
+            <AlertTriangle className="h-5 w-5" /> {t("meeting.collab.siloTitle")}
           </CardTitle>
-          <CardDescription>检测跨部门协作不足的部门</CardDescription>
+          <CardDescription>{t("meeting.collab.siloDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Pie chart */}
             {siloRiskDist.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium mb-2">风险分布</h4>
+                <h4 className="text-sm font-medium mb-2">{t("meeting.collab.riskDistribution")}</h4>
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
                     <Pie
@@ -318,11 +316,11 @@ export function CollaborationNetworkTab() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>部门</TableHead>
-                      <TableHead className="text-right">跨部门%</TableHead>
-                      <TableHead className="text-right">内部</TableHead>
-                      <TableHead className="text-right">外部</TableHead>
-                      <TableHead>风险</TableHead>
+                      <TableHead>{t("meeting.collab.thDept")}</TableHead>
+                      <TableHead className="text-right">{t("meeting.collab.thCrossDeptPct")}</TableHead>
+                      <TableHead className="text-right">{t("meeting.collab.thInternal")}</TableHead>
+                      <TableHead className="text-right">{t("meeting.collab.thExternal")}</TableHead>
+                      <TableHead>{t("meeting.collab.thRisk")}</TableHead>
                       <TableHead className="w-8"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -336,7 +334,7 @@ export function CollaborationNetworkTab() {
                           <TableCell className="text-right">{s.crossDeptEdges}</TableCell>
                           <TableCell>
                             <Badge className={RISK_COLORS[s.riskLevel] || ""}>
-                              {s.riskLevel === "high" ? "高" : s.riskLevel === "medium" ? "中" : "低"}
+                              {s.riskLevel === "high" ? t("meeting.collab.riskLevelHigh") : s.riskLevel === "medium" ? t("meeting.collab.riskLevelMedium") : t("meeting.collab.riskLevelLow")}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -347,13 +345,13 @@ export function CollaborationNetworkTab() {
                           <TableRow key={`exp-${i}`}>
                             <TableCell colSpan={6} className="bg-muted/50">
                               <div className="p-3 text-sm space-y-1">
-                                <p><strong>总协作边:</strong> {s.totalEdges}</p>
-                                <p><strong>跨部门协作比:</strong> {s.crossCollabPercent}%</p>
-                                <p><strong>建议:</strong> {s.riskLevel === "high"
-                                  ? "该部门跨部门协作严重不足，建议组织跨部门会议和项目合作"
+                                <p><strong>{t("meeting.collab.totalCollabEdges")}</strong> {s.totalEdges}</p>
+                                <p><strong>{t("meeting.collab.crossCollabRatio")}</strong> {s.crossCollabPercent}%</p>
+                                <p><strong>{t("meeting.collab.suggestion")}</strong> {s.riskLevel === "high"
+                                  ? t("meeting.collab.siloHighAdvice")
                                   : s.riskLevel === "medium"
-                                  ? "可适当增加跨部门交流频次"
-                                  : "跨部门协作状况良好"}</p>
+                                  ? t("meeting.collab.siloMediumAdvice")
+                                  : t("meeting.collab.siloLowAdvice")}</p>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -365,7 +363,7 @@ export function CollaborationNetworkTab() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                   <AlertTriangle className="h-8 w-8 mb-2 opacity-30" />
-                  <p className="text-sm">暂无孤岛数据</p>
+                  <p className="text-sm">{t("meeting.collab.noSiloData")}</p>
                 </div>
               )}
             </div>
@@ -377,18 +375,18 @@ export function CollaborationNetworkTab() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <FileQuestion className="h-5 w-5" /> 会议必要性分析
+            <FileQuestion className="h-5 w-5" /> {t("meeting.collab.necessityTitle")}
           </CardTitle>
-          <CardDescription>AI评估会议是否有必要召开，是否可用邮件/消息替代</CardDescription>
+          <CardDescription>{t("meeting.collab.necessityDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Single analysis */}
             <div>
-              <label className="text-sm text-muted-foreground">单次分析</label>
+              <label className="text-sm text-muted-foreground">{t("meeting.collab.singleAnalysis")}</label>
               <div className="flex gap-2 mt-1">
                 <Input
-                  placeholder="输入会议 ID..."
+                  placeholder={t("meeting.collab.inputMeetingId")}
                   value={singleMeetingId}
                   onChange={e => setSingleMeetingId(e.target.value)}
                 />
@@ -397,21 +395,21 @@ export function CollaborationNetworkTab() {
                   disabled={!singleMeetingId || analyzeMut.isPending}
                   size="sm"
                 >
-                  {analyzeMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "分析"}
+                  {analyzeMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("meeting.collab.analyzeBtn")}
                 </Button>
               </div>
               {analyzeMut.data && (
                 <p className="mt-2 text-sm text-green-600">
-                  分析完成：{(analyzeMut.data as any).title} → 等级 {(analyzeMut.data as any).necessityGrade}
+                  {t("meeting.collab.analysisComplete")} {(analyzeMut.data as any).title} {t("meeting.collab.gradeLabel")} {(analyzeMut.data as any).necessityGrade}
                 </p>
               )}
             </div>
             {/* Batch analysis */}
             <div>
-              <label className="text-sm text-muted-foreground">批量分析（逗号分隔 ID）</label>
+              <label className="text-sm text-muted-foreground">{t("meeting.collab.batchAnalysis")}</label>
               <div className="flex gap-2 mt-1">
                 <Input
-                  placeholder="id1, id2, id3..."
+                  placeholder={t("meeting.collab.batchPlaceholder")}
                   value={batchIds}
                   onChange={e => setBatchIds(e.target.value)}
                 />
@@ -423,12 +421,12 @@ export function CollaborationNetworkTab() {
                   disabled={!batchIds || batchMut.isPending}
                   size="sm"
                 >
-                  {batchMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "批量分析"}
+                  {batchMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("meeting.collab.batchBtn")}
                 </Button>
               </div>
               {batchMut.data && (
                 <p className="mt-2 text-sm text-green-600">
-                  批量完成：{(batchMut.data as any).analyzed} 成功，{(batchMut.data as any).errors} 失败
+                  {t("meeting.collab.batchComplete")} {(batchMut.data as any).analyzed} {t("meeting.collab.batchSuccess")} {(batchMut.data as any).errors} {t("meeting.collab.batchFailed")}
                 </p>
               )}
             </div>
@@ -439,14 +437,14 @@ export function CollaborationNetworkTab() {
       {/* Section 7: Necessity Scores Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">会议必要性评分</CardTitle>
-          <CardDescription>已分析会议的必要性评级与详情</CardDescription>
+          <CardTitle className="text-base">{t("meeting.collab.necessityScoresTitle")}</CardTitle>
+          <CardDescription>{t("meeting.collab.necessityScoresDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {/* Grade distribution pie chart */}
           {gradeDist.length > 0 && (
             <div className="mb-6">
-              <h4 className="text-sm font-medium mb-2">等级分布</h4>
+              <h4 className="text-sm font-medium mb-2">{t("meeting.collab.gradeDistribution")}</h4>
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
@@ -472,11 +470,11 @@ export function CollaborationNetworkTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>会议标题</TableHead>
-                  <TableHead>日期</TableHead>
-                  <TableHead className="text-right">分数</TableHead>
-                  <TableHead>等级</TableHead>
-                  <TableHead>替代方式</TableHead>
+                  <TableHead>{t("meeting.collab.thMeetingTitle")}</TableHead>
+                  <TableHead>{t("meeting.collab.thDate")}</TableHead>
+                  <TableHead className="text-right">{t("meeting.collab.thScore")}</TableHead>
+                  <TableHead>{t("meeting.collab.thGrade")}</TableHead>
+                  <TableHead>{t("meeting.collab.thAlternative")}</TableHead>
                   <TableHead className="w-8"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -494,9 +492,9 @@ export function CollaborationNetworkTab() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {s.alternative_viability === "email" ? "邮件" :
-                             s.alternative_viability === "slack" ? "即时消息" :
-                             s.alternative_viability === "doc" ? "文档" : "无替代"}
+                            {s.alternative_viability === "email" ? t("meeting.collab.altEmail") :
+                             s.alternative_viability === "slack" ? t("meeting.collab.altSlack") :
+                             s.alternative_viability === "doc" ? t("meeting.collab.altDoc") : t("meeting.collab.altNone")}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -511,34 +509,34 @@ export function CollaborationNetworkTab() {
                               <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                                 <div className="text-center p-2 bg-background rounded">
                                   <div className="text-lg font-bold">{s.decision_complexity}</div>
-                                  <div className="text-xs text-muted-foreground">决策复杂度</div>
+                                  <div className="text-xs text-muted-foreground">{t("meeting.collab.decisionComplexity")}</div>
                                 </div>
                                 <div className="text-center p-2 bg-background rounded">
                                   <div className="text-lg font-bold">{s.collaboration_requirement}</div>
-                                  <div className="text-xs text-muted-foreground">协作需求</div>
+                                  <div className="text-xs text-muted-foreground">{t("meeting.collab.collaborationRequirement")}</div>
                                 </div>
                                 <div className="text-center p-2 bg-background rounded">
                                   <div className="text-lg font-bold">{s.information_richness}</div>
-                                  <div className="text-xs text-muted-foreground">信息丰富度</div>
+                                  <div className="text-xs text-muted-foreground">{t("meeting.collab.informationRichness")}</div>
                                 </div>
                                 <div className="text-center p-2 bg-background rounded">
                                   <div className="text-lg font-bold">{s.outcome_impact}</div>
-                                  <div className="text-xs text-muted-foreground">结果影响</div>
+                                  <div className="text-xs text-muted-foreground">{t("meeting.collab.outcomeImpact")}</div>
                                 </div>
                                 <div className="text-center p-2 bg-background rounded">
                                   <div className="text-lg font-bold">{s.participant_alignment}</div>
-                                  <div className="text-xs text-muted-foreground">参会者契合</div>
+                                  <div className="text-xs text-muted-foreground">{t("meeting.collab.participantAlignment")}</div>
                                 </div>
                                 <div className="text-center p-2 bg-background rounded">
                                   <div className="text-lg font-bold">{s.time_efficiency}</div>
-                                  <div className="text-xs text-muted-foreground">时间效率</div>
+                                  <div className="text-xs text-muted-foreground">{t("meeting.collab.timeEfficiency")}</div>
                                 </div>
                               </div>
 
                               {/* AI Narrative */}
                               {s.ai_narrative && (
                                 <div>
-                                  <h5 className="text-sm font-medium mb-1">AI 分析</h5>
+                                  <h5 className="text-sm font-medium mb-1">{t("meeting.collab.aiAnalysis")}</h5>
                                   <p className="text-sm text-muted-foreground">{s.ai_narrative}</p>
                                 </div>
                               )}
@@ -546,7 +544,7 @@ export function CollaborationNetworkTab() {
                               {/* Alternative rationale */}
                               {s.alternative_rationale && (
                                 <div>
-                                  <h5 className="text-sm font-medium mb-1">替代方案说明</h5>
+                                  <h5 className="text-sm font-medium mb-1">{t("meeting.collab.alternativeRationale")}</h5>
                                   <p className="text-sm text-muted-foreground">{s.alternative_rationale}</p>
                                 </div>
                               )}
@@ -554,7 +552,7 @@ export function CollaborationNetworkTab() {
                               {/* Recommendations */}
                               {recs.length > 0 && (
                                 <div>
-                                  <h5 className="text-sm font-medium mb-1">建议</h5>
+                                  <h5 className="text-sm font-medium mb-1">{t("meeting.collab.recommendations")}</h5>
                                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
                                     {recs.map((r: string, ri: number) => (
                                       <li key={ri}>{r}</li>
@@ -574,8 +572,8 @@ export function CollaborationNetworkTab() {
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <FileQuestion className="h-12 w-12 mb-3 opacity-30" />
-              <p>暂无必要性评分数据</p>
-              <p className="text-sm">请先对会议进行必要性分析</p>
+              <p>{t("meeting.collab.noNecessityData")}</p>
+              <p className="text-sm">{t("meeting.collab.noNecessityHint")}</p>
             </div>
           )}
         </CardContent>

@@ -16,7 +16,7 @@
  *   - seedDemo: insert demo data
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, sql, count, and, inArray } from "drizzle-orm";
 import { okrObjectives, okrKeyResults, okrCheckIns } from "../../drizzle/okr-schema";
@@ -137,7 +137,7 @@ export const okrRouter = router({
     }),
 
   /** Update objective */
-  updateObjective: protectedProcedure
+  updateObjective: requirePermission('strategy:okr:manage')
     .input(z.object({
       id: z.number(),
       title: z.string().optional(),
@@ -161,14 +161,15 @@ export const okrRouter = router({
     }),
 
   /** Delete objective (cascades KRs and check-ins) */
-  deleteObjective: protectedProcedure
+  deleteObjective: requirePermission('strategy:okr:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       try {
         const db = await requireDb();
         // Delete check-ins for KRs under this objective
         const krs = await db.select({ id: okrKeyResults.id }).from(okrKeyResults)
-          .where(eq(okrKeyResults.objectiveId, input.id));
+          .where(eq(okrKeyResults.objectiveId, input.id))
+      .limit(1000);
         if (krs.length > 0) {
           await db.delete(okrCheckIns).where(inArray(okrCheckIns.keyResultId, krs.map(k => k.id)));
         }
@@ -214,7 +215,7 @@ export const okrRouter = router({
     }),
 
   /** Update key result */
-  updateKeyResult: protectedProcedure
+  updateKeyResult: requirePermission('strategy:okr:manage')
     .input(z.object({
       id: z.number(),
       currentValue: z.number().optional(),
@@ -255,7 +256,7 @@ export const okrRouter = router({
     }),
 
   /** Record a check-in for a key result */
-  checkIn: protectedProcedure
+  checkIn: requirePermission('strategy:okr:manage')
     .input(z.object({
       keyResultId: z.number(),
       value: z.number(),
@@ -341,7 +342,7 @@ export const okrRouter = router({
    *   - Creates 2 KRs: quarterly sales target, quarterly output target
    *   - Links to parent company-level objective if one exists for the same period
    */
-  decomposeToOkr: protectedProcedure
+  decomposeToOkr: requirePermission('strategy:okr:manage')
     .input(z.object({
       year: z.number().default(2026),
       period: z.string().optional(), // e.g. "2026-Q1"
@@ -462,7 +463,7 @@ export const okrRouter = router({
     }),
 
   /** Seed demo OKR data */
-  seedDemo: protectedProcedure.mutation(async () => {
+  seedDemo: requirePermission('strategy:okr:manage').mutation(async () => {
     try {
       const db = await requireDb();
       const [existing] = await db.select({ value: count() }).from(okrObjectives);
@@ -472,20 +473,20 @@ export const okrRouter = router({
 
       // Company-level objectives
       const companyObjs = [
-        { title: "2026年营收突破5亿", level: "company" as const, ownerId: "CEO", ownerName: "张总", period: "2026-Q1", priority: "P0", progress: 65, status: "active" as const },
-        { title: "海外市场份额提升至25%", level: "company" as const, ownerId: "CEO", ownerName: "张总", period: "2026-Q1", priority: "P0", progress: 45, status: "active" as const },
-        { title: "新产品研发周期缩短20%", level: "company" as const, ownerId: "CTO", ownerName: "李总", period: "2026-Q1", priority: "P1", progress: 72, status: "active" as const },
+        { title: "2026年营收突破5亿", level: "company" as const, ownerId: "CEO", ownerName: "倪亚东", period: "2026-Q1", priority: "P0", progress: 65, status: "active" as const },
+        { title: "海外市场份额提升至25%", level: "company" as const, ownerId: "CEO", ownerName: "倪亚东", period: "2026-Q1", priority: "P0", progress: 45, status: "active" as const },
+        { title: "新产品研发周期缩短20%", level: "company" as const, ownerId: "CTO", ownerName: "胡炜", period: "2026-Q1", priority: "P1", progress: 72, status: "active" as const },
       ];
 
       const buObjs = [
-        { title: "海外BU Q1签约2000万", level: "bu" as const, ownerId: "BU1-GM", ownerName: "王海", period: "2026-Q1", priority: "P0", buCode: "overseas", progress: 58, status: "active" as const },
-        { title: "商用车BU客户满意度95%", level: "bu" as const, ownerId: "BU2-GM", ownerName: "陈明", period: "2026-Q1", priority: "P1", buCode: "commercial_vehicle", progress: 80, status: "active" as const },
-        { title: "半导体BU产能提升30%", level: "bu" as const, ownerId: "BU4-GM", ownerName: "刘芳", period: "2026-Q1", priority: "P0", buCode: "semiconductor", progress: 35, status: "active" as const },
+        { title: "海外BU Q1签约2000万", level: "bu" as const, ownerId: "BU1-GM", ownerName: "廉龙海", period: "2026-Q1", priority: "P0", buCode: "overseas", progress: 58, status: "active" as const },
+        { title: "商用车BU客户满意度95%", level: "bu" as const, ownerId: "BU2-GM", ownerName: "马林山", period: "2026-Q1", priority: "P1", buCode: "commercial_vehicle", progress: 80, status: "active" as const },
+        { title: "半导体BU产能提升30%", level: "bu" as const, ownerId: "BU4-GM", ownerName: "翁小飞", period: "2026-Q1", priority: "P0", buCode: "semiconductor", progress: 35, status: "active" as const },
       ];
 
       const deptObjs = [
-        { title: "销售部新客户开发20家", level: "department" as const, ownerId: "DEPT-SALES", ownerName: "赵磊", period: "2026-Q1", priority: "P1", progress: 55, status: "active" as const },
-        { title: "研发部专利申请5项", level: "department" as const, ownerId: "DEPT-RD", ownerName: "孙娜", period: "2026-Q1", priority: "P2", progress: 40, status: "active" as const },
+        { title: "销售部新客户开发20家", level: "department" as const, ownerId: "DEPT-SALES", ownerName: "戴晓燕", period: "2026-Q1", priority: "P1", progress: 55, status: "active" as const },
+        { title: "研发部专利申请5项", level: "department" as const, ownerId: "DEPT-RD", ownerName: "洪香龙", period: "2026-Q1", priority: "P2", progress: 40, status: "active" as const },
       ];
 
       const allObjs = [...companyObjs, ...buObjs, ...deptObjs];

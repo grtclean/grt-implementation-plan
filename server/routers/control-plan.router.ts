@@ -3,7 +3,7 @@
  * IATF 16949 Core Tool — 工序级质量控制
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { controlPlans, controlPlanItems, fmeaDocuments, fmeaItems } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -39,7 +39,7 @@ export const controlPlanRouter = router({
     return { ...plan, items };
   }),
   // 创建控制计划
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('mfg:control-plan:manage').input(z.object({
     projectId: z.number().optional(),
     fmeaDocumentId: z.number().optional(),
     title: z.string().min(1),
@@ -63,7 +63,7 @@ export const controlPlanRouter = router({
   }),
 
   // 更新控制计划
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('mfg:control-plan:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     title: z.string().optional(),
     partName: z.string().optional(),
@@ -85,7 +85,7 @@ export const controlPlanRouter = router({
   }),
 
   // 删除控制计划（级联）
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('mfg:control-plan:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     await db.delete(controlPlanItems).where(eq(controlPlanItems.controlPlanId, numId));
@@ -171,7 +171,7 @@ export const controlPlanRouter = router({
     return { success: true, message: "控制项已更新", data: item };
   }),
 
-  deleteItem: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  deleteItem: requirePermission('mfg:control-plan:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(controlPlanItems).where(eq(controlPlanItems.id, toNum(input.id)));
     return { success: true, message: "控制项已删除" };
@@ -179,7 +179,7 @@ export const controlPlanRouter = router({
   // ===== FMEA → Control Plan Auto-Generation =====
 
   // Auto-create control plan items from high-RPN FMEA items (RPN >= threshold)
-  generateFromFMEA: protectedProcedure.input(z.object({
+  generateFromFMEA: requirePermission('mfg:control-plan:manage').input(z.object({
     controlPlanId: z.number(),
     fmeaDocumentId: z.number(),
     rpnThreshold: z.number().default(80),

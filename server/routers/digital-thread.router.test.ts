@@ -6,7 +6,7 @@
  * (cockpit, events, impactChain, weeklyBrief)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAdminCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 import {
   createThreadEvent,
   filterThreadEvents,
@@ -389,7 +389,7 @@ describe("digital-thread router", () => {
 
   describe("cockpit", () => {
     it("returns complete digital thread cockpit data", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.digitalThread.cockpit();
       expect(result).toHaveProperty("snapshot");
       expect(result).toHaveProperty("health");
@@ -404,26 +404,26 @@ describe("digital-thread router", () => {
 
   describe("events", () => {
     it("returns all events without filters", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.digitalThread.events({});
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThan(0);
     });
 
     it("filters by module", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.digitalThread.events({ module: "OEE" });
       expect(result.every((e: any) => e.sourceModule === "OEE")).toBe(true);
     });
 
     it("filters by severity", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.digitalThread.events({ severity: "CRITICAL" });
       expect(result.every((e: any) => e.severity === "CRITICAL")).toBe(true);
     });
 
     it("limits results", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.digitalThread.events({ limit: 3 });
       expect(result.length).toBeLessThanOrEqual(3);
     });
@@ -431,7 +431,7 @@ describe("digital-thread router", () => {
 
   describe("impactChain", () => {
     it("returns ECO impact chain", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.digitalThread.impactChain({
         triggerModule: "ECO", triggerEntity: "ECO-001", triggerDescription: "PLC upgrade",
       });
@@ -440,7 +440,7 @@ describe("digital-thread router", () => {
     });
 
     it("returns SCHEDULER impact chain", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.digitalThread.impactChain({
         triggerModule: "SCHEDULER", triggerEntity: "CNC-001", triggerDescription: "Machine failure",
       });
@@ -451,7 +451,7 @@ describe("digital-thread router", () => {
 
   describe("weeklyBrief", () => {
     it("returns CEO weekly briefing", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.digitalThread.weeklyBrief();
       expect(result).toHaveProperty("healthScore");
       expect(result).toHaveProperty("grade");

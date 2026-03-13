@@ -24,8 +24,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function MeetingAssistantTab() {
+  const { t } = useLanguage();
   // --- Meeting Brief ---
   const [briefMeetingId, setBriefMeetingId] = useState("");
   const briefMutation = trpc.ime.generateBrief.useMutation();
@@ -74,19 +76,19 @@ export function MeetingAssistantTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5 text-blue-600" />
-            会前准备简报
+            {t("meeting.assistant.briefTitle")}
           </CardTitle>
-          <CardDescription>AI基于历史数据生成会前准备材料，包括参与者分析、待办事项、相关决策和建议问题</CardDescription>
+          <CardDescription>{t("meeting.assistant.briefDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 items-end mb-4">
             <div className="flex-1">
-              <label className="text-sm text-muted-foreground mb-1 block">会议ID</label>
-              <Input placeholder="输入会议ID..." value={briefMeetingId} onChange={(e) => setBriefMeetingId(e.target.value)} />
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.assistant.meetingId")}</label>
+              <Input placeholder={t("meeting.assistant.enterMeetingId")} value={briefMeetingId} onChange={(e) => setBriefMeetingId(e.target.value)} />
             </div>
             <Button onClick={() => briefMutation.mutate({ meetingId: briefMeetingId })} disabled={!briefMeetingId.trim() || briefMutation.isPending}>
               {briefMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ClipboardList className="h-4 w-4 mr-2" />}
-              生成简报
+              {t("meeting.assistant.generateBrief")}
             </Button>
           </div>
           {briefMutation.isError && <p className="text-sm text-destructive">{briefMutation.error.message}</p>}
@@ -95,7 +97,7 @@ export function MeetingAssistantTab() {
               <p className="text-sm">{briefMutation.data.narrative}</p>
               {briefMutation.data.suggestedQuestions.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-blue-700 mb-1">建议提问:</p>
+                  <p className="text-sm font-medium text-blue-700 mb-1">{t("meeting.assistant.suggestedQuestions")}:</p>
                   <ul className="text-sm space-y-1">
                     {briefMutation.data.suggestedQuestions.map((q: string, i: number) => (
                       <li key={i} className="flex items-start gap-1"><Sparkles className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />{q}</li>
@@ -105,7 +107,7 @@ export function MeetingAssistantTab() {
               )}
               {briefMutation.data.riskAlerts.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-amber-700 mb-1">风险提醒:</p>
+                  <p className="text-sm font-medium text-amber-700 mb-1">{t("meeting.assistant.riskAlerts")}:</p>
                   <ul className="text-sm list-disc list-inside space-y-1">
                     {briefMutation.data.riskAlerts.map((r: string, i: number) => <li key={i}>{r}</li>)}
                   </ul>
@@ -113,7 +115,7 @@ export function MeetingAssistantTab() {
               )}
               {briefMutation.data.pendingItems.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-1">待处理事项:</p>
+                  <p className="text-sm font-medium text-gray-700 mb-1">{t("meeting.assistant.pendingItems")}:</p>
                   <ul className="text-sm list-disc list-inside space-y-1">
                     {briefMutation.data.pendingItems.map((item: string, i: number) => <li key={i}>{item}</li>)}
                   </ul>
@@ -129,22 +131,22 @@ export function MeetingAssistantTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ListChecks className="h-5 w-5 text-green-600" />
-            智能议程生成
+            {t("meeting.assistant.agendaTitle")}
           </CardTitle>
-          <CardDescription>基于主题、参与者和时长自动设计最佳会议议程</CardDescription>
+          <CardDescription>{t("meeting.assistant.agendaDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 items-end flex-wrap mb-4">
             <div className="flex-1 min-w-[200px]">
-              <label className="text-sm text-muted-foreground mb-1 block">会议主题</label>
-              <Input placeholder="例：Q1产品路线图评审" value={agendaTopic} onChange={(e) => setAgendaTopic(e.target.value)} />
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.assistant.topic")}</label>
+              <Input placeholder={t("meeting.assistant.topicPlaceholder")} value={agendaTopic} onChange={(e) => setAgendaTopic(e.target.value)} />
             </div>
             <div className="w-48">
-              <label className="text-sm text-muted-foreground mb-1 block">参与者 (逗号分隔)</label>
-              <Input placeholder="张三, 李四" value={agendaParticipants} onChange={(e) => setAgendaParticipants(e.target.value)} />
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.assistant.participants")}</label>
+              <Input placeholder={t("meeting.assistant.participantsPlaceholder")} value={agendaParticipants} onChange={(e) => setAgendaParticipants(e.target.value)} />
             </div>
             <div className="w-24">
-              <label className="text-sm text-muted-foreground mb-1 block">时长(分)</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.assistant.durationMin")}</label>
               <Input type="number" value={agendaDuration} onChange={(e) => setAgendaDuration(e.target.value)} />
             </div>
             <Button
@@ -156,7 +158,7 @@ export function MeetingAssistantTab() {
               disabled={!agendaTopic.trim() || agendaMutation.isPending}
             >
               {agendaMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ListChecks className="h-4 w-4 mr-2" />}
-              生成议程
+              {t("meeting.assistant.generateAgenda")}
             </Button>
           </div>
           {agendaMutation.isError && <p className="text-sm text-destructive">{agendaMutation.error.message}</p>}
@@ -166,9 +168,9 @@ export function MeetingAssistantTab() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-8">#</TableHead>
-                    <TableHead>议题</TableHead>
-                    <TableHead className="w-20">时长</TableHead>
-                    <TableHead>说明</TableHead>
+                    <TableHead>{t("meeting.assistant.agendaItem")}</TableHead>
+                    <TableHead className="w-20">{t("meeting.assistant.duration")}</TableHead>
+                    <TableHead>{t("meeting.assistant.description")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -195,19 +197,19 @@ export function MeetingAssistantTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-purple-600" />
-            智能会议纪要
+            {t("meeting.assistant.minutesTitle")}
           </CardTitle>
-          <CardDescription>基于会议内容自动生成结构化会议纪要，含议程、决策、行动项和后续步骤</CardDescription>
+          <CardDescription>{t("meeting.assistant.minutesDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 items-end mb-4">
             <div className="flex-1">
-              <label className="text-sm text-muted-foreground mb-1 block">会议ID</label>
-              <Input placeholder="输入会议ID..." value={minutesMeetingId} onChange={(e) => setMinutesMeetingId(e.target.value)} />
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.assistant.meetingId")}</label>
+              <Input placeholder={t("meeting.assistant.enterMeetingId")} value={minutesMeetingId} onChange={(e) => setMinutesMeetingId(e.target.value)} />
             </div>
             <Button onClick={() => minutesMutation.mutate({ meetingId: minutesMeetingId })} disabled={!minutesMeetingId.trim() || minutesMutation.isPending}>
               {minutesMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
-              生成纪要
+              {t("meeting.assistant.generateMinutes")}
             </Button>
           </div>
           {minutesMutation.isError && <p className="text-sm text-destructive">{minutesMutation.error.message}</p>}
@@ -215,19 +217,19 @@ export function MeetingAssistantTab() {
             <div className="space-y-4 border rounded-lg p-4">
               {minutesMutation.data.agendaItems.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium mb-2">议程讨论:</p>
+                  <p className="text-sm font-medium mb-2">{t("meeting.assistant.agendaDiscussion")}:</p>
                   {minutesMutation.data.agendaItems.map((item: any, i: number) => (
                     <div key={i} className="mb-2 pl-3 border-l-2 border-purple-300">
                       <p className="text-sm font-medium">{item.topic}</p>
                       {item.discussion && <p className="text-sm text-muted-foreground">{item.discussion}</p>}
-                      {item.outcome && <p className="text-sm"><Badge variant="outline" className="mr-1">结论</Badge>{item.outcome}</p>}
+                      {item.outcome && <p className="text-sm"><Badge variant="outline" className="mr-1">{t("meeting.assistant.conclusion")}</Badge>{item.outcome}</p>}
                     </div>
                   ))}
                 </div>
               )}
               {minutesMutation.data.decisions.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-green-700 mb-1">决策记录:</p>
+                  <p className="text-sm font-medium text-green-700 mb-1">{t("meeting.assistant.decisionRecords")}:</p>
                   <ul className="text-sm list-disc list-inside space-y-1">
                     {minutesMutation.data.decisions.map((d: string, i: number) => <li key={i}>{d}</li>)}
                   </ul>
@@ -235,9 +237,9 @@ export function MeetingAssistantTab() {
               )}
               {minutesMutation.data.actionItems.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-blue-700 mb-1">行动项:</p>
+                  <p className="text-sm font-medium text-blue-700 mb-1">{t("meeting.assistant.actionItems")}:</p>
                   <Table>
-                    <TableHeader><TableRow><TableHead>事项</TableHead><TableHead>负责人</TableHead><TableHead>截止</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>{t("meeting.assistant.item")}</TableHead><TableHead>{t("meeting.assistant.owner")}</TableHead><TableHead>{t("meeting.assistant.due")}</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {minutesMutation.data.actionItems.map((a: any, i: number) => (
                         <TableRow key={i}>
@@ -252,7 +254,7 @@ export function MeetingAssistantTab() {
               )}
               {minutesMutation.data.nextSteps.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-1">后续步骤:</p>
+                  <p className="text-sm font-medium text-gray-700 mb-1">{t("meeting.assistant.nextSteps")}:</p>
                   <ul className="text-sm list-disc list-inside space-y-1">
                     {minutesMutation.data.nextSteps.map((s: string, i: number) => <li key={i}>{s}</li>)}
                   </ul>
@@ -268,19 +270,19 @@ export function MeetingAssistantTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarCheck className="h-5 w-5 text-orange-600" />
-            会后跟进计划
+            {t("meeting.assistant.followUpTitle")}
           </CardTitle>
-          <CardDescription>基于会议结果生成详细的后续行动计划，包括即时行动、后续会议和沟通方案</CardDescription>
+          <CardDescription>{t("meeting.assistant.followUpDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 items-end mb-4">
             <div className="flex-1">
-              <label className="text-sm text-muted-foreground mb-1 block">会议ID</label>
-              <Input placeholder="输入会议ID..." value={followUpMeetingId} onChange={(e) => setFollowUpMeetingId(e.target.value)} />
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.assistant.meetingId")}</label>
+              <Input placeholder={t("meeting.assistant.enterMeetingId")} value={followUpMeetingId} onChange={(e) => setFollowUpMeetingId(e.target.value)} />
             </div>
             <Button onClick={() => followUpMutation.mutate({ meetingId: followUpMeetingId })} disabled={!followUpMeetingId.trim() || followUpMutation.isPending}>
               {followUpMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CalendarCheck className="h-4 w-4 mr-2" />}
-              生成跟进计划
+              {t("meeting.assistant.generateFollowUp")}
             </Button>
           </div>
           {followUpMutation.isError && <p className="text-sm text-destructive">{followUpMutation.error.message}</p>}
@@ -288,9 +290,9 @@ export function MeetingAssistantTab() {
             <div className="space-y-3 border rounded-lg p-4">
               {followUpMutation.data.immediateActions.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-red-700 mb-1">即时行动:</p>
+                  <p className="text-sm font-medium text-red-700 mb-1">{t("meeting.assistant.immediateActions")}:</p>
                   <Table>
-                    <TableHeader><TableRow><TableHead>行动</TableHead><TableHead>负责人</TableHead><TableHead>截止</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>{t("meeting.assistant.action")}</TableHead><TableHead>{t("meeting.assistant.owner")}</TableHead><TableHead>{t("meeting.assistant.due")}</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {followUpMutation.data.immediateActions.map((a: any, i: number) => (
                         <TableRow key={i}>
@@ -305,11 +307,11 @@ export function MeetingAssistantTab() {
               )}
               {followUpMutation.data.followUpMeetings.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-blue-700 mb-1">建议后续会议:</p>
+                  <p className="text-sm font-medium text-blue-700 mb-1">{t("meeting.assistant.suggestedFollowUps")}:</p>
                   <ul className="text-sm space-y-1">
                     {followUpMutation.data.followUpMeetings.map((m: any, i: number) => (
                       <li key={i}>
-                        <Badge variant="outline" className="mr-1">{m.suggested_date || "待定"}</Badge>
+                        <Badge variant="outline" className="mr-1">{m.suggested_date || t("meeting.assistant.tbd")}</Badge>
                         {m.topic} {m.participants ? `(${m.participants})` : ""}
                       </li>
                     ))}
@@ -318,7 +320,7 @@ export function MeetingAssistantTab() {
               )}
               {followUpMutation.data.communicationPlan.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-green-700 mb-1">沟通方案:</p>
+                  <p className="text-sm font-medium text-green-700 mb-1">{t("meeting.assistant.communicationPlan")}:</p>
                   <ul className="text-sm space-y-1">
                     {followUpMutation.data.communicationPlan.map((c: any, i: number) => (
                       <li key={i}><span className="font-medium">{c.audience}:</span> {c.message} {c.channel ? `(${c.channel})` : ""}</li>
@@ -339,9 +341,9 @@ export function MeetingAssistantTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-teal-600" />
-            会议智能问答
+            {t("meeting.assistant.chatTitle")}
           </CardTitle>
-          <CardDescription>与AI助手对话，查询会议数据、决策历史、行动项状态等</CardDescription>
+          <CardDescription>{t("meeting.assistant.chatDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="border rounded-lg h-80 flex flex-col">
@@ -349,8 +351,8 @@ export function MeetingAssistantTab() {
               {chatMessages.length === 0 && (
                 <div className="text-center text-muted-foreground text-sm py-8">
                   <Bot className="h-8 w-8 mx-auto mb-2 text-teal-400" />
-                  <p>你好！我是GRT会议智能助手。</p>
-                  <p className="text-xs mt-1">你可以问我关于会议数据、决策历史、行动项等问题。</p>
+                  <p>{t("meeting.assistant.chatGreeting")}</p>
+                  <p className="text-xs mt-1">{t("meeting.assistant.chatHint")}</p>
                 </div>
               )}
               {chatMessages.map((msg, i) => (
@@ -370,7 +372,7 @@ export function MeetingAssistantTab() {
                 <div className="flex gap-2 justify-start">
                   <Bot className="h-5 w-5 text-teal-500 mt-1" />
                   <div className="bg-muted rounded-lg px-3 py-2 text-sm">
-                    <Loader2 className="h-4 w-4 animate-spin inline mr-1" />思考中...
+                    <Loader2 className="h-4 w-4 animate-spin inline mr-1" />{t("meeting.assistant.thinking")}
                   </div>
                 </div>
               )}
@@ -378,7 +380,7 @@ export function MeetingAssistantTab() {
             </div>
             <div className="border-t p-2 flex gap-2">
               <Input
-                placeholder="输入你的问题..."
+                placeholder={t("meeting.assistant.enterQuestion")}
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSendChat()}

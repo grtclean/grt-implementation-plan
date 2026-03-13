@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { TRPCError } from "@trpc/server";
 import {
@@ -190,7 +190,7 @@ export const personalAgentEnhancedRouter = router({
   // ==================== 技能推断 ====================
 
   // 执行技能推断
-  inferSkills: protectedProcedure
+  inferSkills: requirePermission('ai:assistant:chat')
     .input(
       z.object({
         userId: z.number().optional(),
@@ -327,7 +327,7 @@ export const personalAgentEnhancedRouter = router({
       // 获取技能推断历史（通过updated_at追踪）
       let query = `SELECT skill_name, inferred_level, confidence, updated_at
                    FROM inferred_skills_history
-                   WHERE user_id = ? AND updated_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)`;
+                   WHERE user_id = ? AND updated_at >= NOW() - (? || ' months')::interval`;
       const params: unknown[] = [targetUserId, months];
 
       if (skillName) {
@@ -378,7 +378,7 @@ export const personalAgentEnhancedRouter = router({
     }),
 
   // 设置技能目标
-  setSkillGoal: protectedProcedure
+  setSkillGoal: requirePermission('ai:assistant:chat')
     .input(
       z.object({
         skillName: z.string(),

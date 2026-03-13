@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 import { jsonValue } from "@shared/validators";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import {
   createOffboarding,
   listOffboardings,
@@ -31,7 +31,7 @@ import {
   completeOffboarding,
   getOffboardingStats,
   getOffboardingDashboardStats,
-  searchJiandaoyunEmployees,
+  searchExtSyncEmployees,
 } from "./offboarding.service";
 
 export const offboardingRouter = router({
@@ -94,7 +94,7 @@ export const offboardingRouter = router({
     }),
 
   /** 更新离职记录 */
-  update: protectedProcedure
+  update: requirePermission('hr:offboarding:manage')
     .input(z.object({
       id: z.number(),
       updates: z.record(z.string(), jsonValue),
@@ -104,7 +104,7 @@ export const offboardingRouter = router({
     }),
 
   /** 提交离职申请 */
-  submit: protectedProcedure
+  submit: requirePermission('hr:offboarding:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return submitOffboarding(input.id);
@@ -129,11 +129,11 @@ export const offboardingRouter = router({
       return getOffboardingDashboardStats();
     }),
 
-  /** 搜索员工信息（简道云+本地数据库）用于离职表单自动填充 */
+  /** 搜索员工信息（外部数据平台+本地数据库）用于离职表单自动填充 */
   searchEmployees: protectedProcedure
     .input(z.object({ keyword: z.string().min(1) }))
     .query(async ({ input }) => {
-      return searchJiandaoyunEmployees(input.keyword);
+      return searchExtSyncEmployees(input.keyword);
     }),
 
   // ============================================================
@@ -177,7 +177,7 @@ export const offboardingRouter = router({
     }),
 
   /** 更新交接项状态 */
-  updateHandoverStatus: protectedProcedure
+  updateHandoverStatus: requirePermission('hr:offboarding:manage')
     .input(z.object({
       itemId: z.number(),
       status: z.enum(['pending', 'in_progress', 'completed', 'verified']),
@@ -223,7 +223,7 @@ export const offboardingRouter = router({
     }),
 
   /** 主管确认绩效归属 */
-  confirmPerformance: protectedProcedure
+  confirmPerformance: requirePermission('hr:offboarding:manage')
     .input(z.object({
       id: z.number(),
       originalContributionPercent: z.number().min(0).max(100),
@@ -242,7 +242,7 @@ export const offboardingRouter = router({
     }),
 
   /** 自动标注绩效数据 */
-  autoAnnotatePerformance: protectedProcedure
+  autoAnnotatePerformance: requirePermission('hr:offboarding:manage')
     .input(z.object({ offboardingId: z.number() }))
     .mutation(async ({ input }) => {
       return autoAnnotatePerformanceData(input.offboardingId);
@@ -278,7 +278,7 @@ export const offboardingRouter = router({
     }),
 
   /** 更新资产交接状态 */
-  updateAssetStatus: protectedProcedure
+  updateAssetStatus: requirePermission('hr:offboarding:manage')
     .input(z.object({
       itemId: z.number(),
       status: z.enum(['pending', 'in_progress', 'completed', 'verified']),

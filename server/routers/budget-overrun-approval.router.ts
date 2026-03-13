@@ -13,7 +13,7 @@
  */
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, count, and, sql } from "drizzle-orm";
 import { budgetOverrunRequests } from "../../drizzle/budget-overrun-schema";
@@ -21,7 +21,8 @@ import { budgetOverrunRequests } from "../../drizzle/budget-overrun-schema";
 /** Check optimistic lock version — throws CONFLICT if stale */
 async function checkOverrunVersion(db: any, id: number, expectedVersion?: number) {
   if (expectedVersion === undefined) return;
-  const [current] = await db.select({ version: budgetOverrunRequests.version }).from(budgetOverrunRequests).where(eq(budgetOverrunRequests.id, id));
+  const [current] = await db.select({ version: budgetOverrunRequests.version }).from(budgetOverrunRequests).where(eq(budgetOverrunRequests.id, id))
+      .limit(1000);
   if (current && current.version !== expectedVersion) {
     throw new TRPCError({ code: "CONFLICT", message: "版本冲突：审批记录已被他人修改，请刷新后重试" });
   }
@@ -115,7 +116,7 @@ export const budgetOverrunApprovalRouter = router({
       }
     }),
 
-  approve: protectedProcedure
+  approve: requirePermission('finance:budget:approve')
     .input(z.object({
       id: z.number(),
       expectedVersion: z.number().optional(),
@@ -147,7 +148,7 @@ export const budgetOverrunApprovalRouter = router({
       return { success: true, message: "已批准" };
     }),
 
-  reject: protectedProcedure
+  reject: requirePermission('finance:budget:approve')
     .input(z.object({
       id: z.number(),
       expectedVersion: z.number().optional(),
@@ -183,7 +184,7 @@ export const budgetOverrunApprovalRouter = router({
   }),
 
   /** Seed demo data */
-  seedDemo: protectedProcedure.mutation(async () => {
+  seedDemo: requirePermission('finance:budget:approve').mutation(async () => {
     try {
       const db = await requireDb();
       const [existing] = await db.select({ value: count() }).from(budgetOverrunRequests);

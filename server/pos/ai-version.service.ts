@@ -326,7 +326,8 @@ export async function getProjectVersions(projectId: number): Promise<any[]> {
       .select()
       .from(projectVersions)
       .where(eq(projectVersions.projectId, projectId))
-      .orderBy(desc(projectVersions.createdAt));
+      .orderBy(desc(projectVersions.createdAt))
+      .limit(1000);
 
     return versions.map(v => {
       const versionData = v.versionJson ? JSON.parse(v.versionJson as string) : {};

@@ -131,7 +131,8 @@ export async function getMeetings(
   const userChannels = await database
     .select({ channelId: channelMembers.channelId })
     .from(channelMembers)
-    .where(eq(channelMembers.userId, userId));
+    .where(eq(channelMembers.userId, userId))
+    .limit(1000);
 
   const channelIds = userChannels.map((c) => c.channelId);
 
@@ -185,25 +186,29 @@ export async function getMeeting(meetingId: string, userId: number): Promise<any
     .select()
     .from(meetingNotes)
     .where(eq(meetingNotes.meetingId, meetingId))
-    .orderBy(desc(meetingNotes.updatedAt));
+    .orderBy(desc(meetingNotes.updatedAt))
+    .limit(1000);
 
   // 获取AI洞察
   const insights = await database
     .select()
     .from(aiInsights)
-    .where(eq(aiInsights.meetingId, meetingId));
+    .where(eq(aiInsights.meetingId, meetingId))
+    .limit(1000);
 
   // 获取参与者
   const participants = await database
     .select()
     .from(meetingParticipants)
-    .where(eq(meetingParticipants.meetingId, meetingId));
+    .where(eq(meetingParticipants.meetingId, meetingId))
+    .limit(1000);
 
   // 获取附件
   const attachments = await database
     .select()
     .from(meetingAttachments)
-    .where(eq(meetingAttachments.meetingId, meetingId));
+    .where(eq(meetingAttachments.meetingId, meetingId))
+    .limit(1000);
 
   return {
     ...meeting,
@@ -410,7 +415,8 @@ export async function getChannelMembers(channelId: string): Promise<any[]> {
   return database
     .select()
     .from(channelMembers)
-    .where(eq(channelMembers.channelId, channelId));
+    .where(eq(channelMembers.channelId, channelId))
+    .limit(1000);
 }
 
 /**

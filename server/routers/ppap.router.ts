@@ -3,7 +3,7 @@
  * IATF 16949 — 18-element PPAP submission management
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { ppapSubmissions, ppapElements, fmeaDocuments, controlPlans, msaStudies } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -115,7 +115,7 @@ export const ppapRouter = router({
   }),
 
   // 更新提交
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('mfg:ppap:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     partName: z.string().optional(),
     partNumber: z.string().optional(),
@@ -136,7 +136,7 @@ export const ppapRouter = router({
   }),
 
   // 删除
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('mfg:ppap:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     await db.transaction(async (tx) => {
@@ -147,7 +147,7 @@ export const ppapRouter = router({
   }),
 
   // 更新元素状态
-  updateElement: protectedProcedure.input(z.object({
+  updateElement: requirePermission('mfg:ppap:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     status: z.enum(["not_started", "in_progress", "completed", "not_applicable", "rejected"]),
     documentPath: z.string().optional(),
@@ -163,7 +163,7 @@ export const ppapRouter = router({
   }),
 
   // Auto-link PPAP elements to related FMEA, Control Plan, and MSA documents
-  autoLinkDocuments: protectedProcedure.input(z.object({
+  autoLinkDocuments: requirePermission('mfg:ppap:manage').input(z.object({
     submissionId: z.number(),
     projectId: z.number().optional(),
   })).mutation(async ({ input }) => {

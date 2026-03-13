@@ -15,7 +15,7 @@
  */
 
 import { z } from "zod";
-import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
+import {router, adminProcedure, protectedProcedure, requirePermission} from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
@@ -361,7 +361,7 @@ export const warehouseRouter = router({
   // 入库单
   // ==========================================
 
-  createReceipt: protectedProcedure
+  createReceipt: requirePermission('supply:warehouse:manage')
     .input(ReceiptCreateSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -445,7 +445,7 @@ export const warehouseRouter = router({
       return { ...receiptRows[0], items };
     }),
 
-  updateReceiptStatus: protectedProcedure
+  updateReceiptStatus: requirePermission('supply:warehouse:manage')
     .input(z.object({
       id: z.number(),
       status: z.enum(['draft', 'pending_qc', 'qc_passed', 'qc_failed', 'shelved', 'cancelled']),
@@ -472,7 +472,7 @@ export const warehouseRouter = router({
   // 出库单
   // ==========================================
 
-  createIssue: protectedProcedure
+  createIssue: requirePermission('supply:warehouse:manage')
     .input(IssueCreateSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -660,7 +660,7 @@ export const warehouseRouter = router({
   // 批次(Lot)追踪
   // ==========================================
 
-  createLot: protectedProcedure
+  createLot: requirePermission('supply:warehouse:manage')
     .input(LotCreateSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -739,7 +739,7 @@ export const warehouseRouter = router({
       return rows[0] ?? null;
     }),
 
-  updateLotStatus: protectedProcedure
+  updateLotStatus: requirePermission('supply:warehouse:manage')
     .input(z.object({
       id: z.number(),
       status: z.enum(['available', 'reserved', 'quarantine', 'expired', 'consumed', 'scrapped']),
@@ -752,7 +752,7 @@ export const warehouseRouter = router({
       return rows[0];
     }),
 
-  updateLotQC: protectedProcedure
+  updateLotQC: requirePermission('supply:warehouse:manage')
     .input(z.object({
       id: z.number(),
       qcStatus: z.enum(['pending', 'passed', 'failed', 'conditional']),
@@ -836,7 +836,7 @@ export const warehouseRouter = router({
       return { items, total: totalResult[0].value, page: input.page, pageSize: input.pageSize };
     }),
 
-  updateSerialStatus: protectedProcedure
+  updateSerialStatus: requirePermission('supply:warehouse:manage')
     .input(z.object({
       id: z.number(),
       status: z.enum(['in_stock', 'allocated', 'in_production', 'installed', 'shipped', 'returned', 'scrapped']),

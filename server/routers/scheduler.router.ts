@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import {
   getScheduledTasksStatus,
   setTaskEnabled,
@@ -13,6 +13,28 @@ import {
   checkAndRunScheduledTasks,
 } from "../services/scheduler.service";
 
+// Ring buffer for execution logs
+interface ExecutionLogEntry {
+  id: string;
+  taskId: string;
+  taskName: string;
+  startTime: string;
+  endTime: string | null;
+  status: "running" | "success" | "failed";
+  duration: number;
+  message: string;
+}
+
+const executionLogs: ExecutionLogEntry[] = [];
+const MAX_LOGS = 50;
+
+export function recordExecution(entry: Omit<ExecutionLogEntry, 'id'>) {
+  const log: ExecutionLogEntry = { ...entry, id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` };
+  executionLogs.unshift(log);
+  if (executionLogs.length > MAX_LOGS) executionLogs.length = MAX_LOGS;
+  return log;
+}
+
 export const schedulerRouter = router({
   // 获取所有定时任务状态
   getStatus: protectedProcedure.query(async () => {
@@ -20,7 +42,7 @@ export const schedulerRouter = router({
   }),
 
   // 启用/禁用定时任务
-  setEnabled: protectedProcedure
+  setEnabled: requirePermission('system:scheduler:manage')
     .input(
       z.object({
         taskName: z.string(),
@@ -38,7 +60,7 @@ export const schedulerRouter = router({
     }),
 
   // 手动触发定时任务
-  trigger: protectedProcedure
+  trigger: requirePermission('system:scheduler:manage')
     .input(
       z.object({
         taskName: z.string(),
@@ -49,7 +71,7 @@ export const schedulerRouter = router({
     }),
 
   // 更新任务的Cron表达式
-  updateCron: protectedProcedure
+  updateCron: requirePermission('system:scheduler:manage')
     .input(
       z.object({
         taskName: z.string(),
@@ -66,8 +88,13 @@ export const schedulerRouter = router({
       };
     }),
 
+  // 获取执行日志
+  getExecutionLogs: protectedProcedure.query(async () => {
+    return { logs: executionLogs };
+  }),
+
   // 立即检查并执行到期的任务
-  checkAndRun: protectedProcedure.mutation(async () => {
+  checkAndRun: requirePermission('system:scheduler:manage').mutation(async () => {
     return await checkAndRunScheduledTasks();
   }),
 });

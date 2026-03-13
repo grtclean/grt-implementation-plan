@@ -353,7 +353,7 @@ pnpm start
 | DATABASE_URL | ✅ | MySQL连接字符串 |
 | JWT_SECRET | ✅ | JWT签名密钥 |
 | GEMINI_API_KEY | ⚠️ | Gemini AI密钥 |
-| JIANDAOYUN_API_KEY | ⚠️ | 简道云API密钥 |
+| EXT_SYNC_API_KEY | ⚠️ | 外部数据平台API密钥 |
 
 ---
 

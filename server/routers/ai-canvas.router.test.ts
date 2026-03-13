@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -26,19 +26,19 @@ beforeEach(() => {
 
 describe("aiCanvas.list", () => {
   it("returns empty items and zero total with no input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiCanvas.list();
     expect(result).toEqual({ items: [], total: 0 });
   });
 
   it("returns empty items and zero total with explicit input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiCanvas.list({ limit: 10, offset: 5 });
     expect(result).toEqual({ items: [], total: 0 });
   });
 
   it("uses default limit and offset when not specified", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.aiCanvas.list({});
     expect(result.items).toEqual([]);
     expect(result.total).toBe(0);
@@ -52,7 +52,7 @@ describe("aiCanvas.list", () => {
 describe("aiCanvas.quickParse", () => {
   describe("detection success", () => {
     it("detects travel intent from Chinese keywords", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "我要出差去上海",
         language: "zh",
@@ -66,7 +66,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects travel intent from English keywords", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "I need to book a flight to Detroit for a trip",
         language: "en",
@@ -78,7 +78,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects quality intent from 8d keyword", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "8d report needed for defect",
         language: "en",
@@ -90,7 +90,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects project intent from Chinese keywords", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "我要立项一个新产品开发项目",
         language: "zh",
@@ -102,7 +102,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects HR intent", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "我想请假三天",
         language: "zh",
@@ -114,7 +114,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects finance/expense intent", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "报销出差费用发票",
         language: "zh",
@@ -126,7 +126,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects procurement intent", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "need to purchase materials from supplier",
         language: "en",
@@ -138,7 +138,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects production intent", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "安排生产工单排产计划",
         language: "zh",
@@ -150,7 +150,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects approval intent", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "提交审批签字流程",
         language: "zh",
@@ -162,7 +162,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects meeting intent", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "meeting agenda and minutes for discussion",
         language: "en",
@@ -174,7 +174,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects CRM/sales intent", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "新客户销售商机线索",
         language: "zh",
@@ -184,7 +184,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects customer service intent", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "customer warranty repair needed",
         language: "en",
@@ -194,7 +194,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects inventory/supply chain intent", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "仓库库存盘点入库",
         language: "zh",
@@ -204,7 +204,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects FMEA/control plan intent", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "FMEA risk analysis control plan",
         language: "en",
@@ -214,7 +214,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("detects training/capability intent", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "安排培训考试能力提升",
         language: "zh",
@@ -226,7 +226,7 @@ describe("aiCanvas.quickParse", () => {
 
   describe("confidence scoring", () => {
     it("higher confidence with more keyword matches", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
 
       // Single keyword match
       const single = await caller.aiCanvas.quickParse({
@@ -244,7 +244,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("confidence is capped at 95", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Hit many keywords for travel: 出差, 差旅, 机票, 酒店, 飞, trip, travel, flight, hotel, detroit, shanghai
       const result = await caller.aiCanvas.quickParse({
         text: "出差差旅机票酒店飞trip travel flight hotel detroit shanghai",
@@ -254,7 +254,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("minimum confidence is 55 for single keyword match", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "出差",
         language: "zh",
@@ -265,7 +265,7 @@ describe("aiCanvas.quickParse", () => {
 
   describe("no match", () => {
     it("returns detected=false for unrelated text", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "hello world abcdef random text",
         language: "zh",
@@ -281,7 +281,7 @@ describe("aiCanvas.quickParse", () => {
 
   describe("language handling", () => {
     it("returns Chinese template for zh", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "出差申请",
         language: "zh",
@@ -290,7 +290,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("returns English template for en", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "travel trip",
         language: "en",
@@ -299,7 +299,7 @@ describe("aiCanvas.quickParse", () => {
     });
 
     it("defaults to zh when language not specified", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.quickParse({
         text: "出差去上海",
       });
@@ -309,7 +309,7 @@ describe("aiCanvas.quickParse", () => {
 
   describe("input validation", () => {
     it("rejects empty text", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.aiCanvas.quickParse({ text: "", language: "zh" })
       ).rejects.toThrow();
@@ -324,7 +324,7 @@ describe("aiCanvas.quickParse", () => {
 describe("aiCanvas.parseWorkflow", () => {
   describe("successful detection", () => {
     it("returns detected=true with suggestions for matching text", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "我要出差去上海出差差旅",
         language: "zh",
@@ -337,7 +337,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("returns at most 3 suggestions", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Use a keyword that matches many rules
       const result = await caller.aiCanvas.parseWorkflow({
         text: "quality complaint customer service warranty defect",
@@ -347,7 +347,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("suggestions are ranked by confidence", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "travel trip flight hotel",
         language: "en",
@@ -362,7 +362,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("each suggestion has required fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "出差申请差旅",
         language: "zh",
@@ -379,7 +379,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("proposedWorkflow contains steps with step/label/approver", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "出差申请",
         language: "zh",
@@ -394,7 +394,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("matchedKeywords contains actual keywords found in text", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "travel to detroit",
         language: "en",
@@ -405,7 +405,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("linkedEntities includes template name and category", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "出差申请",
         language: "zh",
@@ -418,7 +418,7 @@ describe("aiCanvas.parseWorkflow", () => {
 
   describe("entity extraction", () => {
     it("extracts location entities from Chinese city names", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "出差去上海工厂",
         language: "zh",
@@ -428,7 +428,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("extracts English city names", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "travel to Detroit for a trip",
         language: "en",
@@ -437,7 +437,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("extracts date entities in YYYY-MM-DD format", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "出差 2026-03-15 到 2026-03-20",
         language: "zh",
@@ -447,7 +447,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("extracts relative date references", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "明天出差下周开会",
         language: "zh",
@@ -456,7 +456,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("extracts Chinese date format (月/日)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "3月15日出差",
         language: "zh",
@@ -465,7 +465,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("extracts material entities", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "采购不锈钢轴承物料",
         language: "zh",
@@ -474,7 +474,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("extracts people entities", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "请张三经理审批这个项目",
         language: "zh",
@@ -483,7 +483,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("deduplicates extracted entities", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "上海上海上海出差",
         language: "zh",
@@ -494,7 +494,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("returns empty entity arrays when no entities detected", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "出差申请",
         language: "zh",
@@ -512,7 +512,7 @@ describe("aiCanvas.parseWorkflow", () => {
 
   describe("no match", () => {
     it("returns detected=false with guidance summary (zh)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "hello world random gibberish",
         language: "zh",
@@ -523,7 +523,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("returns detected=false with guidance summary (en)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "hello world random gibberish",
         language: "en",
@@ -536,7 +536,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("still extracts entities even when no workflow matched", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "hello 2026-03-15 上海",
         language: "zh",
@@ -556,7 +556,7 @@ describe("aiCanvas.parseWorkflow", () => {
 
   describe("language handling", () => {
     it("summary in Chinese for zh", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "出差申请",
         language: "zh",
@@ -565,7 +565,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("summary in English for en", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "travel trip",
         language: "en",
@@ -574,7 +574,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("suggestions use zh template for zh language", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "出差",
         language: "zh",
@@ -583,7 +583,7 @@ describe("aiCanvas.parseWorkflow", () => {
     });
 
     it("suggestions use en template for en language", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "travel",
         language: "en",
@@ -594,14 +594,14 @@ describe("aiCanvas.parseWorkflow", () => {
 
   describe("input validation", () => {
     it("rejects empty text", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.aiCanvas.parseWorkflow({ text: "", language: "zh" })
       ).rejects.toThrow();
     });
 
     it("accepts optional currentRoute", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.parseWorkflow({
         text: "出差申请",
         language: "zh",
@@ -632,19 +632,19 @@ describe("aiCanvas.applyWorkflow", () => {
 
   describe("task creation", () => {
     it("returns taskId starting with TASK-", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.applyWorkflow(baseInput);
       expect(result.taskId).toMatch(/^TASK-/);
     });
 
     it("returns workflowId starting with WF-", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.applyWorkflow(baseInput);
       expect(result.workflowId).toMatch(/^WF-/);
     });
 
     it("taskId and workflowId are unique across calls", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result1 = await caller.aiCanvas.applyWorkflow(baseInput);
       // Small delay to ensure Date.now() differs
       const result2 = await caller.aiCanvas.applyWorkflow(baseInput);
@@ -657,7 +657,7 @@ describe("aiCanvas.applyWorkflow", () => {
 
   describe("workflow steps", () => {
     it("first step is active, rest are pending", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.applyWorkflow(baseInput);
       expect(result.workflow).toHaveLength(3);
       expect(result.workflow[0].status).toBe("active");
@@ -666,7 +666,7 @@ describe("aiCanvas.applyWorkflow", () => {
     });
 
     it("preserves step details from input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.applyWorkflow(baseInput);
       expect(result.workflow[0].step).toBe(1);
       expect(result.workflow[0].label).toBe("填写出差申请");
@@ -678,7 +678,7 @@ describe("aiCanvas.applyWorkflow", () => {
     });
 
     it("handles single step workflow", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.applyWorkflow({
         ...baseInput,
         workflowSteps: [
@@ -690,7 +690,7 @@ describe("aiCanvas.applyWorkflow", () => {
     });
 
     it("handles many steps", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const steps = Array.from({ length: 10 }, (_, i) => ({
         step: i + 1,
         label: `Step ${i + 1}`,
@@ -710,7 +710,7 @@ describe("aiCanvas.applyWorkflow", () => {
 
   describe("message (zh)", () => {
     it("returns Chinese message with template name and task ID", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.applyWorkflow(baseInput);
       expect(result.message).toContain("出差申请");
       expect(result.message).toContain(result.taskId);
@@ -721,7 +721,7 @@ describe("aiCanvas.applyWorkflow", () => {
 
   describe("message (en)", () => {
     it("returns English message with template name and task ID", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.applyWorkflow({
         ...baseInput,
         templateName: "Travel Request",
@@ -736,7 +736,7 @@ describe("aiCanvas.applyWorkflow", () => {
 
   describe("nextAction", () => {
     it("returns nextAction with label and route (zh)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.applyWorkflow(baseInput);
       expect(result.nextAction.label).toContain("前往");
       expect(result.nextAction.label).toContain("出差申请");
@@ -744,7 +744,7 @@ describe("aiCanvas.applyWorkflow", () => {
     });
 
     it("returns nextAction with label and route (en)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.applyWorkflow({
         ...baseInput,
         templateName: "Travel Request",
@@ -756,7 +756,7 @@ describe("aiCanvas.applyWorkflow", () => {
     });
 
     it("uses the route from input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.aiCanvas.applyWorkflow({
         ...baseInput,
         route: "/custom-route",
@@ -767,7 +767,7 @@ describe("aiCanvas.applyWorkflow", () => {
 
   describe("input validation", () => {
     it("requires workflowSteps to be an array of objects with step/label/approver", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.aiCanvas.applyWorkflow({
           ...baseInput,
@@ -823,7 +823,7 @@ describe("aiCanvas authentication", () => {
 
 describe("aiCanvas end-to-end flow", () => {
   it("quickParse -> parseWorkflow -> applyWorkflow produces consistent results", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const inputText = "我要出差去上海";
 
     // Step 1: Quick parse to detect intent

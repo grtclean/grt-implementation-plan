@@ -2,6 +2,7 @@
  * AI销售中心 - 谈判可视化、ZOPA图表、情绪分析、ZKP验证
  */
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ const mockZkpProofs = [
 ];
 
 export default function AiSalesHub() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("negotiations");
 
   const getSentimentColor = (sentiment: string) => {
@@ -36,24 +38,24 @@ export default function AiSalesHub() {
     <div className="space-y-6">
       <PageHeader
         icon={MessageSquare}
-        title="AI销售中心"
-        description="AI-to-AI谈判、ZOPA分析、情绪洞察"
-        actions={<Button size="sm"><Play className="w-4 h-4 mr-2" />启动新谈判</Button>}
+        title={t("ai.salesHub.title")}
+        description={t("ai.salesHub.description")}
+        actions={<Button size="sm"><Play className="w-4 h-4 mr-2" />{t("ai.salesHub.startNegotiation")}</Button>}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={MessageSquare} label="进行中谈判" value={12} iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={Target} label="成交率" value="78%" iconColor="text-green-500" iconBg="bg-green-100" />
-        <StatCard icon={Shield} label="ZKP验证" value={45} iconColor="text-blue-500" iconBg="bg-blue-100" />
-        <StatCard icon={TrendingUp} label="本月成交额" value="¥2.8M" iconColor="text-purple-500" iconBg="bg-purple-100" />
+        <StatCard icon={MessageSquare} label={t("ai.salesHub.activeNegotiations")} value={12} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Target} label={t("ai.salesHub.closeRate")} value="78%" iconColor="text-green-500" iconBg="bg-green-100" />
+        <StatCard icon={Shield} label={t("ai.salesHub.zkpVerifications")} value={45} iconColor="text-blue-500" iconBg="bg-blue-100" />
+        <StatCard icon={TrendingUp} label={t("ai.salesHub.monthlyRevenue")} value="¥2.8M" iconColor="text-purple-500" iconBg="bg-purple-100" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
-          <TabsTrigger value="negotiations"><MessageSquare className="w-4 h-4 mr-2" />谈判会话</TabsTrigger>
-          <TabsTrigger value="zopa"><Target className="w-4 h-4 mr-2" />ZOPA分析</TabsTrigger>
-          <TabsTrigger value="sentiment"><Brain className="w-4 h-4 mr-2" />情绪洞察</TabsTrigger>
-          <TabsTrigger value="zkp"><Shield className="w-4 h-4 mr-2" />ZKP验证</TabsTrigger>
+          <TabsTrigger value="negotiations"><MessageSquare className="w-4 h-4 mr-2" />{t("ai.salesHub.tabNegotiations")}</TabsTrigger>
+          <TabsTrigger value="zopa"><Target className="w-4 h-4 mr-2" />{t("ai.salesHub.tabZopa")}</TabsTrigger>
+          <TabsTrigger value="sentiment"><Brain className="w-4 h-4 mr-2" />{t("ai.salesHub.tabSentiment")}</TabsTrigger>
+          <TabsTrigger value="zkp"><Shield className="w-4 h-4 mr-2" />{t("ai.salesHub.tabZkp")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="negotiations" className="space-y-4">
@@ -63,25 +65,25 @@ export default function AiSalesHub() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{neg.clientAgent}</CardTitle>
                   <Badge variant={neg.status === "deal_reached" ? "default" : "secondary"}>
-                    {neg.status === "deal_reached" ? "已成交" : `第${neg.round}轮`}
+                    {neg.status === "deal_reached" ? t("ai.salesHub.dealReached") : t("ai.salesHub.roundN").replace("{n}", String(neg.round))}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="p-3 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">我方报价</p>
+                    <p className="text-sm text-muted-foreground">{t("ai.salesHub.ourOffer")}</p>
                     <p className="text-xl font-bold text-primary">¥{neg.ourOffer.toLocaleString()}</p>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">客户还价</p>
+                    <p className="text-sm text-muted-foreground">{t("ai.salesHub.clientOffer")}</p>
                     <p className="text-xl font-bold">¥{neg.clientOffer.toLocaleString()}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">客户情绪:</span>
+                  <span className="text-sm text-muted-foreground">{t("ai.salesHub.clientSentiment")}</span>
                   <span className={`font-medium ${getSentimentColor(neg.sentiment)}`}>
-                    {neg.sentiment === "positive" ? "积极" : neg.sentiment === "negative" ? "消极" : "中性"}
+                    {neg.sentiment === "positive" ? t("ai.salesHub.sentimentPositive") : neg.sentiment === "negative" ? t("ai.salesHub.sentimentNegative") : t("ai.salesHub.sentimentNeutral")}
                   </span>
                 </div>
               </CardContent>
@@ -91,7 +93,7 @@ export default function AiSalesHub() {
 
         <TabsContent value="zopa" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>ZOPA区间分析</CardTitle><CardDescription>协议达成可能区间可视化</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("ai.salesHub.zopaTitle")}</CardTitle><CardDescription>{t("ai.salesHub.zopaDesc")}</CardDescription></CardHeader>
             <CardContent>
               <div className="space-y-6">
                 {mockNegotiations.map((neg) => (
@@ -117,16 +119,16 @@ export default function AiSalesHub() {
 
         <TabsContent value="sentiment" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>情绪分析仪表盘</CardTitle><CardDescription>The Listener Agent实时情绪洞察</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("ai.salesHub.sentimentDashboard")}</CardTitle><CardDescription>{t("ai.salesHub.sentimentDashboardDesc")}</CardDescription></CardHeader>
             <CardContent>
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">[情绪趋势图 - 按谈判轮次展示情绪变化]</div>
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">{t("ai.salesHub.sentimentChart")}</div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="zkp" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>零知识证明注册表</CardTitle><CardDescription>产能/合规/绿色能源证明验证</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("ai.salesHub.zkpRegistry")}</CardTitle><CardDescription>{t("ai.salesHub.zkpRegistryDesc")}</CardDescription></CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {mockZkpProofs.map((proof) => (
@@ -134,11 +136,11 @@ export default function AiSalesHub() {
                     <div className="flex items-center gap-4">
                       <Shield className={`w-8 h-8 ${proof.verified ? "text-green-400" : "text-yellow-400"}`} />
                       <div>
-                        <p className="font-medium">{proof.type === "capacity" ? "产能证明" : proof.type === "compliance" ? "合规证明" : "绿色能源"}</p>
+                        <p className="font-medium">{proof.type === "capacity" ? t("ai.salesHub.capacityProof") : proof.type === "compliance" ? t("ai.salesHub.complianceProof") : t("ai.salesHub.greenEnergy")}</p>
                         <p className="text-sm text-muted-foreground">{proof.publicInputs}</p>
                       </div>
                     </div>
-                    <Badge variant={proof.verified ? "default" : "secondary"}>{proof.verified ? "已验证" : "待验证"}</Badge>
+                    <Badge variant={proof.verified ? "default" : "secondary"}>{proof.verified ? t("ai.salesHub.verified") : t("ai.salesHub.pendingVerification")}</Badge>
                   </div>
                 ))}
               </div>

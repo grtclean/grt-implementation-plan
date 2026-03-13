@@ -16,7 +16,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -269,7 +269,7 @@ export const complianceCalendarRouter = router({
    * acknowledge — mark a compliance alert as acknowledged.
    * Writes to audit trail (Phase 4: real DB).
    */
-  acknowledge: protectedProcedure
+  acknowledge: requirePermission('system:compliance:manage')
     .input(z.object({
       alertId: z.number(),
       action: z.enum(["ACKNOWLEDGED", "DELEGATED", "RENEWED", "DISMISSED"]),

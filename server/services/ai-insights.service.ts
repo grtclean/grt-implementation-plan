@@ -48,6 +48,7 @@ export async function generateMeetingInsights(
     .select()
     .from(meetings)
     .where(eq(meetings.id, request.meetingId))
+    .limit(1000)
     .then((results) => results[0]);
 
   if (!meeting) {
@@ -330,7 +331,8 @@ export async function getMeetingInsights(meetingId: string): Promise<any[]> {
   return database
     .select()
     .from(aiInsights)
-    .where(eq(aiInsights.meetingId, meetingId));
+    .where(eq(aiInsights.meetingId, meetingId))
+    .limit(1000);
 }
 
 /**
@@ -347,6 +349,7 @@ export async function streamMeetingInsights(
     .select()
     .from(meetings)
     .where(eq(meetings.id, request.meetingId))
+    .limit(1000)
     .then((results) => results[0]);
 
   if (!meeting) {
@@ -358,6 +361,7 @@ export async function streamMeetingInsights(
     .select()
     .from(meetingNotes)
     .where(eq(meetingNotes.meetingId, request.meetingId))
+    .limit(1000)
     .then((results) => results[results.length - 1]);
 
   if (!notes) {

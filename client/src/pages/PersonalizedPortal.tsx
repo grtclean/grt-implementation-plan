@@ -30,11 +30,11 @@ import QueryErrorBanner from "@/components/QueryErrorBanner";
 // ---------------------------------------------------------------------------
 // Time-based greeting
 // ---------------------------------------------------------------------------
-function getGreeting(isZh: boolean) {
+function getGreeting(t: (key: string) => string) {
   const h = new Date().getHours();
-  if (h < 12) return isZh ? "早上好" : "Good morning";
-  if (h < 18) return isZh ? "下午好" : "Good afternoon";
-  return isZh ? "晚上好" : "Good evening";
+  if (h < 12) return t("portal.greetingMorning");
+  if (h < 18) return t("portal.greetingAfternoon");
+  return t("portal.greetingEvening");
 }
 
 function GreetingIcon() {
@@ -66,11 +66,11 @@ const PRIORITY_COLORS: Record<string, string> = {
   low:    "bg-gray-100 text-gray-500",
 };
 
-const FEED_TABS: { key: FeedTab; labelZh: string; labelEn: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { key: "all",       labelZh: "全部",   labelEn: "All",       icon: Bell },
-  { key: "tasks",     labelZh: "任务",   labelEn: "Tasks",     icon: CheckSquare },
-  { key: "docs",      labelZh: "文档",   labelEn: "Docs",      icon: FileText },
-  { key: "approvals", labelZh: "审批",   labelEn: "Approvals", icon: AlertCircle },
+const FEED_TABS: { key: FeedTab; i18nKey: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: "all",       i18nKey: "portal.feed.all",       icon: Bell },
+  { key: "tasks",     i18nKey: "portal.feed.tasks",     icon: CheckSquare },
+  { key: "docs",      i18nKey: "portal.feed.docs",      icon: FileText },
+  { key: "approvals", i18nKey: "portal.feed.approvals", icon: AlertCircle },
 ];
 
 // ---------------------------------------------------------------------------
@@ -80,7 +80,7 @@ function formatTimeAgo(dateString: string): string {
   if (!dateString) return "-";
   const diffMs = Date.now() - new Date(dateString).getTime();
   const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "刚刚";
+  if (mins < 1) return "now";
   if (mins < 60) return `${mins}min`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h`;
@@ -92,7 +92,7 @@ function formatTimeAgo(dateString: string): string {
 // ---------------------------------------------------------------------------
 export default function PersonalizedPortal() {
   const { currentUserRole } = useUserProfile();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isZh = language === "zh";
   const [feedTab, setFeedTab] = useState<FeedTab>("all");
 
@@ -155,10 +155,10 @@ export default function PersonalizedPortal() {
           <GreetingIcon />
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              {getGreeting(isZh)}，{currentUserRole}
+              {getGreeting(t)}, {currentUserRole}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {isZh ? "这是您的个人工作门户" : "Your personalized workspace portal"}
+              {t("portal.subtitle")}
             </p>
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function PersonalizedPortal() {
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
-                  <span>{isZh ? tab.labelZh : tab.labelEn}</span>
+                  <span>{t(tab.i18nKey)}</span>
                 </button>
               );
             })}
@@ -211,7 +211,7 @@ export default function PersonalizedPortal() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-green-500" />
-              {isZh ? "行动项趋势" : "Action Item Trend"}
+              {t("portal.actionItemTrend")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -220,24 +220,24 @@ export default function PersonalizedPortal() {
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
             ) : stats.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">{isZh ? "暂无数据" : "No data yet"}</p>
+              <p className="text-sm text-muted-foreground py-4">{t("portal.noData")}</p>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-3 rounded-lg bg-blue-50">
                   <p className="text-2xl font-bold text-blue-600">{latestStats?.total ?? 0}</p>
-                  <p className="text-xs text-muted-foreground">{isZh ? "总计" : "Total"}</p>
+                  <p className="text-xs text-muted-foreground">{t("portal.total")}</p>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-green-50">
                   <p className="text-2xl font-bold text-green-600">{latestStats?.completed ?? 0}</p>
-                  <p className="text-xs text-muted-foreground">{isZh ? "已完成" : "Completed"}</p>
+                  <p className="text-xs text-muted-foreground">{t("portal.completed")}</p>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-red-50">
                   <p className="text-2xl font-bold text-red-600">{latestStats?.overdue ?? 0}</p>
-                  <p className="text-xs text-muted-foreground">{isZh ? "逾期" : "Overdue"}</p>
+                  <p className="text-xs text-muted-foreground">{t("portal.overdue")}</p>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-amber-50">
                   <p className="text-2xl font-bold text-amber-600">{latestStats?.rate ?? 0}%</p>
-                  <p className="text-xs text-muted-foreground">{isZh ? "完成率" : "Rate"}</p>
+                  <p className="text-xs text-muted-foreground">{t("portal.completionRate")}</p>
                 </div>
               </div>
             )}
@@ -249,7 +249,7 @@ export default function PersonalizedPortal() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-indigo-500" />
-              {isZh ? "AI 绩效摘要" : "AI Performance Summary"}
+              {t("portal.aiPerfSummary")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -258,27 +258,27 @@ export default function PersonalizedPortal() {
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
             ) : !perf ? (
-              <p className="text-sm text-muted-foreground py-4">{isZh ? "暂无绩效数据" : "No performance data"}</p>
+              <p className="text-sm text-muted-foreground py-4">{t("portal.noPerfData")}</p>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-3 rounded-lg bg-indigo-50">
                   <p className="text-2xl font-bold text-indigo-600">{perf.avgMeetingScore ?? 0}</p>
-                  <p className="text-xs text-muted-foreground">{isZh ? "综合评分" : "Avg Score"}</p>
+                  <p className="text-xs text-muted-foreground">{t("portal.avgScore")}</p>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-emerald-50">
                   <p className="text-2xl font-bold text-emerald-600">{perf.actionItemCompletionRate ?? 0}%</p>
-                  <p className="text-xs text-muted-foreground">{isZh ? "完成率" : "Completion"}</p>
+                  <p className="text-xs text-muted-foreground">{t("portal.completion")}</p>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-orange-50">
                   <p className="text-2xl font-bold text-orange-600">{perf.employeesEvaluated ?? 0}</p>
-                  <p className="text-xs text-muted-foreground">{isZh ? "评估人数" : "Evaluated"}</p>
+                  <p className="text-xs text-muted-foreground">{t("portal.evaluated")}</p>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-purple-50">
                   <div className="flex items-center justify-center gap-1">
                     <Users className="w-4 h-4 text-purple-600" />
                     <p className="text-sm font-bold text-purple-600">{perf.topPerformer?.name ?? "-"}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">{isZh ? "最佳员工" : "Top Performer"}</p>
+                  <p className="text-xs text-muted-foreground">{t("portal.topPerformer")}</p>
                 </div>
               </div>
             )}

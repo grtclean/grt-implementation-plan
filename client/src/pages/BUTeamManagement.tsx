@@ -42,6 +42,7 @@ import {
   Edit,
   Plus
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // BU颜色配置
 const BU_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -66,14 +67,15 @@ const ROLE_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function BUTeamManagement() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [selectedBU, setSelectedBU] = useState<string | null>(null);
   const [expandedRoles, setExpandedRoles] = useState<Set<string>>(new Set());
   const [isAddMappingOpen, setIsAddMappingOpen] = useState(false);
   const [newMapping, setNewMapping] = useState({
     buCode: '',
-    jdyDeptNo: '',
-    jdyDeptName: '',
+    extDeptNo: '',
+    extDeptName: '',
     roleType: '',
   });
   const [isAddLeaderOpen, setIsAddLeaderOpen] = useState(false);
@@ -108,15 +110,15 @@ export default function BUTeamManagement() {
     onSuccess: (data) => {
       if (data.success) {
         toast({
-          title: "自动匹配完成",
-          description: `共匹配 ${data.matched} 个部门，创建 ${data.created} 个新映射`,
+          title: t("hr.buTeam.autoMatchSuccess"),
+          description: t("hr.buTeam.autoMatchDesc").replace("{matched}", String(data.matched)).replace("{created}", String(data.created)),
         });
         refetchMappings();
         refetchStats();
         refetchMembers();
       } else {
         toast({
-          title: "匹配失败",
+          title: t("hr.buTeam.matchFailed"),
           description: data.error,
           variant: "destructive",
         });
@@ -127,22 +129,22 @@ export default function BUTeamManagement() {
   // 创建映射
   const createMappingMutation = trpc.buMapping.createMapping.useMutation({
     onSuccess: () => {
-      toast({ title: "映射创建成功" });
+      toast({ title: t("hr.buTeam.mappingCreated") });
       setIsAddMappingOpen(false);
-      setNewMapping({ buCode: '', jdyDeptNo: '', jdyDeptName: '', roleType: '' });
+      setNewMapping({ buCode: '', extDeptNo: '', extDeptName: '', roleType: '' });
       refetchMappings();
       refetchStats();
       refetchMembers();
     },
     onError: (error) => {
-      toast({ title: "创建失败", description: error.message, variant: "destructive" });
+      toast({ title: t("hr.buTeam.createFailed"), description: error.message, variant: "destructive" });
     },
   });
 
   // 删除映射
   const deleteMappingMutation = trpc.buMapping.deleteMapping.useMutation({
     onSuccess: () => {
-      toast({ title: "映射已删除" });
+      toast({ title: t("hr.buTeam.mappingDeleted") });
       refetchMappings();
       refetchStats();
       refetchMembers();
@@ -152,20 +154,20 @@ export default function BUTeamManagement() {
   // 设置负责人
   const setLeaderMutation = trpc.buMapping.setLeader.useMutation({
     onSuccess: () => {
-      toast({ title: "负责人设置成功" });
+      toast({ title: t("hr.buTeam.leaderSetSuccess") });
       setIsAddLeaderOpen(false);
       setNewLeader({ buCode: '', roleType: '', leaderName: '', leaderEmail: '', leaderPhone: '' });
       refetchLeaders();
     },
     onError: (error) => {
-      toast({ title: "设置失败", description: error.message, variant: "destructive" });
+      toast({ title: t("hr.buTeam.setFailed"), description: error.message, variant: "destructive" });
     },
   });
 
   // 删除负责人
   const deleteLeaderMutation = trpc.buMapping.deleteLeader.useMutation({
     onSuccess: () => {
-      toast({ title: "负责人已删除" });
+      toast({ title: t("hr.buTeam.leaderDeleted") });
       refetchLeaders();
     },
   });
@@ -183,14 +185,14 @@ export default function BUTeamManagement() {
 
   // 处理添加映射
   const handleAddMapping = () => {
-    if (!newMapping.buCode || !newMapping.jdyDeptNo) {
-      toast({ title: "请填写必填字段", variant: "destructive" });
+    if (!newMapping.buCode || !newMapping.extDeptNo) {
+      toast({ title: t("hr.buTeam.fillRequired"), variant: "destructive" });
       return;
     }
     createMappingMutation.mutate({
       buCode: newMapping.buCode as any,
-      jdyDeptNo: parseInt(newMapping.jdyDeptNo),
-      jdyDeptName: newMapping.jdyDeptName || undefined,
+      extDeptNo: parseInt(newMapping.extDeptNo),
+      extDeptName: newMapping.extDeptName || undefined,
       roleType: newMapping.roleType as any || undefined,
     });
   };
@@ -198,7 +200,7 @@ export default function BUTeamManagement() {
   // 处理添加负责人
   const handleAddLeader = () => {
     if (!newLeader.buCode || !newLeader.roleType || !newLeader.leaderName) {
-      toast({ title: "请填写必填字段", variant: "destructive" });
+      toast({ title: t("hr.buTeam.fillRequired"), variant: "destructive" });
       return;
     }
     setLeaderMutation.mutate({
@@ -214,8 +216,8 @@ export default function BUTeamManagement() {
       <div className="space-y-6">
         <PageHeader
           icon={Building2}
-          title="BU事业部人员管理"
-          description="管理各事业部的团队结构和人员配置"
+          title={t("hr.buTeam.title")}
+          description={t("hr.buTeam.desc")}
           actions={
           <>
             <Button
@@ -227,7 +229,7 @@ export default function BUTeamManagement() {
               }}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              刷新数据
+              {t("hr.buTeam.refreshData")}
             </Button>
             <Button
               variant="outline"
@@ -235,31 +237,31 @@ export default function BUTeamManagement() {
               disabled={autoMatchMutation.isPending}
             >
               <Link2 className="h-4 w-4 mr-2" />
-              {autoMatchMutation.isPending ? "匹配中..." : "自动匹配部门"}
+              {autoMatchMutation.isPending ? t("hr.buTeam.matching") : t("hr.buTeam.autoMatchDept")}
             </Button>
             <Dialog open={isAddMappingOpen} onOpenChange={setIsAddMappingOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <UserPlus className="h-4 w-4 mr-2" />
-                  添加映射
+                  {t("hr.buTeam.addMapping")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>添加BU部门映射</DialogTitle>
+                  <DialogTitle>{t("hr.buTeam.addMappingTitle")}</DialogTitle>
                   <DialogDescription>
-                    将简道云部门映射到对应的事业部和角色
+                    {t("hr.buTeam.addMappingDesc")}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label>事业部 *</Label>
-                    <Select 
-                      value={newMapping.buCode} 
+                    <Label>{t("hr.buTeam.buLabel")} *</Label>
+                    <Select
+                      value={newMapping.buCode}
                       onValueChange={(v) => setNewMapping({ ...newMapping, buCode: v })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="选择事业部" />
+                        <SelectValue placeholder={t("hr.buTeam.selectBU")} />
                       </SelectTrigger>
                       <SelectContent>
                         {busData?.bus.map((bu) => (
@@ -269,48 +271,48 @@ export default function BUTeamManagement() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label>简道云部门编号 *</Label>
-                    <Input 
+                    <Label>{t("hr.buTeam.extDeptNo")} *</Label>
+                    <Input
                       type="number"
-                      placeholder="输入部门编号"
-                      value={newMapping.jdyDeptNo}
-                      onChange={(e) => setNewMapping({ ...newMapping, jdyDeptNo: e.target.value })}
+                      placeholder={t("hr.buTeam.enterDeptNo")}
+                      value={newMapping.extDeptNo}
+                      onChange={(e) => setNewMapping({ ...newMapping, extDeptNo: e.target.value })}
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label>部门名称</Label>
-                    <Input 
-                      placeholder="输入部门名称（可选）"
-                      value={newMapping.jdyDeptName}
-                      onChange={(e) => setNewMapping({ ...newMapping, jdyDeptName: e.target.value })}
+                    <Label>{t("hr.buTeam.deptName")}</Label>
+                    <Input
+                      placeholder={t("hr.buTeam.enterDeptName")}
+                      value={newMapping.extDeptName}
+                      onChange={(e) => setNewMapping({ ...newMapping, extDeptName: e.target.value })}
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label>角色类型</Label>
-                    <Select 
-                      value={newMapping.roleType} 
+                    <Label>{t("hr.buTeam.roleType")}</Label>
+                    <Select
+                      value={newMapping.roleType}
                       onValueChange={(v) => setNewMapping({ ...newMapping, roleType: v })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="选择角色类型（可选）" />
+                        <SelectValue placeholder={t("hr.buTeam.selectRoleType")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Sales">销售与项目工程师</SelectItem>
-                        <SelectItem value="Mech">机械设计与项目工程师</SelectItem>
-                        <SelectItem value="Elec">电气设计与项目工程师</SelectItem>
-                        <SelectItem value="Procurement">采购与项目工程师</SelectItem>
-                        <SelectItem value="Assembly">装配工程师</SelectItem>
-                        <SelectItem value="Debug">调试工程师</SelectItem>
-                        <SelectItem value="Delivery">交付工程师</SelectItem>
-                        <SelectItem value="CS">客户服务工程师</SelectItem>
+                        <SelectItem value="Sales">{t("hr.buTeam.roleSales")}</SelectItem>
+                        <SelectItem value="Mech">{t("hr.buTeam.roleMech")}</SelectItem>
+                        <SelectItem value="Elec">{t("hr.buTeam.roleElec")}</SelectItem>
+                        <SelectItem value="Procurement">{t("hr.buTeam.roleProcurement")}</SelectItem>
+                        <SelectItem value="Assembly">{t("hr.buTeam.roleAssembly")}</SelectItem>
+                        <SelectItem value="Debug">{t("hr.buTeam.roleDebug")}</SelectItem>
+                        <SelectItem value="Delivery">{t("hr.buTeam.roleDelivery")}</SelectItem>
+                        <SelectItem value="CS">{t("hr.buTeam.roleCS")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsAddMappingOpen(false)}>取消</Button>
+                  <Button variant="outline" onClick={() => setIsAddMappingOpen(false)}>{t("hr.buTeam.cancel")}</Button>
                   <Button onClick={handleAddMapping} disabled={createMappingMutation.isPending}>
-                    {createMappingMutation.isPending ? "创建中..." : "创建映射"}
+                    {createMappingMutation.isPending ? t("hr.buTeam.creating") : t("hr.buTeam.createMapping")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -344,11 +346,11 @@ export default function BUTeamManagement() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">部门数</span>
+                      <span className="text-muted-foreground">{t("hr.buTeam.deptCount")}</span>
                       <span className="font-medium">{stat.deptCount}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">角色数</span>
+                      <span className="text-muted-foreground">{t("hr.buTeam.roleCount")}</span>
                       <span className="font-medium">{stat.roleCount}</span>
                     </div>
                   </CardContent>
@@ -363,15 +365,15 @@ export default function BUTeamManagement() {
           <TabsList>
             <TabsTrigger value="members">
               <Users className="h-4 w-4 mr-2" />
-              人员名单
+              {t("hr.buTeam.tabMembers")}
             </TabsTrigger>
             <TabsTrigger value="mappings">
               <Settings className="h-4 w-4 mr-2" />
-              映射配置
+              {t("hr.buTeam.tabMappings")}
             </TabsTrigger>
             <TabsTrigger value="leaders">
               <Crown className="h-4 w-4 mr-2" />
-              负责人设置
+              {t("hr.buTeam.tabLeaders")}
             </TabsTrigger>
           </TabsList>
 
@@ -408,14 +410,14 @@ export default function BUTeamManagement() {
                             </div>
                             <Badge variant="secondary">
                               <Users className="h-3 w-3 mr-1" />
-                              {bu.totalMembers} 人
+                              {bu.totalMembers} {t("hr.buTeam.person")}
                             </Badge>
                           </div>
                         </CardHeader>
                         <CardContent>
                           {bu.roles.length === 0 ? (
                             <p className="text-muted-foreground text-center py-4">
-                              暂无人员数据，请先配置部门映射
+                              {t("hr.buTeam.noMemberData")}
                             </p>
                           ) : (
                             <div className="space-y-2">
@@ -432,7 +434,7 @@ export default function BUTeamManagement() {
                                         {ROLE_ICONS[role.roleType] || <Users className="h-4 w-4" />}
                                         <span className="font-medium">{role.roleName}</span>
                                         <Badge variant="outline" className="ml-2">
-                                          {role.memberCount} 人
+                                          {role.memberCount} {t("hr.buTeam.person")}
                                         </Badge>
                                       </div>
                                       {isExpanded ? (
@@ -444,7 +446,7 @@ export default function BUTeamManagement() {
                                     {isExpanded && (
                                       <div className="border-t p-3">
                                         {role.members.length === 0 ? (
-                                          <p className="text-muted-foreground text-sm">暂无成员</p>
+                                          <p className="text-muted-foreground text-sm">{t("hr.buTeam.noMembers")}</p>
                                         ) : (
                                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                             {role.members.map((member) => (
@@ -478,7 +480,7 @@ export default function BUTeamManagement() {
                                                   variant={member.status === 1 ? "default" : "secondary"}
                                                   className="text-xs"
                                                 >
-                                                  {member.status === 1 ? "在职" : "离职"}
+                                                  {member.status === 1 ? t("hr.buTeam.statusActive") : t("hr.buTeam.statusLeft")}
                                                 </Badge>
                                               </div>
                                             ))}
@@ -503,9 +505,9 @@ export default function BUTeamManagement() {
           <TabsContent value="mappings">
             <Card>
               <CardHeader>
-                <CardTitle>部门映射配置</CardTitle>
+                <CardTitle>{t("hr.buTeam.mappingConfigTitle")}</CardTitle>
                 <CardDescription>
-                  管理简道云部门与BU事业部的对应关系
+                  {t("hr.buTeam.mappingConfigDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -515,19 +517,19 @@ export default function BUTeamManagement() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>事业部</TableHead>
-                        <TableHead>部门编号</TableHead>
-                        <TableHead>部门名称</TableHead>
-                        <TableHead>角色类型</TableHead>
-                        <TableHead>状态</TableHead>
-                        <TableHead className="text-right">操作</TableHead>
+                        <TableHead>{t("hr.buTeam.colBU")}</TableHead>
+                        <TableHead>{t("hr.buTeam.colDeptNo")}</TableHead>
+                        <TableHead>{t("hr.buTeam.colDeptName")}</TableHead>
+                        <TableHead>{t("hr.buTeam.colRoleType")}</TableHead>
+                        <TableHead>{t("hr.buTeam.colStatus")}</TableHead>
+                        <TableHead className="text-right">{t("hr.buTeam.colAction")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {mappingsData?.mappings.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                            暂无映射配置，请点击"自动匹配部门"或"添加映射"
+                            {t("hr.buTeam.noMappings")}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -540,8 +542,8 @@ export default function BUTeamManagement() {
                                   {mapping.buCode}
                                 </Badge>
                               </TableCell>
-                              <TableCell>{mapping.jdyDeptNo}</TableCell>
-                              <TableCell>{mapping.jdyDeptName || '-'}</TableCell>
+                              <TableCell>{mapping.extDeptNo}</TableCell>
+                              <TableCell>{mapping.extDeptName || '-'}</TableCell>
                               <TableCell>
                                 {mapping.roleType ? (
                                   <div className="flex items-center gap-1">
@@ -552,7 +554,7 @@ export default function BUTeamManagement() {
                               </TableCell>
                               <TableCell>
                                 <Badge variant={mapping.isActive ? "default" : "secondary"}>
-                                  {mapping.isActive ? "启用" : "禁用"}
+                                  {mapping.isActive ? t("hr.buTeam.statusEnabled") : t("hr.buTeam.statusDisabled")}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right">
@@ -560,7 +562,7 @@ export default function BUTeamManagement() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => {
-                                    if (confirm('确定要删除此映射吗？')) {
+                                    if (confirm(t("hr.buTeam.confirmDeleteMapping"))) {
                                       deleteMappingMutation.mutate({ id: mapping.id });
                                     }
                                   }}
@@ -585,34 +587,34 @@ export default function BUTeamManagement() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>事业部负责人配置</CardTitle>
+                    <CardTitle>{t("hr.buTeam.leaderConfigTitle")}</CardTitle>
                     <CardDescription>
-                      为每个事业部配置销售、机械、电气、采购负责人
+                      {t("hr.buTeam.leaderConfigDesc")}
                     </CardDescription>
                   </div>
                   <Dialog open={isAddLeaderOpen} onOpenChange={setIsAddLeaderOpen}>
                     <DialogTrigger asChild>
                       <Button>
                         <Plus className="h-4 w-4 mr-2" />
-                        添加负责人
+                        {t("hr.buTeam.addLeader")}
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>添加BU负责人</DialogTitle>
+                        <DialogTitle>{t("hr.buTeam.addLeaderTitle")}</DialogTitle>
                         <DialogDescription>
-                          为事业部指定各角色的负责人
+                          {t("hr.buTeam.addLeaderDesc")}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                          <Label>事业部 *</Label>
-                          <Select 
-                            value={newLeader.buCode} 
+                          <Label>{t("hr.buTeam.buLabel")} *</Label>
+                          <Select
+                            value={newLeader.buCode}
                             onValueChange={(v) => setNewLeader({ ...newLeader, buCode: v })}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="选择事业部" />
+                              <SelectValue placeholder={t("hr.buTeam.selectBU")} />
                             </SelectTrigger>
                             <SelectContent>
                               {busData?.bus.map((bu) => (
@@ -622,52 +624,52 @@ export default function BUTeamManagement() {
                           </Select>
                         </div>
                         <div className="grid gap-2">
-                          <Label>角色类型 *</Label>
-                          <Select 
-                            value={newLeader.roleType} 
+                          <Label>{t("hr.buTeam.roleType")} *</Label>
+                          <Select
+                            value={newLeader.roleType}
                             onValueChange={(v) => setNewLeader({ ...newLeader, roleType: v })}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="选择角色类型" />
+                              <SelectValue placeholder={t("hr.buTeam.selectRoleType")} />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Sales">销售与项目工程师</SelectItem>
-                              <SelectItem value="Mech">机械设计与项目工程师</SelectItem>
-                              <SelectItem value="Elec">电气设计与项目工程师</SelectItem>
-                              <SelectItem value="Procurement">采购与项目工程师</SelectItem>
+                              <SelectItem value="Sales">{t("hr.buTeam.roleSales")}</SelectItem>
+                              <SelectItem value="Mech">{t("hr.buTeam.roleMech")}</SelectItem>
+                              <SelectItem value="Elec">{t("hr.buTeam.roleElec")}</SelectItem>
+                              <SelectItem value="Procurement">{t("hr.buTeam.roleProcurement")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="grid gap-2">
-                          <Label>负责人姓名 *</Label>
-                          <Input 
-                            placeholder="输入负责人姓名"
+                          <Label>{t("hr.buTeam.leaderName")} *</Label>
+                          <Input
+                            placeholder={t("hr.buTeam.enterLeaderName")}
                             value={newLeader.leaderName}
                             onChange={(e) => setNewLeader({ ...newLeader, leaderName: e.target.value })}
                           />
                         </div>
                         <div className="grid gap-2">
-                          <Label>邮箱</Label>
-                          <Input 
+                          <Label>{t("hr.buTeam.email")}</Label>
+                          <Input
                             type="email"
-                            placeholder="输入邮箱（可选）"
+                            placeholder={t("hr.buTeam.enterEmail")}
                             value={newLeader.leaderEmail}
                             onChange={(e) => setNewLeader({ ...newLeader, leaderEmail: e.target.value })}
                           />
                         </div>
                         <div className="grid gap-2">
-                          <Label>电话</Label>
-                          <Input 
-                            placeholder="输入电话（可选）"
+                          <Label>{t("hr.buTeam.phone")}</Label>
+                          <Input
+                            placeholder={t("hr.buTeam.enterPhone")}
                             value={newLeader.leaderPhone}
                             onChange={(e) => setNewLeader({ ...newLeader, leaderPhone: e.target.value })}
                           />
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsAddLeaderOpen(false)}>取消</Button>
+                        <Button variant="outline" onClick={() => setIsAddLeaderOpen(false)}>{t("hr.buTeam.cancel")}</Button>
                         <Button onClick={handleAddLeader} disabled={setLeaderMutation.isPending}>
-                          {setLeaderMutation.isPending ? "设置中..." : "确认设置"}
+                          {setLeaderMutation.isPending ? t("hr.buTeam.setting") : t("hr.buTeam.confirmSetting")}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -694,12 +696,13 @@ export default function BUTeamManagement() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                               {['Sales', 'Mech', 'Elec', 'Procurement'].map((roleType) => {
                                 const leader = buLeaders.find(l => l.roleType === roleType);
-                                const roleName = {
-                                  'Sales': '销售负责人',
-                                  'Mech': '机械负责人',
-                                  'Elec': '电气负责人',
-                                  'Procurement': '采购负责人',
-                                }[roleType];
+                                const roleNameKey = {
+                                  'Sales': 'hr.buTeam.salesLeader',
+                                  'Mech': 'hr.buTeam.mechLeader',
+                                  'Elec': 'hr.buTeam.elecLeader',
+                                  'Procurement': 'hr.buTeam.procurementLeader',
+                                }[roleType] as string;
+                                const roleName = t(roleNameKey);
                                 return (
                                   <div key={roleType} className="p-3 rounded-lg border bg-muted/30">
                                     <div className="flex items-center justify-between mb-2">
@@ -713,7 +716,7 @@ export default function BUTeamManagement() {
                                           size="sm"
                                           className="h-6 w-6 p-0"
                                           onClick={() => {
-                                            if (confirm('确定要删除此负责人吗？')) {
+                                            if (confirm(t("hr.buTeam.confirmDeleteLeader"))) {
                                               deleteLeaderMutation.mutate({ id: leader.id });
                                             }
                                           }}
@@ -739,7 +742,7 @@ export default function BUTeamManagement() {
                                         )}
                                       </div>
                                     ) : (
-                                      <p className="text-sm text-muted-foreground">未设置</p>
+                                      <p className="text-sm text-muted-foreground">{t("hr.buTeam.notSet")}</p>
                                     )}
                                   </div>
                                 );

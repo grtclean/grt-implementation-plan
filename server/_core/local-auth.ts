@@ -5,7 +5,7 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import bcrypt from "bcryptjs";
 import type { Express, Request, Response } from "express";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { SignJWT, jwtVerify } from "jose";
 import { getSessionCookieOptions } from "./cookies";
 import { ENV } from "./env";
@@ -206,7 +206,7 @@ export function registerLocalAuthRoutes(app: Express) {
     try {
       const { db, users } = await getDbAndSchema();
 
-      const allUsers = await db.select({ id: users.id }).from(users);
+      const allUsers = await db.select({ id: users.id }).from(users).limit(1000);
       const count = allUsers.length;
 
       // Use TRUNCATE CASCADE to handle foreign key references from other tables
@@ -267,12 +267,38 @@ export function registerLocalAuthRoutes(app: Express) {
       }
 
       const user = result[0];
+
+      // Query RBAC roles from grt_user_roles + grt_roles
+      let effectiveRole: string = user.role === 'admin' ? 'admin' : 'employee';
+      let rbacRoles: Array<{ roleName: string; level: number | null }> = [];
+      try {
+        const permSchema = await import("../../drizzle/permission-schema");
+        const activeRoles = await db.select({
+          roleName: permSchema.roles.name,
+          level: permSchema.roles.level,
+        }).from(permSchema.userRoles)
+          .innerJoin(permSchema.roles, eq(permSchema.userRoles.roleId, permSchema.roles.id))
+          .where(and(
+            eq(permSchema.userRoles.userId, user.openId),
+            eq(permSchema.userRoles.isActive, true),
+          )).limit(20);
+
+        if (activeRoles.length > 0) {
+          rbacRoles = activeRoles;
+          effectiveRole = activeRoles.sort((a, b) => (b.level ?? 0) - (a.level ?? 0))[0].roleName;
+        }
+      } catch {
+        // RBAC tables may not exist yet — graceful fallback
+      }
+
       res.json({
         id: user.id,
         openId: user.openId,
         name: sanitizeName(user.name) || user.openId,
         email: user.email,
         role: user.role,
+        effectiveRole,
+        rbacRoles,
         languagePreference: user.languagePreference,
         lastSignedIn: user.lastSignedIn,
       });

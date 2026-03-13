@@ -36,22 +36,22 @@ import {
 } from 'lucide-react';
 
 // 状态配置 (使用后端 lowercase 值)
-const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  draft: { label: '草稿', color: 'bg-gray-500/10 text-gray-400 border-gray-500/20', icon: <ClipboardList className="w-4 h-4" /> },
-  planned: { label: '已计划', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: <Calendar className="w-4 h-4" /> },
-  in_progress: { label: '进行中', color: 'bg-green-500/10 text-green-500 border-green-500/20', icon: <Play className="w-4 h-4" /> },
-  quality_check: { label: '质检中', color: 'bg-purple-500/10 text-purple-500 border-purple-500/20', icon: <CheckCircle2 className="w-4 h-4" /> },
-  on_hold: { label: '暂停', color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', icon: <Pause className="w-4 h-4" /> },
-  completed: { label: '已完成', color: 'bg-gray-500/10 text-gray-400 border-gray-500/20', icon: <CheckCircle2 className="w-4 h-4" /> },
-  cancelled: { label: '已取消', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: <AlertTriangle className="w-4 h-4" /> },
+const statusConfigKeys: Record<string, { labelKey: string; color: string; icon: React.ReactNode }> = {
+  draft: { labelKey: "manufacturing.workOrder.statusDraft", color: 'bg-gray-500/10 text-gray-400 border-gray-500/20', icon: <ClipboardList className="w-4 h-4" /> },
+  planned: { labelKey: "manufacturing.workOrder.statusPlanned", color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: <Calendar className="w-4 h-4" /> },
+  in_progress: { labelKey: "manufacturing.workOrder.statusInProgress", color: 'bg-green-500/10 text-green-500 border-green-500/20', icon: <Play className="w-4 h-4" /> },
+  quality_check: { labelKey: "manufacturing.workOrder.statusQualityCheck", color: 'bg-purple-500/10 text-purple-500 border-purple-500/20', icon: <CheckCircle2 className="w-4 h-4" /> },
+  on_hold: { labelKey: "manufacturing.workOrder.statusHalted", color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', icon: <Pause className="w-4 h-4" /> },
+  completed: { labelKey: "manufacturing.workOrder.statusCompleted", color: 'bg-gray-500/10 text-gray-400 border-gray-500/20', icon: <CheckCircle2 className="w-4 h-4" /> },
+  cancelled: { labelKey: "manufacturing.workOrder.statusCancelled", color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: <AlertTriangle className="w-4 h-4" /> },
 };
 
 // 优先级配置 (使用后端 lowercase 值)
-const priorityConfig: Record<string, { label: string; color: string }> = {
-  low: { label: '低', color: 'bg-gray-500/10 text-gray-400 border-gray-500/20' },
-  normal: { label: '普通', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
-  high: { label: '紧急', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' },
-  urgent: { label: '特急', color: 'bg-red-500/10 text-red-500 border-red-500/20' },
+const priorityConfigKeys: Record<string, { labelKey: string; color: string }> = {
+  low: { labelKey: "manufacturing.workOrder.priorityLow", color: 'bg-gray-500/10 text-gray-400 border-gray-500/20' },
+  normal: { labelKey: "manufacturing.workOrder.priorityNormal", color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
+  high: { labelKey: "manufacturing.workOrder.priorityHigh", color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' },
+  urgent: { labelKey: "manufacturing.workOrder.priorityTopUrgent", color: 'bg-red-500/10 text-red-500 border-red-500/20' },
 };
 
 export default function ProductionWorkOrderManager() {
@@ -112,7 +112,7 @@ export default function ProductionWorkOrderManager() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <PageHeader icon={Factory} title={t("manufacturing.workOrder.title")} description="加载中..." />
+        <PageHeader icon={Factory} title={t("manufacturing.workOrder.title")} description={t("manufacturing.common.loading")} />
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
         </div>
@@ -171,11 +171,11 @@ export default function ProductionWorkOrderManager() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t("manufacturing.common.allStatuses")}</SelectItem>
-                  <SelectItem value="planned">已计划</SelectItem>
-                  <SelectItem value="in_progress">进行中</SelectItem>
-                  <SelectItem value="quality_check">质检中</SelectItem>
-                  <SelectItem value="on_hold">暂停</SelectItem>
-                  <SelectItem value="completed">已完成</SelectItem>
+                  <SelectItem value="planned">{t("manufacturing.workOrder.statusPlanned")}</SelectItem>
+                  <SelectItem value="in_progress">{t("manufacturing.workOrder.statusInProgress")}</SelectItem>
+                  <SelectItem value="quality_check">{t("manufacturing.workOrder.statusQualityCheck")}</SelectItem>
+                  <SelectItem value="on_hold">{t("manufacturing.workOrder.statusHalted")}</SelectItem>
+                  <SelectItem value="completed">{t("manufacturing.workOrder.statusCompleted")}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -185,10 +185,10 @@ export default function ProductionWorkOrderManager() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t("manufacturing.workOrder.allPriorities")}</SelectItem>
-                  <SelectItem value="urgent">特急</SelectItem>
-                  <SelectItem value="high">紧急</SelectItem>
-                  <SelectItem value="normal">普通</SelectItem>
-                  <SelectItem value="low">低</SelectItem>
+                  <SelectItem value="urgent">{t("manufacturing.workOrder.priorityTopUrgent")}</SelectItem>
+                  <SelectItem value="high">{t("manufacturing.workOrder.priorityHigh")}</SelectItem>
+                  <SelectItem value="normal">{t("manufacturing.workOrder.priorityNormal")}</SelectItem>
+                  <SelectItem value="low">{t("manufacturing.workOrder.priorityLow")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -205,8 +205,8 @@ export default function ProductionWorkOrderManager() {
           const estimatedHours = order.estimatedHours ?? 0;
           const actualHours = order.actualHours ?? 0;
           const efficiency = actualHours > 0 ? Math.round((estimatedHours / actualHours) * 100) : 0;
-          const sCfg = statusConfig[order.status] || statusConfig.draft;
-          const pCfg = priorityConfig[order.priority] || priorityConfig.normal;
+          const sCfg = statusConfigKeys[order.status] || statusConfigKeys.draft;
+          const pCfg = priorityConfigKeys[order.priority] || priorityConfigKeys.normal;
 
           return (
             <Card
@@ -223,10 +223,10 @@ export default function ProductionWorkOrderManager() {
                       <span className="font-mono text-sm text-muted-foreground">{order.orderCode}</span>
                       <Badge variant="outline" className={sCfg.color}>
                         {sCfg.icon}
-                        <span className="ml-1">{sCfg.label}</span>
+                        <span className="ml-1">{t(sCfg.labelKey)}</span>
                       </Badge>
                       <Badge variant="outline" className={pCfg.color}>
-                        {pCfg.label}
+                        {t(pCfg.labelKey)}
                       </Badge>
                       {isOverdue && (
                         <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
@@ -242,7 +242,7 @@ export default function ProductionWorkOrderManager() {
                         {order.productModel && <span className="text-muted-foreground font-normal ml-2">({order.productModel})</span>}
                       </h3>
                       {order.assignedTeam && (
-                        <p className="text-sm text-muted-foreground">团队: {order.assignedTeam}</p>
+                        <p className="text-sm text-muted-foreground">{t("manufacturing.workOrder.team")}: {order.assignedTeam}</p>
                       )}
                     </div>
 
@@ -256,7 +256,7 @@ export default function ProductionWorkOrderManager() {
                       </div>
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Package className="w-4 h-4" />
-                        <span>数量: {order.quantity} 台</span>
+                        <span>{t("manufacturing.workOrder.quantity")}: {order.quantity} {t("manufacturing.workOrder.unitPiece")}</span>
                       </div>
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Timer className="w-4 h-4" />

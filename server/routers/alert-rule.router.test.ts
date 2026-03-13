@@ -118,7 +118,7 @@ vi.mock("drizzle-orm", () => ({
 // ---------------------------------------------------------------------------
 
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -126,7 +126,7 @@ import {
 // Convenience helper
 // =========================================================================
 
-const caller = () => createAuthenticatedCaller();
+const caller = () => createAdminCaller();
 
 // =========================================================================
 // Reset mocks before each test
@@ -611,7 +611,7 @@ describe("alertRule.acknowledge", () => {
   });
 
   it("sets handledBy from ctx.user.id", async () => {
-    const c = createAuthenticatedCaller({ id: 42 });
+    const c = createAdminCaller({ id: 42 });
     const result = await c.alertRule.acknowledge({ id: 1 });
 
     expect(result.success).toBe(true);

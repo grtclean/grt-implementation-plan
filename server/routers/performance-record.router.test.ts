@@ -226,7 +226,7 @@ describe("performance-record router", () => {
       selectResultsQueue.push([{ total: 1 }]);
 
       // Default role is "user" — not in PERF_MANAGER_ROLES
-      const caller = createAuthenticatedCaller({ id: 1, role: "employee" });
+      const caller = createAdminCaller({ id: 1, role: "employee" });
       const result = await caller.performanceRecord.list({});
       expect(result.items).toHaveLength(1);
     });
@@ -262,7 +262,7 @@ describe("performance-record router", () => {
       selectResultsQueue.push([makePerfRecord(), makePerfRecord({ id: 2, userId: 99 })]);
       selectResultsQueue.push([{ total: 2 }]);
 
-      const caller = createAuthenticatedCaller({ role: "hr_manager" });
+      const caller = createAdminCaller({ role: "hr_manager" });
       const result = await caller.performanceRecord.list({});
       expect(result.items).toHaveLength(2);
     });
@@ -271,7 +271,7 @@ describe("performance-record router", () => {
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ total: 0 }]);
 
-      const caller = createAuthenticatedCaller({ role: "director" });
+      const caller = createAdminCaller({ role: "director" });
       const result = await caller.performanceRecord.list({});
       expect(result).toHaveProperty("items");
     });
@@ -281,7 +281,7 @@ describe("performance-record router", () => {
   describe("getById", () => {
     it("returns record for owner", async () => {
       mockQueryResult = [makePerfRecord({ userId: 1 })];
-      const caller = createAuthenticatedCaller({ id: 1, role: "employee" });
+      const caller = createAdminCaller({ id: 1, role: "employee" });
       const result = await caller.performanceRecord.getById({ id: 1 });
       expect(result).toHaveProperty("id", 1);
       expect(result).toHaveProperty("kpiScore", "85.50");
@@ -304,7 +304,7 @@ describe("performance-record router", () => {
 
     it("throws FORBIDDEN when non-manager views another user's record", async () => {
       mockQueryResult = [makePerfRecord({ userId: 999 })];
-      const caller = createAuthenticatedCaller({ id: 1, role: "employee" });
+      const caller = createAdminCaller({ id: 1, role: "employee" });
       await expect(
         caller.performanceRecord.getById({ id: 1 })
       ).rejects.toThrow("Cannot view other users' performance records");
@@ -312,21 +312,21 @@ describe("performance-record router", () => {
 
     it("hr_specialist can view any record", async () => {
       mockQueryResult = [makePerfRecord({ userId: 777 })];
-      const caller = createAuthenticatedCaller({ id: 1, role: "hr_specialist" });
+      const caller = createAdminCaller({ id: 1, role: "hr_specialist" });
       const result = await caller.performanceRecord.getById({ id: 1 });
       expect(result).toHaveProperty("userId", 777);
     });
 
     it("dept_manager can view any record", async () => {
       mockQueryResult = [makePerfRecord({ userId: 555 })];
-      const caller = createAuthenticatedCaller({ id: 1, role: "dept_manager" });
+      const caller = createAdminCaller({ id: 1, role: "dept_manager" });
       const result = await caller.performanceRecord.getById({ id: 1 });
       expect(result).toHaveProperty("userId", 555);
     });
 
     it("finance_manager can view any record", async () => {
       mockQueryResult = [makePerfRecord({ userId: 333 })];
-      const caller = createAuthenticatedCaller({ id: 1, role: "finance_manager" });
+      const caller = createAdminCaller({ id: 1, role: "finance_manager" });
       const result = await caller.performanceRecord.getById({ id: 1 });
       expect(result).toHaveProperty("userId", 333);
     });
@@ -338,7 +338,7 @@ describe("performance-record router", () => {
       const created = makePerfRecord({ id: 10, status: "draft", version: 1, createdBy: 1 });
       mockReturningResult = [created];
 
-      const caller = createAuthenticatedCaller({ id: 1, role: "employee" });
+      const caller = createAdminCaller({ id: 1, role: "employee" });
       const result = await caller.performanceRecord.create({
         year: 2026,
         quarter: 1,
@@ -363,7 +363,7 @@ describe("performance-record router", () => {
     });
 
     it("non-manager cannot create record for another user", async () => {
-      const caller = createAuthenticatedCaller({ id: 1, role: "employee" });
+      const caller = createAdminCaller({ id: 1, role: "employee" });
       await expect(
         caller.performanceRecord.create({
           year: 2026,
@@ -377,7 +377,7 @@ describe("performance-record router", () => {
       const created = makePerfRecord({ id: 12, userId: 1 });
       mockReturningResult = [created];
 
-      const caller = createAuthenticatedCaller({ id: 1, role: "employee" });
+      const caller = createAdminCaller({ id: 1, role: "employee" });
       const result = await caller.performanceRecord.create({
         year: 2026,
         quarter: 3,
@@ -418,7 +418,7 @@ describe("performance-record router", () => {
 
     it("hr_manager can create for another user", async () => {
       mockReturningResult = [makePerfRecord({ id: 14, userId: 55, createdBy: 1 })];
-      const caller = createAuthenticatedCaller({ id: 1, role: "hr_manager" });
+      const caller = createAdminCaller({ id: 1, role: "hr_manager" });
       const result = await caller.performanceRecord.create({
         year: 2026,
         quarter: 4,
@@ -436,7 +436,7 @@ describe("performance-record router", () => {
       // Returning from update
       mockReturningResult = [makePerfRecord({ id: 1, version: 2, kpiScore: "90.00" })];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.performanceRecord.update({
         id: 1,
         version: 1,
@@ -448,7 +448,7 @@ describe("performance-record router", () => {
 
     it("throws NOT_FOUND when record does not exist", async () => {
       mockQueryResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.performanceRecord.update({ id: 999, version: 1 })
       ).rejects.toThrow("Record not found");
@@ -456,7 +456,7 @@ describe("performance-record router", () => {
 
     it("throws PRECONDITION_FAILED when record is frozen", async () => {
       mockQueryResult = [makePerfRecord({ id: 1, isFrozen: true })];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.performanceRecord.update({ id: 1, version: 1, kpiScore: "90.00" })
       ).rejects.toThrow("记录已冻结，无法修改。请先解冻。");
@@ -468,7 +468,7 @@ describe("performance-record router", () => {
       // But update returns nothing because version in WHERE doesn't match
       mockReturningResult = [];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.performanceRecord.update({ id: 1, version: 1, kpiScore: "90.00" })
       ).rejects.toThrow("并发冲突：记录已被其他用户修改。请刷新后重试。");
@@ -486,7 +486,7 @@ describe("performance-record router", () => {
       });
       mockReturningResult = [updated];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.performanceRecord.update({
         id: 1,
         version: 3,
@@ -507,7 +507,7 @@ describe("performance-record router", () => {
       ];
       mockReturningResult = [makePerfRecord({ id: 1, version: 2, kpiDetailsJson: kpiDetails })];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.performanceRecord.update({
         id: 1,
         version: 1,
@@ -549,7 +549,7 @@ describe("performance-record router", () => {
 
     it("non-admin without permission is rejected", async () => {
       // permissionService.checkPermission returns false by default
-      const caller = createAuthenticatedCaller({ role: "employee" });
+      const caller = createAdminCaller({ role: "employee" });
       await expect(
         caller.performanceRecord.freeze({ id: 1, reason: "test" })
       ).rejects.toThrow("Missing permission");
@@ -592,7 +592,7 @@ describe("performance-record router", () => {
     });
 
     it("non-admin without permission is rejected", async () => {
-      const caller = createAuthenticatedCaller({ role: "employee" });
+      const caller = createAdminCaller({ role: "employee" });
       await expect(
         caller.performanceRecord.unfreeze({ id: 1 })
       ).rejects.toThrow("Missing permission");
@@ -618,7 +618,7 @@ describe("performance-record router", () => {
       ];
       mockQueryResult = rows;
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.performanceRecord.dashboard({
         year: 2026,
         quarter: 1,
@@ -636,7 +636,7 @@ describe("performance-record router", () => {
     it("returns defaults when no records exist", async () => {
       mockQueryResult = [];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.performanceRecord.dashboard({
         year: 2025,
         quarter: 4,
@@ -652,7 +652,7 @@ describe("performance-record router", () => {
     it("uses current year/quarter when not specified", async () => {
       mockQueryResult = [];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.performanceRecord.dashboard({});
 
       const now = new Date();
@@ -669,7 +669,7 @@ describe("performance-record router", () => {
       ];
       mockQueryResult = rows;
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.performanceRecord.dashboard({
         year: 2026,
         quarter: 2,
@@ -688,7 +688,7 @@ describe("performance-record router", () => {
       ];
       mockQueryResult = rows;
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.performanceRecord.dashboard({
         year: 2026,
         quarter: 1,
@@ -704,7 +704,7 @@ describe("performance-record router", () => {
       ];
       mockQueryResult = rows;
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.performanceRecord.dashboard({
         year: 2026,
         quarter: 1,
@@ -724,7 +724,7 @@ describe("performance-record router", () => {
         throw new Error("DB unavailable");
       };
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.performanceRecord.dashboard({
         year: 2026,
         quarter: 1,
@@ -740,7 +740,7 @@ describe("performance-record router", () => {
     });
 
     it("validates quarter range", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.performanceRecord.dashboard({ quarter: 0 })
       ).rejects.toThrow();
@@ -766,7 +766,7 @@ describe("performance-record router", () => {
       // That's fine since the router only reads row.id from the result.
       mockReturningResult = [makePerfRecord({ id: 100 })];
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.performanceRecord.seedDemo();
       expect(result).toHaveProperty("seeded", 5);
       expect(result).toHaveProperty("results");
@@ -781,7 +781,7 @@ describe("performance-record router", () => {
       const originalReturning = chain.returning;
       chain.returning = vi.fn(() => Promise.reject(new Error("duplicate key")));
 
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.performanceRecord.seedDemo();
       expect(result).toHaveProperty("seeded", 5);
       // Each result should have status "error"

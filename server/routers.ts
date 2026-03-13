@@ -93,7 +93,7 @@ import { productionRouter } from "./routers/production.router";
 import { processManagementRouter } from "./routers/processManagement.router";
 import { questionnaireRouter } from "./routers/questionnaire.router";
 import { projectGateRouter } from "./routers/projectGate.router";
-import { jiandaoyunRouter } from "./routers/jiandaoyun.router";
+import { externalSyncRouter } from "./routers/external-sync.router";
 import { buMappingRouter } from "./routers/bu-mapping.router";
 import { employeeRouter } from "./routers/employee.router";
 import { userProfileRouter } from "./routers/user-profile.router";
@@ -178,7 +178,6 @@ import { iotDigitalTwinRouter } from "./services/iot-digital-twin.router";
 import { afterSalesRouter as realAfterSalesRouter } from "./services/after-sales.router";
 import { architectureRouter } from "./services/architecture.router";
 import { aiEarlyWarningRouter } from "./services/ai-early-warning.router";
-import { sopRouter } from "./services/sop.router";
 import { costStandardsRouter } from "./services/cost-standards.router";
 import { imeRouter } from "./ime/ime.router";
 import { dailyPlanRouter } from "./daily-plan/daily-plan.router";
@@ -251,6 +250,9 @@ import { reportCenterRouter } from "./routers/report-center.router";
 import { visionDashboardRouter } from "./routers/vision-dashboard.router";
 import { cicdRouter } from "./routers/cicd.router";
 import { smartMeetingRouter } from "./routers/smart-meeting.router";
+import { meetingIntelligenceRouter } from "./routers/meetingIntelligence.router";
+import { securityComplianceRouter } from "./routers/security-compliance.router";
+import { cultureRouter } from "./routers/culture.router";
 import { aiPerformanceRouter } from "./routers/ai-performance.router";
 import { syncDispatchRouter } from "./routers/sync-dispatch.router";
 import { dataMigrationRouter } from "./routers/data-migration.router";
@@ -260,13 +262,34 @@ import { excellenceCultureRouter } from "./routers/excellence-culture.router";
 import { capabilitySystemRouter } from "./routers/capability-system.router";
 
 import { rndPipelineRouter } from "./routers/rnd-pipeline.router";
+import { designEngineRouter } from "./routers/design-engine.router";
 import { roleAgentRouter } from "./routers/role-agent.router";
+import { legionRouter } from "./routers/legion.router";
 import { automationRouter } from "./routers/automation.router";
 import { aiTaskRouter } from "./routers/ai-task.router";
+import { knowledgeRouter } from "./routers/knowledge.router";
+import { solutionEngineRouter } from "./routers/solution-engine.router";
 import { hrSandboxRouter } from "./routers/hr-sandbox.router";
 import { violationEventRouter } from "./routers/violation-event.router";
+import { equipmentComplianceRouter } from "./routers/equipment-compliance.router";
 import { financeAgentRouter } from "./routers/finance-agent.router";
 import { performanceRecordRouter } from "./routers/performance-record.router";
+import { aiClawRouter } from "./routers/ai-claw.router";
+import { empowermentRouter } from "./routers/empowerment.router";
+import { employeeGrowthRouter } from "./routers/employee-growth.router";
+import { executiveReviewRouter } from "./routers/executive-review.router";
+import { knowledgeComplianceRouter } from "./routers/knowledge-compliance.router";
+import { lifecycleEcosystemRouter } from "./routers/lifecycle-ecosystem.router";
+
+// GRT 5.0 Full-Domain Architecture (P0-P4)
+import { fileUploadRouter } from "./routers/file-upload.router";
+import { grtInitRouter } from "./routers/grt-init.router";
+import { closedLoopRouter } from "./routers/closed-loop.router";
+import { aeiExtendedRouter } from "./routers/aei-extended.router";
+import { ceoDashboardRouter } from "./routers/ceo-dashboard.router";
+import { ctoDashboardRouter } from "./routers/cto-dashboard.router";
+import { systemStabilityRouter } from "./routers/system-stability.router";
+import { idoRouter } from "./routers/ido.router";
 
 // GRT Value Chain Enhancement — 非标清洗设备全价值链
 import { vaultRouter } from "./routers/vault.router";
@@ -288,6 +311,35 @@ import { buSalesTargetRouter } from "./routers/bu-sales-target.router";
 import { cloudHallRouter } from "./routers/cloud-hall.router";
 import { serviceDashboardRouter } from "./routers/service-dashboard.router";
 import { projectAgentRouter } from "./routers/project-agent.router";
+import { robotCleaningRouter } from "./routers/robot-cleaning.router";
+import { robotFleetRouter } from "./routers/robot-fleet.router";
+import { semiconductorCleaningRouter } from "./routers/semiconductor-cleaning.router";
+import { targetedShowcaseRouter } from "./routers/targeted-showcase.router";
+import { marketingPlatformRouter } from "./routers/marketing-platform.router";
+import { customerAuthorizationRouter } from "./routers/customer-authorization.router";
+import { smartProductionSchedulingRouter } from "./routers/smart-production-scheduling.router";
+import { rndNpiRouter } from "./routers/rnd-npi.router";
+import { pdmRouter } from "./routers/pdm.router";
+import { orgDocumentRouter } from "./routers/org-document.router";
+import { crossDeptSlaRouter } from "./routers/cross-dept-sla.router";
+import { devEnvRouter } from "./routers/dev-env.router";
+import { goLiveRouter } from "./routers/go-live.router";
+import { payrollRouter } from "./routers/payroll.router";
+import { attendanceClockRouter } from "./routers/attendance-clock.router";
+import { perfCalibrationRouter } from "./routers/perf-calibration.router";
+import { salesCoachRouter } from "./routers/sales-coach.router";
+import { battleArenaRouter } from "./routers/battle-arena.router";
+import { biReportRouter } from "./routers/bi-report.router";
+import { oemDeveloperPortalRouter } from "./routers/oem-developer-portal.router";
+import { employeePointsRouter } from "./routers/employee-points.router";
+import { workstationPresetRouter } from "./routers/workstation-preset.router";
+import { skillAssessmentRouter } from "./routers/skill-assessment.router";
+import { assessmentLifecycleRouter } from "./routers/assessment-lifecycle.router";
+import { authorizationHierarchyRouter } from "./routers/authorization-hierarchy.router";
+import { deptProcedureRouter } from "./routers/dept-procedure.router";
+import { remoteGovernanceRouter } from "./routers/remote-governance.router";
+import { electricalStandardsRouter } from "./routers/electrical-standards.router";
+import { mechanicalConfigRouter } from "./routers/mechanical-config.router";
 
 /**
  * This is the primary router for the tRPC API.
@@ -429,8 +481,8 @@ export const appRouter = router({
   scheduling: schedulingRouter,
   uwb: uwbRouter,
   
-  // 简道云集成
-  jiandaoyun: jiandaoyunRouter,
+  // 外部数据同步
+  externalSync: externalSyncRouter,
 
   // BU事业部映射
   buMapping: buMappingRouter,
@@ -652,6 +704,13 @@ export const appRouter = router({
 
   // Smart Meeting & AI Engagement Hub (智能会议与互动中枢)
   smartMeeting: smartMeetingRouter,
+  meetingIntelligence: meetingIntelligenceRouter,
+
+  // Security & Compliance — 安全防线闭环 (审计日志/承诺书/举报箱/水印)
+  securityCompliance: securityComplianceRouter,
+
+  // Culture — 星火大屏 & 奋斗者殿堂 (前线战报/数字勋章)
+  culture: cultureRouter,
 
   // AI Performance Engine (AI绩效引擎 — 4-dimension meeting scores)
   aiPerformance: aiPerformanceRouter,
@@ -665,6 +724,30 @@ export const appRouter = router({
   // AI Canvas — Workflow Parser & Action Router (Req 9a: ubiquitous AI input)
   aiCanvas: aiCanvasRouter,
   aiTask: aiTaskRouter,
+
+  // AI Open Claw — Controlled External Tool Execution
+  aiClaw: aiClawRouter,
+
+  // Employee Empowerment Engine — 全域员工赋能 (briefing, dailyLog, appraisal)
+  empowerment: empowermentRouter,
+
+  // Employee Growth Platform — 员工成长平台 (培训资料/阶段计划/表彰处罚/任务指标/云厅授权/周期报告)
+  employeeGrowth: employeeGrowthRouter,
+
+  // Executive Review Hub — 高管绩效总览中心 (公司/部门/员工/项目/横向对比/评价管理)
+  executiveReview: executiveReviewRouter,
+
+  // Knowledge & Compliance Platform — 企业知识合规平台 (分类/岗位要求/技能等级/授权/学习/测试)
+  knowledgeCompliance: knowledgeComplianceRouter,
+
+  // Lifecycle Ecosystem — 员工生命旅程生态系统 G1-G20 (旅程/里程碑/活动/模板/集成/仪表板)
+  lifecycleEcosystem: lifecycleEcosystemRouter,
+
+  // Knowledge Ingestion — Multimodal Knowledge Feed-In (SOPs, Schematics, P&ID)
+  knowledge: knowledgeRouter,
+
+  // Solution Engine — 清洗工艺效能与方案推演 (P1 需求解析 + P2 AI 方案)
+  solutionEngine: solutionEngineRouter,
 
   // HR Sandbox Capability Model — ai_tasks queue-driven parsing
   hrSandbox: hrSandboxRouter,
@@ -683,11 +766,20 @@ export const appRouter = router({
   // R&D Pipeline (Quotation + Requirements + Solution Design)
   rndPipeline: rndPipelineRouter,
 
+  // M3 Design Automation Engine (Station Matrix + SolidWorks/EPLAN export)
+  designEngine: designEngineRouter,
+
   // Role-Based AI Agent (role-specific quick actions + suggestions)
   roleAgent: roleAgentRouter,
 
+  // 军团管理 — 批量数字助手初始化与运营
+  legion: legionRouter,
+
   // Automation Hooks — Management Rhythm (OKR → Meetings closed-loop)
   automation: automationRouter,
+
+  // Equipment Compliance — Regional Regulation Tracking (US/EU/CN)
+  equipmentCompliance: equipmentComplianceRouter,
 
   // Digital Thread — Cloud Vault & Engineering Change Orders
   vault: vaultRouter,
@@ -748,6 +840,103 @@ export const appRouter = router({
 
   // Project Agent — AI 项目生命周期评审引擎
   projectAgent: projectAgentRouter,
+
+  // Robot Cleaning Performance — 闭环自适应清洗 + 上油扭矩监控 + 工艺绩效
+  robotCleaning: robotCleaningRouter,
+
+  // Robot Fleet — KUKA/FANUC/ABB/Stäubli universal adapter layer + digital twin
+  robotFleet: robotFleetRouter,
+
+  // Semiconductor Cleaning — TSMC-ready 半导体级清洗合规 (ISO 14644 + SEMI F57/F63)
+  semiconductorCleaning: semiconductorCleaningRouter,
+
+  // Targeted Showcase — 定向数字展厅 (token-gated client demos)
+  targetedShowcase: targetedShowcaseRouter,
+
+  // Marketing Digital Platform — 营销数字平台 (5 modules: plan/quality/exhibition/history/broadcast)
+  marketingPlatform: marketingPlatformRouter,
+
+  // Customer Authorization — 客户授权与文档版本有效控制
+  customerAuthorization: customerAuthorizationRouter,
+
+  // 智慧排程工作台 — BOM工时分解+约束排程+里程碑追踪+智能排程
+  smartProductionScheduling: smartProductionSchedulingRouter,
+
+  // R&D NPI/NPD — 新产品导入与开发 (Concept → EVT → DVT → PVT → MP)
+  rndNpi: rndNpiRouter,
+
+  // PDM — 产品数据管理 (Product Data Management)
+  pdm: pdmRouter,
+
+  // GRT 5.0 Full-Domain Architecture — 全域架构沙盘
+  fileUpload: fileUploadRouter,
+  grtInit: grtInitRouter,
+  closedLoop: closedLoopRouter,
+  aeiExtended: aeiExtendedRouter,
+  ceoDashboard: ceoDashboardRouter,
+  ctoDashboard: ctoDashboardRouter,
+  systemStability: systemStabilityRouter,
+  ido: idoRouter,
+
+  // Enterprise Document Governance — 企业文档治理平台 (Registry + Templates + Instances)
+  orgDocument: orgDocumentRouter,
+
+  // Cross-Department SLA — 跨部门协作SLA追踪与评分
+  crossDeptSla: crossDeptSlaRouter,
+
+  // Dev Environment Init — Mech/Elec sync + AI oiling simulation + SharePoint tree
+  devEnv: devEnvRouter,
+
+  // Go-Live Command Center — 上线指挥中心 (readiness, salary import, encoding, simulation)
+  goLive: goLiveRouter,
+
+  // Smart Payroll Engine — 薪资计算与审批 (structures, attendance, performance, ledger, awards)
+  payroll: payrollRouter,
+
+  // Attendance Clock — GPS打卡系统 (clock-in/out, geofence, monthly rollup)
+  attendanceClock: attendanceClockRouter,
+
+  // Performance Calibration & Incentive — 智能绩效校准与激励 (composite scoring, 360, calibration, incentives)
+  perfCalibration: perfCalibrationRouter,
+
+  // Sales Coach Engine — 全球销售全域赋能与战术指导 (budget CAPEX, M-stage tactical, AI coaching)
+  salesCoach: salesCoachRouter,
+
+  // Battle Arena — 斗兽场排名 & 月度战情室 (battle reports, global rankings, war room)
+  battleArena: battleArenaRouter,
+
+  // BI Report — 综合报告平台 (dept metrics, individual metrics, access rules, AI evaluation)
+  biReport: biReportRouter,
+
+  // OEM Developer Portal — B2B Open Gateway (API keys, webhooks, data access, analytics)
+  oemDeveloperPortal: oemDeveloperPortalRouter,
+
+  // Employee Points — 员工积分奖惩系统 (daily compliance, rewards, redemption, thresholds)
+  employeePoints: employeePointsRouter,
+
+  // Workstation Presets — 员工工作台预设 (dashboard layout, widgets, AI level, feature flags)
+  workstationPreset: workstationPresetRouter,
+
+  // Skill Assessment — 岗位能力等级测评 (position profiles, question bank, exams, certifications)
+  skillAssessment: skillAssessmentRouter,
+
+  // Assessment Lifecycle — 测评触发规则+多轮工作流+后果执行+生命周期集成
+  assessmentLifecycle: assessmentLifecycleRouter,
+
+  // Authorization Hierarchy — 授权层级审批制度+信用等级+绿色通道+事后补交+诚信激励
+  authorizationHierarchy: authorizationHierarchyRouter,
+
+  // Department Procedures — 规章制度管理+版本控制+已读确认+异常记录+KPI关联
+  deptProcedure: deptProcedureRouter,
+
+  // Remote Governance — 远程维护指挥中心 (VPN token provisioning, kill switch, audit trail)
+  remoteGovernance: remoteGovernanceRouter,
+
+  // Electrical Standards — 电气规范治理平台 (CE/UL/GB/SEMI/OEM, customer profiles, project lifecycle)
+  electricalStandards: electricalStandardsRouter,
+
+  // Mechanical Config Standards — 机械配置标准治理平台 (GRT/OEM/ISO, knowledge graph, quotation compliance, acceptance)
+  mechanicalConfig: mechanicalConfigRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {

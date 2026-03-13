@@ -91,7 +91,8 @@ export const projectRouter = router({
 
     // Optimistic lock check
     if (input.expectedVersion !== undefined) {
-      const [current] = await db.select({ version: projects.version }).from(projects).where(eq(projects.id, numId));
+      const [current] = await db.select({ version: projects.version }).from(projects).where(eq(projects.id, numId))
+      .limit(1000);
       if (current && current.version !== input.expectedVersion) {
         throw new TRPCError({ code: "CONFLICT", message: "版本冲突：项目已被他人修改，请刷新后重试" });
       }

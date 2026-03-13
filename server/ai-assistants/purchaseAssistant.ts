@@ -83,7 +83,8 @@ export async function recommendSupplier(
     avgPrice: sql<string>`AVG(${purchaseOrders.unitPrice})`,
     orderCount: sql<number>`COUNT(*)`,
   }).from(purchaseOrders).where(eq(purchaseOrders.materialId, materialId))
-    .groupBy(purchaseOrders.supplierId, purchaseOrders.supplierCode, purchaseOrders.supplierName);
+    .groupBy(purchaseOrders.supplierId, purchaseOrders.supplierCode, purchaseOrders.supplierName)
+    .limit(1000);
 
   const activeSuppliers = await db.select().from(suppliers).where(eq(suppliers.status, "active")).limit(1000);
   const supplierMap = new Map(activeSuppliers.map((s) => [s.id, s]));

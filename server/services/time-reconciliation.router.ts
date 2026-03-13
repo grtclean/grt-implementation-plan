@@ -8,7 +8,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import {
   reconcileTimeRecords,
   getDiscrepancies,
@@ -62,7 +62,7 @@ export const timeReconciliationRouter = router({
   /**
    * Resolve a discrepancy by providing a resolution note and adjusted hours.
    */
-  resolveDiscrepancy: protectedProcedure
+  resolveDiscrepancy: requirePermission('hr:attendance:manage')
     .input(
       z.object({
         discrepancyId: z.string(),

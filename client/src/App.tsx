@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Layout from "@/components/Layout";
 import NotFound from "@/pages/NotFound";
+const ForbiddenPage = React.lazy(() => import("@/pages/ForbiddenPage"));
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import RequireAuth from "./components/RequireAuth";
@@ -13,7 +14,7 @@ import Home from "./pages/Home";
 const Risks = React.lazy(() => import("./pages/Risks"));
 const Roadmap = React.lazy(() => import("./pages/Roadmap"));
 const Tools = React.lazy(() => import("./pages/Tools"));
-const JiandaoyunAnalysis = React.lazy(() => import("./pages/JiandaoyunAnalysis"));
+const ExternalSyncAnalysis = React.lazy(() => import("./pages/ExternalSyncAnalysis"));
 const GuideReader = React.lazy(() => import("./pages/GuideReader"));
 const MigrationTasks = React.lazy(() => import("./pages/MigrationTasks"));
 const ArchitecturePlan = React.lazy(() => import("./pages/ArchitecturePlan"));
@@ -39,6 +40,9 @@ const SubsystemHelp = React.lazy(() => import("./pages/SubsystemHelp"));
 import PublicHome from "./pages/PublicHome";
 const Capabilities = React.lazy(() => import("./pages/Capabilities"));
 const CustomerPortal = React.lazy(() => import("./pages/CustomerPortal"));
+const CustomerAuthorizationManager = React.lazy(() => import("./pages/CustomerAuthorizationManager"));
+const SmartProductionScheduling = React.lazy(() => import("./pages/SmartProductionScheduling"));
+const EngineBlock3DMonitor = React.lazy(() => import("./pages/EngineBlock3DMonitor"));
 const DeadlockMonitor = React.lazy(() => import("./pages/DeadlockMonitor"));
 const AIDiagnostic = React.lazy(() => import("./pages/AIDiagnostic"));
 const CollaborationWorkspace = React.lazy(() => import("./pages/CollaborationWorkspace"));
@@ -56,6 +60,8 @@ const ChangeManagement = React.lazy(() => import("./pages/ChangeManagement"));
 const HRLifecycle = React.lazy(() => import("./pages/HRLifecycle"));
 const RDVerificationCenter = React.lazy(() => import("./pages/RDVerificationCenter"));
 const StageGateDashboard = React.lazy(() => import("./pages/StageGateDashboard"));
+const SolutionEngine = React.lazy(() => import("./pages/SolutionEngine"));
+const ProjectInteractionTimeline = React.lazy(() => import("./pages/Workspace/ProjectInteractionTimeline"));
 const Community = React.lazy(() => import("./pages/Community"));
 const LeadManagement = React.lazy(() => import("./pages/LeadManagement"));
 const SchedulerManagement = React.lazy(() => import("./pages/SchedulerManagement"));
@@ -82,6 +88,7 @@ const TeamCapabilityAnalysis = React.lazy(() => import("./pages/TeamCapabilityAn
 const CertificateVerify = React.lazy(() => import("./pages/CertificateVerify"));
 const CapabilityBadges = React.lazy(() => import("./pages/CapabilityBadges"));
 const CapabilityLeaderboard = React.lazy(() => import("./pages/CapabilityLeaderboard"));
+const CapabilityRadarCockpit = React.lazy(() => import("./pages/CapabilityRadarCockpit"));
 const GRTCleaningStrategy = React.lazy(() => import("./pages/GRTCleaningStrategy"));
 const EngineerCheckpoints = React.lazy(() => import("./pages/EngineerCheckpoints"));
 const ToothpasteTest = React.lazy(() => import("./pages/ToothpasteTest"));
@@ -154,11 +161,11 @@ const SocialPlatformSettings = React.lazy(() => import("./pages/settings/SocialP
 const GRTOperationDashboard = React.lazy(() => import("./pages/GRTOperationDashboard"));
 const CustomerQuestionnaire = React.lazy(() => import("./pages/CustomerQuestionnaire"));
 const ProcessGanttChart = React.lazy(() => import("./components/ProcessGanttChart"));
-const JiandaoyunIntegration = React.lazy(() => import("./pages/JiandaoyunIntegration"));
-const JiandaoyunFullImport = React.lazy(() => import("./pages/JiandaoyunFullImport"));
-const JiandaoyunFormBrowser = React.lazy(() => import("./pages/JiandaoyunFormBrowser"));
-const JiandaoyunWorkflowViewer = React.lazy(() => import("./pages/JiandaoyunWorkflowViewer"));
-const JiandaoyunKnowledgeViewer = React.lazy(() => import("./pages/JiandaoyunKnowledgeViewer"));
+const ExternalSyncIntegration = React.lazy(() => import("./pages/ExternalSyncIntegration"));
+const ExternalSyncFullImport = React.lazy(() => import("./pages/ExternalSyncFullImport"));
+const ExternalSyncFormBrowser = React.lazy(() => import("./pages/ExternalSyncFormBrowser"));
+const ExternalSyncWorkflowViewer = React.lazy(() => import("./pages/ExternalSyncWorkflowViewer"));
+const ExternalSyncKnowledgeViewer = React.lazy(() => import("./pages/ExternalSyncKnowledgeViewer"));
 const OrgTreePage = React.lazy(() => import("./pages/OrgTreePage"));
 const CertificationManagement = React.lazy(() => import("./pages/CertificationManagement"));
 const AnnualAgenda = React.lazy(() => import("./pages/AnnualAgenda"));
@@ -171,9 +178,19 @@ const MeetingOwnerManagement = React.lazy(() => import("./pages/meeting/MeetingO
 const NotificationChannelSettings = React.lazy(() => import("./pages/production/NotificationChannelSettings"));
 const BUTeamManagement = React.lazy(() => import("./pages/BUTeamManagement"));
 const BUPerformanceDashboard = React.lazy(() => import("./pages/BUPerformanceDashboard"));
+const BuManagerCockpit = React.lazy(() => import("./pages/BuManagerCockpit"));
 const EmployeeManagement = React.lazy(() => import("./pages/EmployeeManagement"));
 const EmployeeOffboarding = React.lazy(() => import("./pages/EmployeeOffboarding"));
 const EmployeeIntelligentPerformance = React.lazy(() => import("./pages/EmployeeIntelligentPerformance"));
+const PerfCalibrationDashboard = React.lazy(() => import("./pages/PerfCalibrationDashboard"));
+const Feedback360 = React.lazy(() => import("./pages/Feedback360"));
+const IncentiveManagement = React.lazy(() => import("./pages/IncentiveManagement"));
+const SalaryPreparationWizard = React.lazy(() => import("./pages/SalaryPreparationWizard"));
+const AttendanceClock = React.lazy(() => import("./pages/AttendanceClock"));
+const EmployeePointsCenter = React.lazy(() => import("./pages/EmployeePointsCenter"));
+const WorkstationPresetAdmin = React.lazy(() => import("./pages/WorkstationPresetAdmin"));
+const SkillAssessmentCenter = React.lazy(() => import("./pages/SkillAssessmentCenter"));
+const AssessmentLifecycleDashboard = React.lazy(() => import("./pages/AssessmentLifecycleDashboard"));
 const UserProfileSettings = React.lazy(() => import("./pages/UserProfileSettings"));
 const UserStatusManagement = React.lazy(() => import("./pages/UserStatusManagement"));
 const SmartMeeting = React.lazy(() => import("./pages/SmartMeeting"));
@@ -217,6 +234,7 @@ const BusinessUnits = React.lazy(() => import("./pages/BusinessUnits"));
 const AIProcessOptimization = React.lazy(() => import("./pages/AIProcessOptimization"));
 const HROffboarding = React.lazy(() => import("./pages/HROffboarding"));
 const Notifications = React.lazy(() => import("./pages/Notifications"));
+const OutlookMail = React.lazy(() => import("./pages/OutlookMail"));
 const MyTasks = React.lazy(() => import("./pages/MyTasks"));
 
 // ======== 新增模块页面 ========
@@ -226,6 +244,7 @@ const SolutionDesign = React.lazy(() => import("./pages/SolutionDesign"));
 const MechanicalDesign = React.lazy(() => import("./pages/MechanicalDesign"));
 const ElectricalDesign = React.lazy(() => import("./pages/ElectricalDesign"));
 const BomManagement = React.lazy(() => import("./pages/BomManagement"));
+const DesignStationMatrix = React.lazy(() => import("./pages/DesignStationMatrix"));
 const TechDocuments = React.lazy(() => import("./pages/TechDocuments"));
 // 客户服务 (TX-013~015 + 售后)
 const FieldInstallation = React.lazy(() => import("./pages/FieldInstallation"));
@@ -258,6 +277,8 @@ const TemporaryPermissions = React.lazy(() => import("./pages/TemporaryPermissio
 const PermissionBlacklist = React.lazy(() => import("./pages/PermissionBlacklist"));
 const MenuAnalytics = React.lazy(() => import("./pages/MenuAnalytics"));
 const RoleDashboard = React.lazy(() => import("./pages/RoleDashboard"));
+const RoleWorkstation = React.lazy(() => import("./pages/RoleWorkstation"));
+const LegionManagement = React.lazy(() => import("./pages/LegionManagement"));
 const TaskCockpitPage = React.lazy(() => import("./pages/TaskCockpitPage"));
 const Gamification = React.lazy(() => import("./pages/Gamification"));
 const IoTDashboard = React.lazy(() => import("./pages/IoTDashboard"));
@@ -266,6 +287,7 @@ const DigitalCloudHall = React.lazy(() => import("./pages/DigitalCloudHall"));
 const ServiceDashboardAdmin = React.lazy(() => import("./pages/ServiceDashboardAdmin"));
 const RAGTrainingCenter = React.lazy(() => import("./pages/RAGTrainingCenter"));
 const DelegationManagement = React.lazy(() => import("./pages/DelegationManagement"));
+const AuthorizationHierarchy = React.lazy(() => import("./pages/AuthorizationHierarchy"));
 const PerformanceSalaryQuery = React.lazy(() => import("./pages/PerformanceSalaryQuery"));
 const KioskWorkshop = React.lazy(() => import("./pages/KioskWorkshop"));
 const KioskQrConfirm = React.lazy(() => import("./pages/KioskQrConfirm"));
@@ -296,8 +318,12 @@ const ControlPlanManagement = React.lazy(() => import("./pages/ControlPlanManage
 const QualityWorkbench = React.lazy(() => import("./pages/QualityWorkbench"));
 const SalesCRMWorkbench = React.lazy(() => import("./pages/SalesCRMWorkbench"));
 const AfterSalesWorkbench = React.lazy(() => import("./pages/AfterSalesWorkbench"));
+const SalesCoachDashboard = React.lazy(() => import("./pages/SalesCoachDashboard"));
 const MSAManagement = React.lazy(() => import("./pages/MSAManagement"));
 const SafetyRuleManagement = React.lazy(() => import("./pages/SafetyRuleManagement"));
+const RndNpiWorkbench = React.lazy(() => import("./pages/RndNpiWorkbench"));
+const PdmWorkbench = React.lazy(() => import("./pages/PdmWorkbench"));
+const DocumentGovernance = React.lazy(() => import("./pages/DocumentGovernance"));
 const OADynamicFormTest = React.lazy(() => import("./pages/OADynamicFormTest"));
 const OAFormWorkbench = React.lazy(() => import("./pages/OAFormWorkbench"));
 const MPhaseFormDirectory = React.lazy(() => import("./pages/MPhaseFormDirectory"));
@@ -311,13 +337,25 @@ const ShopfloorMasterBoard = React.lazy(() => import("./pages/ShopfloorMasterBoa
 
 // GRT Cloud Showcase Portal (全球数字云展厅)
 const ShowcasePortal = React.lazy(() => import("./pages/showcase/ShowcasePortal"));
+const Showroom = React.lazy(() => import("./pages/Showroom"));
+const EngineBlockAICleaningDemo = React.lazy(() => import("./pages/EngineBlockAICleaningDemo"));
+const RobotCleaningMonitor = React.lazy(() => import("./pages/RobotCleaningMonitor"));
+const GuestCloudHall = React.lazy(() => import("./pages/GuestCloudHall"));
+const ShowcaseBuilder = React.lazy(() => import("./pages/ShowcaseBuilder"));
+const ExcellenceShowcase = React.lazy(() => import("./pages/ExcellenceShowcase"));
 
+const MarketingHub = React.lazy(() => import("./pages/MarketingHub"));
 const DualAIMatrix = React.lazy(() => import("./pages/DualAIMatrix"));
 const MeetingHub = React.lazy(() => import("./pages/MeetingHub"));
 const PerformanceReviewMeeting = React.lazy(() => import("./pages/PerformanceReviewMeeting"));
 const CrossBorderSync = React.lazy(() => import("./pages/CrossBorderSync"));
 const UniversalWorkspace = React.lazy(() => import("./pages/UniversalWorkspace"));
 // PersonalizedPortal removed — superseded by MeEngine at /me
+const PersonalDashboard = React.lazy(() => import("./pages/PersonalDashboard"));
+const EmployeeGrowthPlatform = React.lazy(() => import("./pages/EmployeeGrowthPlatform"));
+const ExecutiveReviewHub = React.lazy(() => import("./pages/ExecutiveReviewHub"));
+const KnowledgeCompliancePlatform = React.lazy(() => import("./pages/KnowledgeCompliancePlatform"));
+const LifecycleEcosystem = React.lazy(() => import("./pages/LifecycleEcosystem"));
 const DataMigrationHub = React.lazy(() => import("./pages/DataMigrationHub"));
 const CustomerDigitalTwinPortal = React.lazy(() => import("./pages/CustomerDigitalTwinPortal"));
 
@@ -469,6 +507,7 @@ const ReviewToQuotation = React.lazy(() => import("./pages/ReviewToQuotation"));
 const QualityMonthlyReport = React.lazy(() => import("./pages/QualityMonthlyReport"));
 const BOMFreezeAutomation = React.lazy(() => import("./pages/BOMFreezeAutomation"));
 const QCPassNotification = React.lazy(() => import("./pages/QCPassNotification"));
+const AiAgentSandboxMap = React.lazy(() => import("./pages/AiAgentSandboxMap"));
 const AISecurityGovernance = React.lazy(() => import("./pages/AISecurityGovernance"));
 
 // Concurrent Command Center — Dual-Track Debugging
@@ -481,6 +520,26 @@ const CeoStrategy2026 = React.lazy(() => import("./pages/CeoStrategy2026"));
 const CollaborationDocs = React.lazy(() => import("./pages/CollaborationDocs"));
 const SpreadsheetViewer = React.lazy(() => import("./pages/SpreadsheetViewer"));
 const ProjectAgentDashboard = React.lazy(() => import("./pages/ProjectAgentDashboard"));
+
+// Executive Security Command Center — 总裁办安全态势仪表板
+const ExecutiveSecurityDashboard = React.lazy(() => import("./pages/Executive/SecurityDashboard"));
+
+// Spark of Hope — 星火大屏 & 奋斗者殿堂
+const SparkOfHopeDashboard = React.lazy(() => import("./pages/SparkOfHopeDashboard"));
+
+// GRT 5.0 Full-Domain Architecture Pages
+const CtoTechnicalDashboard = React.lazy(() => import("./pages/CtoTechnicalDashboard"));
+const DocumentOptimizationCenter = React.lazy(() => import("./pages/DocumentOptimizationCenter"));
+const GrtInitWizard = React.lazy(() => import("./pages/GrtInitWizard"));
+const GoLiveCommand = React.lazy(() => import("./pages/GoLiveCommand"));
+const RemoteGovernanceDashboard = React.lazy(() => import("./pages/RemoteGovernanceDashboard"));
+const ElectricalStandardsWorkbench = React.lazy(() => import("./pages/ElectricalStandardsWorkbench"));
+const MechanicalConfigWorkbench = React.lazy(() => import("./pages/MechanicalConfigWorkbench"));
+const PayrollApprovalGate = React.lazy(() => import("./pages/Executive/PayrollApprovalGate"));
+const TheArena = React.lazy(() => import("./pages/Executive/TheArena"));
+const BiReportDashboard = React.lazy(() => import("./pages/BiReportDashboard"));
+const OemDeveloperPortal = React.lazy(() => import("./pages/OemDeveloperPortal"));
+const DeptProceduresWorkbench = React.lazy(() => import("./pages/DeptProceduresWorkbench"));
 
 // Protected route wrapper component — ErrorBoundary auto-resets on navigation
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -506,8 +565,8 @@ function LazyFallback() {
 }
 
 // Standalone routes that should NOT have sidebar layout
-const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/404', '/oa-test', '/morning-meeting', '/shop-floor/machine-login'];
-const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/', '/report-center/', '/vision/', '/shop-floor/', '/showcase/'];
+const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/403', '/404', '/oa-test', '/morning-meeting', '/shop-floor/machine-login'];
+const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/', '/report-center/', '/vision/', '/shop-floor/', '/showcase/', '/showroom', '/guest/', '/excellence-showcase'];
 
 function Router() {
   const [location] = useLocation();
@@ -519,6 +578,15 @@ function Router() {
     <Switch>
       {/* GRT Cloud Showcase Portal (全球数字云展厅) */}
       <Route path={"/showcase/:industry"} component={ShowcasePortal} />
+      {/* Robot Cleaning Showroom (闭环自适应清洗展厅) */}
+      <Route path={"/showroom/engine-block-demo"} component={EngineBlockAICleaningDemo} />
+      <Route path={"/showroom"} component={Showroom} />
+      {/* Robot Cleaning Monitor — TSMC-ready 6-tab operator workbench */}
+      <Route path={"/robot-cleaning-monitor"} component={RobotCleaningMonitor} />
+      {/* Guest Cloud Hall — token-gated targeted showcase (定向数字展厅) */}
+      <Route path={"/guest/showcase/:token"} component={GuestCloudHall} />
+      {/* Organization Excellence Hub — 全域组织赋能中枢 */}
+      <Route path={"/excellence-showcase"} component={ExcellenceShowcase} />
       {/* Public routes */}
       <Route path={"/"} component={Home} />
       <Route path={"/roadmap"} component={Roadmap} />
@@ -528,14 +596,14 @@ function Router() {
       <Route path={"/meeting-executive"} component={MeetingExecutive} />
       <Route path={"/admin-dashboard"} component={AdminDashboard} />
       <Route path={"/monitoring"} component={MonitoringDashboard} />
-      <Route path={"/jiandaoyun"} component={JiandaoyunAnalysis} />
-      <Route path={"/jiandaoyun-integration"} component={JiandaoyunIntegration} />
-      <Route path={"/jiandaoyun-import"}>
-        <ProtectedRoute component={JiandaoyunFullImport} />
+      <Route path={"/external-sync"} component={ExternalSyncAnalysis} />
+      <Route path={"/external-sync-integration"} component={ExternalSyncIntegration} />
+      <Route path={"/external-sync-import"}>
+        <ProtectedRoute component={ExternalSyncFullImport} />
       </Route>
-      <Route path={"/jiandaoyun-forms"} component={JiandaoyunFormBrowser} />
-      <Route path={"/jiandaoyun-workflows"} component={JiandaoyunWorkflowViewer} />
-      <Route path={"/jiandaoyun-knowledge"} component={JiandaoyunKnowledgeViewer} />
+      <Route path={"/external-sync-forms"} component={ExternalSyncFormBrowser} />
+      <Route path={"/external-sync-workflows"} component={ExternalSyncWorkflowViewer} />
+      <Route path={"/external-sync-knowledge"} component={ExternalSyncKnowledgeViewer} />
       <Route path={"/public"} component={PublicHome} />
       <Route path={"/capabilities"} component={Capabilities} />
       <Route path={"/capability-os"} component={CapabilityOS} />
@@ -552,6 +620,7 @@ function Router() {
       <Route path={"/certificate-verify/:certificateNumber"} component={CertificateVerify} />
       <Route path={"/capability-badges"} component={CapabilityBadges} />
       <Route path={"/capability-leaderboard"} component={CapabilityLeaderboard} />
+      <Route path={"/capability-radar-cockpit"} component={CapabilityRadarCockpit} />
       <Route path={"/evidence-review"} component={EvidenceReview} />
       <Route path={"/capability-certificates"} component={CapabilityCertificates} />
       <Route path={"/capability-path"} component={CapabilityPathRecommendation} />
@@ -562,11 +631,19 @@ function Router() {
       <Route path={"/simulator"} component={SimulatorDashboard} />
       <Route path={"/plm"} component={PLMWorkbench} />
       <Route path={"/sales-crm"} component={SalesCRMWorkbench} />
+      <Route path={"/sales-coach"} component={SalesCoachDashboard} />
+      <Route path={"/showcase-builder"}>
+        <ProtectedRoute component={ShowcaseBuilder} />
+      </Route>
+      <Route path={"/marketing-hub"}>
+        <ProtectedRoute component={MarketingHub} />
+      </Route>
       <Route path={"/after-sales-workbench"} component={AfterSalesWorkbench} />
       <Route path={"/ai-genesis"} component={AIGenesisWorkspace} />
       <Route path={"/ai-security-governance"} component={AISecurityGovernance} />
       <Route path={"/ai-assistant-provisioning"} component={AiAssistantProvisioning} />
       <Route path={"/ai-agent-fleet"} component={AIAgentFleetDashboard} />
+      <Route path="/ai-agent-sandbox"><ProtectedRoute component={AiAgentSandboxMap} /></Route>
       <Route path={"/system-control-tower"} component={SystemControlTower} />
       {/* ══════ V2.0 Five Core Engine Routes ══════ */}
       <Route path={"/me"}>
@@ -595,10 +672,16 @@ function Router() {
       </Route>
 
       <Route path={"/my-workspace"}><ProtectedRoute component={MeEngine} /></Route>
-      <Route path={"/workspace"} component={UniversalWorkspace} />
+      <Route path={"/personal-dashboard"}><ProtectedRoute component={PersonalDashboard} /></Route>
+      <Route path={"/employee-growth"}><ProtectedRoute component={EmployeeGrowthPlatform} /></Route>
+      <Route path={"/executive-review"}><ProtectedRoute component={ExecutiveReviewHub} /></Route>
+      <Route path={"/knowledge-compliance"}><ProtectedRoute component={KnowledgeCompliancePlatform} /></Route>
+      <Route path={"/lifecycle-ecosystem"}><ProtectedRoute component={LifecycleEcosystem} /></Route>
+      <Route path={"/workspace"}><ProtectedRoute component={UniversalWorkspace} /></Route>
       <Route path={"/data-migration"} component={DataMigrationHub} />
       <Route path={"/customer-digital-twin"} component={CustomerDigitalTwinPortal} />
       <Route path={"/customer-portal"} component={CustomerPortal} />
+      <Route path={"/customer-authorization"}><ProtectedRoute component={CustomerAuthorizationManager} /></Route>
       <Route path={"/login"} component={LocalLogin} />
       <Route path={"/login-success"} component={LoginSuccess} />
       
@@ -733,6 +816,13 @@ function Router() {
       {/* 门径管理 */}
       <Route path={"/stage-gate"}>
         <ProtectedRoute component={StageGateDashboard} />
+      </Route>
+      {/* 清洗工艺方案推演引擎 */}
+      <Route path={"/solution-engine"}>
+        <ProtectedRoute component={SolutionEngine} />
+      </Route>
+      <Route path={"/workspace/project-timeline"}>
+        <ProtectedRoute component={ProjectInteractionTimeline} />
       </Route>
       <Route path={"/community"}>
         <ProtectedRoute component={Community} />
@@ -927,6 +1017,12 @@ function Router() {
       <Route path="/security">
         <ProtectedRoute component={SecurityDashboard} />
       </Route>
+      <Route path="/executive/security-dashboard">
+        <ProtectedRoute component={ExecutiveSecurityDashboard} />
+      </Route>
+      <Route path="/spark-of-hope">
+        <ProtectedRoute component={SparkOfHopeDashboard} />
+      </Route>
       
       {/* v1.3.39 GRT智能运营系统仪表盘 */}
       <Route path="/grt-operation">
@@ -1081,9 +1177,42 @@ function Router() {
       <Route path="/bu-performance">
         <ProtectedRoute component={BUPerformanceDashboard} />
       </Route>
+      <Route path="/bu-manager-cockpit">
+        <ProtectedRoute component={BuManagerCockpit} />
+      </Route>
       {/* 员工智能绩效 */}
       <Route path="/employee-performance">
         <ProtectedRoute component={EmployeeIntelligentPerformance} />
+      </Route>
+      {/* 绩效校准仪表板 */}
+      <Route path="/perf-calibration">
+        <ProtectedRoute component={PerfCalibrationDashboard} />
+      </Route>
+      {/* 360度反馈 */}
+      <Route path="/360-feedback">
+        <ProtectedRoute component={Feedback360} />
+      </Route>
+      {/* 激励管理 */}
+      <Route path="/incentive-management">
+        <ProtectedRoute component={IncentiveManagement} />
+      </Route>
+      <Route path="/salary-preparation">
+        <ProtectedRoute component={SalaryPreparationWizard} />
+      </Route>
+      <Route path="/attendance-clock">
+        <ProtectedRoute component={AttendanceClock} />
+      </Route>
+      <Route path="/employee-points">
+        <ProtectedRoute component={EmployeePointsCenter} />
+      </Route>
+      <Route path="/workstation-presets">
+        <ProtectedRoute component={WorkstationPresetAdmin} />
+      </Route>
+      <Route path="/skill-assessment">
+        <ProtectedRoute component={SkillAssessmentCenter} />
+      </Route>
+      <Route path="/assessment-lifecycle">
+        <ProtectedRoute component={AssessmentLifecycleDashboard} />
       </Route>
       {/* v1.3.92 员工管理 */}
       <Route path="/employee-management">
@@ -1247,6 +1376,9 @@ function Router() {
       <Route path={"/notifications"}>
         <ProtectedRoute component={Notifications} />
       </Route>
+      <Route path={"/outlook-mail"}>
+        <ProtectedRoute component={OutlookMail} />
+      </Route>
       <Route path={"/ai/process-optimization"}>
         <ProtectedRoute component={AIProcessOptimization} />
       </Route>
@@ -1281,6 +1413,9 @@ function Router() {
       </Route>
       <Route path="/bom-management">
         <ProtectedRoute component={BomManagement} />
+      </Route>
+      <Route path="/design-station-matrix">
+        <ProtectedRoute component={DesignStationMatrix} />
       </Route>
       <Route path="/tech-documents">
         <ProtectedRoute component={TechDocuments} />
@@ -1366,6 +1501,14 @@ function Router() {
       {/* 角色智能工作台 */}
       <Route path="/dashboard">
         <ProtectedRoute component={RoleDashboard} />
+      </Route>
+      {/* 岗位工作站 — 军团管理 */}
+      <Route path="/role-workstation">
+        <ProtectedRoute component={RoleWorkstation} />
+      </Route>
+      {/* 军团管理 — 批量数字助手初始化 */}
+      <Route path="/legion-management">
+        <ProtectedRoute component={LegionManagement} />
       </Route>
       {/* 新增模块路由结束 */}
 
@@ -1631,6 +1774,9 @@ function Router() {
       <Route path="/delegation">
         <ProtectedRoute component={DelegationManagement} />
       </Route>
+      <Route path="/authorization-hierarchy">
+        <ProtectedRoute component={AuthorizationHierarchy} />
+      </Route>
       <Route path="/perf-salary">
         <ProtectedRoute component={PerformanceSalaryQuery} />
       </Route>
@@ -1674,6 +1820,18 @@ function Router() {
       </Route>
       <Route path="/safety-rules">
         <ProtectedRoute component={SafetyRuleManagement} />
+      </Route>
+      <Route path="/rnd-npi">
+        <ProtectedRoute component={RndNpiWorkbench} />
+      </Route>
+      <Route path="/pdm">
+        <ProtectedRoute component={PdmWorkbench} />
+      </Route>
+      <Route path="/document-governance">
+        <ProtectedRoute component={DocumentGovernance} />
+      </Route>
+      <Route path="/document-center">
+        <ProtectedRoute component={DocumentGovernance} />
       </Route>
 
       {/* Dual-AI Collaboration Matrix (Gemini → CEO → Claude) */}
@@ -1745,6 +1903,12 @@ function Router() {
       <Route path="/production/smart-schedule">
         <ProtectedRoute component={SmartScheduleDashboard} />
       </Route>
+      <Route path="/smart-production-scheduling">
+        <ProtectedRoute component={SmartProductionScheduling} />
+      </Route>
+      <Route path="/engine-block-3d-monitor">
+        <ProtectedRoute component={EngineBlock3DMonitor} />
+      </Route>
       <Route path="/supply-chain/smart-inventory">
         <ProtectedRoute component={SmartInventoryDashboard} />
       </Route>
@@ -1757,10 +1921,49 @@ function Router() {
       <Route path="/ceo/strategy-2026">
         <ProtectedRoute component={CeoStrategy2026} />
       </Route>
+      <Route path="/cto/technical-dashboard">
+        <ProtectedRoute component={CtoTechnicalDashboard} />
+      </Route>
+      <Route path="/doc-optimization">
+        <ProtectedRoute component={DocumentOptimizationCenter} />
+      </Route>
+      <Route path="/grt-init">
+        <ProtectedRoute component={GrtInitWizard} />
+      </Route>
+      <Route path="/go-live-command">
+        <ProtectedRoute component={GoLiveCommand} />
+      </Route>
+      <Route path="/remote-governance">
+        <ProtectedRoute component={RemoteGovernanceDashboard} />
+      </Route>
+      <Route path="/electrical-standards">
+        <ProtectedRoute component={ElectricalStandardsWorkbench} />
+      </Route>
+      <Route path="/mechanical-config">
+        <ProtectedRoute component={MechanicalConfigWorkbench} />
+      </Route>
+      <Route path="/payroll-approval">
+        <ProtectedRoute component={PayrollApprovalGate} />
+      </Route>
+      <Route path="/the-arena">
+        <ProtectedRoute component={TheArena} />
+      </Route>
+      <Route path="/bi-report">
+        <ProtectedRoute component={BiReportDashboard} />
+      </Route>
+      <Route path="/oem-developer-portal">
+        <ProtectedRoute component={OemDeveloperPortal} />
+      </Route>
       <Route path="/project-agent">
         <ProtectedRoute component={ProjectAgentDashboard} />
       </Route>
 
+      {/* 企业制度管理工作台 */}
+      <Route path="/dept-procedures">
+        <ProtectedRoute component={DeptProceduresWorkbench} />
+      </Route>
+
+      <Route path={"/403"} component={ForbiddenPage} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

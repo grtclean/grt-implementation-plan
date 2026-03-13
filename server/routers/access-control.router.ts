@@ -11,7 +11,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 import { createChildLogger } from "../lib/logger";
@@ -78,10 +78,10 @@ async function ensureTempPerm() {
     if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
       await db.execute(sql`
         INSERT INTO temporary_permissions (tp_number, user_name, role_code, module_name, reason, granted_by, start_date, end_date, status) VALUES
-        ('TP-001', '赵工', 'bu_sales',           '客户管理',     '临时支援BU3销售',         '王总',   '2026-02-01', '2026-02-28', 'active'),
-        ('TP-002', '陈工', 'finance_specialist',  '费用报销审批', '财务休假期间代理审批',     '钱经理', '2026-02-10', '2026-02-14', 'active'),
-        ('TP-003', '李工', 'hr_specialist',       '考勤管理',     '协助HR月度考勤统计',      '孙经理', '2026-01-25', '2026-01-31', 'expired'),
-        ('TP-004', '张工', 'bu_pm',               '项目管理',     '紧急项目临时项目经理',     '李总',   '2026-02-05', '2026-03-05', 'active')
+        ('TP-001', '洪小东', 'bu_sales',           '客户管理',     '临时支援BU3销售',         '倪亚东', '2026-02-01', '2026-02-28', 'active'),
+        ('TP-002', '蔡瑞',   'finance_specialist',  '费用报销审批', '财务休假期间代理审批',     '戴晓燕', '2026-02-10', '2026-02-14', 'active'),
+        ('TP-003', '李大鹏', 'hr_specialist',       '考勤管理',     '协助HR月度考勤统计',      '杨勇',   '2026-01-25', '2026-01-31', 'expired'),
+        ('TP-004', '孙国祥', 'bu_pm',               '项目管理',     '紧急项目临时项目经理',     '金晓锋', '2026-02-05', '2026-03-05', 'active')
       `);
     }
   } catch (e: any) {
@@ -124,10 +124,10 @@ async function ensureUserStatus() {
           work_plan_enabled, work_plan_frequency, training_enabled, project_enabled,
           performance_enabled, report_enabled, task_reminder_enabled, task_reminder_time, email_enabled,
           last_active, pending_tasks, overdue_tasks) VALUES
-        ('GRT001', '侯亚东', '总裁办',   'FUNC', 'hou.yadong@grt.com',  true,  true,'daily', true,true,true,true,true,'15:00',true,  '2026-02-28 10:30:00', 3, 0),
+        ('GRT001', '倪亚东', '总裁办',   'FUNC', 'ni.yadong@grt.com',  true,  true,'daily', true,true,true,true,true,'15:00',true,  '2026-02-28 10:30:00', 3, 0),
         ('GRT003', '侯亚琴', '事业三部', 'BU3',  'hou.yaqin@grt.com',   true,  true,'weekly',true,true,false,true,true,'14:00',true,  '2026-02-28 09:15:00', 5, 1),
         ('GRT004', '戴晓燕', '事业一部', 'BU1',  'dai.xiaoyan@grt.com', false, false,'daily', false,false,false,false,false,'15:00',false, NULL,                  0, 0),
-        ('GRT006', '洪希龙', '事业二部', 'BU2',  'hong.xilong@grt.com', true,  true,'daily', false,true,true,false,false,'15:00',false, '2026-02-27 16:45:00', 2, 0),
+        ('GRT006', '洪香龙', '事业二部', 'BU2',  'hong.xilong@grt.com', true,  true,'daily', false,true,true,false,false,'15:00',false, '2026-02-27 16:45:00', 2, 0),
         ('GRT007', '孙坚',   '事业三部', 'BU3',  'sun.jian@grt.com',    true,  true,'daily', true,true,true,true,true,'15:00',true,  '2026-02-28 11:00:00', 4, 2)
       `);
     }
@@ -164,7 +164,7 @@ const blacklistRouter = router({
     return { items, stats: { active, lifted, total: items.length } };
   }),
 
-  create: protectedProcedure
+  create: requirePermission('system:permissions:assign')
     .input(z.object({
       user: z.string().min(1),
       department: z.string().optional(),
@@ -186,7 +186,7 @@ const blacklistRouter = router({
       return { success: true, blNumber };
     }),
 
-  lift: protectedProcedure
+  lift: requirePermission('system:permissions:assign')
     .input(z.object({ id: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       await ensureBlacklist();
@@ -231,7 +231,7 @@ const tempPermissionRouter = router({
     return { items, stats: { active, expired, expiringSoon, total: items.length } };
   }),
 
-  create: protectedProcedure
+  create: requirePermission('system:permissions:assign')
     .input(z.object({
       user: z.string().min(1),
       role: z.string().min(1),
@@ -254,7 +254,7 @@ const tempPermissionRouter = router({
       return { success: true, tpNumber };
     }),
 
-  revoke: protectedProcedure
+  revoke: requirePermission('system:permissions:assign')
     .input(z.object({ id: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       await ensureTempPerm();
@@ -297,7 +297,7 @@ const userStatusRouter = router({
           ORDER BY employee_id
         `);
       } else {
-        result = await db.execute(sql`SELECT * FROM user_profile_status ORDER BY employee_id`);
+        result = await db.execute(sql`SELECT * FROM user_profile_status ORDER BY employee_id LIMIT 1000`);
       }
 
       const items = (result.rows as any[]).map((r: any) => ({
@@ -335,7 +335,7 @@ const userStatusRouter = router({
       };
     }),
 
-  sendReminder: protectedProcedure
+  sendReminder: requirePermission('system:permissions:assign')
     .input(z.object({ userId: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       return { success: true, message: `配置提醒已发送至用户 #${input.userId}` };

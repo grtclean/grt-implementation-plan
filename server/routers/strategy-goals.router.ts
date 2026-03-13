@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import { eq, and, count, sql } from "drizzle-orm";
@@ -278,7 +278,7 @@ export const strategyGoalsRouter = router({
     }),
 
   // ── Update a division KPI (parameterized — no SQL injection)
-  updateDivisionKpi: protectedProcedure
+  updateDivisionKpi: requirePermission('strategy:okr:manage')
     .input(z.object({
       id: z.number(),
       currentValue: z.number().optional(),
@@ -301,7 +301,7 @@ export const strategyGoalsRouter = router({
 
   // ── Auto-decompose company goals → BU sales plans
   // Creates buSalesPlans + 12-month details for each BU from divisionKpis revenue targets
-  decomposeToBuPlans: protectedProcedure
+  decomposeToBuPlans: requirePermission('strategy:okr:manage')
     .input(z.object({
       year: z.number().default(2026),
       growthRules: z.object({
@@ -387,7 +387,7 @@ export const strategyGoalsRouter = router({
     }),
 
   // ── Force re-seed for demo
-  seedDemo: protectedProcedure.mutation(async () => {
+  seedDemo: requirePermission('strategy:okr:manage').mutation(async () => {
     await ensureTables();
     const db = await requireDb();
     await db.delete(divisionKpis).where(eq(divisionKpis.year, 2026));

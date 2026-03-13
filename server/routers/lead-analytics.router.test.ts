@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -57,7 +57,7 @@ beforeEach(() => {
   selectResultsQueue.length = 0;
 });
 
-const caller = () => createAuthenticatedCaller();
+const caller = () => createAdminCaller();
 
 const sampleLeads = [
   { id: 1, status: "new", source: "website", priority: "high", aiConfidenceScore: 80, buCode: "BU1" },

@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ interface PasswordValidation {
 }
 
 export default function LocalAuth() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -94,14 +96,14 @@ export default function LocalAuth() {
       //   body: JSON.stringify(loginForm),
       // });
       
-      setMessage({ type: 'success', text: '登录成功！正在跳转...' });
+      setMessage({ type: 'success', text: t('auth.loginSuccessRedirect') });
       
       // 模拟跳转
       setTimeout(() => {
         window.location.href = '/';
       }, 1500);
     } catch (error) {
-      setMessage({ type: 'error', text: '登录失败，请检查用户名和密码' });
+      setMessage({ type: 'error', text: t('auth.loginFailedMsg') });
     } finally {
       setLoading(false);
     }
@@ -112,12 +114,12 @@ export default function LocalAuth() {
     e.preventDefault();
     
     if (!isPasswordValid) {
-      setMessage({ type: 'error', text: '密码不符合安全要求' });
+      setMessage({ type: 'error', text: t('auth.pwdNotSecure') });
       return;
     }
     
     if (!passwordsMatch) {
-      setMessage({ type: 'error', text: '两次输入的密码不一致' });
+      setMessage({ type: 'error', text: t('auth.pwdNotMatch') });
       return;
     }
 
@@ -139,11 +141,11 @@ export default function LocalAuth() {
       //   }),
       // });
       
-      setMessage({ type: 'success', text: '注册成功！请登录' });
+      setMessage({ type: 'success', text: t('auth.registerSuccessLogin') });
       setActiveTab('login');
       setLoginForm({ username: registerForm.username, password: '' });
     } catch (error) {
-      setMessage({ type: 'error', text: '注册失败，请稍后重试' });
+      setMessage({ type: 'error', text: t('auth.registerFailedMsg') });
     } finally {
       setLoading(false);
     }
@@ -157,8 +159,8 @@ export default function LocalAuth() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
             <Shield className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">GRT智能系统</h1>
-          <p className="text-muted-foreground mt-1">本地部署版本 v2.5.22</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("auth.localTitle")}</h1>
+          <p className="text-muted-foreground mt-1">{t("auth.localVersion")}</p>
         </div>
 
         {/* 消息提示 */}
@@ -182,11 +184,11 @@ export default function LocalAuth() {
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login" className="flex items-center gap-2">
                   <LogIn className="w-4 h-4" />
-                  登录
+                  {t("auth.login")}
                 </TabsTrigger>
                 <TabsTrigger value="register" className="flex items-center gap-2">
                   <UserPlus className="w-4 h-4" />
-                  注册
+                  {t("auth.register")}
                 </TabsTrigger>
               </TabsList>
             </CardHeader>
@@ -196,13 +198,13 @@ export default function LocalAuth() {
               <TabsContent value="login" className="mt-0">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-username">用户名 / 邮箱</Label>
+                    <Label htmlFor="login-username">{t("auth.usernameOrEmail")}</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="login-username"
                         type="text"
-                        placeholder="请输入用户名或邮箱"
+                        placeholder={t("auth.usernameOrEmailPlaceholder")}
                         className="pl-10"
                         value={loginForm.username}
                         onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
@@ -212,13 +214,13 @@ export default function LocalAuth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">密码</Label>
+                    <Label htmlFor="login-password">{t("auth.password")}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="login-password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="请输入密码"
+                        placeholder={t("auth.passwordPlaceholder")}
                         className="pl-10 pr-10"
                         value={loginForm.password}
                         onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
@@ -238,19 +240,19 @@ export default function LocalAuth() {
                     {loading ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        登录中...
+                        {t("auth.loggingIn")}
                       </>
                     ) : (
                       <>
                         <LogIn className="w-4 h-4 mr-2" />
-                        登录
+                        {t("auth.loginBtn")}
                       </>
                     )}
                   </Button>
                 </form>
 
                 <div className="mt-4 text-center text-sm text-muted-foreground">
-                  <p>默认管理员账号: admin / Admin@123</p>
+                  <p>{t("auth.defaultAdmin")}</p>
                 </div>
               </TabsContent>
 
@@ -258,13 +260,13 @@ export default function LocalAuth() {
               <TabsContent value="register" className="mt-0">
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="register-username">用户名</Label>
+                    <Label htmlFor="register-username">{t("auth.username")}</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="register-username"
                         type="text"
-                        placeholder="3-20个字符，字母数字下划线"
+                        placeholder={t("auth.registerUsernamePlaceholder")}
                         className="pl-10"
                         value={registerForm.username}
                         onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
@@ -277,13 +279,13 @@ export default function LocalAuth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="register-email">邮箱</Label>
+                    <Label htmlFor="register-email">{t("auth.email")}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="register-email"
                         type="email"
-                        placeholder="请输入邮箱地址"
+                        placeholder={t("auth.registerEmailPlaceholder")}
                         className="pl-10"
                         value={registerForm.email}
                         onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
@@ -293,13 +295,13 @@ export default function LocalAuth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="register-password">密码</Label>
+                    <Label htmlFor="register-password">{t("auth.password")}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="register-password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="请设置密码"
+                        placeholder={t("auth.passwordSetPlaceholder")}
                         className="pl-10 pr-10"
                         value={registerForm.password}
                         onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
@@ -324,7 +326,7 @@ export default function LocalAuth() {
                             <XCircle className="w-3 h-3 text-muted-foreground" />
                           )}
                           <span className={passwordValidation.minLength ? 'text-green-600' : 'text-muted-foreground'}>
-                            至少8位
+                            {t("auth.pwdMinLength")}
                           </span>
                         </div>
                         <div className="flex items-center gap-1 text-xs">
@@ -334,7 +336,7 @@ export default function LocalAuth() {
                             <XCircle className="w-3 h-3 text-muted-foreground" />
                           )}
                           <span className={passwordValidation.hasUppercase ? 'text-green-600' : 'text-muted-foreground'}>
-                            大写字母
+                            {t("auth.pwdUppercase")}
                           </span>
                         </div>
                         <div className="flex items-center gap-1 text-xs">
@@ -344,7 +346,7 @@ export default function LocalAuth() {
                             <XCircle className="w-3 h-3 text-muted-foreground" />
                           )}
                           <span className={passwordValidation.hasLowercase ? 'text-green-600' : 'text-muted-foreground'}>
-                            小写字母
+                            {t("auth.pwdLowercase")}
                           </span>
                         </div>
                         <div className="flex items-center gap-1 text-xs">
@@ -354,7 +356,7 @@ export default function LocalAuth() {
                             <XCircle className="w-3 h-3 text-muted-foreground" />
                           )}
                           <span className={passwordValidation.hasNumber ? 'text-green-600' : 'text-muted-foreground'}>
-                            数字
+                            {t("auth.pwdNumber")}
                           </span>
                         </div>
                       </div>
@@ -362,13 +364,13 @@ export default function LocalAuth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="register-confirm-password">确认密码</Label>
+                    <Label htmlFor="register-confirm-password">{t("auth.confirmPasswordField")}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="register-confirm-password"
                         type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder="请再次输入密码"
+                        placeholder={t("auth.confirmPasswordPlaceholder2")}
                         className="pl-10 pr-10"
                         value={registerForm.confirmPassword}
                         onChange={(e) => setRegisterForm({ ...registerForm, confirmPassword: e.target.value })}
@@ -387,12 +389,12 @@ export default function LocalAuth() {
                         {passwordsMatch ? (
                           <>
                             <CheckCircle2 className="w-3 h-3 text-green-500" />
-                            <span className="text-green-600">密码一致</span>
+                            <span className="text-green-600">{t("auth.pwdMatch")}</span>
                           </>
                         ) : (
                           <>
                             <XCircle className="w-3 h-3 text-destructive" />
-                            <span className="text-destructive">密码不一致</span>
+                            <span className="text-destructive">{t("auth.pwdMismatch")}</span>
                           </>
                         )}
                       </div>
@@ -407,12 +409,12 @@ export default function LocalAuth() {
                     {loading ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        注册中...
+                        {t("auth.registering")}
                       </>
                     ) : (
                       <>
                         <UserPlus className="w-4 h-4 mr-2" />
-                        注册
+                        {t("auth.registerBtn")}
                       </>
                     )}
                   </Button>
@@ -424,7 +426,7 @@ export default function LocalAuth() {
 
         {/* 底部信息 */}
         <div className="mt-6 text-center text-xs text-muted-foreground">
-          <p>© 2024 GRT智能系统 - 本地部署版</p>
+          <p>{t("auth.localFooter")}</p>
           <div className="flex items-center justify-center gap-2 mt-2">
             <Badge variant="outline" className="text-xs">Windows 11</Badge>
             <Badge variant="outline" className="text-xs">MySQL 8.0</Badge>

@@ -141,9 +141,9 @@ describe('Employee Service', () => {
   describe('Employee data validation', () => {
     // 验证员工数据结构
     const sampleEmployees = [
-      {employeeId: "GRT001", name: "侯亚东", department: "总裁办", position: "董事长"},
+      {employeeId: "GRT001", name: "倪亚东", department: "总裁办", position: "董事长"},
       {employeeId: "GRT004", name: "戴晓燕", department: "事业一部", position: "高级销售经理"},
-      {employeeId: "GRT006", name: "洪希龙", department: "事业二部", position: "机械设计经理"},
+      {employeeId: "GRT006", name: "洪香龙", department: "事业二部", position: "机械设计经理"},
       {employeeId: "GRT007", name: "孙坚", department: "事业三部", position: "电气主管"},
       {employeeId: "GRT018", name: "孙国祥", department: "事业四部", position: "电气工程师"},
       {employeeId: "GRT008", name: "马柯", department: "事业十部", position: "质量专员"},

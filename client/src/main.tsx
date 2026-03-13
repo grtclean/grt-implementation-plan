@@ -8,6 +8,7 @@ import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { BehaviorProbeProvider } from "./components/BehaviorProbeProvider";
 import { getLoginUrl } from "./const";
+import { toast } from "sonner";
 import "./index.css";
 
 // ============================================================
@@ -16,12 +17,20 @@ import "./index.css";
 // ============================================================
 const _fatalErrors: Array<{ ts: string; msg: string; stack?: string; source?: string }> = [];
 
+// Track whether React has successfully mounted.
+// After mount, errors are handled by React ErrorBoundaries — do NOT destroy the tree.
+let _reactMounted = false;
+
 function renderFatalDiagnostic() {
+  // If React is already mounted, let ErrorBoundaries handle errors gracefully.
+  // Only nuke the root if React never mounted (true pre-mount crash).
+  if (_reactMounted) return;
+
   const root = document.getElementById("root");
   if (!root) return;
   root.innerHTML = `
     <div style="font-family:monospace;padding:24px;max-width:900px;margin:0 auto">
-      <h1 style="color:#dc2626;font-size:20px">🚨 FATAL: Frontend failed to mount</h1>
+      <h1 style="color:#dc2626;font-size:20px">FATAL: Frontend failed to mount</h1>
       <p style="color:#666;margin:8px 0">${_fatalErrors.length} error(s) captured at ${new Date().toISOString()}</p>
       ${_fatalErrors.map((e, i) => `
         <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:16px;margin:12px 0">
@@ -42,7 +51,7 @@ window.onerror = (message, source, lineno, colno, error) => {
     source: 'window.onerror',
   };
   _fatalErrors.push(entry);
-  console.error("🚨 [FATAL window.onerror]", entry);
+  console.error("[GRT window.onerror]", entry);
   renderFatalDiagnostic();
 };
 
@@ -55,7 +64,7 @@ window.onunhandledrejection = (event) => {
     source: 'unhandledrejection',
   };
   _fatalErrors.push(entry);
-  console.error("🚨 [FATAL unhandledrejection]", entry);
+  console.error("[GRT unhandledrejection]", entry);
   renderFatalDiagnostic();
 };
 // ============================================================
@@ -120,12 +129,16 @@ queryClient.getQueryCache().subscribe(event => {
       path: window.location.pathname,
     });
     // Only redirect on explicit auth errors, and add a delay to prevent rapid redirects
-    if (!isRedirecting && error instanceof TRPCClientError && error.message === UNAUTHED_ERR_MSG) {
-      // Check if we're on a public page - don't redirect from login
-      const currentPath = window.location.pathname;
-      if (currentPath !== "/login" && currentPath !== "/login-success" && currentPath !== "/auto-login.html" && !currentPath.startsWith("/showcase/")) {
-        console.warn("🔒 [Auth] Unauthorized query detected, redirecting to login...");
-        redirectToLoginIfUnauthorized(error);
+    if (!isRedirecting && error instanceof TRPCClientError) {
+      if (error.message === UNAUTHED_ERR_MSG) {
+        const currentPath = window.location.pathname;
+        if (currentPath !== "/login" && currentPath !== "/login-success" && currentPath !== "/auto-login.html" && !currentPath.startsWith("/showcase/")) {
+          console.warn("🔒 [Auth] Unauthorized query detected, redirecting to login...");
+          redirectToLoginIfUnauthorized(error);
+        }
+      } else if ((error.data as any)?.code === "FORBIDDEN" && window.location.pathname !== "/403") {
+        isRedirecting = true;
+        window.location.href = "/403";
       }
     }
   }
@@ -140,11 +153,15 @@ queryClient.getMutationCache().subscribe(event => {
       message: error instanceof TRPCClientError ? error.message : String(error),
       path: window.location.pathname,
     });
-    if (!isRedirecting && error instanceof TRPCClientError && error.message === UNAUTHED_ERR_MSG) {
-      const currentPath = window.location.pathname;
-      if (currentPath !== "/login" && currentPath !== "/login-success") {
-        console.warn("🔒 [Auth] Unauthorized mutation detected, redirecting to login...");
-        redirectToLoginIfUnauthorized(error);
+    if (!isRedirecting && error instanceof TRPCClientError) {
+      if (error.message === UNAUTHED_ERR_MSG) {
+        const currentPath = window.location.pathname;
+        if (currentPath !== "/login" && currentPath !== "/login-success") {
+          console.warn("🔒 [Auth] Unauthorized mutation detected, redirecting to login...");
+          redirectToLoginIfUnauthorized(error);
+        }
+      } else if ((error.data as any)?.code === "FORBIDDEN") {
+        toast.error("权限不足: " + (error.message || "无权执行此操作"));
       }
     }
   }
@@ -225,7 +242,7 @@ authReady.then(async () => {
           stack: error.stack + '\n\n--- Component Stack ---\n' + errorInfo.componentStack,
           source: 'React ErrorBoundary (root)',
         });
-        console.error("🚨 [FATAL React ErrorBoundary]", { error, errorInfo });
+        console.error("[GRT React ErrorBoundary]", { error, errorInfo });
       }}>
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
           <QueryClientProvider client={queryClient}>
@@ -236,6 +253,8 @@ authReady.then(async () => {
         </trpc.Provider>
       </ErrorBoundary>
     );
+    // React tree is now mounted — errors will be caught by ErrorBoundaries
+    _reactMounted = true;
   } catch (mountError: any) {
     _fatalErrors.push({
       ts: new Date().toISOString(),
@@ -243,7 +262,7 @@ authReady.then(async () => {
       stack: mountError?.stack || 'No stack (createRoot crash)',
       source: 'createRoot try-catch',
     });
-    console.error("🚨 [FATAL createRoot]", mountError);
+    console.error("[GRT FATAL createRoot]", mountError);
     renderFatalDiagnostic();
   }
 

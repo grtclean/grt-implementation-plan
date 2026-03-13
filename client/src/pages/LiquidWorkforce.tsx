@@ -22,6 +22,7 @@ import {
   Zap, Shield, DollarSign, BarChart3
 } from "lucide-react";
 import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const bidStatusColorMap = createStatusColorMap({
   pending: "yellow",
@@ -29,10 +30,10 @@ const bidStatusColorMap = createStatusColorMap({
   rejected: "red",
 });
 
-const bidStatusLabels: Record<string, string> = {
-  pending: "待评审",
-  accepted: "已中标",
-  rejected: "未中标",
+const bidStatusLabelKeys: Record<string, string> = {
+  pending: "hr.liquidWorkforce.bidStatusPending",
+  accepted: "hr.liquidWorkforce.bidStatusAccepted",
+  rejected: "hr.liquidWorkforce.bidStatusRejected",
 };
 
 const contractStatusColorMap = createStatusColorMap({
@@ -41,13 +42,14 @@ const contractStatusColorMap = createStatusColorMap({
   disputed: "red",
 });
 
-const contractStatusLabels: Record<string, string> = {
-  locked: "资金锁定",
-  released: "已释放",
-  disputed: "争议中",
+const contractStatusLabelKeys: Record<string, string> = {
+  locked: "hr.liquidWorkforce.contractStatusLocked",
+  released: "hr.liquidWorkforce.contractStatusReleased",
+  disputed: "hr.liquidWorkforce.contractStatusDisputed",
 };
 
 export default function LiquidWorkforce() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("skills");
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateSkillDialog, setShowCreateSkillDialog] = useState(false);
@@ -93,25 +95,25 @@ export default function LiquidWorkforce() {
   // tRPC mutations
   const createSkillMutation = trpc.liquidWorkforce.createSkillCapsule.useMutation({
     onSuccess: () => {
-      toast.success("技能胶囊创建成功");
+      toast.success(t("hr.liquidWorkforce.createSuccess"));
       setShowCreateSkillDialog(false);
       setNewSkill({ name: "", level: "3", royaltyRate: "5", description: "" });
       refetchSkills();
     },
     onError: (error) => {
-      toast.error(`创建失败: ${error.message}`);
+      toast.error(`${t("hr.liquidWorkforce.createFailed")}: ${error.message}`);
     },
   });
 
   const submitBidMutation = trpc.liquidWorkforce.submitBid.useMutation({
     onSuccess: () => {
-      toast.success("竞标提交成功");
+      toast.success(t("hr.liquidWorkforce.bidSubmitSuccess"));
       setShowBidDialog(false);
       setBidForm({ bidPrice: "", promisedDeliveryDays: "", qualityCommitment: "" });
       refetchTasks();
     },
     onError: (error) => {
-      toast.error(`竞标失败: ${error.message}`);
+      toast.error(`${t("hr.liquidWorkforce.bidSubmitFailed")}: ${error.message}`);
     },
   });
 
@@ -119,34 +121,34 @@ export default function LiquidWorkforce() {
       <div className="space-y-6">
         <PageHeader
           icon={Briefcase}
-          title="液态用工"
-          description="技能原子化、任务竞标、智能合约支付"
+          title={t("hr.liquidWorkforce.title")}
+          description={t("hr.liquidWorkforce.description")}
           actions={
             <Dialog open={showCreateSkillDialog} onOpenChange={setShowCreateSkillDialog}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />
-                  创建技能胶囊
+                  {t("hr.liquidWorkforce.createSkillCapsule")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>创建技能胶囊</DialogTitle>
+                  <DialogTitle>{t("hr.liquidWorkforce.createSkillCapsule")}</DialogTitle>
                   <DialogDescription>
-                    将您的专业技能原子化，参与任务竞标
+                    {t("hr.liquidWorkforce.createSkillCapsuleDesc")}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label>技能名称</Label>
+                    <Label>{t("hr.liquidWorkforce.skillName")}</Label>
                     <Input
                       value={newSkill.name}
                       onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
-                      placeholder="如：高压喷嘴流体仿真"
+                      placeholder={t("hr.liquidWorkforce.skillNamePlaceholder")}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>技能等级 (L1-L5)</Label>
+                    <Label>{t("hr.liquidWorkforce.skillLevel")}</Label>
                     <Select
                       value={newSkill.level}
                       onValueChange={(v) => setNewSkill({ ...newSkill, level: v })}
@@ -155,16 +157,16 @@ export default function LiquidWorkforce() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">L1 - 入门级</SelectItem>
-                        <SelectItem value="2">L2 - 基础级</SelectItem>
-                        <SelectItem value="3">L3 - 熟练级</SelectItem>
-                        <SelectItem value="4">L4 - 专家级</SelectItem>
-                        <SelectItem value="5">L5 - 大师级</SelectItem>
+                        <SelectItem value="1">{t("hr.liquidWorkforce.levelBeginner")}</SelectItem>
+                        <SelectItem value="2">{t("hr.liquidWorkforce.levelBasic")}</SelectItem>
+                        <SelectItem value="3">{t("hr.liquidWorkforce.levelProficient")}</SelectItem>
+                        <SelectItem value="4">{t("hr.liquidWorkforce.levelExpert")}</SelectItem>
+                        <SelectItem value="5">{t("hr.liquidWorkforce.levelMaster")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>版税率 (%)</Label>
+                    <Label>{t("hr.liquidWorkforce.royaltyRate")}</Label>
                     <Input
                       type="number"
                       min="0"
@@ -174,21 +176,21 @@ export default function LiquidWorkforce() {
                       placeholder="5"
                     />
                     <p className="text-xs text-muted-foreground">
-                      当您的技能被他人调用时，您将获得的版税比例
+                      {t("hr.liquidWorkforce.royaltyRateHint")}
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label>技能描述</Label>
+                    <Label>{t("hr.liquidWorkforce.skillDescription")}</Label>
                     <Textarea
                       value={newSkill.description}
                       onChange={(e) => setNewSkill({ ...newSkill, description: e.target.value })}
-                      placeholder="详细描述您的技能能力和应用场景"
+                      placeholder={t("hr.liquidWorkforce.skillDescPlaceholder")}
                     />
                   </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowCreateSkillDialog(false)}>
-                    取消
+                    {t("hr.liquidWorkforce.cancel")}
                   </Button>
                   <Button
                     onClick={() => createSkillMutation.mutate({
@@ -200,7 +202,7 @@ export default function LiquidWorkforce() {
                     } as any)}
                     disabled={createSkillMutation.isPending}
                   >
-                    {createSkillMutation.isPending ? "创建中..." : "创建"}
+                    {createSkillMutation.isPending ? t("hr.liquidWorkforce.creating") : t("hr.liquidWorkforce.create")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -210,10 +212,10 @@ export default function LiquidWorkforce() {
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={Award} label="我的技能" value={(stats as any)?.mySkillCount || 0} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
-          <StatCard icon={Briefcase} label="可竞标任务" value={(stats as any)?.openTasks || 0} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
-          <StatCard icon={Coins} label="累计收益" value={`¥${(stats as any)?.totalEarnings?.toLocaleString() || 0}`} iconColor="text-green-400" iconBg="bg-green-500/10" />
-          <StatCard icon={TrendingUp} label="信誉分" value={(stats as any)?.creditScore?.toFixed(1) || "N/A"} iconColor="text-orange-400" iconBg="bg-orange-500/10" />
+          <StatCard icon={Award} label={t("hr.liquidWorkforce.mySkills")} value={(stats as any)?.mySkillCount || 0} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
+          <StatCard icon={Briefcase} label={t("hr.liquidWorkforce.availableTasks")} value={(stats as any)?.openTasks || 0} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+          <StatCard icon={Coins} label={t("hr.liquidWorkforce.totalEarnings")} value={`¥${(stats as any)?.totalEarnings?.toLocaleString() || 0}`} iconColor="text-green-400" iconBg="bg-green-500/10" />
+          <StatCard icon={TrendingUp} label={t("hr.liquidWorkforce.creditScore")} value={(stats as any)?.creditScore?.toFixed(1) || "N/A"} iconColor="text-orange-400" iconBg="bg-orange-500/10" />
         </div>
 
         {/* 主要内容区 */}
@@ -221,19 +223,19 @@ export default function LiquidWorkforce() {
           <TabsList className="bg-muted/50">
             <TabsTrigger value="skills">
               <Award className="w-4 h-4 mr-2" />
-              技能胶囊
+              {t("hr.liquidWorkforce.tabSkills")}
             </TabsTrigger>
             <TabsTrigger value="tasks">
               <Briefcase className="w-4 h-4 mr-2" />
-              任务竞标
+              {t("hr.liquidWorkforce.tabTasks")}
             </TabsTrigger>
             <TabsTrigger value="bids">
               <BarChart3 className="w-4 h-4 mr-2" />
-              我的竞标
+              {t("hr.liquidWorkforce.tabBids")}
             </TabsTrigger>
             <TabsTrigger value="contracts">
               <FileText className="w-4 h-4 mr-2" />
-              智能合约
+              {t("hr.liquidWorkforce.tabContracts")}
             </TabsTrigger>
           </TabsList>
 
@@ -241,7 +243,7 @@ export default function LiquidWorkforce() {
           <TabsContent value="skills" className="space-y-4">
             <div className="flex gap-4">
               <Input
-                placeholder="搜索技能..."
+                placeholder={t("hr.liquidWorkforce.searchSkills")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="max-w-sm bg-background"
@@ -256,7 +258,7 @@ export default function LiquidWorkforce() {
                       <div>
                         <CardTitle className="text-lg">{skill.name}</CardTitle>
                         <CardDescription>
-                          {skill.owner_name || "未知所有者"}
+                          {skill.owner_name || t("hr.liquidWorkforce.unknownOwner")}
                         </CardDescription>
                       </div>
                       <Badge className="bg-primary/20 text-primary border-primary/30">
@@ -267,22 +269,22 @@ export default function LiquidWorkforce() {
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">版税率</span>
+                        <span className="text-muted-foreground">{t("hr.liquidWorkforce.royaltyRateLabel")}</span>
                         <span className="font-medium">{skill.royalty_rate || 0}%</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">调用次数</span>
+                        <span className="text-muted-foreground">{t("hr.liquidWorkforce.usageCount")}</span>
                         <span className="font-medium">{skill.usage_count || 0}</span>
                       </div>
                       {skill.validation_proof && (
                         <div className="flex items-center gap-2 text-sm text-green-400">
                           <Shield className="w-4 h-4" />
-                          <span>ZKP已验证</span>
+                          <span>{t("hr.liquidWorkforce.zkpVerified")}</span>
                         </div>
                       )}
                       <Button variant="outline" size="sm" className="w-full mt-2">
                         <Eye className="w-4 h-4 mr-2" />
-                        查看详情
+                        {t("hr.liquidWorkforce.viewDetails")}
                       </Button>
                     </div>
                   </CardContent>
@@ -295,9 +297,9 @@ export default function LiquidWorkforce() {
           <TabsContent value="tasks" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>可竞标任务</CardTitle>
+                <CardTitle>{t("hr.liquidWorkforce.availableTasksTitle")}</CardTitle>
                 <CardDescription>
-                  浏览并竞标适合您技能的任务
+                  {t("hr.liquidWorkforce.browseAndBid")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -305,7 +307,7 @@ export default function LiquidWorkforce() {
                   {tasks?.items?.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                       <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>暂无可竞标任务</p>
+                      <p>{t("hr.liquidWorkforce.noAvailableTasks")}</p>
                     </div>
                   ) : (
                     tasks?.items?.map((task: any) => (
@@ -320,15 +322,15 @@ export default function LiquidWorkforce() {
                               <div className="flex items-center gap-4 mt-3 text-sm">
                                 <span className="flex items-center gap-1">
                                   <DollarSign className="w-4 h-4 text-green-400" />
-                                  预算: ¥{task.budget?.toLocaleString()}
+                                  {t("hr.liquidWorkforce.budget")}: ¥{task.budget?.toLocaleString()}
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <Clock className="w-4 h-4 text-yellow-400" />
-                                  截止: {task.deadline ? new Date(task.deadline).toLocaleDateString() : "无"}
+                                  {t("hr.liquidWorkforce.deadline")}: {task.deadline ? new Date(task.deadline).toLocaleDateString() : t("hr.liquidWorkforce.none")}
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <Users className="w-4 h-4 text-blue-400" />
-                                  {task.bid_count || 0} 个竞标
+                                  {task.bid_count || 0} {t("hr.liquidWorkforce.bidsCount")}
                                 </span>
                               </div>
                               <div className="flex gap-2 mt-3">
@@ -346,7 +348,7 @@ export default function LiquidWorkforce() {
                               }}
                             >
                               <Zap className="w-4 h-4 mr-2" />
-                              竞标
+                              {t("hr.liquidWorkforce.bid")}
                             </Button>
                           </div>
                         </CardContent>
@@ -362,14 +364,14 @@ export default function LiquidWorkforce() {
           <TabsContent value="bids" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>我的竞标记录</CardTitle>
+                <CardTitle>{t("hr.liquidWorkforce.myBidRecords")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {myBids?.items?.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                       <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>暂无竞标记录</p>
+                      <p>{t("hr.liquidWorkforce.noBidRecords")}</p>
                     </div>
                   ) : (
                     myBids?.items?.map((bid: any) => (
@@ -379,16 +381,16 @@ export default function LiquidWorkforce() {
                             <div>
                               <h4 className="font-medium">{bid.task_title}</h4>
                               <div className="flex items-center gap-4 mt-2 text-sm">
-                                <span>报价: ¥{bid.bid_price?.toLocaleString()}</span>
-                                <span>AI评分: {bid.ai_judge_score?.toFixed(1) || "N/A"}</span>
-                                <span>信誉分: {bid.credit_score_snapshot?.toFixed(1)}</span>
+                                <span>{t("hr.liquidWorkforce.quote")}: ¥{bid.bid_price?.toLocaleString()}</span>
+                                <span>{t("hr.liquidWorkforce.aiScore")}: {bid.ai_judge_score?.toFixed(1) || "N/A"}</span>
+                                <span>{t("hr.liquidWorkforce.creditScoreLabel")}: {bid.credit_score_snapshot?.toFixed(1)}</span>
                               </div>
                               <p className="text-xs text-muted-foreground mt-2">
-                                提交时间: {new Date(bid.created_at).toLocaleString()}
+                                {t("hr.liquidWorkforce.submitTime")}: {new Date(bid.created_at).toLocaleString()}
                               </p>
                             </div>
                             <StatusBadge color={bidStatusColorMap[bid.status as keyof typeof bidStatusColorMap] ?? "gray"}>
-                              {bidStatusLabels[bid.status] || bid.status}
+                              {bidStatusLabelKeys[bid.status] ? t(bidStatusLabelKeys[bid.status]) : bid.status}
                             </StatusBadge>
                           </div>
                         </CardContent>
@@ -404,9 +406,9 @@ export default function LiquidWorkforce() {
           <TabsContent value="contracts" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>智能合约账本</CardTitle>
+                <CardTitle>{t("hr.liquidWorkforce.contractLedger")}</CardTitle>
                 <CardDescription>
-                  查看您参与的智能合约和支付状态
+                  {t("hr.liquidWorkforce.contractLedgerDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -414,7 +416,7 @@ export default function LiquidWorkforce() {
                   {contracts?.items?.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                       <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>暂无智能合约</p>
+                      <p>{t("hr.liquidWorkforce.noContracts")}</p>
                     </div>
                   ) : (
                     contracts?.items?.map((contract: any) => (
@@ -427,7 +429,7 @@ export default function LiquidWorkforce() {
                                   {contract.contract_address?.slice(0, 20)}...
                                 </h4>
                                 <StatusBadge color={contractStatusColorMap[contract.execution_status as keyof typeof contractStatusColorMap] ?? "gray"}>
-                                  {contractStatusLabels[contract.execution_status] || contract.execution_status}
+                                  {contractStatusLabelKeys[contract.execution_status] ? t(contractStatusLabelKeys[contract.execution_status]) : contract.execution_status}
                                 </StatusBadge>
                               </div>
                               <div className="flex items-center gap-4 mt-2 text-sm">
@@ -438,7 +440,7 @@ export default function LiquidWorkforce() {
                               </div>
                               {contract.trigger_condition && (
                                 <div className="mt-2 p-2 bg-background rounded text-xs">
-                                  <span className="text-muted-foreground">触发条件: </span>
+                                  <span className="text-muted-foreground">{t("hr.liquidWorkforce.triggerCondition")}: </span>
                                   {JSON.stringify(contract.trigger_condition)}
                                 </div>
                               )}
@@ -458,42 +460,42 @@ export default function LiquidWorkforce() {
         <Dialog open={showBidDialog} onOpenChange={setShowBidDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>提交竞标</DialogTitle>
+              <DialogTitle>{t("hr.liquidWorkforce.submitBid")}</DialogTitle>
               <DialogDescription>
                 {selectedTask?.title}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>报价 (元)</Label>
+                <Label>{t("hr.liquidWorkforce.bidPrice")}</Label>
                 <Input
                   type="number"
                   value={bidForm.bidPrice}
                   onChange={(e) => setBidForm({ ...bidForm, bidPrice: e.target.value })}
-                  placeholder={`预算: ¥${selectedTask?.budget?.toLocaleString()}`}
+                  placeholder={`${t("hr.liquidWorkforce.budget")}: ¥${selectedTask?.budget?.toLocaleString()}`}
                 />
               </div>
               <div className="space-y-2">
-                <Label>承诺交付天数</Label>
+                <Label>{t("hr.liquidWorkforce.deliveryDays")}</Label>
                 <Input
                   type="number"
                   value={bidForm.promisedDeliveryDays}
                   onChange={(e) => setBidForm({ ...bidForm, promisedDeliveryDays: e.target.value })}
-                  placeholder="如: 7"
+                  placeholder="7"
                 />
               </div>
               <div className="space-y-2">
-                <Label>质量承诺</Label>
+                <Label>{t("hr.liquidWorkforce.qualityCommitment")}</Label>
                 <Textarea
                   value={bidForm.qualityCommitment}
                   onChange={(e) => setBidForm({ ...bidForm, qualityCommitment: e.target.value })}
-                  placeholder="描述您的交付质量承诺..."
+                  placeholder={t("hr.liquidWorkforce.qualityCommitmentPlaceholder")}
                 />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowBidDialog(false)}>
-                取消
+                {t("hr.liquidWorkforce.cancel")}
               </Button>
               <Button
                 onClick={() => submitBidMutation.mutate({
@@ -506,7 +508,7 @@ export default function LiquidWorkforce() {
                 } as any)}
                 disabled={submitBidMutation.isPending}
               >
-                {submitBidMutation.isPending ? "提交中..." : "提交竞标"}
+                {submitBidMutation.isPending ? t("hr.liquidWorkforce.submitting") : t("hr.liquidWorkforce.submitBidBtn")}
               </Button>
             </DialogFooter>
           </DialogContent>

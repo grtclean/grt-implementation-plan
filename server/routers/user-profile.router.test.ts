@@ -42,6 +42,12 @@ const {
 }));
 
 // ── Mock service modules ────────────────────────────────────
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../services/user-profile.service", () => ({
   getUserProfile: mockGetUserProfile,
   upsertUserProfile: mockUpsertUserProfile,

@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader, StatCard } from '@/components/grt';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -103,31 +104,32 @@ const mockReports: TrainingReport[] = [
 
 // ==================== 配置 ====================
 
-const modelTypeLabels: Record<ModelType, string> = {
-  cost_prediction: '成本预测',
-  demand_forecast: '需求预测',
-  anomaly_detection: '异常检测',
-  capability_assessment: '能力评估'
+const modelTypeKeys: Record<ModelType, string> = {
+  cost_prediction: 'ai.modelTrain.costPrediction',
+  demand_forecast: 'ai.modelTrain.demandForecast',
+  anomaly_detection: 'ai.modelTrain.anomalyDetection',
+  capability_assessment: 'ai.modelTrain.capabilityAssessment'
 };
 
-const statusConfig: Record<VersionStatus, { label: string; color: string; icon: any }> = {
-  training: { label: '训练中', color: 'bg-blue-100 text-blue-800', icon: RefreshCw },
-  completed: { label: '已完成', color: 'bg-green-100 text-green-800', icon: CheckCircle2 },
-  failed: { label: '失败', color: 'bg-red-100 text-red-800', icon: XCircle },
-  deployed: { label: '已部署', color: 'bg-purple-100 text-purple-800', icon: Rocket },
-  archived: { label: '已归档', color: 'bg-gray-100 text-gray-800', icon: History }
+const statusConfigKeys: Record<VersionStatus, { labelKey: string; color: string; icon: any }> = {
+  training: { labelKey: 'ai.modelTrain.statusTraining', color: 'bg-blue-100 text-blue-800', icon: RefreshCw },
+  completed: { labelKey: 'ai.modelTrain.statusCompleted', color: 'bg-green-100 text-green-800', icon: CheckCircle2 },
+  failed: { labelKey: 'ai.modelTrain.statusFailed', color: 'bg-red-100 text-red-800', icon: XCircle },
+  deployed: { labelKey: 'ai.modelTrain.statusDeployed', color: 'bg-purple-100 text-purple-800', icon: Rocket },
+  archived: { labelKey: 'ai.modelTrain.statusArchived', color: 'bg-gray-100 text-gray-800', icon: History }
 };
 
-const dataQualityConfig: Record<string, { label: string; color: string }> = {
-  excellent: { label: '优秀', color: 'text-green-600' },
-  good: { label: '良好', color: 'text-blue-600' },
-  fair: { label: '一般', color: 'text-yellow-600' },
-  poor: { label: '较差', color: 'text-red-600' }
+const dataQualityKeys: Record<string, { labelKey: string; color: string }> = {
+  excellent: { labelKey: 'ai.modelTrain.qualityExcellent', color: 'text-green-600' },
+  good: { labelKey: 'ai.modelTrain.qualityGood', color: 'text-blue-600' },
+  fair: { labelKey: 'ai.modelTrain.qualityFair', color: 'text-yellow-600' },
+  poor: { labelKey: 'ai.modelTrain.qualityPoor', color: 'text-red-600' }
 };
 
 // ==================== 主组件 ====================
 
 export default function ModelTrainingScheduler() {
+  const { t } = useLanguage();
   const [schedules, setSchedules] = useState<Schedule[]>(mockSchedules);
   const [versions] = useState<ModelVersion[]>(mockVersions);
   const [reports] = useState<TrainingReport[]>(mockReports);
@@ -139,25 +141,25 @@ export default function ModelTrainingScheduler() {
     setSchedules(prev => prev.map(s => 
       s.id === id ? { ...s, enabled: !s.enabled } : s
     ));
-    toast.success('调度状态已更新');
+    toast.success(t('ai.modelTrain.statusUpdated'));
   };
 
   // 手动触发训练
   const triggerTraining = (schedule: Schedule) => {
-    toast.info(`正在触发 ${schedule.name} 训练...`);
+    toast.info(`${t('ai.modelTrain.triggerTraining')} ${schedule.name}`);
     setTimeout(() => {
-      toast.success(`${schedule.name} 训练已启动`);
+      toast.success(`${schedule.name} ${t('ai.modelTrain.trainingStarted')}`);
     }, 1000);
   };
 
   // 部署版本
   const deployVersion = (version: ModelVersion) => {
-    toast.success(`版本 ${version.version} 已部署`);
+    toast.success(`${t('ai.modelTrain.versionDeployed')} v${version.version}`);
   };
 
   // 回滚版本
   const rollbackVersion = (version: ModelVersion) => {
-    toast.success(`已回滚到版本 ${version.version}`);
+    toast.success(`${t('ai.modelTrain.rolledBackMsg')} ${version.version}`);
   };
 
   // 统计数据
@@ -179,63 +181,63 @@ export default function ModelTrainingScheduler() {
         {/* 页面标题 */}
         <PageHeader
           icon={Timer}
-          title="模型训练调度"
-          description="管理模型自动训练任务、版本和报告"
+          title={t("ai.modelTrain.title")}
+          description={t("ai.modelTrain.description")}
           actions={
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">调度器</span>
+                <span className="text-sm text-muted-foreground">{t("ai.modelTrain.scheduler")}</span>
                 <Switch
                   checked={schedulerRunning}
                   onCheckedChange={setSchedulerRunning}
                 />
                 <Badge variant={schedulerRunning ? 'default' : 'secondary'}>
-                  {schedulerRunning ? '运行中' : '已停止'}
+                  {schedulerRunning ? t('ai.modelTrain.running') : t('ai.modelTrain.stopped')}
                 </Badge>
               </div>
               <Dialog>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
-                    新建调度
+                    {t("ai.modelTrain.newSchedule")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>新建训练调度</DialogTitle>
+                    <DialogTitle>{t("ai.modelTrain.newScheduleTitle")}</DialogTitle>
                     <DialogDescription>
-                      创建新的模型自动训练任务
+                      {t("ai.modelTrain.newScheduleDesc")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <Label>调度名称</Label>
-                      <Input placeholder="输入调度名称" />
+                      <Label>{t("ai.modelTrain.scheduleName")}</Label>
+                      <Input placeholder={t("ai.modelTrain.scheduleNamePlaceholder")} />
                     </div>
                     <div className="space-y-2">
-                      <Label>模型类型</Label>
+                      <Label>{t("ai.modelTrain.modelType")}</Label>
                       <Select>
                         <SelectTrigger>
-                          <SelectValue placeholder="选择模型类型" />
+                          <SelectValue placeholder={t("ai.modelTrain.selectModelType")} />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(modelTypeLabels).map(([key, label]) => (
-                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                          {Object.entries(modelTypeKeys).map(([key, labelKey]) => (
+                            <SelectItem key={key} value={key}>{t(labelKey)}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Cron 表达式</Label>
+                      <Label>{t("ai.modelTrain.cronExpression")}</Label>
                       <Input placeholder="0 2 * * *" />
                       <p className="text-xs text-muted-foreground">
-                        示例: 0 2 * * * (每天凌晨2点)
+                        {t("ai.modelTrain.cronExample")}
                       </p>
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button variant="outline">取消</Button>
-                    <Button onClick={() => toast.success('调度已创建')}>创建</Button>
+                    <Button variant="outline">{t("ai.modelTrain.cancel")}</Button>
+                    <Button onClick={() => toast.success(t('ai.modelTrain.scheduleCreated'))}>{t("ai.modelTrain.create")}</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -247,35 +249,35 @@ export default function ModelTrainingScheduler() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <StatCard
             icon={Calendar}
-            label="总调度数"
+            label={t("ai.modelTrain.totalSchedules")}
             value={stats.totalSchedules}
             iconColor="text-blue-600"
             iconBg="bg-blue-100"
           />
           <StatCard
             icon={Play}
-            label="启用调度"
+            label={t("ai.modelTrain.enabledSchedules")}
             value={stats.enabledSchedules}
             iconColor="text-green-600"
             iconBg="bg-green-100"
           />
           <StatCard
             icon={Database}
-            label="模型版本"
+            label={t("ai.modelTrain.modelVersions")}
             value={stats.totalVersions}
             iconColor="text-purple-600"
             iconBg="bg-purple-100"
           />
           <StatCard
             icon={Rocket}
-            label="已部署"
+            label={t("ai.modelTrain.deployed")}
             value={stats.deployedVersions}
             iconColor="text-orange-600"
             iconBg="bg-orange-100"
           />
           <StatCard
             icon={TrendingUp}
-            label="平均准确率"
+            label={t("ai.modelTrain.avgAccuracy")}
             value={`${(stats.avgAccuracy * 100).toFixed(1)}%`}
             iconColor="text-cyan-600"
             iconBg="bg-cyan-100"
@@ -287,15 +289,15 @@ export default function ModelTrainingScheduler() {
           <TabsList>
             <TabsTrigger value="schedules" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              调度管理
+              {t("ai.modelTrain.tabSchedules")}
             </TabsTrigger>
             <TabsTrigger value="versions" className="flex items-center gap-2">
               <Database className="w-4 h-4" />
-              模型版本
+              {t("ai.modelTrain.tabVersions")}
             </TabsTrigger>
             <TabsTrigger value="reports" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
-              训练报告
+              {t("ai.modelTrain.tabReports")}
             </TabsTrigger>
           </TabsList>
 
@@ -313,7 +315,7 @@ export default function ModelTrainingScheduler() {
                         <h3 className="font-semibold text-lg">{schedule.name}</h3>
                         <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
-                            <Badge variant="outline">{modelTypeLabels[schedule.modelType]}</Badge>
+                            <Badge variant="outline">{t(modelTypeKeys[schedule.modelType])}</Badge>
                           </span>
                           <span className="flex items-center gap-1 font-mono">
                             <Clock className="w-3 h-3" />
@@ -326,12 +328,12 @@ export default function ModelTrainingScheduler() {
                       <div className="text-right text-sm">
                         {schedule.lastRunAt && (
                           <p className="text-muted-foreground">
-                            上次运行: {new Date(schedule.lastRunAt).toLocaleString('zh-CN')}
+                            {t("ai.modelTrain.lastRun")}: {new Date(schedule.lastRunAt).toLocaleString()}
                           </p>
                         )}
                         {schedule.nextRunAt && schedule.enabled && (
                           <p className="text-primary">
-                            下次运行: {new Date(schedule.nextRunAt).toLocaleString('zh-CN')}
+                            {t("ai.modelTrain.nextRun")}: {new Date(schedule.nextRunAt).toLocaleString()}
                           </p>
                         )}
                       </div>
@@ -347,10 +349,10 @@ export default function ModelTrainingScheduler() {
                           disabled={!schedulerRunning}
                         >
                           <Play className="w-4 h-4 mr-1" />
-                          立即执行
+                          {t("ai.modelTrain.runNow")}
                         </Button>
                         <Button variant="ghost" size="icon"
-                          onClick={() => toast.info(`配置训练任务: ${schedule.name}`)}
+                          onClick={() => toast.info(`${t('ai.modelTrain.configTask')}: ${schedule.name}`)}
                         >
                           <Settings className="w-4 h-4" />
                         </Button>
@@ -367,12 +369,12 @@ export default function ModelTrainingScheduler() {
             <div className="flex items-center justify-between">
               <Select value={selectedModelType} onValueChange={setSelectedModelType}>
                 <SelectTrigger className="w-48">
-                  <SelectValue placeholder="筛选模型类型" />
+                  <SelectValue placeholder={t("ai.modelTrain.filterModelType")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部类型</SelectItem>
-                  {Object.entries(modelTypeLabels).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  <SelectItem value="all">{t("ai.modelTrain.filterAllTypes")}</SelectItem>
+                  {Object.entries(modelTypeKeys).map(([key, labelKey]) => (
+                    <SelectItem key={key} value={key}>{t(labelKey)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -380,7 +382,7 @@ export default function ModelTrainingScheduler() {
 
             <div className="grid gap-4">
               {filteredVersions.map(version => {
-                const StatusIcon = statusConfig[version.status].icon;
+                const StatusIcon = statusConfigKeys[version.status].icon;
                 return (
                   <Card key={version.id}>
                     <CardContent className="p-4">
@@ -389,25 +391,25 @@ export default function ModelTrainingScheduler() {
                           <div className="text-center">
                             <p className="text-2xl font-bold font-mono">v{version.version}</p>
                             <Badge variant="outline" className="mt-1">
-                              {modelTypeLabels[version.modelType]}
+                              {t(modelTypeKeys[version.modelType])}
                             </Badge>
                           </div>
                           <div className="h-12 w-px bg-border" />
                           <div>
                             <div className="flex items-center gap-2">
-                              <Badge className={statusConfig[version.status].color}>
+                              <Badge className={statusConfigKeys[version.status].color}>
                                 <StatusIcon className="w-3 h-3 mr-1" />
-                                {statusConfig[version.status].label}
+                                {t(statusConfigKeys[version.status].labelKey)}
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground mt-1">
-                              训练时间: {new Date(version.trainedAt).toLocaleString('zh-CN')}
+                              {t("ai.modelTrain.trainedAt")}: {new Date(version.trainedAt).toLocaleString()}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-6">
                           <div className="text-right">
-                            <p className="text-sm text-muted-foreground">准确率</p>
+                            <p className="text-sm text-muted-foreground">{t("ai.modelTrain.accuracyLabel")}</p>
                             <p className="text-xl font-bold text-primary">
                               {(version.accuracy * 100).toFixed(1)}%
                             </p>
@@ -416,13 +418,13 @@ export default function ModelTrainingScheduler() {
                             {version.status === 'completed' && (
                               <Button size="sm" onClick={() => deployVersion(version)}>
                                 <Rocket className="w-4 h-4 mr-1" />
-                                部署
+                                {t("ai.modelTrain.deploy")}
                               </Button>
                             )}
                             {version.status === 'archived' && (
                               <Button size="sm" variant="outline" onClick={() => rollbackVersion(version)}>
                                 <RotateCcw className="w-4 h-4 mr-1" />
-                                回滚
+                                {t("ai.modelTrain.rollback")}
                               </Button>
                             )}
                             <Button variant="ghost" size="icon">
@@ -450,29 +452,29 @@ export default function ModelTrainingScheduler() {
                       </div>
                       <div>
                         <h3 className="font-semibold">
-                          {modelTypeLabels[report.modelType]} v{report.version} 训练报告
+                          {t(modelTypeKeys[report.modelType])} v{report.version} {t("ai.modelTrain.trainingReport")}
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          生成时间: {new Date(report.generatedAt).toLocaleString('zh-CN')}
+                          {t("ai.modelTrain.generatedAt")}: {new Date(report.generatedAt).toLocaleString()}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-6">
                       <div className="text-center">
-                        <p className="text-sm text-muted-foreground">性能提升</p>
+                        <p className="text-sm text-muted-foreground">{t("ai.modelTrain.perfImprovement")}</p>
                         <p className={`text-lg font-bold ${report.improvement > 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {report.improvement > 0 ? '+' : ''}{report.improvement.toFixed(1)}%
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-sm text-muted-foreground">数据质量</p>
-                        <p className={`text-lg font-bold ${dataQualityConfig[report.dataQuality].color}`}>
-                          {dataQualityConfig[report.dataQuality].label}
+                        <p className="text-sm text-muted-foreground">{t("ai.modelTrain.dataQuality")}</p>
+                        <p className={`text-lg font-bold ${dataQualityKeys[report.dataQuality].color}`}>
+                          {t(dataQualityKeys[report.dataQuality].labelKey)}
                         </p>
                       </div>
                       <Button variant="outline" size="sm">
                         <Download className="w-4 h-4 mr-1" />
-                        下载
+                        {t("ai.modelTrain.download")}
                       </Button>
                     </div>
                   </div>

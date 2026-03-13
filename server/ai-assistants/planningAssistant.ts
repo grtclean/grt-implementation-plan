@@ -272,7 +272,7 @@ export async function createExecutionNote(input: { planId: string; originalPlan:
 export async function getPlanById(planId: string) {
   const db = await requireDb();
   if (!db) throw new Error("Database not available");
-  const plans = await db.select().from(planningPlans).where(eq(planningPlans.planId, planId));
+  const plans = await db.select().from(planningPlans).where(eq(planningPlans.planId, planId)).limit(1000);
   if (plans.length === 0) return null;
 
   const plan = plans[0];
@@ -313,7 +313,7 @@ export async function updateTaskStatus(taskId: string, status: "pending" | "in_p
 
   await db.update(planningTasks).set(updateData).where(eq(planningTasks.taskId, taskId));
 
-  const tasks = await db.select().from(planningTasks).where(eq(planningTasks.taskId, taskId));
+  const tasks = await db.select().from(planningTasks).where(eq(planningTasks.taskId, taskId)).limit(1000);
   if (tasks.length > 0) {
     const planId = tasks[0].planId;
     const allTasks = await db.select().from(planningTasks).where(eq(planningTasks.planId, planId)).limit(1000);

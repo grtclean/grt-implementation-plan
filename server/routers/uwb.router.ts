@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { router, protectedProcedure } from '../_core/trpc';
+import {router, protectedProcedure, requirePermission} from '../_core/trpc';
 import {
   processLocationData,
   processBatchLocationData,
@@ -57,7 +57,7 @@ export const uwbRouter = router({
   /**
    * 接收单条定位数据
    */
-  reportLocation: protectedProcedure
+  reportLocation: requirePermission('mfg:uwb:manage')
     .input(locationDataSchema)
     .mutation(async ({ input }) => {
       await processLocationData({
@@ -70,7 +70,7 @@ export const uwbRouter = router({
   /**
    * 批量接收定位数据
    */
-  reportBatchLocations: protectedProcedure
+  reportBatchLocations: requirePermission('mfg:uwb:manage')
     .input(z.array(locationDataSchema))
     .mutation(async ({ input }) => {
       const result = await processBatchLocationData(
@@ -178,7 +178,7 @@ export const uwbRouter = router({
   /**
    * 创建区域
    */
-  createZone: protectedProcedure
+  createZone: requirePermission('mfg:uwb:manage')
     .input(zoneInputSchema)
     .mutation(async ({ input }) => {
       const id = await createZone(input);
@@ -227,7 +227,7 @@ export const uwbRouter = router({
   /**
    * 绑定标签到员工
    */
-  bindTag: protectedProcedure
+  bindTag: requirePermission('mfg:uwb:manage')
     .input(z.object({
       tagId: z.string(),
       employeeId: z.string(),
@@ -240,7 +240,7 @@ export const uwbRouter = router({
   /**
    * 解绑标签
    */
-  unbindTag: protectedProcedure
+  unbindTag: requirePermission('mfg:uwb:manage')
     .input(z.object({
       tagId: z.string(),
     }))
@@ -254,7 +254,7 @@ export const uwbRouter = router({
   /**
    * 同步工时到排程系统
    */
-  syncToScheduling: protectedProcedure
+  syncToScheduling: requirePermission('mfg:uwb:manage')
     .input(z.object({
       employeeId: z.string(),
       taskId: z.string(),
@@ -272,7 +272,7 @@ export const uwbRouter = router({
   /**
    * 结束当天工时记录
    */
-  closeDayWorkHours: protectedProcedure
+  closeDayWorkHours: requirePermission('mfg:uwb:manage')
     .input(z.object({
       date: z.string(),
     }))
@@ -637,7 +637,7 @@ export const uwbRouter = router({
   /**
    * 更新标签电量（供硬件上报）
    */
-  updateTagBattery: protectedProcedure
+  updateTagBattery: requirePermission('mfg:uwb:manage')
     .input(z.object({
       tagId: z.string(),
       batteryLevel: z.number().min(0).max(100),
@@ -656,7 +656,7 @@ export const uwbRouter = router({
   /**
    * 发送低电量通知（手动触发）
    */
-  sendLowBatteryNotification: protectedProcedure
+  sendLowBatteryNotification: requirePermission('mfg:uwb:manage')
     .input(z.object({
       tagId: z.string(),
     }))

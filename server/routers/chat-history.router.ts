@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiChatSessions, aiChatMessages } from "../../drizzle/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -21,7 +21,7 @@ export const chatHistoryRouter = router({
   }),
 
   // 创建会话
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('ai:assistant:chat').input(z.object({
     assistantType: z.enum(["solution", "quotation", "planning", "kpi", "personal"]).optional(),
     title: z.string().max(200).optional(),
     projectId: z.number().int().optional(),
@@ -41,7 +41,7 @@ export const chatHistoryRouter = router({
   }),
 
   // 更新会话
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('ai:assistant:chat').input(z.object({
     id: z.union([z.string(), z.number()]),
     title: z.string().max(200).optional(),
     status: z.enum(["active", "archived", "deleted"]).optional(),
@@ -59,7 +59,7 @@ export const chatHistoryRouter = router({
   }),
 
   // 删除会话
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  delete: requirePermission('ai:assistant:chat').input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
     await db.delete(aiChatMessages).where(eq(aiChatMessages.sessionId, id));
@@ -74,7 +74,7 @@ export const chatHistoryRouter = router({
   }),
 
   // 创建新会话
-  createSession: protectedProcedure.input(z.object({
+  createSession: requirePermission('ai:assistant:chat').input(z.object({
     assistantType: z.enum(["solution", "quotation", "planning", "kpi", "personal"]).optional(),
     title: z.string().max(200).optional(),
   })).mutation(async ({ input, ctx }) => {
@@ -100,7 +100,7 @@ export const chatHistoryRouter = router({
   }),
 
   // 添加消息
-  addMessage: protectedProcedure.input(z.object({
+  addMessage: requirePermission('ai:assistant:chat').input(z.object({
     sessionId: z.union([z.string(), z.number()]),
     role: z.enum(["user", "assistant", "system"]).optional(),
     content: z.string().max(50000).optional(),

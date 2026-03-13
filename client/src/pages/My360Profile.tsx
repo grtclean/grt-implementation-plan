@@ -44,6 +44,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ─── Icon Resolver ───────────────────────────────────────────────────
 
@@ -66,15 +67,15 @@ function gapColor(gap: number): string {
   return "text-red-600";
 }
 
-function priorityBadge(priority: string) {
-  if (priority === "high") return <Badge className="bg-red-100 text-red-700 hover:bg-red-100 text-xs">紧急</Badge>;
-  if (priority === "medium") return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-xs">一般</Badge>;
-  return <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-xs">达标</Badge>;
+function priorityBadge(priority: string, t: (key: string) => string) {
+  if (priority === "high") return <Badge className="bg-red-100 text-red-700 hover:bg-red-100 text-xs">{t("hr.my360.priorityHigh")}</Badge>;
+  if (priority === "medium") return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-xs">{t("hr.my360.priorityMedium")}</Badge>;
+  return <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-xs">{t("hr.my360.priorityLow")}</Badge>;
 }
 
 // ─── Custom Tooltip ──────────────────────────────────────────────────
 
-function CustomTooltip({ active, payload }: any) {
+function CustomTooltip({ active, payload, t }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
@@ -82,10 +83,10 @@ function CustomTooltip({ active, payload }: any) {
     <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg text-sm">
       <p className="font-semibold text-gray-900">{d.name} ({d.code})</p>
       <div className="mt-1.5 space-y-1">
-        <p className="text-blue-600">目标: <strong>{d.target}</strong></p>
-        <p className="text-emerald-600">实际: <strong>{d.actual}</strong></p>
+        <p className="text-blue-600">{t("hr.my360.tooltipTarget")}: <strong>{d.target}</strong></p>
+        <p className="text-emerald-600">{t("hr.my360.tooltipActual")}: <strong>{d.actual}</strong></p>
         <p className={gapColor(d.target - d.actual)}>
-          差距: <strong>{d.target - d.actual > 0 ? `+${d.target - d.actual}` : d.target - d.actual}</strong>
+          {t("hr.my360.tooltipGap")}: <strong>{d.target - d.actual > 0 ? `+${d.target - d.actual}` : d.target - d.actual}</strong>
         </p>
       </div>
     </div>
@@ -95,6 +96,7 @@ function CustomTooltip({ active, payload }: any) {
 // ─── Main Component ──────────────────────────────────────────────────
 
 export default function My360Profile() {
+  const { t } = useLanguage();
   const { currentUserRole } = useUserProfile();
   const [showTips, setShowTips] = useState(false);
 
@@ -146,8 +148,8 @@ export default function My360Profile() {
               <User className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">我的 360 画像</h1>
-              <p className="text-sm text-gray-500">My 360 Profile — TSDCKL Capability Radar</p>
+              <h1 className="text-xl font-semibold text-gray-900">{t("hr.my360.title")}</h1>
+              <p className="text-sm text-gray-500">{t("hr.my360.subtitle")}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -168,21 +170,21 @@ export default function My360Profile() {
             <div>
               <h2 className="text-lg font-semibold text-gray-900">{assessment.name} ({assessment.nameEn})</h2>
               <p className="text-sm text-gray-500">
-                {assessment.department} &nbsp;|&nbsp; {assessment.roleName} &nbsp;|&nbsp; 评估周期: {assessment.assessedAt}
+                {assessment.department} &nbsp;|&nbsp; {assessment.roleName} &nbsp;|&nbsp; {t("hr.my360.assessmentPeriod")}: {assessment.assessedAt}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-6">
             <div className="text-center">
               <p className="text-3xl font-bold text-gray-900">{assessment.overallScore}</p>
-              <p className="text-xs text-gray-500">综合得分</p>
+              <p className="text-xs text-gray-500">{t("hr.my360.overallScore")}</p>
             </div>
             <Badge className={`px-4 py-2 text-base font-bold ${gradeColor(assessment.overallGrade)}`}>
               {assessment.overallGrade}
             </Badge>
             <div className="text-center">
               <p className="text-xl font-semibold text-blue-600">{overallTarget}</p>
-              <p className="text-xs text-gray-500">岗位目标</p>
+              <p className="text-xs text-gray-500">{t("hr.my360.positionTarget")}</p>
             </div>
           </div>
         </div>
@@ -194,8 +196,8 @@ export default function My360Profile() {
             <CardHeader className="pb-2 border-b bg-gray-50/50">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Target className="w-5 h-5 text-violet-600" />
-                能力雷达图
-                <span className="text-xs text-gray-400 font-normal ml-1">Target vs Actual</span>
+                {t("hr.my360.radarTitle")}
+                <span className="text-xs text-gray-400 font-normal ml-1">{t("hr.my360.radarSubtitle")}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
@@ -223,7 +225,7 @@ export default function My360Profile() {
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: "#94a3b8", fontSize: 10 }} tickCount={5} />
                   {/* Target polygon — blue dashed outline */}
                   <Radar
-                    name="岗位目标"
+                    name={t("hr.my360.radarTargetLabel")}
                     dataKey="target"
                     stroke="#3b82f6"
                     fill="#3b82f6"
@@ -233,7 +235,7 @@ export default function My360Profile() {
                   />
                   {/* Actual polygon — green solid fill */}
                   <Radar
-                    name="实际得分"
+                    name={t("hr.my360.radarActualLabel")}
                     dataKey="actual"
                     stroke="#10b981"
                     fill="#10b981"
@@ -241,7 +243,7 @@ export default function My360Profile() {
                     strokeWidth={2}
                     dot={{ r: 4, fill: "#10b981", stroke: "#fff", strokeWidth: 2 }}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<CustomTooltip t={t} />} />
                   <Legend
                     iconType="line"
                     wrapperStyle={{ paddingTop: 16, fontSize: 13 }}
@@ -257,7 +259,7 @@ export default function My360Profile() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Award className="w-5 h-5 text-amber-600" />
-                  六大能力得分明细
+                  {t("hr.my360.scoreBreakdown")}
                 </CardTitle>
                 <Button
                   size="sm"
@@ -270,7 +272,7 @@ export default function My360Profile() {
                   ) : (
                     <Sparkles className="w-3.5 h-3.5" />
                   )}
-                  AI 提升建议
+                  {t("hr.my360.aiTips")}
                 </Button>
               </div>
             </CardHeader>
@@ -312,7 +314,7 @@ export default function My360Profile() {
                       </div>
                       <div className="ml-10">
                         <Progress value={pct} className="h-2" />
-                        <p className="text-xs text-gray-400 mt-1">{item.nameEn} — {Math.round(pct)}% of target</p>
+                        <p className="text-xs text-gray-400 mt-1">{item.nameEn} — {Math.round(pct)}% {t("hr.my360.ofTarget")}</p>
                       </div>
                     </div>
                   );
@@ -328,9 +330,9 @@ export default function My360Profile() {
             <CardHeader className="pb-3 border-b bg-gradient-to-r from-violet-50 to-blue-50">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Bot className="w-5 h-5 text-violet-600" />
-                AI 个性化提升建议
+                {t("hr.my360.aiPersonalTips")}
                 <span className="text-xs text-gray-400 font-normal ml-1">
-                  Generated {new Date(tipsMutation.data.generatedAt).toLocaleString()}
+                  {t("hr.my360.generated")} {new Date(tipsMutation.data.generatedAt).toLocaleString()}
                 </span>
               </CardTitle>
             </CardHeader>
@@ -353,15 +355,15 @@ export default function My360Profile() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm font-medium text-gray-900">{tip.code} — {tip.name}</span>
-                            {priorityBadge(tip.priority)}
+                            {priorityBadge(tip.priority, t)}
                             <span className="text-xs text-gray-400">
-                              实际 {tip.actual} / 目标 {tip.target} (差距 {tip.gap > 0 ? `+${tip.gap}` : tip.gap})
+                              {t("hr.my360.actual")} {tip.actual} / {t("hr.my360.target")} {tip.target} ({t("hr.my360.gap")} {tip.gap > 0 ? `+${tip.gap}` : tip.gap})
                             </span>
                           </div>
                           <p className="text-sm text-gray-700">{tip.tip}</p>
                           <div className="flex items-center gap-1.5 mt-2 text-xs text-violet-700 bg-violet-50 px-3 py-1.5 rounded-lg">
                             <ArrowRight className="w-3 h-3" />
-                            <span className="font-medium">行动建议:</span> {tip.action}
+                            <span className="font-medium">{t("hr.my360.actionSuggestion")}:</span> {tip.action}
                           </div>
                         </div>
                       </div>

@@ -480,20 +480,20 @@ function CreateOffboardingDialog({
                       ))}
                     </>
                   )}
-                  {employeeSearchQuery.data.jiandaoyunMembers.length > 0 && (
+                  {employeeSearchQuery.data.externalSyncMembers?.length > 0 && (
                     <>
                       <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 border-t border-border">
-                        简道云员工 ({employeeSearchQuery.data.totalJiandaoyun})
+                        外部平台员工 ({employeeSearchQuery.data.totalExternalSync})
                       </div>
-                      {employeeSearchQuery.data.jiandaoyunMembers.map((emp: any, idx: number) => (
+                      {employeeSearchQuery.data.externalSyncMembers.map((emp: any, idx: number) => (
                         <div
-                          key={`jdy-${idx}`}
+                          key={`ext-${idx}`}
                           className="px-3 py-2 hover:bg-accent cursor-pointer flex items-center justify-between text-sm"
                           onClick={() => handleSelectEmployee({ name: emp.name, department: '', position: '' })}
                         >
                           <div>
                             <span className="font-medium">{emp.name}</span>
-                            <Badge variant="outline" className="ml-2 text-[10px] px-1 py-0">简道云</Badge>
+                            <Badge variant="outline" className="ml-2 text-[10px] px-1 py-0">外部平台</Badge>
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {emp.username}
@@ -502,7 +502,7 @@ function CreateOffboardingDialog({
                       ))}
                     </>
                   )}
-                  {employeeSearchQuery.data.totalLocal === 0 && employeeSearchQuery.data.totalJiandaoyun === 0 && (
+                  {employeeSearchQuery.data.totalLocal === 0 && (employeeSearchQuery.data.totalExternalSync ?? 0) === 0 && (
                     <div className="px-3 py-4 text-center text-sm text-muted-foreground">
                       未找到匹配的员工，请手动填写下方表单
                     </div>

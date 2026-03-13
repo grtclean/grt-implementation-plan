@@ -203,7 +203,7 @@ export default function ServiceTickets() {
                 <Input placeholder={t("afterSales.tickets.searchPlaceholder")} className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]"><SelectValue placeholder="状态" /></SelectTrigger>
+                <SelectTrigger className="w-[140px]"><SelectValue placeholder={t("afterSales.tickets.statusPlaceholder")} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t("afterSales.tickets.allStatus")}</SelectItem>
                   {Object.entries(STATUS_LABEL_KEYS).map(([k, v]) => (
@@ -212,7 +212,7 @@ export default function ServiceTickets() {
                 </SelectContent>
               </Select>
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-[120px]"><SelectValue placeholder="优先级" /></SelectTrigger>
+                <SelectTrigger className="w-[120px]"><SelectValue placeholder={t("afterSales.tickets.priorityPlaceholder")} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t("afterSales.tickets.allPriority")}</SelectItem>
                   {Object.entries(PRIORITY_LABEL_KEYS).map(([k, v]) => (

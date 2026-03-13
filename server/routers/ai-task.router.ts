@@ -5,7 +5,7 @@
  * Supports: create → poll status → retrieve result
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { jsonValue } from "@shared/validators";
 import { aiTasks } from "../../drizzle/schema";
@@ -45,7 +45,7 @@ async function ensureTables() {
 // ─── Router ──────────────────────────────────────────────────
 export const aiTaskRouter = router({
   /** Create a new AI task */
-  create: protectedProcedure
+  create: requirePermission('ai:hub:access')
     .input(z.object({
       taskType: z.string().max(50),
       inputData: z.record(z.string(), jsonValue).optional(),
@@ -95,7 +95,7 @@ export const aiTaskRouter = router({
     }),
 
   /** Mark task as processing (worker picks it up) */
-  markProcessing: protectedProcedure
+  markProcessing: requirePermission('ai:hub:access')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       await ensureTables();
@@ -107,7 +107,7 @@ export const aiTaskRouter = router({
     }),
 
   /** Complete task with result data */
-  complete: protectedProcedure
+  complete: requirePermission('ai:hub:access')
     .input(z.object({
       id: z.number(),
       resultData: z.record(z.string(), jsonValue),
@@ -126,7 +126,7 @@ export const aiTaskRouter = router({
     }),
 
   /** Fail task with error message */
-  fail: protectedProcedure
+  fail: requirePermission('ai:hub:access')
     .input(z.object({
       id: z.number(),
       errorMessage: z.string().max(500),

@@ -190,7 +190,7 @@ export async function uploadNewVersion(input: UploadVersionInput) {
 
   // 1. Fetch the document to verify it exists + get denormalized fields
   const [doc] = await db.select().from(plmDocuments)
-    .where(eq(plmDocuments.id, input.documentId));
+    .where(eq(plmDocuments.id, input.documentId)).limit(1000);
 
   if (!doc) {
     throw new Error(`Document ID ${input.documentId} not found`);
@@ -319,7 +319,7 @@ export async function promoteToMajorVersion(
   }).returning();
 
   const [doc] = await db.select().from(plmDocuments)
-    .where(eq(plmDocuments.id, documentId));
+    .where(eq(plmDocuments.id, documentId)).limit(1000);
 
   await db.update(plmDocuments)
     .set({

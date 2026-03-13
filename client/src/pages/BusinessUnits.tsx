@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { Plus, Edit2, Trash2, TrendingUp, AlertCircle } from "lucide-react";
 const COLORS = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F"];
 
 export default function BusinessUnits() {
+  const { t } = useLanguage();
   const [selectedBu, setSelectedBu] = useState<number | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isPerformanceDialogOpen, setIsPerformanceDialogOpen] = useState(false);
@@ -73,7 +75,7 @@ export default function BusinessUnits() {
   };
 
   const handleDeleteBu = async (id: number) => {
-    if (confirm("确定要删除这个事业部吗？")) {
+    if (confirm(t("admin.bu.confirmDelete"))) {
       await deleteBuMutation.mutateAsync({ id });
     }
   };
@@ -82,25 +84,25 @@ export default function BusinessUnits() {
   const perfData = performance && (performance as any).data && (performance as any).data.length > 0 ? (performance as any).data[0] : null;
   const performanceData = perfData ? [
     {
-      name: "经营",
+      name: t("admin.bu.operation"),
       value: Math.round(
         (Number(perfData.revenue || 0) / Number(perfData.revenueTarget || 1)) * 100
       ),
     },
     {
-      name: "交付",
+      name: t("admin.bu.delivery"),
       value: Number(perfData.deliveryOnTimeRate || 0),
     },
     {
-      name: "成本",
+      name: t("admin.bu.costDim"),
       value: 100 - Math.abs(Number(perfData.costVarianceRate || 0)),
     },
     {
-      name: "质量",
+      name: t("admin.bu.qualityDim"),
       value: Number(perfData.qualityScore || 0),
     },
     {
-      name: "客户",
+      name: t("admin.bu.customerDim"),
       value: Number(perfData.customerSatisfaction || 0),
     },
   ] : [];
@@ -110,12 +112,12 @@ export default function BusinessUnits() {
       <div className="space-y-6">
         <PageHeader
           icon={TrendingUp}
-          title="事业部管理"
-          description="管理事业部、绩效指标和关键业绩指标"
+          title={t("admin.bu.title")}
+          description={t("admin.bu.description")}
           actions={
             <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
               <Plus className="w-4 h-4" />
-              创建事业部
+              {t("admin.bu.createBU")}
             </Button>
           }
         />
@@ -123,14 +125,14 @@ export default function BusinessUnits() {
         {/* 事业部列表 */}
         <Card>
           <CardHeader>
-            <CardTitle>事业部列表</CardTitle>
+            <CardTitle>{t("admin.bu.buList")}</CardTitle>
             <CardDescription>
-              {buList?.data?.length || 0} 个事业部
+              {t("admin.bu.buCount").replace("{count}", String(buList?.data?.length || 0))}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoadingBuList ? (
-              <div className="text-center py-8 text-muted-foreground">加载中...</div>
+              <div className="text-center py-8 text-muted-foreground">{t("admin.bu.loading")}</div>
             ) : buList?.data && buList.data.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {buList.data.map((bu: any) => (
@@ -174,10 +176,10 @@ export default function BusinessUnits() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground">
-                        {bu.description || "暂无描述"}
+                        {bu.description || t("admin.bu.noDescription")}
                       </p>
                       <div className="mt-3 inline-block px-2 py-1 rounded-full text-xs font-medium bg-secondary">
-                        {bu.status === "active" ? "活跃" : bu.status === "inactive" ? "非活跃" : "规划中"}
+                        {bu.status === "active" ? t("admin.bu.statusActive") : bu.status === "inactive" ? t("admin.bu.statusInactive") : t("admin.bu.statusPlanning")}
                       </div>
                     </CardContent>
                   </Card>
@@ -185,7 +187,7 @@ export default function BusinessUnits() {
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                暂无事业部，请创建一个新的事业部
+                {t("admin.bu.noBU")}
               </div>
             )}
           </CardContent>
@@ -195,18 +197,18 @@ export default function BusinessUnits() {
         {selectedBu && (
           <Tabs defaultValue="performance" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="performance">绩效指标</TabsTrigger>
-              <TabsTrigger value="kpis">KPI管理</TabsTrigger>
-              <TabsTrigger value="statistics">统计分析</TabsTrigger>
+              <TabsTrigger value="performance">{t("admin.bu.perfMetrics")}</TabsTrigger>
+              <TabsTrigger value="kpis">{t("admin.bu.kpiManagement")}</TabsTrigger>
+              <TabsTrigger value="statistics">{t("admin.bu.statistics")}</TabsTrigger>
             </TabsList>
 
             {/* 绩效指标标签页 */}
             <TabsContent value="performance" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>绩效指标概览</CardTitle>
+                  <CardTitle>{t("admin.bu.perfOverview")}</CardTitle>
                   <CardDescription>
-                    2026年度绩效指标
+                    {t("admin.bu.perfYear")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -229,7 +231,7 @@ export default function BusinessUnits() {
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
                           <CardContent className="pt-6">
-                            <div className="text-sm text-muted-foreground">收入达成率</div>
+                            <div className="text-sm text-muted-foreground">{t("admin.bu.revenueAchievement")}</div>
                             <div className="text-2xl font-bold mt-2">
                               {performance.data?.[0]?.revenueAchievementRate ?? 0}%
                             </div>
@@ -238,7 +240,7 @@ export default function BusinessUnits() {
 
                         <Card className="bg-gradient-to-br from-green-50 to-green-100">
                           <CardContent className="pt-6">
-                            <div className="text-sm text-muted-foreground">按时交付率</div>
+                            <div className="text-sm text-muted-foreground">{t("admin.bu.onTimeDelivery")}</div>
                             <div className="text-2xl font-bold mt-2">
                               {performance.data?.[0]?.deliveryOnTimeRate ?? 0}%
                             </div>
@@ -247,7 +249,7 @@ export default function BusinessUnits() {
 
                         <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
                           <CardContent className="pt-6">
-                            <div className="text-sm text-muted-foreground">质量评分</div>
+                            <div className="text-sm text-muted-foreground">{t("admin.bu.qualityScore")}</div>
                             <div className="text-2xl font-bold mt-2">
                               {performance.data?.[0]?.qualityScore ?? 0}分
                             </div>
@@ -256,7 +258,7 @@ export default function BusinessUnits() {
 
                         <Card className="bg-gradient-to-br from-orange-50 to-orange-100">
                           <CardContent className="pt-6">
-                            <div className="text-sm text-muted-foreground">客户满意度</div>
+                            <div className="text-sm text-muted-foreground">{t("admin.bu.custSatisfaction")}</div>
                             <div className="text-2xl font-bold mt-2">
                               {performance.data?.[0]?.customerSatisfaction ?? 0}分
                             </div>
@@ -265,7 +267,7 @@ export default function BusinessUnits() {
 
                         <Card className="bg-gradient-to-br from-red-50 to-red-100">
                           <CardContent className="pt-6">
-                            <div className="text-sm text-muted-foreground">成本差异率</div>
+                            <div className="text-sm text-muted-foreground">{t("admin.bu.costVariance")}</div>
                             <div className="text-2xl font-bold mt-2">
                               {performance.data?.[0]?.costVarianceRate ?? 0}%
                             </div>
@@ -274,7 +276,7 @@ export default function BusinessUnits() {
 
                         <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100">
                           <CardContent className="pt-6">
-                            <div className="text-sm text-muted-foreground">综合评分</div>
+                            <div className="text-sm text-muted-foreground">{t("admin.bu.overallScore")}</div>
                             <div className="text-2xl font-bold mt-2">
                               {performance.data?.[0]?.overallScore ?? 0}
                             </div>
@@ -286,18 +288,18 @@ export default function BusinessUnits() {
                         onClick={() => setIsPerformanceDialogOpen(true)}
                         className="w-full"
                       >
-                        编辑绩效指标
+                        {t("admin.bu.editPerf")}
                       </Button>
                     </div>
                   ) : (
                     <div className="text-center py-8">
                       <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">暂无绩效数据</p>
+                      <p className="text-muted-foreground">{t("admin.bu.noPerfData")}</p>
                       <Button
                         onClick={() => setIsPerformanceDialogOpen(true)}
                         className="mt-4"
                       >
-                        创建绩效数据
+                        {t("admin.bu.createPerfData")}
                       </Button>
                     </div>
                   )}
@@ -309,9 +311,9 @@ export default function BusinessUnits() {
             <TabsContent value="kpis" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>关键绩效指标 (KPI)</CardTitle>
+                  <CardTitle>{t("admin.bu.kpiTitle")}</CardTitle>
                   <CardDescription>
-                    {kpis?.data?.length || 0} 个KPI
+                    {t("admin.bu.kpiCount").replace("{count}", String(kpis?.data?.length || 0))}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -324,7 +326,7 @@ export default function BusinessUnits() {
                               <div>
                                 <h3 className="font-semibold">{kpi.kpiName}</h3>
                                 <p className="text-sm text-muted-foreground">
-                                  代码: {kpi.kpiCode} | 维度: {kpi.dimension}
+                                  {t("admin.bu.kpiCode")} {kpi.kpiCode} | {t("admin.bu.kpiDimension")} {kpi.dimension}
                                 </p>
                               </div>
                               <div className="text-right">
@@ -332,19 +334,19 @@ export default function BusinessUnits() {
                                   {kpi.targetValue}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                  {kpi.unit || "单位"}
+                                  {kpi.unit || t("admin.bu.kpiUnit")}
                                 </p>
                               </div>
                             </div>
                             <div className="mt-3 flex gap-2">
                               <div className="flex-1">
-                                <span className="text-xs text-muted-foreground">权重</span>
+                                <span className="text-xs text-muted-foreground">{t("admin.bu.kpiWeight")}</span>
                                 <div className="font-semibold">{kpi.weight}%</div>
                               </div>
                               <div className="flex-1">
-                                <span className="text-xs text-muted-foreground">状态</span>
+                                <span className="text-xs text-muted-foreground">{t("admin.bu.kpiStatus")}</span>
                                 <div className="font-semibold">
-                                  {kpi.status === "active" ? "活跃" : "非活跃"}
+                                  {kpi.status === "active" ? t("admin.bu.kpiActive") : t("admin.bu.kpiInactive")}
                                 </div>
                               </div>
                             </div>
@@ -354,7 +356,7 @@ export default function BusinessUnits() {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                      暂无KPI数据
+                      {t("admin.bu.noKpiData")}
                     </div>
                   )}
                 </CardContent>
@@ -365,9 +367,9 @@ export default function BusinessUnits() {
             <TabsContent value="statistics" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>统计分析</CardTitle>
+                  <CardTitle>{t("admin.bu.statsTitle")}</CardTitle>
                   <CardDescription>
-                    事业部综合统计信息
+                    {t("admin.bu.statsDesc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -375,7 +377,7 @@ export default function BusinessUnits() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <Card className="bg-gradient-to-br from-slate-50 to-slate-100">
                         <CardContent className="pt-6">
-                          <div className="text-sm text-muted-foreground">员工数</div>
+                          <div className="text-sm text-muted-foreground">{t("admin.bu.employeeCount")}</div>
                           <div className="text-3xl font-bold mt-2">
                             {statistics.data.employeeCount}
                           </div>
@@ -384,7 +386,7 @@ export default function BusinessUnits() {
 
                       <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
                         <CardContent className="pt-6">
-                          <div className="text-sm text-muted-foreground">项目数</div>
+                          <div className="text-sm text-muted-foreground">{t("admin.bu.projectCount")}</div>
                           <div className="text-3xl font-bold mt-2">
                             {statistics.data.projectCount}
                           </div>
@@ -393,7 +395,7 @@ export default function BusinessUnits() {
 
                       <Card className="bg-gradient-to-br from-green-50 to-green-100">
                         <CardContent className="pt-6">
-                          <div className="text-sm text-muted-foreground">平均项目评分</div>
+                          <div className="text-sm text-muted-foreground">{t("admin.bu.avgProjectScore")}</div>
                           <div className="text-3xl font-bold mt-2">
                             {statistics.data.averageProjectScore.toFixed(1)}
                           </div>
@@ -402,7 +404,7 @@ export default function BusinessUnits() {
 
                       <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
                         <CardContent className="pt-6">
-                          <div className="text-sm text-muted-foreground">KPI数</div>
+                          <div className="text-sm text-muted-foreground">{t("admin.bu.kpiCountLabel")}</div>
                           <div className="text-3xl font-bold mt-2">
                             {statistics.data.kpis.length}
                           </div>
@@ -411,7 +413,7 @@ export default function BusinessUnits() {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                      暂无统计数据
+                      {t("admin.bu.noStatsData")}
                     </div>
                   )}
                 </CardContent>
@@ -425,49 +427,49 @@ export default function BusinessUnits() {
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>创建事业部</DialogTitle>
+            <DialogTitle>{t("admin.bu.createDialogTitle")}</DialogTitle>
             <DialogDescription>
-              创建一个新的事业部并配置基本信息
+              {t("admin.bu.createDialogDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="code">事业部代码</Label>
+              <Label htmlFor="code">{t("admin.bu.buCode")}</Label>
               <Input
                 id="code"
-                placeholder="例如: BU5"
+                placeholder={t("admin.bu.buCodePlaceholder")}
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
               />
             </div>
             <div>
-              <Label htmlFor="name">事业部名称</Label>
+              <Label htmlFor="name">{t("admin.bu.buName")}</Label>
               <Input
                 id="name"
-                placeholder="例如: 工业通用事业部"
+                placeholder={t("admin.bu.buNamePlaceholder")}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
             <div>
-              <Label htmlFor="description">描述</Label>
+              <Label htmlFor="description">{t("admin.bu.buDescriptionLabel")}</Label>
               <Input
                 id="description"
-                placeholder="事业部描述"
+                placeholder={t("admin.bu.buDescPlaceholder")}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
             <div>
-              <Label htmlFor="status">状态</Label>
+              <Label htmlFor="status">{t("admin.bu.statusLabel")}</Label>
               <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">活跃</SelectItem>
-                  <SelectItem value="inactive">非活跃</SelectItem>
-                  <SelectItem value="planning">规划中</SelectItem>
+                  <SelectItem value="active">{t("admin.bu.statusActive")}</SelectItem>
+                  <SelectItem value="inactive">{t("admin.bu.statusInactive")}</SelectItem>
+                  <SelectItem value="planning">{t("admin.bu.statusPlanning")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -476,7 +478,7 @@ export default function BusinessUnits() {
               disabled={!formData.code || !formData.name}
               className="w-full"
             >
-              创建
+              {t("admin.bu.create")}
             </Button>
           </div>
         </DialogContent>

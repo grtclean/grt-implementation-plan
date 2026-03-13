@@ -38,6 +38,7 @@ import {
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/grt";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ===== 类型定义 =====
 
@@ -94,6 +95,7 @@ interface InstallationStep {
 // ===== 主组件 =====
 
 export default function SystemDeployment() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   
@@ -103,13 +105,13 @@ export default function SystemDeployment() {
   const prodConfigsQuery = trpc.changeManagement.getEnvironmentConfigs.useQuery({ environment: 'production' });
   const syncMutation = trpc.changeManagement.syncTestToProduction.useMutation({
     onSuccess: () => {
-      toast.success('同步完成！');
+      toast.success(t("admin.sysDeploy.syncComplete"));
       envComparisonQuery.refetch();
       testConfigsQuery.refetch();
       prodConfigsQuery.refetch();
     },
     onError: (error) => {
-      toast.error(`同步失败: ${error.message}`);
+      toast.error(`${t("admin.sysDeploy.syncFailed")}: ${error.message}`);
     },
   });
   const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
@@ -159,20 +161,20 @@ export default function SystemDeployment() {
   
   // 安装步骤
   const [installSteps, setInstallSteps] = useState<InstallationStep[]>([
-    { id: 1, name: '环境检测', description: '检测系统环境和依赖', status: 'pending', progress: 0 },
-    { id: 2, name: '依赖安装', description: '安装必要的软件依赖', status: 'pending', progress: 0 },
-    { id: 3, name: '数据库配置', description: '配置数据库连接和初始化', status: 'pending', progress: 0 },
-    { id: 4, name: '应用部署', description: '部署应用程序文件', status: 'pending', progress: 0 },
-    { id: 5, name: '安全配置', description: '配置安全选项和证书', status: 'pending', progress: 0 },
-    { id: 6, name: '服务启动', description: '启动应用服务', status: 'pending', progress: 0 },
-    { id: 7, name: '健康检查', description: '验证安装结果', status: 'pending', progress: 0 },
+    { id: 1, name: t("admin.sysDeploy.stepEnvDetect"), description: t("admin.sysDeploy.stepEnvDetectDesc"), status: 'pending', progress: 0 },
+    { id: 2, name: t("admin.sysDeploy.stepDepInstall"), description: t("admin.sysDeploy.stepDepInstallDesc"), status: 'pending', progress: 0 },
+    { id: 3, name: t("admin.sysDeploy.stepDbConfig"), description: t("admin.sysDeploy.stepDbConfigDesc"), status: 'pending', progress: 0 },
+    { id: 4, name: t("admin.sysDeploy.stepAppDeploy"), description: t("admin.sysDeploy.stepAppDeployDesc"), status: 'pending', progress: 0 },
+    { id: 5, name: t("admin.sysDeploy.stepSecConfig"), description: t("admin.sysDeploy.stepSecConfigDesc"), status: 'pending', progress: 0 },
+    { id: 6, name: t("admin.sysDeploy.stepServiceStart"), description: t("admin.sysDeploy.stepServiceStartDesc"), status: 'pending', progress: 0 },
+    { id: 7, name: t("admin.sysDeploy.stepHealthCheck"), description: t("admin.sysDeploy.stepHealthCheckDesc"), status: 'pending', progress: 0 },
   ]);
   
   // 环境状态 - 使用API数据
   const envComparison = envComparisonQuery.data?.data;
   const environments = [
     {
-      name: '测试环境',
+      name: t("admin.sysDeploy.testEnv"),
       type: 'test' as const,
       status: envComparison?.test?.status || 'offline',
       version: envComparison?.test?.version || 'unknown',
@@ -182,7 +184,7 @@ export default function SystemDeployment() {
       configCount: envComparison?.test?.configCount || 0,
     },
     {
-      name: '正式环境',
+      name: t("admin.sysDeploy.prodEnv"),
       type: 'production' as const,
       status: envComparison?.production?.status || 'offline',
       version: envComparison?.production?.version || 'unknown',
@@ -202,7 +204,7 @@ export default function SystemDeployment() {
       status: 'success',
       deployedBy: '张三',
       deployedAt: '2026-01-30 14:30:00',
-      duration: '5分钟',
+      duration: '5 min',
       changeRequestNo: 'CR-2026-0001',
     },
     {
@@ -212,7 +214,7 @@ export default function SystemDeployment() {
       status: 'success',
       deployedBy: '李四',
       deployedAt: '2026-01-28 10:00:00',
-      duration: '8分钟',
+      duration: '8 min',
       changeRequestNo: 'CR-2026-0002',
     },
     {
@@ -222,9 +224,9 @@ export default function SystemDeployment() {
       status: 'failed',
       deployedBy: '王五',
       deployedAt: '2026-01-27 16:00:00',
-      duration: '3分钟',
+      duration: '3 min',
       changeRequestNo: 'CR-2026-0003',
-      error: '一致性检查失败',
+      error: t("admin.sysDeploy.consistencyCheckFailed"),
     },
   ];
   
@@ -258,11 +260,11 @@ export default function SystemDeployment() {
     
     setIsInstalling(false);
     setInstallProgress(100);
-    toast.success('安装完成！');
+    toast.success(t("admin.sysDeploy.installComplete"));
   };
   
   const handleSyncToProduction = () => {
-    toast.info('正在同步测试环境到正式环境...');
+    toast.info(t("admin.sysDeploy.syncingToProduction"));
     syncMutation.mutate({});
   };
   
@@ -288,17 +290,17 @@ export default function SystemDeployment() {
       <div className="space-y-6">
         <PageHeader
           icon={Server}
-          title="系统部署管理"
-          description="管理测试/正式双环境部署和系统安装"
+          title={t("admin.sysDeploy.title")}
+          description={t("admin.sysDeploy.description")}
           actions={
             <>
               <Button variant="outline" onClick={() => setActiveTab('installer')}>
                 <Download className="w-4 h-4 mr-2" />
-                下载安装包
+                {t("admin.sysDeploy.downloadInstaller")}
               </Button>
               <Button onClick={() => setIsInstallDialogOpen(true)}>
                 <Play className="w-4 h-4 mr-2" />
-                新建部署
+                {t("admin.sysDeploy.newDeployment")}
               </Button>
             </>
           }
@@ -306,15 +308,15 @@ export default function SystemDeployment() {
               <Dialog open={isInstallDialogOpen} onOpenChange={setIsInstallDialogOpen}>
               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>系统部署向导</DialogTitle>
+                  <DialogTitle>{t("admin.sysDeploy.deployWizard")}</DialogTitle>
                   <DialogDescription>
-                    按照向导配置部署选项，系统将自动完成安装
+                    {t("admin.sysDeploy.deployWizardDesc")}
                   </DialogDescription>
                 </DialogHeader>
                 
                 {/* 步骤指示器 */}
                 <div className="flex items-center justify-between mb-6">
-                  {['部署方式', '数据库', '安全配置', '功能模块', '确认'].map((step, i) => (
+                  {[t("admin.sysDeploy.wizStep1"), t("admin.sysDeploy.wizStep2"), t("admin.sysDeploy.wizStep3"), t("admin.sysDeploy.wizStep4"), t("admin.sysDeploy.wizStep5")].map((step, i) => (
                     <div key={i} className="flex items-center">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                         installStep > i + 1 ? 'bg-primary text-primary-foreground' :
@@ -331,13 +333,13 @@ export default function SystemDeployment() {
                 {/* 步骤1: 部署方式 */}
                 {installStep === 1 && (
                   <div className="space-y-4">
-                    <h3 className="font-medium">选择部署方式</h3>
+                    <h3 className="font-medium">{t("admin.sysDeploy.selectDeployMethod")}</h3>
                     <div className="grid grid-cols-2 gap-4">
                       {[
-                        { type: 'windows' as const, name: 'Windows 服务器', desc: '适用于Windows 11 Server', icon: Monitor },
-                        { type: 'docker' as const, name: 'Docker 容器', desc: '适用于Docker环境', icon: HardDrive },
-                        { type: 'kubernetes' as const, name: 'Kubernetes', desc: '适用于K8s集群', icon: Cloud },
-                        { type: 'manus_cloud' as const, name: 'Manus 云端', desc: '托管在Manus平台', icon: Zap },
+                        { type: 'windows' as const, name: t("admin.sysDeploy.windowsServer"), desc: t("admin.sysDeploy.windowsServerDesc"), icon: Monitor },
+                        { type: 'docker' as const, name: t("admin.sysDeploy.dockerContainer"), desc: t("admin.sysDeploy.dockerContainerDesc"), icon: HardDrive },
+                        { type: 'kubernetes' as const, name: 'Kubernetes', desc: t("admin.sysDeploy.k8sDesc"), icon: Cloud },
+                        { type: 'manus_cloud' as const, name: t("admin.sysDeploy.manusCloud"), desc: t("admin.sysDeploy.manusCloudDesc"), icon: Zap },
                       ].map((option) => (
                         <Card 
                           key={option.type}
@@ -362,7 +364,7 @@ export default function SystemDeployment() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label>目标环境</Label>
+                      <Label>{t("admin.sysDeploy.targetEnv")}</Label>
                       <Select
                         value={config.environment}
                         onValueChange={(v) => setConfig({ ...config, environment: v as EnvironmentType })}
@@ -371,8 +373,8 @@ export default function SystemDeployment() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="test">测试环境</SelectItem>
-                          <SelectItem value="production">正式环境</SelectItem>
+                          <SelectItem value="test">{t("admin.sysDeploy.testEnv")}</SelectItem>
+                          <SelectItem value="production">{t("admin.sysDeploy.prodEnv")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -382,10 +384,10 @@ export default function SystemDeployment() {
                 {/* 步骤2: 数据库配置 */}
                 {installStep === 2 && (
                   <div className="space-y-4">
-                    <h3 className="font-medium">数据库配置</h3>
+                    <h3 className="font-medium">{t("admin.sysDeploy.dbConfig")}</h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>数据库类型</Label>
+                        <Label>{t("admin.sysDeploy.dbType")}</Label>
                         <Select
                           value={config.database.type}
                           onValueChange={(v) => setConfig({ 
@@ -404,7 +406,7 @@ export default function SystemDeployment() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>主机地址</Label>
+                        <Label>{t("admin.sysDeploy.hostAddress")}</Label>
                         <Input
                           value={config.database.host}
                           onChange={(e) => setConfig({
@@ -414,7 +416,7 @@ export default function SystemDeployment() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>端口</Label>
+                        <Label>{t("admin.sysDeploy.port")}</Label>
                         <Input
                           type="number"
                           value={config.database.port}
@@ -425,7 +427,7 @@ export default function SystemDeployment() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>数据库名</Label>
+                        <Label>{t("admin.sysDeploy.dbName")}</Label>
                         <Input
                           value={config.database.name}
                           onChange={(e) => setConfig({
@@ -435,7 +437,7 @@ export default function SystemDeployment() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>用户名</Label>
+                        <Label>{t("admin.sysDeploy.username")}</Label>
                         <Input
                           value={config.database.user}
                           onChange={(e) => setConfig({
@@ -445,7 +447,7 @@ export default function SystemDeployment() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>密码</Label>
+                        <Label>{t("admin.sysDeploy.password")}</Label>
                         <Input
                           type="password"
                           value={config.database.password}
@@ -464,7 +466,7 @@ export default function SystemDeployment() {
                           database: { ...config.database, ssl: !!checked }
                         })}
                       />
-                      <Label>启用SSL连接</Label>
+                      <Label>{t("admin.sysDeploy.enableSSL")}</Label>
                     </div>
                   </div>
                 )}
@@ -472,14 +474,14 @@ export default function SystemDeployment() {
                 {/* 步骤3: 安全配置 */}
                 {installStep === 3 && (
                   <div className="space-y-4">
-                    <h3 className="font-medium">安全配置</h3>
+                    <h3 className="font-medium">{t("admin.sysDeploy.securityConfig")}</h3>
                     <div className="space-y-3">
                       {[
-                        { key: 'enableHttps', label: '启用HTTPS', desc: '使用SSL/TLS加密通信' },
-                        { key: 'enableTwoFactor', label: '双因素认证', desc: '登录时需要额外验证' },
-                        { key: 'enableIpWhitelist', label: 'IP白名单', desc: '限制允许访问的IP地址' },
-                        { key: 'enableAuditLog', label: '审计日志', desc: '记录所有操作日志' },
-                        { key: 'enableIntrusionDetection', label: '入侵检测', desc: '检测SQL注入、XSS等攻击' },
+                        { key: 'enableHttps', label: t("admin.sysDeploy.enableHttps"), desc: t("admin.sysDeploy.enableHttpsDesc") },
+                        { key: 'enableTwoFactor', label: t("admin.sysDeploy.twoFactor"), desc: t("admin.sysDeploy.twoFactorDesc") },
+                        { key: 'enableIpWhitelist', label: t("admin.sysDeploy.ipWhitelist"), desc: t("admin.sysDeploy.ipWhitelistDesc") },
+                        { key: 'enableAuditLog', label: t("admin.sysDeploy.auditLog"), desc: t("admin.sysDeploy.auditLogDesc") },
+                        { key: 'enableIntrusionDetection', label: t("admin.sysDeploy.intrusionDetection"), desc: t("admin.sysDeploy.intrusionDetectionDesc") },
                       ].map((option) => (
                         <div key={option.key} className="flex items-center justify-between p-3 border rounded-lg">
                           <div>
@@ -502,14 +504,14 @@ export default function SystemDeployment() {
                 {/* 步骤4: 功能模块 */}
                 {installStep === 4 && (
                   <div className="space-y-4">
-                    <h3 className="font-medium">功能模块</h3>
+                    <h3 className="font-medium">{t("admin.sysDeploy.featureModules")}</h3>
                     <div className="space-y-3">
                       {[
-                        { key: 'crm', label: 'CRM客户管理', desc: '客户信息、商机、联系人管理' },
-                        { key: 'project', label: '项目管理', desc: '项目全生命周期管理' },
-                        { key: 'cost', label: '成本管理', desc: '成本核算、预算管理' },
-                        { key: 'training', label: '培训管理', desc: '培训计划、记录、评估' },
-                        { key: 'ai', label: 'AI智能助手', desc: 'Gemini AI集成' },
+                        { key: 'crm', label: t("admin.sysDeploy.crmModule"), desc: t("admin.sysDeploy.crmModuleDesc") },
+                        { key: 'project', label: t("admin.sysDeploy.projectModule"), desc: t("admin.sysDeploy.projectModuleDesc") },
+                        { key: 'cost', label: t("admin.sysDeploy.costModule"), desc: t("admin.sysDeploy.costModuleDesc") },
+                        { key: 'training', label: t("admin.sysDeploy.trainingModule"), desc: t("admin.sysDeploy.trainingModuleDesc") },
+                        { key: 'ai', label: t("admin.sysDeploy.aiModule"), desc: t("admin.sysDeploy.aiModuleDesc") },
                       ].map((option) => (
                         <div key={option.key} className="flex items-center justify-between p-3 border rounded-lg">
                           <div>
@@ -532,36 +534,36 @@ export default function SystemDeployment() {
                 {/* 步骤5: 确认 */}
                 {installStep === 5 && (
                   <div className="space-y-4">
-                    <h3 className="font-medium">确认配置</h3>
+                    <h3 className="font-medium">{t("admin.sysDeploy.confirmConfig")}</h3>
                     <div className="space-y-4 text-sm">
                       <div className="p-4 bg-muted rounded-lg space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">部署方式</span>
+                          <span className="text-muted-foreground">{t("admin.sysDeploy.wizStep1")}</span>
                           <span className="font-medium">{
-                            config.deploymentType === 'windows' ? 'Windows服务器' :
-                            config.deploymentType === 'docker' ? 'Docker容器' :
-                            config.deploymentType === 'kubernetes' ? 'Kubernetes' : 'Manus云端'
+                            config.deploymentType === 'windows' ? t("admin.sysDeploy.windowsServer") :
+                            config.deploymentType === 'docker' ? t("admin.sysDeploy.dockerContainer") :
+                            config.deploymentType === 'kubernetes' ? 'Kubernetes' : t("admin.sysDeploy.manusCloud")
                           }</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">目标环境</span>
-                          <span className="font-medium">{config.environment === 'test' ? '测试环境' : '正式环境'}</span>
+                          <span className="text-muted-foreground">{t("admin.sysDeploy.targetEnv")}</span>
+                          <span className="font-medium">{config.environment === 'test' ? t("admin.sysDeploy.testEnv") : t("admin.sysDeploy.prodEnv")}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">数据库</span>
+                          <span className="text-muted-foreground">{t("admin.sysDeploy.wizStep2")}</span>
                           <span className="font-medium">{config.database.type.toUpperCase()} @ {config.database.host}:{config.database.port}</span>
                         </div>
                         <Separator />
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">安全选项</span>
+                          <span className="text-muted-foreground">{t("admin.sysDeploy.securityOptions")}</span>
                           <span className="font-medium">
-                            {Object.entries(config.security).filter(([_, v]) => v).length} 项已启用
+                            {Object.entries(config.security).filter(([_, v]) => v).length} {t("admin.sysDeploy.itemsEnabled")}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">功能模块</span>
+                          <span className="text-muted-foreground">{t("admin.sysDeploy.featureModules")}</span>
                           <span className="font-medium">
-                            {Object.entries(config.features).filter(([_, v]) => v).length} 个模块
+                            {Object.entries(config.features).filter(([_, v]) => v).length} {t("admin.sysDeploy.modules")}
                           </span>
                         </div>
                       </div>
@@ -569,7 +571,7 @@ export default function SystemDeployment() {
                       {isInstalling && (
                         <div className="space-y-4">
                           <div className="flex items-center justify-between">
-                            <span>安装进度</span>
+                            <span>{t("admin.sysDeploy.installProgress")}</span>
                             <span>{installProgress}%</span>
                           </div>
                           <Progress value={installProgress} />
@@ -593,18 +595,18 @@ export default function SystemDeployment() {
                 <DialogFooter>
                   {installStep > 1 && !isInstalling && (
                     <Button variant="outline" onClick={() => setInstallStep(installStep - 1)}>
-                      上一步
+                      {t("admin.sysDeploy.prevStep")}
                     </Button>
                   )}
                   {installStep < 5 && (
                     <Button onClick={() => setInstallStep(installStep + 1)}>
-                      下一步
+                      {t("admin.sysDeploy.nextStep")}
                     </Button>
                   )}
                   {installStep === 5 && !isInstalling && installProgress < 100 && (
                     <Button onClick={handleStartInstall}>
                       <Play className="w-4 h-4 mr-2" />
-                      开始安装
+                      {t("admin.sysDeploy.startInstall")}
                     </Button>
                   )}
                   {installProgress === 100 && (
@@ -614,7 +616,7 @@ export default function SystemDeployment() {
                       setInstallProgress(0);
                       setInstallSteps(prev => prev.map(s => ({ ...s, status: 'pending', progress: 0 })));
                     }}>
-                      完成
+                      {t("admin.sysDeploy.finish")}
                     </Button>
                   )}
                 </DialogFooter>
@@ -624,10 +626,10 @@ export default function SystemDeployment() {
         {/* 主内容区 */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
-            <TabsTrigger value="overview">环境概览</TabsTrigger>
-            <TabsTrigger value="history">部署历史</TabsTrigger>
-            <TabsTrigger value="installer">安装包下载</TabsTrigger>
-            <TabsTrigger value="sync">环境同步</TabsTrigger>
+            <TabsTrigger value="overview">{t("admin.sysDeploy.envOverview")}</TabsTrigger>
+            <TabsTrigger value="history">{t("admin.sysDeploy.deployHistory")}</TabsTrigger>
+            <TabsTrigger value="installer">{t("admin.sysDeploy.installerDownload")}</TabsTrigger>
+            <TabsTrigger value="sync">{t("admin.sysDeploy.envSync")}</TabsTrigger>
           </TabsList>
           
           {/* 环境概览 */}
@@ -646,7 +648,7 @@ export default function SystemDeployment() {
                         <CardTitle>{env.name}</CardTitle>
                       </div>
                       <Badge variant={(env.status as any) === 'running' ? 'default' : 'secondary'}>
-                        {(env.status as any) === 'running' ? '运行中' : '已停止'}
+                        {(env.status as any) === 'running' ? t("admin.sysDeploy.running") : t("admin.sysDeploy.stopped")}
                       </Badge>
                     </div>
                     <CardDescription>{env.url}</CardDescription>
@@ -654,26 +656,26 @@ export default function SystemDeployment() {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-muted-foreground">当前版本</span>
+                        <span className="text-muted-foreground">{t("admin.sysDeploy.currentVersion")}</span>
                         <p className="font-medium">{env.version}</p>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">最后部署</span>
+                        <span className="text-muted-foreground">{t("admin.sysDeploy.lastDeploy")}</span>
                         <p className="font-medium">{env.lastDeployed}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${env.health === 'healthy' ? 'bg-green-500' : 'bg-red-500'}`} />
-                      <span className="text-sm">{env.health === 'healthy' ? '健康' : '异常'}</span>
+                      <span className="text-sm">{env.health === 'healthy' ? t("admin.sysDeploy.healthy") : t("admin.sysDeploy.abnormal")}</span>
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="flex-1">
                         <RefreshCw className="w-4 h-4 mr-1" />
-                        重启
+                        {t("admin.sysDeploy.restart")}
                       </Button>
                       <Button variant="outline" size="sm" className="flex-1">
                         <Settings className="w-4 h-4 mr-1" />
-                        配置
+                        {t("admin.sysDeploy.config")}
                       </Button>
                     </div>
                   </CardContent>
@@ -684,24 +686,24 @@ export default function SystemDeployment() {
             {/* 版本对比 */}
             <Card>
               <CardHeader>
-                <CardTitle>版本对比</CardTitle>
-                <CardDescription>测试环境与正式环境的版本差异</CardDescription>
+                <CardTitle>{t("admin.sysDeploy.versionCompare")}</CardTitle>
+                <CardDescription>{t("admin.sysDeploy.versionCompareDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground">测试环境</p>
+                    <p className="text-sm text-muted-foreground">{t("admin.sysDeploy.testEnv")}</p>
                     <p className="text-2xl font-bold text-yellow-500">v4.5.0</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">+1 版本</Badge>
                     <Button variant="outline" size="sm" onClick={handleSyncToProduction}>
                       <Upload className="w-4 h-4 mr-1" />
-                      同步到正式
+                      {t("admin.sysDeploy.syncToProduction")}
                     </Button>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground">正式环境</p>
+                    <p className="text-sm text-muted-foreground">{t("admin.sysDeploy.prodEnv")}</p>
                     <p className="text-2xl font-bold text-primary">v4.4.5</p>
                   </div>
                 </div>
@@ -713,8 +715,8 @@ export default function SystemDeployment() {
           <TabsContent value="history" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>部署历史记录</CardTitle>
-                <CardDescription>查看所有部署操作的历史记录</CardDescription>
+                <CardTitle>{t("admin.sysDeploy.deployHistoryTitle")}</CardTitle>
+                <CardDescription>{t("admin.sysDeploy.deployHistoryDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -730,7 +732,7 @@ export default function SystemDeployment() {
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{record.version}</span>
                             <Badge variant={record.environment === 'production' ? 'default' : 'secondary'}>
-                              {record.environment === 'production' ? '正式' : '测试'}
+                              {record.environment === 'production' ? t("admin.sysDeploy.production") : t("admin.sysDeploy.test")}
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
@@ -742,7 +744,7 @@ export default function SystemDeployment() {
                         </div>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        耗时 {record.duration}
+                        {t("admin.sysDeploy.duration")} {record.duration}
                       </div>
                     </div>
                   ))}
@@ -760,14 +762,14 @@ export default function SystemDeployment() {
                     <Monitor className="w-5 h-5" />
                     Windows 安装包
                   </CardTitle>
-                  <CardDescription>适用于Windows 11 Server</CardDescription>
+                  <CardDescription>{t("admin.sysDeploy.windowsServerDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>• 自动安装Node.js环境</li>
-                    <li>• 配置MySQL数据库</li>
-                    <li>• 注册Windows服务</li>
-                    <li>• 配置开机自启</li>
+                    <li>• {t("admin.sysDeploy.winFeature1")}</li>
+                    <li>• {t("admin.sysDeploy.winFeature2")}</li>
+                    <li>• {t("admin.sysDeploy.winFeature3")}</li>
+                    <li>• {t("admin.sysDeploy.winFeature4")}</li>
                   </ul>
                   <Button className="w-full" onClick={() => handleDownloadInstaller('windows')}>
                     <Download className="w-4 h-4 mr-2" />
@@ -782,14 +784,14 @@ export default function SystemDeployment() {
                     <HardDrive className="w-5 h-5" />
                     Docker 部署包
                   </CardTitle>
-                  <CardDescription>适用于Docker环境</CardDescription>
+                  <CardDescription>{t("admin.sysDeploy.dockerContainerDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>• Docker Compose配置</li>
-                    <li>• 包含MySQL容器</li>
-                    <li>• 自动网络配置</li>
-                    <li>• 数据持久化</li>
+                    <li>• {t("admin.sysDeploy.dockerFeature1")}</li>
+                    <li>• {t("admin.sysDeploy.dockerFeature2")}</li>
+                    <li>• {t("admin.sysDeploy.dockerFeature3")}</li>
+                    <li>• {t("admin.sysDeploy.dockerFeature4")}</li>
                   </ul>
                   <Button className="w-full" onClick={() => handleDownloadInstaller('docker')}>
                     <Download className="w-4 h-4 mr-2" />
@@ -804,7 +806,7 @@ export default function SystemDeployment() {
                     <Cloud className="w-5 h-5" />
                     Kubernetes 配置
                   </CardTitle>
-                  <CardDescription>适用于K8s集群</CardDescription>
+                  <CardDescription>{t("admin.sysDeploy.k8sDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <ul className="text-sm space-y-1 text-muted-foreground">
@@ -826,44 +828,44 @@ export default function SystemDeployment() {
           <TabsContent value="sync" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>环境同步流程</CardTitle>
-                <CardDescription>从测试环境同步到正式环境的标准流程</CardDescription>
+                <CardTitle>{t("admin.sysDeploy.syncProcess")}</CardTitle>
+                <CardDescription>{t("admin.sysDeploy.syncProcessDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
                   <div className="flex items-start gap-4">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">1</div>
                     <div>
-                      <h4 className="font-medium">测试环境验证</h4>
-                      <p className="text-sm text-muted-foreground">确保测试环境的所有功能正常运行，通过所有测试用例</p>
+                      <h4 className="font-medium">{t("admin.sysDeploy.syncStep1")}</h4>
+                      <p className="text-sm text-muted-foreground">{t("admin.sysDeploy.syncStep1Desc")}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">2</div>
                     <div>
-                      <h4 className="font-medium">提交变更申请</h4>
-                      <p className="text-sm text-muted-foreground">在变更管理中提交部署申请，填写变更内容和影响分析</p>
+                      <h4 className="font-medium">{t("admin.sysDeploy.syncStep2")}</h4>
+                      <p className="text-sm text-muted-foreground">{t("admin.sysDeploy.syncStep2Desc")}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">3</div>
                     <div>
-                      <h4 className="font-medium">管理员审批</h4>
-                      <p className="text-sm text-muted-foreground">等待管理员审批变更申请，获取执行令牌</p>
+                      <h4 className="font-medium">{t("admin.sysDeploy.syncStep3")}</h4>
+                      <p className="text-sm text-muted-foreground">{t("admin.sysDeploy.syncStep3Desc")}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">4</div>
                     <div>
-                      <h4 className="font-medium">执行部署</h4>
-                      <p className="text-sm text-muted-foreground">使用执行令牌执行部署，系统自动进行一致性检查</p>
+                      <h4 className="font-medium">{t("admin.sysDeploy.syncStep4")}</h4>
+                      <p className="text-sm text-muted-foreground">{t("admin.sysDeploy.syncStep4Desc")}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">5</div>
                     <div>
-                      <h4 className="font-medium">验证确认</h4>
-                      <p className="text-sm text-muted-foreground">部署完成后进行健康检查，确认系统正常运行</p>
+                      <h4 className="font-medium">{t("admin.sysDeploy.syncStep5")}</h4>
+                      <p className="text-sm text-muted-foreground">{t("admin.sysDeploy.syncStep5Desc")}</p>
                     </div>
                   </div>
                 </div>
@@ -874,16 +876,16 @@ export default function SystemDeployment() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-yellow-600">
                   <Shield className="w-5 h-5" />
-                  一致性检查机制
+                  {t("admin.sysDeploy.consistencyCheck")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm space-y-2">
-                <p>系统会自动检测申请内容与实际执行内容的一致性：</p>
+                <p>{t("admin.sysDeploy.consistencyCheckDesc")}</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>文件变更必须与申请中声明的文件列表一致</li>
-                  <li>SQL执行必须与申请中声明的SQL语句一致</li>
-                  <li>命令执行必须与申请中声明的命令一致</li>
-                  <li>如发现未声明的变更，系统将自动阻断并通知管理员</li>
+                  <li>{t("admin.sysDeploy.consistencyRule1")}</li>
+                  <li>{t("admin.sysDeploy.consistencyRule2")}</li>
+                  <li>{t("admin.sysDeploy.consistencyRule3")}</li>
+                  <li>{t("admin.sysDeploy.consistencyRule4")}</li>
                 </ul>
               </CardContent>
             </Card>

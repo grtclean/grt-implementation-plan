@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import { crmLeads } from "../../drizzle/schema";
@@ -55,7 +55,7 @@ export const leadAutoFollowRouter = router({
     };
   }),
 
-  updateConfig: protectedProcedure.input(z.object({
+  updateConfig: requirePermission('crm:leads:manage').input(z.object({
     enabled: z.boolean().optional(),
     followUpIntervalDays: z.number().optional(),
     maxAutoFollowUps: z.number().optional(),
@@ -64,13 +64,13 @@ export const leadAutoFollowRouter = router({
     return { success: true, message: "配置已更新" };
   }),
 
-  create: protectedProcedure.input(z.object({ data: z.record(z.string(), jsonValue).optional() }).optional()).mutation(async () => {
+  create: requirePermission('crm:leads:manage').input(z.object({ data: z.record(z.string(), jsonValue).optional() }).optional()).mutation(async () => {
     return { success: true, message: "Auto-follow created" };
   }),
-  update: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), data: z.record(z.string(), jsonValue).optional() }).optional()).mutation(async () => {
+  update: requirePermission('crm:leads:manage').input(z.object({ id: z.union([z.string(), z.number()]), data: z.record(z.string(), jsonValue).optional() }).optional()).mutation(async () => {
     return { success: true, message: "Auto-follow updated" };
   }),
-  delete: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async () => {
+  delete: requirePermission('crm:leads:manage').input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async () => {
     return { success: true, message: "Auto-follow deleted" };
   }),
 

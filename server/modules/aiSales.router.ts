@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { invokeLLM } from "../_core/llm";
 import { TRPCError } from "@trpc/server";
@@ -140,7 +140,7 @@ export const aiSalesRouter = router({
     }),
 
   // 处理客户还价（AI-to-AI交互核心）
-  processCounterOffer: protectedProcedure
+  processCounterOffer: requirePermission('crm:leads:manage')
     .input(z.object({
       sessionId: z.string(),
       clientCounterOffer: z.number().positive(),
@@ -394,7 +394,7 @@ export const aiSalesRouter = router({
         `INSERT INTO zkp_registry 
          (proof_id, proof_type, entity_type, entity_id, entity_name, public_inputs, 
           proof_hash, proof_data, verification_circuit, generated_by, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'grt-zkp-generator', DATE_ADD(NOW(), INTERVAL ? DAY))`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'grt-zkp-generator', NOW() + (? || ' days')::interval)`,
         [proofId, proofType, entityType, entityId, entityName || null,
          JSON.stringify(publicInputs), proofHash, proofData, `${proofType}_v1`, expiresInDays]
       );
@@ -408,7 +408,7 @@ export const aiSalesRouter = router({
     }),
 
   // 验证ZKP证明
-  verifyZkpProof: protectedProcedure
+  verifyZkpProof: requirePermission('crm:leads:manage')
     .input(z.object({
       proofId: z.string(),
       verifierClientId: z.string().optional(),

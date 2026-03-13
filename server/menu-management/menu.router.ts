@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { protectedProcedure, router } from '../_core/trpc';
+import {protectedProcedure, router, requirePermission} from '../_core/trpc';
 import { menuService } from './menu.service';
 import { createRoleMiddleware } from '../permission-management/permission.middleware';
 
@@ -45,7 +45,7 @@ export const menuRouter = router({
   /**
    * 记录菜单访问
    */
-  logMenuAccess: protectedProcedure
+  logMenuAccess: requirePermission('system:menu:manage')
     .input(z.object({ menuItemId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       await menuService.logMenuAccess(String(ctx.user.id), input.menuItemId);
@@ -55,7 +55,7 @@ export const menuRouter = router({
   /**
    * 隐藏菜单项
    */
-  hideMenuItem: protectedProcedure
+  hideMenuItem: requirePermission('system:menu:manage')
     .input(z.object({ menuItemId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       await menuService.hideMenuItem(String(ctx.user.id), input.menuItemId);
@@ -65,7 +65,7 @@ export const menuRouter = router({
   /**
    * 显示菜单项
    */
-  showMenuItem: protectedProcedure
+  showMenuItem: requirePermission('system:menu:manage')
     .input(z.object({ menuItemId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       await menuService.showMenuItem(String(ctx.user.id), input.menuItemId);
@@ -75,7 +75,7 @@ export const menuRouter = router({
   /**
    * 重置菜单自定义
    */
-  resetMenuCustomization: protectedProcedure.mutation(async ({ ctx }) => {
+  resetMenuCustomization: requirePermission('system:menu:manage').mutation(async ({ ctx }) => {
     await menuService.resetMenuCustomization(String(ctx.user.id));
     return { success: true };
   }),
@@ -143,7 +143,7 @@ export const menuRouter = router({
   /**
    * 管理员：删除菜单项
    */
-  deleteMenuItem: protectedProcedure
+  deleteMenuItem: requirePermission('system:menu:manage')
     .use(createRoleMiddleware(['admin']))
     .input(z.object({ menuItemId: z.number() }))
     .mutation(async ({ input }) => {

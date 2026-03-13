@@ -157,5 +157,6 @@ export async function getCommRecordsByTicket(ticketId: number) {
     .select()
     .from(customerCommRecords)
     .where(eq(customerCommRecords.ticketId, ticketId))
-    .orderBy(desc(customerCommRecords.commDate));
+    .orderBy(desc(customerCommRecords.commDate))
+    .limit(1000);
 }

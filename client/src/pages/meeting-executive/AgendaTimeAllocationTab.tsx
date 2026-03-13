@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,35 +24,47 @@ const GRADE_COLORS: Record<string, string> = {
   A: "bg-green-100 text-green-800", B: "bg-blue-100 text-blue-800", C: "bg-yellow-100 text-yellow-800",
   D: "bg-orange-100 text-orange-800", F: "bg-red-100 text-red-800",
 };
-const CATEGORY_LABELS: Record<string, string> = {
-  discussion: "讨论", decision: "决策", update: "汇报", brainstorm: "头脑风暴", review: "评审", other: "其他",
+const CATEGORY_LABEL_KEYS: Record<string, string> = {
+  discussion: "meeting.agenda.catDiscussion",
+  decision: "meeting.agenda.catDecision",
+  update: "meeting.agenda.catUpdate",
+  brainstorm: "meeting.agenda.catBrainstorm",
+  review: "meeting.agenda.catReview",
+  other: "meeting.agenda.catOther",
 };
 const TREND_COLORS: Record<string, string> = {
   improving: "bg-green-100 text-green-800", stable: "bg-gray-100 text-gray-800", declining: "bg-red-100 text-red-800",
 };
-const TREND_LABELS: Record<string, string> = { improving: "改善中", stable: "稳定", declining: "下降中" };
+const TREND_LABEL_KEYS: Record<string, string> = {
+  improving: "meeting.agenda.trendImproving",
+  stable: "meeting.agenda.trendStable",
+  declining: "meeting.agenda.trendDeclining",
+};
 
 /* Sub-component for expanded agenda items (avoids conditional hook calls) */
 function AgendaItemsDetail({ meetingId }: { meetingId: string }) {
+  const { t } = useLanguage();
   const { data } = trpc.ime.timeAllocationBreakdown.useQuery({ meetingId });
   const items = (data?.items ?? []) as any[];
 
+  const categoryLabel = (key: string) => t(CATEGORY_LABEL_KEYS[key] || "meeting.agenda.catOther");
+
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground py-2">暂无议题明细数据</p>;
+    return <p className="text-sm text-muted-foreground py-2">{t("meeting.agenda.noItemDetail")}</p>;
   }
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>议题</TableHead>
-          <TableHead className="text-center">类别</TableHead>
-          <TableHead className="text-center">计划(分钟)</TableHead>
-          <TableHead className="text-center">实际(分钟)</TableHead>
-          <TableHead>时间条</TableHead>
-          <TableHead>发言人</TableHead>
-          <TableHead className="text-center">决策数</TableHead>
-          <TableHead className="text-center">行动项</TableHead>
+          <TableHead>{t("meeting.agenda.thTopic")}</TableHead>
+          <TableHead className="text-center">{t("meeting.agenda.thCategory")}</TableHead>
+          <TableHead className="text-center">{t("meeting.agenda.thPlannedMin")}</TableHead>
+          <TableHead className="text-center">{t("meeting.agenda.thActualMin")}</TableHead>
+          <TableHead>{t("meeting.agenda.thTimeBar")}</TableHead>
+          <TableHead>{t("meeting.agenda.thSpeaker")}</TableHead>
+          <TableHead className="text-center">{t("meeting.agenda.thDecisionCount")}</TableHead>
+          <TableHead className="text-center">{t("meeting.agenda.thActionItems")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -66,7 +79,7 @@ function AgendaItemsDetail({ meetingId }: { meetingId: string }) {
                 {item.agendaItemTitle ?? item.agenda_item_title ?? "—"}
               </TableCell>
               <TableCell className="text-center">
-                <Badge variant="secondary">{CATEGORY_LABELS[category] || category}</Badge>
+                <Badge variant="secondary">{categoryLabel(category)}</Badge>
               </TableCell>
               <TableCell className="text-center">{planned}</TableCell>
               <TableCell className="text-center">{actual}</TableCell>
@@ -104,6 +117,11 @@ function AgendaItemsDetail({ meetingId }: { meetingId: string }) {
 }
 
 export function AgendaTimeAllocationTab() {
+  const { t } = useLanguage();
+
+  const categoryLabel = (key: string) => t(CATEGORY_LABEL_KEYS[key] || "meeting.agenda.catOther");
+  const trendLabel = (key: string) => t(TREND_LABEL_KEYS[key] || "meeting.agenda.trendStable");
+
   // Section 1: Analyze form
   const [meetingId, setMeetingId] = useState("");
   const [batchIds, setBatchIds] = useState("");
@@ -179,7 +197,7 @@ export function AgendaTimeAllocationTab() {
     categoryPieMap[cat] = (categoryPieMap[cat] || 0) + actual;
   }
   const categoryPieData = Object.entries(categoryPieMap).map(([name, value]) => ({
-    name: CATEGORY_LABELS[name] || name,
+    name: categoryLabel(name),
     value,
   }));
 
@@ -190,15 +208,15 @@ export function AgendaTimeAllocationTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <ListChecks className="h-4 w-4 text-indigo-500" />
-            议程结构分析
+            {t("meeting.agenda.analyzeTitle")}
           </CardTitle>
-          <CardDescription>输入会议ID进行议程结构与时间分配分析</CardDescription>
+          <CardDescription>{t("meeting.agenda.analyzeDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Single analysis */}
           <div className="flex gap-3">
             <Input
-              placeholder="输入会议ID..."
+              placeholder={t("meeting.agenda.inputMeetingId")}
               value={meetingId}
               onChange={(e) => setMeetingId(e.target.value)}
               className="w-60"
@@ -212,43 +230,43 @@ export function AgendaTimeAllocationTab() {
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
-              分析议程结构
+              {t("meeting.agenda.analyzeBtn")}
             </Button>
           </div>
           {analyzeMutation.data && (
             <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-1">
               <p>
-                <span className="font-medium">会议ID: </span>
+                <span className="font-medium">{t("meeting.agenda.meetingIdLabel")}: </span>
                 <span className="text-muted-foreground font-mono">{(analyzeMutation.data as any).meetingId}</span>
               </p>
               <p>
-                <span className="font-medium">识别议题数: </span>
+                <span className="font-medium">{t("meeting.agenda.agendaItemsFound")}: </span>
                 {(analyzeMutation.data as any).agendaItemsFound ?? 0}
               </p>
               <p>
-                <span className="font-medium">计划总时长: </span>
-                {(analyzeMutation.data as any).totalPlanned ?? 0} 分钟
+                <span className="font-medium">{t("meeting.agenda.totalPlanned")}: </span>
+                {(analyzeMutation.data as any).totalPlanned ?? 0} {t("meeting.agenda.minutesUnit")}
               </p>
               <p>
-                <span className="font-medium">实际总时长: </span>
-                {(analyzeMutation.data as any).totalActual ?? 0} 分钟
+                <span className="font-medium">{t("meeting.agenda.totalActual")}: </span>
+                {(analyzeMutation.data as any).totalActual ?? 0} {t("meeting.agenda.minutesUnit")}
               </p>
               <p>
-                <span className="font-medium">整体效率: </span>
+                <span className="font-medium">{t("meeting.agenda.overallEfficiency")}: </span>
                 {(analyzeMutation.data as any).overallEfficiency ?? "—"}
               </p>
             </div>
           )}
           {analyzeMutation.isError && (
-            <p className="text-sm text-red-500">错误: {analyzeMutation.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.agenda.error")}: {analyzeMutation.error.message}</p>
           )}
 
           {/* Batch analysis */}
           <div className="border-t pt-4">
-            <p className="text-sm font-medium mb-2">批量分析</p>
+            <p className="text-sm font-medium mb-2">{t("meeting.agenda.batchAnalysis")}</p>
             <div className="flex gap-3">
               <Input
-                placeholder="会议ID（逗号分隔），如: m001,m002,m003"
+                placeholder={t("meeting.agenda.batchPlaceholder")}
                 value={batchIds}
                 onChange={(e) => setBatchIds(e.target.value)}
                 className="flex-1"
@@ -265,19 +283,19 @@ export function AgendaTimeAllocationTab() {
                 ) : (
                   <Play className="h-4 w-4 mr-2" />
                 )}
-                批量分析
+                {t("meeting.agenda.batchBtn")}
               </Button>
             </div>
             {batchMutation.data && (() => {
               const results = ((batchMutation.data as any)?.results ?? []) as any[];
               return (
                 <p className="text-sm text-green-600 mt-2">
-                  已完成 {results.filter((r: any) => r.success).length} 个, 失败 {results.filter((r: any) => !r.success).length} 个
+                  {t("meeting.agenda.batchCompleted")} {results.filter((r: any) => r.success).length} {t("meeting.agenda.batchSuccessUnit")}, {t("meeting.agenda.batchFailed")} {results.filter((r: any) => !r.success).length} {t("meeting.agenda.batchSuccessUnit")}
                 </p>
               );
             })()}
             {batchMutation.isError && (
-              <p className="text-sm text-red-500">错误: {batchMutation.error.message}</p>
+              <p className="text-sm text-red-500">{t("meeting.agenda.error")}: {batchMutation.error.message}</p>
             )}
           </div>
         </CardContent>
@@ -287,31 +305,27 @@ export function AgendaTimeAllocationTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={BarChart3}
-          label="已分析会议"
+          label={t("meeting.agenda.totalMeetingsAnalyzed")}
           value={dashboard?.totalMeetingsAnalyzed ?? "..."}
-          subtitle="Total Meetings Analyzed"
         />
         <StatCard
           icon={Target}
-          label="平均效率分"
+          label={t("meeting.agenda.avgEfficiencyScore")}
           value={dashboard?.avgEfficiencyScore ?? "..."}
-          subtitle="Avg Efficiency Score"
           iconColor="text-green-600"
           iconBg="bg-green-50"
         />
         <StatCard
           icon={Clock}
-          label="平均超时%"
+          label={t("meeting.agenda.avgOverrunPercent")}
           value={dashboard?.avgOverrunPercent != null ? `${dashboard.avgOverrunPercent}%` : "..."}
-          subtitle="Avg Overrun Percent"
           iconColor="text-amber-600"
           iconBg="bg-amber-50"
         />
         <StatCard
           icon={AlertTriangle}
-          label="跳过率"
+          label={t("meeting.agenda.skippedRate")}
           value={dashboard?.skippedRate != null ? `${dashboard.skippedRate}%` : "..."}
-          subtitle="Skipped Rate"
           iconColor="text-red-600"
           iconBg="bg-red-50"
         />
@@ -320,22 +334,22 @@ export function AgendaTimeAllocationTab() {
       {/* Section 3: Agenda Analysis List */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">议程分析列表</CardTitle>
-          <CardDescription>查看所有已分析会议的议程效率与时间分配评估</CardDescription>
+          <CardTitle className="text-base">{t("meeting.agenda.analysisListTitle")}</CardTitle>
+          <CardDescription>{t("meeting.agenda.analysisListDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {analysisList.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>会议ID</TableHead>
-                  <TableHead>会议标题</TableHead>
-                  <TableHead className="text-center">议题数</TableHead>
-                  <TableHead className="text-center">计划(分钟)</TableHead>
-                  <TableHead className="text-center">实际(分钟)</TableHead>
-                  <TableHead className="text-center">超时%</TableHead>
-                  <TableHead className="text-center">效率分</TableHead>
-                  <TableHead className="text-center">等级</TableHead>
+                  <TableHead>{t("meeting.agenda.thMeetingId")}</TableHead>
+                  <TableHead>{t("meeting.agenda.thMeetingTitle")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.agenda.thTopicCount")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.agenda.thPlannedMin")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.agenda.thActualMin")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.agenda.thOverrunPercent")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.agenda.thEfficiencyScore")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.agenda.thGrade")}</TableHead>
                   <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -401,8 +415,8 @@ export function AgendaTimeAllocationTab() {
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <BarChart3 className="h-12 w-12 mb-3 opacity-30" />
-              <p>暂无议程分析数据</p>
-              <p className="text-sm">请先在上方输入会议ID进行议程结构分析</p>
+              <p>{t("meeting.agenda.noAnalysisData")}</p>
+              <p className="text-sm">{t("meeting.agenda.noAnalysisDataHint")}</p>
             </div>
           )}
         </CardContent>
@@ -413,14 +427,14 @@ export function AgendaTimeAllocationTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Timer className="h-4 w-4 text-blue-500" />
-            时间分配详情
+            {t("meeting.agenda.breakdownTitle")}
           </CardTitle>
-          <CardDescription>查看单个会议的议题时间分配与类别分布</CardDescription>
+          <CardDescription>{t("meeting.agenda.breakdownDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3">
             <Input
-              placeholder="输入会议ID..."
+              placeholder={t("meeting.agenda.inputMeetingId")}
               value={breakdownMeetingId}
               onChange={(e) => setBreakdownMeetingId(e.target.value)}
               className="w-60"
@@ -430,7 +444,7 @@ export function AgendaTimeAllocationTab() {
               disabled={!breakdownMeetingId.trim()}
             >
               <Play className="h-4 w-4 mr-2" />
-              查看时间分配
+              {t("meeting.agenda.viewBreakdownBtn")}
             </Button>
           </div>
 
@@ -438,7 +452,7 @@ export function AgendaTimeAllocationTab() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Grouped bar chart: planned vs actual */}
               <div>
-                <h4 className="text-sm font-medium mb-2">计划 vs 实际时长</h4>
+                <h4 className="text-sm font-medium mb-2">{t("meeting.agenda.plannedVsActual")}</h4>
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart
                     data={breakdownItems.map((item: any) => ({
@@ -454,15 +468,15 @@ export function AgendaTimeAllocationTab() {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="planned" name="计划(分钟)" fill="#6366f1" />
-                    <Bar dataKey="actual" name="实际(分钟)" fill="#22c55e" />
+                    <Bar dataKey="planned" name={t("meeting.agenda.chartPlannedMin")} fill="#6366f1" />
+                    <Bar dataKey="actual" name={t("meeting.agenda.chartActualMin")} fill="#22c55e" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
 
               {/* Pie chart: time by category */}
               <div>
-                <h4 className="text-sm font-medium mb-2">按类别分布</h4>
+                <h4 className="text-sm font-medium mb-2">{t("meeting.agenda.byCategoryDist")}</h4>
                 {categoryPieData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
@@ -472,7 +486,7 @@ export function AgendaTimeAllocationTab() {
                         cy="50%"
                         outerRadius={80}
                         dataKey="value"
-                        label={({ name, value }) => `${name}: ${value}分钟`}
+                        label={({ name, value }) => `${name}: ${value}${t("meeting.agenda.minutesUnit")}`}
                       >
                         {categoryPieData.map((_: any, idx: number) => (
                           <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
@@ -483,17 +497,17 @@ export function AgendaTimeAllocationTab() {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-center py-8 text-muted-foreground">暂无类别数据</p>
+                  <p className="text-center py-8 text-muted-foreground">{t("meeting.agenda.noCategoryData")}</p>
                 )}
               </div>
             </div>
           )}
 
           {breakdownSearchId && breakdownItems.length === 0 && !breakdownQuery.isLoading && (
-            <p className="text-center py-8 text-muted-foreground">未找到该会议的时间分配数据</p>
+            <p className="text-center py-8 text-muted-foreground">{t("meeting.agenda.noBreakdownData")}</p>
           )}
           {breakdownQuery.isLoading && (
-            <p className="text-center py-4 text-muted-foreground">加载中...</p>
+            <p className="text-center py-4 text-muted-foreground">{t("meeting.agenda.loading")}</p>
           )}
         </CardContent>
       </Card>
@@ -503,9 +517,9 @@ export function AgendaTimeAllocationTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-orange-500" />
-            超时模式分析
+            {t("meeting.agenda.overrunPatternsTitle")}
           </CardTitle>
-          <CardDescription>分析议题超时模式与按类别的时间分布</CardDescription>
+          <CardDescription>{t("meeting.agenda.overrunPatternsDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3 flex-wrap">
@@ -514,14 +528,14 @@ export function AgendaTimeAllocationTab() {
               value={patternDateFrom}
               onChange={(e) => setPatternDateFrom(e.target.value)}
               className="w-44"
-              placeholder="开始日期"
+              placeholder={t("meeting.agenda.startDate")}
             />
             <Input
               type="date"
               value={patternDateTo}
               onChange={(e) => setPatternDateTo(e.target.value)}
               className="w-44"
-              placeholder="结束日期"
+              placeholder={t("meeting.agenda.endDate")}
             />
             <Button onClick={handleAnalyzePatterns} disabled={patternsQuery.isFetching}>
               {patternsQuery.isFetching ? (
@@ -529,22 +543,22 @@ export function AgendaTimeAllocationTab() {
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
-              分析超时模式
+              {t("meeting.agenda.analyzeOverrunBtn")}
             </Button>
           </div>
 
           {/* Overrun patterns table */}
           {patterns.length > 0 && (
             <div>
-              <h4 className="text-sm font-medium mb-2">超时议题模式</h4>
+              <h4 className="text-sm font-medium mb-2">{t("meeting.agenda.overrunTopicPatterns")}</h4>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>议题</TableHead>
-                    <TableHead className="text-center">出现次数</TableHead>
-                    <TableHead className="text-center">平均计划(分钟)</TableHead>
-                    <TableHead className="text-center">平均实际(分钟)</TableHead>
-                    <TableHead className="text-center">平均超时%</TableHead>
+                    <TableHead>{t("meeting.agenda.thTopic")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.agenda.thOccurrences")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.agenda.thAvgPlannedMin")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.agenda.thAvgActualMin")}</TableHead>
+                    <TableHead className="text-center">{t("meeting.agenda.thAvgOverrunPercent")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -571,11 +585,11 @@ export function AgendaTimeAllocationTab() {
           {/* Category distribution bar chart */}
           {categories.length > 0 && (
             <div>
-              <h4 className="text-sm font-medium mb-2">按类别超时率</h4>
+              <h4 className="text-sm font-medium mb-2">{t("meeting.agenda.categoryOverrunRate")}</h4>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart
                   data={categories.map((c: any) => ({
-                    name: CATEGORY_LABELS[c.category] || c.category,
+                    name: categoryLabel(c.category),
                     overrunRate: Number(c.overrunRate ?? c.overrun_rate ?? 0),
                     avgMinutes: Number(c.avgActualMinutes ?? c.avg_actual_minutes ?? 0),
                   }))}
@@ -585,15 +599,15 @@ export function AgendaTimeAllocationTab() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="overrunRate" name="超时率(%)" fill="#ef4444" />
-                  <Bar dataKey="avgMinutes" name="平均时长(分钟)" fill="#6366f1" />
+                  <Bar dataKey="overrunRate" name={t("meeting.agenda.chartOverrunRate")} fill="#ef4444" />
+                  <Bar dataKey="avgMinutes" name={t("meeting.agenda.chartAvgDurationMin")} fill="#6366f1" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
 
           {patternsQuery.isFetching && (
-            <p className="text-center py-4 text-muted-foreground">分析中...</p>
+            <p className="text-center py-4 text-muted-foreground">{t("meeting.agenda.analyzing")}</p>
           )}
         </CardContent>
       </Card>
@@ -603,14 +617,14 @@ export function AgendaTimeAllocationTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Zap className="h-4 w-4 text-amber-500" />
-            AI议程优化建议
+            {t("meeting.agenda.optimizationTitle")}
           </CardTitle>
-          <CardDescription>使用AI生成议程排序和时间分配优化建议</CardDescription>
+          <CardDescription>{t("meeting.agenda.optimizationDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3">
             <Input
-              placeholder="输入会议ID..."
+              placeholder={t("meeting.agenda.inputMeetingId")}
               value={optimizeMeetingId}
               onChange={(e) => setOptimizeMeetingId(e.target.value)}
               className="w-60"
@@ -624,7 +638,7 @@ export function AgendaTimeAllocationTab() {
               ) : (
                 <Zap className="h-4 w-4 mr-2" />
               )}
-              生成优化建议
+              {t("meeting.agenda.generateOptimizationBtn")}
             </Button>
           </div>
           {optimizeMutation.data && (
@@ -632,7 +646,7 @@ export function AgendaTimeAllocationTab() {
               {/* Recommended order */}
               {((optimizeMutation.data as any).recommendedOrder || []).length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mb-2">推荐议程顺序</h4>
+                  <h4 className="text-sm font-medium mb-2">{t("meeting.agenda.recommendedOrder")}</h4>
                   <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
                     {((optimizeMutation.data as any).recommendedOrder as string[]).map((item: string, i: number) => (
                       <li key={i}>{item}</li>
@@ -644,23 +658,23 @@ export function AgendaTimeAllocationTab() {
               {/* Recommendations table */}
               {((optimizeMutation.data as any).recommendations || []).length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mb-2">时间分配建议</h4>
+                  <h4 className="text-sm font-medium mb-2">{t("meeting.agenda.timeAllocationSuggestions")}</h4>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>议题</TableHead>
-                        <TableHead className="text-center">建议时长</TableHead>
-                        <TableHead className="text-center">当前时长</TableHead>
-                        <TableHead>理由</TableHead>
-                        <TableHead className="text-center">优先级</TableHead>
+                        <TableHead>{t("meeting.agenda.thTopic")}</TableHead>
+                        <TableHead className="text-center">{t("meeting.agenda.thSuggestedDuration")}</TableHead>
+                        <TableHead className="text-center">{t("meeting.agenda.thCurrentDuration")}</TableHead>
+                        <TableHead>{t("meeting.agenda.thReason")}</TableHead>
+                        <TableHead className="text-center">{t("meeting.agenda.thPriority")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {((optimizeMutation.data as any).recommendations as any[]).map((rec: any, i: number) => (
                         <TableRow key={i}>
                           <TableCell className="max-w-[160px] truncate">{rec.topic ?? rec.title ?? "—"}</TableCell>
-                          <TableCell className="text-center">{rec.suggestedMinutes ?? rec.suggested ?? "—"} 分钟</TableCell>
-                          <TableCell className="text-center">{rec.currentMinutes ?? rec.current ?? "—"} 分钟</TableCell>
+                          <TableCell className="text-center">{rec.suggestedMinutes ?? rec.suggested ?? "—"} {t("meeting.agenda.minutesUnit")}</TableCell>
+                          <TableCell className="text-center">{rec.currentMinutes ?? rec.current ?? "—"} {t("meeting.agenda.minutesUnit")}</TableCell>
                           <TableCell className="max-w-[200px] truncate text-muted-foreground">{rec.reason ?? "—"}</TableCell>
                           <TableCell className="text-center">
                             <Badge variant="secondary" className={
@@ -668,7 +682,7 @@ export function AgendaTimeAllocationTab() {
                               rec.priority === "medium" ? "bg-amber-100 text-amber-800" :
                               "bg-gray-100 text-gray-800"
                             }>
-                              {rec.priority === "high" ? "高" : rec.priority === "medium" ? "中" : "低"}
+                              {rec.priority === "high" ? t("meeting.agenda.priorityHigh") : rec.priority === "medium" ? t("meeting.agenda.priorityMedium") : t("meeting.agenda.priorityLow")}
                             </Badge>
                           </TableCell>
                         </TableRow>
@@ -681,7 +695,7 @@ export function AgendaTimeAllocationTab() {
               {/* Async candidates */}
               {((optimizeMutation.data as any).asyncCandidates || []).length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mb-2">建议异步处理的议题</h4>
+                  <h4 className="text-sm font-medium mb-2">{t("meeting.agenda.asyncCandidates")}</h4>
                   <ul className="space-y-1 text-sm">
                     {((optimizeMutation.data as any).asyncCandidates as string[]).map((c: string, i: number) => (
                       <li key={i} className="text-muted-foreground">• {c}</li>
@@ -693,14 +707,14 @@ export function AgendaTimeAllocationTab() {
               {/* AI narrative */}
               {(optimizeMutation.data as any).narrative && (
                 <div className="bg-muted/50 rounded-lg p-4">
-                  <h4 className="text-sm font-medium mb-1">AI分析</h4>
+                  <h4 className="text-sm font-medium mb-1">{t("meeting.agenda.aiAnalysis")}</h4>
                   <p className="text-sm text-muted-foreground">{(optimizeMutation.data as any).narrative}</p>
                 </div>
               )}
             </div>
           )}
           {optimizeMutation.isError && (
-            <p className="text-sm text-red-500">错误: {optimizeMutation.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.agenda.error")}: {optimizeMutation.error.message}</p>
           )}
         </CardContent>
       </Card>
@@ -710,9 +724,9 @@ export function AgendaTimeAllocationTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-emerald-500" />
-            议程效率趋势
+            {t("meeting.agenda.efficiencyTrendTitle")}
           </CardTitle>
-          <CardDescription>跟踪议程时间效率和超时比例的变化趋势</CardDescription>
+          <CardDescription>{t("meeting.agenda.efficiencyTrendDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {trendData.length > 0 ? (
@@ -732,7 +746,7 @@ export function AgendaTimeAllocationTab() {
                   dataKey="avgTimeEfficiencyScore"
                   stroke="#6366f1"
                   strokeWidth={2}
-                  name="效率分"
+                  name={t("meeting.agenda.chartEfficiencyScore")}
                   dot={{ r: 3 }}
                 />
                 <Line
@@ -740,13 +754,13 @@ export function AgendaTimeAllocationTab() {
                   dataKey="avgOverrunPercent"
                   stroke="#ef4444"
                   strokeWidth={2}
-                  name="超时%"
+                  name={t("meeting.agenda.chartOverrunPercent")}
                   dot={{ r: 3 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-center py-8 text-muted-foreground">暂无趋势数据</p>
+            <p className="text-center py-8 text-muted-foreground">{t("meeting.agenda.noTrendData")}</p>
           )}
         </CardContent>
       </Card>
@@ -756,54 +770,54 @@ export function AgendaTimeAllocationTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            手动更新分析项
+            {t("meeting.agenda.updateItemTitle")}
           </CardTitle>
-          <CardDescription>手动更新议程分析项的标题、类别或时长</CardDescription>
+          <CardDescription>{t("meeting.agenda.updateItemDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Input
-              placeholder="分析项ID"
+              placeholder={t("meeting.agenda.analysisItemId")}
               type="number"
               value={updateItemId}
               onChange={(e) => setUpdateItemId(e.target.value)}
             />
             <Input
-              placeholder="议题标题"
+              placeholder={t("meeting.agenda.topicTitlePlaceholder")}
               value={updateTitle}
               onChange={(e) => setUpdateTitle(e.target.value)}
             />
             <Select value={updateCategory} onValueChange={setUpdateCategory}>
               <SelectTrigger>
-                <SelectValue placeholder="选择类别..." />
+                <SelectValue placeholder={t("meeting.agenda.selectCategory")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="discussion">讨论</SelectItem>
-                <SelectItem value="decision">决策</SelectItem>
-                <SelectItem value="update">汇报</SelectItem>
-                <SelectItem value="brainstorm">头脑风暴</SelectItem>
-                <SelectItem value="review">评审</SelectItem>
-                <SelectItem value="other">其他</SelectItem>
+                <SelectItem value="discussion">{t("meeting.agenda.catDiscussion")}</SelectItem>
+                <SelectItem value="decision">{t("meeting.agenda.catDecision")}</SelectItem>
+                <SelectItem value="update">{t("meeting.agenda.catUpdate")}</SelectItem>
+                <SelectItem value="brainstorm">{t("meeting.agenda.catBrainstorm")}</SelectItem>
+                <SelectItem value="review">{t("meeting.agenda.catReview")}</SelectItem>
+                <SelectItem value="other">{t("meeting.agenda.catOther")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">计划时长(分钟)</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.agenda.plannedDurationLabel")}</label>
               <Input
                 type="number"
                 min={0}
-                placeholder="计划时长"
+                placeholder={t("meeting.agenda.plannedDurationPlaceholder")}
                 value={updatePlanned}
                 onChange={(e) => setUpdatePlanned(e.target.value)}
               />
             </div>
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">实际时长(分钟)</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.agenda.actualDurationLabel")}</label>
               <Input
                 type="number"
                 min={0}
-                placeholder="实际时长"
+                placeholder={t("meeting.agenda.actualDurationPlaceholder")}
                 value={updateActual}
                 onChange={(e) => setUpdateActual(e.target.value)}
               />
@@ -826,13 +840,13 @@ export function AgendaTimeAllocationTab() {
             ) : (
               <Target className="h-4 w-4 mr-2" />
             )}
-            更新分析项
+            {t("meeting.agenda.updateItemBtn")}
           </Button>
           {updateMutation.data && (
-            <p className="text-sm text-green-600">分析项已更新</p>
+            <p className="text-sm text-green-600">{t("meeting.agenda.itemUpdated")}</p>
           )}
           {updateMutation.isError && (
-            <p className="text-sm text-red-500">错误: {updateMutation.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.agenda.error")}: {updateMutation.error.message}</p>
           )}
         </CardContent>
       </Card>
@@ -842,26 +856,26 @@ export function AgendaTimeAllocationTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Building2 className="h-4 w-4 text-indigo-500" />
-            组织议程智能
+            {t("meeting.agenda.orgIntelTitle")}
           </CardTitle>
-          <CardDescription>生成组织级、部门级或个人级的议程效能快照</CardDescription>
+          <CardDescription>{t("meeting.agenda.orgIntelDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3 flex-wrap">
             <Select value={snapshotScope} onValueChange={setSnapshotScope}>
               <SelectTrigger className="w-40">
-                <SelectValue placeholder="选择范围..." />
+                <SelectValue placeholder={t("meeting.agenda.selectScope")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="org">组织</SelectItem>
-                <SelectItem value="department">部门</SelectItem>
-                <SelectItem value="team">团队</SelectItem>
-                <SelectItem value="individual">个人</SelectItem>
+                <SelectItem value="org">{t("meeting.agenda.scopeOrg")}</SelectItem>
+                <SelectItem value="department">{t("meeting.agenda.scopeDept")}</SelectItem>
+                <SelectItem value="team">{t("meeting.agenda.scopeTeam")}</SelectItem>
+                <SelectItem value="individual">{t("meeting.agenda.scopeIndividual")}</SelectItem>
               </SelectContent>
             </Select>
             {snapshotScope !== "org" && (
               <Input
-                placeholder={`输入${snapshotScope === "department" ? "部门" : snapshotScope === "team" ? "团队" : "人员"}ID...`}
+                placeholder={`${t("meeting.agenda.inputScopeId")}${snapshotScope === "department" ? t("meeting.agenda.scopeDept") : snapshotScope === "team" ? t("meeting.agenda.scopeTeam") : t("meeting.agenda.scopeIndividual")}ID...`}
                 value={snapshotScopeId}
                 onChange={(e) => setSnapshotScopeId(e.target.value)}
                 className="w-48"
@@ -895,7 +909,7 @@ export function AgendaTimeAllocationTab() {
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
-              生成快照
+              {t("meeting.agenda.generateSnapshot")}
             </Button>
           </div>
           {snapshotMutation.data && (() => {
@@ -908,42 +922,42 @@ export function AgendaTimeAllocationTab() {
                     <CardContent className="pt-4 text-center">
                       <BarChart3 className="h-5 w-5 mx-auto text-indigo-500 mb-1" />
                       <div className="text-xl font-bold">{snap.totalMeetingsAnalyzed ?? 0}</div>
-                      <div className="text-xs text-muted-foreground">已分析会议</div>
+                      <div className="text-xs text-muted-foreground">{t("meeting.agenda.totalMeetingsAnalyzed")}</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-4 text-center">
                       <Clock className="h-5 w-5 mx-auto text-amber-500 mb-1" />
                       <div className="text-xl font-bold">{snap.avgOverrunPercent ?? 0}%</div>
-                      <div className="text-xs text-muted-foreground">平均超时%</div>
+                      <div className="text-xs text-muted-foreground">{t("meeting.agenda.avgOverrunPercent")}</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-4 text-center">
                       <AlertTriangle className="h-5 w-5 mx-auto text-red-500 mb-1" />
                       <div className="text-xl font-bold">{snap.overrunRate ?? 0}%</div>
-                      <div className="text-xs text-muted-foreground">超时率</div>
+                      <div className="text-xs text-muted-foreground">{t("meeting.agenda.overrunRate")}</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-4 text-center">
                       <Target className="h-5 w-5 mx-auto text-green-500 mb-1" />
                       <div className="text-xl font-bold">{snap.avgEngagementScore ?? "—"}</div>
-                      <div className="text-xs text-muted-foreground">参与度分</div>
+                      <div className="text-xs text-muted-foreground">{t("meeting.agenda.engagementScore")}</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-4 text-center">
                       <Zap className="h-5 w-5 mx-auto text-purple-500 mb-1" />
                       <div className="text-xl font-bold">{snap.avgProductivityScore ?? "—"}</div>
-                      <div className="text-xs text-muted-foreground">生产力分</div>
+                      <div className="text-xs text-muted-foreground">{t("meeting.agenda.productivityScore")}</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-4 text-center">
                       <CheckCircle2 className="h-5 w-5 mx-auto text-emerald-500 mb-1" />
                       <div className="text-xl font-bold">{snap.avgTimeEfficiencyScore ?? "—"}</div>
-                      <div className="text-xs text-muted-foreground">效率分</div>
+                      <div className="text-xs text-muted-foreground">{t("meeting.agenda.efficiencyScore")}</div>
                     </CardContent>
                   </Card>
                 </div>
@@ -952,14 +966,14 @@ export function AgendaTimeAllocationTab() {
                 <div className="flex items-center gap-4 flex-wrap">
                   {snap.trendVsPrevious && (
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">整体趋势:</span>
+                      <span className="text-sm font-medium">{t("meeting.agenda.overallTrend")}:</span>
                       <Badge className={TREND_COLORS[snap.trendVsPrevious] || ""} variant="secondary">
                         {(() => {
                           const Icon = snap.trendVsPrevious === "improving" ? TrendingUp : snap.trendVsPrevious === "declining" ? TrendingDown : Minus;
                           return (
                             <>
                               <Icon className="h-3 w-3 mr-1" />
-                              {TREND_LABELS[snap.trendVsPrevious] || snap.trendVsPrevious}
+                              {trendLabel(snap.trendVsPrevious)}
                             </>
                           );
                         })()}
@@ -968,7 +982,7 @@ export function AgendaTimeAllocationTab() {
                   )}
                   {snap.overallGrade && (
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">整体等级:</span>
+                      <span className="text-sm font-medium">{t("meeting.agenda.overallGrade")}:</span>
                       <Badge className={GRADE_COLORS[snap.overallGrade] || ""}>{snap.overallGrade}</Badge>
                     </div>
                   )}
@@ -983,11 +997,11 @@ export function AgendaTimeAllocationTab() {
                     if (Array.isArray(cats) && cats.length > 0) {
                       return (
                         <div>
-                          <h4 className="text-sm font-medium mb-1">超时频率最高的类别</h4>
+                          <h4 className="text-sm font-medium mb-1">{t("meeting.agenda.topOverrunCategories")}</h4>
                           <ul className="space-y-1 text-sm">
                             {cats.map((c: any, i: number) => (
                               <li key={i} className="text-muted-foreground">
-                                • {typeof c === "string" ? c : `${CATEGORY_LABELS[c.category] || c.category}: ${c.count ?? c.overrunRate ?? ""}次`}
+                                • {typeof c === "string" ? c : `${categoryLabel(c.category)}: ${c.count ?? c.overrunRate ?? ""}${t("meeting.agenda.timesUnit")}`}
                               </li>
                             ))}
                           </ul>
@@ -1009,11 +1023,11 @@ export function AgendaTimeAllocationTab() {
                     if (Array.isArray(topics) && topics.length > 0) {
                       return (
                         <div>
-                          <h4 className="text-sm font-medium mb-1">超时频率最高的议题</h4>
+                          <h4 className="text-sm font-medium mb-1">{t("meeting.agenda.topOverrunTopics")}</h4>
                           <ul className="space-y-1 text-sm">
-                            {topics.map((t: any, i: number) => (
+                            {topics.map((tp: any, i: number) => (
                               <li key={i} className="text-muted-foreground">
-                                • {typeof t === "string" ? t : `${t.topic ?? t.title}: ${t.count ?? t.avgOverrun ?? ""}次`}
+                                • {typeof tp === "string" ? tp : `${tp.topic ?? tp.title}: ${tp.count ?? tp.avgOverrun ?? ""}${t("meeting.agenda.timesUnit")}`}
                               </li>
                             ))}
                           </ul>
@@ -1035,7 +1049,7 @@ export function AgendaTimeAllocationTab() {
                     if (Array.isArray(order) && order.length > 0) {
                       return (
                         <div>
-                          <h4 className="text-sm font-medium mb-1">最优议程顺序</h4>
+                          <h4 className="text-sm font-medium mb-1">{t("meeting.agenda.optimalOrder")}</h4>
                           <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
                             {order.map((item: string, i: number) => (
                               <li key={i}>{item}</li>
@@ -1053,7 +1067,7 @@ export function AgendaTimeAllocationTab() {
                 {/* AI narrative */}
                 {snap.aiNarrative && (
                   <div className="bg-muted/50 rounded-lg p-4">
-                    <h4 className="text-sm font-medium mb-1">AI分析</h4>
+                    <h4 className="text-sm font-medium mb-1">{t("meeting.agenda.aiAnalysis")}</h4>
                     <p className="text-sm text-muted-foreground">{snap.aiNarrative}</p>
                   </div>
                 )}
@@ -1067,7 +1081,7 @@ export function AgendaTimeAllocationTab() {
                     if (Array.isArray(recs) && recs.length > 0) {
                       return (
                         <div>
-                          <h4 className="text-sm font-medium mb-1">优化建议</h4>
+                          <h4 className="text-sm font-medium mb-1">{t("meeting.agenda.optimizeSuggestions")}</h4>
                           <ul className="space-y-1 text-sm">
                             {recs.map((r: string, i: number) => (
                               <li key={i} className="text-muted-foreground">• {r}</li>
@@ -1085,7 +1099,7 @@ export function AgendaTimeAllocationTab() {
             );
           })()}
           {snapshotMutation.isError && (
-            <p className="text-sm text-red-500">错误: {snapshotMutation.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.agenda.error")}: {snapshotMutation.error.message}</p>
           )}
         </CardContent>
       </Card>

@@ -43,14 +43,14 @@ async function ensureAttendance() {
     if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
       await db.execute(sql`
         INSERT INTO attendance_records (employee_name, department, record_date, clock_in, clock_out, work_hours, status) VALUES
-        ('王工', '研发设计部', CURRENT_DATE, '08:28', '17:35', '9.1h', '正常'),
-        ('李工', '销售部',     CURRENT_DATE, '09:15', '-',     '-',    '迟到'),
-        ('张工', '技术服务部', CURRENT_DATE, '-',     '-',     '-',    '请假'),
-        ('赵工', '生产部',     CURRENT_DATE, '07:55', '17:00', '9.1h', '正常'),
-        ('陈工', '研发设计部', CURRENT_DATE, '08:30', '18:20', '9.8h', '正常'),
-        ('孙工', '事业一部',   CURRENT_DATE, '08:00', '17:05', '9.1h', '正常'),
-        ('周工', '事业二部',   CURRENT_DATE, '-',     '-',     '-',    '缺勤'),
-        ('吴工', '品质部',     CURRENT_DATE, '08:35', '17:40', '9.1h', '正常')
+        ('洪香龙', '事业二部', CURRENT_DATE, '08:28', '17:35', '9.1h', '正常'),
+        ('戴晓燕', '事业一部', CURRENT_DATE, '09:15', '-',     '-',    '迟到'),
+        ('杨勇',   '事业三部', CURRENT_DATE, '-',  '-',     '-',    '请假'),
+        ('马林山', '事业二部', CURRENT_DATE, '07:55', '17:00', '9.1h', '正常'),
+        ('蔡瑞',   '事业二部', CURRENT_DATE, '08:30', '18:20', '9.8h', '正常'),
+        ('金晓锋', '事业一部', CURRENT_DATE, '08:00', '17:05', '9.1h', '正常'),
+        ('钱绍辉', '事业二部', CURRENT_DATE, '-',     '-',     '-',    '缺勤'),
+        ('马柯',   '事业十部', CURRENT_DATE, '08:35', '17:40', '9.1h', '正常')
       `);
     }
   } catch (e: any) {
@@ -97,7 +97,8 @@ export const hrmRouter = router({
       const rows = await db
         .select()
         .from(hrmEmployees)
-        .where(eq(hrmEmployees.id, numericId));
+        .where(eq(hrmEmployees.id, numericId))
+        .limit(1000);
       if (rows.length === 0) return null;
       const row = rows[0];
       return {
@@ -125,7 +126,7 @@ export const hrmRouter = router({
       };
     }),
 
-  create: requirePermission('hrm_employee_management').input(z.object({
+  create: requirePermission('hr:employees:create').input(z.object({
     employeeCode: z.string().max(50).optional(),
     name: z.string().max(200),
     gender: z.string().max(10).optional(),
@@ -153,7 +154,7 @@ export const hrmRouter = router({
     return successResponse;
   }),
 
-  update: requirePermission('hrm_employee_management').input(z.object({
+  update: requirePermission('hr:employees:edit').input(z.object({
     id: z.union([z.string(), z.number()]),
     name: z.string().max(200).optional(),
     gender: z.string().max(10).optional(),
@@ -187,7 +188,7 @@ export const hrmRouter = router({
     return successResponse;
   }),
 
-  delete: requirePermission('hrm_employee_management')
+  delete: requirePermission('hr:employees:delete')
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -226,7 +227,8 @@ export const hrmRouter = router({
         headcount: sql<number>`count(*)`.as("headcount"),
       })
       .from(hrmEmployees)
-      .groupBy(hrmEmployees.department);
+      .groupBy(hrmEmployees.department)
+      .limit(1000);
     return rows.map((row, idx) => ({
       id: `DEPT-${String(idx + 1).padStart(3, "0")}`,
       name: row.department,
@@ -280,7 +282,7 @@ export const hrmRouter = router({
     }));
   }),
 
-  initSalaryStructures: requirePermission('hrm_salary_structure').mutation(async () => {
+  initSalaryStructures: requirePermission('hr:compensation:manage').mutation(async () => {
     const db = await requireDb();
     const defaults = [
       { department: "研发部", level: "P1", baseSalaryRatioMin: "0.50", baseSalaryRatioMax: "0.60", performanceRatioMin: "0.20", performanceRatioMax: "0.30", bonusRatioMin: "0.10", bonusRatioMax: "0.15", benefitsRatioMin: "0.05", benefitsRatioMax: "0.10", effectiveDate: new Date().toISOString() },
@@ -298,7 +300,7 @@ export const hrmRouter = router({
     return { created };
   }),
 
-  initPerformanceGrades: requirePermission('hrm_salary_structure').mutation(async () => {
+  initPerformanceGrades: requirePermission('hr:performance:manage').mutation(async () => {
     const db = await requireDb();
     const defaults = [
       { gradeCode: "S", gradeName: "卓越", scoreMin: 90, scoreMax: 100, coefficient: "2.00", description: "卓越表现" },
@@ -457,7 +459,8 @@ export const hrmRouter = router({
         headcount: sql<number>`count(*)`.as("headcount"),
       })
       .from(hrmEmployees)
-      .groupBy(hrmEmployees.department);
+      .groupBy(hrmEmployees.department)
+      .limit(1000);
 
     const children = rows.map((row, idx) => ({
       id: `DEPT-${String(idx + 1).padStart(3, "0")}`,
@@ -542,19 +545,19 @@ export const hrmRouter = router({
       };
     }),
 
-  createSalaryCalculation: requirePermission('hrm_salary_calculation').input(z.object({ department: z.string(), baseSalary: z.number(), performanceGrade: z.string().optional() })).mutation(() => successResponse),
+  createSalaryCalculation: requirePermission('hr:compensation:manage').input(z.object({ department: z.string(), baseSalary: z.number(), performanceGrade: z.string().optional() })).mutation(() => successResponse),
 
   // ==================== Scheduled Tasks (stub) ====================
 
   getScheduledTasks: protectedProcedure.query(() => [] as Array<{ id: string; taskName: string; taskType: string; cronExpression: string; isEnabled: boolean; lastRunAt: string | null }>),
-  createScheduledTask: protectedProcedure.input(z.object({ taskName: z.string(), taskType: z.string(), cronExpression: z.string().optional(), isEnabled: z.boolean().optional() })).mutation(() => successResponse),
-  updateScheduledTask: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), taskName: z.string().optional(), isEnabled: z.boolean().optional() })).mutation(() => successResponse),
+  createScheduledTask: requirePermission('system:scheduler:manage').input(z.object({ taskName: z.string(), taskType: z.string(), cronExpression: z.string().optional(), isEnabled: z.boolean().optional() })).mutation(() => successResponse),
+  updateScheduledTask: requirePermission('system:scheduler:manage').input(z.object({ id: z.union([z.string(), z.number()]), taskName: z.string().optional(), isEnabled: z.boolean().optional() })).mutation(() => successResponse),
 
   // ==================== Teams Meetings (stub) ====================
 
   getTeamsMeetings: protectedProcedure.query(() => [] as Array<{ id: string; subject: string; startTime: string; durationMinutes: number; status: string }>),
-  createTeamsMeeting: protectedProcedure.input(z.object({ subject: z.string(), startTime: z.union([z.string(), z.date()]), durationMinutes: z.number().optional() }).passthrough()).mutation(() => successResponse),
-  updateTeamsMeeting: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]), subject: z.string().optional(), startTime: z.string().optional(), durationMinutes: z.number().optional(), status: z.string().optional() })).mutation(() => successResponse),
+  createTeamsMeeting: requirePermission('collab:meeting:hub').input(z.object({ subject: z.string(), startTime: z.union([z.string(), z.date()]), durationMinutes: z.number().optional() }).passthrough()).mutation(() => successResponse),
+  updateTeamsMeeting: requirePermission('collab:meeting:hub').input(z.object({ id: z.union([z.string(), z.number()]), subject: z.string().optional(), startTime: z.string().optional(), durationMinutes: z.number().optional(), status: z.string().optional() })).mutation(() => successResponse),
 
   // ==================== Performance Score (deterministic seed algorithm) ====================
 

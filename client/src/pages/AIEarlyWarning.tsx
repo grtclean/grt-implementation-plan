@@ -2,6 +2,7 @@
  * AI Early Warning Center - 3-Layer Dashboard
  */
 
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,7 @@ function getHealthBadgeVariant(score: number): "default" | "secondary" | "destru
 // ===== Main Component =====
 
 export default function AIEarlyWarning() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("risk");
   const [showNotifications, setShowNotifications] = useState(false);
   // Layer 1: Health Scanner
@@ -83,8 +85,8 @@ export default function AIEarlyWarning() {
         {/* Header */}
         <PageHeader
           icon={AlertTriangle}
-          title="AI Early Warning Center"
-          description="3-Layer AI monitoring: Health Scanner, Risk Scorer, Narrative Engine"
+          title={t("ai.earlyWarning.title")}
+          description={t("ai.earlyWarning.description")}
           actions={
             <Button
               variant="outline"
@@ -146,13 +148,13 @@ export default function AIEarlyWarning() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="risk" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" /> Risk Heatmap
+              <Shield className="h-4 w-4" /> {t("ai.earlyWarning.riskHeatmap")}
             </TabsTrigger>
             <TabsTrigger value="health" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" /> Health Scanner
+              <Activity className="h-4 w-4" /> {t("ai.earlyWarning.healthScanner")}
             </TabsTrigger>
             <TabsTrigger value="narrative" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" /> AI Narratives
+              <FileText className="h-4 w-4" /> {t("ai.earlyWarning.aiNarratives")}
             </TabsTrigger>
           </TabsList>
           {/* Tab 1: Risk Heatmap */}
@@ -161,12 +163,12 @@ export default function AIEarlyWarning() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Risk Heatmap</CardTitle>
-                    <CardDescription>Projects colored by risk level</CardDescription>
+                    <CardTitle>{t("ai.earlyWarning.riskHeatmap")}</CardTitle>
+                    <CardDescription>{t("ai.earlyWarning.riskHeatmapDesc")}</CardDescription>
                   </div>
                   <Button onClick={handleRiskDashboard} size="sm">
                     <RefreshCw className={"h-4 w-4 mr-2" + (riskDashboardQuery.isFetching ? " animate-spin" : "")} />
-                    Refresh
+                    {t("ai.earlyWarning.refresh")}
                   </Button>
                 </div>
               </CardHeader>
@@ -197,7 +199,7 @@ export default function AIEarlyWarning() {
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
                     <Shield className="mx-auto h-12 w-12 mb-3 opacity-50" />
-                    <p>Click Refresh to load risk heatmap data.</p>
+                    <p>{t("ai.earlyWarning.clickRefreshRisk")}</p>
                   </div>
                 )}
               </CardContent>
@@ -209,8 +211,8 @@ export default function AIEarlyWarning() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Health Scanner Results</CardTitle>
-                    <CardDescription>Project health indicators and issues</CardDescription>
+                    <CardTitle>{t("ai.earlyWarning.healthScannerResults")}</CardTitle>
+                    <CardDescription>{t("ai.earlyWarning.healthScannerDesc")}</CardDescription>
                   </div>
                   <Button onClick={handleScan} size="sm">
                     <RefreshCw className={"h-4 w-4 mr-2" + (healthScanQuery.isFetching ? " animate-spin" : "")} />
@@ -277,7 +279,7 @@ export default function AIEarlyWarning() {
                   </Table>                ) : (
                   <div className="text-center py-12 text-muted-foreground">
                     <Activity className="mx-auto h-12 w-12 mb-3 opacity-50" />
-                    <p>Click Scan All to analyze project health.</p>
+                    <p>{t("ai.earlyWarning.clickScanAll")}</p>
                   </div>
                 )}
               </CardContent>
@@ -289,8 +291,8 @@ export default function AIEarlyWarning() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>AI Narratives - Weekly Digest</CardTitle>
-                    <CardDescription>AI-generated project status summaries</CardDescription>
+                    <CardTitle>{t("ai.earlyWarning.weeklyDigest")}</CardTitle>
+                    <CardDescription>{t("ai.earlyWarning.weeklyDigestDesc")}</CardDescription>
                   </div>
                   <Button onClick={handleWeeklyDigest} size="sm">
                     <RefreshCw className={"h-4 w-4 mr-2" + (weeklyDigestQuery.isFetching ? " animate-spin" : "")} />
@@ -329,7 +331,7 @@ export default function AIEarlyWarning() {
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
                     <FileText className="mx-auto h-12 w-12 mb-3 opacity-50" />
-                    <p>Click Generate Digest to create AI narratives.</p>
+                    <p>{t("ai.earlyWarning.clickGenerateDigest")}</p>
                   </div>
                 )}
               </CardContent>

@@ -7,13 +7,23 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAdminCaller,
   createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
 const { selectResultsQueue } = vi.hoisted(() => ({
   selectResultsQueue: [] as any[][],
+}));
+
+const { mockCheckPermission } = vi.hoisted(() => ({
+  mockCheckPermission: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: mockCheckPermission,
+  },
 }));
 
 vi.mock("../db", () => ({
@@ -71,6 +81,7 @@ describe("users router", () => {
     });
 
     it("rejects non-admin user", async () => {
+      mockCheckPermission.mockResolvedValueOnce(false);
       await expect(createAuthenticatedCaller().users.getAll()).rejects.toThrow();
     });
   });
@@ -109,6 +120,7 @@ describe("users router", () => {
     });
 
     it("rejects non-admin user", async () => {
+      mockCheckPermission.mockResolvedValueOnce(false);
       await expect(createAuthenticatedCaller().users.search({ query: "test" })).rejects.toThrow();
     });
   });

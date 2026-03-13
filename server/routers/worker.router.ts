@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { workers } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -46,7 +46,7 @@ export const workerRouter = router({
     return [];
   }),
 
-  createWorker: protectedProcedure.input(z.object({
+  createWorker: requirePermission('mfg:workers:manage').input(z.object({
     employeeCode: z.string().optional(),
     name: z.string().min(1),
     department: z.string().optional(),
@@ -70,7 +70,7 @@ export const workerRouter = router({
     return { success: true, data: w };
   }),
 
-  updateWorker: protectedProcedure.input(z.object({
+  updateWorker: requirePermission('mfg:workers:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     name: z.string().optional(),
     department: z.string().optional(),
@@ -88,13 +88,13 @@ export const workerRouter = router({
     return { success: true, data: w };
   }),
 
-  deleteWorker: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
+  deleteWorker: requirePermission('mfg:workers:manage').input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(workers).where(eq(workers.id, toNum(input.id)));
     return { success: true, message: "已删除" };
   }),
 
-  acknowledgeAlert: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(() => {
+  acknowledgeAlert: requirePermission('mfg:workers:manage').input(z.object({ id: z.union([z.string(), z.number()]) })).mutation(() => {
     return { success: true, message: "已确认" };
   }),
 });

@@ -32,7 +32,7 @@ export async function getPerformanceChain(userId: number) {
 
 export async function generatePerformanceReport(userId: number, period: string) {
   const db = await requireDb();
-  const traces = await db.select().from(schema.performanceTraces).where(and(eq(schema.performanceTraces.userId, userId), eq(schema.performanceTraces.period, period)));
+  const traces = await db.select().from(schema.performanceTraces).where(and(eq(schema.performanceTraces.userId, userId), eq(schema.performanceTraces.period, period))).limit(1000);
   const metrics = Array.from(new Set(traces.map(t => t.metricCode)));
   const summary = metrics.map(m => {
     const pts = traces.filter(t => t.metricCode === m);

@@ -38,6 +38,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Canvas, useFrame } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -147,7 +148,7 @@ function statusColor(status: AssetStatus) {
         border: "border-amber-500/40",
         glow: "shadow-[0_0_10px_rgba(245,158,11,0.25)]",
         label: "DRAFT",
-        labelZh: "草稿",
+        labelKey: "ai.digitalTwin.statusDraft",
       };
     case "pending_review":
       return {
@@ -156,7 +157,7 @@ function statusColor(status: AssetStatus) {
         border: "border-blue-500/40",
         glow: "shadow-[0_0_10px_rgba(59,130,246,0.3)] animate-pulse",
         label: "PENDING REVIEW",
-        labelZh: "待审核",
+        labelKey: "ai.digitalTwin.statusPendingReview",
       };
     case "released":
       return {
@@ -165,7 +166,7 @@ function statusColor(status: AssetStatus) {
         border: "border-emerald-500/40",
         glow: "shadow-[0_0_12px_rgba(16,185,129,0.35)]",
         label: "RELEASED",
-        labelZh: "已发布",
+        labelKey: "ai.digitalTwin.statusReleased",
       };
     case "obsolete":
       return {
@@ -174,7 +175,7 @@ function statusColor(status: AssetStatus) {
         border: "border-red-500/30",
         glow: "",
         label: "OBSOLETE",
-        labelZh: "已废弃",
+        labelKey: "ai.digitalTwin.statusObsolete",
       };
     default:
       return {
@@ -183,7 +184,7 @@ function statusColor(status: AssetStatus) {
         border: "border-slate-600/30",
         glow: "",
         label: String(status).toUpperCase(),
-        labelZh: status,
+        labelKey: "",
       };
   }
 }
@@ -431,13 +432,14 @@ function StatusBadge({
   status: AssetStatus;
   size?: "sm" | "lg";
 }) {
+  const { t } = useLanguage();
   const s = statusColor(status);
   const sizeClass = size === "lg" ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-xs";
   return (
     <span
       className={`inline-flex items-center rounded-full border font-mono font-semibold tracking-wider ${s.bg} ${s.text} ${s.border} ${s.glow} ${sizeClass}`}
     >
-      {s.label}
+      {s.labelKey ? t(s.labelKey) : s.label}
     </span>
   );
 }
@@ -782,7 +784,7 @@ function ViewerDialogContent({
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className={`text-2xl font-bold ${sc.text}`}>
-                  {sc.labelZh} / {sc.label}
+                  {sc.labelKey ? t(sc.labelKey) : sc.label} / {sc.label}
                 </span>
                 {asset.designFrozen && (
                   <span className="flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-xs text-blue-300 ring-1 ring-blue-500/30">
@@ -1279,19 +1281,19 @@ function AuditLogTable() {
 // ---------------------------------------------------------------------------
 
 const SKILL_LEVELS = [
-  { value: "L1", label: "L1 — 初级 / Beginner", description: "基础操作能力" },
-  { value: "L2", label: "L2 — 基本 / Basic", description: "独立完成常规任务" },
-  { value: "L3", label: "L3 — 中级 / Intermediate", description: "复杂问题处理能力" },
-  { value: "L4", label: "L4 — 高级 / Advanced", description: "指导他人、流程优化" },
-  { value: "L5", label: "L5 — 专家 / Expert", description: "系统架构、战略决策" },
+  { value: "L1", labelKey: "ai.digitalTwin.skillL1", descKey: "ai.digitalTwin.skillL1Desc" },
+  { value: "L2", labelKey: "ai.digitalTwin.skillL2", descKey: "ai.digitalTwin.skillL2Desc" },
+  { value: "L3", labelKey: "ai.digitalTwin.skillL3", descKey: "ai.digitalTwin.skillL3Desc" },
+  { value: "L4", labelKey: "ai.digitalTwin.skillL4", descKey: "ai.digitalTwin.skillL4Desc" },
+  { value: "L5", labelKey: "ai.digitalTwin.skillL5", descKey: "ai.digitalTwin.skillL5Desc" },
 ] as const;
 
 const QUALITY_SCORES = [
-  { value: "5", label: "5 — 卓越 / Excellent", color: "text-emerald-400" },
-  { value: "4", label: "4 — 良好 / Good", color: "text-green-400" },
-  { value: "3", label: "3 — 合格 / Adequate", color: "text-amber-400" },
-  { value: "2", label: "2 — 需改善 / Needs Improvement", color: "text-orange-400" },
-  { value: "1", label: "1 — 不合格 / Unsatisfactory", color: "text-red-400" },
+  { value: "5", labelKey: "ai.digitalTwin.quality5", color: "text-emerald-400" },
+  { value: "4", labelKey: "ai.digitalTwin.quality4", color: "text-green-400" },
+  { value: "3", labelKey: "ai.digitalTwin.quality3", color: "text-amber-400" },
+  { value: "2", labelKey: "ai.digitalTwin.quality2", color: "text-orange-400" },
+  { value: "1", labelKey: "ai.digitalTwin.quality1", color: "text-red-400" },
 ] as const;
 
 const FILE_FORMATS = [
@@ -1340,6 +1342,7 @@ function CreateAssetDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+  const { t } = useLanguage();
   const utils = trpc.useUtils();
   const [form, setForm] = useState<CreateFormState>({ ...EMPTY_FORM });
 
@@ -1362,7 +1365,7 @@ function CreateAssetDialog({
 
   const createAsset = trpc.digitalTwin.createAsset.useMutation({
     onSuccess: () => {
-      toast.success("Asset created successfully / 数字孪生资产已创建");
+      toast.success(t("ai.digitalTwin.createSuccess"));
       utils.digitalTwin.listAssets.invalidate();
       utils.digitalTwin.getStats.invalidate();
       onOpenChange(false);
@@ -1377,7 +1380,7 @@ function CreateAssetDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.assetName.trim()) {
-      toast.error("资产名称必填 / Asset name is required");
+      toast.error(t("ai.digitalTwin.nameRequired"));
       return;
     }
 
@@ -1415,7 +1418,7 @@ function CreateAssetDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-cyan-400">
             <Plus className="h-5 w-5" />
-            新建数字孪生资产 / Create Digital Twin Asset
+            {t("ai.digitalTwin.createAsset")}
           </DialogTitle>
         </DialogHeader>
 
@@ -1425,15 +1428,15 @@ function CreateAssetDialog({
           <div className="space-y-1">
             <h4 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <Database className="h-3.5 w-3.5" />
-              基本信息 / Basic Info
+              {t("ai.digitalTwin.basicInfo")}
             </h4>
             <Separator className="bg-slate-800" />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-400">资产名称 / Asset Name *</label>
+            <label className="text-xs font-medium text-slate-400">{t("ai.digitalTwin.assetName")}</label>
             <Input
-              placeholder="e.g., GRT-3000 涡轮增压器总成 v1"
+              placeholder={t("ai.digitalTwin.assetNamePlaceholder")}
               className="border-slate-700/60 bg-slate-900/80 text-slate-200 placeholder:text-slate-600"
               value={form.assetName}
               onChange={e => set("assetName", e.target.value)}
@@ -1442,7 +1445,7 @@ function CreateAssetDialog({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-xs font-medium text-slate-400">资产编号 / Asset Number</label>
+              <label className="text-xs font-medium text-slate-400">{t("ai.digitalTwin.assetNumber")}</label>
               <Input
                 placeholder="e.g., DT-2026-0042"
                 className="border-slate-700/60 bg-slate-900/80 font-mono text-slate-200 placeholder:text-slate-600"
@@ -1451,7 +1454,7 @@ function CreateAssetDialog({
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium text-slate-400">文件格式 / File Format</label>
+              <label className="text-xs font-medium text-slate-400">{t("ai.digitalTwin.fileFormat")}</label>
               <Select value={form.fileFormat} onValueChange={v => set("fileFormat", v)}>
                 <SelectTrigger className="border-slate-700/60 bg-slate-900/80 text-slate-300">
                   <SelectValue />
@@ -1469,7 +1472,7 @@ function CreateAssetDialog({
           <div className="space-y-1 pt-2">
             <h4 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <Network className="h-3.5 w-3.5" />
-              项目与负责人关联 / Project & Owner Linkage
+              {t("ai.digitalTwin.projectLinkage")}
             </h4>
             <Separator className="bg-slate-800" />
           </div>
@@ -1477,11 +1480,11 @@ function CreateAssetDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs font-medium text-slate-400">
-                关联项目 / Linked Project
+                {t("ai.digitalTwin.linkedProject")}
               </label>
               <Select value={form.projectId} onValueChange={v => set("projectId", v)}>
                 <SelectTrigger className="border-slate-700/60 bg-slate-900/80 text-slate-300">
-                  <SelectValue placeholder="选择项目..." />
+                  <SelectValue placeholder={t("ai.digitalTwin.selectProject")} />
                 </SelectTrigger>
                 <SelectContent className="border-slate-700 bg-slate-900 max-h-60">
                   {projectList.map(p => (
@@ -1508,11 +1511,11 @@ function CreateAssetDialog({
 
             <div className="space-y-2">
               <label className="text-xs font-medium text-slate-400">
-                负责工程师 / Responsible Engineer
+                {t("ai.digitalTwin.responsibleEngineer")}
               </label>
               <Select value={form.ownerUserId} onValueChange={v => set("ownerUserId", v)}>
                 <SelectTrigger className="border-slate-700/60 bg-slate-900/80 text-slate-300">
-                  <SelectValue placeholder="选择工程师..." />
+                  <SelectValue placeholder={t("ai.digitalTwin.selectEngineer")} />
                 </SelectTrigger>
                 <SelectContent className="border-slate-700 bg-slate-900 max-h-60">
                   {userList.map(u => (
@@ -1539,7 +1542,7 @@ function CreateAssetDialog({
           <div className="space-y-1 pt-2">
             <h4 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <ClipboardCheck className="h-3.5 w-3.5" />
-              技能与质量评估 / Skill & Quality Assessment
+              {t("ai.digitalTwin.skillQuality")}
             </h4>
             <Separator className="bg-slate-800" />
           </div>
@@ -1547,18 +1550,18 @@ function CreateAssetDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs font-medium text-slate-400">
-                所需技能等级 / Required Skill Level
+                {t("ai.digitalTwin.requiredSkillLevel")}
               </label>
               <Select value={form.requiredSkillLevel} onValueChange={v => set("requiredSkillLevel", v)}>
                 <SelectTrigger className="border-slate-700/60 bg-slate-900/80 text-slate-300">
-                  <SelectValue placeholder="选择等级..." />
+                  <SelectValue placeholder={t("ai.digitalTwin.selectLevel")} />
                 </SelectTrigger>
                 <SelectContent className="border-slate-700 bg-slate-900">
                   {SKILL_LEVELS.map(s => (
                     <SelectItem key={s.value} value={s.value}>
                       <span className="flex flex-col">
-                        <span>{s.label}</span>
-                        <span className="text-[10px] text-slate-500">{s.description}</span>
+                        <span>{t(s.labelKey)}</span>
+                        <span className="text-[10px] text-slate-500">{t(s.descKey)}</span>
                       </span>
                     </SelectItem>
                   ))}
@@ -1568,16 +1571,16 @@ function CreateAssetDialog({
 
             <div className="space-y-2">
               <label className="text-xs font-medium text-slate-400">
-                质量自评分 / Quality Self-Assessment
+                {t("ai.digitalTwin.qualitySelfAssessment")}
               </label>
               <Select value={form.qualityScore} onValueChange={v => set("qualityScore", v)}>
                 <SelectTrigger className="border-slate-700/60 bg-slate-900/80 text-slate-300">
-                  <SelectValue placeholder="自评分数..." />
+                  <SelectValue placeholder={t("ai.digitalTwin.selectScore")} />
                 </SelectTrigger>
                 <SelectContent className="border-slate-700 bg-slate-900">
                   {QUALITY_SCORES.map(q => (
                     <SelectItem key={q.value} value={q.value}>
-                      <span className={q.color}>{q.label}</span>
+                      <span className={q.color}>{t(q.labelKey)}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1588,10 +1591,10 @@ function CreateAssetDialog({
           {form.qualityScore && (
             <div className="space-y-2">
               <label className="text-xs font-medium text-slate-400">
-                质量评估说明 / Quality Assessment Notes
+                {t("ai.digitalTwin.qualityNotes")}
               </label>
               <Input
-                placeholder="对资产质量完成度的自我评价..."
+                placeholder={t("ai.digitalTwin.qualityNotesPlaceholder")}
                 className="border-slate-700/60 bg-slate-900/80 text-slate-200 placeholder:text-slate-600"
                 value={form.qualityNotes}
                 onChange={e => set("qualityNotes", e.target.value)}
@@ -1603,15 +1606,15 @@ function CreateAssetDialog({
           <div className="space-y-1 pt-2">
             <h4 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <FileText className="h-3.5 w-3.5" />
-              描述与标签 / Description & Tags
+              {t("ai.digitalTwin.descriptionTags")}
             </h4>
             <Separator className="bg-slate-800" />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-400">描述 / Description</label>
+            <label className="text-xs font-medium text-slate-400">{t("ai.digitalTwin.descriptionLabel")}</label>
             <Input
-              placeholder="资产的详细描述..."
+              placeholder={t("ai.digitalTwin.descriptionPlaceholder")}
               className="border-slate-700/60 bg-slate-900/80 text-slate-200 placeholder:text-slate-600"
               value={form.description}
               onChange={e => set("description", e.target.value)}
@@ -1620,7 +1623,7 @@ function CreateAssetDialog({
 
           <div className="space-y-2">
             <label className="text-xs font-medium text-slate-400">
-              标签 / Tags (逗号分隔 / comma-separated)
+              {t("ai.digitalTwin.tagsLabel")}
             </label>
             <Input
               placeholder="e.g., turbo, assembly, prototype"
@@ -1635,9 +1638,9 @@ function CreateAssetDialog({
           {/* ── Submit ── */}
           <div className="flex items-center justify-between">
             <div className="text-[10px] text-slate-600">
-              {selectedProject && <span className="mr-3">项目: {selectedProject.projectCode}</span>}
-              {selectedUser && <span className="mr-3">负责人: {selectedUser.name}</span>}
-              {form.requiredSkillLevel && <span>技能: {form.requiredSkillLevel}</span>}
+              {selectedProject && <span className="mr-3">{t("ai.digitalTwin.project")}: {selectedProject.projectCode}</span>}
+              {selectedUser && <span className="mr-3">{t("ai.digitalTwin.responsible")}: {selectedUser.name}</span>}
+              {form.requiredSkillLevel && <span>{t("ai.digitalTwin.skill")}: {form.requiredSkillLevel}</span>}
             </div>
             <div className="flex gap-2">
               <Button
@@ -1646,7 +1649,7 @@ function CreateAssetDialog({
                 className="border-slate-700 text-slate-400 hover:bg-slate-800"
                 onClick={() => onOpenChange(false)}
               >
-                取消 / Cancel
+                {t("ai.digitalTwin.cancelCreate")}
               </Button>
               <Button
                 type="submit"
@@ -1658,7 +1661,7 @@ function CreateAssetDialog({
                 ) : (
                   <Plus className="mr-2 h-4 w-4" />
                 )}
-                创建资产 / Create Asset
+                {t("ai.digitalTwin.createAssetBtn")}
               </Button>
             </div>
           </div>
@@ -1673,6 +1676,7 @@ function CreateAssetDialog({
 // ---------------------------------------------------------------------------
 
 export default function DigitalTwinHub() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -1734,10 +1738,10 @@ export default function DigitalTwinHub() {
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-slate-100">
                   <span className="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                    数字孪生中心
+                    {t("ai.digitalTwin.title")}
                   </span>
                   <span className="ml-2 text-lg font-normal text-slate-500">
-                    / Digital Twin Hub
+                    {t("ai.digitalTwin.subtitle")}
                   </span>
                 </h1>
                 <p className="mt-0.5 text-xs text-slate-500">
@@ -1829,14 +1833,14 @@ export default function DigitalTwinHub() {
                 className="data-[state=active]:bg-cyan-500/15 data-[state=active]:text-cyan-400"
               >
                 <Package className="mr-1.5 h-4 w-4" />
-                资产网格 / Asset Grid
+                {t("ai.digitalTwin.assetGrid")}
               </TabsTrigger>
               <TabsTrigger
                 value="audit"
                 className="data-[state=active]:bg-cyan-500/15 data-[state=active]:text-cyan-400"
               >
                 <FileText className="mr-1.5 h-4 w-4" />
-                IATF 审计日志 / Audit Trail
+                {t("ai.digitalTwin.auditTrail")}
               </TabsTrigger>
             </TabsList>
 

@@ -140,7 +140,8 @@ export const engineeringRoutes = router({
       const tasks = await (await requireDb())!.select()
         .from(engineeringTasks)
         .where(and(...conditions))
-        .orderBy(desc(engineeringTasks.createdAt));
+        .orderBy(desc(engineeringTasks.createdAt))
+        .limit(1000);
 
       return tasks;
     }),
@@ -227,7 +228,8 @@ export const engineeringRoutes = router({
           eq(taskNotifications.confirmationRequired, 1),
           eq(taskNotifications.status, 'sent')
         ))
-        .orderBy(desc(taskNotifications.sentAt));
+        .orderBy(desc(taskNotifications.sentAt))
+        .limit(1000);
 
       return notifications;
     }),
@@ -418,7 +420,8 @@ export const engineeringRoutes = router({
       const tasks = await (await requireDb())!.select()
         .from(bomAssemblyTasks)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(bomAssemblyTasks.createdAt));
+        .orderBy(desc(bomAssemblyTasks.createdAt))
+        .limit(1000);
 
       return tasks;
     }),

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from "@/components/grt";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ComponentHealth {
   name: string;
@@ -55,6 +56,7 @@ interface HealthAlert {
 }
 
 export default function SystemHealthDashboard() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -62,11 +64,11 @@ export default function SystemHealthDashboard() {
 
   // 模拟数据
   const [components] = useState<ComponentHealth[]>([
-    { name: 'MySQL数据库', status: 'healthy', message: '数据库连接正常', responseTime: 45, details: { host: 'localhost', port: 3306, connections: 15 } },
-    { name: 'Node.js服务', status: 'healthy', message: '服务运行正常', responseTime: 12, details: { pid: 12345, uptime: '2d 5h 30m' } },
-    { name: '系统内存', status: 'healthy', message: '内存使用率 65%', responseTime: 5, details: { total: '16 GB', used: '10.4 GB' } },
-    { name: '磁盘空间', status: 'degraded', message: '磁盘使用率 82%', responseTime: 8, details: { total: '500 GB', used: '410 GB' } },
-    { name: '网络连接', status: 'healthy', message: '网络连接正常', responseTime: 3, details: { activeConnections: 42 } },
+    { name: t("admin.sysHealth.mysqlDb"), status: 'healthy', message: t("admin.sysHealth.dbConnectionNormal"), responseTime: 45, details: { host: 'localhost', port: 3306, connections: 15 } },
+    { name: t("admin.sysHealth.nodejsService"), status: 'healthy', message: t("admin.sysHealth.serviceRunningNormal"), responseTime: 12, details: { pid: 12345, uptime: '2d 5h 30m' } },
+    { name: t("admin.sysHealth.systemMemory"), status: 'healthy', message: t("admin.sysHealth.memoryUsage65"), responseTime: 5, details: { total: '16 GB', used: '10.4 GB' } },
+    { name: t("admin.sysHealth.diskSpace"), status: 'degraded', message: t("admin.sysHealth.diskUsage82"), responseTime: 8, details: { total: '500 GB', used: '410 GB' } },
+    { name: t("admin.sysHealth.networkConnection"), status: 'healthy', message: t("admin.sysHealth.networkNormal"), responseTime: 3, details: { activeConnections: 42 } },
   ]);
 
   const [metrics] = useState<SystemMetrics>({
@@ -78,8 +80,8 @@ export default function SystemHealthDashboard() {
   });
 
   const [alerts] = useState<HealthAlert[]>([
-    { id: '1', level: 'warning', component: '磁盘空间', message: '磁盘使用率超过80%', timestamp: Date.now() - 3600000, acknowledged: false },
-    { id: '2', level: 'info', component: '系统', message: '系统已运行超过48小时', timestamp: Date.now() - 7200000, acknowledged: true },
+    { id: '1', level: 'warning', component: t("admin.sysHealth.diskSpace"), message: t("admin.sysHealth.diskUsageOver80"), timestamp: Date.now() - 3600000, acknowledged: false },
+    { id: '2', level: 'info', component: t("admin.sysHealth.system"), message: t("admin.sysHealth.systemRunOver48h"), timestamp: Date.now() - 7200000, acknowledged: true },
   ]);
 
   const formatBytes = (bytes: number): string => {
@@ -93,7 +95,7 @@ export default function SystemHealthDashboard() {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    return `${days}天 ${hours}小时 ${minutes}分钟`;
+    return `${days}${t("admin.sysHealth.days")} ${hours}${t("admin.sysHealth.hours")} ${minutes}${t("admin.sysHealth.minutes")}`;
   };
 
   const handleRefresh = async () => {
@@ -102,8 +104,8 @@ export default function SystemHealthDashboard() {
     setLastUpdate(new Date());
     setIsRefreshing(false);
     toast({
-      title: '刷新完成',
-      description: '系统状态已更新',
+      title: t("admin.sysHealth.refreshComplete"),
+      description: t("admin.sysHealth.statusUpdated"),
     });
   };
 
@@ -123,24 +125,24 @@ export default function SystemHealthDashboard() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'healthy':
-        return <Badge className="bg-green-500">健康</Badge>;
+        return <Badge className="bg-green-500">{t("admin.sysHealth.healthy")}</Badge>;
       case 'degraded':
-        return <Badge className="bg-yellow-500">降级</Badge>;
+        return <Badge className="bg-yellow-500">{t("admin.sysHealth.degraded")}</Badge>;
       case 'unhealthy':
-        return <Badge variant="destructive">异常</Badge>;
+        return <Badge variant="destructive">{t("admin.sysHealth.unhealthy")}</Badge>;
       default:
-        return <Badge variant="outline">未知</Badge>;
+        return <Badge variant="outline">{t("admin.sysHealth.unknown")}</Badge>;
     }
   };
 
   const getAlertBadge = (level: string) => {
     switch (level) {
       case 'critical':
-        return <Badge variant="destructive">严重</Badge>;
+        return <Badge variant="destructive">{t("admin.sysHealth.critical")}</Badge>;
       case 'warning':
-        return <Badge className="bg-yellow-500">警告</Badge>;
+        return <Badge className="bg-yellow-500">{t("admin.sysHealth.warning")}</Badge>;
       case 'info':
-        return <Badge variant="outline">信息</Badge>;
+        return <Badge variant="outline">{t("admin.sysHealth.info")}</Badge>;
       default:
         return <Badge variant="outline">{level}</Badge>;
     }
@@ -150,13 +152,13 @@ export default function SystemHealthDashboard() {
     <div className="space-y-6">
       <PageHeader
         icon={Activity}
-        title="系统健康检查"
-        description="实时监控系统运行状态和资源使用情况"
+        title={t("admin.sysHealth.title")}
+        description={t("admin.sysHealth.description")}
         actions={
           <>
             <div className="text-sm text-muted-foreground">
               <Clock className="w-4 h-4 inline mr-1" />
-              最后更新: {lastUpdate.toLocaleTimeString()}
+              {t("admin.sysHealth.lastUpdate")}: {lastUpdate.toLocaleTimeString()}
             </div>
             <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
               {isRefreshing ? (
@@ -164,7 +166,7 @@ export default function SystemHealthDashboard() {
               ) : (
                 <RefreshCw className="w-4 h-4 mr-2" />
               )}
-              刷新
+              {t("admin.sysHealth.refresh")}
             </Button>
           </>
         }
@@ -180,12 +182,12 @@ export default function SystemHealthDashboard() {
             <div className="flex items-center gap-4">
               {getStatusIcon(overallStatus)}
               <div>
-                <h2 className="text-xl font-bold">系统状态: {
-                  overallStatus === 'healthy' ? '正常运行' :
-                  overallStatus === 'degraded' ? '部分降级' : '存在异常'
+                <h2 className="text-xl font-bold">{t("admin.sysHealth.systemStatus")}: {
+                  overallStatus === 'healthy' ? t("admin.sysHealth.normalRunning") :
+                  overallStatus === 'degraded' ? t("admin.sysHealth.partiallyDegraded") : t("admin.sysHealth.hasAnomalies")
                 }</h2>
                 <p className="text-muted-foreground">
-                  版本 v2.5.22 | 运行时间: {formatUptime(metrics.process.uptime)}
+                  {t("admin.sysHealth.version")} v2.5.22 | {t("admin.sysHealth.uptime")}: {formatUptime(metrics.process.uptime)}
                 </p>
               </div>
             </div>
@@ -193,7 +195,7 @@ export default function SystemHealthDashboard() {
               {alerts.filter(a => !a.acknowledged).length > 0 && (
                 <Badge variant="destructive" className="flex items-center gap-1">
                   <Bell className="w-3 h-3" />
-                  {alerts.filter(a => !a.acknowledged).length} 个告警
+                  {alerts.filter(a => !a.acknowledged).length} {t("admin.sysHealth.alerts")}
                 </Badge>
               )}
             </div>
@@ -210,12 +212,12 @@ export default function SystemHealthDashboard() {
                 <Cpu className="w-5 h-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">CPU使用率</p>
+                <p className="text-sm text-muted-foreground">{t("admin.sysHealth.cpuUsage")}</p>
                 <p className="text-2xl font-bold">{metrics.cpu.usage}%</p>
               </div>
             </div>
             <Progress value={metrics.cpu.usage} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-2">{metrics.cpu.cores}核心 | {metrics.cpu.model}</p>
+            <p className="text-xs text-muted-foreground mt-2">{metrics.cpu.cores} {t("admin.sysHealth.cores")} | {metrics.cpu.model}</p>
           </CardContent>
         </Card>
 
@@ -226,7 +228,7 @@ export default function SystemHealthDashboard() {
                 <MemoryStick className="w-5 h-5 text-green-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">内存使用率</p>
+                <p className="text-sm text-muted-foreground">{t("admin.sysHealth.memoryUsage")}</p>
                 <p className="text-2xl font-bold">{metrics.memory.usagePercent}%</p>
               </div>
             </div>
@@ -244,7 +246,7 @@ export default function SystemHealthDashboard() {
                 <HardDrive className={`w-5 h-5 ${metrics.disk.usagePercent > 80 ? 'text-yellow-500' : 'text-purple-500'}`} />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">磁盘使用率</p>
+                <p className="text-sm text-muted-foreground">{t("admin.sysHealth.diskUsage")}</p>
                 <p className="text-2xl font-bold">{metrics.disk.usagePercent}%</p>
               </div>
             </div>
@@ -265,12 +267,12 @@ export default function SystemHealthDashboard() {
                 <Wifi className="w-5 h-5 text-orange-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">活跃连接</p>
+                <p className="text-sm text-muted-foreground">{t("admin.sysHealth.activeConnections")}</p>
                 <p className="text-2xl font-bold">{metrics.network.activeConnections}</p>
               </div>
             </div>
             <Progress value={Math.min(metrics.network.activeConnections, 100)} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-2">数据库 + API连接</p>
+            <p className="text-xs text-muted-foreground mt-2">{t("admin.sysHealth.dbAndApiConnections")}</p>
           </CardContent>
         </Card>
       </div>
@@ -278,34 +280,34 @@ export default function SystemHealthDashboard() {
       {/* 详细信息 */}
       <Tabs defaultValue="components">
         <TabsList>
-          <TabsTrigger value="components">组件状态</TabsTrigger>
+          <TabsTrigger value="components">{t("admin.sysHealth.componentStatus")}</TabsTrigger>
           <TabsTrigger value="alerts">
-            告警记录
+            {t("admin.sysHealth.alertRecords")}
             {alerts.filter(a => !a.acknowledged).length > 0 && (
               <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center">
                 {alerts.filter(a => !a.acknowledged).length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="details">详细指标</TabsTrigger>
+          <TabsTrigger value="details">{t("admin.sysHealth.detailedMetrics")}</TabsTrigger>
         </TabsList>
 
         {/* 组件状态 */}
         <TabsContent value="components">
           <Card>
             <CardHeader>
-              <CardTitle>组件健康状态</CardTitle>
-              <CardDescription>各系统组件的运行状态和响应时间</CardDescription>
+              <CardTitle>{t("admin.sysHealth.componentHealthStatus")}</CardTitle>
+              <CardDescription>{t("admin.sysHealth.componentHealthDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>组件</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>消息</TableHead>
-                    <TableHead>响应时间</TableHead>
-                    <TableHead>详情</TableHead>
+                    <TableHead>{t("admin.sysHealth.component")}</TableHead>
+                    <TableHead>{t("admin.sysHealth.statusCol")}</TableHead>
+                    <TableHead>{t("admin.sysHealth.message")}</TableHead>
+                    <TableHead>{t("admin.sysHealth.responseTime")}</TableHead>
+                    <TableHead>{t("admin.sysHealth.details")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -313,11 +315,11 @@ export default function SystemHealthDashboard() {
                     <TableRow key={index}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          {component.name === 'MySQL数据库' && <Database className="w-4 h-4" />}
-                          {component.name === 'Node.js服务' && <Server className="w-4 h-4" />}
-                          {component.name === '系统内存' && <MemoryStick className="w-4 h-4" />}
-                          {component.name === '磁盘空间' && <HardDrive className="w-4 h-4" />}
-                          {component.name === '网络连接' && <Wifi className="w-4 h-4" />}
+                          {component.name === t("admin.sysHealth.mysqlDb") && <Database className="w-4 h-4" />}
+                          {component.name === t("admin.sysHealth.nodejsService") && <Server className="w-4 h-4" />}
+                          {component.name === t("admin.sysHealth.systemMemory") && <MemoryStick className="w-4 h-4" />}
+                          {component.name === t("admin.sysHealth.diskSpace") && <HardDrive className="w-4 h-4" />}
+                          {component.name === t("admin.sysHealth.networkConnection") && <Wifi className="w-4 h-4" />}
                           {component.name}
                         </div>
                       </TableCell>
@@ -341,25 +343,25 @@ export default function SystemHealthDashboard() {
         <TabsContent value="alerts">
           <Card>
             <CardHeader>
-              <CardTitle>告警记录</CardTitle>
-              <CardDescription>系统告警和通知历史</CardDescription>
+              <CardTitle>{t("admin.sysHealth.alertRecords")}</CardTitle>
+              <CardDescription>{t("admin.sysHealth.alertHistoryDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               {alerts.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500" />
-                  <p>暂无告警记录</p>
+                  <p>{t("admin.sysHealth.noAlertRecords")}</p>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>级别</TableHead>
-                      <TableHead>组件</TableHead>
-                      <TableHead>消息</TableHead>
-                      <TableHead>时间</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead>操作</TableHead>
+                      <TableHead>{t("admin.sysHealth.level")}</TableHead>
+                      <TableHead>{t("admin.sysHealth.component")}</TableHead>
+                      <TableHead>{t("admin.sysHealth.message")}</TableHead>
+                      <TableHead>{t("admin.sysHealth.time")}</TableHead>
+                      <TableHead>{t("admin.sysHealth.statusCol")}</TableHead>
+                      <TableHead>{t("admin.sysHealth.operation")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -371,14 +373,14 @@ export default function SystemHealthDashboard() {
                         <TableCell>{new Date(alert.timestamp).toLocaleString()}</TableCell>
                         <TableCell>
                           {alert.acknowledged ? (
-                            <Badge variant="outline">已确认</Badge>
+                            <Badge variant="outline">{t("admin.sysHealth.acknowledged")}</Badge>
                           ) : (
-                            <Badge variant="destructive">待处理</Badge>
+                            <Badge variant="destructive">{t("admin.sysHealth.pending")}</Badge>
                           )}
                         </TableCell>
                         <TableCell>
                           {!alert.acknowledged && (
-                            <Button variant="ghost" size="sm">确认</Button>
+                            <Button variant="ghost" size="sm">{t("admin.sysHealth.confirm")}</Button>
                           )}
                         </TableCell>
                       </TableRow>
@@ -395,19 +397,19 @@ export default function SystemHealthDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>CPU详情</CardTitle>
+                <CardTitle>{t("admin.sysHealth.cpuDetails")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">型号</span>
+                  <span className="text-muted-foreground">{t("admin.sysHealth.model")}</span>
                   <span>{metrics.cpu.model}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">核心数</span>
+                  <span className="text-muted-foreground">{t("admin.sysHealth.coreCount")}</span>
                   <span>{metrics.cpu.cores}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">使用率</span>
+                  <span className="text-muted-foreground">{t("admin.sysHealth.usageRate")}</span>
                   <span>{metrics.cpu.usage}%</span>
                 </div>
               </CardContent>
@@ -415,19 +417,19 @@ export default function SystemHealthDashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>内存详情</CardTitle>
+                <CardTitle>{t("admin.sysHealth.memoryDetails")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">总内存</span>
+                  <span className="text-muted-foreground">{t("admin.sysHealth.totalMemory")}</span>
                   <span>{formatBytes(metrics.memory.total)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">已使用</span>
+                  <span className="text-muted-foreground">{t("admin.sysHealth.used")}</span>
                   <span>{formatBytes(metrics.memory.used)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">可用</span>
+                  <span className="text-muted-foreground">{t("admin.sysHealth.available")}</span>
                   <span>{formatBytes(metrics.memory.free)}</span>
                 </div>
               </CardContent>
@@ -435,19 +437,19 @@ export default function SystemHealthDashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>磁盘详情</CardTitle>
+                <CardTitle>{t("admin.sysHealth.diskDetails")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">总容量</span>
+                  <span className="text-muted-foreground">{t("admin.sysHealth.totalCapacity")}</span>
                   <span>{formatBytes(metrics.disk.total)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">已使用</span>
+                  <span className="text-muted-foreground">{t("admin.sysHealth.used")}</span>
                   <span>{formatBytes(metrics.disk.used)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">可用</span>
+                  <span className="text-muted-foreground">{t("admin.sysHealth.available")}</span>
                   <span>{formatBytes(metrics.disk.free)}</span>
                 </div>
               </CardContent>
@@ -455,7 +457,7 @@ export default function SystemHealthDashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>进程详情</CardTitle>
+                <CardTitle>{t("admin.sysHealth.processDetails")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
@@ -463,11 +465,11 @@ export default function SystemHealthDashboard() {
                   <span>{metrics.process.pid}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">运行时间</span>
+                  <span className="text-muted-foreground">{t("admin.sysHealth.uptime")}</span>
                   <span>{formatUptime(metrics.process.uptime)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">内存占用</span>
+                  <span className="text-muted-foreground">{t("admin.sysHealth.memoryUsed")}</span>
                   <span>{formatBytes(metrics.process.memoryUsage)}</span>
                 </div>
               </CardContent>

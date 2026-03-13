@@ -149,7 +149,7 @@ vi.mock("../../drizzle/bom-schema", () => ({
 
 // ─── Import AFTER mocks are in place ─────────────────────────────────
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -235,7 +235,7 @@ describe("bom — BOM Master CRUD", () => {
       status: "draft",
       currentVersion: "1.0",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.createBomMaster({
       productCode: "P-001",
       productName: "Test Product",
@@ -247,7 +247,7 @@ describe("bom — BOM Master CRUD", () => {
 
   it("createBomMaster uses default bomType 'manufacturing'", async () => {
     mockReturningResult = [{ id: 2, bomType: "manufacturing" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.createBomMaster({
       productCode: "P-002",
       productName: "Product B",
@@ -257,7 +257,7 @@ describe("bom — BOM Master CRUD", () => {
 
   it("createBomMaster accepts explicit bomType", async () => {
     mockReturningResult = [{ id: 3, bomType: "engineering" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.createBomMaster({
       productCode: "P-003",
       productName: "Engineering BOM",
@@ -268,7 +268,7 @@ describe("bom — BOM Master CRUD", () => {
 
   it("createBomMaster accepts optional buCode", async () => {
     mockReturningResult = [{ id: 4, buCode: "BU1" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.createBomMaster({
       productCode: "P-004",
       productName: "BU1 Product",
@@ -279,7 +279,7 @@ describe("bom — BOM Master CRUD", () => {
 
   it("createBomMaster returns null when returning is empty", async () => {
     mockReturningResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.createBomMaster({
       productCode: "P-005",
       productName: "Empty Return",
@@ -290,7 +290,7 @@ describe("bom — BOM Master CRUD", () => {
   // ---- getBomMasters (list) ----
   it("getBomMasters returns paginated list with total", async () => {
     mockQueryResult = [{ value: 3 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getBomMasters({});
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total");
@@ -300,42 +300,42 @@ describe("bom — BOM Master CRUD", () => {
 
   it("getBomMasters accepts bomType filter", async () => {
     mockQueryResult = [{ value: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getBomMasters({ bomType: "engineering" });
     expect(result).toHaveProperty("total");
   });
 
   it("getBomMasters accepts status filter", async () => {
     mockQueryResult = [{ value: 2 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getBomMasters({ status: "active" });
     expect(result).toHaveProperty("total");
   });
 
   it("getBomMasters accepts search term", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getBomMasters({ search: "motor" });
     expect(result).toHaveProperty("total");
   });
 
   it("getBomMasters accepts buCode filter", async () => {
     mockQueryResult = [{ value: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getBomMasters({ buCode: "BU2" });
     expect(result).toHaveProperty("total");
   });
 
   it("getBomMasters accepts productCategory filter", async () => {
     mockQueryResult = [{ value: 0 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getBomMasters({ productCategory: "electronics" });
     expect(result).toHaveProperty("total");
   });
 
   it("getBomMasters respects page and pageSize", async () => {
     mockQueryResult = [{ value: 50 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getBomMasters({ page: 3, pageSize: 10 });
     expect(result).toHaveProperty("page", 3);
     expect(result).toHaveProperty("pageSize", 10);
@@ -349,7 +349,7 @@ describe("bom — BOM Master CRUD", () => {
       productName: "Product A",
       status: "active",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getBomMaster({ id: 1 });
     expect(result).toHaveProperty("productCode", "P-001");
     expect(result).toHaveProperty("items");
@@ -359,7 +359,7 @@ describe("bom — BOM Master CRUD", () => {
 
   it("getBomMaster returns null when not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getBomMaster({ id: 999 });
     expect(result).toBeNull();
   });
@@ -372,7 +372,7 @@ describe("bom — BOM Master CRUD", () => {
       productName: "Updated Product",
       status: "draft",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.updateBomMaster({
       id: 1,
       productName: "Updated Product",
@@ -382,7 +382,7 @@ describe("bom — BOM Master CRUD", () => {
 
   it("updateBomMaster throws when BOM not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.updateBomMaster({ id: 999, productName: "Ghost" }),
     ).rejects.toThrow("BOM not found");
@@ -396,7 +396,7 @@ describe("bom — BOM Master CRUD", () => {
       bomType: "sales",
       buCode: "BU3",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.updateBomMaster({
       id: 1,
       productCode: "P-001-NEW",
@@ -411,7 +411,7 @@ describe("bom — BOM Master CRUD", () => {
   // ---- updateBomStatus ----
   it("updateBomStatus transitions to pending_review", async () => {
     mockQueryResult = [{ id: 1, status: "draft" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.updateBomStatus({
       id: 1,
       status: "pending_review",
@@ -422,7 +422,7 @@ describe("bom — BOM Master CRUD", () => {
 
   it("updateBomStatus sets approvedAt when transitioning to approved", async () => {
     mockQueryResult = [{ id: 1, status: "approved", approvedAt: "2026-03-01T00:00:00.000Z" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.updateBomStatus({
       id: 1,
       status: "approved",
@@ -432,7 +432,7 @@ describe("bom — BOM Master CRUD", () => {
 
   it("updateBomStatus throws when BOM not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.updateBomStatus({ id: 999, status: "active" }),
     ).rejects.toThrow("BOM not found");
@@ -441,20 +441,20 @@ describe("bom — BOM Master CRUD", () => {
   // ---- deleteBomMaster ----
   it("deleteBomMaster deletes draft BOM and related records", async () => {
     mockQueryResult = [{ id: 1, status: "draft" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.deleteBomMaster({ id: 1 });
     expect(result).toEqual({ success: true, message: "BOM已删除" });
   });
 
   it("deleteBomMaster throws when BOM not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.bom.deleteBomMaster({ id: 999 })).rejects.toThrow("BOM not found");
   });
 
   it("deleteBomMaster throws when status is not draft", async () => {
     mockQueryResult = [{ id: 1, status: "active" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.bom.deleteBomMaster({ id: 1 })).rejects.toThrow(
       "只能删除草稿状态的BOM",
     );
@@ -462,7 +462,7 @@ describe("bom — BOM Master CRUD", () => {
 
   it("deleteBomMaster throws for approved BOM", async () => {
     mockQueryResult = [{ id: 2, status: "approved" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.bom.deleteBomMaster({ id: 2 })).rejects.toThrow(
       "只能删除草稿状态的BOM",
     );
@@ -486,7 +486,7 @@ describe("bom — BOM Item CRUD", () => {
     }];
     // The select for master maxLevel check
     mockQueryResult = [{ id: 1, maxLevel: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.addBomItem({
       bomMasterId: 1,
       materialCode: "MAT-001",
@@ -507,7 +507,7 @@ describe("bom — BOM Item CRUD", () => {
       extendedCost: "51.00",
     }];
     mockQueryResult = [{ id: 1, maxLevel: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.addBomItem({
       bomMasterId: 1,
       materialCode: "MAT-002",
@@ -530,7 +530,7 @@ describe("bom — BOM Item CRUD", () => {
       substituteCode: "MAT-003-ALT",
     }];
     mockQueryResult = [{ id: 1, maxLevel: 2 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.addBomItem({
       bomMasterId: 1,
       materialCode: "MAT-003",
@@ -558,7 +558,7 @@ describe("bom — BOM Item CRUD", () => {
   it("addBomItem updates maxLevel when item level exceeds current", async () => {
     mockReturningResult = [{ id: 13, level: 3 }];
     mockQueryResult = [{ id: 1, maxLevel: 2 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.bom.addBomItem({
       bomMasterId: 1,
       materialCode: "MAT-DEEP",
@@ -574,7 +574,7 @@ describe("bom — BOM Item CRUD", () => {
   it("addBomItem returns null when returning is empty", async () => {
     mockReturningResult = [];
     mockQueryResult = [{ id: 1, maxLevel: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.addBomItem({
       bomMasterId: 1,
       materialCode: "MAT-EMPTY",
@@ -594,7 +594,7 @@ describe("bom — BOM Item CRUD", () => {
       unitCost: "0.50",
       scrapRate: "0.00",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.updateBomItem({
       id: 10,
       quantity: 200,
@@ -604,7 +604,7 @@ describe("bom — BOM Item CRUD", () => {
 
   it("updateBomItem throws when item not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.updateBomItem({ id: 999, quantity: 5 }),
     ).rejects.toThrow("BOM Item not found");
@@ -619,7 +619,7 @@ describe("bom — BOM Item CRUD", () => {
       scrapRate: "5.00",
     }];
     // extendedCost = 20 * 10 * (1 + 5/100) = 210.00
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.updateBomItem({
       id: 10,
       quantity: 20,
@@ -637,7 +637,7 @@ describe("bom — BOM Item CRUD", () => {
       unitCost: "1.00",
       scrapRate: "0.00",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.updateBomItem({
       id: 10,
       materialName: "Updated Name",
@@ -648,14 +648,14 @@ describe("bom — BOM Item CRUD", () => {
   // ---- deleteBomItem ----
   it("deleteBomItem removes the item and returns success", async () => {
     mockQueryResult = [{ id: 10, bomMasterId: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.deleteBomItem({ id: 10 });
     expect(result).toEqual({ success: true });
   });
 
   it("deleteBomItem throws when item not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(caller.bom.deleteBomItem({ id: 999 })).rejects.toThrow(
       "BOM Item not found",
     );
@@ -665,7 +665,7 @@ describe("bom — BOM Item CRUD", () => {
   it("batchAddBomItems creates multiple items and returns count", async () => {
     mockReturningResult = [{ id: 20 }];
     mockQueryResult = [{ id: 1, maxLevel: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.batchAddBomItems({
       bomMasterId: 1,
       items: [
@@ -681,7 +681,7 @@ describe("bom — BOM Item CRUD", () => {
   it("batchAddBomItems updates maxLevel for multi-level items", async () => {
     mockReturningResult = [{ id: 21 }];
     mockQueryResult = [{ id: 1, maxLevel: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.batchAddBomItems({
       bomMasterId: 1,
       items: [
@@ -694,7 +694,7 @@ describe("bom — BOM Item CRUD", () => {
 
   it("batchAddBomItems handles empty items array", async () => {
     mockQueryResult = [{ id: 1, maxLevel: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.batchAddBomItems({
       bomMasterId: 1,
       items: [],
@@ -713,7 +713,7 @@ describe("bom — BOM Tree", () => {
       { id: 1, bomMasterId: 1, parentItemId: null, level: 1, sequence: 10, materialCode: "M-A" },
       { id: 2, bomMasterId: 1, parentItemId: null, level: 1, sequence: 20, materialCode: "M-B" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getBomTree({ bomMasterId: 1 });
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
@@ -728,7 +728,7 @@ describe("bom — BOM Tree", () => {
       { id: 3, bomMasterId: 1, parentItemId: 1, level: 2, sequence: 20, materialCode: "Sub-B" },
       { id: 4, bomMasterId: 1, parentItemId: 2, level: 3, sequence: 10, materialCode: "Part-X" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getBomTree({ bomMasterId: 1 });
     expect(result).toHaveLength(1); // 1 root node
     expect(result[0].children).toHaveLength(2); // 2 sub-assemblies
@@ -738,7 +738,7 @@ describe("bom — BOM Tree", () => {
 
   it("getBomTree returns empty array for BOM with no items", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getBomTree({ bomMasterId: 1 });
     expect(result).toEqual([]);
   });
@@ -749,7 +749,7 @@ describe("bom — BOM Tree", () => {
       { id: 1, bomMasterId: 1, parentItemId: null, level: 1, sequence: 10, materialCode: "First" },
       { id: 3, bomMasterId: 1, parentItemId: null, level: 1, sequence: 20, materialCode: "Second" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getBomTree({ bomMasterId: 1 });
     expect(result[0].materialCode).toBe("First");
     expect(result[1].materialCode).toBe("Second");
@@ -772,7 +772,7 @@ describe("bom — Version management", () => {
       changeType: "revision",
       status: "draft",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.createVersion({
       bomMasterId: 1,
       version: "2.0",
@@ -792,7 +792,7 @@ describe("bom — Version management", () => {
       changeType: "ecn",
       ecnNumber: "ECN-2026-001",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.createVersion({
       bomMasterId: 1,
       version: "1.1",
@@ -808,7 +808,7 @@ describe("bom — Version management", () => {
   it("createVersion supports cost_update type", async () => {
     mockQueryResult = [{ id: 1 }];
     mockReturningResult = [{ id: 3, version: "1.0.1", changeType: "cost_update" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.createVersion({
       bomMasterId: 1,
       version: "1.0.1",
@@ -821,7 +821,7 @@ describe("bom — Version management", () => {
   it("createVersion returns null when returning is empty", async () => {
     mockQueryResult = [];
     mockReturningResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.createVersion({
       bomMasterId: 1,
       version: "3.0",
@@ -836,7 +836,7 @@ describe("bom — Version management", () => {
       { id: 2, bomMasterId: 1, version: "2.0", status: "draft" },
       { id: 1, bomMasterId: 1, version: "1.0", status: "approved" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getVersions({ bomMasterId: 1 });
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
@@ -844,7 +844,7 @@ describe("bom — Version management", () => {
 
   it("getVersions returns empty array when no versions exist", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getVersions({ bomMasterId: 999 });
     expect(result).toEqual([]);
   });
@@ -857,7 +857,7 @@ describe("bom — Version management", () => {
       version: "2.0",
       status: "draft",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.approveVersion({
       id: 1,
       action: "approve",
@@ -872,7 +872,7 @@ describe("bom — Version management", () => {
       version: "2.0",
       status: "draft",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.approveVersion({
       id: 2,
       action: "reject",
@@ -883,7 +883,7 @@ describe("bom — Version management", () => {
 
   it("approveVersion throws when version not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.approveVersion({ id: 999, action: "approve" }),
     ).rejects.toThrow("Version not found");
@@ -907,7 +907,7 @@ describe("bom — Cost rollup", () => {
       overheadCost: "7.50",
       outsourceCost: "42.50",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.calculateCostRollup({ bomMasterId: 1 });
     expect(result).toHaveProperty("totalCost");
     expect(result).toHaveProperty("bomMasterId", 1);
@@ -916,7 +916,7 @@ describe("bom — Cost rollup", () => {
   it("calculateCostRollup uses default costType standard", async () => {
     mockQueryResult = [{ id: 1, currentVersion: "1.0" }];
     mockReturningResult = [{ id: 2, costType: "standard" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.calculateCostRollup({ bomMasterId: 1 });
     expect(result).toHaveProperty("costType", "standard");
   });
@@ -924,7 +924,7 @@ describe("bom — Cost rollup", () => {
   it("calculateCostRollup accepts explicit costType", async () => {
     mockQueryResult = [{ id: 1, currentVersion: "1.0" }];
     mockReturningResult = [{ id: 3, costType: "actual" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.calculateCostRollup({
       bomMasterId: 1,
       costType: "actual",
@@ -935,7 +935,7 @@ describe("bom — Cost rollup", () => {
   it("calculateCostRollup throws when BOM not found", async () => {
     // First call returns items (empty), second returns master (empty)
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.calculateCostRollup({ bomMasterId: 999 }),
     ).rejects.toThrow("BOM not found");
@@ -944,7 +944,7 @@ describe("bom — Cost rollup", () => {
   it("calculateCostRollup returns null when returning is empty", async () => {
     mockQueryResult = [{ id: 1, currentVersion: "1.0" }];
     mockReturningResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.calculateCostRollup({ bomMasterId: 1 });
     expect(result).toBeNull();
   });
@@ -955,7 +955,7 @@ describe("bom — Cost rollup", () => {
       { id: 2, bomMasterId: 1, costType: "standard", totalCost: "600.00" },
       { id: 1, bomMasterId: 1, costType: "standard", totalCost: "500.00" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getCostRollups({ bomMasterId: 1 });
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
@@ -965,7 +965,7 @@ describe("bom — Cost rollup", () => {
     mockQueryResult = [
       { id: 3, bomMasterId: 1, costType: "actual", totalCost: "550.00" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getCostRollups({
       bomMasterId: 1,
       costType: "actual",
@@ -976,7 +976,7 @@ describe("bom — Cost rollup", () => {
 
   it("getCostRollups returns empty array when none exist", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getCostRollups({ bomMasterId: 999 });
     expect(result).toEqual([]);
   });
@@ -988,7 +988,7 @@ describe("bom — Cost rollup", () => {
 describe("bom — Stats and dashboard", () => {
   it("getStats returns all aggregate counts", async () => {
     mockQueryResult = [{ value: 10 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getStats();
     expect(result).toHaveProperty("total");
     expect(result).toHaveProperty("active");
@@ -1000,7 +1000,7 @@ describe("bom — Stats and dashboard", () => {
 
   it("getStats returns numeric values", async () => {
     mockQueryResult = [{ value: 42 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.getStats();
     expect(typeof result.total).toBe("number");
     expect(typeof result.active).toBe("number");
@@ -1020,7 +1020,7 @@ describe("bom — whereUsed", () => {
       { id: 10, bomMasterId: 1, materialCode: "MAT-001", level: 1, quantity: "5", unit: "pcs" },
       { id: 20, bomMasterId: 2, materialCode: "MAT-001", level: 2, quantity: "10", unit: "pcs" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.whereUsed({ materialCode: "MAT-001" });
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
@@ -1031,7 +1031,7 @@ describe("bom — whereUsed", () => {
 
   it("whereUsed returns empty array when material not used", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.whereUsed({ materialCode: "UNKNOWN-999" });
     expect(result).toEqual([]);
   });
@@ -1040,7 +1040,7 @@ describe("bom — whereUsed", () => {
     mockQueryResult = [
       { id: 10, bomMasterId: 1, materialCode: "MAT-X", level: 1, quantity: "2", unit: "个" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.whereUsed({ materialCode: "MAT-X" });
     expect(result[0]).toHaveProperty("productCode");
     expect(result[0]).toHaveProperty("productName");
@@ -1060,7 +1060,7 @@ describe("bom — ERP sync", () => {
       erpBomId: "ERP-BOM-001",
       erpSyncStatus: "synced",
     }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.bom.markErpSynced({
       id: 1,
       erpBomId: "ERP-BOM-001",
@@ -1071,7 +1071,7 @@ describe("bom — ERP sync", () => {
 
   it("markErpSynced throws when BOM not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.markErpSynced({ id: 999, erpBomId: "ERP-999" }),
     ).rejects.toThrow("BOM not found");
@@ -1083,7 +1083,7 @@ describe("bom — ERP sync", () => {
 // ═════════════════════════════════════════════════════════════════════
 describe("bom — Input validation", () => {
   it("createBomMaster rejects empty productCode", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.createBomMaster({
         productCode: "",
@@ -1093,7 +1093,7 @@ describe("bom — Input validation", () => {
   });
 
   it("createBomMaster rejects empty productName", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.createBomMaster({
         productCode: "P-001",
@@ -1103,7 +1103,7 @@ describe("bom — Input validation", () => {
   });
 
   it("createBomMaster rejects invalid bomType", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.createBomMaster({
         productCode: "P-001",
@@ -1114,7 +1114,7 @@ describe("bom — Input validation", () => {
   });
 
   it("createBomMaster rejects invalid buCode", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.createBomMaster({
         productCode: "P-001",
@@ -1125,7 +1125,7 @@ describe("bom — Input validation", () => {
   });
 
   it("addBomItem rejects empty materialCode", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.addBomItem({
         bomMasterId: 1,
@@ -1137,7 +1137,7 @@ describe("bom — Input validation", () => {
   });
 
   it("addBomItem rejects negative quantity", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.addBomItem({
         bomMasterId: 1,
@@ -1149,7 +1149,7 @@ describe("bom — Input validation", () => {
   });
 
   it("addBomItem rejects invalid sourceType", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.addBomItem({
         bomMasterId: 1,
@@ -1162,7 +1162,7 @@ describe("bom — Input validation", () => {
   });
 
   it("createVersion rejects empty version string", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.createVersion({
         bomMasterId: 1,
@@ -1173,7 +1173,7 @@ describe("bom — Input validation", () => {
   });
 
   it("createVersion rejects invalid changeType", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.createVersion({
         bomMasterId: 1,
@@ -1184,7 +1184,7 @@ describe("bom — Input validation", () => {
   });
 
   it("updateBomStatus rejects invalid status", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.updateBomStatus({
         id: 1,
@@ -1194,7 +1194,7 @@ describe("bom — Input validation", () => {
   });
 
   it("calculateCostRollup rejects invalid costType", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.calculateCostRollup({
         bomMasterId: 1,
@@ -1204,7 +1204,7 @@ describe("bom — Input validation", () => {
   });
 
   it("approveVersion rejects invalid action", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.bom.approveVersion({
         id: 1,

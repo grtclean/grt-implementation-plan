@@ -10,6 +10,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -39,6 +40,12 @@ const {
     returningQueue,
   };
 });
+
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
 
 vi.mock("../services/plm.service", () => ({
   createDocument: mockCreateDocument,

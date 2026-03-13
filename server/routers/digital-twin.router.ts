@@ -4,7 +4,7 @@
  */
 import { z } from "zod";
 import { jsonValue } from "@shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   dtAssets,
@@ -84,10 +84,12 @@ export const digitalTwinRouter = router({
         ? db.select().from(dtAssets)
             .where(eq(dtAssets.assetNumber, asset.assetNumber))
             .orderBy(desc(dtAssets.version))
+            .limit(1000)
         : Promise.resolve([]),
       db.select().from(dtRobotAssemblyNodes)
         .where(eq(dtRobotAssemblyNodes.dtAssetId, asset.id))
-        .orderBy(dtRobotAssemblyNodes.assemblySequence),
+        .orderBy(dtRobotAssemblyNodes.assemblySequence)
+        .limit(1000),
       db.select().from(iatfAuditLogs)
         .where(eq(iatfAuditLogs.assetId, asset.id))
         .orderBy(desc(iatfAuditLogs.timestampUtc))
@@ -120,7 +122,7 @@ export const digitalTwinRouter = router({
     return createAsset({ ...input, createdBy: ctx.user.id });
   }),
 
-  updateAsset: protectedProcedure.input(z.object({
+  updateAsset: requirePermission('rnd:digital-twin:view').input(z.object({
     id: z.union([z.string(), z.number()]),
     assetName: z.string().optional(),
     description: z.string().optional(),
@@ -155,7 +157,7 @@ export const digitalTwinRouter = router({
     return updated;
   }),
 
-  submitForReview: protectedProcedure.input(z.object({
+  submitForReview: requirePermission('rnd:digital-twin:view').input(z.object({
     assetId: z.union([z.string(), z.number()]),
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
@@ -216,7 +218,7 @@ export const digitalTwinRouter = router({
     });
   }),
 
-  approveAsset: protectedProcedure.input(z.object({
+  approveAsset: requirePermission('rnd:digital-twin:view').input(z.object({
     assetId: z.union([z.string(), z.number()]),
     ipAddress: z.string().optional(),
     comments: z.string().optional(),
@@ -229,7 +231,7 @@ export const digitalTwinRouter = router({
     });
   }),
 
-  freezeAsset: protectedProcedure.input(z.object({
+  freezeAsset: requirePermission('rnd:digital-twin:view').input(z.object({
     assetId: z.union([z.string(), z.number()]),
     ipAddress: z.string().optional(),
   })).mutation(async ({ input, ctx }) => {
@@ -241,7 +243,7 @@ export const digitalTwinRouter = router({
     });
   }),
 
-  verifyHash: protectedProcedure.input(z.object({
+  verifyHash: requirePermission('rnd:digital-twin:view').input(z.object({
     assetId: z.union([z.string(), z.number()]),
     computedHash: z.string().min(1),
     ipAddress: z.string().optional(),

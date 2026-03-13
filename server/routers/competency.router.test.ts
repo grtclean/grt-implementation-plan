@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -90,7 +90,7 @@ beforeEach(() => {
 describe("competency.getAssessments", () => {
   it("returns all assessments when no filters are provided", async () => {
     executeResults.push({ rows: [...sampleAssessments] });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const result = await caller.competency.getAssessments();
 
@@ -103,7 +103,7 @@ describe("competency.getAssessments", () => {
 
   it("filters by department", async () => {
     executeResults.push({ rows: [...sampleAssessments] });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const result = await caller.competency.getAssessments({
       department: "生产部",
@@ -118,7 +118,7 @@ describe("competency.getAssessments", () => {
 
   it("filters by search matching employee name", async () => {
     executeResults.push({ rows: [...sampleAssessments] });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const result = await caller.competency.getAssessments({
       search: "李四",
@@ -132,7 +132,7 @@ describe("competency.getAssessments", () => {
 
   it("filters by search matching department name", async () => {
     executeResults.push({ rows: [...sampleAssessments] });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const result = await caller.competency.getAssessments({
       search: "质检",
@@ -146,7 +146,7 @@ describe("competency.getAssessments", () => {
 
   it("returns empty result when database has no data", async () => {
     executeResults.push({ rows: [] });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const result = await caller.competency.getAssessments();
 
@@ -156,7 +156,7 @@ describe("competency.getAssessments", () => {
 
   it("works with no input (undefined)", async () => {
     executeResults.push({ rows: [...sampleAssessments] });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const result = await caller.competency.getAssessments(undefined);
 
@@ -166,7 +166,7 @@ describe("competency.getAssessments", () => {
 
   it("applies both department and search filters together", async () => {
     executeResults.push({ rows: [...sampleAssessments] });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const result = await caller.competency.getAssessments({
       department: "生产部",
@@ -184,7 +184,7 @@ describe("competency.getAssessments", () => {
       { ...sampleAssessments[1], employeeName: "Li Si" },
     ];
     executeResults.push({ rows: mixedCaseData });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const result = await caller.competency.getAssessments({
       search: "zhang",
@@ -196,7 +196,7 @@ describe("competency.getAssessments", () => {
 
   it("preserves score fields in returned items", async () => {
     executeResults.push({ rows: [sampleAssessments[0]] });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const result = await caller.competency.getAssessments();
 
@@ -222,7 +222,7 @@ describe("competency.getDepartments", () => {
         { department: "研发部" },
       ],
     });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const result = await caller.competency.getDepartments();
 
@@ -232,7 +232,7 @@ describe("competency.getDepartments", () => {
 
   it("returns empty array when no departments exist", async () => {
     executeResults.push({ rows: [] });
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const result = await caller.competency.getDepartments();
 

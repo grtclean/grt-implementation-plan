@@ -360,7 +360,7 @@ async function seedHrmResumeData() {
         department: "技术服务部",
         position: "电气研发工程师",
         hireDate: "2026年2月1日",
-        supervisor: "张工"
+        supervisor: "沈豪"
       }
     }),
     status: "pending"
@@ -390,7 +390,7 @@ async function seedHrmResumeData() {
         department: "技术服务部",
         position: "电气研发工程师",
         hireDate: "2026年2月1日",
-        supervisor: "张工"
+        supervisor: "沈豪"
       }
     }),
     status: "pending"

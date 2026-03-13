@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { processNotebooks } from "../../drizzle/schema";
 import { eq, desc, and } from "drizzle-orm";
@@ -21,7 +21,7 @@ export const processNotebookRouter = router({
   }),
 
   // 创建笔记本
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('mfg:process:manage').input(z.object({
     processType: z.string().max(50).optional(),
     processId: z.string().max(100).optional(),
     processStep: z.string().max(50).optional(),
@@ -40,7 +40,7 @@ export const processNotebookRouter = router({
   }),
 
   // 更新笔记本
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('mfg:process:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     title: z.string().max(200).optional(),
     processStep: z.string().max(50).optional(),
@@ -61,7 +61,7 @@ export const processNotebookRouter = router({
   }),
 
   // 删除笔记本
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  delete: requirePermission('mfg:process:manage').input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(processNotebooks).where(eq(processNotebooks.id, parseInt(input.id)));
     return { success: true, message: "删除成功" };
@@ -100,7 +100,7 @@ export const processNotebookRouter = router({
   }),
 
   // 添加条目（processNotebooks无子条目表，存储为JSON或占位）
-  addEntry: protectedProcedure.input(z.object({
+  addEntry: requirePermission('mfg:process:manage').input(z.object({
     notebookId: z.union([z.string(), z.number()]).optional(),
     title: z.string().max(200).optional(),
     content: z.string().max(50000).optional(),
@@ -112,7 +112,7 @@ export const processNotebookRouter = router({
   }),
 
   // 文件上传（占位）
-  uploadFile: protectedProcedure.input(z.object({
+  uploadFile: requirePermission('mfg:process:manage').input(z.object({
     notebookId: z.number().int().optional(),
     fileName: z.string().max(500).optional(),
     fileSize: z.number().int().optional(),

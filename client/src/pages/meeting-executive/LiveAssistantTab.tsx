@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useLiveMeeting } from "@/hooks/useLiveMeeting";
 import {
   BarChart,
@@ -24,6 +25,7 @@ import {
 } from "recharts";
 
 export function LiveAssistantTab() {
+  const { t } = useLanguage();
   const [meetingId, setMeetingId] = useState("");
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -113,7 +115,7 @@ export function LiveAssistantTab() {
           {!isActive ? (
             <div className="flex gap-3 items-end">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">会议ID</label>
+                <label className="text-sm font-medium">{t("meeting.live.meetingId")}</label>
                 <Input
                   value={meetingId}
                   onChange={(e) => setMeetingId(e.target.value)}
@@ -127,7 +129,7 @@ export function LiveAssistantTab() {
                 className="bg-green-600 hover:bg-green-700"
               >
                 <Radio className="h-4 w-4 mr-2" />
-                开始实时会话
+                {t("meeting.live.startSession")}
               </Button>
             </div>
           ) : (
@@ -150,7 +152,7 @@ export function LiveAssistantTab() {
                 disabled={endMutation.isPending}
               >
                 <Square className="h-4 w-4 mr-2" />
-                结束会话
+                {t("meeting.live.endSession")}
               </Button>
             </div>
           )}
@@ -164,7 +166,7 @@ export function LiveAssistantTab() {
             <div className="flex gap-3 items-end">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium flex items-center gap-1">
-                  <Mic className="h-3.5 w-3.5" /> 发言人
+                  <Mic className="h-3.5 w-3.5" /> {t("meeting.live.speaker")}
                 </label>
                 <Input
                   value={speakerInput}
@@ -174,17 +176,17 @@ export function LiveAssistantTab() {
                 />
               </div>
               <div className="space-y-1.5 flex-1">
-                <label className="text-sm font-medium">发言内容</label>
+                <label className="text-sm font-medium">{t("meeting.live.content")}</label>
                 <Input
                   value={textInput}
                   onChange={(e) => setTextInput(e.target.value)}
-                  placeholder="输入转录文本..."
+                  placeholder={t("meeting.live.transcriptPlaceholder")}
                   onKeyDown={(e) => { if (e.key === "Enter") handleSendSegment(); }}
                 />
               </div>
               <Button onClick={handleSendSegment} disabled={!textInput.trim()}>
                 <Send className="h-4 w-4 mr-2" />
-                发送
+                {t("meeting.live.send")}
               </Button>
             </div>
           </CardContent>
@@ -199,7 +201,7 @@ export function LiveAssistantTab() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                实时贡献
+                {t("meeting.live.liveContribution")}
               </CardTitle>
               <CardDescription>Live contribution by speaker</CardDescription>
             </CardHeader>
@@ -210,11 +212,11 @@ export function LiveAssistantTab() {
                     <XAxis type="number" />
                     <YAxis dataKey="speaker" type="category" width={80} tick={{ fontSize: 12 }} />
                     <Tooltip />
-                    <Bar dataKey="segments" fill="#6366f1" name="发言段数" />
+                    <Bar dataKey="segments" fill="#6366f1" name={t("meeting.live.segmentCount")} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-center py-8 text-muted-foreground text-sm">等待发言数据...</p>
+                <p className="text-center py-8 text-muted-foreground text-sm">{t("meeting.live.waitingData")}</p>
               )}
             </CardContent>
           </Card>
@@ -224,7 +226,7 @@ export function LiveAssistantTab() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-amber-500" />
-                AI 建议
+                {t("meeting.live.aiSuggestions")}
               </CardTitle>
               <CardDescription>Real-time AI suggestions (every 10 segments)</CardDescription>
             </CardHeader>
@@ -244,7 +246,7 @@ export function LiveAssistantTab() {
                   ))
                 ) : (
                   <p className="text-center py-8 text-muted-foreground text-sm">
-                    {isActive ? "每处理10个语音段后将生成建议..." : "暂无建议"}
+                    {isActive ? t("meeting.live.suggestionsAfter10") : t("meeting.live.noSuggestions")}
                   </p>
                 )}
                 <div ref={suggestionsEndRef} />
@@ -258,19 +260,19 @@ export function LiveAssistantTab() {
       {endMutation.data && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">会话分析结果</CardTitle>
+            <CardTitle className="text-base">{t("meeting.live.analysisResult")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 text-sm">
-              <p>会话已结束，共处理 {(endMutation.data as any).totalSegments} 个语音段。</p>
+              <p>{t("meeting.live.sessionEnded")} {(endMutation.data as any).totalSegments} {t("meeting.live.segmentsProcessed")}</p>
               {(endMutation.data as any).analysis?.contributions && (
-                <p className="text-green-600">贡献分析完成: {(endMutation.data as any).analysis.contributions.length} 位参与者</p>
+                <p className="text-green-600">{t("meeting.live.contributionComplete")}: {(endMutation.data as any).analysis.contributions.length} {t("meeting.live.participants")}</p>
               )}
               {(endMutation.data as any).analysis?.effectiveness && (
-                <p className="text-green-600">效能评分: {(endMutation.data as any).analysis.effectiveness.overallScore}</p>
+                <p className="text-green-600">{t("meeting.live.effectivenessScore")}: {(endMutation.data as any).analysis.effectiveness.overallScore}</p>
               )}
               {(endMutation.data as any).analysis?.error && (
-                <p className="text-red-500">分析错误: {(endMutation.data as any).analysis.error}</p>
+                <p className="text-red-500">{t("meeting.live.analysisError")}: {(endMutation.data as any).analysis.error}</p>
               )}
             </div>
           </CardContent>
@@ -281,7 +283,7 @@ export function LiveAssistantTab() {
       {live.error && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6 text-sm text-red-600">
-            连接错误: {live.error}
+            {t("meeting.live.connectionError")}: {live.error}
           </CardContent>
         </Card>
       )}

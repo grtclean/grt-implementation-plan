@@ -4,7 +4,7 @@
  * ╠══════════════════════════════════════════════════════════════════╣
  * ║                                                                 ║
  * ║  Extends the core OA system (oa-schema.ts) with user-defined   ║
- * ║  form templates — Jiandaoyun-style dynamic forms that can be   ║
+ * ║  form templates — External Sync-style dynamic forms that can be║
  * ║  created, versioned, and filled in by employees without code   ║
  * ║  changes.  Replaces the need to add new workflow types to the  ║
  * ║  OA_WORKFLOW_TYPES enum each time a new form is required.      ║

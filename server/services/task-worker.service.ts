@@ -91,7 +91,7 @@ export async function submitTask(
   taskType: string,
   inputData: Record<string, unknown>,
   createdBy: string,
-  opts?: { maxRetries?: number },
+  opts?: { maxRetries?: number; submittedById?: number },
 ): Promise<{ taskId: number }> {
   const db = await requireDb();
   const [task] = await db.insert(aiTasks).values({
@@ -99,8 +99,10 @@ export async function submitTask(
     inputData,
     status: "pending",
     createdBy,
+    submittedById: opts?.submittedById,
     maxRetries: opts?.maxRetries ?? config.maxRetries,
     retryCount: 0,
+    version: 1,
   }).returning();
   return { taskId: task.id };
 }
@@ -116,8 +118,20 @@ export async function getTaskStatus(taskId: number) {
     errorMessage: aiTasks.errorMessage,
     createdAt: aiTasks.createdAt,
     completedAt: aiTasks.completedAt,
+    version: aiTasks.version,
   }).from(aiTasks).where(eq(aiTasks.id, taskId));
   return task ?? null;
+}
+
+/** Cancel a pending task (optimistic lock: only if still pending) */
+export async function cancelTask(taskId: number): Promise<boolean> {
+  const db = await requireDb();
+  const result = await db.update(aiTasks).set({
+    status: "cancelled",
+    completedAt: new Date().toISOString(),
+    version: sql`version + 1`,
+  }).where(and(eq(aiTasks.id, taskId), eq(aiTasks.status, "pending")));
+  return (result as any).rowCount > 0;
 }
 
 // ── Internal: Poll & Process ─────────────────────────────────
@@ -208,13 +222,14 @@ async function processTask(
       ),
     ]);
 
-    // Success
+    // Success — version increment for optimistic locking
     await db.update(aiTasks).set({
       status: "completed",
       resultData: result,
       completedAt: new Date().toISOString(),
       workerLockId: null,
       timeoutAt: null,
+      version: sql`version + 1`,
     }).where(eq(aiTasks.id, taskId));
 
   } catch (err: unknown) {
@@ -231,17 +246,18 @@ async function processTask(
     const maxRetries = task?.maxRetries ?? config.maxRetries;
 
     if (retryCount < maxRetries) {
-      // Re-queue for retry
+      // Re-queue for retry — version increment
       await db.update(aiTasks).set({
         status: "pending",
         retryCount,
         errorMessage: `Retry ${retryCount}/${maxRetries}: ${message.slice(0, 400)}`,
         workerLockId: null,
         timeoutAt: null,
+        version: sql`version + 1`,
       }).where(eq(aiTasks.id, taskId));
       log.info({ taskId, retryCount, maxRetries }, "Task retrying");
     } else {
-      // Final failure
+      // Final failure — version increment
       await db.update(aiTasks).set({
         status: "failed",
         retryCount,
@@ -249,6 +265,7 @@ async function processTask(
         completedAt: new Date().toISOString(),
         workerLockId: null,
         timeoutAt: null,
+        version: sql`version + 1`,
       }).where(eq(aiTasks.id, taskId));
     }
   }

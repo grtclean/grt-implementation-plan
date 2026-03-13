@@ -318,7 +318,7 @@ export const alertTypeEnum3 = pgEnum('alertTypeEnum3', ['overtime', 'undertime',
 export const statusEnum67 = pgEnum('statusEnum67', ['Pending', 'Acknowledged', 'Resolved', 'Ignored']);
 export const syncStatusEnum2 = pgEnum('syncStatusEnum2', ['pending', 'synced', 'failed', 'manual']);
 export const taskTypeEnum4 = pgEnum('taskTypeEnum4', ['user', 'department', 'role', 'role_members', 'form_data', 'full']);
-export const syncDirectionEnum = pgEnum('syncDirectionEnum', ['jdy_to_grt', 'grt_to_jdy', 'bidirectional']);
+export const syncDirectionEnum = pgEnum('syncDirectionEnum', ['external_to_grt', 'grt_to_external', 'bidirectional']);
 export const lastRunStatusEnum1 = pgEnum('lastRunStatusEnum1', ['success', 'partial', 'failed']);
 export const statusEnum68 = pgEnum('statusEnum68', ['running', 'success', 'partial', 'failed']);
 export const triggeredByEnum = pgEnum('triggeredByEnum', ['schedule', 'manual', 'webhook']);
@@ -1051,7 +1051,7 @@ export const crmContacts = pgTable("crm_contacts", {
 	hobbies: text(),
 	remark: text(),
 	status: statusEnum12('status').default('active').notNull(),
-	jiandaoyunId: varchar({ length: 64 }),
+	externalSyncId: varchar({ length: 64 }),
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 });
@@ -1080,7 +1080,7 @@ export const crmCustomers = pgTable("crm_customers", {
 	status: statusEnum13('status').default('active').notNull(),
 	ownerId: integer(),
 	remark: text(),
-	jiandaoyunId: varchar({ length: 64 }),
+	externalSyncId: varchar({ length: 64 }),
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 },
@@ -1122,7 +1122,7 @@ export const crmOpportunities = pgTable("crm_opportunities", {
 	lostReason: text(),
 	ownerId: integer(),
 	remark: text(),
-	jiandaoyunId: varchar({ length: 64 }),
+	externalSyncId: varchar({ length: 64 }),
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 },
@@ -2726,7 +2726,7 @@ export const projectTasks = pgTable("project_tasks", {
 	acceptanceCriteria: text(),
 	attachments: text(),
 	remark: text(),
-	jiandaoyunId: varchar({ length: 64 }),
+	externalSyncId: varchar({ length: 64 }),
 	safetyChecklistCompleted: boolean('safety_checklist_completed').default(false),
 	taskCategory: varchar('task_category', { length: 50 }),
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
@@ -2774,7 +2774,7 @@ export const projects = pgTable("projects", {
 	healthStatus: healthStatusEnum('healthStatus').default('green'),
 	completionPercent: integer().default(0),
 	remark: text(),
-	jiandaoyunId: varchar({ length: 64 }),
+	externalSyncId: varchar({ length: 64 }),
 	buCode: varchar('bu_code', { length: 50 }),
 	version: integer('version').default(1).notNull(),
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
@@ -7418,106 +7418,106 @@ export {
 } from './production-process-schema';
 
 
-// ===== 简道云集成表 =====
-// 简道云用户映射表 - 将简道云成员与GRT用户关联
-export const jiandaoyunUserMappings = pgTable("jiandaoyun_user_mappings", {
+// ===== 外部数据同步集成表 =====
+// 外部平台用户映射表 - 将外部平台成员与GRT用户关联
+export const externalSyncUserMappings = pgTable("jiandaoyun_user_mappings", {
   id: serial('id').primaryKey(),
-  
-  // 简道云用户信息
-  jdyUsername: varchar("jdy_username", { length: 100 }).notNull(), // 简道云用户名（唯一标识）
-  jdyName: varchar("jdy_name", { length: 100 }).notNull(), // 简道云显示名称
-  jdyDepartments: json("jdy_departments"), // 简道云部门ID数组
-  jdyStatus: integer("jdy_status").default(1), // 简道云状态：0=未确认，1=已加入
-  jdyIntegrateId: varchar("jdy_integrate_id", { length: 100 }), // 简道云集成ID
-  
+
+  // 外部平台用户信息
+  extUsername: varchar("jdy_username", { length: 100 }).notNull(),
+  extName: varchar("jdy_name", { length: 100 }).notNull(),
+  extDepartments: json("jdy_departments"),
+  extStatus: integer("jdy_status").default(1),
+  extIntegrateId: varchar("jdy_integrate_id", { length: 100 }),
+
   // GRT用户关联
-  grtUserId: integer("grt_user_id"), // 关联的GRT用户ID
-  grtOpenId: varchar("grt_open_id", { length: 64 }), // 关联的GRT用户OpenID
-  
+  grtUserId: integer("grt_user_id"),
+  grtOpenId: varchar("grt_open_id", { length: 64 }),
+
   // 同步状态
   syncStatus: syncStatusEnum2('syncStatus').default('pending').notNull(),
   lastSyncAt: timestamp("last_sync_at", { mode: 'string' }),
   syncError: text("sync_error"),
-  
+
   // 自动创建用户配置
   autoCreateUser: boolean("auto_create_user").default(false).notNull(),
-  
+
   createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
 },
 (table) => [
-  index("idx_jdy_user_mappings_username").on(table.jdyUsername),
+  index("idx_jdy_user_mappings_username").on(table.extUsername),
   index("idx_jdy_user_mappings_grt_user").on(table.grtUserId),
   index("idx_jdy_user_mappings_sync_status").on(table.syncStatus),
 ]);
 
-// 简道云部门映射表 - 将简道云部门与GRT部门关联
-export const jiandaoyunDeptMappings = pgTable("jiandaoyun_dept_mappings", {
+// 外部平台部门映射表 - 将外部平台部门与GRT部门关联
+export const externalSyncDeptMappings = pgTable("jiandaoyun_dept_mappings", {
   id: serial('id').primaryKey(),
-  
-  // 简道云部门信息
-  jdyDeptNo: integer("jdy_dept_no").notNull(), // 简道云部门编号
-  jdyDeptName: varchar("jdy_dept_name", { length: 200 }).notNull(), // 简道云部门名称
-  jdyParentNo: integer("jdy_parent_no"), // 简道云父部门编号
-  jdyDeptType: integer("jdy_dept_type").default(0), // 0=常规部门，2=企业互联外部部门
-  jdyDeptStatus: integer("jdy_dept_status").default(1), // 1=使用中，-1=已删除
-  
-  // GRT部门关联（如果有部门表的话）
+
+  // 外部平台部门信息
+  extDeptNo: integer("jdy_dept_no").notNull(),
+  extDeptName: varchar("jdy_dept_name", { length: 200 }).notNull(),
+  extParentNo: integer("jdy_parent_no"),
+  extDeptType: integer("jdy_dept_type").default(0),
+  extDeptStatus: integer("jdy_dept_status").default(1),
+
+  // GRT部门关联
   grtDeptId: integer("grt_dept_id"),
   grtDeptCode: varchar("grt_dept_code", { length: 50 }),
-  
+
   // 同步状态
   syncStatus: syncStatusEnum2('syncStatus').default('pending').notNull(),
   lastSyncAt: timestamp("last_sync_at", { mode: 'string' }),
-  
+
   createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
 },
 (table) => [
-  index("idx_jdy_dept_mappings_dept_no").on(table.jdyDeptNo),
+  index("idx_jdy_dept_mappings_dept_no").on(table.extDeptNo),
   index("idx_jdy_dept_mappings_sync_status").on(table.syncStatus),
 ]);
 
-// 简道云角色映射表 - 将简道云角色与GRT权限角色关联
-export const jiandaoyunRoleMappings = pgTable("jiandaoyun_role_mappings", {
+// 外部平台角色映射表 - 将外部平台角色与GRT权限角色关联
+export const externalSyncRoleMappings = pgTable("jiandaoyun_role_mappings", {
   id: serial('id').primaryKey(),
-  
-  // 简道云角色信息
-  jdyRoleNo: integer("jdy_role_no").notNull(), // 简道云角色编号
-  jdyGroupNo: integer("jdy_group_no").notNull(), // 简道云角色组编号
-  jdyRoleName: varchar("jdy_role_name", { length: 200 }).notNull(), // 简道云角色名称
-  jdyRoleType: integer("jdy_role_type").default(0), // 角色类型
-  jdyRoleStatus: integer("jdy_role_status").default(1), // 角色状态
-  
+
+  // 外部平台角色信息
+  extRoleNo: integer("jdy_role_no").notNull(),
+  extGroupNo: integer("jdy_group_no").notNull(),
+  extRoleName: varchar("jdy_role_name", { length: 200 }).notNull(),
+  extRoleType: integer("jdy_role_type").default(0),
+  extRoleStatus: integer("jdy_role_status").default(1),
+
   // GRT权限角色关联
-  grtRoleId: varchar("grt_role_id", { length: 50 }), // 关联的GRT权限角色ID
-  grtRoleName: varchar("grt_role_name", { length: 100 }), // 关联的GRT权限角色名称
-  
+  grtRoleId: varchar("grt_role_id", { length: 50 }),
+  grtRoleName: varchar("grt_role_name", { length: 100 }),
+
   // 权限映射配置
-  permissionMapping: json("permission_mapping"), // 权限映射规则
-  
+  permissionMapping: json("permission_mapping"),
+
   // 同步状态
   syncStatus: syncStatusEnum2('syncStatus').default('pending').notNull(),
   lastSyncAt: timestamp("last_sync_at", { mode: 'string' }),
-  
+
   createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
 },
 (table) => [
-  index("idx_jdy_role_mappings_role_no").on(table.jdyRoleNo),
+  index("idx_jdy_role_mappings_role_no").on(table.extRoleNo),
   index("idx_jdy_role_mappings_grt_role").on(table.grtRoleId),
 ]);
 
-// 简道云角色成员表 - 记录角色下的成员列表
-export const jiandaoyunRoleMembers = pgTable("jiandaoyun_role_members", {
+// 外部平台角色成员表 - 记录角色下的成员列表
+export const externalSyncRoleMembers = pgTable("jiandaoyun_role_members", {
   id: serial('id').primaryKey(),
 
-  // 简道云角色成员信息
-  jdyRoleNo: integer("jdy_role_no").notNull(), // 简道云角色编号
-  jdyUsername: varchar("jdy_username", { length: 100 }).notNull(), // 简道云用户名
-  jdyName: varchar("jdy_name", { length: 100 }).notNull(), // 简道云显示名称
-  jdyDepartmentsRange: json("jdy_departments_range"), // 该用户在该角色下的部门范围
-  jdyHasChild: boolean("jdy_has_child").default(false), // 是否包含子部门
+  // 外部平台角色成员信息
+  extRoleNo: integer("jdy_role_no").notNull(),
+  extUsername: varchar("jdy_username", { length: 100 }).notNull(),
+  extName: varchar("jdy_name", { length: 100 }).notNull(),
+  extDepartmentsRange: json("jdy_departments_range"),
+  extHasChild: boolean("jdy_has_child").default(false),
 
   // 同步状态
   syncStatus: syncStatusEnum2('syncStatus').default('pending').notNull(),
@@ -7527,41 +7527,41 @@ export const jiandaoyunRoleMembers = pgTable("jiandaoyun_role_members", {
   updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
 },
 (table) => [
-  index("idx_jdy_role_members_role_no").on(table.jdyRoleNo),
-  index("idx_jdy_role_members_username").on(table.jdyUsername),
+  index("idx_jdy_role_members_role_no").on(table.extRoleNo),
+  index("idx_jdy_role_members_username").on(table.extUsername),
 ]);
 
-// 简道云数据同步任务表 - 记录定时同步任务
-export const jiandaoyunSyncTasks = pgTable("jiandaoyun_sync_tasks", {
+// 外部数据同步任务表 - 记录定时同步任务
+export const externalSyncTasks = pgTable("jiandaoyun_sync_tasks", {
   id: serial('id').primaryKey(),
-  
+
   // 任务配置
-  taskName: varchar("task_name", { length: 200 }).notNull(), // 任务名称
-  taskType: taskTypeEnum4('taskType').notNull(), // 同步类型
-  
-  // 简道云数据源
-  jdyAppId: varchar("jdy_app_id", { length: 50 }), // 简道云应用ID（表单同步时使用）
-  jdyFormId: varchar("jdy_form_id", { length: 50 }), // 简道云表单ID（表单同步时使用）
-  
+  taskName: varchar("task_name", { length: 200 }).notNull(),
+  taskType: taskTypeEnum4('taskType').notNull(),
+
+  // 外部平台数据源
+  extAppId: varchar("jdy_app_id", { length: 50 }),
+  extFormId: varchar("jdy_form_id", { length: 50 }),
+
   // 同步配置
-  syncDirection: syncDirectionEnum('syncDirection').default('jdy_to_grt').notNull(),
-  fieldMapping: json("field_mapping"), // 字段映射配置
-  filterCondition: json("filter_condition"), // 过滤条件
-  
+  syncDirection: syncDirectionEnum('syncDirection').default('external_to_grt').notNull(),
+  fieldMapping: json("field_mapping"),
+  filterCondition: json("filter_condition"),
+
   // 定时配置
-  cronExpression: varchar("cron_expression", { length: 50 }), // Cron表达式
+  cronExpression: varchar("cron_expression", { length: 50 }),
   isEnabled: boolean("is_enabled").default(true).notNull(),
-  
+
   // 执行状态
   lastRunAt: timestamp("last_run_at", { mode: 'string' }),
   lastRunStatus: lastRunStatusEnum1('lastRunStatus'),
-  lastRunRecords: integer("last_run_records").default(0), // 上次同步记录数
+  lastRunRecords: integer("last_run_records").default(0),
   lastRunError: text("last_run_error"),
-  
+
   // 统计
-  totalSyncCount: integer("total_sync_count").default(0), // 总同步次数
-  totalRecordsSynced: integer("total_records_synced").default(0), // 总同步记录数
-  
+  totalSyncCount: integer("total_sync_count").default(0),
+  totalRecordsSynced: integer("total_records_synced").default(0),
+
   createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
 },
@@ -7570,8 +7570,8 @@ export const jiandaoyunSyncTasks = pgTable("jiandaoyun_sync_tasks", {
   index("idx_jdy_sync_tasks_enabled").on(table.isEnabled),
 ]);
 
-// 简道云数据同步日志表 - 记录每次同步的详细日志
-export const jiandaoyunSyncLogs = pgTable("jiandaoyun_sync_logs", {
+// 外部数据同步日志表 - 记录每次同步的详细日志
+export const externalSyncLogs = pgTable("jiandaoyun_sync_logs", {
   id: serial('id').primaryKey(),
   
   // 关联任务
@@ -7606,10 +7606,10 @@ export const jiandaoyunSyncLogs = pgTable("jiandaoyun_sync_logs", {
 ]);
 
 
-// ===== 简道云全量导入表 =====
+// ===== 外部数据全量导入表 =====
 
 // 导入执行状态跟踪表
-export const jiandaoyunImportRuns = pgTable("jiandaoyun_import_runs", {
+export const externalSyncImportRuns = pgTable("jiandaoyun_import_runs", {
   id: serial('id').primaryKey(),
 
   // 运行标识
@@ -7653,23 +7653,23 @@ export const jiandaoyunImportRuns = pgTable("jiandaoyun_import_runs", {
 ]);
 
 // 表单发现与字段映射表
-export const jiandaoyunFormMappings = pgTable("jiandaoyun_form_mappings", {
+export const externalSyncFormMappings = pgTable("jiandaoyun_form_mappings", {
   id: serial('id').primaryKey(),
 
-  // 简道云表单信息
-  jdyAppId: varchar("jdy_app_id", { length: 64 }).notNull(),
-  jdyAppName: varchar("jdy_app_name", { length: 200 }).notNull(),
-  jdyFormId: varchar("jdy_form_id", { length: 64 }).notNull(),
-  jdyFormName: varchar("jdy_form_name", { length: 200 }).notNull(),
+  // 外部平台表单信息
+  extAppId: varchar("jdy_app_id", { length: 64 }).notNull(),
+  extAppName: varchar("jdy_app_name", { length: 200 }).notNull(),
+  extFormId: varchar("jdy_form_id", { length: 64 }).notNull(),
+  extFormName: varchar("jdy_form_name", { length: 200 }).notNull(),
 
   // GRT目标实体
-  targetEntity: varchar("target_entity", { length: 50 }), // project, projectTask, approval_instance, etc.
+  targetEntity: varchar("target_entity", { length: 50 }),
 
   // 映射配置
-  fieldMapping: json("field_mapping"), // { jdyField: grtColumn, ... }
+  fieldMapping: json("field_mapping"),
   recordCount: integer("record_count").default(0),
-  sampleData: json("sample_data"), // 前5条样例数据
-  fieldSchema: json("field_schema"), // JDY字段结构
+  sampleData: json("sample_data"),
+  fieldSchema: json("field_schema"),
 
   // 确认状态
   isConfirmed: boolean("is_confirmed").default(false).notNull(),
@@ -7679,11 +7679,33 @@ export const jiandaoyunFormMappings = pgTable("jiandaoyun_form_mappings", {
   updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
 },
 (table) => [
-  index("idx_jdy_form_mappings_app").on(table.jdyAppId),
-  index("idx_jdy_form_mappings_form").on(table.jdyFormId),
+  index("idx_jdy_form_mappings_app").on(table.extAppId),
+  index("idx_jdy_form_mappings_form").on(table.extFormId),
   index("idx_jdy_form_mappings_target").on(table.targetEntity),
 ]);
 
+
+// ==================== 外部平台表单数据本地缓存 ====================
+
+/** 本地缓存外部平台表单数据记录 — 消除运行时API依赖 */
+export const externalSyncFormDataCache = pgTable("jiandaoyun_form_data_cache", {
+  id: serial('id').primaryKey(),
+  extAppId: varchar("jdy_app_id", { length: 64 }).notNull(),
+  extFormId: varchar("jdy_form_id", { length: 64 }).notNull(),
+  extRecordId: varchar("jdy_record_id", { length: 64 }).notNull(),
+  recordData: json("record_data").notNull(),
+  extCreator: varchar("ext_creator", { length: 100 }),
+  extCreatedAt: varchar("ext_created_at", { length: 50 }),
+  extUpdatedAt: varchar("ext_updated_at", { length: 50 }),
+  syncedAt: timestamp("synced_at", { mode: 'string' }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+  index("idx_form_data_cache_app_form").on(table.extAppId, table.extFormId),
+  unique("uk_form_data_cache_record").on(table.extAppId, table.extFormId, table.extRecordId),
+]);
+
+export type InsertExternalSyncFormDataCache = typeof externalSyncFormDataCache.$inferInsert;
+export type SelectExternalSyncFormDataCache = typeof externalSyncFormDataCache.$inferSelect;
 
 // ==================== Gemini设计功能 - 年度企业日程 ====================
 
@@ -12063,25 +12085,32 @@ export type InsertBuSalesPlanAdjustment = InferInsertModel<typeof buSalesPlanAdj
 
 // ══════════════════════════════════════════════════════════════
 // AI Tasks — General-purpose async AI task queue
-// (e.g. HR_CAPABILITY_PARSING, DOCUMENT_ANALYSIS, etc.)
+// GRT开发第一定律: pgEnum enforced status, optimistic locking, submittedById
 // ══════════════════════════════════════════════════════════════
+
+export const aiTaskStatusEnum = pgEnum('ai_task_status', [
+  'pending', 'processing', 'completed', 'failed', 'cancelled',
+]);
 
 export const aiTasks = pgTable('ai_tasks', {
   id: serial('id').primaryKey(),
   taskType: varchar('task_type', { length: 50 }).notNull(),
-  status: varchar('status', { length: 20 }).notNull().default('pending'),
+  status: aiTaskStatusEnum('status').notNull().default('pending'),
   inputData: json('input_data').$type<Record<string, unknown>>(),
   resultData: json('result_data').$type<Record<string, unknown>>(),
   errorMessage: varchar('error_message', { length: 500 }),
   createdBy: varchar('created_by', { length: 50 }),
+  submittedById: integer('submitted_by_id'),
   startedAt: timestamp('started_at', { mode: 'string' }),
   completedAt: timestamp('completed_at', { mode: 'string' }),
   createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
-  // Worker retry & lock fields (Phase: HR & Risk Control)
+  // Worker retry & lock fields
   retryCount: integer('retry_count').default(0),
   maxRetries: integer('max_retries').default(3),
   timeoutAt: timestamp('timeout_at', { mode: 'string' }),
   workerLockId: varchar('worker_lock_id', { length: 50 }),
+  // Optimistic locking — increment on every state transition
+  version: integer('version').notNull().default(1),
 }, (table) => [
   index('ai_tasks_type_idx').on(table.taskType),
   index('ai_tasks_status_idx').on(table.status),

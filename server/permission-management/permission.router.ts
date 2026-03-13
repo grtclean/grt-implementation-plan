@@ -12,7 +12,7 @@
  */
 
 import { z } from 'zod';
-import { protectedProcedure, router } from '../_core/trpc';
+import {protectedProcedure, router, requirePermission} from '../_core/trpc';
 import { permissionService } from './permission.service';
 import { TRPCError } from '@trpc/server';
 import { createRoleMiddleware } from './permission.middleware';
@@ -84,7 +84,7 @@ export const permissionRouter = router({
     .use(createRoleMiddleware(['admin', 'super_admin']))
     .query(async () => {
       const db = await requireDb();
-      const allRoles = await (db as any).select().from(roles);
+      const allRoles = await (db as any).select().from(roles).limit(1000);
       return { roles: allRoles };
     }),
 
@@ -191,7 +191,7 @@ export const permissionRouter = router({
   /**
    * 管理员：删除角色
    */
-  deleteRole: protectedProcedure
+  deleteRole: requirePermission('system:permissions:assign')
     .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(z.object({ roleId: z.number() }))
     .mutation(async ({ ctx, input }) => {
@@ -201,7 +201,8 @@ export const permissionRouter = router({
       const userCount = await (db as any)
         .select()
         .from(userRoles)
-        .where(eq(userRoles.roleId, input.roleId as any));
+        .where(eq(userRoles.roleId, input.roleId as any))
+        .limit(1000);
 
       if (userCount.length > 0) {
         throw new TRPCError({
@@ -238,14 +239,14 @@ export const permissionRouter = router({
     .use(createRoleMiddleware(['admin', 'super_admin']))
     .query(async () => {
       const db = await requireDb();
-      const allPermissions = await (db as any).select().from(permissions);
+      const allPermissions = await (db as any).select().from(permissions).limit(1000);
       return { permissions: allPermissions };
     }),
 
   /**
    * 管理员：分配权限给角色
    */
-  assignPermissionToRole: protectedProcedure
+  assignPermissionToRole: requirePermission('system:permissions:assign')
     .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(
       z.object({
@@ -311,7 +312,7 @@ export const permissionRouter = router({
   /**
    * 管理员：撤销用户角色
    */
-  revokeRoleFromUser: protectedProcedure
+  revokeRoleFromUser: requirePermission('system:permissions:assign')
     .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(
       z.object({
@@ -472,7 +473,8 @@ export const permissionRouter = router({
               gte(userRoles.endDate, sql`now()`)
             )
           )
-        );
+        )
+        .limit(1000);
 
       const roleIds = activeRoles.map((r: any) => r.roleId);
       if (roleIds.length === 0) return { permissions: [] };
@@ -514,7 +516,8 @@ export const permissionRouter = router({
           roleId: rolePermissions.roleId,
           permissionId: rolePermissions.permissionId,
         })
-        .from(rolePermissions);
+        .from(rolePermissions)
+        .limit(1000);
       return { mappings: records };
     }),
 
@@ -613,7 +616,7 @@ export const permissionRouter = router({
   /**
    * 管理员：撤销用户认证
    */
-  revokeUserCertification: protectedProcedure
+  revokeUserCertification: requirePermission('system:permissions:assign')
     .use(createRoleMiddleware(['admin', 'super_admin']))
     .input(
       z.object({

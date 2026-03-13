@@ -11,7 +11,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
 import { eq, desc, and, sql, count, type SQL } from "drizzle-orm";
@@ -167,7 +167,7 @@ const getEscalations = protectedProcedure
     };
   });
 
-const updateEscalation = protectedProcedure
+const updateEscalation = requirePermission('service:installation:manage')
   .input(
     z.object({
       id: z.number(),

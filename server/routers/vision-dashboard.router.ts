@@ -5,7 +5,7 @@
  * CRITICAL: Default mode is always EXTERNAL. INTERNAL unlock auto-reverts after 30 min.
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   displayScreens,
@@ -37,7 +37,8 @@ export const visionDashboardRouter = router({
       const rows = await db
         .select()
         .from(displayScreens)
-        .orderBy(displayScreens.location);
+        .orderBy(displayScreens.location)
+        .limit(1000);
       if (input?.location) {
         return rows.filter((r) => r.location === input.location);
       }
@@ -49,7 +50,8 @@ export const visionDashboardRouter = router({
     const rows = await db
       .select()
       .from(displayScreens)
-      .where(eq(displayScreens.id, toNum(input.id)));
+      .where(eq(displayScreens.id, toNum(input.id)))
+      .limit(1000);
     const screen = rows[0] ?? null;
     // Auto-revert if unlock has expired
     if (
@@ -78,7 +80,7 @@ export const visionDashboardRouter = router({
     return screen;
   }),
 
-  createScreen: protectedProcedure
+  createScreen: requirePermission('oa:vision:lobby')
     .input(
       z.object({
         name: z.string().min(1),
@@ -102,7 +104,7 @@ export const visionDashboardRouter = router({
 
   // ─── Mode Switching ────────────────────────────────────
 
-  unlockInternal: protectedProcedure
+  unlockInternal: requirePermission('oa:vision:lobby')
     .input(
       z.object({
         screenId: z.union([z.string(), z.number()]),
@@ -139,7 +141,7 @@ export const visionDashboardRouter = router({
       return rows[0] ?? null;
     }),
 
-  lockExternal: protectedProcedure
+  lockExternal: requirePermission('oa:vision:lobby')
     .input(
       z.object({
         screenId: z.union([z.string(), z.number()]),
@@ -177,7 +179,8 @@ export const visionDashboardRouter = router({
         .select()
         .from(screenPlaylists)
         .where(eq(screenPlaylists.screenId, toNum(input.screenId)))
-        .orderBy(screenPlaylists.orderIndex);
+        .orderBy(screenPlaylists.orderIndex)
+        .limit(1000);
     }),
 
   upsertPlaylist: protectedProcedure
@@ -248,7 +251,8 @@ export const visionDashboardRouter = router({
     const allStations = await db
       .select()
       .from(stations)
-      .orderBy(stations.sortOrder);
+      .orderBy(stations.sortOrder)
+      .limit(1000);
     if (allStations.length === 0) return [];
 
     const today = new Date();
@@ -256,7 +260,8 @@ export const visionDashboardRouter = router({
     const allLogs = await db
       .select()
       .from(executionLogs)
-      .where(gte(executionLogs.createdAt, today.toISOString()));
+      .where(gte(executionLogs.createdAt, today.toISOString()))
+      .limit(1000);
 
     const logsByStation: Record<number, typeof allLogs> = {};
     for (const log of allLogs) {
@@ -316,7 +321,8 @@ export const visionDashboardRouter = router({
     const logs = await db
       .select()
       .from(executionLogs)
-      .where(gte(executionLogs.createdAt, thirtyDaysAgo.toISOString()));
+      .where(gte(executionLogs.createdAt, thirtyDaysAgo.toISOString()))
+      .limit(1000);
     if (logs.length === 0) return [];
 
     const byOp: Record<string, { total: number; fails: number }> = {};
@@ -375,7 +381,8 @@ export const visionDashboardRouter = router({
       .from(spareParts)
       .where(
         sql`${spareParts.currentStock} <= ${spareParts.reorderPoint} AND ${spareParts.reorderPoint} > 0`
-      );
+      )
+      .limit(1000);
 
     return parts.map((p) => ({
       station: p.locationCode || "—",

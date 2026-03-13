@@ -248,7 +248,7 @@ describe("capabilityOs — auth guard", () => {
 describe("capabilityOs — list", () => {
   it("returns items and total with empty results", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.list();
     expect(result).toHaveProperty("items");
     expect(result).toHaveProperty("total");
@@ -262,7 +262,7 @@ describe("capabilityOs — list", () => {
       { id: 1, capabilityCode: "CAP-001", capabilityName: "Test Cap" },
       { id: 2, capabilityCode: "CAP-002", capabilityName: "Another Cap" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.list();
     expect(result.items).toHaveLength(2);
     expect(result.total).toBe(2);
@@ -274,21 +274,21 @@ describe("capabilityOs — getById", () => {
   it("returns item when found", async () => {
     const mockItem = { id: 1, capabilityCode: "CAP-001", capabilityName: "Test" };
     mockQueryResult = [mockItem];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getById({ id: 1 });
     expect(result).toEqual(mockItem);
   });
 
   it("returns null when not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getById({ id: 999 });
     expect(result).toBeNull();
   });
 
   it("accepts string id", async () => {
     mockQueryResult = [{ id: 1, capabilityName: "Test" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getById({ id: "1" });
     expect(result).toBeTruthy();
   });
@@ -297,7 +297,7 @@ describe("capabilityOs — getById", () => {
 describe("capabilityOs — create", () => {
   it("creates with minimal input", async () => {
     mockReturningResult = [{ id: 1, capabilityCode: "CAP-NEW", capabilityName: "新能力" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.create({});
     expect(result).toHaveProperty("success", true);
     expect(result).toHaveProperty("message", "创建成功");
@@ -312,7 +312,7 @@ describe("capabilityOs — create", () => {
       publicDescription: "A custom description",
     };
     mockReturningResult = [{ id: 2, ...input }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.create(input);
     expect(result.success).toBe(true);
     expect(result.data).toBeTruthy();
@@ -320,14 +320,14 @@ describe("capabilityOs — create", () => {
 
   it("uses name fallback when capabilityName is missing", async () => {
     mockReturningResult = [{ id: 3, capabilityName: "My Name" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.create({ name: "My Name" });
     expect(result.success).toBe(true);
   });
 
   it("uses description fallback", async () => {
     mockReturningResult = [{ id: 4 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.create({ description: "Desc here" });
     expect(result.success).toBe(true);
   });
@@ -336,7 +336,7 @@ describe("capabilityOs — create", () => {
 describe("capabilityOs — update", () => {
   it("updates with only id", async () => {
     mockReturningResult = [{ id: 1, capabilityName: "Updated" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.update({ id: 1 });
     expect(result.success).toBe(true);
     expect(result.message).toBe("更新成功");
@@ -344,7 +344,7 @@ describe("capabilityOs — update", () => {
 
   it("updates multiple fields", async () => {
     mockReturningResult = [{ id: 1, capabilityName: "New Name" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.update({
       id: 1,
       capabilityName: "New Name",
@@ -360,14 +360,14 @@ describe("capabilityOs — update", () => {
 
   it("accepts string id", async () => {
     mockReturningResult = [{ id: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.update({ id: "1", capabilityName: "X" });
     expect(result.success).toBe(true);
   });
 
   it("handles verificationRules and requiredDataSources", async () => {
     mockReturningResult = [{ id: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.update({
       id: 1,
       verificationRules: { rule1: "test" },
@@ -378,7 +378,7 @@ describe("capabilityOs — update", () => {
 
   it("converts zkpEnabled boolean to 0/1", async () => {
     mockReturningResult = [{ id: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.update({ id: 1, zkpEnabled: false });
     expect(result.success).toBe(true);
   });
@@ -386,13 +386,13 @@ describe("capabilityOs — update", () => {
 
 describe("capabilityOs — delete", () => {
   it("deletes by numeric id", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.delete({ id: 1 });
     expect(result).toEqual({ success: true, message: "操作成功" });
   });
 
   it("deletes by string id", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.delete({ id: "5" });
     expect(result.success).toBe(true);
   });
@@ -404,7 +404,7 @@ describe("capabilityOs — delete", () => {
 describe("capabilityOs — getAssessmentReport", () => {
   it("returns report with domains and capabilities", async () => {
     mockQueryResult = [{ id: 1, capabilityName: "Test", isActive: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getAssessmentReport();
     expect(result).toHaveProperty("report");
     expect(result.report).toHaveProperty("domains");
@@ -414,7 +414,7 @@ describe("capabilityOs — getAssessmentReport", () => {
 
   it("includes all 6 capability domains", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getAssessmentReport();
     const domainCodes = result.report.domains.map((d: any) => d.code);
     expect(domainCodes).toEqual(["T", "S", "D", "C", "K", "L"]);
@@ -427,20 +427,20 @@ describe("capabilityOs — getAssessmentReport", () => {
 describe("capabilityOs — getEmployeeCapabilities", () => {
   it("returns own capabilities when no employeeId given", async () => {
     mockQueryResult = [{ id: 1, userId: 1, capabilityDomain: "T" }];
-    const caller = createAuthenticatedCaller({ id: 1 });
+    const caller = createAdminCaller({ id: 1 });
     const result = await caller.capabilityOs.getEmployeeCapabilities();
     expect(result).toHaveLength(1);
   });
 
   it("returns own capabilities when employeeId matches current user", async () => {
     mockQueryResult = [{ id: 1, userId: 1 }];
-    const caller = createAuthenticatedCaller({ id: 1 });
+    const caller = createAdminCaller({ id: 1 });
     const result = await caller.capabilityOs.getEmployeeCapabilities({ employeeId: 1 });
     expect(result).toHaveLength(1);
   });
 
   it("returns empty for non-manager viewing another employee", async () => {
-    const caller = createAuthenticatedCaller({ id: 1, role: "employee" });
+    const caller = createAdminCaller({ id: 1, role: "employee" });
     const result = await caller.capabilityOs.getEmployeeCapabilities({ employeeId: 99 });
     expect(result).toEqual([]);
   });
@@ -454,34 +454,34 @@ describe("capabilityOs — getEmployeeCapabilities", () => {
 
   it("allows director to view another employee", async () => {
     mockQueryResult = [{ id: 10, userId: 99 }];
-    const caller = createAuthenticatedCaller({ role: "director", id: 5 });
+    const caller = createAdminCaller({ role: "director", id: 5 });
     const result = await caller.capabilityOs.getEmployeeCapabilities({ employeeId: 99 });
     expect(result).toHaveLength(1);
   });
 
   it("allows hr_manager to view another employee", async () => {
     mockQueryResult = [{ id: 10 }];
-    const caller = createAuthenticatedCaller({ role: "hr_manager", id: 5 });
+    const caller = createAdminCaller({ role: "hr_manager", id: 5 });
     const result = await caller.capabilityOs.getEmployeeCapabilities({ employeeId: 99 });
     expect(result).toHaveLength(1);
   });
 
   it("allows dept_manager to view another employee", async () => {
     mockQueryResult = [{ id: 10 }];
-    const caller = createAuthenticatedCaller({ role: "dept_manager", id: 5 });
+    const caller = createAdminCaller({ role: "dept_manager", id: 5 });
     const result = await caller.capabilityOs.getEmployeeCapabilities({ employeeId: 99 });
     expect(result).toHaveLength(1);
   });
 
   it("blocks staff role from viewing another employee", async () => {
-    const caller = createAuthenticatedCaller({ role: "staff", id: 2 });
+    const caller = createAdminCaller({ role: "staff", id: 2 });
     const result = await caller.capabilityOs.getEmployeeCapabilities({ employeeId: 100 });
     expect(result).toEqual([]);
   });
 
   it("works with no input at all", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getEmployeeCapabilities();
     expect(Array.isArray(result)).toBe(true);
   });
@@ -496,7 +496,7 @@ describe("capabilityOs — getDevelopmentPath", () => {
       { id: 1, capabilityName: "A" },
       { id: 2, capabilityName: "B" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getDevelopmentPath();
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
@@ -508,7 +508,7 @@ describe("capabilityOs — getDevelopmentPath", () => {
 // ═════════════════════════════════════════════════════════════
 describe("capabilityOs — getUpgradeRules", () => {
   it("returns all 4 upgrade rules", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getUpgradeRules();
     expect(result).toHaveLength(4);
     expect(result[0]).toHaveProperty("id", "RULE-001");
@@ -518,7 +518,7 @@ describe("capabilityOs — getUpgradeRules", () => {
   });
 
   it("includes L4 to L5 rule requiring 12 evidences", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getUpgradeRules();
     const l4Rule = result.find((r: any) => r.fromLevel === "L4");
     expect(l4Rule).toBeTruthy();
@@ -528,13 +528,13 @@ describe("capabilityOs — getUpgradeRules", () => {
 
 describe("capabilityOs — upgradeCapability", () => {
   it("returns success response", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.upgradeCapability({ capabilityId: 1 });
     expect(result).toEqual({ success: true, message: "操作成功" });
   });
 
   it("accepts optional fromLevel and toLevel", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.upgradeCapability({
       capabilityId: "5",
       fromLevel: "L2",
@@ -550,14 +550,14 @@ describe("capabilityOs — upgradeCapability", () => {
 describe("capabilityOs — listCapabilities", () => {
   it("returns active capabilities", async () => {
     mockQueryResult = [{ id: 1, isActive: 1 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.listCapabilities();
     expect(result).toHaveLength(1);
   });
 
   it("returns empty array when none active", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.listCapabilities();
     expect(result).toEqual([]);
   });
@@ -565,7 +565,7 @@ describe("capabilityOs — listCapabilities", () => {
 
 describe("capabilityOs — getDomains", () => {
   it("returns all 6 domains with ids", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getDomains();
     expect(result).toHaveLength(6);
     expect(result[0]).toEqual({ code: "T", name: "技术能力", description: "专业技术和工程能力", id: 1 });
@@ -579,7 +579,7 @@ describe("capabilityOs — getDomains", () => {
 describe("capabilityOs — getMyCapabilities", () => {
   it("returns empty when no approved evidences", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getMyCapabilities();
     expect(result).toEqual([]);
   });
@@ -590,7 +590,7 @@ describe("capabilityOs — getMyCapabilities", () => {
       { id: 2, capabilityDomain: "T", currentLevel: 2, status: "approved" },
       { id: 3, capabilityDomain: "S", currentLevel: 1, status: "approved" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getMyCapabilities();
     expect(result).toHaveLength(2);
     const tDomain = result.find((r: any) => r.code === "T");
@@ -607,7 +607,7 @@ describe("capabilityOs — getMyCapabilities", () => {
     mockQueryResult = [
       { id: 1, capabilityDomain: null, currentLevel: 1, status: "approved" },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getMyCapabilities();
     expect(result).toHaveLength(1);
     expect(result[0].code).toBe("T");
@@ -618,7 +618,7 @@ describe("capabilityOs — getMyCapabilities", () => {
       { id: 1, capabilityDomain: "K", currentLevel: 2 },
       { id: 2, capabilityDomain: "L", currentLevel: 1 },
     ];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getMyCapabilities();
     const kDomain = result.find((r: any) => r.code === "K");
     expect(kDomain.domainId).toBe(5);
@@ -633,14 +633,14 @@ describe("capabilityOs — getMyCapabilities", () => {
 describe("capabilityOs — getMyEvidences", () => {
   it("returns evidence list", async () => {
     mockQueryResult = [{ id: 1, title: "Delivery" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getMyEvidences();
     expect(result).toHaveLength(1);
   });
 
   it("returns empty array when no evidences", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getMyEvidences();
     expect(result).toEqual([]);
   });
@@ -648,7 +648,7 @@ describe("capabilityOs — getMyEvidences", () => {
 
 describe("capabilityOs — getEvidenceTypes", () => {
   it("returns all 8 evidence types", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getEvidenceTypes();
     expect(result).toHaveLength(8);
     expect(result[0]).toHaveProperty("code", "project_delivery");
@@ -657,7 +657,7 @@ describe("capabilityOs — getEvidenceTypes", () => {
   });
 
   it("each type has id, code, name, description, baseScore, domains", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getEvidenceTypes();
     for (const type of result) {
       expect(type).toHaveProperty("id");
@@ -673,7 +673,7 @@ describe("capabilityOs — getEvidenceTypes", () => {
 describe("capabilityOs — submitEvidence", () => {
   it("submits evidence with minimal input", async () => {
     mockReturningResult = [{ id: 1, evidenceId: "EVD-TEST", status: "pending" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.submitEvidence({});
     expect(result.success).toBe(true);
     expect(result.message).toBe("证据已提交");
@@ -682,7 +682,7 @@ describe("capabilityOs — submitEvidence", () => {
 
   it("submits evidence with full input", async () => {
     mockReturningResult = [{ id: 2, evidenceId: "EVD-FULL" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.submitEvidence({
       evidenceType: "training_cert",
       capabilityDomain: "K",
@@ -706,7 +706,7 @@ describe("capabilityOs — submitEvidence", () => {
 
   it("handles string fileSize conversion", async () => {
     mockReturningResult = [{ id: 3 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.submitEvidence({
       fileSize: "2048",
       currentLevel: "2",
@@ -717,7 +717,7 @@ describe("capabilityOs — submitEvidence", () => {
 
   it("defaults evidenceType to project_delivery", async () => {
     mockReturningResult = [{ id: 4 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.submitEvidence({});
     expect(result.success).toBe(true);
   });
@@ -725,21 +725,21 @@ describe("capabilityOs — submitEvidence", () => {
 
 describe("capabilityOs — reviewEvidence", () => {
   it("approves evidence with approved=true", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.reviewEvidence({ id: 1, approved: true });
     expect(result.success).toBe(true);
     expect(result.message).toBe("已通过");
   });
 
   it("rejects evidence with approved=false", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.reviewEvidence({ id: 1, approved: false });
     expect(result.success).toBe(true);
     expect(result.message).toBe("已驳回");
   });
 
   it("uses status field when provided", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.reviewEvidence({
       id: 1,
       status: "approved",
@@ -750,7 +750,7 @@ describe("capabilityOs — reviewEvidence", () => {
   });
 
   it("uses reviewComment as fallback for comment", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.reviewEvidence({
       id: 1,
       approved: true,
@@ -760,19 +760,19 @@ describe("capabilityOs — reviewEvidence", () => {
   });
 
   it("uses evidenceId when id is not provided", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.reviewEvidence({ evidenceId: 42, approved: true });
     expect(result.success).toBe(true);
   });
 
   it("defaults id to 0 when neither id nor evidenceId provided", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.reviewEvidence({ approved: true });
     expect(result.success).toBe(true);
   });
 
   it("awards points field is accepted", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.reviewEvidence({
       id: 1,
       approved: true,
@@ -785,7 +785,7 @@ describe("capabilityOs — reviewEvidence", () => {
 describe("capabilityOs — getPendingEvidences", () => {
   it("returns pending evidences", async () => {
     mockQueryResult = [{ id: 1, status: "pending" }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getPendingEvidences();
     expect(result).toHaveLength(1);
   });
@@ -794,7 +794,7 @@ describe("capabilityOs — getPendingEvidences", () => {
 describe("capabilityOs — getAllEvidences", () => {
   it("returns all evidences", async () => {
     mockQueryResult = [{ id: 1 }, { id: 2 }];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getAllEvidences();
     expect(result).toHaveLength(2);
   });
@@ -805,39 +805,39 @@ describe("capabilityOs — getAllEvidences", () => {
 // ═════════════════════════════════════════════════════════════
 describe("capabilityOs — badges", () => {
   it("getAllBadges returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getAllBadges()).toEqual([]);
   });
 
   it("getUserBadges returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getUserBadges()).toEqual([]);
   });
 
   it("getUserBadges accepts optional input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getUserBadges({ userId: "1" })).toEqual([]);
   });
 
   it("getBadgeLeaderboard returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getBadgeLeaderboard()).toEqual([]);
   });
 
   it("getBadgeStatistics returns statistics object", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getBadgeStatistics();
     expect(result).toEqual({ statistics: {} });
   });
 
   it("updateBadgeDisplay returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.updateBadgeDisplay();
     expect(result).toEqual({ success: true, message: "操作成功" });
   });
 
   it("updateBadgeDisplay accepts input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.updateBadgeDisplay({ displayOrder: "1,2,3" });
     expect(result.success).toBe(true);
   });
@@ -848,27 +848,27 @@ describe("capabilityOs — badges", () => {
 // ═════════════════════════════════════════════════════════════
 describe("capabilityOs — leaderboard", () => {
   it("getDomainLeaderboard returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getDomainLeaderboard()).toEqual([]);
   });
 
   it("getDomainLeaderboard accepts input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getDomainLeaderboard({ domain: "T" })).toEqual([]);
   });
 
   it("getOverallLeaderboard returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getOverallLeaderboard()).toEqual([]);
   });
 
   it("getProgressLeaderboard returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getProgressLeaderboard()).toEqual([]);
   });
 
   it("getLeaderboardStats returns stats object", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getLeaderboardStats();
     expect(result).toEqual({ stats: {} });
   });
@@ -882,7 +882,7 @@ describe("capabilityOs — certificates", () => {
     // The ensureCapCertData will run and try to bootstrap. We mock execute
     // to simulate already-seeded data (cnt > 0) then the actual query returns data.
     mockExecuteResult = { rows: [{ cnt: 1 }] };
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getMyCertificates();
     // Since the second execute call also resolves to { rows: [{ cnt: 1 }] },
     // items will be undefined and fallback to []
@@ -892,14 +892,14 @@ describe("capabilityOs — certificates", () => {
   it("getMyCertificates returns certificate data when available", async () => {
     const certs = [{ id: "cert1", certificateNumber: "GRT-T-2026-001" }];
     mockExecuteResult = { rows: [{ items: certs }] };
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getMyCertificates();
     expect(result).toEqual(certs);
   });
 
   it("checkCertificateEligibility returns default when no data", async () => {
     mockExecuteResult = { rows: [] };
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.checkCertificateEligibility();
     expect(result).toEqual({ eligible: false, requirements: [] });
   });
@@ -907,14 +907,14 @@ describe("capabilityOs — certificates", () => {
   it("checkCertificateEligibility returns eligibility data", async () => {
     const elig = { eligible: true, eligibleDomains: [{ code: "T" }] };
     mockExecuteResult = { rows: [{ items: elig }] };
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.checkCertificateEligibility();
     expect(result).toEqual(elig);
   });
 
   it("generateCertificate returns certificate number", async () => {
     mockExecuteResult = { rows: [{ cnt: 1 }] };
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.generateCertificate();
     expect(result).toHaveProperty("success", true);
     expect(result).toHaveProperty("certificateNumber");
@@ -924,13 +924,13 @@ describe("capabilityOs — certificates", () => {
 
   it("generateCertificate uses domainCode from input", async () => {
     mockExecuteResult = { rows: [{ cnt: 1 }] };
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.generateCertificate({ domainCode: "D" });
     expect(result.certificateNumber).toMatch(/^GRT-D-/);
   });
 
   it("verifyCertificateByQR returns invalid", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.verifyCertificateByQR();
     expect(result).toEqual({ valid: false, certificate: null });
   });
@@ -940,25 +940,27 @@ describe("capabilityOs — certificates", () => {
 // 12. Engineer Checkpoints (stub)
 // ═════════════════════════════════════════════════════════════
 describe("capabilityOs — engineer checkpoints", () => {
-  it("getAllEngineerCheckpoints returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
-    expect(await caller.capabilityOs.getAllEngineerCheckpoints()).toEqual([]);
+  it("getAllEngineerCheckpoints returns array of checkpoints", async () => {
+    const caller = createAdminCaller();
+    const result = await caller.capabilityOs.getAllEngineerCheckpoints();
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBeGreaterThan(0);
   });
 
   it("approveCheckpoint returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.approveCheckpoint();
     expect(result).toEqual({ success: true, message: "操作成功" });
   });
 
   it("rejectCheckpoint returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.rejectCheckpoint();
     expect(result).toEqual({ success: true, message: "操作成功" });
   });
 
   it("completePhase returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.completePhase();
     expect(result).toEqual({ success: true, message: "操作成功" });
   });
@@ -970,7 +972,7 @@ describe("capabilityOs — engineer checkpoints", () => {
 describe("capabilityOs — getPathRecommendation", () => {
   it("returns null when no recommendation data", async () => {
     mockExecuteResult = { rows: [] };
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getPathRecommendation();
     expect(result).toBeNull();
   });
@@ -978,7 +980,7 @@ describe("capabilityOs — getPathRecommendation", () => {
   it("returns recommendation data when available", async () => {
     const rec = { userId: "user1", currentCapabilities: { T: { level: 3 } } };
     mockExecuteResult = { rows: [{ items: rec }] };
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getPathRecommendation();
     expect(result).toEqual(rec);
   });
@@ -989,42 +991,42 @@ describe("capabilityOs — getPathRecommendation", () => {
 // ═════════════════════════════════════════════════════════════
 describe("capabilityOs — agent units", () => {
   it("getAgentUnits returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getAgentUnits()).toEqual([]);
   });
 
   it("createAgentUnit returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.createAgentUnit();
     expect(result.success).toBe(true);
   });
 
   it("createAgentUnit accepts input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.createAgentUnit({ name: "Unit A" });
     expect(result.success).toBe(true);
   });
 
   it("updateAgentUnitStatus returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.updateAgentUnitStatus();
     expect(result.success).toBe(true);
   });
 
   it("batchImportAgentUnits returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.batchImportAgentUnits();
     expect(result.success).toBe(true);
   });
 
   it("getAgentUnitStatistics returns statistics object", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getAgentUnitStatistics();
     expect(result).toEqual({ statistics: {} });
   });
 
   it("getAgentUnitImportHistory returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getAgentUnitImportHistory()).toEqual([]);
   });
 });
@@ -1034,24 +1036,24 @@ describe("capabilityOs — agent units", () => {
 // ═════════════════════════════════════════════════════════════
 describe("capabilityOs — approval chain configs", () => {
   it("getApprovalChainConfigs returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getApprovalChainConfigs()).toEqual([]);
   });
 
   it("createApprovalChainConfig returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.createApprovalChainConfig();
     expect(result.success).toBe(true);
   });
 
   it("updateApprovalChainConfig returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.updateApprovalChainConfig();
     expect(result.success).toBe(true);
   });
 
   it("deleteApprovalChainConfig returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.deleteApprovalChainConfig();
     expect(result.success).toBe(true);
   });
@@ -1062,22 +1064,22 @@ describe("capabilityOs — approval chain configs", () => {
 // ═════════════════════════════════════════════════════════════
 describe("capabilityOs — UWB positioning", () => {
   it("getAllUWBTags returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getAllUWBTags()).toEqual([]);
   });
 
   it("getPositionHistory returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getPositionHistory()).toEqual([]);
   });
 
   it("getPositionHistory accepts input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getPositionHistory({ tagId: "abc" })).toEqual([]);
   });
 
   it("getWorkshopOverview returns overview object", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getWorkshopOverview();
     expect(result).toEqual({ overview: {} });
   });
@@ -1088,19 +1090,19 @@ describe("capabilityOs — UWB positioning", () => {
 // ═════════════════════════════════════════════════════════════
 describe("capabilityOs — calibration", () => {
   it("executeCalibrationCheck returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.executeCalibrationCheck();
     expect(result.success).toBe(true);
   });
 
   it("recordCalibrationData returns success", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.recordCalibrationData();
     expect(result.success).toBe(true);
   });
 
   it("getCalibrationTrend returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getCalibrationTrend()).toEqual([]);
   });
 });
@@ -1109,9 +1111,11 @@ describe("capabilityOs — calibration", () => {
 // 18. Cleaning Strategies (stub)
 // ═════════════════════════════════════════════════════════════
 describe("capabilityOs — cleaning strategies", () => {
-  it("getAllCleaningStrategies returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
-    expect(await caller.capabilityOs.getAllCleaningStrategies()).toEqual([]);
+  it("getAllCleaningStrategies returns array of strategies", async () => {
+    const caller = createAdminCaller();
+    const result = await caller.capabilityOs.getAllCleaningStrategies();
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBeGreaterThan(0);
   });
 });
 
@@ -1120,41 +1124,41 @@ describe("capabilityOs — cleaning strategies", () => {
 // ═════════════════════════════════════════════════════════════
 describe("capabilityOs — toothpaste test", () => {
   it("getToothpasteTestRecords returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getToothpasteTestRecords()).toEqual([]);
   });
 
   it("getToothpasteTestStatistics returns statistics object", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getToothpasteTestStatistics();
     expect(result).toEqual({ statistics: {} });
   });
 
   it("getToothpasteTestTrend returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     expect(await caller.capabilityOs.getToothpasteTestTrend()).toEqual([]);
   });
 
   it("getToothpasteTestCount returns count 0", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getToothpasteTestCount();
     expect(result).toEqual({ count: 0 });
   });
 
   it("getToothpasteFeatureTypeStats returns stats object", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.getToothpasteFeatureTypeStats();
     expect(result).toEqual({ stats: {} });
   });
 
   it("exportToothpasteTestReport returns url", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.exportToothpasteTestReport();
     expect(result).toEqual({ url: "" });
   });
 
   it("exportToothpasteTestReport accepts input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.exportToothpasteTestReport({ format: "pdf" });
     expect(result).toEqual({ url: "" });
   });
@@ -1164,28 +1168,30 @@ describe("capabilityOs — toothpaste test", () => {
 // 20. Technical Proposals (stub)
 // ═════════════════════════════════════════════════════════════
 describe("capabilityOs — technical proposals", () => {
-  it("generateTechnicalProposal returns empty proposal", async () => {
-    const caller = createAuthenticatedCaller();
+  it("generateTechnicalProposal returns proposal object", async () => {
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.generateTechnicalProposal();
-    expect(result).toEqual({ proposal: "" });
+    expect(result).toHaveProperty("proposal");
   });
 
   it("generateTechnicalProposal accepts input", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.generateTechnicalProposal({ topic: "CNC machining" });
-    expect(result).toEqual({ proposal: "" });
+    expect(result).toHaveProperty("proposal");
   });
 
-  it("generateIOList returns empty ioList", async () => {
-    const caller = createAuthenticatedCaller();
+  it("generateIOList returns ioList object", async () => {
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.generateIOList();
-    expect(result).toEqual({ ioList: [] });
+    expect(result).toHaveProperty("ioList");
+    expect(Array.isArray(result.ioList.inputs)).toBe(true);
   });
 
-  it("analyzePartFeatures returns empty array", async () => {
-    const caller = createAuthenticatedCaller();
+  it("analyzePartFeatures returns analysis object", async () => {
+    const caller = createAdminCaller();
     const result = await caller.capabilityOs.analyzePartFeatures();
-    expect(result).toEqual([]);
+    expect(result).toHaveProperty("strategies");
+    expect(result).toHaveProperty("cycleTimeEstimate");
   });
 });
 

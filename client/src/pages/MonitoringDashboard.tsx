@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { AlertCircle, TrendingUp, TrendingDown, Activity, Database, HardDrive, Zap } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { useLanguage } from "@/contexts/LanguageContext";
 
 /**
  * 监控仪表板 - 实时监控、历史趋势、告警统计、优化建议
@@ -45,6 +46,7 @@ interface OptimizationSuggestion {
 }
 
 export default function MonitoringDashboard() {
+  const { t } = useLanguage();
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('7d');
   const [metricsData, setMetricsData] = useState<MetricData[]>([]);
   const [alertStats, setAlertStats] = useState<AlertStat[]>([]);
@@ -117,7 +119,7 @@ export default function MonitoringDashboard() {
         metric: 'CPU',
         currentValue: '80%',
         suggestedValue: '85%',
-        reason: '历史数据显示正常波动范围为75-88%，当前阈值过低导致虚假告警',
+        reason: t("admin.monitoring.suggestion1Reason"),
         confidence: 94.5,
         priority: 1,
         status: 'pending',
@@ -125,10 +127,10 @@ export default function MonitoringDashboard() {
       {
         id: '2',
         type: 'threshold_adjustment',
-        metric: '内存',
+        metric: t("admin.monitoring.memory"),
         currentValue: '85%',
         suggestedValue: '90%',
-        reason: '虚假告警率达12%，建议提高阈值以减少误报',
+        reason: t("admin.monitoring.suggestion2Reason"),
         confidence: 87.2,
         priority: 2,
         status: 'pending',
@@ -136,10 +138,10 @@ export default function MonitoringDashboard() {
       {
         id: '3',
         type: 'new_rule',
-        metric: '磁盘',
-        currentValue: '无',
-        suggestedValue: '创建磁盘使用率规则',
-        reason: '磁盘使用率上升趋势明显，建议添加告警规则',
+        metric: t("admin.monitoring.disk"),
+        currentValue: t("admin.monitoring.none"),
+        suggestedValue: t("admin.monitoring.createDiskRule"),
+        reason: t("admin.monitoring.suggestion3Reason"),
         confidence: 76.8,
         priority: 3,
         status: 'pending',
@@ -163,8 +165,8 @@ export default function MonitoringDashboard() {
     <div className="space-y-6">
       <PageHeader
         icon={Activity}
-        title="监控仪表板"
-        description="实时监控系统状态、历史趋势分析、告警统计和优化建议"
+        title={t("admin.monitoring.title")}
+        description={t("admin.monitoring.description")}
       />
 
       {/* 实时监控面板 */}
@@ -174,7 +176,7 @@ export default function MonitoringDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Zap className="w-4 h-4" />
-              CPU使用率
+              {t("admin.monitoring.cpuUsage")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -193,7 +195,7 @@ export default function MonitoringDashboard() {
                 style={{ width: `${realtimeMetrics.cpu}%` }}
               />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">阈值: 80% / 95%</p>
+            <p className="text-xs text-muted-foreground mt-2">{t("admin.monitoring.threshold")}: 80% / 95%</p>
           </CardContent>
         </Card>
 
@@ -202,7 +204,7 @@ export default function MonitoringDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Activity className="w-4 h-4" />
-              内存使用率
+              {t("admin.monitoring.memoryUsage")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -221,7 +223,7 @@ export default function MonitoringDashboard() {
                 style={{ width: `${realtimeMetrics.memory}%` }}
               />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">阈值: 85% / 95%</p>
+            <p className="text-xs text-muted-foreground mt-2">{t("admin.monitoring.threshold")}: 85% / 95%</p>
           </CardContent>
         </Card>
 
@@ -230,7 +232,7 @@ export default function MonitoringDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <HardDrive className="w-4 h-4" />
-              磁盘使用率
+              {t("admin.monitoring.diskUsage")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -249,21 +251,21 @@ export default function MonitoringDashboard() {
                 style={{ width: `${realtimeMetrics.disk}%` }}
               />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">阈值: 80% / 95%</p>
+            <p className="text-xs text-muted-foreground mt-2">{t("admin.monitoring.threshold")}: 80% / 95%</p>
           </CardContent>
         </Card>
 
         {/* 应用状态 */}
         <Card className="border-l-4 border-l-green-500">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">应用状态</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("admin.monitoring.appStatus")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${realtimeMetrics.appStatus === 'running' ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span className="font-medium">{realtimeMetrics.appStatus === 'running' ? '运行中' : '错误'}</span>
+              <span className="font-medium">{realtimeMetrics.appStatus === 'running' ? t("admin.monitoring.running") : t("admin.monitoring.error")}</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">GRT应用进程</p>
+            <p className="text-xs text-muted-foreground mt-2">{t("admin.monitoring.grtAppProcess")}</p>
           </CardContent>
         </Card>
 
@@ -272,7 +274,7 @@ export default function MonitoringDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Database className="w-4 h-4" />
-              数据库连接
+              {t("admin.monitoring.dbConnections")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -283,14 +285,14 @@ export default function MonitoringDashboard() {
                 style={{ width: `${(realtimeMetrics.dbConnections / 100) * 100}%` }}
               />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">最大: 100</p>
+            <p className="text-xs text-muted-foreground mt-2">{t("admin.monitoring.max")}: 100</p>
           </CardContent>
         </Card>
 
         {/* 网络流量 */}
         <Card className="border-l-4 border-l-indigo-500">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">网络流量</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("admin.monitoring.networkTraffic")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{realtimeMetrics.networkTraffic.toFixed(0)}</div>
@@ -303,9 +305,9 @@ export default function MonitoringDashboard() {
       <Tabs defaultValue="trends" className="space-y-4">
         <div className="flex items-center justify-between">
           <TabsList>
-            <TabsTrigger value="trends">历史趋势</TabsTrigger>
-            <TabsTrigger value="statistics">告警统计</TabsTrigger>
-            <TabsTrigger value="suggestions">优化建议</TabsTrigger>
+            <TabsTrigger value="trends">{t("admin.monitoring.historicalTrends")}</TabsTrigger>
+            <TabsTrigger value="statistics">{t("admin.monitoring.alertStatistics")}</TabsTrigger>
+            <TabsTrigger value="suggestions">{t("admin.monitoring.optimizationSuggestions")}</TabsTrigger>
           </TabsList>
           <div className="flex gap-2">
             <Button
@@ -313,28 +315,28 @@ export default function MonitoringDashboard() {
               size="sm"
               onClick={() => setTimeRange('7d')}
             >
-              7天
+              {t("admin.monitoring.7days")}
             </Button>
             <Button
               variant={timeRange === '30d' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setTimeRange('30d')}
             >
-              30天
+              {t("admin.monitoring.30days")}
             </Button>
             <Button
               variant={timeRange === '90d' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setTimeRange('90d')}
             >
-              90天
+              {t("admin.monitoring.90days")}
             </Button>
             <Button
               variant={timeRange === '1y' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setTimeRange('1y')}
             >
-              1年
+              {t("admin.monitoring.1year")}
             </Button>
           </div>
         </div>
@@ -343,8 +345,8 @@ export default function MonitoringDashboard() {
         <TabsContent value="trends" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>CPU和内存使用率趋势</CardTitle>
-              <CardDescription>显示过去{timeRange === '7d' ? '7天' : timeRange === '30d' ? '30天' : timeRange === '90d' ? '90天' : '1年'}的使用率变化</CardDescription>
+              <CardTitle>{t("admin.monitoring.cpuMemoryTrend")}</CardTitle>
+              <CardDescription>{t("admin.monitoring.showPast")} {timeRange === '7d' ? t("admin.monitoring.7days") : timeRange === '30d' ? t("admin.monitoring.30days") : timeRange === '90d' ? t("admin.monitoring.90days") : t("admin.monitoring.1year")}</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -355,7 +357,7 @@ export default function MonitoringDashboard() {
                   <Tooltip />
                   <Legend />
                   <Line type="monotone" dataKey="cpu" stroke="#3b82f6" name="CPU %" />
-                  <Line type="monotone" dataKey="memory" stroke="#a855f7" name="内存 %" />
+                  <Line type="monotone" dataKey="memory" stroke="#a855f7" name={`${t("admin.monitoring.memory")} %`} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -363,7 +365,7 @@ export default function MonitoringDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>磁盘和网络使用率趋势</CardTitle>
+              <CardTitle>{t("admin.monitoring.diskNetworkTrend")}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -373,8 +375,8 @@ export default function MonitoringDashboard() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="disk" stroke="#f97316" name="磁盘 %" />
-                  <Line type="monotone" dataKey="network" stroke="#06b6d4" name="网络 MB/s" />
+                  <Line type="monotone" dataKey="disk" stroke="#f97316" name={`${t("admin.monitoring.disk")} %`} />
+                  <Line type="monotone" dataKey="network" stroke="#06b6d4" name={`${t("admin.monitoring.network")} MB/s`} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -386,7 +388,7 @@ export default function MonitoringDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm">总告警次数</CardTitle>
+                <CardTitle className="text-sm">{t("admin.monitoring.totalAlerts")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{alertStats.reduce((sum, s) => sum + s.count, 0)}</div>
@@ -394,7 +396,7 @@ export default function MonitoringDashboard() {
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm">成功率</CardTitle>
+                <CardTitle className="text-sm">{t("admin.monitoring.successRate")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-green-600">
@@ -409,7 +411,7 @@ export default function MonitoringDashboard() {
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm">虚假告警率</CardTitle>
+                <CardTitle className="text-sm">{t("admin.monitoring.falseAlarmRate")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-yellow-600">7.7%</div>
@@ -417,17 +419,17 @@ export default function MonitoringDashboard() {
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm">平均响应时间</CardTitle>
+                <CardTitle className="text-sm">{t("admin.monitoring.avgResponseTime")}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">2.5分钟</div>
+                <div className="text-3xl font-bold">2.5 {t("admin.monitoring.minutes")}</div>
               </CardContent>
             </Card>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>每日告警统计</CardTitle>
+              <CardTitle>{t("admin.monitoring.dailyAlertStats")}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -437,9 +439,9 @@ export default function MonitoringDashboard() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="count" fill="#3b82f6" name="总告警" />
-                  <Bar dataKey="success" fill="#10b981" name="成功" />
-                  <Bar dataKey="failure" fill="#ef4444" name="失败" />
+                  <Bar dataKey="count" fill="#3b82f6" name={t("admin.monitoring.totalAlerts")} />
+                  <Bar dataKey="success" fill="#10b981" name={t("admin.monitoring.success")} />
+                  <Bar dataKey="failure" fill="#ef4444" name={t("admin.monitoring.failure")} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -455,23 +457,23 @@ export default function MonitoringDashboard() {
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <span className="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-700">
-                        优先级 {suggestion.priority}
+                        {t("admin.monitoring.priority")} {suggestion.priority}
                       </span>
-                      {suggestion.type === 'threshold_adjustment' && '阈值调整'}
-                      {suggestion.type === 'new_rule' && '新增规则'}
-                      {suggestion.type === 'rule_removal' && '删除规则'}
+                      {suggestion.type === 'threshold_adjustment' && t("admin.monitoring.thresholdAdjustment")}
+                      {suggestion.type === 'new_rule' && t("admin.monitoring.newRule")}
+                      {suggestion.type === 'rule_removal' && t("admin.monitoring.deleteRule")}
                     </CardTitle>
                     <CardDescription className="mt-2">{suggestion.metric}</CardDescription>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-semibold text-green-600">{suggestion.confidence.toFixed(1)}%置信度</div>
+                    <div className="text-sm font-semibold text-green-600">{suggestion.confidence.toFixed(1)}% {t("admin.monitoring.confidence")}</div>
                     <Button
                       size="sm"
                       variant={suggestion.status === 'applied' ? 'outline' : 'default'}
                       disabled={suggestion.status === 'applied'}
                       className="mt-2"
                     >
-                      {suggestion.status === 'applied' ? '已应用' : '应用建议'}
+                      {suggestion.status === 'applied' ? t("admin.monitoring.applied") : t("admin.monitoring.applySuggestion")}
                     </Button>
                   </div>
                 </div>
@@ -479,16 +481,16 @@ export default function MonitoringDashboard() {
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-muted-foreground">当前值</p>
+                    <p className="text-xs text-muted-foreground">{t("admin.monitoring.currentValue")}</p>
                     <p className="font-mono font-semibold">{suggestion.currentValue}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">建议值</p>
+                    <p className="text-xs text-muted-foreground">{t("admin.monitoring.suggestedValue")}</p>
                     <p className="font-mono font-semibold text-green-600">{suggestion.suggestedValue}</p>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">优化理由</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t("admin.monitoring.optimizationReason")}</p>
                   <p className="text-sm">{suggestion.reason}</p>
                 </div>
               </CardContent>

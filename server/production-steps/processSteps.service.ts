@@ -768,7 +768,7 @@ export async function findSimilarProjects(projectId: number, limit: number = 10)
   const result = await db.execute(sql`
     SELECT DISTINCT p.id, p.project_name, p.project_code, p.status,
            COUNT(b.id) as step_count,
-           GROUP_CONCAT(DISTINCT b.process_code) as process_codes
+           string_agg(DISTINCT b.process_code::text, ',') as process_codes
     FROM grt_projects p
     JOIN process_bom_steps b ON p.id = b.project_id
     WHERE p.id != ${projectId} AND b.status = 'completed'
@@ -1323,7 +1323,7 @@ export async function getAiAccuracyDashboard(projectId?: number): Promise<AiAccu
   const sixMonthsAgo = Date.now() - 180 * 24 * 60 * 60 * 1000;
   const trendRows = (await db.execute(sql`
     SELECT
-      DATE_FORMAT(FROM_UNIXTIME(created_at / 1000), '%Y-%m') as period,
+      to_char(to_timestamp(created_at / 1000), 'YYYY-MM') as period,
       COUNT(*) as total,
       SUM(CASE WHEN confirm_status IN ('confirmed', 'modified') THEN 1 ELSE 0 END) as adopted
     FROM grt_ai_preset_steps

@@ -264,7 +264,8 @@ export async function embedProjectDocuments(projectId?: number): Promise<number>
   const docs = await db
     .select()
     .from(projectDocuments)
-    .where(conditions);
+    .where(conditions)
+    .limit(1000);
 
   let count = 0;
   for (const doc of docs) {
@@ -299,7 +300,8 @@ export async function embedTechnicalDocuments(projectId?: number): Promise<numbe
   const docs = await db
     .select()
     .from(technicalDocuments)
-    .where(conditions);
+    .where(conditions)
+    .limit(1000);
 
   let count = 0;
   for (const doc of docs) {
@@ -350,7 +352,8 @@ export async function searchSimilarByText(
   const allEmbeddings = await db
     .select()
     .from(documentEmbeddings)
-    .where(conditions.length > 0 ? and(...conditions) : undefined);
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .limit(1000);
 
   // 计算相似度并排序
   const scored: SimilarDocument[] = allEmbeddings
@@ -407,7 +410,8 @@ export async function findSimilarDocuments(
   const allEmbeddings = await db
     .select()
     .from(documentEmbeddings)
-    .where(sql`${documentEmbeddings.id} != ${sourceEmb.id}`);
+    .where(sql`${documentEmbeddings.id} != ${sourceEmb.id}`)
+    .limit(1000);
 
   const scored: SimilarDocument[] = allEmbeddings
     .map((emb) => {

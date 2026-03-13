@@ -2,7 +2,7 @@
  * Vector Search Router (Task #74)
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import * as vsSvc from "./vector-search.service";
 
 export const vectorSearchRouter = router({
@@ -12,7 +12,7 @@ export const vectorSearchRouter = router({
       return { embedding: vsSvc.generateEmbedding(input.text), dimensions: 384 };
     }),
 
-  indexDocument: protectedProcedure
+  indexDocument: requirePermission('ai:rag:query')
     .input(z.object({ docId: z.number(), content: z.string() }))
     .mutation(async ({ input }) => {
       return vsSvc.indexDocument(input.docId, input.content);
@@ -24,7 +24,7 @@ export const vectorSearchRouter = router({
       return vsSvc.searchSimilar(input.query, input.topK);
     }),
 
-  reindex: protectedProcedure
+  reindex: requirePermission('ai:rag:query')
     .mutation(async () => {
       return vsSvc.reindexAll();
     }),

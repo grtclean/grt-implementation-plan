@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import {
   generateM2Summary,
   findSimilarProjects,
@@ -194,7 +194,7 @@ const projectRouter = router({
       }
     }),
 
-  delete: protectedProcedure
+  delete: requirePermission('pos:projects:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       try {
@@ -228,7 +228,7 @@ const projectRouter = router({
       }
     }),
 
-  updateStageOwner: protectedProcedure
+  updateStageOwner: requirePermission('pos:projects:manage')
     .input(z.object({
       projectId: z.number(),
       stageCode: z.string(),
@@ -244,7 +244,7 @@ const projectRouter = router({
       return { success: false, error: '阶段不存在' };
     }),
 
-  updateStageDates: protectedProcedure
+  updateStageDates: requirePermission('pos:projects:manage')
     .input(z.object({
       projectId: z.number(),
       stageCode: z.string(),
@@ -263,7 +263,7 @@ const projectRouter = router({
       return { success: false, error: '阶段不存在' };
     }),
 
-  completeStage: protectedProcedure
+  completeStage: requirePermission('pos:projects:manage')
     .input(z.object({
       projectId: z.number(),
       stageCode: z.string(),
@@ -296,7 +296,7 @@ const stageRouter = router({
       }
     }),
 
-  updateStatus: protectedProcedure
+  updateStatus: requirePermission('pos:projects:manage')
     .input(z.object({
       id: z.number(),
       status: z.enum(['NotStarted', 'InProgress', 'Completed', 'Blocked', 'Skipped']),
@@ -313,7 +313,7 @@ const stageRouter = router({
       }
     }),
 
-  updateInputOutput: protectedProcedure
+  updateInputOutput: requirePermission('pos:projects:manage')
     .input(z.object({
       id: z.number(),
       inputJson: z.string().optional(),
@@ -331,7 +331,7 @@ const stageRouter = router({
       }
     }),
 
-  addTask: protectedProcedure
+  addTask: requirePermission('pos:projects:manage')
     .input(z.object({
       stageId: z.number(),
       taskName: z.string(),
@@ -365,7 +365,7 @@ const stageRouter = router({
       }
     }),
 
-  updateTask: protectedProcedure
+  updateTask: requirePermission('pos:projects:manage')
     .input(z.object({
       stageId: z.number(),
       taskId: z.number(),
@@ -394,7 +394,7 @@ const stageRouter = router({
       }
     }),
 
-  addAuditLog: protectedProcedure
+  addAuditLog: requirePermission('pos:projects:manage')
     .input(z.object({
       stageId: z.number(),
       action: z.string(),
@@ -420,7 +420,7 @@ const stageRouter = router({
       }
     }),
 
-  uploadAttachment: protectedProcedure
+  uploadAttachment: requirePermission('pos:projects:manage')
     .input(z.object({
       stageId: z.number(),
       fileName: z.string(),
@@ -525,7 +525,7 @@ const stageRouter = router({
     }),
 
   // 上传附件新版本
-  uploadNewVersion: protectedProcedure
+  uploadNewVersion: requirePermission('pos:projects:manage')
     .input(z.object({
       attachmentId: z.number(),
       fileUrl: z.string(),
@@ -550,7 +550,7 @@ const stageRouter = router({
     }),
 
   // 回滚到历史版本
-  rollbackAttachment: protectedProcedure
+  rollbackAttachment: requirePermission('pos:projects:manage')
     .input(z.object({
       attachmentId: z.number(),
       targetVersion: z.string(),
@@ -566,7 +566,7 @@ const stageRouter = router({
     }),
 
   // 删除附件
-  deleteAttachment: protectedProcedure
+  deleteAttachment: requirePermission('pos:projects:manage')
     .input(z.object({ attachmentId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       return {
@@ -588,7 +588,7 @@ const versionRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async () => null),
 
-  generateAIV0: protectedProcedure
+  generateAIV0: requirePermission('pos:projects:manage')
     .input(z.object({
       projectId: z.number(),
       baseProjectCode: z.string(),
@@ -671,7 +671,7 @@ const versionRouter = router({
       };
     }),
 
-  activate: protectedProcedure
+  activate: requirePermission('pos:projects:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => ({
       success: true,
@@ -681,7 +681,7 @@ const versionRouter = router({
       activatedAt: new Date().toISOString(),
     })),
 
-  confirm: protectedProcedure
+  confirm: requirePermission('pos:projects:manage')
     .input(z.object({ id: z.number(), notes: z.string().optional() }))
     .mutation(async ({ input, ctx }) => ({
       success: true,
@@ -690,7 +690,7 @@ const versionRouter = router({
       confirmedAt: new Date().toISOString(),
     })),
 
-  reject: protectedProcedure
+  reject: requirePermission('pos:projects:manage')
     .input(z.object({ id: z.number(), reason: z.string() }))
     .mutation(async ({ input, ctx }) => ({
       success: true,
@@ -711,7 +711,7 @@ const versionRouter = router({
       return compareVersions(version1, version2);
     }),
 
-  rollback: protectedProcedure
+  rollback: requirePermission('pos:projects:manage')
     .input(z.object({ projectId: z.number(), targetVersionId: z.number() }))
     .mutation(async ({ input, ctx }) => ({
       success: true,
@@ -726,7 +726,7 @@ const versionRouter = router({
 import * as aiVersionService from "./ai-version.service";
 
 const aiRouter = router({
-  generateM2Summary: protectedProcedure
+  generateM2Summary: requirePermission('pos:projects:manage')
     .input(z.object({
       projectId: z.number(),
       stageId: z.number(),
@@ -1089,7 +1089,7 @@ const procurementRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async () => null),
 
-  generate: protectedProcedure
+  generate: requirePermission('pos:projects:manage')
     .input(z.object({
       projectId: z.number(),
       versionId: z.number().optional(),
@@ -1139,7 +1139,7 @@ const procurementRouter = router({
       engineerNotes: input.notes,
     })),
 
-  procurementConfirm: protectedProcedure
+  procurementConfirm: requirePermission('pos:projects:manage')
     .input(z.object({
       id: z.number(),
       approved: z.boolean(),
@@ -1167,7 +1167,7 @@ const mesRouter = router({
     }))
     .query(async ({ input }) => ({ items: [], total: 0, page: input.page, pageSize: input.pageSize })),
 
-  createWorkOrder: protectedProcedure
+  createWorkOrder: requirePermission('pos:projects:manage')
     .input(z.object({
       projectId: z.number(),
       stageId: z.number().optional(),
@@ -1184,7 +1184,7 @@ const mesRouter = router({
       createdAt: new Date().toISOString(),
     })),
 
-  sync: protectedProcedure
+  sync: requirePermission('pos:projects:manage')
     .input(z.object({
       id: z.number(),
       direction: z.enum(['ToMES', 'FromMES', 'Bidirectional']).optional(),
@@ -1203,7 +1203,7 @@ const mesRouter = router({
       im: { connected: false, lastSync: null, error: '未配置IM连接器' },
     })),
 
-  testConnection: protectedProcedure
+  testConnection: requirePermission('pos:projects:manage')
     .input(z.object({
       connectorType: z.enum(['MES', 'ERP', 'IM']),
     }))
@@ -1264,7 +1264,7 @@ const mesRouter = router({
     })),
 
   // 回写进度到项目阶段
-  writeBackProgress: protectedProcedure
+  writeBackProgress: requirePermission('pos:projects:manage')
     .input(z.object({
       workOrderCode: z.string(),
       projectId: z.number(),
@@ -1294,7 +1294,7 @@ const connectorRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async () => null),
 
-  create: protectedProcedure
+  create: requirePermission('pos:projects:manage')
     .input(z.object({
       connectorCode: z.string(),
       connectorName: z.string(),
@@ -1303,7 +1303,7 @@ const connectorRouter = router({
     }))
     .mutation(async ({ input }) => ({ id: 1, ...input, isEnabled: true })),
 
-  update: protectedProcedure
+  update: requirePermission('pos:projects:manage')
     .input(z.object({
       id: z.number(),
       connectorName: z.string().optional(),
@@ -1312,7 +1312,7 @@ const connectorRouter = router({
     }))
     .mutation(async ({ input }) => ({ success: true, ...input })),
 
-  test: protectedProcedure
+  test: requirePermission('pos:projects:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => ({
       success: true,
@@ -1321,7 +1321,7 @@ const connectorRouter = router({
       lastTestResult: 'Success',
     })),
 
-  delete: protectedProcedure
+  delete: requirePermission('pos:projects:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => ({ success: true, id: input.id })),
 });
@@ -1335,7 +1335,7 @@ const reviewRouter = router({
     }))
     .query(async () => []),
 
-  create: protectedProcedure
+  create: requirePermission('pos:projects:manage')
     .input(z.object({
       projectId: z.number(),
       stageId: z.number(),
@@ -1344,7 +1344,7 @@ const reviewRouter = router({
     }))
     .mutation(async ({ input }) => ({ id: 1, ...input, conclusion: 'Pending' })),
 
-  update: protectedProcedure
+  update: requirePermission('pos:projects:manage')
     .input(z.object({
       id: z.number(),
       conclusion: z.enum(['Pass', 'ConditionalPass', 'Fail', 'Pending']),
@@ -1355,7 +1355,7 @@ const reviewRouter = router({
     }))
     .mutation(async ({ input }) => ({ success: true, ...input })),
 
-  addAttachment: protectedProcedure
+  addAttachment: requirePermission('pos:projects:manage')
     .input(z.object({
       reviewId: z.number(),
       fileName: z.string(),
@@ -1497,7 +1497,7 @@ const dashboardRouter = router({
         description: `项目活动 ${i + 1}`,
         timestamp: new Date(Date.now() - i * 3600000).toISOString(),
         userId: 1,
-        userName: '张工',
+        userName: '洪香龙',
       }));
     }),
 
@@ -1583,7 +1583,7 @@ const historyRouter = router({
 // ==================== 系统管理路由 ====================
 const systemRouter = router({
   // 初始化数据库
-  initDatabase: protectedProcedure
+  initDatabase: requirePermission('pos:projects:manage')
     .mutation(async () => {
       const result = await initPOSDatabase();
       return result;
@@ -1671,7 +1671,7 @@ const notificationRouter = router({
     }),
 
   // 测试通知配置
-  testConfig: protectedProcedure
+  testConfig: requirePermission('pos:projects:manage')
     .input(z.object({
       channel: z.enum(['feishu', 'wechat_work', 'teams', 'email', 'sms']),
       webhookUrl: z.string(),
@@ -1694,7 +1694,7 @@ const notificationRouter = router({
     }),
 
   // 发送项目状态变更通知
-  sendProjectStatusChange: protectedProcedure
+  sendProjectStatusChange: requirePermission('pos:projects:manage')
     .input(z.object({
       projectCode: z.string(),
       oldStatus: z.string(),
@@ -1720,7 +1720,7 @@ const notificationRouter = router({
     }),
 
   // 发送阶段评审结果通知
-  sendStageReviewResult: protectedProcedure
+  sendStageReviewResult: requirePermission('pos:projects:manage')
     .input(z.object({
       projectCode: z.string(),
       stageCode: z.string(),
@@ -1746,7 +1746,7 @@ const notificationRouter = router({
     }),
 
   // 发送风险预警通知
-  sendRiskAlert: protectedProcedure
+  sendRiskAlert: requirePermission('pos:projects:manage')
     .input(z.object({
       projectCode: z.string(),
       riskLevel: z.string(),
@@ -1771,7 +1771,7 @@ const notificationRouter = router({
     }),
 
   // 发送任务到期提醒
-  sendTaskDueReminder: protectedProcedure
+  sendTaskDueReminder: requirePermission('pos:projects:manage')
     .input(z.object({
       projectCode: z.string(),
       stageCode: z.string(),
@@ -1857,7 +1857,7 @@ const stageGateRouter = router({
     }),
 
   // 自动推进阶段
-  autoAdvance: protectedProcedure
+  autoAdvance: requirePermission('pos:projects:manage')
     .input(z.object({
       projectId: z.number(),
       currentStage: z.string(),
@@ -2015,14 +2015,14 @@ import {
 
 const mesEnhancedRouter = router({
   // 从M6阶段自动创建工单
-  createFromM6: protectedProcedure
+  createFromM6: requirePermission('pos:projects:manage')
     .input(z.object({ projectId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       return await createWorkOrderFromM6Stage(input.projectId, ctx.user?.id);
     }),
 
   // 同步工单到MES
-  syncToMES: protectedProcedure
+  syncToMES: requirePermission('pos:projects:manage')
     .input(z.object({ workOrderCode: z.string() }))
     .mutation(async ({ input }) => {
       return await syncWorkOrderToMES(input.workOrderCode);
@@ -2036,7 +2036,7 @@ const mesEnhancedRouter = router({
     }),
 
   // 回写进度到项目
-  writeBackProgress: protectedProcedure
+  writeBackProgress: requirePermission('pos:projects:manage')
     .input(z.object({
       workOrderCode: z.string(),
       projectId: z.number(),
@@ -2062,7 +2062,7 @@ const mesEnhancedRouter = router({
     }),
 
   // 双向同步
-  bidirectionalSync: protectedProcedure
+  bidirectionalSync: requirePermission('pos:projects:manage')
     .input(z.object({ workOrderCode: z.string() }))
     .mutation(async ({ input }) => {
       return await bidirectionalSync(input.workOrderCode);

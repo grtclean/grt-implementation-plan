@@ -14,6 +14,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -109,6 +110,7 @@ function LoadingSkeleton() {
 // ─── Component ────────────────────────────────────────────────────
 
 export default function AiInterventionDashboard() {
+  const { t } = useLanguage();
   const [filter, setFilter] = useState<"all" | "blocking" | "resolved">("all");
   const [overrideModal, setOverrideModal] = useState<any | null>(null);
   const [overrideReason, setOverrideReason] = useState("");
@@ -161,10 +163,10 @@ export default function AiInterventionDashboard() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: "#0f172a", margin: 0 }}>
-            AI HR Command Center
+            {t("ai.intervention.title")}
           </h1>
           <p style={{ color: "#64748b", margin: "4px 0 0", fontSize: 14 }}>
-            Phase 3.1 — AI-Driven Performance Intervention & Training Closed-Loop
+            {t("ai.intervention.subtitle")}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -233,15 +235,15 @@ export default function AiInterventionDashboard() {
 
       {/* ── Tab Switcher ── */}
       <div style={{ display: "flex", gap: 0, marginBottom: 20 }}>
-        {(["interventions", "modules"] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
+        {(["interventions", "modules"] as const).map(tabKey => (
+          <button key={tabKey} onClick={() => setTab(tabKey)} style={{
             padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer",
-            background: tab === t ? "#1e40af" : "#f1f5f9",
-            color: tab === t ? "white" : "#475569",
+            background: tab === tabKey ? "#1e40af" : "#f1f5f9",
+            color: tab === tabKey ? "white" : "#475569",
             border: "1px solid #cbd5e1",
-            borderRadius: t === "interventions" ? "8px 0 0 8px" : "0 8px 8px 0",
+            borderRadius: tabKey === "interventions" ? "8px 0 0 8px" : "0 8px 8px 0",
           }}>
-            {t === "interventions" ? "Active Interventions" : "Training Modules"}
+            {tabKey === "interventions" ? t("ai.intervention.activeInterventions") : t("ai.intervention.trainingModules")}
           </button>
         ))}
       </div>
@@ -393,7 +395,7 @@ export default function AiInterventionDashboard() {
 
             {filtered.length === 0 && (
               <div style={{ textAlign: "center", padding: 40, color: "#94a3b8", fontSize: 14 }}>
-                No interventions match the current filter.
+                {t("ai.intervention.noInterventions")}
               </div>
             )}
           </div>
@@ -447,7 +449,7 @@ export default function AiInterventionDashboard() {
         padding: 24, textAlign: "center",
       }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 16 }}>
-          AI Closed-Loop Architecture
+          {t("ai.intervention.closedLoopArch")}
         </h3>
         <svg viewBox="0 0 800 140" style={{ maxWidth: 700, width: "100%" }}>
           {[

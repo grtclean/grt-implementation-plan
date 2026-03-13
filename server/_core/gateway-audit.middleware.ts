@@ -40,6 +40,18 @@ export const PUBLIC_ALLOWLIST = new Set([
   "help.getPopularArticles.query",
   "help.getChangelog.query",
   "help.getWalkthroughs.query",
+
+  // Robot cleaning showroom — public customer demo endpoints
+  "robotCleaning.showroom.getDemoData.query",
+  "robotCleaning.showroom.getParameterCurves.query",
+  "robotCleaning.showroom.getAdaptiveHistory.query",
+  "robotCleaning.showroom.getKpiOverview.query",
+  "robotCleaning.showroom.getDemoCleaningPipeline.query",
+  "robotCleaning.showroom.getDemoInlineQC.query",
+  "robotCleaning.showroom.getDemoAIDecisions.query",
+
+  // Targeted showcase — token-gated guest access (validated inside procedure)
+  "targetedShowcase.guest.getShowcaseByToken.query",
 ]);
 
 /**

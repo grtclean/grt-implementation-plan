@@ -217,7 +217,8 @@ export class VisitorService {
           eq(approvalWorkflows.status, 'pending')
         )
       )
-      .orderBy(approvalWorkflows.stepNumber);
+      .orderBy(approvalWorkflows.stepNumber)
+      .limit(1000);
 
     if (pendingSteps.length === 0) {
       throw new TRPCError({
@@ -302,7 +303,8 @@ export class VisitorService {
           eq(approvalWorkflows.status, 'pending')
         )
       )
-      .orderBy(approvalWorkflows.stepNumber);
+      .orderBy(approvalWorkflows.stepNumber)
+      .limit(1000);
 
     if (pendingSteps.length > 0) {
       await db
@@ -350,7 +352,8 @@ export class VisitorService {
     const visitors = await db
       .select()
       .from(visitorDetails)
-      .where(eq(visitorDetails.requestId, requestId));
+      .where(eq(visitorDetails.requestId, requestId))
+      .limit(1000);
 
     // 为每个来访者生成来访证
     for (const visitor of visitors) {
@@ -474,17 +477,20 @@ export class VisitorService {
     const visitors = await db
       .select()
       .from(visitorDetails)
-      .where(eq(visitorDetails.requestId, requestId));
+      .where(eq(visitorDetails.requestId, requestId))
+      .limit(1000);
 
     const workflows = await db
       .select()
       .from(approvalWorkflows)
-      .where(eq(approvalWorkflows.requestId, requestId));
+      .where(eq(approvalWorkflows.requestId, requestId))
+      .limit(1000);
 
     const passes = await db
       .select()
       .from(visitorPasses)
-      .where(eq(visitorPasses.requestId, requestId));
+      .where(eq(visitorPasses.requestId, requestId))
+      .limit(1000);
 
     return {
       request: request[0],

@@ -139,7 +139,8 @@ export async function analyzeKpiPerformance(params: {
           positionIds.map((id) => sql`${id}`),
           sql`, `
         )})`
-      );
+      )
+      .limit(1000);
   }
 
   // Apply BU/department filter based on positions
@@ -182,7 +183,8 @@ export async function analyzeKpiPerformance(params: {
           filteredUserIds.map((id) => sql`${id}`),
           sql`, `
         )})`
-      );
+      )
+      .limit(1000);
   }
 
   // 4. Fetch KPI library to resolve KPI names
@@ -200,7 +202,8 @@ export async function analyzeKpiPerformance(params: {
           positionIds.map((id) => sql`${id}`),
           sql`, `
         )})`
-      );
+      )
+      .limit(1000);
   }
 
   // 6. Build context string for LLM

@@ -10,7 +10,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 
@@ -19,7 +19,7 @@ export const daIntegrationRouter = router({
     return { status: "ok" };
   }),
 
-  sync: protectedProcedure.mutation(() => {
+  sync: requirePermission('system:erp:config').mutation(() => {
     return successResponse;
   }),
 

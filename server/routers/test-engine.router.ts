@@ -4,7 +4,7 @@
  */
 import { z } from "zod";
 import { jsonValue } from "@shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   testTemplates,
@@ -118,7 +118,7 @@ export const testEngineRouter = router({
     return updated;
   }),
 
-  cloneTemplate: protectedProcedure.input(z.object({
+  cloneTemplate: requirePermission('devops:simulator:access').input(z.object({
     sourceTemplateId: z.union([z.string(), z.number()]),
     newName: z.string().optional(),
   })).mutation(async ({ input, ctx }) => {
@@ -261,7 +261,7 @@ export const testEngineRouter = router({
     return updated;
   }),
 
-  deleteCase: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  deleteCase: requirePermission('devops:simulator:access').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [updated] = await db.update(testCases)
       .set({ isActive: false, updatedAt: new Date().toISOString() })
@@ -350,7 +350,7 @@ export const testEngineRouter = router({
     return { ...execution, totalCases: cases.length };
   }),
 
-  updateExecution: protectedProcedure.input(z.object({
+  updateExecution: requirePermission('devops:simulator:access').input(z.object({
     id: z.union([z.string(), z.number()]),
     status: z.enum(['planned', 'in_progress', 'paused', 'completed', 'aborted']).optional(),
     actualStartDate: z.string().optional(),

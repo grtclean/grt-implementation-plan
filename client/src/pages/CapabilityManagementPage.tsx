@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Plus, Award, TrendingUp, Users } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function CapabilityManagementPage() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -19,21 +21,21 @@ export default function CapabilityManagementPage() {
   // 能力操作mutations
   const createCapabilityMutation = trpc.capability.createCapability.useMutation({
     onSuccess: () => {
-      toast({ title: "能力创建成功" });
+      toast({ title: t("hr.capMgmt.createSuccess") });
       refetch();
     },
     onError: (error) => {
-      toast({ title: "错误", description: error.message, variant: "destructive" });
+      toast({ title: t("hr.capMgmt.error"), description: error.message, variant: "destructive" });
     },
   });
 
   const upgradeCapabilityMutation = (trpc.capability as any).upgradeCapability.useMutation({
     onSuccess: () => {
-      toast({ title: "能力升级成功" });
+      toast({ title: t("hr.capMgmt.upgradeSuccess") });
       refetch();
     },
     onError: (error) => {
-      toast({ title: "错误", description: error.message, variant: "destructive" });
+      toast({ title: t("hr.capMgmt.error"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -42,38 +44,38 @@ export default function CapabilityManagementPage() {
   ) || [];
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">加载中...</div>;
+    return <div className="flex items-center justify-center h-screen">{t("hr.capMgmt.loading")}</div>;
   }
 
   return (
     <div className="space-y-6">
-      <PageHeader icon={Award} title="能力管理" description="管理员工能力、证据、升级评估和发展路径" />
+      <PageHeader icon={Award} title={t("hr.capMgmt.title")} description={t("hr.capMgmt.desc")} />
 
       {/* 快速统计 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={Award} label="总能力数" value={capabilities?.length || 0} iconColor="text-purple-500" iconBg="bg-purple-50" />
-        <StatCard icon={TrendingUp} label="待升级" value={capabilities?.filter((c) => c.status === "pending_upgrade").length || 0} iconColor="text-green-500" iconBg="bg-green-50" />
-        <StatCard icon={Award} label="已认证" value={capabilities?.filter((c) => c.status === "certified").length || 0} iconColor="text-blue-500" iconBg="bg-blue-50" />
-        <StatCard icon={Users} label="涉及人员" value={new Set(capabilities?.map((c) => c.employeeId)).size || 0} iconColor="text-orange-500" iconBg="bg-orange-50" />
+        <StatCard icon={Award} label={t("hr.capMgmt.totalCapabilities")} value={capabilities?.length || 0} iconColor="text-purple-500" iconBg="bg-purple-50" />
+        <StatCard icon={TrendingUp} label={t("hr.capMgmt.pendingUpgrade")} value={capabilities?.filter((c) => c.status === "pending_upgrade").length || 0} iconColor="text-green-500" iconBg="bg-green-50" />
+        <StatCard icon={Award} label={t("hr.capMgmt.certified")} value={capabilities?.filter((c) => c.status === "certified").length || 0} iconColor="text-blue-500" iconBg="bg-blue-50" />
+        <StatCard icon={Users} label={t("hr.capMgmt.involvedPersonnel")} value={new Set(capabilities?.map((c) => c.employeeId)).size || 0} iconColor="text-orange-500" iconBg="bg-orange-50" />
       </div>
 
       {/* 搜索和操作 */}
       <Card>
         <CardHeader>
-          <CardTitle>能力列表</CardTitle>
-          <CardDescription>查看和管理所有员工能力</CardDescription>
+          <CardTitle>{t("hr.capMgmt.capabilityList")}</CardTitle>
+          <CardDescription>{t("hr.capMgmt.capabilityListDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-4">
             <Input
-              placeholder="搜索能力名称..."
+              placeholder={t("hr.capMgmt.searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1"
             />
             <Button>
               <Plus className="w-4 h-4 mr-2" />
-              新建能力
+              {t("hr.capMgmt.newCapability")}
             </Button>
           </div>
         </CardContent>
@@ -82,9 +84,9 @@ export default function CapabilityManagementPage() {
       {/* 能力列表 */}
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="all">全部能力</TabsTrigger>
-          <TabsTrigger value="pending">待升级</TabsTrigger>
-          <TabsTrigger value="certified">已认证</TabsTrigger>
+          <TabsTrigger value="all">{t("hr.capMgmt.tabAll")}</TabsTrigger>
+          <TabsTrigger value="pending">{t("hr.capMgmt.tabPending")}</TabsTrigger>
+          <TabsTrigger value="certified">{t("hr.capMgmt.tabCertified")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all">
@@ -93,7 +95,7 @@ export default function CapabilityManagementPage() {
               <Card>
                 <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
                   <AlertCircle className="w-4 h-4 mr-2" />
-                  没有找到能力记录
+                  {t("hr.capMgmt.noRecords")}
                 </CardContent>
               </Card>
             ) : (
@@ -114,26 +116,26 @@ export default function CapabilityManagementPage() {
                             }
                           >
                             {capability.status === "certified"
-                              ? "已认证"
+                              ? t("hr.capMgmt.statusCertified")
                               : capability.status === "pending_upgrade"
-                                ? "待升级"
-                                : "进行中"}
+                                ? t("hr.capMgmt.statusPending")
+                                : t("hr.capMgmt.statusInProgress")}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mt-2">
-                          员工ID: {capability.employeeId}
+                          {t("hr.capMgmt.employeeId")}: {capability.employeeId}
                         </p>
                         <div className="flex gap-4 mt-4">
                           <div>
-                            <p className="text-xs text-muted-foreground">当前级别</p>
-                            <p className="text-sm font-medium">{capability.currentLevel || "初级"}</p>
+                            <p className="text-xs text-muted-foreground">{t("hr.capMgmt.currentLevel")}</p>
+                            <p className="text-sm font-medium">{capability.currentLevel || t("hr.capMgmt.levelBeginner")}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">目标级别</p>
-                            <p className="text-sm font-medium">{capability.targetLevel || "中级"}</p>
+                            <p className="text-xs text-muted-foreground">{t("hr.capMgmt.targetLevel")}</p>
+                            <p className="text-sm font-medium">{capability.targetLevel || t("hr.capMgmt.levelIntermediate")}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">证据数量</p>
+                            <p className="text-xs text-muted-foreground">{t("hr.capMgmt.evidenceCount")}</p>
                             <p className="text-sm font-medium">
                               {capability.evidenceCount || 0}
                             </p>
@@ -142,10 +144,10 @@ export default function CapabilityManagementPage() {
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline">
-                          查看详情
+                          {t("hr.capMgmt.viewDetails")}
                         </Button>
                         {capability.status === "pending_upgrade" && (
-                          <Button size="sm">升级评估</Button>
+                          <Button size="sm">{t("hr.capMgmt.upgradeAssessment")}</Button>
                         )}
                       </div>
                     </div>
@@ -162,7 +164,7 @@ export default function CapabilityManagementPage() {
               <Card>
                 <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
                   <AlertCircle className="w-4 h-4 mr-2" />
-                  没有待升级的能力
+                  {t("hr.capMgmt.noPendingUpgrade")}
                 </CardContent>
               </Card>
             ) : (
@@ -178,7 +180,7 @@ export default function CapabilityManagementPage() {
                             从 {capability.currentLevel} 升级到 {capability.targetLevel}
                           </p>
                         </div>
-                        <Button size="sm">开始升级评估</Button>
+                        <Button size="sm">{t("hr.capMgmt.startUpgradeAssessment")}</Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -193,7 +195,7 @@ export default function CapabilityManagementPage() {
               <Card>
                 <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
                   <AlertCircle className="w-4 h-4 mr-2" />
-                  没有已认证的能力
+                  {t("hr.capMgmt.noCertified")}
                 </CardContent>
               </Card>
             ) : (
@@ -206,14 +208,14 @@ export default function CapabilityManagementPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <h3 className="font-medium text-lg">{capability.name}</h3>
-                            <Badge>已认证</Badge>
+                            <Badge>{t("hr.capMgmt.statusCertified")}</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground mt-2">
-                            级别: {capability.currentLevel}
+                            {t("hr.capMgmt.levelLabel")}: {capability.currentLevel}
                           </p>
                         </div>
                         <Button size="sm" variant="outline">
-                          查看证书
+                          {t("hr.capMgmt.viewCertificate")}
                         </Button>
                       </div>
                     </CardContent>

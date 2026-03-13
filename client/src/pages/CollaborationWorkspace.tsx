@@ -59,7 +59,7 @@ const mockWorkspaces = [
     members: [
       { id: "U1", name: "张工", avatar: "", role: "owner", online: true },
       { id: "U2", name: "李工", avatar: "", role: "editor", online: true },
-      { id: "U3", name: "王工", avatar: "", role: "editor", online: false },
+      { id: "U3", name: "焦斌", avatar: "", role: "editor", online: false },
       { id: "U4", name: "赵工", avatar: "", role: "viewer", online: true },
     ],
     lastActivity: "2024-01-22 14:30",
@@ -84,7 +84,7 @@ const mockWorkspaces = [
 const mockDocuments = [
   { id: "DOC-001", name: "技术规格书 V2.1", type: "spec", updatedAt: "2024-01-22 14:30", updatedBy: "张工" },
   { id: "DOC-002", name: "设计方案评审记录", type: "review", updatedAt: "2024-01-22 10:15", updatedBy: "李工" },
-  { id: "DOC-003", name: "BOM清单初稿", type: "bom", updatedAt: "2024-01-21 16:00", updatedBy: "王工" },
+  { id: "DOC-003", name: "BOM清单初稿", type: "bom", updatedAt: "2024-01-21 16:00", updatedBy: "焦斌" },
   { id: "DOC-004", name: "项目进度计划", type: "plan", updatedAt: "2024-01-20 09:30", updatedBy: "张工" },
 ];
 
@@ -92,7 +92,7 @@ const mockDocuments = [
 const mockMessages = [
   { id: "M1", user: "张工", content: "大家好，今天下午3点开会讨论技术方案", time: "14:30", avatar: "" },
   { id: "M2", user: "李工", content: "收到，我会准备好设计图纸", time: "14:32", avatar: "" },
-  { id: "M3", user: "王工", content: "BOM清单我已经更新了，请大家查看", time: "14:35", avatar: "" },
+  { id: "M3", user: "焦斌", content: "BOM清单我已经更新了，请大家查看", time: "14:35", avatar: "" },
   { id: "M4", user: "赵工", content: "好的，我来审核一下", time: "14:38", avatar: "" },
 ];
 
@@ -100,7 +100,7 @@ const mockMessages = [
 const mockTasks = [
   { id: "T1", title: "完成技术规格书修订", assignee: "张工", status: "in_progress", dueDate: "2024-01-25" },
   { id: "T2", title: "设计图纸评审", assignee: "李工", status: "pending", dueDate: "2024-01-26" },
-  { id: "T3", title: "BOM清单核对", assignee: "王工", status: "completed", dueDate: "2024-01-22" },
+  { id: "T3", title: "BOM清单核对", assignee: "焦斌", status: "completed", dueDate: "2024-01-22" },
   { id: "T4", title: "成本预算编制", assignee: "赵工", status: "pending", dueDate: "2024-01-28" },
 ];
 

@@ -9,6 +9,7 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,6 +63,7 @@ interface DailyStats {
 
 export default function DeadlockMonitor() {
   const { user, loading: authLoading } = useAuth();
+  const { t, tpl } = useLanguage();
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   // 使用tRPC获取数据
@@ -122,7 +124,7 @@ export default function DeadlockMonitor() {
       await historyQuery.refetch();
       await statsQuery.refetch();
     } catch (error) {
-      console.error("手动检测失败:", error);
+      console.error("Manual check failed:", error);
     }
     setIsRefreshing(false);
   };
@@ -176,8 +178,8 @@ export default function DeadlockMonitor() {
     <div className="space-y-6">
       <PageHeader
         icon={Shield}
-        title="死锁监控仪表板"
-        description="实时监控系统死锁状态，自动检测并解决资源竞争问题"
+        title={t("admin.deadlock.title")}
+        description={t("admin.deadlock.description")}
         actions={
           <div className="flex gap-2">
             <Button
@@ -186,11 +188,11 @@ export default function DeadlockMonitor() {
               disabled={isRefreshing}
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-              刷新
+              {t("admin.deadlock.refresh")}
             </Button>
             <Button onClick={handleManualCheck} disabled={isRefreshing}>
               <Zap className="w-4 h-4 mr-2" />
-              手动检测
+              {t("admin.deadlock.manualCheck")}
             </Button>
           </div>
         }
@@ -201,7 +203,7 @@ export default function DeadlockMonitor() {
         {/* 监控状态 */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">监控状态</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("admin.deadlock.monitorStatus")}</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -210,18 +212,18 @@ export default function DeadlockMonitor() {
                 <>
                   <Badge variant="default" className="bg-green-500">
                     <Activity className="w-3 h-3 mr-1" />
-                    运行中
+                    {t("admin.deadlock.running")}
                   </Badge>
                 </>
               ) : (
                 <Badge variant="destructive">
                   <AlertTriangle className="w-3 h-3 mr-1" />
-                  已停止
+                  {t("admin.deadlock.stopped")}
                 </Badge>
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              检测间隔: {status.checkIntervalMs / 60000} 分钟
+              {tpl("admin.deadlock.checkInterval", { min: String(status.checkIntervalMs / 60000) })}
             </p>
           </CardContent>
         </Card>
@@ -229,13 +231,13 @@ export default function DeadlockMonitor() {
         {/* 下次检测 */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">下次检测</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("admin.deadlock.nextCheck")}</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{countdown}</div>
             <p className="text-xs text-muted-foreground mt-2">
-              上次检测: {formatTime(status.lastCheckAt)}
+              {tpl("admin.deadlock.lastCheck", { time: formatTime(status.lastCheckAt) })}
             </p>
           </CardContent>
         </Card>
@@ -243,13 +245,13 @@ export default function DeadlockMonitor() {
         {/* 检测到的死锁 */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">检测到的死锁</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("admin.deadlock.deadlocksDetected")}</CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{status.cyclesDetected}</div>
             <p className="text-xs text-muted-foreground mt-2">
-              今日累计检测
+              {t("admin.deadlock.todayTotal")}
             </p>
           </CardContent>
         </Card>
@@ -257,15 +259,15 @@ export default function DeadlockMonitor() {
         {/* 已解决 */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">已解决</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("admin.deadlock.resolved")}</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{status.cyclesResolved}</div>
             <p className="text-xs text-muted-foreground mt-2">
-              自动解决率: {status.cyclesDetected > 0 
-                ? Math.round((status.cyclesResolved / status.cyclesDetected) * 100) 
-                : 100}%
+              {tpl("admin.deadlock.autoResolveRate", { rate: String(status.cyclesDetected > 0
+                ? Math.round((status.cyclesResolved / status.cyclesDetected) * 100)
+                : 100) })}
             </p>
           </CardContent>
         </Card>
@@ -276,15 +278,15 @@ export default function DeadlockMonitor() {
         <TabsList>
           <TabsTrigger value="overview">
             <TrendingUp className="w-4 h-4 mr-2" />
-            概览
+            {t("admin.deadlock.tabOverview")}
           </TabsTrigger>
           <TabsTrigger value="history">
             <History className="w-4 h-4 mr-2" />
-            历史记录
+            {t("admin.deadlock.tabHistory")}
           </TabsTrigger>
           <TabsTrigger value="settings">
             <Settings className="w-4 h-4 mr-2" />
-            配置
+            {t("admin.deadlock.tabSettings")}
           </TabsTrigger>
         </TabsList>
         
@@ -294,8 +296,8 @@ export default function DeadlockMonitor() {
             {/* 7日统计图表 */}
             <Card>
               <CardHeader>
-                <CardTitle>7日统计</CardTitle>
-                <CardDescription>过去7天的死锁检测与解决情况</CardDescription>
+                <CardTitle>{t("admin.deadlock.sevenDayStats")}</CardTitle>
+                <CardDescription>{t("admin.deadlock.sevenDayDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -310,7 +312,7 @@ export default function DeadlockMonitor() {
                           style={{ width: `${Math.max(stat.detected * 10, 2)}%` }}
                         />
                         <span className="text-xs text-muted-foreground">
-                          检测: {stat.detected}
+                          {tpl("admin.deadlock.detected", { count: String(stat.detected) })}
                         </span>
                       </div>
                       <div className="flex-1 flex items-center gap-2">
@@ -319,7 +321,7 @@ export default function DeadlockMonitor() {
                           style={{ width: `${Math.max(stat.resolved * 10, 2)}%` }}
                         />
                         <span className="text-xs text-muted-foreground">
-                          解决: {stat.resolved}
+                          {tpl("admin.deadlock.resolvedCount", { count: String(stat.resolved) })}
                         </span>
                       </div>
                     </div>
@@ -331,8 +333,8 @@ export default function DeadlockMonitor() {
             {/* 系统健康状态 */}
             <Card>
               <CardHeader>
-                <CardTitle>系统健康状态</CardTitle>
-                <CardDescription>当前资源竞争风险评估</CardDescription>
+                <CardTitle>{t("admin.deadlock.systemHealth")}</CardTitle>
+                <CardDescription>{t("admin.deadlock.systemHealthDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -340,32 +342,32 @@ export default function DeadlockMonitor() {
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-8 h-8 text-green-600" />
                       <div>
-                        <p className="font-medium">系统状态良好</p>
+                        <p className="font-medium">{t("admin.deadlock.systemGood")}</p>
                         <p className="text-sm text-muted-foreground">
-                          未检测到死锁风险
+                          {t("admin.deadlock.noRisk")}
                         </p>
                       </div>
                     </div>
                     <Badge variant="outline" className="bg-green-100 text-green-700">
-                      健康
+                      {t("admin.deadlock.healthy")}
                     </Badge>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">活跃事务</p>
+                      <p className="text-sm text-muted-foreground">{t("admin.deadlock.activeTransactions")}</p>
                       <p className="text-2xl font-bold">0</p>
                     </div>
                     <div className="p-3 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">等待队列</p>
+                      <p className="text-sm text-muted-foreground">{t("admin.deadlock.waitQueue")}</p>
                       <p className="text-2xl font-bold">0</p>
                     </div>
                     <div className="p-3 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">锁定资源</p>
+                      <p className="text-sm text-muted-foreground">{t("admin.deadlock.lockedResources")}</p>
                       <p className="text-2xl font-bold">0</p>
                     </div>
                     <div className="p-3 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">平均等待时间</p>
+                      <p className="text-sm text-muted-foreground">{t("admin.deadlock.avgWaitTime")}</p>
                       <p className="text-2xl font-bold">0ms</p>
                     </div>
                   </div>
@@ -379,15 +381,15 @@ export default function DeadlockMonitor() {
         <TabsContent value="history" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>死锁历史记录</CardTitle>
-              <CardDescription>所有检测到的死锁循环及其解决状态</CardDescription>
+              <CardTitle>{t("admin.deadlock.deadlockHistory")}</CardTitle>
+              <CardDescription>{t("admin.deadlock.deadlockHistoryDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               {recentCycles.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500" />
-                  <p>暂无死锁记录</p>
-                  <p className="text-sm">系统运行正常，未检测到死锁循环</p>
+                  <p>{t("admin.deadlock.noRecords")}</p>
+                  <p className="text-sm">{t("admin.deadlock.noRecordsDesc")}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -399,21 +401,21 @@ export default function DeadlockMonitor() {
                       <div className={`w-2 h-2 mt-2 rounded-full ${getSeverityColor(cycle.severity)}`} />
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <p className="font-medium">死锁循环 #{cycle.id}</p>
+                          <p className="font-medium">{tpl("admin.deadlock.deadlockCycle", { id: cycle.id })}</p>
                           <Badge variant={cycle.resolvedAt ? "default" : "destructive"}>
-                            {cycle.resolvedAt ? "已解决" : "待处理"}
+                            {cycle.resolvedAt ? t("admin.deadlock.statusResolved") : t("admin.deadlock.statusPending")}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
-                          涉及节点: {cycle.nodes.join(" → ")}
+                          {tpl("admin.deadlock.involvedNodes", { nodes: cycle.nodes.join(" \u2192 ") })}
                         </p>
                         <p className="text-xs text-muted-foreground mt-2">
-                          检测时间: {formatTime(cycle.detectedAt)}
-                          {cycle.resolvedAt && ` | 解决时间: ${formatTime(cycle.resolvedAt)}`}
+                          {tpl("admin.deadlock.detectedAt", { time: formatTime(cycle.detectedAt) })}
+                          {cycle.resolvedAt && ` | ${tpl("admin.deadlock.resolvedAt", { time: formatTime(cycle.resolvedAt) })}`}
                         </p>
                         {cycle.resolution && (
                           <p className="text-xs text-muted-foreground">
-                            解决方案: {cycle.resolution}
+                            {tpl("admin.deadlock.resolution", { text: cycle.resolution })}
                           </p>
                         )}
                       </div>
@@ -429,58 +431,58 @@ export default function DeadlockMonitor() {
         <TabsContent value="settings" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>监控配置</CardTitle>
-              <CardDescription>调整死锁检测参数和通知设置</CardDescription>
+              <CardTitle>{t("admin.deadlock.monitorConfig")}</CardTitle>
+              <CardDescription>{t("admin.deadlock.monitorConfigDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">检测间隔</label>
-                  <p className="text-2xl font-bold">5 分钟</p>
+                  <label className="text-sm font-medium">{t("admin.deadlock.checkIntervalLabel")}</label>
+                  <p className="text-2xl font-bold">{t("admin.deadlock.fiveMinutes")}</p>
                   <p className="text-xs text-muted-foreground">
-                    系统每5分钟自动执行一次死锁检测
+                    {t("admin.deadlock.autoCheckDesc")}
                   </p>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">自动解决策略</label>
-                  <p className="text-2xl font-bold">启用</p>
+                  <label className="text-sm font-medium">{t("admin.deadlock.autoResolve")}</label>
+                  <p className="text-2xl font-bold">{t("admin.deadlock.enabled")}</p>
                   <p className="text-xs text-muted-foreground">
-                    检测到死锁时自动选择最优解决方案
+                    {t("admin.deadlock.autoResolveDesc")}
                   </p>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">通知阈值</label>
-                  <p className="text-2xl font-bold">高危及以上</p>
+                  <label className="text-sm font-medium">{t("admin.deadlock.notifyThreshold")}</label>
+                  <p className="text-2xl font-bold">{t("admin.deadlock.highAndAbove")}</p>
                   <p className="text-xs text-muted-foreground">
-                    仅在检测到高危或严重死锁时发送通知
+                    {t("admin.deadlock.notifyThresholdDesc")}
                   </p>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">历史保留</label>
-                  <p className="text-2xl font-bold">30 天</p>
+                  <label className="text-sm font-medium">{t("admin.deadlock.historyRetention")}</label>
+                  <p className="text-2xl font-bold">{t("admin.deadlock.thirtyDays")}</p>
                   <p className="text-xs text-muted-foreground">
-                    死锁记录保留30天后自动清理
+                    {t("admin.deadlock.historyRetentionDesc")}
                   </p>
                 </div>
               </div>
               
               <div className="pt-4 border-t">
-                <h4 className="font-medium mb-4">检测算法</h4>
+                <h4 className="font-medium mb-4">{t("admin.deadlock.detectionAlgorithm")}</h4>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <span>Wait-For Graph (WFG) 分析</span>
-                    <Badge variant="default">启用</Badge>
+                    <Badge variant="default">{t("admin.deadlock.enabled")}</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <span>Tarjan 强连通分量算法</span>
-                    <Badge variant="default">启用</Badge>
+                    <span>Tarjan SCC</span>
+                    <Badge variant="default">{t("admin.deadlock.enabled")}</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <span>资源分配图 (RAG) 检测</span>
-                    <Badge variant="default">启用</Badge>
+                    <span>RAG (Resource Allocation Graph)</span>
+                    <Badge variant="default">{t("admin.deadlock.enabled")}</Badge>
                   </div>
                 </div>
               </div>
@@ -492,9 +494,9 @@ export default function DeadlockMonitor() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="w-5 h-5" />
-                通知渠道配置
+                {t("admin.deadlock.notifyChannelConfig")}
               </CardTitle>
-              <CardDescription>配置死锁告警的通知渠道</CardDescription>
+              <CardDescription>{t("admin.deadlock.notifyChannelDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* 系统通知 */}
@@ -504,13 +506,13 @@ export default function DeadlockMonitor() {
                     <Bell className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">系统通知</p>
-                    <p className="text-sm text-muted-foreground">Manus内置通知服务</p>
+                    <p className="font-medium">{t("admin.deadlock.systemNotify")}</p>
+                    <p className="text-sm text-muted-foreground">{t("admin.deadlock.systemNotifyDesc")}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={notificationConfigQuery.data?.config?.system?.enabled ? "default" : "secondary"}>
-                    {notificationConfigQuery.data?.config?.system?.enabled ? "已启用" : "未启用"}
+                    {notificationConfigQuery.data?.config?.system?.enabled ? t("admin.deadlock.isEnabled") : t("admin.deadlock.notEnabled")}
                   </Badge>
                   <Button 
                     variant="outline" 
@@ -530,7 +532,7 @@ export default function DeadlockMonitor() {
                     ) : (
                       <Send className="w-4 h-4" />
                     )}
-                    <span className="ml-1">测试</span>
+                    <span className="ml-1">{t("admin.deadlock.test")}</span>
                   </Button>
                 </div>
               </div>
@@ -542,13 +544,13 @@ export default function DeadlockMonitor() {
                     <Mail className="w-5 h-5 text-blue-500" />
                   </div>
                   <div>
-                    <p className="font-medium">邮件通知</p>
-                    <p className="text-sm text-muted-foreground">SMTP邮件服务</p>
+                    <p className="font-medium">{t("admin.deadlock.emailNotify")}</p>
+                    <p className="text-sm text-muted-foreground">{t("admin.deadlock.emailNotifyDesc")}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={notificationConfigQuery.data?.config?.email?.enabled ? "default" : "secondary"}>
-                    {notificationConfigQuery.data?.config?.email?.enabled ? "已启用" : "未配置"}
+                    {notificationConfigQuery.data?.config?.email?.enabled ? t("admin.deadlock.isEnabled") : t("admin.deadlock.notConfigured")}
                   </Badge>
                   <Button 
                     variant="outline" 
@@ -568,7 +570,7 @@ export default function DeadlockMonitor() {
                     ) : (
                       <Send className="w-4 h-4" />
                     )}
-                    <span className="ml-1">测试</span>
+                    <span className="ml-1">{t("admin.deadlock.test")}</span>
                   </Button>
                 </div>
               </div>
@@ -580,13 +582,13 @@ export default function DeadlockMonitor() {
                     <MessageSquare className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-medium">钉钉通知</p>
+                    <p className="font-medium">{t("admin.deadlock.dingtalkNotify")}</p>
                     <p className="text-sm text-muted-foreground">DingTalk Webhook</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={notificationConfigQuery.data?.config?.dingtalk?.enabled ? "default" : "secondary"}>
-                    {notificationConfigQuery.data?.config?.dingtalk?.enabled ? "已启用" : "未配置"}
+                    {notificationConfigQuery.data?.config?.dingtalk?.enabled ? t("admin.deadlock.isEnabled") : t("admin.deadlock.notConfigured")}
                   </Badge>
                   <Button 
                     variant="outline" 
@@ -606,7 +608,7 @@ export default function DeadlockMonitor() {
                     ) : (
                       <Send className="w-4 h-4" />
                     )}
-                    <span className="ml-1">测试</span>
+                    <span className="ml-1">{t("admin.deadlock.test")}</span>
                   </Button>
                 </div>
               </div>
@@ -618,13 +620,13 @@ export default function DeadlockMonitor() {
                     <MessageSquare className="w-5 h-5 text-green-500" />
                   </div>
                   <div>
-                    <p className="font-medium">企业微信</p>
+                    <p className="font-medium">{t("admin.deadlock.wechatNotify")}</p>
                     <p className="text-sm text-muted-foreground">WeCom/WeChat Work</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={notificationConfigQuery.data?.config?.wechat?.enabled ? "default" : "secondary"}>
-                    {notificationConfigQuery.data?.config?.wechat?.enabled ? "已启用" : "未配置"}
+                    {notificationConfigQuery.data?.config?.wechat?.enabled ? t("admin.deadlock.isEnabled") : t("admin.deadlock.notConfigured")}
                   </Badge>
                   <Button 
                     variant="outline" 
@@ -644,14 +646,14 @@ export default function DeadlockMonitor() {
                     ) : (
                       <Send className="w-4 h-4" />
                     )}
-                    <span className="ml-1">测试</span>
+                    <span className="ml-1">{t("admin.deadlock.test")}</span>
                   </Button>
                 </div>
               </div>
               
               <div className="pt-4 border-t">
                 <p className="text-sm text-muted-foreground">
-                  提示：要配置邮件、钉钉或企业微信通知，请在系统设置中添加相应的环境变量。
+                  {t("admin.deadlock.envHint")}
                 </p>
               </div>
             </CardContent>

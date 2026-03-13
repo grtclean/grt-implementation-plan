@@ -15,6 +15,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 
 // ─── Types (mirrors server) ──────────────────────────────────────
@@ -41,8 +42,14 @@ function healthBg(h: StockHealth): string {
   return { OVERSTOCK: "#fffbeb", ADEQUATE: "#f0fdf4", LOW: "#ecfeff", SHORTAGE_RISK: "#fef2f2", STOCKOUT: "#fef2f2" }[h];
 }
 
-function actionLabel(a: InventoryAction): string {
-  return { INCREASE_STOCK: "BUY", DECREASE_STOCK: "SELL/HOLD", EXPEDITE: "RUSH ORDER", HOLD: "HOLD", REBALANCE: "MOVE" }[a];
+function actionLabelKey(a: InventoryAction): string {
+  return {
+    INCREASE_STOCK: "manufacturing.inventory.actionBuy",
+    DECREASE_STOCK: "manufacturing.inventory.actionSellHold",
+    EXPEDITE: "manufacturing.inventory.actionRushOrder",
+    HOLD: "manufacturing.inventory.actionHold",
+    REBALANCE: "manufacturing.inventory.actionMove",
+  }[a];
 }
 
 function actionColor(a: InventoryAction): string {
@@ -61,6 +68,7 @@ const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 // ─── Component ────────────────────────────────────────────────────
 
 export default function SmartInventoryDashboard() {
+  const { t } = useLanguage();
   const [tab, setTab] = useState<"overview" | "forecasts" | "details">("overview");
 
   // ─── tRPC Queries ───
@@ -87,7 +95,7 @@ export default function SmartInventoryDashboard() {
   if (isLoading) {
     return (
       <div style={{ padding: 24, maxWidth: 1400, margin: "0 auto", fontFamily: "system-ui, -apple-system, sans-serif" }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#0f172a", margin: "0 0 20px" }}>Smart Inventory Dashboard</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#0f172a", margin: "0 0 20px" }}>{t("manufacturing.inventory.title")}</h1>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} style={{ height: 100, background: "#f1f5f9", borderRadius: 14, animation: "pulse 1.5s infinite" }} />
@@ -109,10 +117,10 @@ export default function SmartInventoryDashboard() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: "#0f172a", margin: 0 }}>
-            Smart Inventory Dashboard
+            {t("manufacturing.inventory.title")}
           </h1>
           <p style={{ color: "#64748b", margin: "4px 0 0", fontSize: 14 }}>
-            Phase 3.3 — CFO & SCM Joint View: Dynamic Safety Stock & Cash Flow Optimization
+            {t("manufacturing.inventory.subtitle")}
           </p>
         </div>
         <span style={{
@@ -121,7 +129,7 @@ export default function SmartInventoryDashboard() {
           borderRadius: 20, padding: "6px 14px", fontSize: 12,
           color: dataSource === "database" ? "#16a34a" : "#2563eb",
         }}>
-          {dataSource === "database" ? "LIVE DATA" : "SEED DATA"}
+          {dataSource === "database" ? t("manufacturing.inventory.liveData") : t("manufacturing.inventory.seedData")}
         </span>
       </div>
 
@@ -133,13 +141,13 @@ export default function SmartInventoryDashboard() {
           border: "2px solid #86efac", borderRadius: 14, padding: "20px 24px",
         }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "#16a34a", textTransform: "uppercase", letterSpacing: 1 }}>
-            Potential Cash Release
+            {t("manufacturing.inventory.potentialCashRelease")}
           </div>
           <div style={{ fontSize: 32, fontWeight: 800, color: "#15803d", marginTop: 4 }}>
             {fmtMoney(totalCashTrapped)}
           </div>
           <div style={{ fontSize: 12, color: "#4ade80", marginTop: 2 }}>
-            {overstockCount} overstocked parts to liquidate
+            {overstockCount} {t("manufacturing.inventory.overstockedPartsToLiquidate")}
           </div>
         </div>
 
@@ -149,13 +157,13 @@ export default function SmartInventoryDashboard() {
           border: "2px solid #fca5a5", borderRadius: 14, padding: "20px 24px",
         }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "#dc2626", textTransform: "uppercase", letterSpacing: 1 }}>
-            Shortage Risk Exposure
+            {t("manufacturing.inventory.shortageRiskExposure")}
           </div>
           <div style={{ fontSize: 32, fontWeight: 800, color: "#b91c1c", marginTop: 4 }}>
             {fmtMoney(totalCashNeeded)}
           </div>
           <div style={{ fontSize: 12, color: "#f87171", marginTop: 2 }}>
-            {shortageCount} critical part{shortageCount !== 1 ? "s" : ""} to expedite
+            {shortageCount} {t("manufacturing.inventory.criticalPartsToExpedite")}
           </div>
         </div>
 
@@ -165,13 +173,13 @@ export default function SmartInventoryDashboard() {
           border: "2px solid #93c5fd", borderRadius: 14, padding: "20px 24px",
         }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "#2563eb", textTransform: "uppercase", letterSpacing: 1 }}>
-            Net Working Capital Impact
+            {t("manufacturing.inventory.netWorkingCapitalImpact")}
           </div>
           <div style={{ fontSize: 32, fontWeight: 800, color: "#1d4ed8", marginTop: 4 }}>
             {totalCashTrapped - totalCashNeeded > 0 ? "+" : ""}{fmtMoney(totalCashTrapped - totalCashNeeded)}
           </div>
           <div style={{ fontSize: 12, color: "#60a5fa", marginTop: 2 }}>
-            Potential net optimization
+            {t("manufacturing.inventory.potentialNetOptimization")}
           </div>
         </div>
 
@@ -180,7 +188,7 @@ export default function SmartInventoryDashboard() {
           background: "white", border: "1px solid #e2e8f0", borderRadius: 14, padding: "20px 24px",
         }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", textTransform: "uppercase", letterSpacing: 1 }}>
-            Inventory Health
+            {t("manufacturing.inventory.inventoryHealth")}
           </div>
           <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
             <div style={{ textAlign: "center" }}>
@@ -201,15 +209,15 @@ export default function SmartInventoryDashboard() {
 
       {/* ── Tab Switcher ── */}
       <div style={{ display: "flex", gap: 0, marginBottom: 20 }}>
-        {(["overview", "forecasts", "details"] as const).map((t, i) => (
-          <button key={t} onClick={() => setTab(t)} style={{
+        {(["overview", "forecasts", "details"] as const).map((tabKey, i) => (
+          <button key={tabKey} onClick={() => setTab(tabKey)} style={{
             padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer",
-            background: tab === t ? "#1e40af" : "#f1f5f9",
-            color: tab === t ? "white" : "#475569",
+            background: tab === tabKey ? "#1e40af" : "#f1f5f9",
+            color: tab === tabKey ? "white" : "#475569",
             border: "1px solid #cbd5e1",
             borderRadius: i === 0 ? "8px 0 0 8px" : i === 2 ? "0 8px 8px 0" : "0",
           }}>
-            {t === "overview" ? "Cash Flow Analysis" : t === "forecasts" ? "Sales Forecasts" : "Part Details"}
+            {tabKey === "overview" ? t("manufacturing.inventory.tabCashFlow") : tabKey === "forecasts" ? t("manufacturing.inventory.tabForecasts") : t("manufacturing.inventory.tabPartDetails")}
           </button>
         ))}
       </div>
@@ -220,7 +228,7 @@ export default function SmartInventoryDashboard() {
           {/* Top 5 Cash Traps */}
           <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 12, padding: 20 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "#f59e0b", margin: "0 0 16px" }}>
-              Top Cash Traps — Liquidate
+              {t("manufacturing.inventory.topCashTraps")}
             </h3>
             {topCashTraps.map((item: any) => (
               <div key={item.partNumber} style={{
@@ -234,12 +242,12 @@ export default function SmartInventoryDashboard() {
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 18, fontWeight: 800, color: "#d97706" }}>{fmtMoney(item.potentialSavings)}</div>
-                    <div style={{ fontSize: 11, color: "#92400e" }}>trapped</div>
+                    <div style={{ fontSize: 11, color: "#92400e" }}>{t("manufacturing.inventory.trapped")}</div>
                   </div>
                 </div>
                 {/* Static vs Dynamic bar */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, fontSize: 11 }}>
-                  <span style={{ color: "#94a3b8", minWidth: 60 }}>Stock: {item.currentStock}</span>
+                  <span style={{ color: "#94a3b8", minWidth: 60 }}>{t("manufacturing.inventory.colStock")}: {item.currentStock}</span>
                   <div style={{ flex: 1, height: 12, background: "#e2e8f0", borderRadius: 6, overflow: "hidden", position: "relative" }}>
                     {/* Dynamic level marker */}
                     <div style={{
@@ -254,19 +262,19 @@ export default function SmartInventoryDashboard() {
                     {/* Current fill */}
                     <div style={{ width: "100%", height: "100%", background: "#fbbf24", borderRadius: 6 }} />
                   </div>
-                  <span style={{ color: "#94a3b8", minWidth: 40 }}>Dyn: {item.dynamicSafetyStock}</span>
+                  <span style={{ color: "#94a3b8", minWidth: 40 }}>{t("manufacturing.inventory.dynamicMin")}: {item.dynamicSafetyStock}</span>
                 </div>
               </div>
             ))}
             {topCashTraps.length === 0 && (
-              <div style={{ textAlign: "center", padding: 20, color: "#94a3b8", fontSize: 13 }}>No overstock items.</div>
+              <div style={{ textAlign: "center", padding: 20, color: "#94a3b8", fontSize: 13 }}>{t("manufacturing.inventory.noOverstockItems")}</div>
             )}
           </div>
 
           {/* Top 5 Shortage Risks */}
           <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 12, padding: 20 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "#ef4444", margin: "0 0 16px" }}>
-              Top Shortage Risks — Buy Now
+              {t("manufacturing.inventory.topShortageRisks")}
             </h3>
             {topShortageRisks.map((item: any) => (
               <div key={item.partNumber} style={{
@@ -280,19 +288,19 @@ export default function SmartInventoryDashboard() {
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 18, fontWeight: 800, color: "#dc2626" }}>{fmtMoney(Math.abs(item.potentialSavings))}</div>
-                    <div style={{ fontSize: 11, color: "#b91c1c" }}>needed</div>
+                    <div style={{ fontSize: 11, color: "#b91c1c" }}>{t("manufacturing.inventory.needed")}</div>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 11, color: "#64748b" }}>
-                  <span>On hand: <strong style={{ color: "#dc2626" }}>{item.currentStock}</strong></span>
-                  <span>Dynamic min: <strong>{item.dynamicSafetyStock}</strong></span>
-                  <span>Lead time: <strong>{item.leadTimeDays}d</strong></span>
-                  <span>3M demand: <strong>{item.demandNext3Months}</strong></span>
+                  <span>{t("manufacturing.inventory.onHand")}: <strong style={{ color: "#dc2626" }}>{item.currentStock}</strong></span>
+                  <span>{t("manufacturing.inventory.dynamicMin")}: <strong>{item.dynamicSafetyStock}</strong></span>
+                  <span>{t("manufacturing.inventory.leadTime")}: <strong>{item.leadTimeDays}d</strong></span>
+                  <span>{t("manufacturing.inventory.demand3M")}: <strong>{item.demandNext3Months}</strong></span>
                 </div>
               </div>
             ))}
             {topShortageRisks.length === 0 && (
-              <div style={{ textAlign: "center", padding: 20, color: "#94a3b8", fontSize: 13 }}>No shortage risks.</div>
+              <div style={{ textAlign: "center", padding: 20, color: "#94a3b8", fontSize: 13 }}>{t("manufacturing.inventory.noShortageRisks")}</div>
             )}
           </div>
         </div>
@@ -340,13 +348,13 @@ export default function SmartInventoryDashboard() {
                 })}
               </div>
               <div style={{ marginTop: 8, fontSize: 11, color: "#64748b" }}>
-                Avg confidence: {Math.round((p.months ?? []).reduce((s: number, m: any) => s + m.confidenceLevel, 0) / ((p.months ?? []).length || 1))}%
+                {t("manufacturing.inventory.avgConfidence")}: {Math.round((p.months ?? []).reduce((s: number, m: any) => s + m.confidenceLevel, 0) / ((p.months ?? []).length || 1))}%
               </div>
             </div>
           ))}
           {products.length === 0 && (
             <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 40, color: "#94a3b8" }}>
-              No forecast data available.
+              {t("manufacturing.inventory.noForecastData")}
             </div>
           )}
         </div>
@@ -358,7 +366,16 @@ export default function SmartInventoryDashboard() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                {["Part", "Category", "Stock", "Static Min", "Dynamic Min", "Health", "Action", "Cash Impact"].map(h => (
+                {[
+                  t("manufacturing.inventory.colPart"),
+                  t("manufacturing.inventory.colCategory"),
+                  t("manufacturing.inventory.colStock"),
+                  t("manufacturing.inventory.colStaticMin"),
+                  t("manufacturing.inventory.colDynamicMin"),
+                  t("manufacturing.inventory.colHealth"),
+                  t("manufacturing.inventory.colAction"),
+                  t("manufacturing.inventory.colCashImpact"),
+                ].map(h => (
                   <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: "#475569", fontSize: 12 }}>{h}</th>
                 ))}
               </tr>
@@ -406,7 +423,7 @@ export default function SmartInventoryDashboard() {
                       background: actionColor(r.action) + "15",
                       color: actionColor(r.action),
                     }}>
-                      {actionLabel(r.action)}
+                      {t(actionLabelKey(r.action))}
                     </span>
                   </td>
                   <td style={{ padding: "10px 14px", fontWeight: 700, color: r.potentialSavings > 0 ? "#16a34a" : r.potentialSavings < 0 ? "#dc2626" : "#475569" }}>
@@ -417,7 +434,7 @@ export default function SmartInventoryDashboard() {
             </tbody>
           </table>
           {results.length === 0 && (
-            <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>No inventory data available.</div>
+            <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>{t("manufacturing.inventory.noInventoryData")}</div>
           )}
         </div>
       )}
@@ -425,15 +442,15 @@ export default function SmartInventoryDashboard() {
       {/* ── Architecture Diagram ── */}
       <div style={{ marginTop: 24, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: 24, textAlign: "center" }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 16 }}>
-          Inventory Intelligence Architecture
+          {t("manufacturing.inventory.architectureTitle")}
         </h3>
         <svg viewBox="0 0 900 140" style={{ maxWidth: 800, width: "100%" }}>
           {[
-            { x: 10, label1: "FORECAST", label2: "3-Month Demand", color: "#3b82f6" },
-            { x: 190, label1: "BOM EXPLODE", label2: "Product → Parts", color: "#8b5cf6" },
-            { x: 370, label1: "OPTIMIZE", label2: "Dynamic Safety", color: "#f59e0b" },
-            { x: 550, label1: "CLASSIFY", label2: "Health Check", color: "#22c55e" },
-            { x: 730, label1: "ACT", label2: "Buy / Sell / Hold", color: "#ef4444" },
+            { x: 10, label1: t("manufacturing.inventory.archForecast"), label2: t("manufacturing.inventory.archDemand3M"), color: "#3b82f6" },
+            { x: 190, label1: t("manufacturing.inventory.archBomExplode"), label2: t("manufacturing.inventory.archProductParts"), color: "#8b5cf6" },
+            { x: 370, label1: t("manufacturing.inventory.archOptimize"), label2: t("manufacturing.inventory.archDynamicSafety"), color: "#f59e0b" },
+            { x: 550, label1: t("manufacturing.inventory.archClassify"), label2: t("manufacturing.inventory.archHealthCheck"), color: "#22c55e" },
+            { x: 730, label1: t("manufacturing.inventory.archAct"), label2: t("manufacturing.inventory.archBuySellHold"), color: "#ef4444" },
           ].map((box, i) => (
             <g key={i}>
               <rect x={box.x} y={20} width={150} height={80} rx={12} fill={box.color + "15"} stroke={box.color} strokeWidth={2} />

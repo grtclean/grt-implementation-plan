@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router, requirePermission } from "../_core/trpc";
 import {
   inspectCleanliness,
   judgeCompliance,
@@ -17,7 +17,7 @@ import { eq, and, desc, type SQL } from "drizzle-orm";
 
 export const cleanlinessQcRouter = router({
   // US-001: 清洁度检测数据结构化 (mutation — invokes LLM)
-  inspect: protectedProcedure
+  inspect: requirePermission('mfg:cleanliness:manage')
     .input(
       z.object({
         batchNumber: z.string().min(1),
@@ -37,7 +37,7 @@ export const cleanlinessQcRouter = router({
     }),
 
   // US-002: 合规自动判定 (mutation — invokes LLM)
-  judge: protectedProcedure
+  judge: requirePermission('mfg:cleanliness:manage')
     .input(
       z.object({
         batchNumber: z.string().min(1),
@@ -54,7 +54,7 @@ export const cleanlinessQcRouter = router({
     }),
 
   // US-003: 检测报告生成 (mutation — invokes LLM)
-  generateReport: protectedProcedure
+  generateReport: requirePermission('mfg:cleanliness:manage')
     .input(
       z.object({
         batchNumber: z.string().min(1),
@@ -73,7 +73,7 @@ export const cleanlinessQcRouter = router({
 
   // ── Report Archive (persistent storage) ──
 
-  saveReport: protectedProcedure
+  saveReport: requirePermission('mfg:cleanliness:manage')
     .input(z.object({
       projectId: z.number().optional(),
       projectPhase: z.string(),
@@ -140,14 +140,14 @@ export const cleanlinessQcRouter = router({
       try {
         const db = await requireDb();
         if (!db) return null;
-        const rows = await db.select().from(cleanlinessReports).where(eq(cleanlinessReports.id, input.id));
+        const rows = await db.select().from(cleanlinessReports).where(eq(cleanlinessReports.id, input.id)).limit(1000);
         return rows[0] ?? null;
       } catch {
         return null;
       }
     }),
 
-  deleteReport: protectedProcedure
+  deleteReport: requirePermission('mfg:cleanliness:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       try {

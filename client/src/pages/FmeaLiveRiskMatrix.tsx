@@ -11,6 +11,7 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
@@ -52,6 +53,7 @@ function RpnDelta({ delta }: { delta: number }) {
 // ─── CAPA Modal ─────────────────────────────────────────────────────
 
 function CapaModal({ item, onClose }: { item: any; onClose: () => void }) {
+  const { t } = useLanguage();
   const [reason, setReason] = useState("");
 
   const capaMut = trpc.fmeaDynamic.initiateCapa.useMutation({
@@ -82,17 +84,17 @@ function CapaModal({ item, onClose }: { item: any; onClose: () => void }) {
         border: "1px solid #ef444480",
       }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fca5a5", marginBottom: 16 }}>
-          Initiate CAPA — {item.failureMode}
+          {t("quality.fmea.initiateCapaTitle")} — {item.failureMode}
         </h3>
         <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 12 }}>
-          Process: {item.processStep}<br/>
-          Current RPN: <span style={{ color: "#ef4444", fontWeight: 700 }}>{item.newRpn}</span> (was {item.previousRpn})<br/>
-          30-day defects: {item.defectSummary?.totalDefects30d ?? 0}
+          {t("quality.fmea.colProcessStep")}: {item.processStep}<br/>
+          {t("quality.fmea.currentRpn")}: <span style={{ color: "#ef4444", fontWeight: 700 }}>{item.newRpn}</span> ({t("quality.fmea.was")} {item.previousRpn})<br/>
+          {t("quality.fmea.dayDefects")}: {item.defectSummary?.totalDefects30d ?? 0}
         </div>
         <textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Describe the root cause investigation scope..."
+          placeholder={t("quality.fmea.capaReasonPlaceholder")}
           style={{
             width: "100%", height: 80, padding: 12, backgroundColor: "#0f172a",
             color: "#e2e8f0", border: "1px solid #334155", borderRadius: 6,
@@ -103,7 +105,7 @@ function CapaModal({ item, onClose }: { item: any; onClose: () => void }) {
           <button onClick={onClose} style={{
             padding: "8px 20px", backgroundColor: "#334155", color: "#94a3b8",
             border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer",
-          }}>Cancel</button>
+          }}>{t("quality.fmea.cancelBtn")}</button>
           <button
             onClick={handleSubmit}
             disabled={reason.length < 5 || capaMut.isPending}
@@ -112,7 +114,7 @@ function CapaModal({ item, onClose }: { item: any; onClose: () => void }) {
               color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600,
               cursor: reason.length >= 5 ? "pointer" : "not-allowed",
             }}>
-            {capaMut.isPending ? "Submitting..." : "Initiate CAPA"}
+            {capaMut.isPending ? t("quality.fmea.submitting") : t("quality.fmea.initiateCapa")}
           </button>
         </div>
       </div>
@@ -144,6 +146,7 @@ function LoadingSkeleton() {
 // ─── Main Page ──────────────────────────────────────────────────────
 
 export default function FmeaLiveRiskMatrix() {
+  const { t } = useLanguage();
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [capaTarget, setCapaTarget] = useState<any | null>(null);
 
@@ -169,10 +172,10 @@ export default function FmeaLiveRiskMatrix() {
       }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "#f1f5f9", margin: 0 }}>
-            FMEA 动态风险矩阵
+            {t("quality.fmea.liveTitle")}
           </h1>
           <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>
-            FMEA Live Risk Matrix · Phase 2.4 — Shop Floor QC x Engineering FMEA Fusion ·
+            {t("quality.fmea.liveSubtitle")} ·
             {fmeaDoc ? ` ${fmeaDoc.code} Rev.${fmeaDoc.revision}` : ""}
           </p>
         </div>
@@ -181,7 +184,7 @@ export default function FmeaLiveRiskMatrix() {
           padding: "6px 14px", borderRadius: 20, backgroundColor: "#14532d",
         }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#22c55e", animation: "pulse 2s infinite" }} />
-          <span style={{ fontSize: 12, color: "#4ade80", fontWeight: 600 }}>LIVE — Defect Feed Active</span>
+          <span style={{ fontSize: 12, color: "#4ade80", fontWeight: 600 }}>{t("quality.fmea.liveActive")}</span>
         </div>
       </div>
 
@@ -191,11 +194,11 @@ export default function FmeaLiveRiskMatrix() {
         gap: 16, padding: "20px 32px",
       }}>
         {[
-          { label: "CRITICAL", value: critical, color: "#ef4444", bg: "#7f1d1d" },
-          { label: "ELEVATED", value: elevated, color: "#f59e0b", bg: "#78350f" },
-          { label: "NOMINAL", value: nominal, color: "#22c55e", bg: "#14532d" },
-          { label: "Max RPN", value: maxRpn, color: maxRpn > 100 ? "#ef4444" : "#3b82f6", bg: "#1e293b" },
-          { label: "RPN Spiked", value: `${spiked}/${items.length}`, color: spiked > 0 ? "#ef4444" : "#22c55e", bg: "#1e293b" },
+          { label: t("quality.fmea.criticalLabel"), value: critical, color: "#ef4444", bg: "#7f1d1d" },
+          { label: t("quality.fmea.elevatedLabel"), value: elevated, color: "#f59e0b", bg: "#78350f" },
+          { label: t("quality.fmea.nominalLabel"), value: nominal, color: "#22c55e", bg: "#14532d" },
+          { label: t("quality.fmea.maxRpn"), value: maxRpn, color: maxRpn > 100 ? "#ef4444" : "#3b82f6", bg: "#1e293b" },
+          { label: t("quality.fmea.rpnSpiked"), value: `${spiked}/${items.length}`, color: spiked > 0 ? "#ef4444" : "#22c55e", bg: "#1e293b" },
         ].map(card => (
           <div key={card.label} style={{
             padding: 16, backgroundColor: card.bg, borderRadius: 8,
@@ -217,10 +220,10 @@ export default function FmeaLiveRiskMatrix() {
           <span style={{ fontSize: 24 }}>🚨</span>
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#fca5a5" }}>
-              {critical} FMEA Item{critical > 1 ? "s" : ""} CRITICAL — CAPA Required
+              {critical} {t("quality.fmea.criticalAlert")}
             </div>
             <div style={{ fontSize: 12, color: "#fca5a5cc", marginTop: 2 }}>
-              Dynamic RPN exceeded 100 based on live shop floor defect data. Immediate corrective action required per IATF 16949 §10.2.
+              {t("quality.fmea.criticalAlertDesc")}
             </div>
           </div>
         </div>
@@ -235,7 +238,7 @@ export default function FmeaLiveRiskMatrix() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "2px solid #334155" }}>
-                {["#", "Process Step", "Failure Mode", "S", "O (Old→New)", "D", "RPN", "Δ", "Status", "Live Pulse", "Action"].map(h => (
+                {["#", t("quality.fmea.colProcessStep"), t("quality.fmea.colFailureMode"), "S", "O (Old\u2192New)", "D", "RPN", "\u0394", t("quality.fmea.colStatus"), t("quality.fmea.colLivePulse"), t("quality.fmea.colAction")].map(h => (
                   <th key={h} style={{
                     padding: "12px 10px", textAlign: "left", color: "#94a3b8",
                     fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
@@ -312,7 +315,7 @@ export default function FmeaLiveRiskMatrix() {
                               whiteSpace: "nowrap",
                             }}
                           >
-                            Initiate CAPA
+                            {t("quality.fmea.initiateCapa")}
                           </button>
                         )}
                       </td>
@@ -330,7 +333,7 @@ export default function FmeaLiveRiskMatrix() {
                               {/* Defect breakdown */}
                               <div>
                                 <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", marginBottom: 10 }}>
-                                  DEFECT BREAKDOWN (30 DAYS)
+                                  {t("quality.fmea.defectBreakdown")}
                                 </div>
                                 {item.defectSummary && Object.entries(item.defectSummary.defectsBySource || {}).length > 0 ? (
                                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -345,13 +348,13 @@ export default function FmeaLiveRiskMatrix() {
                                     ))}
                                   </div>
                                 ) : (
-                                  <div style={{ color: "#4ade80", fontSize: 12 }}>No defects — clean record</div>
+                                  <div style={{ color: "#4ade80", fontSize: 12 }}>{t("quality.fmea.noDefects")}</div>
                                 )}
                               </div>
                               {/* Recent defects */}
                               <div>
                                 <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", marginBottom: 10 }}>
-                                  RECENT DEFECT LOG
+                                  {t("quality.fmea.recentDefectLog")}
                                 </div>
                                 {(item.defectSummary?.recentDefects ?? []).length > 0 ? (
                                   (item.defectSummary.recentDefects as any[]).map((d: any) => (
@@ -371,7 +374,7 @@ export default function FmeaLiveRiskMatrix() {
                                     </div>
                                   ))
                                 ) : (
-                                  <div style={{ color: "#4ade80", fontSize: 12 }}>No recent defects</div>
+                                  <div style={{ color: "#4ade80", fontSize: 12 }}>{t("quality.fmea.noRecentDefects")}</div>
                                 )}
                               </div>
                             </div>
@@ -381,13 +384,13 @@ export default function FmeaLiveRiskMatrix() {
                               borderRadius: 8, border: "1px solid #334155",
                             }}>
                               <div style={{ fontSize: 11, color: "#475569", fontWeight: 600, marginBottom: 6 }}>
-                                RPN CALCULATION
+                                {t("quality.fmea.rpnCalc")}
                               </div>
                               <div style={{ fontSize: 13, color: "#e2e8f0" }}>
-                                <span style={{ color: "#94a3b8" }}>Original: </span>
+                                <span style={{ color: "#94a3b8" }}>{t("quality.fmea.original")}: </span>
                                 {item.severity} x {item.previousOccurrence} x {item.detection} = {item.previousRpn}
                                 <span style={{ color: "#475569", margin: "0 12px" }}>→</span>
-                                <span style={{ color: "#94a3b8" }}>Dynamic: </span>
+                                <span style={{ color: "#94a3b8" }}>{t("quality.fmea.dynamic")}: </span>
                                 <span style={{ fontWeight: 700, color: item.newRpn > 100 ? "#ef4444" : "#e2e8f0" }}>
                                   {item.severity} x {item.newOccurrence} x {item.detection} = {item.newRpn}
                                 </span>
@@ -413,8 +416,8 @@ export default function FmeaLiveRiskMatrix() {
         <div style={{
           marginTop: 16, display: "flex", gap: 24, fontSize: 11, color: "#475569",
         }}>
-          <span>S = Severity (1-10) · O = Occurrence (dynamic, defect-fed) · D = Detection (1-10)</span>
-          <span>RPN = S x O x D · CRITICAL &gt; 100 · ELEVATED 81-100 · NOMINAL ≤ 80</span>
+          <span>{t("quality.fmea.legend")}</span>
+          <span>{t("quality.fmea.legendRpn")}</span>
         </div>
       </div>
 

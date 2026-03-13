@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { requireDb } from "../db";
 import { eq, desc, and, or, count, sql } from "drizzle-orm";
@@ -187,7 +187,7 @@ export const productionRouter = router({
       return mapWorkOrder(rows[0]);
     }),
 
-  create: protectedProcedure
+  create: requirePermission('mfg:process:manage')
     .input(WorkOrderSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -212,7 +212,7 @@ export const productionRouter = router({
       return mapWorkOrder(result[0]);
     }),
 
-  update: protectedProcedure
+  update: requirePermission('mfg:process:manage')
     .input(z.object({ id: z.number() }).merge(WorkOrderSchema.partial()))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -237,7 +237,7 @@ export const productionRouter = router({
       return mapWorkOrder(result[0]);
     }),
 
-  updateStatus: protectedProcedure
+  updateStatus: requirePermission('mfg:scheduling:run')
     .input(z.object({
       id: z.number(),
       status: z.enum(['draft', 'planned', 'in_progress', 'quality_check', 'completed', 'on_hold', 'cancelled']),
@@ -258,7 +258,7 @@ export const productionRouter = router({
       return mapWorkOrder(result[0]);
     }),
 
-  updateProgress: protectedProcedure
+  updateProgress: requirePermission('mfg:scheduling:run')
     .input(z.object({
       id: z.number(),
       progress: z.number().min(0).max(100),
@@ -284,7 +284,7 @@ export const productionRouter = router({
       return mapWorkOrder(result[0]);
     }),
 
-  delete: protectedProcedure
+  delete: requirePermission('mfg:process:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -315,7 +315,7 @@ export const productionRouter = router({
       return rows.map(mapQCRecord);
     }),
 
-  createQCRecord: protectedProcedure
+  createQCRecord: requirePermission('mfg:qc:manage')
     .input(QCRecordSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -411,7 +411,7 @@ export const productionRouter = router({
       return rows.map(mapEquipment);
     }),
 
-  updateEquipmentStatus: protectedProcedure
+  updateEquipmentStatus: requirePermission('mfg:process:manage')
     .input(z.object({
       id: z.number(),
       status: z.enum(['idle', 'running', 'maintenance', 'fault', 'offline']),
@@ -522,42 +522,61 @@ export const productionRouter = router({
   getDashboardStats: protectedProcedure.query(async () => {
     const db = await requireDb();
 
-    const [statusCounts, priorityCounts, teamCounts, quantityResult, equipStatusCounts, utilizationResult, recentRows] = await Promise.all([
-      db.select({ status: productionWorkOrders.status, cnt: count() }).from(productionWorkOrders).groupBy(productionWorkOrders.status),
-      db.select({ priority: productionWorkOrders.priority, cnt: count() }).from(productionWorkOrders).groupBy(productionWorkOrders.priority),
-      db.select({ team: productionWorkOrders.assignedTeam, cnt: count() }).from(productionWorkOrders).groupBy(productionWorkOrders.assignedTeam),
+    // Consolidated: 3 queries instead of 7 (one work-order aggregate, one equipment aggregate, one recent)
+    const [woAggRows, equipAggRows, recentRows] = await Promise.all([
       db.select({
-        totalQuantity: sql<number>`COALESCE(SUM(${productionWorkOrders.quantity}), 0)`,
-        completedQuantity: sql<number>`COALESCE(SUM(CASE WHEN ${productionWorkOrders.status} = 'completed' THEN ${productionWorkOrders.quantity} ELSE 0 END), 0)`,
+        status: productionWorkOrders.status,
+        priority: productionWorkOrders.priority,
+        team: productionWorkOrders.assignedTeam,
+        cnt: count(),
+        totalQty: sql<number>`COALESCE(SUM(${productionWorkOrders.quantity}), 0)`,
+        completedQty: sql<number>`COALESCE(SUM(CASE WHEN ${productionWorkOrders.status} = 'completed' THEN ${productionWorkOrders.quantity} ELSE 0 END), 0)`,
         avgProgress: sql<number>`COALESCE(AVG(${productionWorkOrders.completionRate}::numeric), 0)`,
-      }).from(productionWorkOrders),
-      db.select({ status: productionEquipments.status, cnt: count() }).from(productionEquipments).groupBy(productionEquipments.status),
-      db.select({ avgUtil: sql<number>`COALESCE(AVG(${productionEquipments.utilization}::numeric), 0)` }).from(productionEquipments),
+      }).from(productionWorkOrders).groupBy(productionWorkOrders.status, productionWorkOrders.priority, productionWorkOrders.assignedTeam),
+      db.select({
+        status: productionEquipments.status,
+        cnt: count(),
+        avgUtil: sql<number>`COALESCE(AVG(${productionEquipments.utilization}::numeric), 0)`,
+      }).from(productionEquipments).groupBy(productionEquipments.status),
       db.select().from(productionWorkOrders).orderBy(desc(productionWorkOrders.updatedAt)).limit(5),
     ]);
 
+    // Aggregate work-order stats from the combined result
     const ordersByStatus: Record<string, number> = { draft: 0, planned: 0, in_progress: 0, quality_check: 0, completed: 0, on_hold: 0, cancelled: 0 };
-    let totalOrders = 0;
-    for (const r of statusCounts) { const s = r.status ?? 'draft'; ordersByStatus[s] = r.cnt; totalOrders += r.cnt; }
-
     const ordersByPriority: Record<string, number> = { urgent: 0, high: 0, normal: 0, low: 0 };
-    for (const r of priorityCounts) { ordersByPriority[r.priority ?? 'normal'] = r.cnt; }
-
     const ordersByTeam: Record<string, number> = {};
-    for (const r of teamCounts) { ordersByTeam[r.team || '未分配'] = r.cnt; }
+    let totalOrders = 0;
+    let totalQuantity = 0, completedQuantity = 0, progressSum = 0;
 
+    for (const r of woAggRows) {
+      const s = r.status ?? 'draft';
+      const p = r.priority ?? 'normal';
+      const t = r.team || '未分配';
+      ordersByStatus[s] = (ordersByStatus[s] || 0) + r.cnt;
+      ordersByPriority[p] = (ordersByPriority[p] || 0) + r.cnt;
+      ordersByTeam[t] = (ordersByTeam[t] || 0) + r.cnt;
+      totalOrders += r.cnt;
+      totalQuantity += Number(r.totalQty);
+      completedQuantity += Number(r.completedQty);
+      progressSum += Number(r.avgProgress) * r.cnt;
+    }
+
+    const avgProgress = totalOrders > 0 ? Math.round(progressSum / totalOrders) : 0;
+
+    // Aggregate equipment stats
     const equipStats: Record<string, number> = { running: 0, idle: 0, maintenance: 0, fault: 0, offline: 0 };
     let totalEquipments = 0;
-    for (const r of equipStatusCounts) { equipStats[r.status] = r.cnt; totalEquipments += r.cnt; }
+    let equipUtilSum = 0;
+    for (const r of equipAggRows) { equipStats[r.status] = r.cnt; totalEquipments += r.cnt; equipUtilSum += Number(r.avgUtil) * r.cnt; }
+    const avgUtilization = totalEquipments > 0 ? Math.round(equipUtilSum / totalEquipments) : 0;
 
     return {
       summary: {
         totalOrders, inProgressOrders: ordersByStatus.in_progress, completedOrders: ordersByStatus.completed,
         qualityCheckOrders: ordersByStatus.quality_check, plannedOrders: ordersByStatus.planned,
-        totalQuantity: Number(quantityResult[0].totalQuantity), completedQuantity: Number(quantityResult[0].completedQuantity),
-        avgProgress: Math.round(Number(quantityResult[0].avgProgress)),
+        totalQuantity, completedQuantity, avgProgress,
       },
-      equipment: { total: totalEquipments, running: equipStats.running, idle: equipStats.idle, maintenance: equipStats.maintenance, fault: equipStats.fault, avgUtilization: Math.round(Number(utilizationResult[0].avgUtil)) },
+      equipment: { total: totalEquipments, running: equipStats.running, idle: equipStats.idle, maintenance: equipStats.maintenance, fault: equipStats.fault, avgUtilization },
       ordersByStatus, ordersByPriority, ordersByTeam,
       recentOrders: recentRows.map(mapWorkOrder),
     };
@@ -577,7 +596,7 @@ export const productionRouter = router({
             SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END)::int as in_progress,
             SUM(CASE WHEN status IN ('planned', 'pending', 'draft') THEN 1 ELSE 0 END)::int as planned
           FROM production_work_orders
-          WHERE COALESCE(updated_at, created_at)::date >= CURRENT_DATE - ${days}
+          WHERE updated_at >= CURRENT_DATE - ${days} OR (updated_at IS NULL AND created_at >= CURRENT_DATE - ${days})
           GROUP BY COALESCE(updated_at, created_at)::date
           ORDER BY date
         `);
@@ -619,8 +638,54 @@ export const productionRouter = router({
       }
     }),
 
+  getShopfloorBoard: protectedProcedure.query(async () => {
+    const db = await requireDb();
+    try {
+      const result = await db.execute(sql`
+        SELECT wo.id, wo.work_order_code as order_code, wo.project_name, wo.product_name,
+          wo.quantity, wo.status, wo.priority, wo.completion_rate,
+          wo.planned_start_date, wo.planned_end_date, wo.assigned_team,
+          wo.current_phase
+        FROM production_work_orders wo
+        WHERE wo.status IN ('in_progress', 'pending', 'quality_check', 'scheduled')
+        ORDER BY
+          CASE wo.priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,
+          wo.planned_end_date ASC
+        LIMIT 50
+      `);
+      const orders = ((result as any).rows ?? []).map((r: any) => ({
+        id: r.id,
+        orderCode: r.order_code,
+        projectName: r.project_name || r.product_name,
+        productName: r.product_name,
+        quantity: r.quantity,
+        status: r.status,
+        priority: r.priority,
+        progress: Number(r.completion_rate ?? 0),
+        plannedStart: r.planned_start_date,
+        plannedEnd: r.planned_end_date,
+        team: r.assigned_team,
+        currentPhase: r.current_phase || 'M5',
+        daysRemaining: r.planned_end_date
+          ? Math.max(0, Math.ceil((new Date(r.planned_end_date).getTime() - Date.now()) / 86400000))
+          : null,
+      }));
+      return { orders };
+    } catch {
+      return { orders: [] };
+    }
+  }),
+
   getTeamCapacity: protectedProcedure.query(async () => {
     const db = await requireDb();
+    // Filter to last 90 days to avoid full-table scan on historical data
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 90);
+    const cutoffStr = cutoff.toISOString();
+    const recentFilter = or(
+      sql`${productionWorkOrders.updatedAt} >= ${cutoffStr}`,
+      sql`${productionWorkOrders.status} IN ('in_progress', 'planned', 'draft', 'quality_check')`,
+    );
     const teamData = await db.select({
       team: productionWorkOrders.assignedTeam,
       totalOrders: count(),
@@ -628,7 +693,7 @@ export const productionRouter = router({
       inProgressOrders: sql<number>`SUM(CASE WHEN ${productionWorkOrders.status} = 'in_progress' THEN 1 ELSE 0 END)`,
       totalHours: sql<number>`COALESCE(SUM(${productionWorkOrders.estimatedHours}::numeric), 0)`,
       actualHours: sql<number>`COALESCE(SUM(${productionWorkOrders.actualHours}::numeric), 0)`,
-    }).from(productionWorkOrders).groupBy(productionWorkOrders.assignedTeam);
+    }).from(productionWorkOrders).where(recentFilter).groupBy(productionWorkOrders.assignedTeam).limit(50);
 
     return teamData.map(row => {
       const totalHours = Number(row.totalHours);

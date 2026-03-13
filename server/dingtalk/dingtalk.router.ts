@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { protectedProcedure, router } from '../_core/trpc';
+import {protectedProcedure, router, requirePermission} from '../_core/trpc';
 import {
   testDingTalkConnection,
   sendTestAlert,
@@ -35,22 +35,22 @@ export const dingtalkRouter = router({
   }),
 
   // 测试钉钉连接
-  testConnection: protectedProcedure.mutation(async () => {
+  testConnection: requirePermission('system:dingtalk:config').mutation(async () => {
     return testDingTalkConnection();
   }),
 
   // 发送测试告警
-  sendTestAlert: protectedProcedure.mutation(async () => {
+  sendTestAlert: requirePermission('system:dingtalk:config').mutation(async () => {
     return sendTestAlert();
   }),
 
   // 发送测试会议提醒
-  sendTestMeetingReminder: protectedProcedure.mutation(async () => {
+  sendTestMeetingReminder: requirePermission('system:dingtalk:config').mutation(async () => {
     return sendTestMeetingReminder();
   }),
 
   // 启用/禁用钉钉通知
-  setEnabled: protectedProcedure
+  setEnabled: requirePermission('system:dingtalk:config')
     .input(z.object({ enabled: z.boolean() }))
     .mutation(({ input }) => {
       updateDingTalkConfig({ enabled: input.enabled });
@@ -158,7 +158,7 @@ export const dingtalkRouter = router({
     }),
 
   // 系统事件通知
-  notifySystemEvent: protectedProcedure
+  notifySystemEvent: requirePermission('system:dingtalk:config')
     .input(z.object({
       type: z.enum(['deployment', 'backup', 'maintenance', 'error', 'security']),
       title: z.string(),

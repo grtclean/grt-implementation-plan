@@ -10,7 +10,7 @@
  */
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   oaWorkflows,
@@ -82,7 +82,7 @@ export const oaRouter = router({
     return workflow ?? null;
   }),
 
-  createWorkflow: protectedProcedure.input(z.object({
+  createWorkflow: requirePermission('oa:forms:manage').input(z.object({
     type: z.enum(OA_WORKFLOW_TYPES),
     title: z.string().min(1).max(200),
     content: z.record(z.string(), jsonValue).optional(),
@@ -99,21 +99,21 @@ export const oaRouter = router({
     });
   }),
 
-  approveWorkflow: protectedProcedure.input(z.object({
+  approveWorkflow: requirePermission('oa:forms:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     comment: z.string().optional(),
   })).mutation(async ({ input, ctx }) => {
     return approveOARequest(toNum(input.id), ctx.user.id, input.comment);
   }),
 
-  rejectWorkflow: protectedProcedure.input(z.object({
+  rejectWorkflow: requirePermission('oa:forms:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     comment: z.string().optional(),
   })).mutation(async ({ input, ctx }) => {
     return rejectOARequest(toNum(input.id), ctx.user.id, input.comment);
   }),
 
-  cancelWorkflow: protectedProcedure.input(z.object({
+  cancelWorkflow: requirePermission('oa:forms:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
@@ -256,7 +256,7 @@ export const oaRouter = router({
     return meeting;
   }),
 
-  generateAgenda: protectedProcedure.input(z.object({
+  generateAgenda: requirePermission('oa:forms:manage').input(z.object({
     meetingId: z.union([z.string(), z.number()]),
   })).mutation(async ({ input }) => {
     return generateMondayMorningAgenda(toNum(input.meetingId));
@@ -276,7 +276,7 @@ export const oaRouter = router({
       .orderBy(meetingAgendasActions.sortOrder).limit(1000);
   }),
 
-  updateAgendaItem: protectedProcedure.input(z.object({
+  updateAgendaItem: requirePermission('oa:forms:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     decision: z.string().optional(),
     assignedTo: z.number().optional(),
@@ -428,7 +428,7 @@ export const oaRouter = router({
   }),
 
   // ══════════════════════════════════════════════════
-  // Leave Balances (假期余额 — from JDY 考勤管理)
+  // Leave Balances (假期余额 — from 考勤管理)
   // ══════════════════════════════════════════════════
 
   getMyLeaveBalances: protectedProcedure.input(z.object({
@@ -438,7 +438,7 @@ export const oaRouter = router({
     return getLeaveBalances(ctx.user.id, year);
   }),
 
-  initLeaveBalances: protectedProcedure.input(z.object({
+  initLeaveBalances: requirePermission('oa:forms:manage').input(z.object({
     employeeId: z.number(),
     year: z.number(),
     allocations: z.array(z.object({
@@ -471,7 +471,7 @@ export const oaRouter = router({
   }),
 
   // ══════════════════════════════════════════════════
-  // Announcements (公告通知 — from JDY 会议管理/通知)
+  // Announcements (公告通知 — from 会议管理/通知)
   // ══════════════════════════════════════════════════
 
   listAnnouncements: protectedProcedure.input(z.object({
@@ -547,7 +547,7 @@ export const oaRouter = router({
     }, publish);
   }),
 
-  publishAnnouncement: protectedProcedure.input(z.object({
+  publishAnnouncement: requirePermission('oa:forms:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
   })).mutation(async ({ input }) => {
     const db = await requireDb();

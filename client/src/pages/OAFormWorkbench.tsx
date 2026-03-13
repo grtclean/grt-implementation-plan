@@ -8,6 +8,7 @@ import UniversalDynamicForm from "@/components/UniversalDynamicForm";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useZodForm, schemas, z } from "@/lib/form-validation";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ─── Zod Schema for Template Creation ──────────────────────────
 const createTemplateSchema = z.object({
@@ -34,25 +35,25 @@ const ICON_MAP: Record<string, any> = {
 };
 const resolveIcon = (n?: string | null) => (n && ICON_MAP[n]) || FileText;
 
-const CATEGORIES = [
-  { key: "all", label: "全部" }, { key: "hr", label: "人事" },
-  { key: "admin", label: "行政" }, { key: "finance", label: "财务" },
-  { key: "project", label: "项目" },
+const CATEGORY_KEYS = [
+  { key: "all", labelKey: "admin.oaForm.catAll" }, { key: "hr", labelKey: "admin.oaForm.catHr" },
+  { key: "admin", labelKey: "admin.oaForm.catAdmin" }, { key: "finance", labelKey: "admin.oaForm.catFinance" },
+  { key: "project", labelKey: "admin.oaForm.catProject" },
 ] as const;
-const CAT_LABEL: Record<string, string> = { hr: "人事", admin: "行政", finance: "财务", project: "项目", general: "通用" };
+const CAT_LABEL_KEY: Record<string, string> = { hr: "admin.oaForm.catHr", admin: "admin.oaForm.catAdmin", finance: "admin.oaForm.catFinance", project: "admin.oaForm.catProject", general: "admin.oaForm.catGeneral" };
 
-const STATUS_CFG: Record<string, { label: string; bg: string; text: string }> = {
-  draft: { label: "草稿", bg: "bg-[#f3f2f1]", text: "text-[#605e5c]" },
-  pending: { label: "审批中", bg: "bg-[#deecf9]", text: "text-[#0078d4]" },
-  approved: { label: "已通过", bg: "bg-[#dff6dd]", text: "text-[#107c10]" },
-  rejected: { label: "已驳回", bg: "bg-[#fde7e9]", text: "text-[#d83b01]" },
-  withdrawn: { label: "已撤回", bg: "bg-[#fff4ce]", text: "text-[#c19c00]" },
-  cancelled: { label: "已取消", bg: "bg-[#f3f2f1]", text: "text-[#a19f9d]" },
+const STATUS_CFG: Record<string, { labelKey: string; bg: string; text: string }> = {
+  draft: { labelKey: "admin.oaForm.statusDraft", bg: "bg-[#f3f2f1]", text: "text-[#605e5c]" },
+  pending: { labelKey: "admin.oaForm.statusPending", bg: "bg-[#deecf9]", text: "text-[#0078d4]" },
+  approved: { labelKey: "admin.oaForm.statusApproved", bg: "bg-[#dff6dd]", text: "text-[#107c10]" },
+  rejected: { labelKey: "admin.oaForm.statusRejected", bg: "bg-[#fde7e9]", text: "text-[#d83b01]" },
+  withdrawn: { labelKey: "admin.oaForm.statusWithdrawn", bg: "bg-[#fff4ce]", text: "text-[#c19c00]" },
+  cancelled: { labelKey: "admin.oaForm.statusCancelled", bg: "bg-[#f3f2f1]", text: "text-[#a19f9d]" },
 };
-const PRIO_CFG: Record<string, { label: string; bg: string; text: string }> = {
-  normal: { label: "普通", bg: "bg-[#f3f2f1]", text: "text-[#605e5c]" },
-  high: { label: "高", bg: "bg-[#fff4ce]", text: "text-[#c19c00]" },
-  urgent: { label: "紧急", bg: "bg-[#fde7e9]", text: "text-[#d83b01]" },
+const PRIO_CFG: Record<string, { labelKey: string; bg: string; text: string }> = {
+  normal: { labelKey: "admin.oaForm.prioNormal", bg: "bg-[#f3f2f1]", text: "text-[#605e5c]" },
+  high: { labelKey: "admin.oaForm.prioHigh", bg: "bg-[#fff4ce]", text: "text-[#c19c00]" },
+  urgent: { labelKey: "admin.oaForm.prioUrgent", bg: "bg-[#fde7e9]", text: "text-[#d83b01]" },
 };
 
 const COLOR_BAR: Record<string, string> = {
@@ -131,15 +132,16 @@ const textareaCls = `${inputCls} resize-none`;
 // Main
 // ══════════════════════════════════════════════════════════════
 const TABS = [
-  { key: "gallery", label: "表单中心", en: "Form Gallery" },
-  { key: "submissions", label: "我的申请", en: "My Submissions" },
-  { key: "approvals", label: "待审批", en: "Pending Approvals" },
-  { key: "admin", label: "模板管理", en: "Template Management" },
-  { key: "fill", label: "填写表单", en: "Fill Form" },
+  { key: "gallery", labelKey: "admin.oaForm.tabGallery" },
+  { key: "submissions", labelKey: "admin.oaForm.tabSubmissions" },
+  { key: "approvals", labelKey: "admin.oaForm.tabApprovals" },
+  { key: "admin", labelKey: "admin.oaForm.tabAdmin" },
+  { key: "fill", labelKey: "admin.oaForm.tabFill" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 
 export default function OAFormWorkbench() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const currentUserId = user?.id ?? 0;
   const [tab, setTab] = useState<TabKey>("gallery");
@@ -188,7 +190,7 @@ export default function OAFormWorkbench() {
     fn.mutate({ templateId: id }, { onSuccess: () => favQ.refetch() });
   }
 
-  function pickTemplate(t: any) { setSelTpl(t); setSuccess(false); setTab("fill"); }
+  function pickTemplate(tpl: any) { setSelTpl(tpl); setSuccess(false); setTab("fill"); }
 
   async function submitForm(values: Record<string, unknown>) {
     if (!selTpl) return;
@@ -233,14 +235,14 @@ export default function OAFormWorkbench() {
       },
     });
   });
-  function toggleActive(t: any) {
-    updateTpl.mutate({ id: t.id, isActive: !t.isActive }, { onSuccess: () => { allTplQ.refetch(); tplQ.refetch(); } });
+  function toggleActive(tpl: any) {
+    updateTpl.mutate({ id: tpl.id, isActive: !tpl.isActive }, { onSuccess: () => { allTplQ.refetch(); tplQ.refetch(); } });
   }
 
   // Filtered data
-  const templates = (tplQ.data?.items ?? []).filter((t: any) => {
-    if (catFilter !== "all" && t.category !== catFilter) return false;
-    if (search && !t.templateName?.includes(search) && !t.templateCode?.includes(search)) return false;
+  const templates = (tplQ.data?.items ?? []).filter((tpl: any) => {
+    if (catFilter !== "all" && tpl.category !== catFilter) return false;
+    if (search && !tpl.templateName?.includes(search) && !tpl.templateCode?.includes(search)) return false;
     return true;
   });
   const subs = (subQ.data?.items ?? []).filter((s: any) => {
@@ -276,23 +278,23 @@ export default function OAFormWorkbench() {
       <div className="bg-white border-b border-[#edebe9] px-4 sm:px-6 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-[#323130]">OA 动态表单引擎</h1>
-            <p className="text-xs sm:text-sm text-[#605e5c] mt-0.5">Dynamic Form Engine -- 创建、提交、审批一站式管理</p>
+            <h1 className="text-lg sm:text-xl font-bold text-[#323130]">{t("admin.oaForm.title")}</h1>
+            <p className="text-xs sm:text-sm text-[#605e5c] mt-0.5">{t("admin.oaForm.subtitle")}</p>
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a19f9d]" />
-            <input type="text" placeholder="搜索..." value={search} onChange={(e) => setSearch(e.target.value)}
+            <input type="text" placeholder={t("admin.oaForm.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)}
               className="pl-8 pr-3 py-1.5 text-sm border border-[#edebe9] rounded bg-white text-[#323130] placeholder:text-[#a19f9d] focus:outline-none focus:border-[#0078d4] w-full sm:w-48" />
           </div>
         </div>
         <div className="flex gap-0 mt-4 -mb-4 overflow-x-auto scrollbar-hide">
-          {TABS.map((t) => {
-            if (t.key === "fill" && !selTpl) return null;
+          {TABS.map((tb) => {
+            if (tb.key === "fill" && !selTpl) return null;
             return (
-              <button key={t.key} onClick={() => setTab(t.key)} title={t.en}
-                className={`px-4 py-2.5 min-h-[44px] text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${tab === t.key ? "border-[#0078d4] text-[#0078d4]" : "border-transparent text-[#605e5c] hover:text-[#323130] hover:bg-[#f3f2f1]"}`}>
-                {t.label}
-                {t.key === "approvals" && pendItems.length > 0 && (
+              <button key={tb.key} onClick={() => setTab(tb.key)}
+                className={`px-4 py-2.5 min-h-[44px] text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${tab === tb.key ? "border-[#0078d4] text-[#0078d4]" : "border-transparent text-[#605e5c] hover:text-[#323130] hover:bg-[#f3f2f1]"}`}>
+                {t(tb.labelKey)}
+                {tb.key === "approvals" && pendItems.length > 0 && (
                   <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#d83b01] text-white text-xs">{pendItems.length}</span>
                 )}
               </button>
@@ -306,15 +308,15 @@ export default function OAFormWorkbench() {
         {tab === "gallery" && (
           <div className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <StatCard label="表单模板" value={stats?.totalTemplates ?? 0} icon={FileText} color="#0078d4" />
-              <StatCard label="进行中申请" value={stats?.pendingSubmissions ?? 0} icon={Clock} color="#c19c00" />
-              <StatCard label="我的收藏" value={favQ.data?.total ?? 0} icon={Star} color="#8764b8" />
+              <StatCard label={t("admin.oaForm.statTemplates")} value={stats?.totalTemplates ?? 0} icon={FileText} color="#0078d4" />
+              <StatCard label={t("admin.oaForm.statPending")} value={stats?.pendingSubmissions ?? 0} icon={Clock} color="#c19c00" />
+              <StatCard label={t("admin.oaForm.statFavorites")} value={favQ.data?.total ?? 0} icon={Star} color="#8764b8" />
             </div>
             <div className="flex items-center gap-1 bg-white rounded-lg border border-[#edebe9] p-1 overflow-x-auto scrollbar-hide">
-              {CATEGORIES.map((c) => (
+              {CATEGORY_KEYS.map((c) => (
                 <button key={c.key} onClick={() => setCatFilter(c.key)}
                   className={`px-3 py-1.5 text-sm rounded transition-colors ${catFilter === c.key ? "bg-[#0078d4] text-white font-semibold" : "text-[#605e5c] hover:bg-[#f3f2f1]"}`}>
-                  {c.label}
+                  {t(c.labelKey)}
                 </button>
               ))}
             </div>
@@ -323,17 +325,17 @@ export default function OAFormWorkbench() {
             ) : templates.length === 0 ? (
               <FluentCard className="p-12 text-center">
                 <FolderOpen className="w-12 h-12 mx-auto text-[#a19f9d] mb-3" />
-                <p className="text-[#605e5c] font-medium">暂无表单模板</p>
-                <p className="text-sm text-[#a19f9d] mt-1">当前分类下没有可用模板</p>
+                <p className="text-[#605e5c] font-medium">{t("admin.oaForm.noTemplates")}</p>
+                <p className="text-sm text-[#a19f9d] mt-1">{t("admin.oaForm.noTemplatesHint")}</p>
               </FluentCard>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {templates.map((t: any) => {
-                  const Icon = resolveIcon(t.icon);
-                  const fav = favIds.has(t.id);
+                {templates.map((tpl: any) => {
+                  const Icon = resolveIcon(tpl.icon);
+                  const fav = favIds.has(tpl.id);
                   return (
-                    <FluentCard key={t.id} className="relative overflow-hidden" onClick={() => pickTemplate(t)}>
-                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${resolveColorBar(t.color)}`} />
+                    <FluentCard key={tpl.id} className="relative overflow-hidden" onClick={() => pickTemplate(tpl)}>
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${resolveColorBar(tpl.color)}`} />
                       <div className="p-4 pl-5">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
@@ -341,17 +343,17 @@ export default function OAFormWorkbench() {
                               <Icon className="w-5 h-5 text-[#0078d4]" />
                             </div>
                             <div className="min-w-0">
-                              <h3 className="text-sm font-semibold text-[#323130] truncate">{t.templateName}</h3>
-                              <p className="text-xs text-[#a19f9d] mt-0.5 line-clamp-1">{t.description || t.templateNameEn || t.templateCode}</p>
+                              <h3 className="text-sm font-semibold text-[#323130] truncate">{tpl.templateName}</h3>
+                              <p className="text-xs text-[#a19f9d] mt-0.5 line-clamp-1">{tpl.description || tpl.templateNameEn || tpl.templateCode}</p>
                             </div>
                           </div>
-                          <button onClick={(e) => toggleFav(t.id, e)} className="p-1 hover:bg-[#f3f2f1] rounded" title={fav ? "取消收藏" : "收藏"}>
+                          <button onClick={(e) => toggleFav(tpl.id, e)} className="p-1 hover:bg-[#f3f2f1] rounded" title={fav ? t("admin.oaForm.removeFav") : t("admin.oaForm.addFav")}>
                             {fav ? <Star className="w-4 h-4 text-[#c19c00] fill-[#c19c00]" /> : <StarOff className="w-4 h-4 text-[#a19f9d]" />}
                           </button>
                         </div>
                         <div className="flex items-center gap-2 mt-3">
-                          <FluentBadge bg="bg-[#f3f2f1]" text="text-[#605e5c]">{CAT_LABEL[t.category] ?? t.category}</FluentBadge>
-                          <span className="text-xs text-[#a19f9d]">v{t.version ?? 1}</span>
+                          <FluentBadge bg="bg-[#f3f2f1]" text="text-[#605e5c]">{CAT_LABEL_KEY[tpl.category] ? t(CAT_LABEL_KEY[tpl.category]) : tpl.category}</FluentBadge>
+                          <span className="text-xs text-[#a19f9d]">v{tpl.version ?? 1}</span>
                           <ChevronRight className="w-3.5 h-3.5 text-[#a19f9d] ml-auto" />
                         </div>
                       </div>
@@ -370,14 +372,14 @@ export default function OAFormWorkbench() {
               <Filter className="w-4 h-4 text-[#605e5c]" />
               <select value={statusF} onChange={(e) => setStatusF(e.target.value)}
                 className="border border-[#edebe9] rounded px-2 py-1 text-sm text-[#323130] bg-white focus:outline-none focus:border-[#0078d4]">
-                <option value="all">全部状态</option>
-                <option value="draft">草稿</option><option value="pending">审批中</option>
-                <option value="approved">已通过</option><option value="rejected">已驳回</option>
-                <option value="withdrawn">已撤回</option>
+                <option value="all">{t("admin.oaForm.allStatus")}</option>
+                <option value="draft">{t("admin.oaForm.statusDraft")}</option><option value="pending">{t("admin.oaForm.statusPending")}</option>
+                <option value="approved">{t("admin.oaForm.statusApproved")}</option><option value="rejected">{t("admin.oaForm.statusRejected")}</option>
+                <option value="withdrawn">{t("admin.oaForm.statusWithdrawn")}</option>
               </select>
               <div className="relative flex-1 max-w-xs">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a19f9d]" />
-                <input type="text" placeholder="搜索编号或标题..." value={search} onChange={(e) => setSearch(e.target.value)}
+                <input type="text" placeholder={t("admin.oaForm.searchCodeTitle")} value={search} onChange={(e) => setSearch(e.target.value)}
                   className={`pl-8 pr-3 py-1 ${inputCls}`} />
               </div>
             </FluentCard>
@@ -386,7 +388,7 @@ export default function OAFormWorkbench() {
               <table className="w-full min-w-[700px]">
                 <thead>
                   <tr className="border-b border-[#edebe9] bg-[#faf9f8]">
-                    {["申请编号","表单类型","标题","状态","优先级","创建时间","操作"].map((h) => (
+                    {[t("admin.oaForm.thCode"),t("admin.oaForm.thFormType"),t("admin.oaForm.thTitle"),t("admin.oaForm.thStatus"),t("admin.oaForm.thPriority"),t("admin.oaForm.thCreatedAt"),t("admin.oaForm.thActions")].map((h) => (
                       <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
@@ -394,7 +396,7 @@ export default function OAFormWorkbench() {
                 <tbody>
                   {subQ.isLoading ? [1,2,3].map((i) => <tr key={i} className="border-b border-[#edebe9]"><td colSpan={7} className="px-4"><Skeleton type="row" /></td></tr>)
                   : subs.length === 0 ? (
-                    <tr><td colSpan={7} className="text-center py-12"><FileText className="w-10 h-10 mx-auto text-[#a19f9d] mb-2" /><p className="text-[#605e5c] text-sm">暂无申请记录</p></td></tr>
+                    <tr><td colSpan={7} className="text-center py-12"><FileText className="w-10 h-10 mx-auto text-[#a19f9d] mb-2" /><p className="text-[#605e5c] text-sm">{t("admin.oaForm.noSubmissions")}</p></td></tr>
                   ) : subs.map((s: any) => {
                     const sc = STATUS_CFG[s.status] || STATUS_CFG.draft;
                     const pc = PRIO_CFG[s.priority] || PRIO_CFG.normal;
@@ -403,11 +405,11 @@ export default function OAFormWorkbench() {
                         <td className="px-4 py-3 text-sm text-[#0078d4] font-medium">{s.submissionCode}</td>
                         <td className="px-4 py-3 text-sm text-[#605e5c]">{s.templateName}</td>
                         <td className="px-4 py-3 text-sm text-[#323130] max-w-[200px] truncate">{s.title}</td>
-                        <td className="px-4 py-3"><FluentBadge bg={sc.bg} text={sc.text}>{sc.label}</FluentBadge></td>
-                        <td className="px-4 py-3"><FluentBadge bg={pc.bg} text={pc.text}>{pc.label}</FluentBadge></td>
+                        <td className="px-4 py-3"><FluentBadge bg={sc.bg} text={sc.text}>{t(sc.labelKey)}</FluentBadge></td>
+                        <td className="px-4 py-3"><FluentBadge bg={pc.bg} text={pc.text}>{t(pc.labelKey)}</FluentBadge></td>
                         <td className="px-4 py-3 text-sm text-[#605e5c]">{fmtDate(s.createdAt)}</td>
                         <td className="px-4 py-3">
-                          <FluentButton size="sm" variant="ghost" onClick={() => setViewSub(s)}><Eye className="w-3.5 h-3.5" /> 查看</FluentButton>
+                          <FluentButton size="sm" variant="ghost" onClick={() => setViewSub(s)}><Eye className="w-3.5 h-3.5" /> {t("admin.oaForm.view")}</FluentButton>
                         </td>
                       </tr>
                     );
@@ -423,15 +425,15 @@ export default function OAFormWorkbench() {
         {tab === "approvals" && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-[#323130]">
-              待审批申请{pendItems.length > 0 && <span className="ml-2 text-sm font-normal text-[#605e5c]">({pendItems.length} 项)</span>}
+              {t("admin.oaForm.pendingApprovals")}{pendItems.length > 0 && <span className="ml-2 text-sm font-normal text-[#605e5c]">({t("admin.oaForm.pendingCount").replace("{count}", String(pendItems.length))})</span>}
             </h2>
             {pendQ.isLoading ? (
               <div className="space-y-3">{[1,2,3].map((i) => <FluentCard key={i} className="p-4"><Skeleton type="row" /></FluentCard>)}</div>
             ) : pendItems.length === 0 ? (
               <FluentCard className="p-12 text-center">
                 <CheckCircle className="w-12 h-12 mx-auto text-[#107c10] mb-3" />
-                <p className="text-[#323130] font-medium">暂无待审批申请</p>
-                <p className="text-sm text-[#a19f9d] mt-1">所有申请已处理完毕</p>
+                <p className="text-[#323130] font-medium">{t("admin.oaForm.noPendingApprovals")}</p>
+                <p className="text-sm text-[#a19f9d] mt-1">{t("admin.oaForm.allProcessed")}</p>
               </FluentCard>
             ) : (
               <div className="space-y-3">
@@ -447,21 +449,21 @@ export default function OAFormWorkbench() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <h3 className="text-sm font-semibold text-[#323130] truncate">{it.templateName}</h3>
-                              <FluentBadge bg={pc.bg} text={pc.text}>{pc.label}</FluentBadge>
+                              <FluentBadge bg={pc.bg} text={pc.text}>{t(pc.labelKey)}</FluentBadge>
                             </div>
                             <p className="text-sm text-[#605e5c] truncate mt-0.5">{it.title}</p>
                             <div className="flex items-center gap-3 mt-1 text-xs text-[#a19f9d]">
-                              <span>申请人: {it.applicantName || "未知"}</span>
-                              <span>提交: {fmtDate(it.createdAt)}</span>
+                              <span>{t("admin.oaForm.applicantLabel")}: {it.applicantName || t("admin.oaForm.unknown")}</span>
+                              <span>{t("admin.oaForm.submitLabel")}: {fmtDate(it.createdAt)}</span>
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0 ml-4">
                           <FluentButton size="sm" variant="success" onClick={() => setApproveDlg(it)}>
-                            <CheckCircle className="w-3.5 h-3.5" /> 通过
+                            <CheckCircle className="w-3.5 h-3.5" /> {t("admin.oaForm.passBtn")}
                           </FluentButton>
                           <FluentButton size="sm" variant="danger" onClick={() => setRejectDlg(it)}>
-                            <XCircle className="w-3.5 h-3.5" /> 驳回
+                            <XCircle className="w-3.5 h-3.5" /> {t("admin.oaForm.rejectBtn")}
                           </FluentButton>
                         </div>
                       </div>
@@ -479,15 +481,15 @@ export default function OAFormWorkbench() {
           return (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#323130]">模板管理</h2>
-                <FluentButton variant="primary" onClick={() => setCreateDlg(true)}><Plus className="w-4 h-4" /> 新建模板</FluentButton>
+                <h2 className="text-lg font-semibold text-[#323130]">{t("admin.oaForm.templateMgmt")}</h2>
+                <FluentButton variant="primary" onClick={() => setCreateDlg(true)}><Plus className="w-4 h-4" /> {t("admin.oaForm.newTemplate")}</FluentButton>
               </div>
               <FluentCard className="overflow-hidden">
                 <div className="overflow-x-auto">
                 <table className="w-full min-w-[700px]">
                   <thead>
                     <tr className="border-b border-[#edebe9] bg-[#faf9f8]">
-                      {["编码","名称","分类","字段数","版本","审批步骤","状态","操作"].map((h) => (
+                      {[t("admin.oaForm.thTplCode"),t("admin.oaForm.thTplName"),t("admin.oaForm.thCategory"),t("admin.oaForm.thFieldCount"),t("admin.oaForm.thVersion"),t("admin.oaForm.thApprovalSteps"),t("admin.oaForm.thStatus"),t("admin.oaForm.thActions")].map((h) => (
                         <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-[#605e5c] uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
@@ -495,23 +497,23 @@ export default function OAFormWorkbench() {
                   <tbody>
                     {allTplQ.isLoading ? [1,2,3].map((i) => <tr key={i} className="border-b border-[#edebe9]"><td colSpan={8} className="px-4"><Skeleton type="row" /></td></tr>)
                     : all.length === 0 ? (
-                      <tr><td colSpan={8} className="text-center py-12"><FolderOpen className="w-10 h-10 mx-auto text-[#a19f9d] mb-2" /><p className="text-[#605e5c] text-sm">暂无模板，请新建</p></td></tr>
-                    ) : all.map((t: any) => {
-                      const fc = Array.isArray(t.fields) ? t.fields.length : 0;
-                      const steps = t.approvalFlow?.steps?.length ?? 0;
+                      <tr><td colSpan={8} className="text-center py-12"><FolderOpen className="w-10 h-10 mx-auto text-[#a19f9d] mb-2" /><p className="text-[#605e5c] text-sm">{t("admin.oaForm.noTemplatesAdmin")}</p></td></tr>
+                    ) : all.map((tpl: any) => {
+                      const fc = Array.isArray(tpl.fields) ? tpl.fields.length : 0;
+                      const steps = tpl.approvalFlow?.steps?.length ?? 0;
                       return (
-                        <tr key={t.id} className="border-b border-[#edebe9] hover:bg-[#f3f2f1] transition-colors">
-                          <td className="px-4 py-3 text-sm text-[#0078d4] font-mono">{t.templateCode}</td>
-                          <td className="px-4 py-3 text-sm text-[#323130] font-medium">{t.templateName}</td>
-                          <td className="px-4 py-3"><FluentBadge bg="bg-[#f3f2f1]" text="text-[#605e5c]">{CAT_LABEL[t.category] ?? t.category}</FluentBadge></td>
+                        <tr key={tpl.id} className="border-b border-[#edebe9] hover:bg-[#f3f2f1] transition-colors">
+                          <td className="px-4 py-3 text-sm text-[#0078d4] font-mono">{tpl.templateCode}</td>
+                          <td className="px-4 py-3 text-sm text-[#323130] font-medium">{tpl.templateName}</td>
+                          <td className="px-4 py-3"><FluentBadge bg="bg-[#f3f2f1]" text="text-[#605e5c]">{CAT_LABEL_KEY[tpl.category] ? t(CAT_LABEL_KEY[tpl.category]) : tpl.category}</FluentBadge></td>
                           <td className="px-4 py-3 text-sm text-[#605e5c]">{fc}</td>
-                          <td className="px-4 py-3 text-sm text-[#605e5c]">v{t.version ?? 1}</td>
-                          <td className="px-4 py-3 text-sm text-[#605e5c]">{steps > 0 ? `${steps} 步` : <span className="text-[#a19f9d]">无审批</span>}</td>
+                          <td className="px-4 py-3 text-sm text-[#605e5c]">v{tpl.version ?? 1}</td>
+                          <td className="px-4 py-3 text-sm text-[#605e5c]">{steps > 0 ? t("admin.oaForm.steps").replace("{count}", String(steps)) : <span className="text-[#a19f9d]">{t("admin.oaForm.noApproval")}</span>}</td>
                           <td className="px-4 py-3">
-                            {t.isActive ? <FluentBadge bg="bg-[#dff6dd]" text="text-[#107c10]">启用</FluentBadge> : <FluentBadge bg="bg-[#f3f2f1]" text="text-[#a19f9d]">停用</FluentBadge>}
+                            {tpl.isActive ? <FluentBadge bg="bg-[#dff6dd]" text="text-[#107c10]">{t("admin.oaForm.active")}</FluentBadge> : <FluentBadge bg="bg-[#f3f2f1]" text="text-[#a19f9d]">{t("admin.oaForm.inactive")}</FluentBadge>}
                           </td>
                           <td className="px-4 py-3">
-                            <FluentButton size="sm" variant={t.isActive ? "default" : "primary"} onClick={() => toggleActive(t)}>{t.isActive ? "停用" : "启用"}</FluentButton>
+                            <FluentButton size="sm" variant={tpl.isActive ? "default" : "primary"} onClick={() => toggleActive(tpl)}>{tpl.isActive ? t("admin.oaForm.inactive") : t("admin.oaForm.active")}</FluentButton>
                           </td>
                         </tr>
                       );
@@ -529,14 +531,14 @@ export default function OAFormWorkbench() {
           !selTpl ? (
             <FluentCard className="p-12 text-center">
               <FileText className="w-12 h-12 mx-auto text-[#a19f9d] mb-3" />
-              <p className="text-[#605e5c] font-medium">请先从表单中心选择一个模板</p>
-              <FluentButton variant="primary" className="mt-4" onClick={() => setTab("gallery")}>前往表单中心</FluentButton>
+              <p className="text-[#605e5c] font-medium">{t("admin.oaForm.selectTemplate")}</p>
+              <FluentButton variant="primary" className="mt-4" onClick={() => setTab("gallery")}>{t("admin.oaForm.goToGallery")}</FluentButton>
             </FluentCard>
           ) : success ? (
             <FluentCard className="p-12 text-center">
               <CheckCircle className="w-16 h-16 mx-auto text-[#107c10] mb-4" />
-              <p className="text-lg font-semibold text-[#323130]">提交成功!</p>
-              <p className="text-sm text-[#605e5c] mt-1">您的申请已提交，正在跳转至我的申请...</p>
+              <p className="text-lg font-semibold text-[#323130]">{t("admin.oaForm.submitSuccess")}</p>
+              <p className="text-sm text-[#605e5c] mt-1">{t("admin.oaForm.redirecting")}</p>
             </FluentCard>
           ) : (() => {
             const Icon = resolveIcon(selTpl.icon);
@@ -552,7 +554,7 @@ export default function OAFormWorkbench() {
                       {selTpl.description && <p className="text-sm text-[#605e5c] mt-0.5">{selTpl.description}</p>}
                     </div>
                     <div className="ml-auto">
-                      <FluentButton variant="ghost" onClick={() => { setSelTpl(null); setTab("gallery"); }}>返回表单中心</FluentButton>
+                      <FluentButton variant="ghost" onClick={() => { setSelTpl(null); setTab("gallery"); }}>{t("admin.oaForm.backToGallery")}</FluentButton>
                     </div>
                   </div>
                 </FluentCard>
@@ -560,7 +562,7 @@ export default function OAFormWorkbench() {
                   fields={Array.isArray(selTpl.fields) ? selTpl.fields : []}
                   onSubmit={submitForm}
                   onCancel={() => { setSelTpl(null); setTab("gallery"); }}
-                  submitLabel="提交申请" cancelLabel="返回"
+                  submitLabel={t("admin.oaForm.submitApplication")} cancelLabel={t("admin.oaForm.backBtn")}
                   loading={createSub.isPending}
                 />
               </div>
@@ -580,26 +582,26 @@ export default function OAFormWorkbench() {
               <p className="text-xs text-[#a19f9d] mt-0.5">{viewSub.submissionCode}</p>
             </div>
             <FluentBadge bg={(STATUS_CFG[viewSub.status] || STATUS_CFG.draft).bg} text={(STATUS_CFG[viewSub.status] || STATUS_CFG.draft).text}>
-              {(STATUS_CFG[viewSub.status] || STATUS_CFG.draft).label}
+              {t((STATUS_CFG[viewSub.status] || STATUS_CFG.draft).labelKey)}
             </FluentBadge>
           </div>
           <div className="p-5 space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              {[["申请人", viewSub.applicantName], ["创建时间", viewSub.createdAt ? new Date(viewSub.createdAt).toLocaleString("zh-CN") : "-"],
-                ["表单类型", viewSub.templateName], ["当前审批人", viewSub.currentApproverName || "-"]].map(([l, v]) => (
+              {[[t("admin.oaForm.viewApplicant"), viewSub.applicantName], [t("admin.oaForm.viewCreatedAt"), viewSub.createdAt ? new Date(viewSub.createdAt).toLocaleString() : "-"],
+                [t("admin.oaForm.viewFormType"), viewSub.templateName], [t("admin.oaForm.viewCurrentApprover"), viewSub.currentApproverName || "-"]].map(([l, v]) => (
                 <div key={l as string}><p className="text-xs text-[#a19f9d] font-medium">{l}</p><p className="text-sm text-[#323130]">{v as string}</p></div>
               ))}
             </div>
             {viewSub.rejectionReason && (
               <div className="bg-[#fde7e9] rounded p-3">
-                <p className="text-xs font-medium text-[#d83b01]">驳回原因</p>
+                <p className="text-xs font-medium text-[#d83b01]">{t("admin.oaForm.rejectionReason")}</p>
                 <p className="text-sm text-[#323130] mt-1">{viewSub.rejectionReason}</p>
               </div>
             )}
             <div className="border-t border-[#edebe9] pt-3">
-              <p className="text-xs text-[#605e5c] font-semibold mb-2 uppercase tracking-wide">表单数据</p>
+              <p className="text-xs text-[#605e5c] font-semibold mb-2 uppercase tracking-wide">{t("admin.oaForm.formData")}</p>
               {!viewSub.formData || Object.keys(viewSub.formData).length === 0 ? (
-                <p className="text-sm text-[#a19f9d]">无表单数据</p>
+                <p className="text-sm text-[#a19f9d]">{t("admin.oaForm.noFormData")}</p>
               ) : (
                 <div className="space-y-2">
                   {Object.entries(viewSub.formData).map(([k, v]) => (
@@ -613,7 +615,7 @@ export default function OAFormWorkbench() {
             </div>
           </div>
           <div className="sticky bottom-0 bg-white border-t border-[#edebe9] px-5 py-3 flex justify-end">
-            <FluentButton variant="default" onClick={() => setViewSub(null)}>关闭</FluentButton>
+            <FluentButton variant="default" onClick={() => setViewSub(null)}>{t("admin.oaForm.close")}</FluentButton>
           </div>
         </Overlay>
       )}
@@ -623,21 +625,21 @@ export default function OAFormWorkbench() {
         <Overlay onClose={() => { setApproveDlg(null); setAppComment(""); }}>
           <div className="px-5 py-4 border-b border-[#edebe9]">
             <h3 className="text-base font-semibold text-[#323130] flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-[#107c10]" /> 确认通过
+              <CheckCircle className="w-5 h-5 text-[#107c10]" /> {t("admin.oaForm.confirmApprove")}
             </h3>
           </div>
           <div className="p-5 space-y-4">
-            <p className="text-sm text-[#605e5c]">确认通过申请: <span className="font-medium text-[#323130]">{approveDlg.title}</span></p>
+            <p className="text-sm text-[#605e5c]">{t("admin.oaForm.confirmApproveMsg")} <span className="font-medium text-[#323130]">{approveDlg.title}</span></p>
             <div>
-              <label className="text-sm font-medium text-[#323130]">审批意见 (可选)</label>
+              <label className="text-sm font-medium text-[#323130]">{t("admin.oaForm.approvalComment")}</label>
               <textarea value={appComment} onChange={(e) => setAppComment(e.target.value)}
-                placeholder="输入审批意见..." rows={3} className={`mt-1.5 ${textareaCls}`} />
+                placeholder={t("admin.oaForm.approvalCommentPlaceholder")} rows={3} className={`mt-1.5 ${textareaCls}`} />
             </div>
           </div>
           <div className="px-5 py-3 border-t border-[#edebe9] flex justify-end gap-2">
-            <FluentButton variant="default" onClick={() => { setApproveDlg(null); setAppComment(""); }}>取消</FluentButton>
+            <FluentButton variant="default" onClick={() => { setApproveDlg(null); setAppComment(""); }}>{t("common.cancel")}</FluentButton>
             <FluentButton variant="success" onClick={doApprove} disabled={approveMut.isPending}>
-              <CheckCircle className="w-4 h-4" /> 确认通过
+              <CheckCircle className="w-4 h-4" /> {t("admin.oaForm.confirmApprove")}
             </FluentButton>
           </div>
         </Overlay>
@@ -648,24 +650,24 @@ export default function OAFormWorkbench() {
         <Overlay onClose={() => { setRejectDlg(null); setRejReason(""); }}>
           <div className="px-5 py-4 border-b border-[#edebe9]">
             <h3 className="text-base font-semibold text-[#323130] flex items-center gap-2">
-              <XCircle className="w-5 h-5 text-[#d83b01]" /> 驳回申请
+              <XCircle className="w-5 h-5 text-[#d83b01]" /> {t("admin.oaForm.rejectApplication")}
             </h3>
           </div>
           <div className="p-5 space-y-4">
-            <p className="text-sm text-[#605e5c]">驳回申请: <span className="font-medium text-[#323130]">{rejectDlg.title}</span></p>
+            <p className="text-sm text-[#605e5c]">{t("admin.oaForm.rejectMsg")} <span className="font-medium text-[#323130]">{rejectDlg.title}</span></p>
             <div>
-              <label className="text-sm font-medium text-[#323130]">驳回原因 <span className="text-[#d83b01]">*</span></label>
+              <label className="text-sm font-medium text-[#323130]">{t("admin.oaForm.rejectReasonLabel")} <span className="text-[#d83b01]">*</span></label>
               <textarea value={rejReason} onChange={(e) => setRejReason(e.target.value)}
-                placeholder="请输入驳回原因 (必填)..." rows={3} className={`mt-1.5 ${textareaCls}`} />
+                placeholder={t("admin.oaForm.rejectReasonPlaceholder")} rows={3} className={`mt-1.5 ${textareaCls}`} />
               {!rejReason.trim() && (
-                <p className="text-xs text-[#d83b01] mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> 驳回原因为必填项</p>
+                <p className="text-xs text-[#d83b01] mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {t("admin.oaForm.rejectReasonRequired")}</p>
               )}
             </div>
           </div>
           <div className="px-5 py-3 border-t border-[#edebe9] flex justify-end gap-2">
-            <FluentButton variant="default" onClick={() => { setRejectDlg(null); setRejReason(""); }}>取消</FluentButton>
+            <FluentButton variant="default" onClick={() => { setRejectDlg(null); setRejReason(""); }}>{t("common.cancel")}</FluentButton>
             <FluentButton variant="danger" onClick={doReject} disabled={rejectMut.isPending || !rejReason.trim()}>
-              <XCircle className="w-4 h-4" /> 确认驳回
+              <XCircle className="w-4 h-4" /> {t("admin.oaForm.confirmReject")}
             </FluentButton>
           </div>
         </Overlay>
@@ -677,59 +679,59 @@ export default function OAFormWorkbench() {
           <form onSubmit={doCreateTpl}>
           <div className="sticky top-0 bg-white px-5 py-4 border-b border-[#edebe9]">
             <h3 className="text-base font-semibold text-[#323130] flex items-center gap-2">
-              <Plus className="w-5 h-5 text-[#0078d4]" /> 新建表单模板
+              <Plus className="w-5 h-5 text-[#0078d4]" /> {t("admin.oaForm.createTemplate")}
             </h3>
           </div>
           <div className="p-5 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-[#323130]">模板编码 <span className="text-[#d83b01]">*</span></label>
-                <input value={ntForm.watch("code")} onChange={(e) => ntForm.setValue("code", e.target.value, { shouldValidate: true })} placeholder="如: TRAVEL_REQ" className={`mt-1 ${inputCls}`} />
+                <label className="text-sm font-medium text-[#323130]">{t("admin.oaForm.tplCode")} <span className="text-[#d83b01]">*</span></label>
+                <input value={ntForm.watch("code")} onChange={(e) => ntForm.setValue("code", e.target.value, { shouldValidate: true })} placeholder={t("admin.oaForm.tplCodePlaceholder")} className={`mt-1 ${inputCls}`} />
                 {ntForm.formState.errors.code && <p className="text-[#d83b01] text-xs mt-1">{ntForm.formState.errors.code.message}</p>}
               </div>
               <div>
-                <label className="text-sm font-medium text-[#323130]">模板名称 <span className="text-[#d83b01]">*</span></label>
-                <input value={ntForm.watch("name")} onChange={(e) => ntForm.setValue("name", e.target.value, { shouldValidate: true })} placeholder="如: 出差申请" className={`mt-1 ${inputCls}`} />
+                <label className="text-sm font-medium text-[#323130]">{t("admin.oaForm.tplName")} <span className="text-[#d83b01]">*</span></label>
+                <input value={ntForm.watch("name")} onChange={(e) => ntForm.setValue("name", e.target.value, { shouldValidate: true })} placeholder={t("admin.oaForm.tplNamePlaceholder")} className={`mt-1 ${inputCls}`} />
                 {ntForm.formState.errors.name && <p className="text-[#d83b01] text-xs mt-1">{ntForm.formState.errors.name.message}</p>}
               </div>
               <div>
-                <label className="text-sm font-medium text-[#323130]">英文名称</label>
-                <input value={ntForm.watch("nameEn") || ""} onChange={(e) => ntForm.setValue("nameEn", e.target.value)} placeholder="如: Travel Request" className={`mt-1 ${inputCls}`} />
+                <label className="text-sm font-medium text-[#323130]">{t("admin.oaForm.tplNameEn")}</label>
+                <input value={ntForm.watch("nameEn") || ""} onChange={(e) => ntForm.setValue("nameEn", e.target.value)} placeholder={t("admin.oaForm.tplNameEnPlaceholder")} className={`mt-1 ${inputCls}`} />
               </div>
               <div>
-                <label className="text-sm font-medium text-[#323130]">分类</label>
+                <label className="text-sm font-medium text-[#323130]">{t("admin.oaForm.tplCategory")}</label>
                 <select value={ntForm.watch("cat")} onChange={(e) => ntForm.setValue("cat", e.target.value)} className={`mt-1 ${inputCls}`}>
-                  <option value="general">通用</option><option value="hr">人事</option>
-                  <option value="admin">行政</option><option value="finance">财务</option>
-                  <option value="project">项目</option>
+                  <option value="general">{t("admin.oaForm.catGeneral")}</option><option value="hr">{t("admin.oaForm.catHr")}</option>
+                  <option value="admin">{t("admin.oaForm.catAdmin")}</option><option value="finance">{t("admin.oaForm.catFinance")}</option>
+                  <option value="project">{t("admin.oaForm.catProject")}</option>
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-[#323130]">图标</label>
-                <input value={ntForm.watch("icon") || ""} onChange={(e) => ntForm.setValue("icon", e.target.value)} placeholder="如: plane, receipt" className={`mt-1 ${inputCls}`} />
+                <label className="text-sm font-medium text-[#323130]">{t("admin.oaForm.tplIcon")}</label>
+                <input value={ntForm.watch("icon") || ""} onChange={(e) => ntForm.setValue("icon", e.target.value)} placeholder={t("admin.oaForm.tplIconPlaceholder")} className={`mt-1 ${inputCls}`} />
               </div>
               <div>
-                <label className="text-sm font-medium text-[#323130]">颜色</label>
-                <input value={ntForm.watch("color") || ""} onChange={(e) => ntForm.setValue("color", e.target.value)} placeholder="如: blue-500" className={`mt-1 ${inputCls}`} />
+                <label className="text-sm font-medium text-[#323130]">{t("admin.oaForm.tplColor")}</label>
+                <input value={ntForm.watch("color") || ""} onChange={(e) => ntForm.setValue("color", e.target.value)} placeholder={t("admin.oaForm.tplColorPlaceholder")} className={`mt-1 ${inputCls}`} />
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-[#323130]">描述</label>
-              <textarea value={ntForm.watch("desc") || ""} onChange={(e) => ntForm.setValue("desc", e.target.value)} placeholder="模板用途描述..." rows={2} className={`mt-1 ${textareaCls}`} />
+              <label className="text-sm font-medium text-[#323130]">{t("admin.oaForm.tplDescription")}</label>
+              <textarea value={ntForm.watch("desc") || ""} onChange={(e) => ntForm.setValue("desc", e.target.value)} placeholder={t("admin.oaForm.tplDescPlaceholder")} rows={2} className={`mt-1 ${textareaCls}`} />
             </div>
             <div>
-              <label className="text-sm font-medium text-[#323130]">字段定义 (JSON) <span className="text-[#d83b01]">*</span></label>
+              <label className="text-sm font-medium text-[#323130]">{t("admin.oaForm.tplFields")} <span className="text-[#d83b01]">*</span></label>
               <textarea value={ntForm.watch("fields")} onChange={(e) => ntForm.setValue("fields", e.target.value, { shouldValidate: true })}
                 placeholder='[{ "name": "reason", "label": "事由", "type": "textarea", "required": true }]'
                 rows={8} className={`mt-1 ${textareaCls} font-mono`} />
               {ntForm.formState.errors.fields && <p className="text-[#d83b01] text-xs mt-1">{ntForm.formState.errors.fields.message}</p>}
-              <p className="text-xs text-[#a19f9d] mt-1">JSON 数组，每个元素包含 name, label, type, required 等字段</p>
+              <p className="text-xs text-[#a19f9d] mt-1">{t("admin.oaForm.tplFieldsHint")}</p>
             </div>
           </div>
           <div className="sticky bottom-0 bg-white px-5 py-3 border-t border-[#edebe9] flex justify-end gap-2">
-            <FluentButton type="button" variant="default" onClick={() => { setCreateDlg(false); ntForm.reset(); }}>取消</FluentButton>
+            <FluentButton type="button" variant="default" onClick={() => { setCreateDlg(false); ntForm.reset(); }}>{t("common.cancel")}</FluentButton>
             <FluentButton type="submit" variant="primary" disabled={createTpl.isPending}>
-              <Send className="w-4 h-4" /> 创建模板
+              <Send className="w-4 h-4" /> {t("admin.oaForm.createBtn")}
             </FluentButton>
           </div>
           </form>

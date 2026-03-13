@@ -27,6 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ---------------------------------------------------------------------------
 // Helper: download base64 file
@@ -50,6 +51,8 @@ function downloadBase64File(base64: string, filename: string, mimeType: string) 
 // ReportsTab
 // ---------------------------------------------------------------------------
 export function ReportsTab() {
+  const { t } = useLanguage();
+
   // --- Single meeting report state ---
   const [meetingId, setMeetingId] = useState("");
   const meetingReportMutation = trpc.ime.generateMeetingReport.useMutation({
@@ -87,16 +90,16 @@ export function ReportsTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-blue-600" />
-            单次会议报告
+            {t("meeting.reports.singleMeetingReport")}
           </CardTitle>
-          <CardDescription>根据会议ID生成完整的PDF分析报告，包含贡献分析、效能评分、情感分析、ROI等8个维度</CardDescription>
+          <CardDescription>{t("meeting.reports.singleMeetingReportDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 items-end">
             <div className="flex-1">
-              <label className="text-sm text-muted-foreground mb-1 block">会议ID</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.reports.meetingId")}</label>
               <Input
-                placeholder="输入会议ID..."
+                placeholder={t("meeting.reports.meetingIdPlaceholder")}
                 value={meetingId}
                 onChange={(e) => setMeetingId(e.target.value)}
               />
@@ -110,14 +113,14 @@ export function ReportsTab() {
               ) : (
                 <FileText className="h-4 w-4 mr-2" />
               )}
-              生成报告
+              {t("meeting.reports.generateReport")}
             </Button>
           </div>
           {meetingReportMutation.isError && (
             <p className="text-sm text-destructive mt-2">{meetingReportMutation.error.message}</p>
           )}
           {meetingReportMutation.isSuccess && (
-            <p className="text-sm text-green-600 mt-2">PDF报告已下载: {meetingReportMutation.data.filename}</p>
+            <p className="text-sm text-green-600 mt-2">{t("meeting.reports.pdfDownloaded")}: {meetingReportMutation.data.filename}</p>
           )}
         </CardContent>
       </Card>
@@ -127,14 +130,14 @@ export function ReportsTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-green-600" />
-            仪表盘数据导出
+            {t("meeting.reports.dashboardExport")}
           </CardTitle>
-          <CardDescription>导出包含7个工作表的Excel文件：概览、ROI、情感趋势、部门对比、行动项、预测与风险、参会优化</CardDescription>
+          <CardDescription>{t("meeting.reports.dashboardExportDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 items-end">
             <div className="flex-1">
-              <label className="text-sm text-muted-foreground mb-1 block">开始日期</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.reports.dateFrom")}</label>
               <Input
                 type="date"
                 value={excelDateFrom}
@@ -142,7 +145,7 @@ export function ReportsTab() {
               />
             </div>
             <div className="flex-1">
-              <label className="text-sm text-muted-foreground mb-1 block">结束日期</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.reports.dateTo")}</label>
               <Input
                 type="date"
                 value={excelDateTo}
@@ -161,14 +164,14 @@ export function ReportsTab() {
               ) : (
                 <Download className="h-4 w-4 mr-2" />
               )}
-              导出Excel
+              {t("meeting.reports.exportExcel")}
             </Button>
           </div>
           {dashboardExcelMutation.isError && (
             <p className="text-sm text-destructive mt-2">{dashboardExcelMutation.error.message}</p>
           )}
           {dashboardExcelMutation.isSuccess && (
-            <p className="text-sm text-green-600 mt-2">Excel已下载: {dashboardExcelMutation.data.filename}</p>
+            <p className="text-sm text-green-600 mt-2">{t("meeting.reports.excelDownloaded")}: {dashboardExcelMutation.data.filename}</p>
           )}
         </CardContent>
       </Card>
@@ -178,46 +181,46 @@ export function ReportsTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-purple-600" />
-            基准对比报告
+            {t("meeting.reports.benchmarkReport")}
           </CardTitle>
-          <CardDescription>生成期间对比PDF报告，包含核心指标变化、趋势图、最佳/最差会议、AI建议</CardDescription>
+          <CardDescription>{t("meeting.reports.benchmarkReportDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 items-end flex-wrap">
             <div className="w-40">
-              <label className="text-sm text-muted-foreground mb-1 block">范围</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.reports.scope")}</label>
               <Select value={benchScope} onValueChange={setBenchScope}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部</SelectItem>
-                  <SelectItem value="channel">频道</SelectItem>
-                  <SelectItem value="department">部门</SelectItem>
+                  <SelectItem value="all">{t("meeting.reports.scopeAll")}</SelectItem>
+                  <SelectItem value="channel">{t("meeting.reports.scopeChannel")}</SelectItem>
+                  <SelectItem value="department">{t("meeting.reports.scopeDepartment")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {benchScope !== "all" && (
               <div className="flex-1 min-w-[150px]">
                 <label className="text-sm text-muted-foreground mb-1 block">
-                  {benchScope === "channel" ? "频道ID" : "部门名称"}
+                  {benchScope === "channel" ? t("meeting.reports.channelId") : t("meeting.reports.departmentName")}
                 </label>
                 <Input
-                  placeholder={benchScope === "channel" ? "输入频道ID..." : "输入部门名称..."}
+                  placeholder={benchScope === "channel" ? t("meeting.reports.channelIdPlaceholder") : t("meeting.reports.departmentNamePlaceholder")}
                   value={benchScopeId}
                   onChange={(e) => setBenchScopeId(e.target.value)}
                 />
               </div>
             )}
             <div className="w-36">
-              <label className="text-sm text-muted-foreground mb-1 block">对比周期</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.reports.period")}</label>
               <Select value={benchPeriod} onValueChange={setBenchPeriod}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="monthly">月度</SelectItem>
-                  <SelectItem value="quarterly">季度</SelectItem>
+                  <SelectItem value="monthly">{t("meeting.reports.monthly")}</SelectItem>
+                  <SelectItem value="quarterly">{t("meeting.reports.quarterly")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -234,14 +237,14 @@ export function ReportsTab() {
               ) : (
                 <FileText className="h-4 w-4 mr-2" />
               )}
-              生成基准报告
+              {t("meeting.reports.generateBenchmark")}
             </Button>
           </div>
           {benchmarkMutation.isError && (
             <p className="text-sm text-destructive mt-2">{benchmarkMutation.error.message}</p>
           )}
           {benchmarkMutation.isSuccess && (
-            <p className="text-sm text-green-600 mt-2">PDF已下载: {benchmarkMutation.data.filename}</p>
+            <p className="text-sm text-green-600 mt-2">{t("meeting.reports.benchmarkDownloaded")}: {benchmarkMutation.data.filename}</p>
           )}
         </CardContent>
       </Card>
@@ -251,19 +254,19 @@ export function ReportsTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-gray-600" />
-            导出历史
+            {t("meeting.reports.exportHistory")}
           </CardTitle>
-          <CardDescription>最近的报告导出记录</CardDescription>
+          <CardDescription>{t("meeting.reports.exportHistoryDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>类型</TableHead>
-                <TableHead>格式</TableHead>
-                <TableHead>文件名</TableHead>
-                <TableHead>大小</TableHead>
-                <TableHead>生成时间</TableHead>
+                <TableHead>{t("meeting.reports.thType")}</TableHead>
+                <TableHead>{t("meeting.reports.thFormat")}</TableHead>
+                <TableHead>{t("meeting.reports.thFilename")}</TableHead>
+                <TableHead>{t("meeting.reports.thSize")}</TableHead>
+                <TableHead>{t("meeting.reports.thGeneratedAt")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -275,8 +278,8 @@ export function ReportsTab() {
                         row.report_type === "meeting" ? "default" :
                         row.report_type === "dashboard" ? "secondary" : "outline"
                       }>
-                        {row.report_type === "meeting" ? "会议报告" :
-                         row.report_type === "dashboard" ? "仪表盘" : "基准报告"}
+                        {row.report_type === "meeting" ? t("meeting.reports.typeMeeting") :
+                         row.report_type === "dashboard" ? t("meeting.reports.typeDashboard") : t("meeting.reports.typeBenchmark")}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -286,17 +289,17 @@ export function ReportsTab() {
                     </TableCell>
                     <TableCell className="max-w-[250px] truncate text-sm">{row.filename}</TableCell>
                     <TableCell className="text-sm">
-                      {row.file_size ? `${(Number(row.file_size) / 1024).toFixed(1)} KB` : "—"}
+                      {row.file_size ? `${(Number(row.file_size) / 1024).toFixed(1)} KB` : "\u2014"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {row.generated_at ? new Date(row.generated_at).toLocaleString("zh-CN") : "—"}
+                      {row.generated_at ? new Date(row.generated_at).toLocaleString("zh-CN") : "\u2014"}
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    暂无导出记录
+                    {t("meeting.reports.noExportHistory")}
                   </TableCell>
                 </TableRow>
               )}

@@ -5,7 +5,7 @@
  * Data source: ai_assistant_dashboard table (DB-backed)
  */
 
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 import { createChildLogger } from "../lib/logger";
@@ -57,10 +57,10 @@ async function ensureRdVerData() {
         ],
       });
       const reviews = JSON.stringify([
-        { id: 1, projectName: "汽车动力总成超声波清洗线", projectCode: "GRT-2026-001", gatePhase: "M3", gateName: "立项评审", status: "approved", reviewer: "张总", reviewNotes: "商业价值明确，资源充足，批准立项", createdAt: "2026-01-15" },
-        { id: 2, projectName: "半导体晶圆精密清洗设备", projectCode: "GRT-2026-002", gatePhase: "M5", gateName: "详细设计评审", status: "conditional", reviewer: "李工", reviewNotes: "BOM一致性需修正后重新提交", createdAt: "2026-02-01" },
-        { id: 3, projectName: "医疗器械超声波清洗系统", projectCode: "GRT-2026-003", gatePhase: "M2", gateName: "方案设计评审", status: "in_review", reviewer: "王经理", createdAt: "2026-02-10" },
-        { id: 4, projectName: "航空发动机叶片清洗线", projectCode: "GRT-2026-004", gatePhase: "M8", gateName: "FAT验收", status: "pending", reviewer: "赵工", createdAt: "2026-02-12" },
+        { id: 1, projectName: "汽车动力总成超声波清洗线", projectCode: "GRT-2026-001", gatePhase: "M3", gateName: "立项评审", status: "approved", reviewer: "倪亚东", reviewNotes: "商业价值明确，资源充足，批准立项", createdAt: "2026-01-15" },
+        { id: 2, projectName: "半导体晶圆精密清洗设备", projectCode: "GRT-2026-002", gatePhase: "M5", gateName: "详细设计评审", status: "conditional", reviewer: "李大鹏", reviewNotes: "BOM一致性需修正后重新提交", createdAt: "2026-02-01" },
+        { id: 3, projectName: "医疗器械超声波清洗系统", projectCode: "GRT-2026-003", gatePhase: "M2", gateName: "方案设计评审", status: "in_review", reviewer: "杨勇", createdAt: "2026-02-10" },
+        { id: 4, projectName: "航空发动机叶片清洗线", projectCode: "GRT-2026-004", gatePhase: "M8", gateName: "FAT验收", status: "pending", reviewer: "洪小东", createdAt: "2026-02-12" },
       ]);
       const signals = JSON.stringify([
         { id: 1, upstreamGate: "M6", triggerEvent: "上汽JIS订单到达", targetAasId: "AAS-GRT501-CL01", status: "triggered", actionPayload: { action: "start_production", line: "A3" } },
@@ -88,28 +88,28 @@ export const rdVerificationRouter = router({
   getProjects: protectedProcedure.query(async () => {
     await ensureRdVerData();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'rd_verification' AND category = 'projects'`);
+    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'rd_verification' AND category = 'projects' LIMIT 1000`);
     return (rows[0] as any)?.items ?? [];
   }),
 
   getChecklists: protectedProcedure.query(async () => {
     await ensureRdVerData();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'rd_verification' AND category = 'checklists'`);
+    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'rd_verification' AND category = 'checklists' LIMIT 1000`);
     return (rows[0] as any)?.items ?? {};
   }),
 
   getReviews: protectedProcedure.query(async () => {
     await ensureRdVerData();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'rd_verification' AND category = 'reviews'`);
+    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'rd_verification' AND category = 'reviews' LIMIT 1000`);
     return (rows[0] as any)?.items ?? [];
   }),
 
   getSignals: protectedProcedure.query(async () => {
     await ensureRdVerData();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'rd_verification' AND category = 'signals'`);
+    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'rd_verification' AND category = 'signals' LIMIT 1000`);
     return (rows[0] as any)?.items ?? [];
   }),
 });

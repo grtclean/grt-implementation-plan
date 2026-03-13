@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import * as healthScanner from "./project-health-scanner.service";
 import * as riskScorer from "./risk-scorer.service";
 import * as narrative from "./llm-narrative.service";
@@ -56,7 +56,7 @@ const notificationsRouter = router({
       return riskScorer.getNotifications(input);
     }),
 
-  markRead: protectedProcedure
+  markRead: requirePermission('ai:warning:view')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return riskScorer.markNotificationRead(input.id);

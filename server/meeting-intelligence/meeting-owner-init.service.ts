@@ -188,7 +188,7 @@ export async function initializeMeetingOwnerConfigs(): Promise<{
   for (const config of DEFAULT_MO_CONFIGS) {
     try {
       // 检查是否已存在
-      const existingResult = await db.execute(sql`SELECT id FROM meeting_owners WHERE meeting_type = ${config.meetingType}`);
+      const existingResult = await db.execute(sql`SELECT id FROM meeting_owners WHERE meeting_type = ${config.meetingType} LIMIT 1000`);
 
       if (existingResult.rows.length > 0) {
         skipped++;
@@ -226,7 +226,7 @@ export async function initializeMeetingOwnerConfigs(): Promise<{
 export async function getMeetingOwnerConfigs(): Promise<MeetingOwnerConfig[]> {
   const db = await requireDb();
 
-  const result = await db.execute(sql`SELECT * FROM meeting_owners ORDER BY meeting_type_name`);
+  const result = await db.execute(sql`SELECT * FROM meeting_owners ORDER BY meeting_type_name LIMIT 1000`);
 
   return result.rows.map((row: any) => ({
     meetingType: row.meeting_type,

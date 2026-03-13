@@ -5,7 +5,7 @@
 
 import { z } from 'zod';
 import { jsonValue } from '../../shared/validators';
-import { router, protectedProcedure } from '../_core/trpc';
+import {router, protectedProcedure, requirePermission} from '../_core/trpc';
 import {
   createEmployeeDA,
   getEmployeeDA,
@@ -27,7 +27,7 @@ export const aiAssistantRouter = router({
   // ============ 员工数字助手 ============
   
   // 创建员工数字助手
-  createEmployeeDA: protectedProcedure
+  createEmployeeDA: requirePermission('ai:assistant:chat')
     .input(z.object({
       employeeId: z.string(),
       displayName: z.string().optional(),
@@ -51,7 +51,7 @@ export const aiAssistantRouter = router({
     }),
   
   // 更新员工数字助手
-  updateEmployeeDA: protectedProcedure
+  updateEmployeeDA: requirePermission('ai:assistant:chat')
     .input(z.object({
       id: z.number(),
       displayName: z.string().optional(),
@@ -115,7 +115,7 @@ export const aiAssistantRouter = router({
   // ============ AI建议执行 ============
   
   // 生成AI建议
-  generateSuggestion: protectedProcedure
+  generateSuggestion: requirePermission('ai:assistant:chat')
     .input(z.object({
       assistantType: z.string(),
       mode: z.enum(['internal', 'generative']),
@@ -132,7 +132,7 @@ export const aiAssistantRouter = router({
     }),
   
   // 执行单个AI任务
-  executeSingleAction: protectedProcedure
+  executeSingleAction: requirePermission('ai:assistant:chat')
     .input(z.object({
       assistantId: z.number(),
       processType: z.string(),
@@ -168,7 +168,7 @@ export const aiAssistantRouter = router({
     }),
   
   // 更新AI建议执行状态
-  updateSuggestionStatus: protectedProcedure
+  updateSuggestionStatus: requirePermission('ai:assistant:chat')
     .input(z.object({
       logId: z.number(),
       status: z.enum(['pending', 'running', 'success', 'partial_success', 'failed']),
@@ -185,7 +185,7 @@ export const aiAssistantRouter = router({
     }),
   
   // 记录用户反馈
-  recordFeedback: protectedProcedure
+  recordFeedback: requirePermission('ai:assistant:chat')
     .input(z.object({
       logId: z.number(),
       feedback: z.enum(['helpful', 'neutral', 'unhelpful']),
@@ -211,7 +211,7 @@ export const aiAssistantRouter = router({
       return [];
     }),
 
-  createAssistant: protectedProcedure
+  createAssistant: requirePermission('ai:assistant:chat')
     .input(z.record(z.string(), jsonValue).optional())
     .mutation(async () => {
       return { success: true, id: `ast_${Date.now()}` };

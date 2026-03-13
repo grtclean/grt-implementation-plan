@@ -890,20 +890,19 @@ export async function detectMeetingPatterns(
 ) {
   const db = await requireDb();
 
-  const dateFilter = [
-    dateFrom ? `mr.meeting_date >= '${dateFrom}'` : null,
-    dateTo ? `mr.meeting_date <= '${dateTo}'` : null,
-  ].filter(Boolean).join(" AND ");
-  const dateWhere = dateFilter ? `AND ${dateFilter}` : "";
+  const dateParts: SQL[] = [];
+  if (dateFrom) dateParts.push(sql`mr.meeting_date >= ${dateFrom}`);
+  if (dateTo) dateParts.push(sql`mr.meeting_date <= ${dateTo}`);
+  const dateWhere = dateParts.length > 0 ? sql`AND ${sql.join(dateParts, sql` AND `)}` : sql``;
 
   const scopeFilter = scope === "department" && scopeId
-    ? `AND he.department = '${scopeId}'`
+    ? sql`AND he.department = ${scopeId}`
     : scope === "individual" && scopeId
-      ? `AND mc.employee_id = '${scopeId}'`
-      : "";
+      ? sql`AND mc.employee_id = ${scopeId}`
+      : sql``;
 
   // Gather meeting data
-  const meetingsResult = await db.execute(sql.raw(`
+  const meetingsResult = await db.execute(sql`
     SELECT
       mes.meeting_id,
       mr.title,
@@ -921,7 +920,7 @@ export async function detectMeetingPatterns(
     GROUP BY mes.meeting_id, mes.id, mr.title, mr.meeting_date, mes.overall_score, mes.participation_balance
     ORDER BY mr.meeting_date DESC
     LIMIT 100
-  `));
+  `);
   const meetings = meetingsResult.rows as any[];
 
   const patterns: any[] = [];
@@ -1014,20 +1013,20 @@ export async function detectMeetingPatterns(
 export async function getPatternInsights(scope?: string, scopeId?: string, patternType?: string) {
   const db = await requireDb();
 
-  const conditions: string[] = ["1=1"];
-  if (scope) conditions.push(`scope = '${scope}'`);
-  if (scopeId) conditions.push(`scope_id = '${scopeId}'`);
-  if (patternType) conditions.push(`pattern_type = '${patternType}'`);
-  const where = conditions.join(" AND ");
+  const conditions: SQL[] = [sql`1=1`];
+  if (scope) conditions.push(sql`scope = ${scope}`);
+  if (scopeId) conditions.push(sql`scope_id = ${scopeId}`);
+  if (patternType) conditions.push(sql`pattern_type = ${patternType}`);
+  const where = sql.join(conditions, sql` AND `);
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT * FROM ime_meeting_patterns
     WHERE ${where}
     ORDER BY
       CASE severity WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 WHEN 'info' THEN 2 ELSE 3 END,
       detected_at DESC
     LIMIT 50
-  `));
+  `);
 
   return result.rows;
 }
@@ -1035,11 +1034,11 @@ export async function getPatternInsights(scope?: string, scopeId?: string, patte
 export async function getMeetingCultureReport(department?: string) {
   const db = await requireDb();
   const deptFilter = department
-    ? `AND he.department = '${department}'`
-    : "";
+    ? sql`AND he.department = ${department}`
+    : sql``;
 
   // Culture metrics
-  const metricsResult = await db.execute(sql.raw(`
+  const metricsResult = await db.execute(sql`
     SELECT
       COUNT(DISTINCT mes.meeting_id) as total_meetings,
       AVG(mes.overall_score) as avg_effectiveness,
@@ -1052,7 +1051,7 @@ export async function getMeetingCultureReport(department?: string) {
     LEFT JOIN hrm_employees he ON mc.employee_id = he."employeeCode"
     LEFT JOIN meeting_records mr ON mes.meeting_id = mr.id
     WHERE 1=1 ${deptFilter}
-  `));
+  `);
   const metrics = (metricsResult.rows as any[])[0] || {};
 
   const totalMeetings = Number(metrics.total_meetings) || 1;
@@ -1094,17 +1093,17 @@ export async function generateHrSignals(employeeId: string) {
   const db = await requireDb();
 
   // Fetch last 90 days of contributions
-  const contribResult = await db.execute(sql.raw(`
+  const contribResult = await db.execute(sql`
     SELECT
       mc.*,
       mr.title as meeting_title,
       mr.meeting_date
     FROM meeting_contributions mc
     JOIN meeting_records mr ON mc.meeting_id = mr.id
-    WHERE mc.employee_id = '${employeeId}'
+    WHERE mc.employee_id = ${employeeId}
       AND mr.meeting_date >= NOW() - INTERVAL '90 days'
     ORDER BY mr.meeting_date DESC
-  `));
+  `);
   const contributions = contribResult.rows as any[];
 
   if (contributions.length === 0) {
@@ -1112,10 +1111,10 @@ export async function generateHrSignals(employeeId: string) {
   }
 
   // Get employee name
-  const empResult = await db.execute(sql.raw(`
+  const empResult = await db.execute(sql`
     SELECT name, department, position FROM hrm_employees
-    WHERE "employeeCode" = '${employeeId}' LIMIT 1
-  `));
+    WHERE "employeeCode" = ${employeeId} LIMIT 1
+  `);
   const employee = (empResult.rows as any[])[0];
   const employeeName = employee?.name || contributions[0]?.employee_name || employeeId;
 
@@ -1232,10 +1231,10 @@ export async function getPromotionCandidates(department?: string, minConfidence?
   const threshold = minConfidence ?? 0.6;
 
   const deptJoin = department
-    ? `JOIN hrm_employees he ON hs.employee_id = he."employeeCode" AND he.department = '${department}'`
-    : `LEFT JOIN hrm_employees he ON hs.employee_id = he."employeeCode"`;
+    ? sql`JOIN hrm_employees he ON hs.employee_id = he."employeeCode" AND he.department = ${department}`
+    : sql`LEFT JOIN hrm_employees he ON hs.employee_id = he."employeeCode"`;
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT
       hs.*,
       he.name as hrm_name,
@@ -1248,7 +1247,7 @@ export async function getPromotionCandidates(department?: string, minConfidence?
       AND hs.confidence >= ${threshold}
       AND hs.status != 'dismissed'
     ORDER BY hs.confidence DESC, hs.created_at DESC
-  `));
+  `);
 
   return result.rows;
 }
@@ -1257,29 +1256,29 @@ export async function recommendTraining(employeeId: string) {
   const db = await requireDb();
 
   // Get training_needed signals
-  const signalsResult = await db.execute(sql.raw(`
+  const signalsResult = await db.execute(sql`
     SELECT * FROM ime_hr_signals
-    WHERE employee_id = '${employeeId}'
+    WHERE employee_id = ${employeeId}
       AND signal_type = 'training_needed'
     ORDER BY created_at DESC
     LIMIT 5
-  `));
+  `);
   const signals = signalsResult.rows as any[];
 
   // Get existing training plans for this employee
-  const empResult = await db.execute(sql.raw(`
-    SELECT id FROM hrm_employees WHERE "employeeCode" = '${employeeId}' LIMIT 1
-  `));
+  const empResult = await db.execute(sql`
+    SELECT id FROM hrm_employees WHERE "employeeCode" = ${employeeId} LIMIT 1
+  `);
   const empId = (empResult.rows as any[])[0]?.id;
 
   let existingPlans: any[] = [];
   if (empId) {
-    const plansResult = await db.execute(sql.raw(`
+    const plansResult = await db.execute(sql`
       SELECT * FROM hrm_training_plans
       WHERE "employeeId" = ${empId}
       ORDER BY "createdAt" DESC
       LIMIT 10
-    `));
+    `);
     existingPlans = plansResult.rows as any[];
   }
 
@@ -1349,11 +1348,11 @@ export async function startLiveSession(meetingId: string, userId: string) {
   const db = await requireDb();
 
   // Check for existing active session
-  const existing = await db.execute(sql.raw(`
+  const existing = await db.execute(sql`
     SELECT id FROM ime_live_sessions
-    WHERE meeting_id = '${meetingId}' AND session_status = 'active'
+    WHERE meeting_id = ${meetingId} AND session_status = 'active'
     LIMIT 1
-  `));
+  `);
   if ((existing.rows as any[]).length > 0) {
     return { sessionId: (existing.rows as any[])[0].id, status: "already_active" };
   }
@@ -1379,9 +1378,9 @@ export async function processLiveSegment(
   const db = await requireDb();
 
   // Get current session
-  const sessionResult = await db.execute(sql.raw(`
+  const sessionResult = await db.execute(sql`
     SELECT * FROM ime_live_sessions WHERE id = ${sessionId} AND session_status = 'active'
-  `));
+  `);
   const session = (sessionResult.rows as any[])[0];
   if (!session) throw new Error(`Live session ${sessionId} not found or not active`);
 
@@ -1427,13 +1426,13 @@ export async function processLiveSegment(
     suggestions.push(suggestion);
   }
 
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     UPDATE ime_live_sessions
-    SET live_contribution_snapshot = '${JSON.stringify(snapshot).replace(/'/g, "''")}',
+    SET live_contribution_snapshot = ${JSON.stringify(snapshot)},
         total_segments_processed = ${totalSegments},
-        live_suggestions = '${JSON.stringify(suggestions).replace(/'/g, "''")}'
+        live_suggestions = ${JSON.stringify(suggestions)}
     WHERE id = ${sessionId}
-  `));
+  `);
 
   return { updatedSnapshot: snapshot, suggestion, totalSegments };
 }
@@ -1441,18 +1440,18 @@ export async function processLiveSegment(
 export async function endLiveSession(sessionId: number) {
   const db = await requireDb();
 
-  const sessionResult = await db.execute(sql.raw(`
+  const sessionResult = await db.execute(sql`
     SELECT * FROM ime_live_sessions WHERE id = ${sessionId}
-  `));
+  `);
   const session = (sessionResult.rows as any[])[0];
   if (!session) throw new Error(`Live session ${sessionId} not found`);
 
   // End the session
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     UPDATE ime_live_sessions
     SET session_status = 'ended', ended_at = NOW()
     WHERE id = ${sessionId}
-  `));
+  `);
 
   // Trigger post-session analysis
   let analysisResult = null;
@@ -1521,19 +1520,19 @@ export async function computeMeetingCost(meetingId: string) {
 
     // Try salary_calculations first
     try {
-      const salaryResult = await db.execute(sql.raw(`
+      const salaryResult = await db.execute(sql`
         SELECT "annualTotal" FROM salary_calculations
-        WHERE "employeeCode" = '${(p.employee_id || '').replace(/'/g, "''")}'
+        WHERE "employeeCode" = ${p.employee_id || ''}
         ORDER BY "calculatedAt" DESC LIMIT 1
-      `));
+      `);
       const salRow = (salaryResult.rows as any[])[0];
       if (salRow?.annualTotal) {
         hourlyRate = Number(salRow.annualTotal) / 2080;
       } else {
         // Try hrm_salary_structures midpoint
-        const structResult = await db.execute(sql.raw(`
+        const structResult = await db.execute(sql`
           SELECT "midPoint" FROM hrm_salary_structures LIMIT 1
-        `));
+        `);
         const structRow = (structResult.rows as any[])[0];
         if (structRow?.midPoint) {
           hourlyRate = Number(structRow.midPoint) / 2080;
@@ -1584,21 +1583,21 @@ export async function computeMeetingCost(meetingId: string) {
 
   // 7. Delete + insert
   await db.execute(sql`DELETE FROM ime_meeting_costs WHERE meeting_id = ${meetingId}`);
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_meeting_costs
       (meeting_id, duration_minutes, participant_count, total_cost, cost_per_decision, cost_per_action_item, roi_score, participant_breakdown, computed_at)
     VALUES (
-      '${meetingId.replace(/'/g, "''")}',
+      ${meetingId},
       ${durationMinutes},
       ${participantCount},
       ${Math.round(totalCost * 100) / 100},
-      ${costPerDecision !== null ? Math.round(costPerDecision * 100) / 100 : 'NULL'},
-      ${costPerActionItem !== null ? Math.round(costPerActionItem * 100) / 100 : 'NULL'},
-      ${roiScore ?? 'NULL'},
-      '${JSON.stringify(breakdown).replace(/'/g, "''")}',
+      ${costPerDecision !== null ? Math.round(costPerDecision * 100) / 100 : null},
+      ${costPerActionItem !== null ? Math.round(costPerActionItem * 100) / 100 : null},
+      ${roiScore ?? null},
+      ${JSON.stringify(breakdown)},
       NOW()
     )
-  `));
+  `);
 
   return {
     meetingId,
@@ -1616,14 +1615,14 @@ export async function computeMeetingCost(meetingId: string) {
 export async function getCostDashboard(filters: { channelId?: string; dateFrom?: string; dateTo?: string }) {
   const db = await requireDb();
 
-  const conditions: string[] = ["1=1"];
-  if (filters.channelId) conditions.push(`mr.channel_id = '${filters.channelId}'`);
-  if (filters.dateFrom) conditions.push(`mr.meeting_date >= '${filters.dateFrom}'`);
-  if (filters.dateTo) conditions.push(`mr.meeting_date <= '${filters.dateTo}'`);
-  const where = conditions.join(" AND ");
+  const conditions: SQL[] = [sql`1=1`];
+  if (filters.channelId) conditions.push(sql`mr.channel_id = ${filters.channelId}`);
+  if (filters.dateFrom) conditions.push(sql`mr.meeting_date >= ${filters.dateFrom}`);
+  if (filters.dateTo) conditions.push(sql`mr.meeting_date <= ${filters.dateTo}`);
+  const where = sql.join(conditions, sql` AND `);
 
   // Aggregate stats
-  const statsResult = await db.execute(sql.raw(`
+  const statsResult = await db.execute(sql`
     SELECT
       COUNT(*) as meeting_count,
       COALESCE(SUM(mc.total_cost::numeric), 0) as total_spend,
@@ -1632,21 +1631,21 @@ export async function getCostDashboard(filters: { channelId?: string; dateFrom?:
     FROM ime_meeting_costs mc
     JOIN meeting_records mr ON mc.meeting_id = mr.id
     WHERE ${where}
-  `));
+  `);
   const stats = (statsResult.rows as any[])[0] || {};
 
   // Top 5 most expensive
-  const topResult = await db.execute(sql.raw(`
+  const topResult = await db.execute(sql`
     SELECT mc.*, mr.title as meeting_title, mr.meeting_date
     FROM ime_meeting_costs mc
     JOIN meeting_records mr ON mc.meeting_id = mr.id
     WHERE ${where}
     ORDER BY mc.total_cost::numeric DESC
     LIMIT 5
-  `));
+  `);
 
   // Monthly cost trend (last 12 months)
-  const trendResult = await db.execute(sql.raw(`
+  const trendResult = await db.execute(sql`
     SELECT
       TO_CHAR(mr.meeting_date, 'YYYY-MM') as month,
       COUNT(*) as meeting_count,
@@ -1658,10 +1657,10 @@ export async function getCostDashboard(filters: { channelId?: string; dateFrom?:
     GROUP BY TO_CHAR(mr.meeting_date, 'YYYY-MM')
     ORDER BY month DESC
     LIMIT 12
-  `));
+  `);
 
   // Cost vs effectiveness scatter data
-  const scatterResult = await db.execute(sql.raw(`
+  const scatterResult = await db.execute(sql`
     SELECT
       mc.meeting_id,
       mr.title as meeting_title,
@@ -1674,7 +1673,7 @@ export async function getCostDashboard(filters: { channelId?: string; dateFrom?:
     WHERE ${where} AND mes.overall_score IS NOT NULL
     ORDER BY mc.total_cost::numeric DESC
     LIMIT 50
-  `));
+  `);
 
   return {
     stats: {
@@ -1840,16 +1839,16 @@ export async function extractAndTrackActionItems(meetingId: string) {
     const newCount = (Number(existing.appearance_count) || 1) + 1;
     const newStatus = newCount >= 3 && existing.status === "open" ? "stale" : existing.status;
 
-    await db.execute(sql.raw(`
+    await db.execute(sql`
       UPDATE ime_action_items
-      SET meeting_appearances = '${JSON.stringify(appearances).replace(/'/g, "''")}',
+      SET meeting_appearances = ${JSON.stringify(appearances)},
           appearance_count = ${newCount},
           last_seen_date = NOW(),
-          status = '${newStatus}',
+          status = ${newStatus},
           ai_match_confidence = ${match.confidence},
           updated_at = NOW()
       WHERE id = ${existing.id}
-    `));
+    `);
     matchedCount++;
   }
 
@@ -1857,21 +1856,21 @@ export async function extractAndTrackActionItems(meetingId: string) {
   let createdCount = 0;
   for (const item of newItems) {
     const block = newBlocks[item.index];
-    await db.execute(sql.raw(`
+    await db.execute(sql`
       INSERT INTO ime_action_items
         (content, owner, origin_meeting_id, origin_block_id, status, meeting_appearances, appearance_count, first_seen_date, last_seen_date)
       VALUES (
-        '${(item.content || block?.content || "").replace(/'/g, "''")}',
-        '${(item.owner || block?.speaker || "").replace(/'/g, "''")}',
-        '${meetingId.replace(/'/g, "''")}',
-        ${block?.id ?? 'NULL'},
+        ${item.content || block?.content || ""},
+        ${item.owner || block?.speaker || ""},
+        ${meetingId},
+        ${block?.id ?? null},
         'open',
-        '${JSON.stringify([meetingId])}',
+        ${JSON.stringify([meetingId])},
         1,
         NOW(),
         NOW()
       )
-    `));
+    `);
     createdCount++;
   }
 
@@ -1881,15 +1880,15 @@ export async function extractAndTrackActionItems(meetingId: string) {
 export async function getActionItemDashboard(filters: { status?: string; owner?: string }) {
   const db = await requireDb();
 
-  const conditions: string[] = ["1=1"];
-  if (filters.status) conditions.push(`status = '${filters.status}'`);
-  if (filters.owner) conditions.push(`owner ILIKE '%${filters.owner}%'`);
-  const where = conditions.join(" AND ");
+  const conditions: SQL[] = [sql`1=1`];
+  if (filters.status) conditions.push(sql`status = ${filters.status}`);
+  if (filters.owner) conditions.push(sql`owner ILIKE ${'%' + filters.owner + '%'}`);
+  const where = sql.join(conditions, sql` AND `);
 
   // Status counts
-  const statusResult = await db.execute(sql.raw(`
+  const statusResult = await db.execute(sql`
     SELECT status, COUNT(*) as cnt FROM ime_action_items GROUP BY status
-  `));
+  `);
   const statusCounts: Record<string, number> = {};
   for (const row of statusResult.rows as any[]) {
     statusCounts[row.status] = Number(row.cnt);
@@ -1900,23 +1899,23 @@ export async function getActionItemDashboard(filters: { status?: string; owner?:
   const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   // Avg resolution days
-  const avgResult = await db.execute(sql.raw(`
+  const avgResult = await db.execute(sql`
     SELECT AVG(EXTRACT(EPOCH FROM (resolved_date - first_seen_date)) / 86400) as avg_days
     FROM ime_action_items
     WHERE status = 'completed' AND resolved_date IS NOT NULL
-  `));
+  `);
   const avgResolutionDays = Math.round(Number((avgResult.rows as any[])[0]?.avg_days) || 0);
 
   // Stale items (top 20)
-  const staleResult = await db.execute(sql.raw(`
+  const staleResult = await db.execute(sql`
     SELECT * FROM ime_action_items
     WHERE status = 'stale'
     ORDER BY appearance_count DESC, last_seen_date DESC
     LIMIT 20
-  `));
+  `);
 
   // Owner rankings
-  const ownerResult = await db.execute(sql.raw(`
+  const ownerResult = await db.execute(sql`
     SELECT
       owner,
       COUNT(*) as total,
@@ -1927,15 +1926,15 @@ export async function getActionItemDashboard(filters: { status?: string; owner?:
     GROUP BY owner
     ORDER BY total DESC
     LIMIT 20
-  `));
+  `);
 
   // All items with filter
-  const itemsResult = await db.execute(sql.raw(`
+  const itemsResult = await db.execute(sql`
     SELECT * FROM ime_action_items
     WHERE ${where}
     ORDER BY updated_at DESC
     LIMIT 100
-  `));
+  `);
 
   return {
     statusCounts,
@@ -1950,12 +1949,12 @@ export async function getActionItemDashboard(filters: { status?: string; owner?:
 
 export async function updateActionItemStatus(itemId: number, status: string) {
   const db = await requireDb();
-  const resolvedClause = status === "completed" ? ", resolved_date = NOW()" : "";
-  await db.execute(sql.raw(`
+  const resolvedClause = status === "completed" ? sql`, resolved_date = NOW()` : sql``;
+  await db.execute(sql`
     UPDATE ime_action_items
-    SET status = '${status}'${resolvedClause}, updated_at = NOW()
+    SET status = ${status}${resolvedClause}, updated_at = NOW()
     WHERE id = ${itemId}
-  `));
+  `);
   return { success: true, itemId, status };
 }
 
@@ -2102,19 +2101,19 @@ export async function extractAndTrackTopics(meetingId: string) {
     }
 
     const resolvedClause = (newStatus === "decided" || newStatus === "closed")
-      ? `, resolved_meeting_id = '${meetingId.replace(/'/g, "''")}', resolved_date = NOW()`
-      : "";
+      ? sql`, resolved_meeting_id = ${meetingId}, resolved_date = NOW()`
+      : sql``;
 
-    await db.execute(sql.raw(`
+    await db.execute(sql`
       UPDATE ime_topic_continuity
-      SET meeting_appearances = '${JSON.stringify(appearances).replace(/'/g, "''")}',
+      SET meeting_appearances = ${JSON.stringify(appearances)},
           appearance_count = ${newCount},
           last_seen_date = NOW(),
-          status = '${newStatus}',
+          status = ${newStatus},
           ai_match_confidence = ${match.confidence}${resolvedClause},
           updated_at = NOW()
       WHERE id = ${existing.id}
-    `));
+    `);
     matchedCount++;
   }
 
@@ -2128,24 +2127,26 @@ export async function extractAndTrackTopics(meetingId: string) {
       summary: topic.summary,
     }];
 
-    const resolvedClause = (topic.status === "decided" || topic.status === "closed")
-      ? `, '${meetingId.replace(/'/g, "''")}', NOW()`
-      : ", NULL, NULL";
+    const resolvedMeetingId = (topic.status === "decided" || topic.status === "closed")
+      ? meetingId
+      : null;
 
-    await db.execute(sql.raw(`
+    await db.execute(sql`
       INSERT INTO ime_topic_continuity
         (topic_name, topic_description, status, meeting_appearances, appearance_count, first_seen_meeting_id, first_seen_date, last_seen_date, resolved_meeting_id, resolved_date)
       VALUES (
-        '${(topic.topicName || "").replace(/'/g, "''")}',
-        '${(topic.description || "").replace(/'/g, "''")}',
-        '${topic.status}',
-        '${JSON.stringify(appearance).replace(/'/g, "''")}',
+        ${topic.topicName || ""},
+        ${topic.description || ""},
+        ${topic.status},
+        ${JSON.stringify(appearance)},
         1,
-        '${meetingId.replace(/'/g, "''")}',
+        ${meetingId},
         NOW(),
-        NOW()${resolvedClause}
+        NOW(),
+        ${resolvedMeetingId},
+        ${resolvedMeetingId ? sql`NOW()` : sql`NULL`}
       )
-    `));
+    `);
     createdCount++;
   }
 
@@ -2155,44 +2156,44 @@ export async function extractAndTrackTopics(meetingId: string) {
 export async function getTopicContinuityDashboard(filters: { status?: string }) {
   const db = await requireDb();
 
-  const conditions: string[] = ["1=1"];
-  if (filters.status) conditions.push(`status = '${filters.status}'`);
-  const where = conditions.join(" AND ");
+  const conditions: SQL[] = [sql`1=1`];
+  if (filters.status) conditions.push(sql`status = ${filters.status}`);
+  const where = sql.join(conditions, sql` AND `);
 
   // Status distribution
-  const statusResult = await db.execute(sql.raw(`
+  const statusResult = await db.execute(sql`
     SELECT status, COUNT(*) as cnt FROM ime_topic_continuity GROUP BY status
-  `));
+  `);
   const statusCounts: Record<string, number> = {};
   for (const row of statusResult.rows as any[]) {
     statusCounts[row.status] = Number(row.cnt);
   }
 
   // Stalled topics (top 20)
-  const stalledResult = await db.execute(sql.raw(`
+  const stalledResult = await db.execute(sql`
     SELECT * FROM ime_topic_continuity
     WHERE status = 'stalled'
     ORDER BY appearance_count DESC, last_seen_date DESC
     LIMIT 20
-  `));
+  `);
 
   // Resolution stats
-  const resResult = await db.execute(sql.raw(`
+  const resResult = await db.execute(sql`
     SELECT
       COUNT(*) as resolved_count,
       AVG(EXTRACT(EPOCH FROM (resolved_date - first_seen_date)) / 86400) as avg_days
     FROM ime_topic_continuity
     WHERE status IN ('decided', 'closed') AND resolved_date IS NOT NULL
-  `));
+  `);
   const resStats = (resResult.rows as any[])[0] || {};
 
   // Topic timeline (last 50)
-  const timelineResult = await db.execute(sql.raw(`
+  const timelineResult = await db.execute(sql`
     SELECT * FROM ime_topic_continuity
     WHERE ${where}
     ORDER BY last_seen_date DESC
     LIMIT 50
-  `));
+  `);
 
   return {
     statusCounts,
@@ -2207,12 +2208,12 @@ export async function getTopicContinuityDashboard(filters: { status?: string }) 
 
 export async function updateTopicStatus(topicId: number, status: string) {
   const db = await requireDb();
-  const resolvedClause = (status === "decided" || status === "closed") ? ", resolved_date = NOW()" : "";
-  await db.execute(sql.raw(`
+  const resolvedClause = (status === "decided" || status === "closed") ? sql`, resolved_date = NOW()` : sql``;
+  await db.execute(sql`
     UPDATE ime_topic_continuity
-    SET status = '${status}'${resolvedClause}, updated_at = NOW()
+    SET status = ${status}${resolvedClause}, updated_at = NOW()
     WHERE id = ${topicId}
-  `));
+  `);
   return { success: true, topicId, status };
 }
 
@@ -2363,14 +2364,14 @@ export async function analyzeMeetingSentiment(meetingId: string) {
 export async function getSentimentDashboard(filters: { channelId?: string; dateFrom?: string; dateTo?: string }) {
   const db = await requireDb();
 
-  const conditions: string[] = ["1=1"];
-  if (filters.channelId) conditions.push(`mr.channel_id = '${filters.channelId}'`);
-  if (filters.dateFrom) conditions.push(`ms.analyzed_at >= '${filters.dateFrom}'`);
-  if (filters.dateTo) conditions.push(`ms.analyzed_at <= '${filters.dateTo}'`);
-  const where = conditions.join(" AND ");
+  const conditions: SQL[] = [sql`1=1`];
+  if (filters.channelId) conditions.push(sql`mr.channel_id = ${filters.channelId}`);
+  if (filters.dateFrom) conditions.push(sql`ms.analyzed_at >= ${filters.dateFrom}`);
+  if (filters.dateTo) conditions.push(sql`ms.analyzed_at <= ${filters.dateTo}`);
+  const where = sql.join(conditions, sql` AND `);
 
   // Aggregates
-  const aggResult = await db.execute(sql.raw(`
+  const aggResult = await db.execute(sql`
     SELECT
       COUNT(*) as total_analyzed,
       AVG(ms.sentiment_score) as avg_sentiment,
@@ -2379,34 +2380,34 @@ export async function getSentimentDashboard(filters: { channelId?: string; dateF
     FROM ime_meeting_sentiment ms
     LEFT JOIN meeting_records mr ON ms.meeting_id = mr.id
     WHERE ${where}
-  `));
+  `);
   const agg = (aggResult.rows as any[])[0] || {};
 
   // Sentiment distribution
-  const distResult = await db.execute(sql.raw(`
+  const distResult = await db.execute(sql`
     SELECT ms.overall_sentiment, COUNT(*) as cnt
     FROM ime_meeting_sentiment ms
     LEFT JOIN meeting_records mr ON ms.meeting_id = mr.id
     WHERE ${where}
     GROUP BY ms.overall_sentiment
-  `));
+  `);
   const distribution: Record<string, number> = {};
   for (const row of distResult.rows as any[]) {
     distribution[row.overall_sentiment] = Number(row.cnt);
   }
 
   // Tension trend (last 30 meetings)
-  const trendResult = await db.execute(sql.raw(`
+  const trendResult = await db.execute(sql`
     SELECT ms.meeting_id, mr.title, ms.tension_level, ms.sentiment_score, ms.analyzed_at
     FROM ime_meeting_sentiment ms
     LEFT JOIN meeting_records mr ON ms.meeting_id = mr.id
     WHERE ${where}
     ORDER BY ms.analyzed_at DESC
     LIMIT 30
-  `));
+  `);
 
   // Highest tension meetings
-  const highTensionResult = await db.execute(sql.raw(`
+  const highTensionResult = await db.execute(sql`
     SELECT ms.meeting_id, mr.title, mr.meeting_date, ms.tension_level,
            ms.overall_sentiment, ms.conflict_topics
     FROM ime_meeting_sentiment ms
@@ -2414,17 +2415,17 @@ export async function getSentimentDashboard(filters: { channelId?: string; dateF
     WHERE ${where}
     ORDER BY ms.tension_level DESC
     LIMIT 5
-  `));
+  `);
 
   // Speaker sentiment rankings
-  const speakerResult = await db.execute(sql.raw(`
+  const speakerResult = await db.execute(sql`
     SELECT ms.speaker_sentiments
     FROM ime_meeting_sentiment ms
     LEFT JOIN meeting_records mr ON ms.meeting_id = mr.id
     WHERE ${where} AND ms.speaker_sentiments IS NOT NULL
     ORDER BY ms.analyzed_at DESC
     LIMIT 50
-  `));
+  `);
   const speakerMap = new Map<string, { totalSentiment: number; count: number }>();
   for (const row of speakerResult.rows as any[]) {
     try {
@@ -2474,71 +2475,83 @@ export async function batchAnalyzeSentiment(meetingIds: string[]) {
 // Phase 4 — Feature 2: Meeting Health Score & Optimization
 // ============================================================================
 
+/** Convert named period to safe INTERVAL value (prevents SQL injection) */
+function safePeriodInterval(period?: string): string {
+  if (!period) return "30 days";
+  const map: Record<string, string> = {
+    "weekly": "7 days", "monthly": "30 days", "quarterly": "90 days", "yearly": "365 days",
+    "7 days": "7 days", "30 days": "30 days", "90 days": "90 days", "365 days": "365 days",
+    "14 days": "14 days", "60 days": "60 days", "180 days": "180 days",
+  };
+  return map[period] || "30 days";
+}
+
 export async function computeMeetingHealth(scope: string, scopeId?: string, period?: string) {
   const db = await requireDb();
 
-  const dateCondition = period ? `AND mr.meeting_date >= NOW() - INTERVAL '${period}'` : "";
+  const safeInterval = safePeriodInterval(period);
+  const dateCondition = period ? sql`AND mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${safeInterval}'`)}` : sql``;
   const scopeCondition = scope === "meeting" && scopeId
-    ? `AND mr.id = '${scopeId}'`
+    ? sql`AND mr.id = ${scopeId}`
     : scope === "department" && scopeId
-    ? `AND mr.channel_id = '${scopeId}'`
-    : "";
+    ? sql`AND mr.channel_id = ${scopeId}`
+    : sql``;
 
   // 1. Effectiveness scores
-  const effResult = await db.execute(sql.raw(`
+  const effResult = await db.execute(sql`
     SELECT AVG(mes.overall_score) as avg_effectiveness
     FROM meeting_effectiveness_scores mes
     JOIN meeting_records mr ON mes.meeting_id = mr.id
     WHERE 1=1 ${scopeCondition} ${dateCondition}
-  `));
+  `);
   const avgEffectiveness = Number((effResult.rows as any[])[0]?.avg_effectiveness) || 0;
 
   // 2. Cost data
-  const costResult = await db.execute(sql.raw(`
+  const costResult = await db.execute(sql`
     SELECT AVG(mc.total_cost) as avg_cost, MAX(mc.total_cost) as max_cost
     FROM ime_meeting_costs mc
     JOIN meeting_records mr ON mc.meeting_id = mr.id
     WHERE 1=1 ${scopeCondition} ${dateCondition}
-  `));
+  `);
   const avgCost = Number((costResult.rows as any[])[0]?.avg_cost) || 0;
   const maxCost = Number((costResult.rows as any[])[0]?.max_cost) || 1;
 
   // 3. Sentiment data
-  const sentResult = await db.execute(sql.raw(`
+  const sentResult = await db.execute(sql`
     SELECT AVG(ms.sentiment_score) as avg_sentiment
     FROM ime_meeting_sentiment ms
     JOIN meeting_records mr ON ms.meeting_id = mr.id
     WHERE 1=1 ${scopeCondition} ${dateCondition}
-  `));
+  `);
   const avgSentiment = Number((sentResult.rows as any[])[0]?.avg_sentiment) || 0;
 
   // 4. Action item completion rate
-  const actionResult = await db.execute(sql.raw(`
+  const actionResult = await db.execute(sql`
     SELECT
       COUNT(*) as total,
       SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
     FROM ime_action_items
-  `));
+  `);
   const actionTotal = Number((actionResult.rows as any[])[0]?.total) || 1;
   const actionCompleted = Number((actionResult.rows as any[])[0]?.completed) || 0;
 
   // 5. Topic resolution rate
-  const topicResult = await db.execute(sql.raw(`
+  const topicResult = await db.execute(sql`
     SELECT
       COUNT(*) as total,
       SUM(CASE WHEN status IN ('decided', 'closed') THEN 1 ELSE 0 END) as resolved
     FROM ime_topic_continuity
-  `));
+  `);
   const topicTotal = Number((topicResult.rows as any[])[0]?.total) || 1;
   const topicResolved = Number((topicResult.rows as any[])[0]?.resolved) || 0;
 
   // 6. Participation balance
-  const partResult = await db.execute(sql.raw(`
+  const partResult = await db.execute(sql`
     SELECT AVG(mes.participation_balance) as avg_balance
     FROM meeting_effectiveness_scores mes
     JOIN meeting_records mr ON mes.meeting_id = mr.id
     WHERE 1=1 ${scopeCondition} ${dateCondition}
-  `));
+  `);
   const avgBalance = Number((partResult.rows as any[])[0]?.avg_balance) || 0;
 
   // Compute 6 dimension scores (0-100)
@@ -2621,9 +2634,9 @@ export async function computeMeetingHealth(scope: string, scopeId?: string, peri
 
   // Delete+insert
   const scopeIdVal = scopeId || scope;
-  await db.execute(sql.raw(`
-    DELETE FROM ime_meeting_health WHERE scope = '${scope}' AND scope_id = '${scopeIdVal}'
-  `));
+  await db.execute(sql`
+    DELETE FROM ime_meeting_health WHERE scope = ${scope} AND scope_id = ${scopeIdVal}
+  `);
   await db.execute(sql`
     INSERT INTO ime_meeting_health (
       scope, scope_id, period, health_score, dimensions, grade,
@@ -2641,35 +2654,35 @@ export async function computeMeetingHealth(scope: string, scopeId?: string, peri
 export async function getHealthDashboard(filters: { scope?: string; period?: string }) {
   const db = await requireDb();
 
-  const conditions: string[] = ["1=1"];
-  if (filters.scope) conditions.push(`scope = '${filters.scope}'`);
-  const where = conditions.join(" AND ");
+  const conditions: SQL[] = [sql`1=1`];
+  if (filters.scope) conditions.push(sql`scope = ${filters.scope}`);
+  const where = sql.join(conditions, sql` AND `);
 
   // Current health records
-  const currentResult = await db.execute(sql.raw(`
+  const currentResult = await db.execute(sql`
     SELECT * FROM ime_meeting_health
     WHERE ${where}
     ORDER BY computed_at DESC
     LIMIT 1
-  `));
+  `);
   const current = (currentResult.rows as any[])[0];
 
   // Health trend (last 6 records)
-  const trendResult = await db.execute(sql.raw(`
+  const trendResult = await db.execute(sql`
     SELECT health_score, grade, dimensions, computed_at
     FROM ime_meeting_health
     WHERE ${where}
     ORDER BY computed_at DESC
     LIMIT 6
-  `));
+  `);
 
   // Department comparison (all scopes)
-  const deptResult = await db.execute(sql.raw(`
+  const deptResult = await db.execute(sql`
     SELECT DISTINCT ON (scope_id) scope_id, health_score, grade, dimensions, computed_at
     FROM ime_meeting_health
     WHERE scope = 'department'
     ORDER BY scope_id, computed_at DESC
-  `));
+  `);
 
   return {
     current: current ? {
@@ -2698,35 +2711,35 @@ export async function getOptimizationRecommendations(scope: string, scopeId?: st
 
   // Get latest health
   const scopeIdVal = scopeId || scope;
-  const healthResult = await db.execute(sql.raw(`
+  const healthResult = await db.execute(sql`
     SELECT * FROM ime_meeting_health
-    WHERE scope = '${scope}' AND scope_id = '${scopeIdVal}'
+    WHERE scope = ${scope} AND scope_id = ${scopeIdVal}
     ORDER BY computed_at DESC LIMIT 1
-  `));
+  `);
   const health = (healthResult.rows as any[])[0];
 
   // Get patterns
-  const patternsResult = await db.execute(sql.raw(`
+  const patternsResult = await db.execute(sql`
     SELECT pattern_type, pattern_data, ai_insight FROM ime_meeting_patterns
     ORDER BY created_at DESC LIMIT 10
-  `));
+  `);
 
   // Get stale action items count
-  const staleResult = await db.execute(sql.raw(`
+  const staleResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_action_items WHERE status = 'stale'
-  `));
+  `);
   const staleCount = Number((staleResult.rows as any[])[0]?.cnt) || 0;
 
   // Get stalled topics count
-  const stalledResult = await db.execute(sql.raw(`
+  const stalledResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_topic_continuity WHERE status = 'stalled'
-  `));
+  `);
   const stalledCount = Number((stalledResult.rows as any[])[0]?.cnt) || 0;
 
   // Get high tension meetings count
-  const tensionResult = await db.execute(sql.raw(`
+  const tensionResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_meeting_sentiment WHERE tension_level >= 7
-  `));
+  `);
   const highTensionCount = Number((tensionResult.rows as any[])[0]?.cnt) || 0;
 
   const healthDims = health ? JSON.parse(health.dimensions || "{}") : {};
@@ -2805,96 +2818,96 @@ export async function getOptimizationRecommendations(scope: string, scopeId?: st
 export async function generateDigest(digestType: string, scope: string, scopeId?: string, period?: string) {
   const db = await requireDb();
 
-  // Determine date range
+  // Determine date range (sanitized via allowlist)
   const days = digestType === "weekly" ? 7 : digestType === "monthly" ? 30 : 7;
-  const dateRange = period || `${days} days`;
+  const dateRange = safePeriodInterval(period || `${days} days`);
 
   // Aggregate metrics
-  const meetingResult = await db.execute(sql.raw(`
-    SELECT COUNT(*) as cnt FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL '${dateRange}'
-  `));
+  const meetingResult = await db.execute(sql`
+    SELECT COUNT(*) as cnt FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
+  `);
   const meetingCount = Number((meetingResult.rows as any[])[0]?.cnt) || 0;
 
-  const costResult = await db.execute(sql.raw(`
+  const costResult = await db.execute(sql`
     SELECT SUM(total_cost) as total, AVG(total_cost) as avg_cost
     FROM ime_meeting_costs mc
     JOIN meeting_records mr ON mc.meeting_id = mr.id
-    WHERE mr.meeting_date >= NOW() - INTERVAL '${dateRange}'
-  `));
+    WHERE mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
+  `);
   const totalCost = Number((costResult.rows as any[])[0]?.total) || 0;
 
-  const effResult = await db.execute(sql.raw(`
+  const effResult = await db.execute(sql`
     SELECT AVG(overall_score) as avg_eff
     FROM meeting_effectiveness_scores mes
     JOIN meeting_records mr ON mes.meeting_id = mr.id
-    WHERE mr.meeting_date >= NOW() - INTERVAL '${dateRange}'
-  `));
+    WHERE mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
+  `);
   const avgEffectiveness = Number((effResult.rows as any[])[0]?.avg_eff) || 0;
 
-  const sentResult = await db.execute(sql.raw(`
+  const sentResult = await db.execute(sql`
     SELECT AVG(sentiment_score) as avg_sent
     FROM ime_meeting_sentiment ms
     JOIN meeting_records mr ON ms.meeting_id = mr.id
-    WHERE mr.meeting_date >= NOW() - INTERVAL '${dateRange}'
-  `));
+    WHERE mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
+  `);
   const avgSentiment = Number((sentResult.rows as any[])[0]?.avg_sent) || 0;
 
   // Action items
-  const actionResult = await db.execute(sql.raw(`
+  const actionResult = await db.execute(sql`
     SELECT
-      SUM(CASE WHEN created_at >= NOW() - INTERVAL '${dateRange}' THEN 1 ELSE 0 END) as new_items,
-      SUM(CASE WHEN status = 'completed' AND updated_at >= NOW() - INTERVAL '${dateRange}' THEN 1 ELSE 0 END) as completed,
+      SUM(CASE WHEN created_at >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)} THEN 1 ELSE 0 END) as new_items,
+      SUM(CASE WHEN status = 'completed' AND updated_at >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)} THEN 1 ELSE 0 END) as completed,
       SUM(CASE WHEN status = 'stale' THEN 1 ELSE 0 END) as stale_count
     FROM ime_action_items
-  `));
+  `);
   const actionStats = (actionResult.rows as any[])[0] || {};
 
   // Topics
-  const topicResult = await db.execute(sql.raw(`
+  const topicResult = await db.execute(sql`
     SELECT
-      SUM(CASE WHEN first_seen_date >= NOW() - INTERVAL '${dateRange}' THEN 1 ELSE 0 END) as introduced,
-      SUM(CASE WHEN status IN ('decided', 'closed') AND resolved_date >= NOW() - INTERVAL '${dateRange}' THEN 1 ELSE 0 END) as decided,
+      SUM(CASE WHEN first_seen_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)} THEN 1 ELSE 0 END) as introduced,
+      SUM(CASE WHEN status IN ('decided', 'closed') AND resolved_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)} THEN 1 ELSE 0 END) as decided,
       SUM(CASE WHEN status = 'stalled' THEN 1 ELSE 0 END) as stalled
     FROM ime_topic_continuity
-  `));
+  `);
   const topicStats = (topicResult.rows as any[])[0] || {};
 
   // HR signals
-  const hrResult = await db.execute(sql.raw(`
-    SELECT COUNT(*) as cnt FROM ime_hr_signals WHERE created_at >= NOW() - INTERVAL '${dateRange}'
-  `));
+  const hrResult = await db.execute(sql`
+    SELECT COUNT(*) as cnt FROM ime_hr_signals WHERE created_at >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
+  `);
   const hrSignalCount = Number((hrResult.rows as any[])[0]?.cnt) || 0;
 
   // Patterns
-  const patternResult = await db.execute(sql.raw(`
-    SELECT COUNT(*) as cnt FROM ime_meeting_patterns WHERE created_at >= NOW() - INTERVAL '${dateRange}'
-  `));
+  const patternResult = await db.execute(sql`
+    SELECT COUNT(*) as cnt FROM ime_meeting_patterns WHERE created_at >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
+  `);
   const patternCount = Number((patternResult.rows as any[])[0]?.cnt) || 0;
 
   // Highlights
   const highlights: any[] = [];
 
   // Most expensive meeting
-  const expensiveResult = await db.execute(sql.raw(`
+  const expensiveResult = await db.execute(sql`
     SELECT mc.meeting_id, mr.title, mc.total_cost
     FROM ime_meeting_costs mc
     JOIN meeting_records mr ON mc.meeting_id = mr.id
-    WHERE mr.meeting_date >= NOW() - INTERVAL '${dateRange}'
+    WHERE mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
     ORDER BY mc.total_cost DESC LIMIT 1
-  `));
+  `);
   if ((expensiveResult.rows as any[])[0]) {
     const m = (expensiveResult.rows as any[])[0];
     highlights.push({ type: "cost", title: "最高成本会议", description: `${m.title}: ¥${Number(m.total_cost).toFixed(0)}`, severity: "info" });
   }
 
   // Highest tension
-  const tensionHighResult = await db.execute(sql.raw(`
+  const tensionHighResult = await db.execute(sql`
     SELECT ms.meeting_id, mr.title, ms.tension_level
     FROM ime_meeting_sentiment ms
     JOIN meeting_records mr ON ms.meeting_id = mr.id
-    WHERE mr.meeting_date >= NOW() - INTERVAL '${dateRange}'
+    WHERE mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
     ORDER BY ms.tension_level DESC LIMIT 1
-  `));
+  `);
   if ((tensionHighResult.rows as any[])[0]) {
     const m = (tensionHighResult.rows as any[])[0];
     highlights.push({ type: "tension", title: "最高紧张度会议", description: `${m.title}: 紧张度${Number(m.tension_level).toFixed(1)}/10`, severity: Number(m.tension_level) >= 7 ? "warning" : "info" });
@@ -2921,9 +2934,9 @@ export async function generateDigest(digestType: string, scope: string, scopeId?
   const alerts: any[] = [];
 
   // Health grade check
-  const healthResult = await db.execute(sql.raw(`
+  const healthResult = await db.execute(sql`
     SELECT health_score, grade FROM ime_meeting_health ORDER BY computed_at DESC LIMIT 1
-  `));
+  `);
   const latestHealth = (healthResult.rows as any[])[0];
   if (latestHealth && (latestHealth.grade === "D" || latestHealth.grade === "F")) {
     alerts.push({ alertType: "low_health", message: `会议健康度为${latestHealth.grade}级 (${Number(latestHealth.health_score).toFixed(0)}分)，需要关注`, severity: "critical" });
@@ -3013,18 +3026,18 @@ export async function generateDigest(digestType: string, scope: string, scopeId?
 export async function getDigestHistory(filters: { digestType?: string; scope?: string; limit?: number }) {
   const db = await requireDb();
 
-  const conditions: string[] = ["1=1"];
-  if (filters.digestType) conditions.push(`digest_type = '${filters.digestType}'`);
-  if (filters.scope) conditions.push(`scope = '${filters.scope}'`);
-  const where = conditions.join(" AND ");
+  const conditions: SQL[] = [sql`1=1`];
+  if (filters.digestType) conditions.push(sql`digest_type = ${filters.digestType}`);
+  if (filters.scope) conditions.push(sql`scope = ${filters.scope}`);
+  const where = sql.join(conditions, sql` AND `);
   const limit = filters.limit || 10;
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT * FROM ime_digest_alerts
     WHERE ${where}
     ORDER BY generated_at DESC
     LIMIT ${limit}
-  `));
+  `);
 
   return (result.rows as any[]).map((row: any) => ({
     id: row.id,
@@ -3044,16 +3057,16 @@ export async function getActiveAlerts(scope?: string, scopeId?: string) {
   const db = await requireDb();
 
   // Get latest digest alerts
-  const conditions: string[] = ["1=1"];
-  if (scope) conditions.push(`scope = '${scope}'`);
-  if (scopeId) conditions.push(`scope_id = '${scopeId}'`);
-  const where = conditions.join(" AND ");
+  const conditions: SQL[] = [sql`1=1`];
+  if (scope) conditions.push(sql`scope = ${scope}`);
+  if (scopeId) conditions.push(sql`scope_id = ${scopeId}`);
+  const where = sql.join(conditions, sql` AND `);
 
-  const digestResult = await db.execute(sql.raw(`
+  const digestResult = await db.execute(sql`
     SELECT alerts FROM ime_digest_alerts
     WHERE ${where}
     ORDER BY generated_at DESC LIMIT 1
-  `));
+  `);
   let digestAlerts: any[] = [];
   if ((digestResult.rows as any[])[0]) {
     digestAlerts = JSON.parse((digestResult.rows as any[])[0].alerts || "[]")
@@ -3061,21 +3074,21 @@ export async function getActiveAlerts(scope?: string, scopeId?: string) {
   }
 
   // Real-time: stale action items
-  const staleResult = await db.execute(sql.raw(`
+  const staleResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_action_items WHERE status = 'stale' AND appearance_count >= 3
-  `));
+  `);
   const staleCount = Number((staleResult.rows as any[])[0]?.cnt) || 0;
 
   // Real-time: stalled topics
-  const stalledResult = await db.execute(sql.raw(`
+  const stalledResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_topic_continuity WHERE status = 'stalled' AND appearance_count >= 3
-  `));
+  `);
   const stalledCount = Number((stalledResult.rows as any[])[0]?.cnt) || 0;
 
   // Real-time: health grade
-  const healthResult = await db.execute(sql.raw(`
+  const healthResult = await db.execute(sql`
     SELECT health_score, grade FROM ime_meeting_health ORDER BY computed_at DESC LIMIT 1
-  `));
+  `);
   const latestHealth = (healthResult.rows as any[])[0];
 
   const realTimeAlerts: any[] = [];
@@ -3128,12 +3141,12 @@ export async function computeMeetingRoi(meetingId: string) {
   const totalCost = costRow ? Number(costRow.total_cost) : 500;
 
   // 3. Count decisions and action items from content blocks
-  const blocksResult = await db.execute(sql.raw(`
+  const blocksResult = await db.execute(sql`
     SELECT block_type, COUNT(*) as cnt FROM meeting_content_blocks
-    WHERE meeting_id = '${meetingId.replace(/'/g, "''")}'
+    WHERE meeting_id = ${meetingId}
     AND block_type IN ('decision', 'action_item')
     GROUP BY block_type
-  `));
+  `);
   let decisionCount = 0, actionItemCount = 0;
   for (const row of blocksResult.rows as any[]) {
     if (row.block_type === "decision") decisionCount = Number(row.cnt);
@@ -3141,21 +3154,21 @@ export async function computeMeetingRoi(meetingId: string) {
   }
 
   // 4. Action item completion status
-  const actionResult = await db.execute(sql.raw(`
+  const actionResult = await db.execute(sql`
     SELECT COUNT(*) as total,
            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
     FROM ime_action_items
-    WHERE origin_meeting_id = '${meetingId.replace(/'/g, "''")}'
-  `));
+    WHERE origin_meeting_id = ${meetingId}
+  `);
   const actionRow = (actionResult.rows as any[])[0];
   const completedActionCount = Number(actionRow?.completed) || 0;
 
   // 5. Resolved topics linked to this meeting
-  const topicResult = await db.execute(sql.raw(`
+  const topicResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_topic_continuity
     WHERE status IN ('resolved', 'decided', 'closed')
-    AND meeting_appearances ILIKE '%${meetingId.replace(/'/g, "''")}%'
-  `));
+    AND meeting_appearances ILIKE ${'%' + meetingId + '%'}
+  `);
   const resolvedTopics = Number((topicResult.rows as any[])[0]?.cnt) || 0;
 
   // 6. LLM ROI analysis
@@ -3226,25 +3239,25 @@ export async function computeMeetingRoi(meetingId: string) {
 
   // 7. Delete+insert
   await db.execute(sql`DELETE FROM ime_meeting_roi WHERE meeting_id = ${meetingId}`);
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_meeting_roi
       (meeting_id, total_cost, decision_count, action_item_count, completed_action_count,
        cost_per_decision, cost_per_action_item, outcome_score, roi_grade, outcomes, ai_narrative, computed_at)
     VALUES (
-      '${meetingId.replace(/'/g, "''")}',
+      ${meetingId},
       ${totalCost},
       ${decisionCount},
       ${actionItemCount},
       ${completedActionCount},
-      ${costPerDecision ?? "NULL"},
-      ${costPerActionItem ?? "NULL"},
+      ${costPerDecision ?? null},
+      ${costPerActionItem ?? null},
       ${outcomeScore},
-      '${roiGrade}',
-      '${JSON.stringify(outcomes).replace(/'/g, "''")}',
-      '${(aiNarrative || "").replace(/'/g, "''")}',
+      ${roiGrade},
+      ${JSON.stringify(outcomes)},
+      ${aiNarrative || ""},
       NOW()
     )
-  `));
+  `);
 
   return { meetingId, totalCost, decisionCount, actionItemCount, completedActionCount, outcomeScore, roiGrade, outcomes, aiNarrative };
 }
@@ -3252,13 +3265,13 @@ export async function computeMeetingRoi(meetingId: string) {
 export async function getRoiDashboard(filters: { channelId?: string; dateFrom?: string; dateTo?: string }) {
   const db = await requireDb();
 
-  const conditions: string[] = ["1=1"];
-  if (filters.channelId) conditions.push(`mr.channel_id = '${filters.channelId.replace(/'/g, "''")}'`);
-  if (filters.dateFrom) conditions.push(`mr.meeting_date >= '${filters.dateFrom}'`);
-  if (filters.dateTo) conditions.push(`mr.meeting_date <= '${filters.dateTo}'`);
-  const where = conditions.join(" AND ");
+  const conditions: SQL[] = [sql`1=1`];
+  if (filters.channelId) conditions.push(sql`mr.channel_id = ${filters.channelId}`);
+  if (filters.dateFrom) conditions.push(sql`mr.meeting_date >= ${filters.dateFrom}`);
+  if (filters.dateTo) conditions.push(sql`mr.meeting_date <= ${filters.dateTo}`);
+  const where = sql.join(conditions, sql` AND `);
 
-  const statsResult = await db.execute(sql.raw(`
+  const statsResult = await db.execute(sql`
     SELECT COUNT(*) as total_analyzed,
            AVG(roi.outcome_score) as avg_score,
            AVG(roi.cost_per_decision::numeric) as avg_cost_per_decision,
@@ -3266,35 +3279,35 @@ export async function getRoiDashboard(filters: { channelId?: string; dateFrom?: 
     FROM ime_meeting_roi roi
     JOIN meeting_records mr ON roi.meeting_id = mr.id
     WHERE ${where}
-  `));
+  `);
   const stats = (statsResult.rows as any[])[0] || {};
 
-  const gradeResult = await db.execute(sql.raw(`
+  const gradeResult = await db.execute(sql`
     SELECT roi.roi_grade as grade, COUNT(*) as cnt
     FROM ime_meeting_roi roi
     JOIN meeting_records mr ON roi.meeting_id = mr.id
     WHERE ${where}
     GROUP BY roi.roi_grade
-  `));
+  `);
   const gradeDistribution = (gradeResult.rows as any[]).map((r: any) => ({ grade: r.grade, count: Number(r.cnt) }));
 
-  const bestResult = await db.execute(sql.raw(`
+  const bestResult = await db.execute(sql`
     SELECT roi.*, mr.title as meeting_title, mr.meeting_date
     FROM ime_meeting_roi roi
     JOIN meeting_records mr ON roi.meeting_id = mr.id
     WHERE ${where}
     ORDER BY roi.outcome_score DESC LIMIT 5
-  `));
+  `);
 
-  const worstResult = await db.execute(sql.raw(`
+  const worstResult = await db.execute(sql`
     SELECT roi.*, mr.title as meeting_title, mr.meeting_date
     FROM ime_meeting_roi roi
     JOIN meeting_records mr ON roi.meeting_id = mr.id
     WHERE ${where}
     ORDER BY roi.outcome_score ASC LIMIT 5
-  `));
+  `);
 
-  const deptResult = await db.execute(sql.raw(`
+  const deptResult = await db.execute(sql`
     SELECT roi.department_id,
            AVG(roi.outcome_score) as avg_score,
            AVG(roi.cost_per_decision::numeric) as avg_cost_per_decision,
@@ -3304,9 +3317,9 @@ export async function getRoiDashboard(filters: { channelId?: string; dateFrom?: 
     WHERE ${where} AND roi.department_id IS NOT NULL
     GROUP BY roi.department_id
     ORDER BY avg_score DESC
-  `));
+  `);
 
-  const trendResult = await db.execute(sql.raw(`
+  const trendResult = await db.execute(sql`
     SELECT TO_CHAR(roi.computed_at, 'YYYY-MM') as month,
            AVG(roi.outcome_score) as avg_score,
            COUNT(*) as meeting_count,
@@ -3316,9 +3329,9 @@ export async function getRoiDashboard(filters: { channelId?: string; dateFrom?: 
     WHERE ${where}
     GROUP BY TO_CHAR(roi.computed_at, 'YYYY-MM')
     ORDER BY month
-  `));
+  `);
 
-  const scatterResult = await db.execute(sql.raw(`
+  const scatterResult = await db.execute(sql`
     SELECT roi.total_cost::numeric as cost,
            roi.outcome_score as score,
            mc.participant_count as participants,
@@ -3327,7 +3340,7 @@ export async function getRoiDashboard(filters: { channelId?: string; dateFrom?: 
     JOIN meeting_records mr ON roi.meeting_id = mr.id
     LEFT JOIN ime_meeting_costs mc ON roi.meeting_id = mc.meeting_id
     WHERE ${where}
-  `));
+  `);
 
   return {
     stats: {
@@ -3371,25 +3384,25 @@ export async function optimizeAttendees(meetingId: string) {
   const meeting = (meetingResult.rows as any[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
-  const participantsResult = await db.execute(sql.raw(`
+  const participantsResult = await db.execute(sql`
     SELECT mc.employee_id, mc.employee_name,
            mc.contribution_score,
            mc.intervention_count, mc.decision_count
     FROM meeting_contributions mc
-    WHERE mc.meeting_id = '${meetingId.replace(/'/g, "''")}'
+    WHERE mc.meeting_id = ${meetingId}
     ORDER BY mc.contribution_score DESC
-  `));
+  `);
   const currentParticipants = participantsResult.rows as any[];
 
   const enrichedParticipants: any[] = [];
   for (const p of currentParticipants) {
-    const histResult = await db.execute(sql.raw(`
+    const histResult = await db.execute(sql`
       SELECT AVG(contribution_score) as avg_score,
              COUNT(*) as meeting_count,
              AVG(intervention_count) as avg_engagement
       FROM meeting_contributions
-      WHERE employee_id = '${(p.employee_id || "").replace(/'/g, "''")}'
-    `));
+      WHERE employee_id = ${p.employee_id || ""}
+    `);
     const hist = (histResult.rows as any[])[0] || {};
     enrichedParticipants.push({
       employeeId: p.employee_id,
@@ -3488,26 +3501,26 @@ export async function optimizeAttendees(meetingId: string) {
   estimatedCostSaving = Math.round(overInvitedParticipants.length * costPerPerson * (durationMinutes / 60));
 
   await db.execute(sql`DELETE FROM ime_attendee_optimization WHERE meeting_id = ${meetingId}`);
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_attendee_optimization
       (meeting_id, scope, meeting_title, meeting_topic, current_participants, recommended_participants,
        over_invited_participants, optimal_size, current_size, estimated_cost_saving, composition_advice, ai_narrative, computed_at)
     VALUES (
-      '${meetingId.replace(/'/g, "''")}',
+      ${meetingId},
       'meeting',
-      '${(meeting.title || "").replace(/'/g, "''")}',
-      '${(meeting.objective || "").replace(/'/g, "''")}',
-      '${JSON.stringify(enrichedParticipants).replace(/'/g, "''")}',
-      '${JSON.stringify(recommendedParticipants).replace(/'/g, "''")}',
-      '${JSON.stringify(overInvitedParticipants).replace(/'/g, "''")}',
+      ${meeting.title || ""},
+      ${meeting.objective || ""},
+      ${JSON.stringify(enrichedParticipants)},
+      ${JSON.stringify(recommendedParticipants)},
+      ${JSON.stringify(overInvitedParticipants)},
       ${optimalSize},
       ${currentParticipants.length},
       ${estimatedCostSaving},
-      ${compositionAdvice ? `'${JSON.stringify(compositionAdvice).replace(/'/g, "''")}'` : "NULL"},
-      '${(aiNarrative || "").replace(/'/g, "''")}',
+      ${compositionAdvice ? JSON.stringify(compositionAdvice) : null},
+      ${aiNarrative || ""},
       NOW()
     )
-  `));
+  `);
 
   return {
     meetingId,
@@ -3525,24 +3538,24 @@ export async function optimizeAttendees(meetingId: string) {
 export async function getOptimizationDashboard(filters: { department?: string; dateFrom?: string; dateTo?: string }) {
   const db = await requireDb();
 
-  const conditions: string[] = ["1=1"];
-  if (filters.department) conditions.push(`ao.meeting_title ILIKE '%${filters.department.replace(/'/g, "''")}%'`);
-  if (filters.dateFrom) conditions.push(`ao.computed_at >= '${filters.dateFrom}'`);
-  if (filters.dateTo) conditions.push(`ao.computed_at <= '${filters.dateTo}'`);
-  const where = conditions.join(" AND ");
+  const conditions: SQL[] = [sql`1=1`];
+  if (filters.department) conditions.push(sql`ao.meeting_title ILIKE ${'%' + filters.department + '%'}`);
+  if (filters.dateFrom) conditions.push(sql`ao.computed_at >= ${filters.dateFrom}`);
+  if (filters.dateTo) conditions.push(sql`ao.computed_at <= ${filters.dateTo}`);
+  const where = sql.join(conditions, sql` AND `);
 
-  const statsResult = await db.execute(sql.raw(`
+  const statsResult = await db.execute(sql`
     SELECT COUNT(*) as total_optimized,
            AVG(ao.estimated_cost_saving::numeric) as avg_saving,
            AVG(ao.current_size - ao.optimal_size) as avg_size_gap
     FROM ime_attendee_optimization ao
     WHERE ${where}
-  `));
+  `);
   const stats = (statsResult.rows as any[])[0] || {};
 
-  const recentResult = await db.execute(sql.raw(`
+  const recentResult = await db.execute(sql`
     SELECT ao.over_invited_participants FROM ime_attendee_optimization ao WHERE ${where}
-  `));
+  `);
   const overInvitedFreq: Record<string, { name: string; count: number }> = {};
   for (const row of recentResult.rows as any[]) {
     try {
@@ -3556,11 +3569,11 @@ export async function getOptimizationDashboard(filters: { department?: string; d
   }
   const overInvitedRankings = Object.values(overInvitedFreq).sort((a, b) => b.count - a.count).slice(0, 20);
 
-  const recentOptResult = await db.execute(sql.raw(`
+  const recentOptResult = await db.execute(sql`
     SELECT * FROM ime_attendee_optimization ao
     WHERE ${where}
     ORDER BY ao.computed_at DESC LIMIT 20
-  `));
+  `);
 
   return {
     stats: {
@@ -3576,13 +3589,14 @@ export async function getOptimizationDashboard(filters: { department?: string; d
 export async function suggestParticipantsForTopic(topic: string, excludeIds?: string[]) {
   const db = await requireDb();
 
-  const topicResult = await db.execute(sql.raw(`
+  const topicLike = '%' + topic + '%';
+  const topicResult = await db.execute(sql`
     SELECT topic_name, meeting_appearances FROM ime_topic_continuity
-    WHERE topic_name ILIKE '%${topic.replace(/'/g, "''")}%'
-    OR topic_description ILIKE '%${topic.replace(/'/g, "''")}%'
+    WHERE topic_name ILIKE ${topicLike}
+    OR topic_description ILIKE ${topicLike}
     ORDER BY appearance_count DESC
     LIMIT 20
-  `));
+  `);
 
   const meetingIds = new Set<string>();
   for (const row of topicResult.rows as any[]) {
@@ -3598,23 +3612,23 @@ export async function suggestParticipantsForTopic(topic: string, excludeIds?: st
     return { topic, suggestions: [], message: "未找到相关议题的历史会议" };
   }
 
-  const idList = Array.from(meetingIds).map((id) => `'${id.replace(/'/g, "''")}'`).join(",");
+  const idListSql = sql.join(Array.from(meetingIds).map((id) => sql`${id}`), sql`, `);
   const excludeClause = excludeIds && excludeIds.length > 0
-    ? `AND mc.employee_id NOT IN (${excludeIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(",")})`
-    : "";
+    ? sql`AND mc.employee_id NOT IN (${sql.join(excludeIds.map((id) => sql`${id}`), sql`, `)})`
+    : sql``;
 
-  const contribResult = await db.execute(sql.raw(`
+  const contribResult = await db.execute(sql`
     SELECT mc.employee_id, mc.employee_name,
            AVG(mc.contribution_score) as avg_score,
            COUNT(*) as topic_meeting_count,
            SUM(mc.decision_count) as total_decisions
     FROM meeting_contributions mc
-    WHERE mc.meeting_id IN (${idList}) ${excludeClause}
+    WHERE mc.meeting_id IN (${idListSql}) ${excludeClause}
     GROUP BY mc.employee_id, mc.employee_name
     HAVING COUNT(*) >= 1
     ORDER BY avg_score DESC
     LIMIT 10
-  `));
+  `);
 
   const suggestions = (contribResult.rows as any[]).map((r: any) => ({
     employeeId: r.employee_id,
@@ -3641,7 +3655,7 @@ export async function predictMeetingEffectiveness(meetingId: string) {
   const meeting = (meetingResult.rows as any[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
-  const participantsResult = await db.execute(sql.raw(`
+  const participantsResult = await db.execute(sql`
     SELECT mc.employee_id, mc.employee_name,
            AVG(mc.contribution_score) as avg_score,
            STDDEV(mc.contribution_score) as score_variance,
@@ -3649,10 +3663,10 @@ export async function predictMeetingEffectiveness(meetingId: string) {
            AVG(mc.intervention_count) as avg_interventions
     FROM meeting_contributions mc
     WHERE mc.employee_id IN (
-      SELECT DISTINCT employee_id FROM meeting_contributions WHERE meeting_id = '${meetingId.replace(/'/g, "''")}'
+      SELECT DISTINCT employee_id FROM meeting_contributions WHERE meeting_id = ${meetingId}
     )
     GROUP BY mc.employee_id, mc.employee_name
-  `));
+  `);
   const participants = participantsResult.rows as any[];
   const avgParticipantScore = participants.length > 0
     ? participants.reduce((sum: number, p: any) => sum + Number(p.avg_score || 0), 0) / participants.length
@@ -3661,28 +3675,28 @@ export async function predictMeetingEffectiveness(meetingId: string) {
     ? participants.filter((p: any) => Number(p.avg_score) >= 70).length / participants.length
     : 0;
 
-  const channelResult = await db.execute(sql.raw(`
+  const channelResult = await db.execute(sql`
     SELECT AVG(mes.overall_score) as avg_effectiveness
     FROM meeting_effectiveness_scores mes
     JOIN meeting_records mr ON mes.meeting_id = mr.id
-    WHERE mr.channel_id = '${(meeting.channel_id || "").replace(/'/g, "''")}'
-  `));
+    WHERE mr.channel_id = ${(meeting.channel_id || "")}
+  `);
   const channelAvg = Number((channelResult.rows as any[])[0]?.avg_effectiveness) || 50;
 
-  const recentResult = await db.execute(sql.raw(`
+  const recentResult = await db.execute(sql`
     SELECT mes.overall_score FROM meeting_effectiveness_scores mes
     JOIN meeting_records mr ON mes.meeting_id = mr.id
-    WHERE mr.channel_id = '${(meeting.channel_id || "").replace(/'/g, "''")}'
+    WHERE mr.channel_id = ${(meeting.channel_id || "")}
     ORDER BY mr.meeting_date DESC LIMIT 5
-  `));
+  `);
   const recentScores = (recentResult.rows as any[]).map((r: any) => Number(r.overall_score));
   const recentTrend = recentScores.length >= 2
     ? (recentScores[0] - recentScores[recentScores.length - 1]) / recentScores.length
     : 0;
 
-  const stalledResult = await db.execute(sql.raw(`
+  const stalledResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_topic_continuity WHERE status = 'stalled'
-  `));
+  `);
   const stalledTopics = Number((stalledResult.rows as any[])[0]?.cnt) || 0;
 
   let predictedScore = 50, confidenceLevel = 0.5, riskLevel = "medium";
@@ -3762,27 +3776,27 @@ export async function predictMeetingEffectiveness(meetingId: string) {
     riskLevel = predictedScore >= 70 ? "low" : predictedScore >= 40 ? "medium" : "high";
   }
 
-  await db.execute(sql.raw(`
-    DELETE FROM ime_meeting_predictions WHERE meeting_id = '${meetingId.replace(/'/g, "''")}' AND prediction_type = 'effectiveness'
-  `));
-  await db.execute(sql.raw(`
+  await db.execute(sql`
+    DELETE FROM ime_meeting_predictions WHERE meeting_id = ${meetingId} AND prediction_type = 'effectiveness'
+  `);
+  await db.execute(sql`
     INSERT INTO ime_meeting_predictions
       (meeting_id, scope, prediction_type, predicted_score, confidence_level, risk_level,
        risk_factors, features, recommendations, ai_narrative, predicted_at)
     VALUES (
-      '${meetingId.replace(/'/g, "''")}',
+      ${meetingId},
       'meeting',
       'effectiveness',
       ${predictedScore},
       ${confidenceLevel},
-      '${riskLevel}',
-      '${JSON.stringify(riskFactors).replace(/'/g, "''")}',
-      '${JSON.stringify({ avgParticipantScore, channelAvg, recentTrend, highPerformerRatio, stalledTopics, participantCount: participants.length }).replace(/'/g, "''")}',
-      '${JSON.stringify(recommendations).replace(/'/g, "''")}',
-      '${(aiNarrative || "").replace(/'/g, "''")}',
+      ${riskLevel},
+      ${JSON.stringify(riskFactors)},
+      '${JSON.stringify({ avgParticipantScore, channelAvg, recentTrend, highPerformerRatio, stalledTopics, participantCount: participants.length })}',
+      ${JSON.stringify(recommendations)},
+      ${(aiNarrative || "")},
       NOW()
     )
-  `));
+  `);
 
   return {
     meetingId,
@@ -3801,17 +3815,17 @@ export async function detectMeetingFatigue(scope: string, scopeId?: string, peri
 
   const dateRange = period === "monthly" ? "30 days" : period === "quarterly" ? "90 days" : "60 days";
   const scopeCondition = scopeId
-    ? `AND mr.channel_id = '${scopeId.replace(/'/g, "''")}'`
-    : "";
+    ? sql`AND mr.channel_id = ${scopeId}`
+    : sql``;
 
-  const engagementResult = await db.execute(sql.raw(`
+  const engagementResult = await db.execute(sql`
     SELECT pe.meeting_id, pe.engagement_level, pe.engagement_score,
            mr.meeting_date, mr.channel_id
     FROM ime_participant_engagement pe
     JOIN meeting_records mr ON pe.meeting_id = mr.id
-    WHERE mr.meeting_date >= NOW() - INTERVAL '${dateRange}' ${scopeCondition}
+    WHERE mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)} ${scopeCondition}
     ORDER BY mr.meeting_date ASC
-  `));
+  `);
   const engagements = engagementResult.rows as any[];
 
   if (engagements.length === 0) {
@@ -3903,25 +3917,25 @@ export async function detectMeetingFatigue(scope: string, scopeId?: string, peri
     confidence: Math.max(0.2, 0.8 - i * 0.15),
   }));
 
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_meeting_predictions
       (meeting_id, scope, scope_id, prediction_type, predicted_score, confidence_level, risk_level,
        fatigue_index, trend_forecast, recommendations, ai_narrative, predicted_at)
     VALUES (
       '',
-      '${(scope || "").replace(/'/g, "''")}',
-      ${scopeId ? `'${scopeId.replace(/'/g, "''")}'` : "NULL"},
+      ${(scope || "")},
+      ${scopeId ? `${scopeId}` : "NULL"},
       'fatigue',
       ${Math.round(avgScore)},
       0.7,
-      '${fatigueIndex >= 60 ? "high" : fatigueIndex >= 30 ? "medium" : "low"}',
+      ${fatigueIndex >= 60 ? "high" : fatigueIndex >= 30 ? "medium" : "low"},
       ${fatigueIndex},
-      '${JSON.stringify(trendForecast).replace(/'/g, "''")}',
-      '${JSON.stringify(recommendations).replace(/'/g, "''")}',
-      '${(aiNarrative || "").replace(/'/g, "''")}',
+      ${JSON.stringify(trendForecast)},
+      ${JSON.stringify(recommendations)},
+      ${(aiNarrative || "")},
       NOW()
     )
-  `));
+  `);
 
   return {
     scope,
@@ -3938,11 +3952,11 @@ export async function detectMeetingFatigue(scope: string, scopeId?: string, peri
 export async function getPredictionDashboard(filters: { scope?: string; period?: string }) {
   const db = await requireDb();
 
-  const conditions: string[] = ["1=1"];
-  if (filters.scope) conditions.push(`p.scope = '${filters.scope.replace(/'/g, "''")}'`);
-  const where = conditions.join(" AND ");
+  const conditions: SQL[] = [sql`1=1`];
+  if (filters.scope) conditions.push(sql`p.scope = ${filters.scope}`);
+  const where = sql.join(conditions, sql` AND `);
 
-  const typeStatsResult = await db.execute(sql.raw(`
+  const typeStatsResult = await db.execute(sql`
     SELECT p.prediction_type,
            COUNT(*) as cnt,
            AVG(p.predicted_score) as avg_predicted,
@@ -3950,38 +3964,38 @@ export async function getPredictionDashboard(filters: { scope?: string; period?:
     FROM ime_meeting_predictions p
     WHERE ${where}
     GROUP BY p.prediction_type
-  `));
+  `);
 
-  const atRiskResult = await db.execute(sql.raw(`
+  const atRiskResult = await db.execute(sql`
     SELECT p.*, mr.title as meeting_title, mr.meeting_date
     FROM ime_meeting_predictions p
     LEFT JOIN meeting_records mr ON p.meeting_id = mr.id
     WHERE ${where} AND p.prediction_type = 'effectiveness' AND p.risk_level IN ('high', 'medium')
     ORDER BY p.predicted_score ASC
     LIMIT 20
-  `));
+  `);
 
-  const accuracyResult = await db.execute(sql.raw(`
+  const accuracyResult = await db.execute(sql`
     SELECT COUNT(*) as total,
            AVG(p.prediction_accuracy) as avg_accuracy,
            AVG(ABS(p.predicted_score - p.actual_score)) as avg_error
     FROM ime_meeting_predictions p
     WHERE ${where} AND p.actual_score IS NOT NULL
-  `));
+  `);
   const accuracy = (accuracyResult.rows as any[])[0] || {};
 
-  const fatigueResult = await db.execute(sql.raw(`
+  const fatigueResult = await db.execute(sql`
     SELECT DISTINCT ON (p.scope_id) p.scope_id, p.fatigue_index, p.risk_level, p.ai_narrative
     FROM ime_meeting_predictions p
     WHERE p.prediction_type = 'fatigue' AND p.fatigue_index IS NOT NULL
     ORDER BY p.scope_id, p.predicted_at DESC
-  `));
+  `);
 
-  const riskFactorResult = await db.execute(sql.raw(`
+  const riskFactorResult = await db.execute(sql`
     SELECT p.risk_factors FROM ime_meeting_predictions p
     WHERE ${where} AND p.risk_factors IS NOT NULL AND p.risk_factors != '[]'
     ORDER BY p.predicted_at DESC LIMIT 50
-  `));
+  `);
   const factorFreq: Record<string, number> = {};
   for (const row of riskFactorResult.rows as any[]) {
     try {
@@ -4032,11 +4046,11 @@ export async function generateExecutiveDashboardExcel(filters?: {
 
   // Build WHERE clause fragments
   const whereParts: string[] = [];
-  if (filters?.channelId) whereParts.push(`mr.channel_id = '${filters.channelId.replace(/'/g, "''")}'`);
-  if (filters?.dateFrom) whereParts.push(`mr.meeting_date >= '${filters.dateFrom.replace(/'/g, "''")}'`);
-  if (filters?.dateTo) whereParts.push(`mr.meeting_date <= '${filters.dateTo.replace(/'/g, "''")}'`);
-  const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
-  const andClause = whereParts.length > 0 ? `AND ${whereParts.join(" AND ")}` : "";
+  if (filters?.channelId) whereParts.push(`mr.channel_id = ${filters.channelId}`);
+  if (filters?.dateFrom) whereParts.push(`mr.meeting_date >= ${filters.dateFrom}`);
+  if (filters?.dateTo) whereParts.push(`mr.meeting_date <= ${filters.dateTo}`);
+  const whereClause = whereParts.length > 0 ? sql`WHERE ${whereParts.join(" AND ")}` : sql``;
+  const andClause = whereParts.length > 0 ? sql`AND ${whereParts.join(" AND ")}` : sql``;
 
   const headerStyle: Partial<ExcelJS.Style> = {
     font: { bold: true, color: { argb: "FFFFFFFF" } },
@@ -4050,21 +4064,17 @@ export async function generateExecutiveDashboardExcel(filters?: {
     { header: "值", key: "value", width: 25 },
   ];
 
-  const meetingCountRes = await db.execute(sql.raw(
-    `SELECT COUNT(*) as cnt, AVG(mes.overall_score) as avg_eff
+  const meetingCountRes = await db.execute(sql`SELECT COUNT(*) as cnt, AVG(mes.overall_score) as avg_eff
      FROM meeting_records mr
      LEFT JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id
-     ${whereClause}`
-  ));
+     ${whereClause}`);
   const overview = (meetingCountRes.rows as any[])[0] || {};
 
-  const topContribRes = await db.execute(sql.raw(
-    `SELECT mc.employee_name, AVG(mc.contribution_score) as avg_score, COUNT(*) as meetings
+  const topContribRes = await db.execute(sql`SELECT mc.employee_name, AVG(mc.contribution_score) as avg_score, COUNT(*) as meetings
      FROM meeting_contributions mc
      JOIN meeting_records mr ON mc.meeting_id = mr.id
      ${whereClause}
-     GROUP BY mc.employee_name ORDER BY avg_score DESC LIMIT 10`
-  ));
+     GROUP BY mc.employee_name ORDER BY avg_score DESC LIMIT 10`);
 
   overviewSheet.addRows([
     { metric: "会议总数", value: Number(overview.cnt) || 0 },
@@ -4088,13 +4098,12 @@ export async function generateExecutiveDashboardExcel(filters?: {
     { header: "结果数", key: "outcomes", width: 10 },
     { header: "计算日期", key: "date", width: 18 },
   ];
-  const roiRes = await db.execute(sql.raw(
-    `SELECT mr.title, roi.roi_grade, roi.total_cost, roi.roi_score, roi.tangible_outcome_count, roi.computed_at
+  const roiRes = await db.execute(sql`SELECT mr.title, roi.roi_grade, roi.total_cost, roi.roi_score, roi.tangible_outcome_count, roi.computed_at
      FROM ime_meeting_roi roi
      JOIN meeting_records mr ON roi.meeting_id = mr.id
-     ${whereClause.replace(/\bmr\./g, "mr.")}
-     ORDER BY roi.computed_at DESC`
-  ));
+     ${whereClause}
+     LIMIT 1000
+     ORDER BY roi.computed_at DESC`);
   for (const r of roiRes.rows as any[]) {
     const row = roiSheet.addRow({
       meeting: r.title, grade: r.roi_grade, cost: Number(r.total_cost || 0).toFixed(2),
@@ -4118,13 +4127,12 @@ export async function generateExecutiveDashboardExcel(filters?: {
     { header: "协作度", key: "collaboration", width: 10 },
     { header: "分析日期", key: "date", width: 18 },
   ];
-  const sentRes = await db.execute(sql.raw(
-    `SELECT mr.title, s.overall_sentiment, s.tension_level, s.collaboration_score, s.analyzed_at
+  const sentRes = await db.execute(sql`SELECT mr.title, s.overall_sentiment, s.tension_level, s.collaboration_score, s.analyzed_at
      FROM ime_meeting_sentiment s
      JOIN meeting_records mr ON s.meeting_id = mr.id
-     ${whereClause.replace(/\bmr\./g, "mr.")}
-     ORDER BY s.analyzed_at DESC`
-  ));
+     ${whereClause}
+     LIMIT 1000
+     ORDER BY s.analyzed_at DESC`);
   for (const r of sentRes.rows as any[]) {
     sentimentSheet.addRow({
       meeting: r.title, sentiment: r.overall_sentiment,
@@ -4144,10 +4152,9 @@ export async function generateExecutiveDashboardExcel(filters?: {
     { header: "行动项完成率", key: "aiRate", width: 14 },
     { header: "期间", key: "period", width: 15 },
   ];
-  const deptRes = await db.execute(sql.raw(
-    `SELECT department, meeting_count, avg_effectiveness_score, avg_cost_per_meeting, action_item_completion_rate, period
-     FROM ime_department_rollups ORDER BY avg_effectiveness_score DESC`
-  ));
+  const deptRes = await db.execute(sql`SELECT department, meeting_count, avg_effectiveness_score, avg_cost_per_meeting, action_item_completion_rate, period
+    LIMIT 1000
+     FROM ime_department_rollups ORDER BY avg_effectiveness_score DESC`);
   for (const r of deptRes.rows as any[]) {
     deptSheet.addRow({
       dept: r.department, count: Number(r.meeting_count) || 0,
@@ -4169,13 +4176,12 @@ export async function generateExecutiveDashboardExcel(filters?: {
     { header: "截止日期", key: "dueDate", width: 15 },
     { header: "来源会议", key: "meeting", width: 25 },
   ];
-  const actionRes = await db.execute(sql.raw(
-    `SELECT ai.content, ai.assigned_to, ai.status, ai.priority, ai.due_date, mr.title
+  const actionRes = await db.execute(sql`SELECT ai.content, ai.assigned_to, ai.status, ai.priority, ai.due_date, mr.title
      FROM ime_action_items ai
      JOIN meeting_records mr ON ai.meeting_id = mr.id
-     ${whereClause.replace(/\bmr\./g, "mr.")}
-     ORDER BY ai.created_at DESC`
-  ));
+     ${whereClause}
+     LIMIT 1000
+     ORDER BY ai.created_at DESC`);
   for (const r of actionRes.rows as any[]) {
     const row = actionSheet.addRow({
       content: r.content, owner: r.assigned_to, status: r.status,
@@ -4199,12 +4205,11 @@ export async function generateExecutiveDashboardExcel(filters?: {
     { header: "风险等级", key: "risk", width: 10 },
     { header: "疲劳指数", key: "fatigue", width: 10 },
   ];
-  const predRes = await db.execute(sql.raw(
-    `SELECT mr.title, p.prediction_type, p.predicted_score, p.confidence_level, p.risk_level, p.fatigue_index
+  const predRes = await db.execute(sql`SELECT mr.title, p.prediction_type, p.predicted_score, p.confidence_level, p.risk_level, p.fatigue_index
      FROM ime_meeting_predictions p
      JOIN meeting_records mr ON p.meeting_id = mr.id
-     ORDER BY p.predicted_at DESC`
-  ));
+     LIMIT 1000
+     ORDER BY p.predicted_at DESC`);
   for (const r of predRes.rows as any[]) {
     const row = predSheet.addRow({
       meeting: r.title, type: r.prediction_type,
@@ -4228,12 +4233,11 @@ export async function generateExecutiveDashboardExcel(filters?: {
     { header: "过多邀请", key: "overInvited", width: 12 },
     { header: "预估节省", key: "saving", width: 15 },
   ];
-  const optRes = await db.execute(sql.raw(
-    `SELECT mr.title, o.current_count, o.optimal_count, o.over_invited_count, o.estimated_cost_saving
+  const optRes = await db.execute(sql`SELECT mr.title, o.current_count, o.optimal_count, o.over_invited_count, o.estimated_cost_saving
      FROM ime_attendee_optimization o
      JOIN meeting_records mr ON o.meeting_id = mr.id
-     ORDER BY o.estimated_cost_saving DESC`
-  ));
+     LIMIT 1000
+     ORDER BY o.estimated_cost_saving DESC`);
   for (const r of optRes.rows as any[]) {
     optSheet.addRow({
       meeting: r.title, current: Number(r.current_count) || 0,
@@ -4250,10 +4254,10 @@ export async function generateExecutiveDashboardExcel(filters?: {
   const filename = `IME-仪表盘导出-${dateStr}.xlsx`;
 
   // Record export history
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_report_exports (report_type, scope, filters, format, filename, file_size, generated_by, generated_at, created_at)
-    VALUES ('dashboard', 'all', '${JSON.stringify(filters || {}).replace(/'/g, "''")}', 'xlsx', '${filename.replace(/'/g, "''")}', ${Buffer.from(buffer).length}, 'system', NOW(), NOW())
-  `));
+    VALUES ('dashboard', 'all', '${JSON.stringify(filters || {})}', 'xlsx', ${filename}, ${Buffer.from(buffer).length}, 'system', NOW(), NOW())
+  `);
 
   return { base64, filename };
 }
@@ -4316,12 +4320,12 @@ export async function generateMeetingReport(meetingId: string) {
   const meeting = (meetingRes.rows as any[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
-  const contribRes = await db.execute(sql`SELECT * FROM meeting_contributions WHERE meeting_id = ${meetingId} ORDER BY contribution_score DESC`);
+  const contribRes = await db.execute(sql`SELECT * FROM meeting_contributions WHERE meeting_id = ${meetingId} ORDER BY contribution_score DESC LIMIT 1000`);
   const effRes = await db.execute(sql`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = ${meetingId} LIMIT 1`);
   const sentimentRes = await db.execute(sql`SELECT * FROM ime_meeting_sentiment WHERE meeting_id = ${meetingId} LIMIT 1`);
   const roiRes = await db.execute(sql`SELECT * FROM ime_meeting_roi WHERE meeting_id = ${meetingId} LIMIT 1`);
-  const actionRes = await db.execute(sql`SELECT * FROM ime_action_items WHERE meeting_id = ${meetingId} ORDER BY priority DESC`);
-  const topicRes = await db.execute(sql`SELECT * FROM ime_topic_continuity WHERE meeting_id = ${meetingId}`);
+  const actionRes = await db.execute(sql`SELECT * FROM ime_action_items WHERE meeting_id = ${meetingId} ORDER BY priority DESC LIMIT 1000`);
+  const topicRes = await db.execute(sql`SELECT * FROM ime_topic_continuity WHERE meeting_id = ${meetingId} LIMIT 1000`);
   const optRes = await db.execute(sql`SELECT * FROM ime_attendee_optimization WHERE meeting_id = ${meetingId} LIMIT 1`);
 
   const contributions = contribRes.rows as any[];
@@ -4543,46 +4547,46 @@ export async function generateBenchmarkReport(
   const prevStart = new Date(now.getTime() - periodDays * 2 * 86400000).toISOString().slice(0, 10);
 
   // Build scope filter
-  let scopeFilter = "";
+  let scopeFilter: SQL = sql``;
   if (scope === "channel" && scopeId) {
-    scopeFilter = `AND mr.channel_id = '${scopeId.replace(/'/g, "''")}'`;
+    scopeFilter = sql`AND mr.channel_id = ${scopeId}`;
   } else if (scope === "department" && scopeId) {
-    scopeFilter = `AND mr.channel_id IN (SELECT id FROM meeting_records WHERE summary LIKE '%${scopeId.replace(/'/g, "''")}%')`;
+    scopeFilter = sql`AND mr.channel_id IN (SELECT id FROM meeting_records WHERE summary LIKE ${`%${scopeId}%`})`;
   }
 
   // Query metrics for a given date range
   async function queryPeriodMetrics(dateFrom: string, dateTo: string) {
-    const meetingStats = await db.execute(sql.raw(`
+    const meetingStats = await db.execute(sql`
       SELECT COUNT(*) as cnt, AVG(mes.overall_score) as avg_eff
       FROM meeting_records mr
       LEFT JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id
-      WHERE mr.meeting_date >= '${dateFrom}' AND mr.meeting_date <= '${dateTo}' ${scopeFilter}
-    `));
-    const costStats = await db.execute(sql.raw(`
+      WHERE mr.meeting_date >= ${dateFrom} AND mr.meeting_date <= ${dateTo} ${scopeFilter}
+    `);
+    const costStats = await db.execute(sql`
       SELECT AVG(mc.total_cost) as avg_cost
       FROM ime_meeting_costs mc
       JOIN meeting_records mr ON mc.meeting_id = mr.id
-      WHERE mr.meeting_date >= '${dateFrom}' AND mr.meeting_date <= '${dateTo}' ${scopeFilter}
-    `));
-    const actionStats = await db.execute(sql.raw(`
+      WHERE mr.meeting_date >= ${dateFrom} AND mr.meeting_date <= ${dateTo} ${scopeFilter}
+    `);
+    const actionStats = await db.execute(sql`
       SELECT COUNT(*) as total, SUM(CASE WHEN ai.status = 'completed' THEN 1 ELSE 0 END) as completed
       FROM ime_action_items ai
       JOIN meeting_records mr ON ai.meeting_id = mr.id
-      WHERE mr.meeting_date >= '${dateFrom}' AND mr.meeting_date <= '${dateTo}' ${scopeFilter}
-    `));
-    const roiStats = await db.execute(sql.raw(`
+      WHERE mr.meeting_date >= ${dateFrom} AND mr.meeting_date <= ${dateTo} ${scopeFilter}
+    `);
+    const roiStats = await db.execute(sql`
       SELECT AVG(roi.roi_score) as avg_roi
       FROM ime_meeting_roi roi
       JOIN meeting_records mr ON roi.meeting_id = mr.id
-      WHERE mr.meeting_date >= '${dateFrom}' AND mr.meeting_date <= '${dateTo}' ${scopeFilter}
-    `));
-    const fatigueStats = await db.execute(sql.raw(`
+      WHERE mr.meeting_date >= ${dateFrom} AND mr.meeting_date <= ${dateTo} ${scopeFilter}
+    `);
+    const fatigueStats = await db.execute(sql`
       SELECT AVG(p.fatigue_index) as avg_fatigue
       FROM ime_meeting_predictions p
       JOIN meeting_records mr ON p.meeting_id = mr.id
-      WHERE mr.meeting_date >= '${dateFrom}' AND mr.meeting_date <= '${dateTo}' ${scopeFilter}
+      WHERE mr.meeting_date >= ${dateFrom} AND mr.meeting_date <= ${dateTo} ${scopeFilter}
       AND p.fatigue_index IS NOT NULL
-    `));
+    `);
 
     const ms = (meetingStats.rows as any[])[0] || {};
     const cs = (costStats.rows as any[])[0] || {};
@@ -4615,27 +4619,27 @@ export async function generateBenchmarkReport(
   }
 
   // Top 3 best + worst meetings in current period
-  const bestRes = await db.execute(sql.raw(`
+  const bestRes = await db.execute(sql`
     SELECT mr.title, mes.overall_score FROM meeting_records mr
     JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id
-    WHERE mr.meeting_date >= '${currentStart}' AND mr.meeting_date <= '${currentEnd}' ${scopeFilter}
+    WHERE mr.meeting_date >= ${currentStart} AND mr.meeting_date <= ${currentEnd} ${scopeFilter}
     ORDER BY mes.overall_score DESC LIMIT 3
-  `));
-  const worstRes = await db.execute(sql.raw(`
+  `);
+  const worstRes = await db.execute(sql`
     SELECT mr.title, mes.overall_score FROM meeting_records mr
     JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id
-    WHERE mr.meeting_date >= '${currentStart}' AND mr.meeting_date <= '${currentEnd}' ${scopeFilter}
+    WHERE mr.meeting_date >= ${currentStart} AND mr.meeting_date <= ${currentEnd} ${scopeFilter}
     ORDER BY mes.overall_score ASC LIMIT 3
-  `));
+  `);
 
   // Recommendations from predictions
-  const recsRes = await db.execute(sql.raw(`
+  const recsRes = await db.execute(sql`
     SELECT recommendations FROM ime_meeting_predictions p
     JOIN meeting_records mr ON p.meeting_id = mr.id
-    WHERE mr.meeting_date >= '${currentStart}' AND mr.meeting_date <= '${currentEnd}' ${scopeFilter}
+    WHERE mr.meeting_date >= ${currentStart} AND mr.meeting_date <= ${currentEnd} ${scopeFilter}
     AND p.recommendations IS NOT NULL
     ORDER BY p.predicted_at DESC LIMIT 5
-  `));
+  `);
 
   // Build PDF
   const doc = new PDFDocument({ size: "A4", margin: 50 });
@@ -4738,12 +4742,10 @@ export async function generateBenchmarkReport(
   const filename = `IME-基准报告-${scope}-${periodLabel}-${dateStr}.pdf`;
 
   // Record export
-  const safeScope = scope.replace(/'/g, "''");
-  const safeScopeId = (scopeId || "").replace(/'/g, "''");
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_report_exports (report_type, scope, scope_id, format, filename, file_size, generated_by, generated_at, created_at)
-    VALUES ('benchmark', '${safeScope}', '${safeScopeId}', 'pdf', '${filename.replace(/'/g, "''")}', ${pdfBuffer.length}, 'system', NOW(), NOW())
-  `));
+    VALUES ('benchmark', ${scope}, ${scopeId || ""}, 'pdf', ${filename}, ${pdfBuffer.length}, 'system', NOW(), NOW())
+  `);
 
   return { base64, filename };
 }
@@ -4760,7 +4762,7 @@ export async function extractKnowledgeEntities(meetingId: string) {
   const meeting = (meetingRes.rows as any[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
-  const blocksRes = await db.execute(sql`SELECT speaker, content, block_type FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY timestamp_start`);
+  const blocksRes = await db.execute(sql`SELECT speaker, content, block_type FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY timestamp_start LIMIT 1000`);
   const blocks = blocksRes.rows as any[];
 
   const transcript = blocks.map((b: any) => `[${b.speaker}] ${b.content}`).join("\n").slice(0, 6000);
@@ -4821,7 +4823,7 @@ export async function buildEntityRelationships(meetingId: string) {
   const db = await requireDb();
 
   // Get entities from this meeting
-  const currentRes = await db.execute(sql`SELECT id, entity_type, entity_value, meeting_id FROM ime_knowledge_entities WHERE meeting_id = ${meetingId}`);
+  const currentRes = await db.execute(sql`SELECT id, entity_type, entity_value, meeting_id FROM ime_knowledge_entities WHERE meeting_id = ${meetingId} LIMIT 1000`);
   const currentEntities = currentRes.rows as any[];
   if (currentEntities.length === 0) return { relationships: 0 };
 
@@ -4894,7 +4896,7 @@ export async function trackDecisionOutcome(
   const db = await requireDb();
 
   // Verify entity exists and is a decision
-  const entityRes = await db.execute(sql`SELECT id, meeting_id, entity_value FROM ime_knowledge_entities WHERE id = ${entityId} AND entity_type = 'decision'`);
+  const entityRes = await db.execute(sql`SELECT id, meeting_id, entity_value FROM ime_knowledge_entities WHERE id = ${entityId} AND entity_type = 'decision' LIMIT 1000`);
   const entity = (entityRes.rows as any[])[0];
   if (!entity) throw new Error("Decision entity not found");
 
@@ -4922,8 +4924,8 @@ export async function generateRetrospective(meetingId: string) {
 
   const effRes = await db.execute(sql`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = ${meetingId} LIMIT 1`);
   const sentRes = await db.execute(sql`SELECT * FROM ime_meeting_sentiment WHERE meeting_id = ${meetingId} LIMIT 1`);
-  const actionRes = await db.execute(sql`SELECT content, status, assigned_to FROM ime_action_items WHERE meeting_id = ${meetingId}`);
-  const entityRes = await db.execute(sql`SELECT entity_type, entity_value FROM ime_knowledge_entities WHERE meeting_id = ${meetingId}`);
+  const actionRes = await db.execute(sql`SELECT content, status, assigned_to FROM ime_action_items WHERE meeting_id = ${meetingId} LIMIT 1000`);
+  const entityRes = await db.execute(sql`SELECT entity_type, entity_value FROM ime_knowledge_entities WHERE meeting_id = ${meetingId} LIMIT 1000`);
 
   const effectiveness = (effRes.rows as any[])[0];
   const sentiment = (sentRes.rows as any[])[0];
@@ -4985,10 +4987,10 @@ export async function generateRetrospective(meetingId: string) {
 export async function computeExpertProfiles(department?: string) {
   const db = await requireDb();
 
-  const deptFilter = department ? `WHERE mc.employee_name IN (SELECT employee_name FROM meeting_contributions mc2 JOIN meeting_records mr ON mc2.meeting_id = mr.id WHERE mr.channel_id LIKE '%${department.replace(/'/g, "''")}%')` : "";
+  const deptFilter: SQL = department ? sql`WHERE mc.employee_name IN (SELECT employee_name FROM meeting_contributions mc2 JOIN meeting_records mr ON mc2.meeting_id = mr.id WHERE mr.channel_id LIKE ${`%${department}%`})` : sql``;
 
   // Aggregate contribution data per employee
-  const contribRes = await db.execute(sql.raw(`
+  const contribRes = await db.execute(sql`
     SELECT mc.employee_id, mc.employee_name,
            COUNT(DISTINCT mc.meeting_id) as meeting_count,
            AVG(mc.contribution_score) as avg_score,
@@ -4999,7 +5001,7 @@ export async function computeExpertProfiles(department?: string) {
     HAVING COUNT(DISTINCT mc.meeting_id) >= 3
     ORDER BY avg_score DESC
     LIMIT 50
-  `));
+  `);
   const contributors = contribRes.rows as any[];
 
   // For each contributor, check decision influence
@@ -5067,56 +5069,56 @@ export async function getKnowledgeDashboard(filters?: {
 }) {
   const db = await requireDb();
 
-  const whereParts: string[] = [];
-  if (filters?.entityType) whereParts.push(`ke.entity_type = '${filters.entityType.replace(/'/g, "''")}'`);
-  if (filters?.dateFrom) whereParts.push(`ke.extracted_at >= '${filters.dateFrom.replace(/'/g, "''")}'`);
-  if (filters?.dateTo) whereParts.push(`ke.extracted_at <= '${filters.dateTo.replace(/'/g, "''")}'`);
-  const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+  const whereParts: SQL[] = [];
+  if (filters?.entityType) whereParts.push(sql`ke.entity_type = ${filters.entityType}`);
+  if (filters?.dateFrom) whereParts.push(sql`ke.extracted_at >= ${filters.dateFrom}`);
+  if (filters?.dateTo) whereParts.push(sql`ke.extracted_at <= ${filters.dateTo}`);
+  const whereClause = whereParts.length > 0 ? sql`WHERE ${sql.join(whereParts, sql` AND `)}` : sql``;
 
   // Entity type distribution
-  const typeStatsRes = await db.execute(sql.raw(`
+  const typeStatsRes = await db.execute(sql`
     SELECT entity_type, COUNT(*) as cnt, AVG(confidence) as avg_confidence
     FROM ime_knowledge_entities ke ${whereClause}
     GROUP BY entity_type ORDER BY cnt DESC
-  `));
+  `);
 
   // Recent entities
-  const recentRes = await db.execute(sql.raw(`
+  const recentRes = await db.execute(sql`
     SELECT ke.*, mr.title as meeting_title
     FROM ime_knowledge_entities ke
     JOIN meeting_records mr ON ke.meeting_id = mr.id
     ${whereClause}
     ORDER BY ke.extracted_at DESC LIMIT 20
-  `));
+  `);
 
-  // Relationship stats
-  const relStatsRes = await db.execute(sql.raw(`
+  // Relationship stats (no interpolation -- static SQL, but convert for consistency)
+  const relStatsRes = await db.execute(sql`
     SELECT relationship_type, COUNT(*) as cnt, AVG(strength) as avg_strength
     FROM ime_entity_relationships
     GROUP BY relationship_type ORDER BY cnt DESC
-  `));
+  `);
 
   // Decision outcomes summary
-  const decisionRes = await db.execute(sql.raw(`
+  const decisionRes = await db.execute(sql`
     SELECT outcome_status, COUNT(*) as cnt, AVG(impact_score) as avg_impact
     FROM ime_decision_outcomes
     GROUP BY outcome_status ORDER BY cnt DESC
-  `));
+  `);
 
   // Recent retrospectives
-  const retroRes = await db.execute(sql.raw(`
+  const retroRes = await db.execute(sql`
     SELECT r.meeting_id, r.overall_grade, r.ai_summary, mr.title, r.generated_at
     FROM ime_meeting_retrospectives r
     JOIN meeting_records mr ON r.meeting_id = mr.id
     ORDER BY r.generated_at DESC LIMIT 10
-  `));
+  `);
 
   // Top experts
-  const expertRes = await db.execute(sql.raw(`
+  const expertRes = await db.execute(sql`
     SELECT employee_name, credibility_score, meeting_count, expertise_areas, top_topics
     FROM ime_expert_profiles
     ORDER BY credibility_score DESC LIMIT 10
-  `));
+  `);
 
   // Total counts
   const totalEntities = (typeStatsRes.rows as any[]).reduce((sum: number, r: any) => sum + Number(r.cnt), 0);
@@ -5128,7 +5130,7 @@ export async function getKnowledgeDashboard(filters?: {
       totalRelationships,
       totalDecisions: (decisionRes.rows as any[]).reduce((sum: number, r: any) => sum + Number(r.cnt), 0),
       totalRetrospectives: retroRes.rows.length,
-      totalExperts: (await db.execute(sql.raw(`SELECT COUNT(*) as cnt FROM ime_expert_profiles`))).rows[0] as any,
+      totalExperts: (await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_expert_profiles`)).rows[0] as any,
     },
     entityTypeStats: (typeStatsRes.rows as any[]).map((r: any) => ({
       type: r.entity_type,
@@ -5171,28 +5173,22 @@ export async function generateMeetingBrief(meetingId: string) {
   `);
 
   // Pending action items from past meetings with same participants
-  const actionRes = await db.execute(sql.raw(
-    `SELECT ai.content, ai.assigned_to, ai.status, ai.due_date, mr.title as source_meeting
+  const actionRes = await db.execute(sql`SELECT ai.content, ai.assigned_to, ai.status, ai.due_date, mr.title as source_meeting
      FROM ime_action_items ai
      JOIN meeting_records mr ON ai.meeting_id = mr.id
      WHERE ai.status NOT IN ('completed', 'cancelled')
-     ORDER BY ai.created_at DESC LIMIT 10`
-  ));
+     ORDER BY ai.created_at DESC LIMIT 10`);
 
   // Recent decisions related to this meeting's channel
-  const decisionRes = await db.execute(sql.raw(
-    `SELECT ke.entity_value, ke.related_speaker, mr.title, ke.extracted_at
+  const decisionRes = await db.execute(sql`SELECT ke.entity_value, ke.related_speaker, mr.title, ke.extracted_at
      FROM ime_knowledge_entities ke
      JOIN meeting_records mr ON ke.meeting_id = mr.id
      WHERE ke.entity_type = 'decision'
-     ORDER BY ke.extracted_at DESC LIMIT 10`
-  ));
+     ORDER BY ke.extracted_at DESC LIMIT 10`);
 
   // Topic history
-  const topicRes = await db.execute(sql.raw(
-    `SELECT topic_name, status, meeting_appearances FROM ime_topic_continuity
-     WHERE status NOT IN ('closed') ORDER BY created_at DESC LIMIT 10`
-  ));
+  const topicRes = await db.execute(sql`SELECT topic_name, status, meeting_appearances FROM ime_topic_continuity
+     WHERE status NOT IN ('closed') ORDER BY created_at DESC LIMIT 10`);
 
   const contextData = [
     `会议: ${meeting.title || "未命名"}`,
@@ -5303,10 +5299,10 @@ export async function generateMeetingMinutes(meetingId: string) {
   const meeting = (meetingRes.rows as any[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
-  const blocksRes = await db.execute(sql`SELECT speaker, content, block_type FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY timestamp_start`);
-  const contribRes = await db.execute(sql`SELECT employee_name FROM meeting_contributions WHERE meeting_id = ${meetingId}`);
-  const actionRes = await db.execute(sql`SELECT content, assigned_to, status, priority, due_date FROM ime_action_items WHERE meeting_id = ${meetingId}`);
-  const entityRes = await db.execute(sql`SELECT entity_type, entity_value FROM ime_knowledge_entities WHERE meeting_id = ${meetingId} AND entity_type = 'decision'`);
+  const blocksRes = await db.execute(sql`SELECT speaker, content, block_type FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY timestamp_start LIMIT 1000`);
+  const contribRes = await db.execute(sql`SELECT employee_name FROM meeting_contributions WHERE meeting_id = ${meetingId} LIMIT 1000`);
+  const actionRes = await db.execute(sql`SELECT content, assigned_to, status, priority, due_date FROM ime_action_items WHERE meeting_id = ${meetingId} LIMIT 1000`);
+  const entityRes = await db.execute(sql`SELECT entity_type, entity_value FROM ime_knowledge_entities WHERE meeting_id = ${meetingId} AND entity_type = 'decision' LIMIT 1000`);
 
   const transcript = (blocksRes.rows as any[]).map((b: any) => `[${b.speaker}] ${b.content}`).join("\n").slice(0, 6000);
   const attendees = (contribRes.rows as any[]).map((c: any) => c.employee_name);
@@ -5379,8 +5375,8 @@ export async function generateFollowUpPlan(meetingId: string) {
   const meeting = (meetingRes.rows as any[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
-  const actionRes = await db.execute(sql`SELECT * FROM ime_action_items WHERE meeting_id = ${meetingId}`);
-  const entityRes = await db.execute(sql`SELECT * FROM ime_knowledge_entities WHERE meeting_id = ${meetingId}`);
+  const actionRes = await db.execute(sql`SELECT * FROM ime_action_items WHERE meeting_id = ${meetingId} LIMIT 1000`);
+  const entityRes = await db.execute(sql`SELECT * FROM ime_knowledge_entities WHERE meeting_id = ${meetingId} LIMIT 1000`);
   const effRes = await db.execute(sql`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = ${meetingId} LIMIT 1`);
   const retroRes = await db.execute(sql`SELECT * FROM ime_meeting_retrospectives WHERE meeting_id = ${meetingId} LIMIT 1`);
 
@@ -5430,37 +5426,28 @@ export async function askMeetingAssistant(
   userId?: string,
 ) {
   const db = await requireDb();
-  const safeSession = sessionId.replace(/'/g, "''");
-  const safeUser = (userId || "anonymous").replace(/'/g, "''");
+  /* parameterized queries below - no manual escaping needed */
 
   // Store user question
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_ai_conversations (session_id, user_id, role, content, created_at)
-    VALUES ('${safeSession}', '${safeUser}', 'user', '${question.replace(/'/g, "''")}', NOW())
-  `));
+    VALUES (${sessionId}, ${userId || "anonymous"}, 'user', ${question}, NOW())
+  `);
 
   // Get conversation history for context
-  const historyRes = await db.execute(sql.raw(
-    `SELECT role, content FROM ime_ai_conversations WHERE session_id = '${safeSession}' ORDER BY created_at DESC LIMIT 10`
-  ));
+  const historyRes = await db.execute(sql`
+    SELECT role, content FROM ime_ai_conversations WHERE session_id = ${sessionId} ORDER BY created_at DESC LIMIT 10
+  `);
   const history = (historyRes.rows as any[]).reverse();
 
   // Gather relevant meeting data for RAG context
-  const recentMeetingsRes = await db.execute(sql.raw(
-    `SELECT id, title, summary, meeting_date FROM meeting_records ORDER BY meeting_date DESC LIMIT 10`
-  ));
-  const recentStatsRes = await db.execute(sql.raw(
-    `SELECT COUNT(*) as total_meetings,
+  const recentMeetingsRes = await db.execute(sql`SELECT id, title, summary, meeting_date FROM meeting_records ORDER BY meeting_date DESC LIMIT 10`);
+  const recentStatsRes = await db.execute(sql`SELECT COUNT(*) as total_meetings,
             AVG(mes.overall_score) as avg_effectiveness
      FROM meeting_records mr
-     LEFT JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id`
-  ));
-  const recentActionsRes = await db.execute(sql.raw(
-    `SELECT content, assigned_to, status FROM ime_action_items ORDER BY created_at DESC LIMIT 10`
-  ));
-  const recentDecisionsRes = await db.execute(sql.raw(
-    `SELECT entity_value, related_speaker FROM ime_knowledge_entities WHERE entity_type = 'decision' ORDER BY extracted_at DESC LIMIT 10`
-  ));
+     LEFT JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id`);
+  const recentActionsRes = await db.execute(sql`SELECT content, assigned_to, status FROM ime_action_items ORDER BY created_at DESC LIMIT 10`);
+  const recentDecisionsRes = await db.execute(sql`SELECT entity_value, related_speaker FROM ime_knowledge_entities WHERE entity_type = 'decision' ORDER BY extracted_at DESC LIMIT 10`);
 
   const ragContext = [
     `最近会议: ${(recentMeetingsRes.rows as any[]).map((m: any) => `${m.title}(${m.meeting_date ? new Date(m.meeting_date).toLocaleDateString("zh-CN") : ""})`).join(", ")}`,
@@ -5489,10 +5476,10 @@ export async function askMeetingAssistant(
   const answer = parsed.answer || "抱歉，无法回答此问题。";
 
   // Store assistant response
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_ai_conversations (session_id, user_id, role, content, context, created_at)
-    VALUES ('${safeSession}', '${safeUser}', 'assistant', '${answer.replace(/'/g, "''")}', '${JSON.stringify({ referenced_meetings: parsed.referenced_meetings, suggestions: parsed.suggestions }).replace(/'/g, "''")}', NOW())
-  `));
+    VALUES (${sessionId}, ${userId || "anonymous"}, 'assistant', ${answer}, ${JSON.stringify({ referenced_meetings: parsed.referenced_meetings, suggestions: parsed.suggestions })}, NOW())
+  `);
 
   return {
     answer,
@@ -5520,15 +5507,11 @@ export async function createWorkflowRule(rule: {
   createdBy?: string;
 }) {
   const db = await requireDb();
-  const safeName = rule.name.replace(/'/g, "''");
-  const safeDesc = (rule.description || "").replace(/'/g, "''");
-  const safeConfig = JSON.stringify(rule.actionConfig || {}).replace(/'/g, "''");
-  const safeCreatedBy = (rule.createdBy || "system").replace(/'/g, "''");
 
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_workflow_rules (name, description, trigger_event, condition_field, condition_operator, condition_value, action_type, action_config, scope, scope_id, is_active, created_by, created_at, updated_at)
-    VALUES ('${safeName}', '${safeDesc}', '${rule.triggerEvent}', ${rule.conditionField ? `'${rule.conditionField}'` : "NULL"}, ${rule.conditionOperator ? `'${rule.conditionOperator}'` : "NULL"}, ${rule.conditionValue ? `'${rule.conditionValue}'` : "NULL"}, '${rule.actionType}', '${safeConfig}', '${rule.scope || "global"}', ${rule.scopeId ? `'${rule.scopeId}'` : "NULL"}, 1, '${safeCreatedBy}', NOW(), NOW())
-  `));
+    VALUES (${rule.name}, ${rule.description || ""}, ${rule.triggerEvent}, ${rule.conditionField ?? null}, ${rule.conditionOperator ?? null}, ${rule.conditionValue ?? null}, ${rule.actionType}, ${JSON.stringify(rule.actionConfig || {})}, ${rule.scope || "global"}, ${rule.scopeId ?? null}, 1, ${rule.createdBy || "system"}, NOW(), NOW())
+  `);
 
   return { success: true, name: rule.name };
 }
@@ -5538,7 +5521,7 @@ export async function evaluateWorkflowRules(meetingId: string, event: string) {
   const db = await requireDb();
 
   // Get active rules matching this event
-  const rulesRes = await db.execute(sql`SELECT * FROM ime_workflow_rules WHERE trigger_event = ${event} AND is_active = 1`);
+  const rulesRes = await db.execute(sql`SELECT * FROM ime_workflow_rules WHERE trigger_event = ${event} AND is_active = 1 LIMIT 1000`);
   const rules = rulesRes.rows as any[];
   if (rules.length === 0) return { executed: 0, results: [] };
 
@@ -5600,16 +5583,15 @@ export async function evaluateWorkflowRules(meetingId: string, event: string) {
 // Phase 9 — Feature 3: Generate Coaching Plan (AI-powered)
 export async function generateCoachingPlan(scope: string, scopeId?: string, period?: string) {
   const db = await requireDb();
-  const safeScopeId = (scopeId || "all").replace(/'/g, "''");
   const periodDays = period === "quarterly" ? 90 : 30;
+  const periodInterval = `${periodDays} days`;
 
   // Gather aggregate meeting data for the scope
-  let whereClause = `mr.meeting_date >= NOW() - INTERVAL '${periodDays} days'`;
-  if (scope === "department" && scopeId) {
-    whereClause += ` AND mr.channel_id IN (SELECT id FROM meeting_channels WHERE name LIKE '%${safeScopeId}%')`;
-  }
+  const scopeCondition: SQL = (scope === "department" && scopeId)
+    ? sql`AND mr.channel_id IN (SELECT id FROM meeting_channels WHERE name LIKE ${`%${scopeId}%`})`
+    : sql``;
 
-  const meetingStatsRes = await db.execute(sql.raw(`
+  const meetingStatsRes = await db.execute(sql`
     SELECT COUNT(*) as total_meetings,
            AVG(mes.overall_score) as avg_effectiveness,
            AVG(mh.health_score) as avg_health,
@@ -5619,23 +5601,23 @@ export async function generateCoachingPlan(scope: string, scopeId?: string, peri
     LEFT JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id
     LEFT JOIN ime_meeting_health mh ON mr.id = mh.meeting_id
     LEFT JOIN ime_meeting_roi mr2 ON mr.id = mr2.meeting_id
-    WHERE ${whereClause}
-  `));
+    WHERE mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${periodInterval}'`)} ${scopeCondition}
+  `);
 
-  const actionRes = await db.execute(sql.raw(`
+  const actionRes = await db.execute(sql`
     SELECT COUNT(*) as total,
            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
     FROM ime_action_items
-    WHERE created_at >= NOW() - INTERVAL '${periodDays} days'
-  `));
+    WHERE created_at >= NOW() - INTERVAL ${sql.raw(`'${periodInterval}'`)}
+  `);
 
-  const sentimentRes = await db.execute(sql.raw(`
+  const sentimentRes = await db.execute(sql`
     SELECT AVG(overall_sentiment) as avg_sentiment,
            AVG(collaboration_score) as avg_collaboration,
            AVG(tension_level) as avg_tension
     FROM ime_meeting_sentiment
-    WHERE analyzed_at >= NOW() - INTERVAL '${periodDays} days'
-  `));
+    WHERE analyzed_at >= NOW() - INTERVAL ${sql.raw(`'${periodInterval}'`)}
+  `);
 
   const stats = (meetingStatsRes.rows as any[])[0] || {};
   const actions = (actionRes.rows as any[])[0] || {};
@@ -5695,10 +5677,10 @@ export async function generateCoachingPlan(scope: string, scopeId?: string, peri
   const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
 
   // Save coaching plan
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_coaching_plans (scope, scope_id, period, culture_score, dimensions, strengths, improvements, action_plan, ai_narrative, generated_at, created_at)
-    VALUES ('${scope}', ${scopeId ? `'${safeScopeId}'` : "NULL"}, '${period || "monthly"}', ${parsed.culture_score || 0}, '${JSON.stringify(parsed.dimensions || {}).replace(/'/g, "''")}', '${JSON.stringify(parsed.strengths || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.improvements || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.action_plan || []).replace(/'/g, "''")}', '${(parsed.narrative || "").replace(/'/g, "''")}', NOW(), NOW())
-  `));
+    VALUES (${scope}, ${scopeId ?? null}, ${period || "monthly"}, ${parsed.culture_score || 0}, ${JSON.stringify(parsed.dimensions || {})}, ${JSON.stringify(parsed.strengths || [])}, ${JSON.stringify(parsed.improvements || [])}, ${JSON.stringify(parsed.action_plan || [])}, ${parsed.narrative || ""}, NOW(), NOW())
+  `);
 
   return {
     scope,
@@ -5718,32 +5700,32 @@ export async function getMeetingCultureScore(department?: string, period?: strin
   const db = await requireDb();
   const periodDays = period === "quarterly" ? 90 : period === "yearly" ? 365 : 30;
 
-  const dateFilter = `>= NOW() - INTERVAL '${periodDays} days'`;
+  const dateInterval = `${periodDays} days`;
 
   // Effectiveness dimension
-  const effRes = await db.execute(sql.raw(
-    `SELECT AVG(overall_score) as avg, COUNT(*) as cnt FROM meeting_effectiveness_scores WHERE created_at ${dateFilter}`
-  ));
+  const effRes = await db.execute(sql`
+    SELECT AVG(overall_score) as avg, COUNT(*) as cnt FROM meeting_effectiveness_scores WHERE created_at >= NOW() - INTERVAL ${sql.raw(`'${dateInterval}'`)}
+  `);
   // Health dimension
-  const healthRes = await db.execute(sql.raw(
-    `SELECT AVG(health_score) as avg_health, AVG(fatigue_index) as avg_fatigue FROM ime_meeting_health WHERE assessed_at ${dateFilter}`
-  ));
+  const healthRes = await db.execute(sql`
+    SELECT AVG(health_score) as avg_health, AVG(fatigue_index) as avg_fatigue FROM ime_meeting_health WHERE assessed_at >= NOW() - INTERVAL ${sql.raw(`'${dateInterval}'`)}
+  `);
   // Action item follow-through
-  const actionRes = await db.execute(sql.raw(
-    `SELECT COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed FROM ime_action_items WHERE created_at ${dateFilter}`
-  ));
+  const actionRes = await db.execute(sql`
+    SELECT COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed FROM ime_action_items WHERE created_at >= NOW() - INTERVAL ${sql.raw(`'${dateInterval}'`)}
+  `);
   // Sentiment
-  const sentRes = await db.execute(sql.raw(
-    `SELECT AVG(overall_sentiment) as avg_sent, AVG(collaboration_score) as avg_collab FROM ime_meeting_sentiment WHERE analyzed_at ${dateFilter}`
-  ));
+  const sentRes = await db.execute(sql`
+    SELECT AVG(overall_sentiment) as avg_sent, AVG(collaboration_score) as avg_collab FROM ime_meeting_sentiment WHERE analyzed_at >= NOW() - INTERVAL ${sql.raw(`'${dateInterval}'`)}
+  `);
   // ROI
-  const roiRes = await db.execute(sql.raw(
-    `SELECT AVG(roi_score) as avg_roi FROM ime_meeting_roi WHERE calculated_at ${dateFilter}`
-  ));
+  const roiRes = await db.execute(sql`
+    SELECT AVG(roi_score) as avg_roi FROM ime_meeting_roi WHERE calculated_at >= NOW() - INTERVAL ${sql.raw(`'${dateInterval}'`)}
+  `);
   // Meeting volume
-  const volRes = await db.execute(sql.raw(
-    `SELECT COUNT(*) as cnt, AVG(duration_minutes) as avg_duration FROM meeting_records WHERE meeting_date ${dateFilter}`
-  ));
+  const volRes = await db.execute(sql`
+    SELECT COUNT(*) as cnt, AVG(duration_minutes) as avg_duration FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateInterval}'`)}
+  `);
 
   const eff = (effRes.rows as any[])[0] || {};
   const hlth = (healthRes.rows as any[])[0] || {};
@@ -5786,29 +5768,25 @@ export async function getWorkflowDashboard(filters?: { limit?: number }) {
   const limit = filters?.limit || 50;
 
   // Active rules
-  const rulesRes = await db.execute(sql.raw(
-    `SELECT * FROM ime_workflow_rules WHERE is_active = 1 ORDER BY created_at DESC`
-  ));
+  const rulesRes = await db.execute(sql`SELECT * FROM ime_workflow_rules WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1000`);
 
   // Recent executions
-  const execRes = await db.execute(sql.raw(
-    `SELECT * FROM ime_workflow_executions ORDER BY executed_at DESC LIMIT ${limit}`
-  ));
+  const execRes = await db.execute(sql`
+    SELECT * FROM ime_workflow_executions ORDER BY executed_at DESC LIMIT ${limit}
+  `);
 
   // Execution stats
-  const statsRes = await db.execute(sql.raw(`
+  const statsRes = await db.execute(sql`
     SELECT COUNT(*) as total,
            SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as succeeded,
            SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) as skipped,
            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
     FROM ime_workflow_executions
     WHERE executed_at >= NOW() - INTERVAL '30 days'
-  `));
+  `);
 
   // Recent coaching plans
-  const coachingRes = await db.execute(sql.raw(
-    `SELECT * FROM ime_coaching_plans ORDER BY generated_at DESC LIMIT 5`
-  ));
+  const coachingRes = await db.execute(sql`SELECT * FROM ime_coaching_plans ORDER BY generated_at DESC LIMIT 5`);
 
   const stats = (statsRes.rows as any[])[0] || {};
 
@@ -5840,14 +5818,14 @@ export async function createIntegration(config: {
   createdBy?: string;
 }) {
   const db = await requireDb();
-  const safeName = config.name.replace(/'/g, "''");
-  const safeConfig = JSON.stringify(config.config || {}).replace(/'/g, "''");
-  const safeCreatedBy = (config.createdBy || "system").replace(/'/g, "''");
+  const safeName = config.name;
+  const safeConfig = JSON.stringify(config.config || {});
+  const safeCreatedBy = (config.createdBy || "system");
 
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_integrations (name, integration_type, provider, config, sync_direction, sync_frequency, status, created_by, created_at, updated_at)
-    VALUES ('${safeName}', '${config.integrationType}', '${config.provider}', '${safeConfig}', '${config.syncDirection || "bidirectional"}', '${config.syncFrequency || "manual"}', 'active', '${safeCreatedBy}', NOW(), NOW())
-  `));
+    VALUES (${safeName}, ${config.integrationType}, ${config.provider}, ${safeConfig}, ${config.syncDirection || "bidirectional"}, ${config.syncFrequency || "manual"}, 'active', ${safeCreatedBy}, NOW(), NOW())
+  `);
 
   return { success: true, name: config.name };
 }
@@ -5858,9 +5836,7 @@ export async function syncIntegration(integrationId: number) {
   const startTime = Date.now();
 
   // Get integration config
-  const intRes = await db.execute(sql.raw(
-    `SELECT * FROM ime_integrations WHERE id = ${integrationId}`
-  ));
+  const intRes = await db.execute(sql`SELECT * FROM ime_integrations WHERE id = ${integrationId} LIMIT 1000`);
   const integration = (intRes.rows as any[])[0];
   if (!integration) throw new Error("Integration not found");
 
@@ -5877,9 +5853,7 @@ export async function syncIntegration(integrationId: number) {
     switch (integration.integration_type) {
       case "calendar": {
         // Sync meeting records to/from calendar
-        const meetingsRes = await db.execute(sql.raw(
-          `SELECT COUNT(*) as cnt FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL '30 days'`
-        ));
+        const meetingsRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL '30 days'`);
         recordsProcessed = Number((meetingsRes.rows as any[])[0]?.cnt || 0);
         recordsSucceeded = recordsProcessed;
         details = { syncedMeetings: recordsProcessed, provider: integration.provider, direction: integration.sync_direction };
@@ -5887,9 +5861,7 @@ export async function syncIntegration(integrationId: number) {
       }
       case "task_manager": {
         // Push action items to task management tool
-        const actionsRes = await db.execute(sql.raw(
-          `SELECT COUNT(*) as total, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending FROM ime_action_items WHERE created_at >= NOW() - INTERVAL '7 days'`
-        ));
+        const actionsRes = await db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending FROM ime_action_items WHERE created_at >= NOW() - INTERVAL '7 days'`);
         const actions = (actionsRes.rows as any[])[0] || {};
         recordsProcessed = Number(actions.total || 0);
         recordsSucceeded = Number(actions.pending || 0);
@@ -5898,9 +5870,7 @@ export async function syncIntegration(integrationId: number) {
       }
       case "messaging": {
         // Push digest/alerts to messaging platform
-        const alertsRes = await db.execute(sql.raw(
-          `SELECT COUNT(*) as cnt FROM ime_digest_alerts WHERE created_at >= NOW() - INTERVAL '1 day'`
-        ));
+        const alertsRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_digest_alerts WHERE created_at >= NOW() - INTERVAL '1 day'`);
         recordsProcessed = Number((alertsRes.rows as any[])[0]?.cnt || 0);
         recordsSucceeded = recordsProcessed;
         details = { alertsSynced: recordsProcessed, provider: integration.provider, channel: config.channel || "default" };
@@ -5908,9 +5878,7 @@ export async function syncIntegration(integrationId: number) {
       }
       case "webhook": {
         // Trigger webhook with latest meeting data
-        const latestRes = await db.execute(sql.raw(
-          `SELECT id, title FROM meeting_records ORDER BY meeting_date DESC LIMIT 5`
-        ));
+        const latestRes = await db.execute(sql`SELECT id, title FROM meeting_records ORDER BY meeting_date DESC LIMIT 5`);
         recordsProcessed = (latestRes.rows as any[]).length;
         recordsSucceeded = recordsProcessed;
         details = { webhookUrl: config.url || "configured", meetingsIncluded: recordsProcessed };
@@ -5918,9 +5886,7 @@ export async function syncIntegration(integrationId: number) {
       }
       case "email": {
         // Email digest sync
-        const coachRes = await db.execute(sql.raw(
-          `SELECT COUNT(*) as cnt FROM ime_coaching_plans WHERE generated_at >= NOW() - INTERVAL '7 days'`
-        ));
+        const coachRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_coaching_plans WHERE generated_at >= NOW() - INTERVAL '7 days'`);
         recordsProcessed = Number((coachRes.rows as any[])[0]?.cnt || 0);
         recordsSucceeded = recordsProcessed;
         details = { reportsEmailed: recordsProcessed, recipients: config.recipients || [] };
@@ -5937,20 +5903,20 @@ export async function syncIntegration(integrationId: number) {
   }
 
   const durationMs = Date.now() - startTime;
-  const safeName = (integration.name || "").replace(/'/g, "''");
-  const safeDetails = JSON.stringify(details).replace(/'/g, "''");
-  const safeError = errorMessage.replace(/'/g, "''");
+  const safeName = (integration.name || "");
+  const safeDetails = JSON.stringify(details);
+  const safeError = errorMessage;
 
   // Log the sync operation
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_integration_logs (integration_id, integration_name, operation, direction, records_processed, records_succeeded, records_failed, details, status, error_message, duration_ms, executed_at)
-    VALUES (${integrationId}, '${safeName}', 'sync', '${integration.sync_direction || "outbound"}', ${recordsProcessed}, ${recordsSucceeded}, ${recordsFailed}, '${safeDetails}', '${status}', '${safeError}', ${durationMs}, NOW())
-  `));
+    VALUES (${integrationId}, ${safeName}, 'sync', ${integration.sync_direction || "outbound"}, ${recordsProcessed}, ${recordsSucceeded}, ${recordsFailed}, ${safeDetails}, ${status}, ${safeError}, ${durationMs}, NOW())
+  `);
 
   // Update integration last sync
-  await db.execute(sql.raw(`
-    UPDATE ime_integrations SET last_sync_at = NOW(), last_sync_status = '${status}', error_message = ${errorMessage ? `'${safeError}'` : "NULL"}, updated_at = NOW() WHERE id = ${integrationId}
-  `));
+  await db.execute(sql`
+    UPDATE ime_integrations SET last_sync_at = NOW(), last_sync_status = ${status}, error_message = ${errorMessage ? `${safeError}` : "NULL"}, updated_at = NOW() WHERE id = ${integrationId}
+  `);
 
   return { integrationId, status, recordsProcessed, recordsSucceeded, recordsFailed, durationMs, details };
 }
@@ -5959,15 +5925,11 @@ export async function syncIntegration(integrationId: number) {
 export async function getIntegrationDashboard() {
   const db = await requireDb();
 
-  const integrationsRes = await db.execute(sql.raw(
-    `SELECT * FROM ime_integrations ORDER BY created_at DESC`
-  ));
+  const integrationsRes = await db.execute(sql`SELECT * FROM ime_integrations ORDER BY created_at DESC LIMIT 1000`);
 
-  const logsRes = await db.execute(sql.raw(
-    `SELECT * FROM ime_integration_logs ORDER BY executed_at DESC LIMIT 50`
-  ));
+  const logsRes = await db.execute(sql`SELECT * FROM ime_integration_logs ORDER BY executed_at DESC LIMIT 50`);
 
-  const statsRes = await db.execute(sql.raw(`
+  const statsRes = await db.execute(sql`
     SELECT COUNT(*) as total_syncs,
            SUM(records_processed) as total_records,
            SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful,
@@ -5975,7 +5937,7 @@ export async function getIntegrationDashboard() {
            AVG(duration_ms) as avg_duration
     FROM ime_integration_logs
     WHERE executed_at >= NOW() - INTERVAL '30 days'
-  `));
+  `);
 
   const stats = (statsRes.rows as any[])[0] || {};
 
@@ -5995,28 +5957,26 @@ export async function getIntegrationDashboard() {
 // Phase 10 — Feature 4: Update System Setting
 export async function updateSystemSetting(key: string, value: string, meta?: { type?: string; category?: string; label?: string; description?: string; updatedBy?: string }) {
   const db = await requireDb();
-  const safeKey = key.replace(/'/g, "''");
-  const safeValue = value.replace(/'/g, "''");
-  const safeType = (meta?.type || "string").replace(/'/g, "''");
-  const safeCat = (meta?.category || "general").replace(/'/g, "''");
-  const safeLabel = (meta?.label || key).replace(/'/g, "''");
-  const safeDesc = (meta?.description || "").replace(/'/g, "''");
-  const safeUser = (meta?.updatedBy || "system").replace(/'/g, "''");
+  const safeKey = key;
+  const safeValue = value;
+  const safeType = (meta?.type || "string");
+  const safeCat = (meta?.category || "general");
+  const safeLabel = (meta?.label || key);
+  const safeDesc = (meta?.description || "");
+  const safeUser = (meta?.updatedBy || "system");
 
   // Upsert: check if exists
-  const existing = await db.execute(sql.raw(
-    `SELECT id FROM ime_system_settings WHERE setting_key = '${safeKey}'`
-  ));
+  const existing = await db.execute(sql`SELECT id FROM ime_system_settings WHERE setting_key = ${safeKey} LIMIT 1000`);
 
   if ((existing.rows as any[]).length > 0) {
-    await db.execute(sql.raw(`
-      UPDATE ime_system_settings SET setting_value = '${safeValue}', setting_type = '${safeType}', category = '${safeCat}', label = '${safeLabel}', description = '${safeDesc}', updated_by = '${safeUser}', updated_at = NOW() WHERE setting_key = '${safeKey}'
-    `));
+    await db.execute(sql`
+      UPDATE ime_system_settings SET setting_value = ${safeValue}, setting_type = ${safeType}, category = ${safeCat}, label = ${safeLabel}, description = ${safeDesc}, updated_by = ${safeUser}, updated_at = NOW() WHERE setting_key = ${safeKey}
+    `);
   } else {
-    await db.execute(sql.raw(`
+    await db.execute(sql`
       INSERT INTO ime_system_settings (setting_key, setting_value, setting_type, category, label, description, updated_by, updated_at, created_at)
-      VALUES ('${safeKey}', '${safeValue}', '${safeType}', '${safeCat}', '${safeLabel}', '${safeDesc}', '${safeUser}', NOW(), NOW())
-    `));
+      VALUES (${safeKey}, ${safeValue}, ${safeType}, ${safeCat}, ${safeLabel}, ${safeDesc}, ${safeUser}, NOW(), NOW())
+    `);
   }
 
   return { success: true, key, value };
@@ -6025,10 +5985,8 @@ export async function updateSystemSetting(key: string, value: string, meta?: { t
 // Phase 10 — Feature 5: Get System Settings
 export async function getSystemSettings(category?: string) {
   const db = await requireDb();
-  const where = category ? `WHERE category = '${category.replace(/'/g, "''")}'` : "";
-  const result = await db.execute(sql.raw(
-    `SELECT * FROM ime_system_settings ${where} ORDER BY category, setting_key`
-  ));
+  const where = category ? sql`WHERE category = ${category}` : sql``;
+  const result = await db.execute(sql`SELECT * FROM ime_system_settings ${where} ORDER BY category, setting_key LIMIT 1000`);
   return result.rows;
 }
 
@@ -6039,12 +5997,10 @@ export async function getSystemSettings(category?: string) {
 // Phase 11 — Feature 1: Evaluate Achievements for a User
 export async function evaluateAchievements(userId: string) {
   const db = await requireDb();
-  const safeUser = userId.replace(/'/g, "''");
+  const safeUser = userId;
 
   // Ensure default achievement definitions exist
-  const defsRes = await db.execute(sql.raw(
-    `SELECT COUNT(*) as cnt FROM ime_achievements WHERE is_global = 1`
-  ));
+  const defsRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_achievements WHERE is_global = 1`);
   if (Number((defsRes.rows as any[])[0]?.cnt || 0) === 0) {
     const defaults = [
       { key: "first_meeting", name: "初次亮相", desc: "参加第一次被分析的会议", icon: "Star", cat: "general", tier: "bronze", criteria: { metric: "meetings_attended", operator: ">=", value: 1 }, points: 10 },
@@ -6057,36 +6013,26 @@ export async function evaluateAchievements(userId: string) {
       { key: "roi_champion", name: "ROI冠军", desc: "参与的会议平均ROI评分超过80", icon: "Trophy", cat: "efficiency", tier: "platinum", criteria: { metric: "avg_roi", operator: ">=", value: 80 }, points: 60 },
     ];
     for (const d of defaults) {
-      await db.execute(sql.raw(`
+      await db.execute(sql`
         INSERT INTO ime_achievements (achievement_key, name, description, icon, category, tier, criteria, points, is_global, created_at)
-        VALUES ('${d.key}', '${d.name}', '${d.desc}', '${d.icon}', '${d.cat}', '${d.tier}', '${JSON.stringify(d.criteria)}', ${d.points}, 1, NOW())
-      `));
+        VALUES (${d.key}, ${d.name}, ${d.desc}, ${d.icon}, ${d.cat}, ${d.tier}, ${JSON.stringify(d.criteria)}, ${d.points}, 1, NOW())
+      `);
     }
   }
 
   // Get all definitions
-  const allDefs = await db.execute(sql.raw(`SELECT * FROM ime_achievements WHERE is_global = 1`));
+  const allDefs = await db.execute(sql`SELECT * FROM ime_achievements WHERE is_global = 1 LIMIT 1000`);
   const definitions = allDefs.rows as any[];
 
   // Get already awarded
-  const awardedRes = await db.execute(sql.raw(
-    `SELECT achievement_key FROM ime_achievements WHERE user_id = '${safeUser}' AND is_global = 0`
-  ));
+  const awardedRes = await db.execute(sql`SELECT achievement_key FROM ime_achievements WHERE user_id = ${safeUser} AND is_global = 0 LIMIT 1000`);
   const awardedKeys = new Set((awardedRes.rows as any[]).map((a: any) => a.achievement_key));
 
   // Compute user metrics
-  const contribRes = await db.execute(sql.raw(
-    `SELECT COUNT(*) as meetings_attended, SUM(CASE WHEN contribution_score >= 70 THEN 1 ELSE 0 END) as high_contribution_count FROM meeting_contributions WHERE speaker_name = '${safeUser}' OR speaker_id = '${safeUser}'`
-  ));
-  const actionsRes = await db.execute(sql.raw(
-    `SELECT COUNT(*) as completed FROM ime_action_items WHERE assigned_to = '${safeUser}' AND status = 'completed'`
-  ));
-  const effRes = await db.execute(sql.raw(
-    `SELECT AVG(mes.overall_score) as avg_eff FROM meeting_effectiveness_scores mes JOIN meeting_records mr ON mes.meeting_id = mr.id`
-  ));
-  const roiRes = await db.execute(sql.raw(
-    `SELECT AVG(roi_score) as avg_roi FROM ime_meeting_roi`
-  ));
+  const contribRes = await db.execute(sql`SELECT COUNT(*) as meetings_attended, SUM(CASE WHEN contribution_score >= 70 THEN 1 ELSE 0 END) as high_contribution_count FROM meeting_contributions WHERE speaker_name = ${safeUser} OR speaker_id = ${safeUser}`);
+  const actionsRes = await db.execute(sql`SELECT COUNT(*) as completed FROM ime_action_items WHERE assigned_to = ${safeUser} AND status = 'completed'`);
+  const effRes = await db.execute(sql`SELECT AVG(mes.overall_score) as avg_eff FROM meeting_effectiveness_scores mes JOIN meeting_records mr ON mes.meeting_id = mr.id`);
+  const roiRes = await db.execute(sql`SELECT AVG(roi_score) as avg_roi FROM ime_meeting_roi`);
 
   const contribs = (contribRes.rows as any[])[0] || {};
   const actions = (actionsRes.rows as any[])[0] || {};
@@ -6116,10 +6062,10 @@ export async function evaluateAchievements(userId: string) {
       case "==": met = actual === criteria.value; break;
     }
     if (met) {
-      await db.execute(sql.raw(`
+      await db.execute(sql`
         INSERT INTO ime_achievements (achievement_key, name, description, icon, category, tier, criteria, points, is_global, user_id, awarded_at, created_at)
-        VALUES ('${def.achievement_key}', '${(def.name || "").replace(/'/g, "''")}', '${(def.description || "").replace(/'/g, "''")}', '${def.icon || ""}', '${def.category}', '${def.tier}', '${(def.criteria || "{}").replace(/'/g, "''")}', ${def.points}, 0, '${safeUser}', NOW(), NOW())
-      `));
+        VALUES (${def.achievement_key}, ${(def.name || "")}, ${(def.description || "")}, ${def.icon || ""}, ${def.category}, ${def.tier}, '${(def.criteria || "{}")}', ${def.points}, 0, ${safeUser}, NOW(), NOW())
+      `);
       newAwards.push({ key: def.achievement_key, name: def.name, tier: def.tier, points: def.points });
     }
   }
@@ -6133,22 +6079,21 @@ export async function getLeaderboard(period?: string, metric?: string) {
   const targetMetric = metric || "contribution_score";
   const periodDays = period === "quarterly" ? 90 : period === "weekly" ? 7 : 30;
 
-  let query = "";
+  const intervalDays = sql.raw(`'${periodDays} days'`);
+  let result;
   switch (targetMetric) {
     case "contribution_score":
-      query = `SELECT speaker_name as user_id, speaker_name as user_name, AVG(contribution_score) as score, COUNT(*) as meeting_count FROM meeting_contributions WHERE created_at >= NOW() - INTERVAL '${periodDays} days' GROUP BY speaker_name ORDER BY score DESC LIMIT 20`;
+      result = await db.execute(sql`SELECT speaker_name as user_id, speaker_name as user_name, AVG(contribution_score) as score, COUNT(*) as meeting_count FROM meeting_contributions WHERE created_at >= NOW() - INTERVAL ${intervalDays} GROUP BY speaker_name ORDER BY score DESC LIMIT 20`);
       break;
     case "action_completion":
-      query = `SELECT assigned_to as user_id, assigned_to as user_name, COUNT(*) as score FROM ime_action_items WHERE status = 'completed' AND created_at >= NOW() - INTERVAL '${periodDays} days' GROUP BY assigned_to ORDER BY score DESC LIMIT 20`;
+      result = await db.execute(sql`SELECT assigned_to as user_id, assigned_to as user_name, COUNT(*) as score FROM ime_action_items WHERE status = 'completed' AND created_at >= NOW() - INTERVAL ${intervalDays} GROUP BY assigned_to ORDER BY score DESC LIMIT 20`);
       break;
     case "effectiveness":
-      query = `SELECT 'team' as user_id, 'Team Average' as user_name, AVG(overall_score) as score FROM meeting_effectiveness_scores WHERE created_at >= NOW() - INTERVAL '${periodDays} days'`;
+      result = await db.execute(sql`SELECT 'team' as user_id, 'Team Average' as user_name, AVG(overall_score) as score FROM meeting_effectiveness_scores WHERE created_at >= NOW() - INTERVAL ${intervalDays}`);
       break;
     default:
-      query = `SELECT speaker_name as user_id, speaker_name as user_name, AVG(contribution_score) as score FROM meeting_contributions WHERE created_at >= NOW() - INTERVAL '${periodDays} days' GROUP BY speaker_name ORDER BY score DESC LIMIT 20`;
+      result = await db.execute(sql`SELECT speaker_name as user_id, speaker_name as user_name, AVG(contribution_score) as score FROM meeting_contributions WHERE created_at >= NOW() - INTERVAL ${intervalDays} GROUP BY speaker_name ORDER BY score DESC LIMIT 20`);
   }
-
-  const result = await db.execute(sql.raw(query));
   const rows = result.rows as any[];
 
   return rows.map((r: any, i: number) => ({
@@ -6175,41 +6120,41 @@ export async function createTeamChallenge(challenge: {
   createdBy?: string;
 }) {
   const db = await requireDb();
-  const safeTitle = challenge.title.replace(/'/g, "''");
-  const safeDesc = (challenge.description || "").replace(/'/g, "''");
-  const safeReward = (challenge.rewardDescription || "").replace(/'/g, "''");
-  const safeCreatedBy = (challenge.createdBy || "system").replace(/'/g, "''");
+  const safeTitle = challenge.title;
+  const safeDesc = (challenge.description || "");
+  const safeReward = (challenge.rewardDescription || "");
+  const safeCreatedBy = (challenge.createdBy || "system");
 
   // Get baseline value
   let baseline = 0;
   switch (challenge.targetMetric) {
     case "avg_effectiveness": {
-      const r = await db.execute(sql.raw(`SELECT AVG(overall_score) as v FROM meeting_effectiveness_scores WHERE created_at >= NOW() - INTERVAL '30 days'`));
+      const r = await db.execute(sql`SELECT AVG(overall_score) as v FROM meeting_effectiveness_scores WHERE created_at >= NOW() - INTERVAL '30 days'`);
       baseline = Number((r.rows as any[])[0]?.v || 0);
       break;
     }
     case "avg_duration": {
-      const r = await db.execute(sql.raw(`SELECT AVG(duration_minutes) as v FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL '30 days'`));
+      const r = await db.execute(sql`SELECT AVG(duration_minutes) as v FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL '30 days'`);
       baseline = Number((r.rows as any[])[0]?.v || 0);
       break;
     }
     case "action_completion_rate": {
-      const r = await db.execute(sql.raw(`SELECT COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as done FROM ime_action_items WHERE created_at >= NOW() - INTERVAL '30 days'`));
+      const r = await db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as done FROM ime_action_items WHERE created_at >= NOW() - INTERVAL '30 days'`);
       const row = (r.rows as any[])[0] || {};
       baseline = row.total > 0 ? Math.round((Number(row.done) / Number(row.total)) * 100) : 0;
       break;
     }
     case "avg_cost": {
-      const r = await db.execute(sql.raw(`SELECT AVG(total_cost) as v FROM ime_meeting_costs WHERE calculated_at >= NOW() - INTERVAL '30 days'`));
+      const r = await db.execute(sql`SELECT AVG(total_cost) as v FROM ime_meeting_costs WHERE calculated_at >= NOW() - INTERVAL '30 days'`);
       baseline = Number((r.rows as any[])[0]?.v || 0);
       break;
     }
   }
 
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_team_challenges (title, description, challenge_type, target_metric, target_value, current_value, baseline_value, scope, scope_id, start_date, end_date, status, reward_description, created_by, created_at, updated_at)
-    VALUES ('${safeTitle}', '${safeDesc}', '${challenge.challengeType}', '${challenge.targetMetric}', ${challenge.targetValue}, ${baseline}, ${baseline}, '${challenge.scope || "organization"}', ${challenge.scopeId ? `'${challenge.scopeId}'` : "NULL"}, ${challenge.startDate ? `'${challenge.startDate}'` : "NOW()"}, ${challenge.endDate ? `'${challenge.endDate}'` : "NOW() + INTERVAL '30 days'"}, 'active', '${safeReward}', '${safeCreatedBy}', NOW(), NOW())
-  `));
+    VALUES (${safeTitle}, ${safeDesc}, ${challenge.challengeType}, ${challenge.targetMetric}, ${challenge.targetValue}, ${baseline}, ${baseline}, ${challenge.scope || "organization"}, ${challenge.scopeId ? `${challenge.scopeId}` : "NULL"}, ${challenge.startDate ? `${challenge.startDate}` : "NOW()"}, ${challenge.endDate ? `${challenge.endDate}` : "NOW() + INTERVAL '30 days'"}, 'active', ${safeReward}, ${safeCreatedBy}, NOW(), NOW())
+  `);
 
   return { success: true, title: challenge.title, baseline };
 }
@@ -6217,7 +6162,7 @@ export async function createTeamChallenge(challenge: {
 // Phase 11 — Feature 4: Update Challenge Progress
 export async function updateChallengeProgress(challengeId: number) {
   const db = await requireDb();
-  const chalRes = await db.execute(sql`SELECT * FROM ime_team_challenges WHERE id = ${challengeId}`);
+  const chalRes = await db.execute(sql`SELECT * FROM ime_team_challenges WHERE id = ${challengeId} LIMIT 1000`);
   const challenge = (chalRes.rows as any[])[0];
   if (!challenge) throw new Error("Challenge not found");
 
@@ -6269,23 +6214,23 @@ export async function getGamificationDashboard(userId?: string) {
   const db = await requireDb();
 
   // Achievement definitions
-  const defsRes = await db.execute(sql.raw(`SELECT * FROM ime_achievements WHERE is_global = 1 ORDER BY points ASC`));
+  const defsRes = await db.execute(sql`SELECT * FROM ime_achievements WHERE is_global = 1 ORDER BY points ASC LIMIT 1000`);
 
   // User awards
   const awardsRes = userId
-    ? await db.execute(sql`SELECT * FROM ime_achievements WHERE user_id = ${userId} AND is_global = 0 ORDER BY awarded_at DESC`)
-    : await db.execute(sql.raw(`SELECT * FROM ime_achievements WHERE is_global = 0 ORDER BY awarded_at DESC`));
+    ? await db.execute(sql`SELECT * FROM ime_achievements WHERE user_id = ${userId} AND is_global = 0 ORDER BY awarded_at DESC LIMIT 1000`)
+    : await db.execute(sql`SELECT * FROM ime_achievements WHERE is_global = 0 ORDER BY awarded_at DESC LIMIT 1000`);
 
   // Total points
   const pointsRes = userId
     ? await db.execute(sql`SELECT user_id, SUM(points) as total_points, COUNT(*) as badge_count FROM ime_achievements WHERE is_global = 0 AND user_id = ${userId}`)
-    : await db.execute(sql.raw(`SELECT SUM(points) as total_points, COUNT(*) as badge_count FROM ime_achievements WHERE is_global = 0 GROUP BY user_id ORDER BY total_points DESC LIMIT 10`));
+    : await db.execute(sql`SELECT SUM(points) as total_points, COUNT(*) as badge_count FROM ime_achievements WHERE is_global = 0 GROUP BY user_id ORDER BY total_points DESC LIMIT 10`);
 
   // Active challenges
-  const challengesRes = await db.execute(sql.raw(`SELECT * FROM ime_team_challenges WHERE status = 'active' ORDER BY created_at DESC`));
+  const challengesRes = await db.execute(sql`SELECT * FROM ime_team_challenges WHERE status = 'active' ORDER BY created_at DESC LIMIT 1000`);
 
   // Recent completions
-  const recentRes = await db.execute(sql.raw(`SELECT * FROM ime_team_challenges WHERE status = 'completed' ORDER BY updated_at DESC LIMIT 5`));
+  const recentRes = await db.execute(sql`SELECT * FROM ime_team_challenges WHERE status = 'completed' ORDER BY updated_at DESC LIMIT 5`);
 
   return {
     definitions: defsRes.rows,
@@ -6328,7 +6273,7 @@ export async function analyzeFeedbackTrends(filters?: { period?: string; scope?:
   const db = await requireDb();
   const periodDays = filters?.period === "quarterly" ? 90 : filters?.period === "weekly" ? 7 : 30;
 
-  const avgRes = await db.execute(sql.raw(`
+  const avgRes = await db.execute(sql`
     SELECT COUNT(*) as total_responses,
            AVG(overall_rating) as avg_overall,
            AVG(content_relevance) as avg_content,
@@ -6339,7 +6284,7 @@ export async function analyzeFeedbackTrends(filters?: { period?: string; scope?:
            SUM(CASE WHEN would_recommend = 0 THEN 1 ELSE 0 END) as detractors
     FROM ime_meeting_feedback
     WHERE submitted_at >= NOW() - INTERVAL '${periodDays} days'
-  `));
+  `);
 
   const avg = (avgRes.rows as any[])[0] || {};
   const total = Number(avg.total_responses || 0);
@@ -6348,28 +6293,24 @@ export async function analyzeFeedbackTrends(filters?: { period?: string; scope?:
     : 0;
 
   // Get previous period for trend
-  const prevRes = await db.execute(sql.raw(`
+  const prevRes = await db.execute(sql`
     SELECT AVG(overall_rating) as prev_avg
     FROM ime_meeting_feedback
     WHERE submitted_at >= NOW() - INTERVAL '${periodDays * 2} days' AND submitted_at < NOW() - INTERVAL '${periodDays} days'
-  `));
+  `);
   const prevAvg = Number((prevRes.rows as any[])[0]?.prev_avg || 0);
   const currentAvg = Number(avg.avg_overall || 0);
   const trend = currentAvg > prevAvg + 0.1 ? "up" : currentAvg < prevAvg - 0.1 ? "down" : "stable";
 
   // Common feedback themes (top highlights and improvements)
-  const highlightsRes = await db.execute(sql.raw(
-    `SELECT highlights FROM ime_meeting_feedback WHERE highlights != '' AND submitted_at >= NOW() - INTERVAL '${periodDays} days' ORDER BY submitted_at DESC LIMIT 20`
-  ));
-  const improvementsRes = await db.execute(sql.raw(
-    `SELECT improvements FROM ime_meeting_feedback WHERE improvements != '' AND submitted_at >= NOW() - INTERVAL '${periodDays} days' ORDER BY submitted_at DESC LIMIT 20`
-  ));
+  const highlightsRes = await db.execute(sql`SELECT highlights FROM ime_meeting_feedback WHERE highlights != '' AND submitted_at >= NOW() - INTERVAL '${periodDays} days' ORDER BY submitted_at DESC LIMIT 20`);
+  const improvementsRes = await db.execute(sql`SELECT improvements FROM ime_meeting_feedback WHERE improvements != '' AND submitted_at >= NOW() - INTERVAL '${periodDays} days' ORDER BY submitted_at DESC LIMIT 20`);
 
   // Save analytics snapshot
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_feedback_analytics (scope, scope_id, period, total_responses, avg_overall_rating, avg_content_relevance, avg_time_efficiency, avg_facilitation, avg_action_clarity, nps_score, top_highlights, top_improvements, trend_direction, analyzed_at)
-    VALUES ('${filters?.scope || "organization"}', ${filters?.scopeId ? `'${filters.scopeId.replace(/'/g, "''")}'` : "NULL"}, '${filters?.period || "monthly"}', ${total}, ${currentAvg.toFixed(2)}, ${Number(avg.avg_content || 0).toFixed(2)}, ${Number(avg.avg_time || 0).toFixed(2)}, ${Number(avg.avg_facilitation || 0).toFixed(2)}, ${Number(avg.avg_action || 0).toFixed(2)}, ${nps}, '${JSON.stringify((highlightsRes.rows as any[]).map((r: any) => r.highlights).slice(0, 5)).replace(/'/g, "''")}', '${JSON.stringify((improvementsRes.rows as any[]).map((r: any) => r.improvements).slice(0, 5)).replace(/'/g, "''")}', '${trend}', NOW())
-  `));
+    VALUES (${filters?.scope || "organization"}, ${filters?.scopeId ? `${filters.scopeId}` : "NULL"}, ${filters?.period || "monthly"}, ${total}, ${currentAvg.toFixed(2)}, ${Number(avg.avg_content || 0).toFixed(2)}, ${Number(avg.avg_time || 0).toFixed(2)}, ${Number(avg.avg_facilitation || 0).toFixed(2)}, ${Number(avg.avg_action || 0).toFixed(2)}, ${nps}, ${JSON.stringify((highlightsRes.rows as any[]).map((r: any) => r.highlights).slice(0, 5))}, ${JSON.stringify((improvementsRes.rows as any[]).map((r: any) => r.improvements).slice(0, 5))}, ${trend}, NOW())
+  `);
 
   return {
     totalResponses: total,
@@ -6390,15 +6331,9 @@ export async function generateImprovementInitiative(scope: string, scopeId?: str
   const db = await requireDb();
 
   // Gather recent feedback data
-  const fbRes = await db.execute(sql.raw(
-    `SELECT AVG(overall_rating) as avg_rating, AVG(content_relevance) as avg_content, AVG(time_efficiency) as avg_time, AVG(facilitation) as avg_fac, AVG(action_clarity) as avg_action, COUNT(*) as cnt FROM ime_meeting_feedback WHERE submitted_at >= NOW() - INTERVAL '30 days'`
-  ));
-  const improvRes = await db.execute(sql.raw(
-    `SELECT improvements FROM ime_meeting_feedback WHERE improvements != '' AND submitted_at >= NOW() - INTERVAL '30 days' ORDER BY submitted_at DESC LIMIT 15`
-  ));
-  const healthRes = await db.execute(sql.raw(
-    `SELECT AVG(health_score) as avg_health FROM ime_meeting_health WHERE assessed_at >= NOW() - INTERVAL '30 days'`
-  ));
+  const fbRes = await db.execute(sql`SELECT AVG(overall_rating) as avg_rating, AVG(content_relevance) as avg_content, AVG(time_efficiency) as avg_time, AVG(facilitation) as avg_fac, AVG(action_clarity) as avg_action, COUNT(*) as cnt FROM ime_meeting_feedback WHERE submitted_at >= NOW() - INTERVAL '30 days'`);
+  const improvRes = await db.execute(sql`SELECT improvements FROM ime_meeting_feedback WHERE improvements != '' AND submitted_at >= NOW() - INTERVAL '30 days' ORDER BY submitted_at DESC LIMIT 15`);
+  const healthRes = await db.execute(sql`SELECT AVG(health_score) as avg_health FROM ime_meeting_health WHERE assessed_at >= NOW() - INTERVAL '30 days'`);
 
   const fb = (fbRes.rows as any[])[0] || {};
   const health = (healthRes.rows as any[])[0] || {};
@@ -6441,13 +6376,13 @@ export async function generateImprovementInitiative(scope: string, scopeId?: str
   });
 
   const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
-  const safeScopeId = (scopeId || "").replace(/'/g, "''");
+  const safeScopeId = (scopeId || "");
 
   for (const init of (parsed.initiatives || [])) {
-    await db.execute(sql.raw(`
+    await db.execute(sql`
       INSERT INTO ime_improvement_initiatives (title, description, category, priority, source, scope, scope_id, target_metric, status, ai_narrative, created_by, created_at, updated_at)
-      VALUES ('${(init.title || "").replace(/'/g, "''")}', '${(init.description || "").replace(/'/g, "''")}', '${init.category || "general"}', '${init.priority || "P2"}', 'ai_analysis', '${scope}', ${scopeId ? `'${safeScopeId}'` : "NULL"}, ${init.target_metric ? `'${init.target_metric}'` : "NULL"}, 'proposed', '${(parsed.narrative || "").replace(/'/g, "''")}', 'ai', NOW(), NOW())
-    `));
+      VALUES (${(init.title || "")}, ${(init.description || "")}, ${init.category || "general"}, ${init.priority || "P2"}, 'ai_analysis', ${scope}, ${scopeId ? `${safeScopeId}` : "NULL"}, ${init.target_metric ? `${init.target_metric}` : "NULL"}, 'proposed', ${(parsed.narrative || "")}, 'ai', NOW(), NOW())
+    `);
   }
 
   return {
@@ -6468,7 +6403,7 @@ export async function getMeetingFeedbackSummary(meetingId: string) {
            SUM(CASE WHEN would_recommend = 0 THEN 1 ELSE 0 END) as detractors
     FROM ime_meeting_feedback WHERE meeting_id = ${meetingId}
   `);
-  const commentsRes = await db.execute(sql`SELECT highlights, improvements, suggestions, overall_rating FROM ime_meeting_feedback WHERE meeting_id = ${meetingId} ORDER BY submitted_at DESC`);
+  const commentsRes = await db.execute(sql`SELECT highlights, improvements, suggestions, overall_rating FROM ime_meeting_feedback WHERE meeting_id = ${meetingId} ORDER BY submitted_at DESC LIMIT 1000`);
 
   const stats = (fbRes.rows as any[])[0] || {};
   const total = Number(stats.total || 0);
@@ -6492,24 +6427,18 @@ export async function getFeedbackDashboard(filters?: { period?: string }) {
   const db = await requireDb();
   const periodDays = filters?.period === "quarterly" ? 90 : filters?.period === "weekly" ? 7 : 30;
 
-  const statsRes = await db.execute(sql.raw(`
+  const statsRes = await db.execute(sql`
     SELECT COUNT(*) as total, AVG(overall_rating) as avg_rating,
            SUM(CASE WHEN would_recommend = 1 THEN 1 ELSE 0 END) as promoters,
            SUM(CASE WHEN would_recommend = 0 THEN 1 ELSE 0 END) as detractors
     FROM ime_meeting_feedback WHERE submitted_at >= NOW() - INTERVAL '${periodDays} days'
-  `));
+  `);
 
-  const analyticsRes = await db.execute(sql.raw(
-    `SELECT * FROM ime_feedback_analytics ORDER BY analyzed_at DESC LIMIT 10`
-  ));
+  const analyticsRes = await db.execute(sql`SELECT * FROM ime_feedback_analytics ORDER BY analyzed_at DESC LIMIT 10`);
 
-  const initiativesRes = await db.execute(sql.raw(
-    `SELECT * FROM ime_improvement_initiatives ORDER BY created_at DESC LIMIT 20`
-  ));
+  const initiativesRes = await db.execute(sql`SELECT * FROM ime_improvement_initiatives ORDER BY created_at DESC LIMIT 20`);
 
-  const recentFbRes = await db.execute(sql.raw(
-    `SELECT mf.*, mr.title as meeting_title FROM ime_meeting_feedback mf LEFT JOIN meeting_records mr ON mf.meeting_id = mr.id ORDER BY mf.submitted_at DESC LIMIT 10`
-  ));
+  const recentFbRes = await db.execute(sql`SELECT mf.*, mr.title as meeting_title FROM ime_meeting_feedback mf LEFT JOIN meeting_records mr ON mf.meeting_id = mr.id ORDER BY mf.submitted_at DESC LIMIT 10`);
 
   const stats = (statsRes.rows as any[])[0] || {};
   const total = Number(stats.total || 0);
@@ -6541,14 +6470,14 @@ export async function createCompliancePolicy(policy: {
   createdBy?: string;
 }) {
   const db = await requireDb();
-  const safeName = policy.name.replace(/'/g, "''");
-  const safeDesc = (policy.description || "").replace(/'/g, "''");
-  const safeCreatedBy = (policy.createdBy || "system").replace(/'/g, "''");
+  const safeName = policy.name;
+  const safeDesc = (policy.description || "");
+  const safeCreatedBy = (policy.createdBy || "system");
 
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_compliance_policies (name, description, policy_type, check_field, operator, threshold, severity, scope, scope_id, is_active, created_by, created_at, updated_at)
-    VALUES ('${safeName}', '${safeDesc}', '${policy.policyType}', ${policy.checkField ? `'${policy.checkField}'` : "NULL"}, ${policy.operator ? `'${policy.operator}'` : "NULL"}, ${policy.threshold ? `'${policy.threshold}'` : "NULL"}, '${policy.severity || "warning"}', '${policy.scope || "global"}', ${policy.scopeId ? `'${policy.scopeId}'` : "NULL"}, 1, '${safeCreatedBy}', NOW(), NOW())
-  `));
+    VALUES (${safeName}, ${safeDesc}, ${policy.policyType}, ${policy.checkField ? `${policy.checkField}` : "NULL"}, ${policy.operator ? `${policy.operator}` : "NULL"}, ${policy.threshold ? `${policy.threshold}` : "NULL"}, ${policy.severity || "warning"}, ${policy.scope || "global"}, ${policy.scopeId ? `${policy.scopeId}` : "NULL"}, 1, ${safeCreatedBy}, NOW(), NOW())
+  `);
 
   return { success: true, name: policy.name };
 }
@@ -6581,11 +6510,11 @@ export async function auditMeetingCompliance(meetingId: string) {
   };
 
   // Get active policies
-  const policiesRes = await db.execute(sql.raw(`SELECT * FROM ime_compliance_policies WHERE is_active = 1`));
+  const policiesRes = await db.execute(sql`SELECT * FROM ime_compliance_policies WHERE is_active = 1 LIMIT 1000`);
   const policies = policiesRes.rows as any[];
 
   const results: any[] = [];
-  const safeTitle = (meeting.title || "").replace(/'/g, "''");
+  const safeTitle = (meeting.title || "");
 
   for (const policy of policies) {
     const field = policy.check_field;
@@ -6633,27 +6562,25 @@ export async function getComplianceOverview(filters?: { period?: string }) {
   const db = await requireDb();
   const periodDays = filters?.period === "quarterly" ? 90 : filters?.period === "weekly" ? 7 : 30;
 
-  const policiesRes = await db.execute(sql.raw(`SELECT * FROM ime_compliance_policies WHERE is_active = 1 ORDER BY created_at DESC`));
+  const policiesRes = await db.execute(sql`SELECT * FROM ime_compliance_policies WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1000`);
 
-  const statsRes = await db.execute(sql.raw(`
+  const statsRes = await db.execute(sql`
     SELECT COUNT(*) as total, SUM(CASE WHEN result = 'pass' THEN 1 ELSE 0 END) as passed,
            SUM(CASE WHEN result = 'fail' THEN 1 ELSE 0 END) as failed,
            SUM(CASE WHEN result = 'fail' AND severity = 'critical' THEN 1 ELSE 0 END) as critical,
            SUM(CASE WHEN result = 'fail' AND severity = 'violation' THEN 1 ELSE 0 END) as violations,
            COUNT(DISTINCT meeting_id) as meetings_audited
     FROM ime_compliance_audits WHERE audited_at >= NOW() - INTERVAL '${periodDays} days'
-  `));
+  `);
 
-  const topViolationsRes = await db.execute(sql.raw(`
+  const topViolationsRes = await db.execute(sql`
     SELECT policy_name, policy_type, severity, COUNT(*) as cnt
     FROM ime_compliance_audits
     WHERE result = 'fail' AND audited_at >= NOW() - INTERVAL '${periodDays} days'
     GROUP BY policy_name, policy_type, severity ORDER BY cnt DESC LIMIT 10
-  `));
+  `);
 
-  const recentAuditsRes = await db.execute(sql.raw(
-    `SELECT * FROM ime_compliance_audits WHERE result = 'fail' ORDER BY audited_at DESC LIMIT 20`
-  ));
+  const recentAuditsRes = await db.execute(sql`SELECT * FROM ime_compliance_audits WHERE result = 'fail' ORDER BY audited_at DESC LIMIT 20`);
 
   const stats = (statsRes.rows as any[])[0] || {};
   const total = Number(stats.total || 0);
@@ -6681,17 +6608,17 @@ export async function generateGovernanceReport(period?: string) {
   const db = await requireDb();
   const periodDays = period === "quarterly" ? 90 : period === "weekly" ? 7 : 30;
 
-  const statsRes = await db.execute(sql.raw(`
+  const statsRes = await db.execute(sql`
     SELECT COUNT(DISTINCT meeting_id) as meetings, COUNT(*) as checks,
            SUM(CASE WHEN result = 'pass' THEN 1 ELSE 0 END) as passed,
            SUM(CASE WHEN result = 'fail' THEN 1 ELSE 0 END) as failed
     FROM ime_compliance_audits WHERE audited_at >= NOW() - INTERVAL '${periodDays} days'
-  `));
-  const violationsRes = await db.execute(sql.raw(`
+  `);
+  const violationsRes = await db.execute(sql`
     SELECT policy_name, policy_type, severity, COUNT(*) as cnt
     FROM ime_compliance_audits WHERE result = 'fail' AND audited_at >= NOW() - INTERVAL '${periodDays} days'
     GROUP BY policy_name, policy_type, severity ORDER BY cnt DESC LIMIT 5
-  `));
+  `);
 
   const stats = (statsRes.rows as any[])[0] || {};
   const violations = violationsRes.rows as any[];
@@ -6723,10 +6650,10 @@ export async function generateGovernanceReport(period?: string) {
 
   const parsed = typeof llmResult === "string" ? JSON.parse(llmResult) : llmResult;
 
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_governance_reports (period, period_start, period_end, total_meetings_audited, compliance_rate, total_violations, total_warnings, top_violations, risk_areas, recommendations, ai_narrative, generated_at)
-    VALUES ('${period || "monthly"}', NOW() - INTERVAL '${periodDays} days', NOW(), ${stats.meetings || 0}, ${complianceRate}, ${failed}, 0, '${JSON.stringify(violations.map((v: any) => ({ policyName: v.policy_name, count: v.cnt, severity: v.severity }))).replace(/'/g, "''")}', '${JSON.stringify(parsed.risk_areas || []).replace(/'/g, "''")}', '${JSON.stringify(parsed.recommendations || []).replace(/'/g, "''")}', '${(parsed.narrative || "").replace(/'/g, "''")}', NOW())
-  `));
+    VALUES (${period || "monthly"}, NOW() - INTERVAL '${periodDays} days', NOW(), ${stats.meetings || 0}, ${complianceRate}, ${failed}, 0, '${JSON.stringify(violations.map((v: any) => ({ policyName: v.policy_name, count: v.cnt, severity: v.severity })))}', ${JSON.stringify(parsed.risk_areas || [])}, ${JSON.stringify(parsed.recommendations || [])}, ${(parsed.narrative || "")}, NOW())
+  `);
 
   return {
     period: period || "monthly",
@@ -6744,16 +6671,12 @@ export async function generateGovernanceReport(period?: string) {
 export async function getComplianceHistory(meetingId?: string) {
   const db = await requireDb();
   if (meetingId) {
-    const safeId = meetingId.replace(/'/g, "''");
-    const result = await db.execute(sql.raw(
-      `SELECT * FROM ime_compliance_audits WHERE meeting_id = '${safeId}' ORDER BY audited_at DESC`
-    ));
+    const safeId = meetingId;
+    const result = await db.execute(sql`SELECT * FROM ime_compliance_audits WHERE meeting_id = ${safeId} ORDER BY audited_at DESC LIMIT 1000`);
     return result.rows;
   }
   // Governance reports
-  const reports = await db.execute(sql.raw(
-    `SELECT * FROM ime_governance_reports ORDER BY generated_at DESC LIMIT 10`
-  ));
+  const reports = await db.execute(sql`SELECT * FROM ime_governance_reports ORDER BY generated_at DESC LIMIT 10`);
   return reports.rows;
 }
 
@@ -6779,30 +6702,28 @@ export async function createLinkageRule(input: {
   createdBy?: string;
 }) {
   const db = await requireDb();
-  const safeName = input.name.replace(/'/g, "''");
-  const safeDesc = (input.description || "").replace(/'/g, "''");
-  const safeField = (input.conditionField || "").replace(/'/g, "''");
-  const safeTarget = (input.actionTarget || "").replace(/'/g, "''");
-  const safeValue = (input.actionValue || "").replace(/'/g, "''");
-  const safeActDesc = (input.actionDescription || "").replace(/'/g, "''");
-  const safeScopeId = (input.scopeId || "").replace(/'/g, "''");
-  const safeDim = (input.impactDimension || "").replace(/'/g, "''");
-  const safeCreatedBy = (input.createdBy || "system").replace(/'/g, "''");
+  const safeName = input.name;
+  const safeDesc = (input.description || "");
+  const safeField = (input.conditionField || "");
+  const safeTarget = (input.actionTarget || "");
+  const safeValue = (input.actionValue || "");
+  const safeActDesc = (input.actionDescription || "");
+  const safeScopeId = (input.scopeId || "");
+  const safeDim = (input.impactDimension || "");
+  const safeCreatedBy = (input.createdBy || "system");
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     INSERT INTO ime_linkage_rules (name, description, condition_type, condition_field, condition_operator, condition_threshold, action_type, action_target, action_value, action_description, scope, scope_id, impact_dimension, priority, is_active, created_by, created_at, updated_at)
-    VALUES ('${safeName}', '${safeDesc}', '${input.conditionType}', '${safeField}', '${input.conditionOperator}', '${input.conditionThreshold}', '${input.actionType}', '${safeTarget}', '${safeValue}', '${safeActDesc}', '${input.scope || "individual"}', '${safeScopeId}', '${safeDim}', ${input.priority || 0}, 1, '${safeCreatedBy}', NOW(), NOW())
+    VALUES (${safeName}, ${safeDesc}, ${input.conditionType}, ${safeField}, ${input.conditionOperator}, ${input.conditionThreshold}, ${input.actionType}, ${safeTarget}, ${safeValue}, ${safeActDesc}, ${input.scope || "individual"}, ${safeScopeId}, ${safeDim}, ${input.priority || 0}, 1, ${safeCreatedBy}, NOW(), NOW())
     RETURNING *
-  `));
+  `);
   return result.rows[0];
 }
 
 export async function listLinkageRules(activeOnly?: boolean) {
   const db = await requireDb();
   const where = activeOnly ? "WHERE is_active = 1" : "";
-  const result = await db.execute(sql.raw(
-    `SELECT * FROM ime_linkage_rules ${where} ORDER BY priority DESC, created_at DESC`
-  ));
+  const result = await db.execute(sql`SELECT * FROM ime_linkage_rules ${where} ORDER BY priority DESC, created_at DESC LIMIT 1000`);
   return result.rows;
 }
 
@@ -6843,21 +6764,19 @@ export async function evaluateLinkage(meetingId: string) {
     const db = await requireDb();
 
     // 1. Get meeting contributions
-    const contribs = await db.execute(sql`SELECT * FROM meeting_contributions WHERE meeting_id = ${meetingId}`);
+    const contribs = await db.execute(sql`SELECT * FROM meeting_contributions WHERE meeting_id = ${meetingId} LIMIT 1000`);
     const contributions = contribs.rows as any[];
 
     // 2. Get AI analysis
-    const analysis = await db.execute(sql`SELECT * FROM ime_ai_analysis WHERE meeting_id = ${meetingId}`);
+    const analysis = await db.execute(sql`SELECT * FROM ime_ai_analysis WHERE meeting_id = ${meetingId} LIMIT 1000`);
     const analyses = analysis.rows as any[];
 
     // 3. Get HR signals for participants
-    const signals = await db.execute(sql`SELECT * FROM ime_hr_signals WHERE meeting_id = ${meetingId}`);
+    const signals = await db.execute(sql`SELECT * FROM ime_hr_signals WHERE meeting_id = ${meetingId} LIMIT 1000`);
     const hrSignals = signals.rows as any[];
 
     // 4. Load active rules ordered by priority
-    const rulesResult = await db.execute(sql.raw(
-      `SELECT * FROM ime_linkage_rules WHERE is_active = 1 ORDER BY priority DESC`
-    ));
+    const rulesResult = await db.execute(sql`SELECT * FROM ime_linkage_rules WHERE is_active = 1 ORDER BY priority DESC LIMIT 1000`);
     const rules = rulesResult.rows as any[];
 
     if (rules.length === 0) {
@@ -7041,39 +6960,37 @@ export async function getHrActionLog(filters?: {
   dateTo?: string;
 }) {
   const db = await requireDb();
-  const conditions: string[] = [];
-  if (filters?.status) conditions.push(`status = '${filters.status.replace(/'/g, "''")}'`);
-  if (filters?.employeeId) conditions.push(`employee_id = '${filters.employeeId.replace(/'/g, "''")}'`);
-  if (filters?.actionType) conditions.push(`action_type = '${filters.actionType.replace(/'/g, "''")}'`);
-  if (filters?.department) conditions.push(`department LIKE '%${filters.department.replace(/'/g, "''")}%'`);
-  if (filters?.dateFrom) conditions.push(`created_at >= '${filters.dateFrom}'`);
-  if (filters?.dateTo) conditions.push(`created_at <= '${filters.dateTo}'`);
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const result = await db.execute(sql.raw(
-    `SELECT * FROM ime_hr_actions ${where} ORDER BY created_at DESC LIMIT 200`
-  ));
+  const conditions: SQL[] = [];
+  if (filters?.status) conditions.push(sql`status = ${filters.status}`);
+  if (filters?.employeeId) conditions.push(sql`employee_id = ${filters.employeeId}`);
+  if (filters?.actionType) conditions.push(sql`action_type = ${filters.actionType}`);
+  if (filters?.department) conditions.push(sql`department LIKE ${'%' + filters.department + '%'}`);
+  if (filters?.dateFrom) conditions.push(sql`created_at >= ${filters.dateFrom}`);
+  if (filters?.dateTo) conditions.push(sql`created_at <= ${filters.dateTo}`);
+  const where = conditions.length > 0 ? sql` WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+  const result = await db.execute(sql`SELECT * FROM ime_hr_actions ${where} ORDER BY created_at DESC LIMIT 200`);
   return result.rows;
 }
 
 export async function approveHrAction(id: number, reviewedBy: string, notes?: string) {
   const db = await requireDb();
-  const safeReviewer = reviewedBy.replace(/'/g, "''");
-  const safeNotes = (notes || "").replace(/'/g, "''");
-  await db.execute(sql.raw(`
-    UPDATE ime_hr_actions SET status = 'approved', reviewed_by = '${safeReviewer}', reviewed_at = NOW(), review_notes = '${safeNotes}', updated_at = NOW()
+  const safeReviewer = reviewedBy;
+  const safeNotes = (notes || "");
+  await db.execute(sql`
+    UPDATE ime_hr_actions SET status = 'approved', reviewed_by = ${safeReviewer}, reviewed_at = NOW(), review_notes = ${safeNotes}, updated_at = NOW()
     WHERE id = ${id} AND status = 'pending'
-  `));
+  `);
   return { success: true };
 }
 
 export async function rejectHrAction(id: number, reviewedBy: string, notes?: string) {
   const db = await requireDb();
-  const safeReviewer = reviewedBy.replace(/'/g, "''");
-  const safeNotes = (notes || "").replace(/'/g, "''");
-  await db.execute(sql.raw(`
-    UPDATE ime_hr_actions SET status = 'rejected', reviewed_by = '${safeReviewer}', reviewed_at = NOW(), review_notes = '${safeNotes}', updated_at = NOW()
+  const safeReviewer = reviewedBy;
+  const safeNotes = (notes || "");
+  await db.execute(sql`
+    UPDATE ime_hr_actions SET status = 'rejected', reviewed_by = ${safeReviewer}, reviewed_at = NOW(), review_notes = ${safeNotes}, updated_at = NOW()
     WHERE id = ${id} AND status = 'pending'
-  `));
+  `);
   return { success: true };
 }
 
@@ -7086,9 +7003,7 @@ export async function executeHrActions(actionIds: number[]) {
   const results: any[] = [];
 
   for (const actionId of actionIds) {
-    const actionResult = await db.execute(sql.raw(
-      `SELECT * FROM ime_hr_actions WHERE id = ${actionId} AND status = 'approved'`
-    ));
+    const actionResult = await db.execute(sql`SELECT * FROM ime_hr_actions WHERE id = ${actionId} AND status = 'approved' LIMIT 1000`);
     const action = actionResult.rows[0] as any;
     if (!action) {
       results.push({ id: actionId, success: false, error: "Action not found or not approved" });
@@ -7099,50 +7014,50 @@ export async function executeHrActions(actionIds: number[]) {
     try {
       switch (action.action_type) {
         case "update_kpi": {
-          await db.execute(sql.raw(`
+          await db.execute(sql`
             INSERT INTO kpi_score_records (employee_id, dimension, score, source, notes, created_at)
-            VALUES ('${action.employee_id}', '${(action.impact_dimension || "meeting_contribution").replace(/'/g, "''")}', ${Number(action.impact_value) || 0}, 'ime_linkage', '${(action.reason || "").replace(/'/g, "''")}', NOW())
-          `));
+            VALUES (${action.employee_id}, ${(action.impact_dimension || "meeting_contribution")}, ${Number(action.impact_value) || 0}, 'ime_linkage', ${(action.reason || "")}, NOW())
+          `);
           executionResult = { type: "update_kpi", dimension: action.impact_dimension, value: action.impact_value };
           break;
         }
         case "flag_training": {
-          await db.execute(sql.raw(`
+          await db.execute(sql`
             INSERT INTO hrm_training_plans (employee_id, training_type, title, reason, status, created_at)
-            VALUES ('${action.employee_id}', 'skills', '${(action.action_description || "Training Required").replace(/'/g, "''")}', '${(action.reason || "").replace(/'/g, "''")}', 'planned', NOW())
-          `));
+            VALUES (${action.employee_id}, 'skills', ${(action.action_description || "Training Required")}, ${(action.reason || "")}, 'planned', NOW())
+          `);
           executionResult = { type: "flag_training", description: action.action_description };
           break;
         }
         case "add_achievement": {
-          await db.execute(sql.raw(`
+          await db.execute(sql`
             INSERT INTO performance_traces (employee_id, metric, value, source, notes, traced_at)
-            VALUES ('${action.employee_id}', 'achievement_tag', '${(action.action_value || "meeting_excellence").replace(/'/g, "''")}', 'ime_linkage', '${(action.reason || "").replace(/'/g, "''")}', NOW())
-          `));
+            VALUES (${action.employee_id}, 'achievement_tag', ${(action.action_value || "meeting_excellence")}, 'ime_linkage', ${(action.reason || "")}, NOW())
+          `);
           executionResult = { type: "add_achievement", tag: action.action_value };
           break;
         }
         case "adjust_score": {
-          await db.execute(sql.raw(`
+          await db.execute(sql`
             INSERT INTO kpi_score_records (employee_id, dimension, score, source, notes, created_at)
-            VALUES ('${action.employee_id}', '${(action.impact_dimension || "performance_adjustment").replace(/'/g, "''")}', ${Number(action.impact_value) || 0}, 'ime_linkage_adjust', '${(action.reason || "").replace(/'/g, "''")}', NOW())
-          `));
+            VALUES (${action.employee_id}, ${(action.impact_dimension || "performance_adjustment")}, ${Number(action.impact_value) || 0}, 'ime_linkage_adjust', ${(action.reason || "")}, NOW())
+          `);
           executionResult = { type: "adjust_score", dimension: action.impact_dimension, value: action.impact_value };
           break;
         }
         case "create_key_result": {
-          await db.execute(sql.raw(`
+          await db.execute(sql`
             INSERT INTO performance_traces (employee_id, metric, value, source, notes, traced_at)
-            VALUES ('${action.employee_id}', 'key_result_in_progress', '${(action.action_value || "").replace(/'/g, "''")}', 'ime_linkage', '${(action.reason || "").replace(/'/g, "''")}', NOW())
-          `));
+            VALUES (${action.employee_id}, 'key_result_in_progress', ${(action.action_value || "")}, 'ime_linkage', ${(action.reason || "")}, NOW())
+          `);
           executionResult = { type: "create_key_result", value: action.action_value };
           break;
         }
         case "coaching_suggestion": {
-          await db.execute(sql.raw(`
+          await db.execute(sql`
             INSERT INTO kpi_communication_suggestions (employee_id, suggestion_type, content, source, created_at)
-            VALUES ('${action.employee_id}', 'coaching', '${(action.action_description || "").replace(/'/g, "''")}', 'ime_linkage', NOW())
-          `));
+            VALUES (${action.employee_id}, 'coaching', ${(action.action_description || "")}, 'ime_linkage', NOW())
+          `);
           executionResult = { type: "coaching_suggestion", content: action.action_description };
           break;
         }
@@ -7150,10 +7065,10 @@ export async function executeHrActions(actionIds: number[]) {
           executionResult = { type: action.action_type, note: "No specific handler, marked as executed" };
       }
 
-      await db.execute(sql.raw(`
-        UPDATE ime_hr_actions SET status = 'executed', executed_at = NOW(), execution_result = '${JSON.stringify(executionResult).replace(/'/g, "''")}', updated_at = NOW()
+      await db.execute(sql`
+        UPDATE ime_hr_actions SET status = 'executed', executed_at = NOW(), execution_result = ${JSON.stringify(executionResult)}, updated_at = NOW()
         WHERE id = ${actionId}
-      `));
+      `);
       results.push({ id: actionId, success: true, result: executionResult });
     } catch (err: any) {
       results.push({ id: actionId, success: false, error: err.message });
@@ -7169,18 +7084,14 @@ export async function executeHrActions(actionIds: number[]) {
 
 export async function getLinkageDashboard(period?: string, department?: string) {
   const db = await requireDb();
-  const deptFilter = department ? `AND department LIKE '%${department.replace(/'/g, "''")}%'` : "";
+  const deptFilter = department ? sql`AND department LIKE ${'%' + department + '%'}` : sql``;
 
   // Active rules count
-  const rulesCount = await db.execute(sql.raw(
-    `SELECT COUNT(*) as cnt FROM ime_linkage_rules WHERE is_active = 1`
-  ));
+  const rulesCount = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_linkage_rules WHERE is_active = 1`);
   const activeRules = Number((rulesCount.rows[0] as any)?.cnt || 0);
 
   // Actions by status
-  const statusCounts = await db.execute(sql.raw(
-    `SELECT status, COUNT(*) as cnt FROM ime_hr_actions WHERE 1=1 ${deptFilter} GROUP BY status`
-  ));
+  const statusCounts = await db.execute(sql`SELECT status, COUNT(*) as cnt FROM ime_hr_actions WHERE 1=1 ${deptFilter} GROUP BY status`);
   const statusMap: Record<string, number> = {};
   for (const row of statusCounts.rows as any[]) {
     statusMap[row.status] = Number(row.cnt);
@@ -7194,19 +7105,13 @@ export async function getLinkageDashboard(period?: string, department?: string) 
   const approvalRate = totalReviewed > 0 ? Math.round(((approvedActions + executedActions) / totalReviewed) * 100) : 0;
 
   // By action type distribution
-  const byType = await db.execute(sql.raw(
-    `SELECT action_type, COUNT(*) as cnt FROM ime_hr_actions WHERE 1=1 ${deptFilter} GROUP BY action_type ORDER BY cnt DESC`
-  ));
+  const byType = await db.execute(sql`SELECT action_type, COUNT(*) as cnt FROM ime_hr_actions WHERE 1=1 ${deptFilter} GROUP BY action_type ORDER BY cnt DESC`);
 
   // Recent actions
-  const recent = await db.execute(sql.raw(
-    `SELECT * FROM ime_hr_actions WHERE 1=1 ${deptFilter} ORDER BY created_at DESC LIMIT 10`
-  ));
+  const recent = await db.execute(sql`SELECT * FROM ime_hr_actions WHERE 1=1 ${deptFilter} ORDER BY created_at DESC LIMIT 10`);
 
   // Top impacted employees
-  const topImpacted = await db.execute(sql.raw(
-    `SELECT employee_id, employee_name, department, COUNT(*) as action_count FROM ime_hr_actions WHERE 1=1 ${deptFilter} GROUP BY employee_id, employee_name, department ORDER BY action_count DESC LIMIT 10`
-  ));
+  const topImpacted = await db.execute(sql`SELECT employee_id, employee_name, department, COUNT(*) as action_count FROM ime_hr_actions WHERE 1=1 ${deptFilter} GROUP BY employee_id, employee_name, department ORDER BY action_count DESC LIMIT 10`);
 
   return {
     activeRules,
@@ -7347,11 +7252,9 @@ export async function checkRateLimit(
   const db = await requireDb();
   const interval = window === "daily" ? "1 DAY" : "1 HOUR";
 
-  const result = await db.execute(sql.raw(
-    `SELECT COUNT(*) as cnt FROM ime_api_usage_logs
+  const result = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_api_usage_logs
      WHERE api_key_id = ${apiKeyId}
-     AND requested_at >= NOW() - INTERVAL ${interval}`
-  ));
+     AND requested_at >= NOW() - INTERVAL ${sql.raw(`'${interval}'`)}`);
 
   const currentCount = Number((result.rows[0] as any)?.cnt || 0);
   return { allowed: currentCount < rateLimit, currentCount };
@@ -7398,15 +7301,14 @@ export async function logApiUsage(params: {
 export async function getApiKeyUsageStats(apiKeyId: number, days: number = 30) {
   const db = await requireDb();
 
-  const totals = await db.execute(sql.raw(
-    `SELECT
+  const totals = await db.execute(sql`SELECT
        COUNT(*) as total_requests,
        SUM(CASE WHEN status_code < 400 THEN 1 ELSE 0 END) as success_count,
        AVG(response_time_ms) as avg_response_time
      FROM ime_api_usage_logs
      WHERE api_key_id = ${apiKeyId}
-     AND requested_at >= NOW() - INTERVAL ${days} DAY`
-  ));
+     LIMIT 1000
+     AND requested_at >= NOW() - INTERVAL ${sql.raw(`'${days}'`)} DAY`);
 
   const stats = totals.rows[0] as any;
   const totalRequests = Number(stats?.total_requests || 0);
@@ -7414,25 +7316,21 @@ export async function getApiKeyUsageStats(apiKeyId: number, days: number = 30) {
   const successRate = totalRequests > 0 ? Math.round((successCount / totalRequests) * 100) : 100;
   const avgResponseTime = Math.round(Number(stats?.avg_response_time || 0));
 
-  const byDay = await db.execute(sql.raw(
-    `SELECT DATE(requested_at) as day, COUNT(*) as cnt
+  const byDay = await db.execute(sql`SELECT DATE(requested_at) as day, COUNT(*) as cnt
      FROM ime_api_usage_logs
      WHERE api_key_id = ${apiKeyId}
-     AND requested_at >= NOW() - INTERVAL ${days} DAY
+     AND requested_at >= NOW() - INTERVAL ${sql.raw(`'${days}'`)} DAY
      GROUP BY DATE(requested_at)
-     ORDER BY day`
-  ));
+     ORDER BY day`);
 
-  const topEndpoints = await db.execute(sql.raw(
-    `SELECT endpoint, method, COUNT(*) as cnt,
+  const topEndpoints = await db.execute(sql`SELECT endpoint, method, COUNT(*) as cnt,
        AVG(response_time_ms) as avg_time
      FROM ime_api_usage_logs
      WHERE api_key_id = ${apiKeyId}
-     AND requested_at >= NOW() - INTERVAL ${days} DAY
+     AND requested_at >= NOW() - INTERVAL ${sql.raw(`'${days}'`)} DAY
      GROUP BY endpoint, method
      ORDER BY cnt DESC
-     LIMIT 10`
-  ));
+     LIMIT 10`);
 
   return {
     totalRequests,
@@ -7446,28 +7344,22 @@ export async function getApiKeyUsageStats(apiKeyId: number, days: number = 30) {
 export async function getApiDashboard() {
   const db = await requireDb();
 
-  const keyCounts = await db.execute(sql.raw(
-    `SELECT
+  const keyCounts = await db.execute(sql`SELECT
        COUNT(*) as total_keys,
        SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_keys
-     FROM ime_api_keys`
-  ));
+       LIMIT 1000
+     FROM ime_api_keys`);
 
-  const requestCounts = await db.execute(sql.raw(
-    `SELECT COUNT(*) as total_requests FROM ime_api_usage_logs`
-  ));
+  const requestCounts = await db.execute(sql`SELECT COUNT(*) as total_requests FROM ime_api_usage_logs`);
 
-  const todayCount = await db.execute(sql.raw(
-    `SELECT COUNT(*) as cnt FROM ime_api_usage_logs
-     WHERE requested_at >= CURRENT_DATE`
-  ));
+  const todayCount = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_api_usage_logs
+     WHERE requested_at >= CURRENT_DATE`);
 
-  const errorRate = await db.execute(sql.raw(
-    `SELECT
+  const errorRate = await db.execute(sql`SELECT
        COUNT(*) as total,
        SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as errors
-     FROM ime_api_usage_logs`
-  ));
+       LIMIT 1000
+     FROM ime_api_usage_logs`);
 
   const kc = keyCounts.rows[0] as any;
   const rc = requestCounts.rows[0] as any;
@@ -7488,9 +7380,7 @@ export async function getApiDashboard() {
 
 export async function getApiUsageLogs(limit: number = 50) {
   const db = await requireDb();
-  const result = await db.execute(sql.raw(
-    `SELECT * FROM ime_api_usage_logs ORDER BY requested_at DESC LIMIT ${limit}`
-  ));
+  const result = await db.execute(sql`SELECT * FROM ime_api_usage_logs ORDER BY requested_at DESC LIMIT ${limit}`);
   return result.rows;
 }
 
@@ -7511,23 +7401,24 @@ export async function buildCollaborationNetwork(options?: {
   const db = await requireDb();
 
   // Clear old edges
-  await db.execute(sql.raw(`DELETE FROM ime_collaboration_edges`));
+  await db.execute(sql`DELETE FROM ime_collaboration_edges`);
 
   // Build date filter
-  let dateFilter = "";
-  if (options?.dateFrom) dateFilter += ` AND mr.meeting_date >= '${options.dateFrom}'`;
-  if (options?.dateTo) dateFilter += ` AND mr.meeting_date <= '${options.dateTo}'`;
+  const dateConditions: SQL[] = [sql`1=1`];
+  if (options?.dateFrom) dateConditions.push(sql`mr.meeting_date >= ${options.dateFrom}`);
+  if (options?.dateTo) dateConditions.push(sql`mr.meeting_date <= ${options.dateTo}`);
+  const dateFilter = sql.join(dateConditions, sql` AND `);
 
   // Get all meetings with their participants
-  const meetingsResult = await db.execute(sql.raw(`
+  const meetingsResult = await db.execute(sql`
     SELECT mc.meeting_id, mc.employee_name, mc.employee_id, mc.department,
            mr.duration_minutes, mr.meeting_date,
            (SELECT COUNT(DISTINCT mc2.employee_name) FROM meeting_contributions mc2 WHERE mc2.meeting_id = mc.meeting_id) as participant_count
     FROM meeting_contributions mc
     JOIN meeting_records mr ON mr.id = mc.meeting_id
-    WHERE 1=1 ${dateFilter}
+    WHERE ${dateFilter}
     ORDER BY mc.meeting_id, mc.employee_name
-  `));
+  `);
 
   const rows = meetingsResult.rows as any[];
 
@@ -7625,17 +7516,17 @@ export async function getCollaborationDashboard(filters?: { department?: string 
 
   let deptFilter = "";
   if (filters?.department) {
-    deptFilter = ` WHERE department_a = '${filters.department}' OR department_b = '${filters.department}'`;
+    deptFilter = ` WHERE department_a = ${filters.department} OR department_b = ${filters.department}`;
   }
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT
       COUNT(*) as total_edges,
       COALESCE(AVG(collaboration_score), 0) as avg_score,
       COALESCE(SUM(CASE WHEN relationship_type = 'cross_dept' THEN 1 ELSE 0 END), 0) as cross_dept_edges,
       COALESCE(SUM(CASE WHEN relationship_type = 'same_dept' THEN 1 ELSE 0 END), 0) as same_dept_edges
     FROM ime_collaboration_edges ${deptFilter}
-  `));
+  `);
 
   const row = result.rows[0] as any;
   const total = Number(row?.total_edges || 0);
@@ -7658,10 +7549,10 @@ export async function getCollaborationNetworkStats(options?: { department?: stri
 
   let deptFilter = "";
   if (options?.department) {
-    deptFilter = ` WHERE department_a = '${options.department}' OR department_b = '${options.department}'`;
+    deptFilter = ` WHERE department_a = ${options.department} OR department_b = ${options.department}`;
   }
 
-  const edgeStats = await db.execute(sql.raw(`
+  const edgeStats = await db.execute(sql`
     SELECT
       COUNT(*) as total_edges,
       COALESCE(AVG(meeting_count), 0) as avg_meetings_per_edge,
@@ -7670,15 +7561,15 @@ export async function getCollaborationNetworkStats(options?: { department?: stri
       COALESCE(SUM(CASE WHEN relationship_type = 'cross_dept' THEN 1 ELSE 0 END), 0) as cross_dept_edges,
       COALESCE(SUM(CASE WHEN relationship_type = 'same_dept' THEN 1 ELSE 0 END), 0) as same_dept_edges
     FROM ime_collaboration_edges ${deptFilter}
-  `));
+  `);
 
-  const participantsResult = await db.execute(sql.raw(`
+  const participantsResult = await db.execute(sql`
     SELECT COUNT(DISTINCT p) as cnt FROM (
       SELECT participant_a as p FROM ime_collaboration_edges ${deptFilter}
       UNION
       SELECT participant_b as p FROM ime_collaboration_edges ${deptFilter}
     ) sub
-  `));
+  `);
 
   const es = edgeStats.rows[0] as any;
   const totalEdges = Number(es?.total_edges || 0);
@@ -7703,7 +7594,7 @@ export async function getCollaborationNetworkStats(options?: { department?: stri
 export async function getCollaborationMatrix(options?: { level?: string }) {
   const db = await requireDb();
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT department_a, department_b,
            COUNT(*) as edge_count,
            SUM(collaboration_score) as total_score,
@@ -7713,7 +7604,7 @@ export async function getCollaborationMatrix(options?: { level?: string }) {
       AND department_a != '' AND department_b != ''
     GROUP BY department_a, department_b
     ORDER BY total_score DESC
-  `));
+  `);
 
   return result.rows;
 }
@@ -7731,13 +7622,13 @@ export async function getTopCollaboratorPairs(options?: {
   const limit = options?.limit || 20;
   let whereClause = "WHERE 1=1";
   if (options?.relationshipType) {
-    whereClause += ` AND relationship_type = '${options.relationshipType}'`;
+    whereClause += ` AND relationship_type = ${options.relationshipType}`;
   }
   if (options?.department) {
-    whereClause += ` AND (department_a = '${options.department}' OR department_b = '${options.department}')`;
+    whereClause += ` AND (department_a = ${options.department} OR department_b = ${options.department})`;
   }
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT participant_a, participant_b,
            department_a, department_b,
            meeting_count, total_co_meeting_minutes,
@@ -7748,7 +7639,7 @@ export async function getTopCollaboratorPairs(options?: {
     ${whereClause}
     ORDER BY collaboration_score DESC
     LIMIT ${limit}
-  `));
+  `);
 
   return result.rows;
 }
@@ -7761,11 +7652,11 @@ export async function getCrossDepartmentMetrics(departments?: string[]) {
 
   let deptFilter = "";
   if (departments && departments.length > 0) {
-    const deptList = departments.map(d => `'${d}'`).join(",");
+    const deptList = departments.map(d => `${d}`).join(",");
     deptFilter = ` AND dept IN (${deptList})`;
   }
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT dept,
            SUM(CASE WHEN is_internal = 1 THEN 1 ELSE 0 END) as internal_edges,
            SUM(CASE WHEN is_internal = 0 THEN 1 ELSE 0 END) as cross_dept_edges,
@@ -7784,7 +7675,7 @@ export async function getCrossDepartmentMetrics(departments?: string[]) {
     WHERE 1=1 ${deptFilter}
     GROUP BY dept
     ORDER BY total_edges DESC
-  `));
+  `);
 
   return result.rows;
 }
@@ -7796,7 +7687,7 @@ export async function detectCollaborationSilos(options?: { threshold?: number })
   const db = await requireDb();
   const threshold = options?.threshold || 20;
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT dept,
            SUM(CASE WHEN is_internal = 1 THEN 1 ELSE 0 END) as internal_edges,
            SUM(CASE WHEN is_internal = 0 THEN 1 ELSE 0 END) as cross_dept_edges,
@@ -7815,7 +7706,7 @@ export async function detectCollaborationSilos(options?: { threshold?: number })
     GROUP BY dept
     HAVING COUNT(*) >= 3
     ORDER BY total_edges DESC
-  `));
+  `);
 
   return (result.rows as any[]).map((row: any) => {
     const total = Number(row.total_edges || 0);
@@ -7971,18 +7862,18 @@ export async function getMeetingNecessityScores(options?: { limit?: number; grad
 
   let whereClause = "";
   if (options?.grade) {
-    whereClause = ` AND mns.necessity_grade = '${options.grade}'`;
+    whereClause = ` AND mns.necessity_grade = ${options.grade}`;
   }
   const limit = options?.limit || 50;
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT mns.*, mr.title as meeting_title, mr.meeting_date, mr.duration_minutes
     FROM ime_meeting_necessity_scores mns
     LEFT JOIN meeting_records mr ON mr.id = mns.meeting_id
     WHERE 1=1 ${whereClause}
     ORDER BY mns.analyzed_at DESC
     LIMIT ${limit}
-  `));
+  `);
 
   return result.rows;
 }
@@ -8027,7 +7918,7 @@ export async function computeParticipantLoad(options?: {
   const dateTo = options?.dateTo || new Date().toISOString().split("T")[0];
 
   // Gather per-employee meeting data within date range
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT
       mc.employee_id,
       mc.employee_name,
@@ -8039,10 +7930,10 @@ export async function computeParticipantLoad(options?: {
       mr.end_time
     FROM meeting_contributions mc
     JOIN meeting_records mr ON mr.id = mc.meeting_id
-    WHERE mr.meeting_date >= '${dateFrom}'
-      AND mr.meeting_date <= '${dateTo}'
+    WHERE mr.meeting_date >= ${dateFrom}
+      AND mr.meeting_date <= ${dateTo}
     ORDER BY mc.employee_id, mr.meeting_date, mr.start_time
-  `));
+  `);
 
   const rows = result.rows as any[];
   if (rows.length === 0) return { computed: 0, periodType };
@@ -8064,12 +7955,12 @@ export async function computeParticipantLoad(options?: {
   const periodEnd = new Date(dateTo);
 
   // Clear old records for this period
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     DELETE FROM ime_participant_workload
-    WHERE period_type = '${periodType}'
-      AND period_start = '${periodStart.toISOString()}'
-      AND period_end = '${periodEnd.toISOString()}'
-  `));
+    WHERE period_type = ${periodType}
+      AND period_start = ${periodStart.toISOString()}
+      AND period_end = ${periodEnd.toISOString()}
+  `);
 
   const insertRows: any[] = [];
 
@@ -8153,7 +8044,7 @@ export async function computeParticipantLoad(options?: {
 
   // Bulk insert
   for (const r of insertRows) {
-    await db.execute(sql.raw(`
+    await db.execute(sql`
       INSERT INTO ime_participant_workload
         (employee_id, employee_name, department, period_type, period_start, period_end,
          meeting_count, total_meeting_minutes, avg_meeting_duration, max_meeting_duration,
@@ -8161,13 +8052,13 @@ export async function computeParticipantLoad(options?: {
          longest_focus_block, meetings_before_noon, meetings_after_noon, unique_collaborators,
          load_score, risk_level, computed_at)
       VALUES
-        ('${r.employeeId}', '${r.employeeName}', ${r.department ? `'${r.department}'` : "NULL"},
-         '${r.periodType}', '${r.periodStart}', '${r.periodEnd}',
+        (${r.employeeId}, ${r.employeeName}, ${r.department ? `${r.department}` : "NULL"},
+         ${r.periodType}, ${r.periodStart}, ${r.periodEnd},
          ${r.meetingCount}, ${r.totalMinutes}, ${r.avgDuration}, ${r.maxDuration},
          ${r.backToBackCount}, ${r.backToBackRatio}, ${r.focusTimeMinutes}, ${r.meetingDensity},
          ${r.longestFocusBlock}, ${r.meetingsBeforeNoon}, ${r.meetingsAfterNoon}, ${r.uniqueCollaborators},
-         ${r.loadScore}, '${r.riskLevel}', NOW())
-    `));
+         ${r.loadScore}, ${r.riskLevel}, NOW())
+    `);
   }
 
   return { computed: insertRows.length, periodType, dateFrom, dateTo };
@@ -8182,10 +8073,10 @@ export async function getLoadDashboard(filters?: { periodType?: string; departme
 
   let deptFilter = "";
   if (filters?.department) {
-    deptFilter = ` AND department = '${filters.department}'`;
+    deptFilter = ` AND department = ${filters.department}`;
   }
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT
       ROUND(AVG(total_meeting_minutes) / 60.0, 1) as avg_weekly_hours,
       COUNT(CASE WHEN load_score > 60 THEN 1 END) as overloaded_count,
@@ -8193,8 +8084,8 @@ export async function getLoadDashboard(filters?: { periodType?: string; departme
       ROUND(AVG(load_score), 0) as avg_load_score,
       COUNT(*) as total_employees
     FROM ime_participant_workload
-    WHERE period_type = '${periodType}' ${deptFilter}
-  `));
+    WHERE period_type = ${periodType} ${deptFilter}
+  `);
 
   const stats = (result.rows as any[])[0] || {};
   return {
@@ -8221,19 +8112,19 @@ export async function getParticipantLoadDetails(options?: {
 
   let whereExtra = "";
   if (options?.department) {
-    whereExtra += ` AND department = '${options.department}'`;
+    whereExtra += ` AND department = ${options.department}`;
   }
   if (options?.riskLevel) {
-    whereExtra += ` AND risk_level = '${options.riskLevel}'`;
+    whereExtra += ` AND risk_level = ${options.riskLevel}`;
   }
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT *
     FROM ime_participant_workload
-    WHERE period_type = '${periodType}' ${whereExtra}
+    WHERE period_type = ${periodType} ${whereExtra}
     ORDER BY load_score DESC
     LIMIT ${limit}
-  `));
+  `);
 
   return result.rows;
 }
@@ -8246,18 +8137,18 @@ export async function getLoadTrends(options?: { periodType?: string; limit?: num
   const periodType = options?.periodType || "weekly";
   const limit = options?.limit || 20;
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT
       period_start,
       ROUND(AVG(load_score), 1) as avg_load_score,
       ROUND(AVG(total_meeting_minutes), 0) as avg_meeting_minutes,
       COUNT(*) as employee_count
     FROM ime_participant_workload
-    WHERE period_type = '${periodType}'
+    WHERE period_type = ${periodType}
     GROUP BY period_start
     ORDER BY period_start DESC
     LIMIT ${limit}
-  `));
+  `);
 
   return (result.rows as any[]).reverse();
 }
@@ -8275,26 +8166,26 @@ export async function detectBurnoutRisk(options?: {
   const periodType = options?.periodType || "weekly";
   const limit = options?.limit || 100;
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT *
     FROM ime_participant_workload
-    WHERE period_type = '${periodType}'
+    WHERE period_type = ${periodType}
       AND load_score >= ${threshold}
     ORDER BY load_score DESC
     LIMIT ${limit}
-  `));
+  `);
 
   const atRisk = result.rows as any[];
 
   // Risk distribution
   const distribution = { critical: 0, high: 0, medium: 0, low: 0 };
   // Also count all employees for low
-  const allResult = await db.execute(sql.raw(`
+  const allResult = await db.execute(sql`
     SELECT risk_level, COUNT(*) as cnt
     FROM ime_participant_workload
-    WHERE period_type = '${periodType}'
+    WHERE period_type = ${periodType}
     GROUP BY risk_level
-  `));
+  `);
   for (const r of allResult.rows as any[]) {
     const level = r.risk_level as keyof typeof distribution;
     if (distribution[level] !== undefined) {
@@ -8319,20 +8210,20 @@ export async function getMeetingFreeTimeAnalysis(options?: {
 
   let deptFilter = "";
   if (options?.department) {
-    deptFilter = ` AND department = '${options.department}'`;
+    deptFilter = ` AND department = ${options.department}`;
   }
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT
       employee_id, employee_name, department,
       focus_time_minutes, longest_focus_block,
       meetings_before_noon, meetings_after_noon,
       back_to_back_ratio, meeting_density, load_score
     FROM ime_participant_workload
-    WHERE period_type = '${periodType}' ${deptFilter}
+    WHERE period_type = ${periodType} ${deptFilter}
     ORDER BY focus_time_minutes ASC
     LIMIT ${limit}
-  `));
+  `);
 
   return result.rows;
 }
@@ -8347,14 +8238,14 @@ export async function assessWellbeing(employeeId: string, options?: {
   const periodType = options?.periodType || "weekly";
 
   // Get recent load data for this employee
-  const loadResult = await db.execute(sql.raw(`
+  const loadResult = await db.execute(sql`
     SELECT *
     FROM ime_participant_workload
-    WHERE employee_id = '${employeeId}'
-      AND period_type = '${periodType}'
+    WHERE employee_id = ${employeeId}
+      AND period_type = ${periodType}
     ORDER BY computed_at DESC
     LIMIT 5
-  `));
+  `);
 
   const loadRecords = loadResult.rows as any[];
   if (loadRecords.length === 0) {
@@ -8458,12 +8349,12 @@ Score each dimension 0-10, provide an overall well-being score 0-100, a grade (A
   }
 
   // Delete old assessment for this employee
-  await db.execute(sql.raw(`
-    DELETE FROM ime_wellbeing_assessments WHERE employee_id = '${employeeId}'
-  `));
+  await db.execute(sql`
+    DELETE FROM ime_wellbeing_assessments WHERE employee_id = ${employeeId}
+  `);
 
   // Insert new assessment
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_wellbeing_assessments
       (employee_id, employee_name, department,
        wellbeing_score, wellbeing_grade,
@@ -8473,15 +8364,15 @@ Score each dimension 0-10, provide an overall well-being score 0-100, a grade (A
        risk_factors, recommendations, ai_narrative,
        assessed_period_start, assessed_period_end, assessed_at)
     VALUES
-      ('${employeeId}', '${employeeName}', ${department ? `'${department}'` : "NULL"},
-       ${assessment.wellbeingScore}, '${assessment.wellbeingGrade}',
+      (${employeeId}, ${employeeName}, ${department ? `${department}` : "NULL"},
+       ${assessment.wellbeingScore}, ${assessment.wellbeingGrade},
        ${assessment.meetingLoadDimension}, ${assessment.scheduleBalanceDimension},
        ${assessment.collaborationDiversityDimension}, ${assessment.focusTimeDimension},
        ${assessment.meetingEfficiencyDimension}, ${assessment.workloadTrendDimension},
-       '${JSON.stringify(assessment.riskFactors)}', '${JSON.stringify(assessment.recommendations)}',
-       '${(assessment.aiNarrative || "").replace(/'/g, "''")}',
-       '${latest.period_start}', '${latest.period_end}', NOW())
-  `));
+       ${JSON.stringify(assessment.riskFactors)}, ${JSON.stringify(assessment.recommendations)},
+       ${(assessment.aiNarrative || "")},
+       ${latest.period_start}, ${latest.period_end}, NOW())
+  `);
 
   return {
     employeeId,
@@ -8504,19 +8395,19 @@ export async function getWellbeingScores(options?: {
 
   let whereExtra = "";
   if (options?.grade) {
-    whereExtra += ` AND wellbeing_grade = '${options.grade}'`;
+    whereExtra += ` AND wellbeing_grade = ${options.grade}`;
   }
   if (options?.department) {
-    whereExtra += ` AND department = '${options.department}'`;
+    whereExtra += ` AND department = ${options.department}`;
   }
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT *
     FROM ime_wellbeing_assessments
     WHERE 1=1 ${whereExtra}
     ORDER BY assessed_at DESC
     LIMIT ${limit}
-  `));
+  `);
 
   return result.rows;
 }
@@ -8547,7 +8438,7 @@ export async function getTeamLoadSummary(options?: { periodType?: string }) {
   const db = await requireDb();
   const periodType = options?.periodType || "weekly";
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT
       department,
       COUNT(*) as headcount,
@@ -8557,11 +8448,11 @@ export async function getTeamLoadSummary(options?: { periodType?: string }) {
       ROUND(AVG(total_meeting_minutes), 0) as avg_meeting_minutes,
       ROUND(AVG(back_to_back_ratio), 0) as avg_b2b_ratio
     FROM ime_participant_workload
-    WHERE period_type = '${periodType}'
+    WHERE period_type = ${periodType}
       AND department IS NOT NULL
     GROUP BY department
     ORDER BY avg_load_score DESC
-  `));
+  `);
 
   return (result.rows as any[]).map((r: any) => ({
     ...r,
@@ -8608,18 +8499,18 @@ export async function detectRecurringSeries(options?: { dateFrom?: string; dateT
   const db = await requireDb();
 
   let dateFilter = "";
-  if (options?.dateFrom) dateFilter += ` AND mr.meeting_date >= '${options.dateFrom}'`;
-  if (options?.dateTo) dateFilter += ` AND mr.meeting_date <= '${options.dateTo}'`;
+  if (options?.dateFrom) dateFilter += ` AND mr.meeting_date >= ${options.dateFrom}`;
+  if (options?.dateTo) dateFilter += ` AND mr.meeting_date <= ${options.dateTo}`;
 
   // 1. Get all meetings with their titles, dates, participants
-  const meetingsResult = await db.execute(sql.raw(`
+  const meetingsResult = await db.execute(sql`
     SELECT mr.id, mr.title, mr.meeting_date, mr.duration_minutes, mr.channel_id,
            COALESCE(mes.overall_score, 0) as effectiveness_score
     FROM meeting_records mr
     LEFT JOIN meeting_effectiveness_scores mes ON mes.meeting_id = mr.id
     WHERE mr.title IS NOT NULL AND mr.title != '' ${dateFilter}
     ORDER BY mr.meeting_date ASC
-  `));
+  `);
   const meetings = meetingsResult.rows as any[];
 
   // 2. Group by normalized title
@@ -8652,13 +8543,13 @@ export async function detectRecurringSeries(options?: { dateFrom?: string; dateT
     const frequency = frequencyFromInterval(avgInterval);
 
     // Participants — get core participants present in >50% of meetings
-    const meetingIds = groupMeetings.map((m: any) => `'${m.id}'`).join(",");
-    const participantsResult = await db.execute(sql.raw(`
+    const meetingIds = groupMeetings.map((m: any) => `${m.id}`).join(",");
+    const participantsResult = await db.execute(sql`
       SELECT employee_id, COUNT(*) as attend_count
       FROM meeting_contributions
       WHERE meeting_id IN (${meetingIds})
       GROUP BY employee_id
-    `));
+    `);
     const participantRows = participantsResult.rows as any[];
     const threshold = groupMeetings.length * 0.5;
     const coreParticipants = participantRows
@@ -8722,19 +8613,19 @@ export async function detectRecurringSeries(options?: { dateFrom?: string; dateT
     else recommendation = "continue";
 
     // ROI grade (average from meeting ROI if available)
-    const roiResult = await db.execute(sql.raw(`
+    const roiResult = await db.execute(sql`
       SELECT COALESCE(roi_grade, 'C') as roi_grade FROM ime_meeting_roi
       WHERE meeting_id IN (${meetingIds})
-    `));
+    `);
     const roiGrades = (roiResult.rows as any[]).map((r: any) => r.roi_grade);
     const avgRoiGrade = roiGrades.length > 0 ? roiGrades[0] : "C";
 
     // Cumulative cost & minutes
     const totalMinutes = groupMeetings.reduce((s: number, m: any) => s + (Number(m.duration_minutes) || 0), 0);
-    const costResult = await db.execute(sql.raw(`
+    const costResult = await db.execute(sql`
       SELECT COALESCE(SUM(total_cost), 0) as total_cost FROM ime_meeting_costs
       WHERE meeting_id IN (${meetingIds})
-    `));
+    `);
     const totalCost = Number((costResult.rows as any[])[0]?.total_cost) || 0;
 
     seriesRecords.push({
@@ -8795,10 +8686,10 @@ export async function getRecurringSeriesDashboard(filters?: { frequency?: string
   const db = await requireDb();
 
   let where = "1=1";
-  if (filters?.frequency) where += ` AND frequency = '${filters.frequency}'`;
-  if (filters?.status) where += ` AND status = '${filters.status}'`;
+  if (filters?.frequency) where += ` AND frequency = ${filters.frequency}`;
+  if (filters?.status) where += ` AND status = ${filters.status}`;
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT
       COUNT(*) as total_series,
       ROUND(AVG(value_score), 0) as avg_value_score,
@@ -8807,15 +8698,15 @@ export async function getRecurringSeriesDashboard(filters?: { frequency?: string
       COALESCE(SUM(total_cumulative_minutes), 0) as total_cumulative_minutes
     FROM ime_recurring_series
     WHERE ${where}
-  `));
+  `);
   const stats = (result.rows as any[])[0] || {};
 
   // Potential savings from optimized/cancelled series
-  const savingsResult = await db.execute(sql.raw(`
+  const savingsResult = await db.execute(sql`
     SELECT COALESCE(SUM(minutes_saved_per_week), 0) as total_weekly_minutes_saved
     FROM ime_series_optimization_outcomes
     WHERE action_taken != 'no_change'
-  `));
+  `);
   const savings = (savingsResult.rows as any[])[0] || {};
 
   return {
@@ -8841,18 +8732,18 @@ export async function getRecurringSeriesList(options?: {
   const limit = options?.limit ?? 50;
 
   let where = "1=1";
-  if (options?.frequency) where += ` AND frequency = '${options.frequency}'`;
-  if (options?.valueGrade) where += ` AND value_grade = '${options.valueGrade}'`;
-  if (options?.status) where += ` AND status = '${options.status}'`;
-  if (options?.effectivenessTrend) where += ` AND effectiveness_trend = '${options.effectivenessTrend}'`;
+  if (options?.frequency) where += ` AND frequency = ${options.frequency}`;
+  if (options?.valueGrade) where += ` AND value_grade = ${options.valueGrade}`;
+  if (options?.status) where += ` AND status = ${options.status}`;
+  if (options?.effectivenessTrend) where += ` AND effectiveness_trend = ${options.effectivenessTrend}`;
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT *
     FROM ime_recurring_series
     WHERE ${where}
     ORDER BY value_score ASC
     LIMIT ${limit}
-  `));
+  `);
 
   return result.rows;
 }
@@ -8878,9 +8769,9 @@ export async function getSeriesValueTrend(seriesId: number) {
 
   if (meetingIds.length === 0) return { seriesTitle: series.series_title, meetings: [] };
 
-  const idList = meetingIds.map((id: string) => `'${id}'`).join(",");
+  const idList = meetingIds.map((id: string) => `${id}`).join(",");
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT mr.id, mr.title, mr.meeting_date, mr.duration_minutes,
            COALESCE(mes.overall_score, 0) as effectiveness_score,
            COALESCE(mes.participant_count, 0) as participant_count,
@@ -8890,7 +8781,7 @@ export async function getSeriesValueTrend(seriesId: number) {
     LEFT JOIN ime_meeting_roi iroi ON iroi.meeting_id = mr.id
     WHERE mr.id IN (${idList})
     ORDER BY mr.meeting_date ASC
-  `));
+  `);
 
   return { seriesTitle: series.series_title, meetings: result.rows };
 }
@@ -8902,14 +8793,14 @@ export async function getSeriesComparison(options?: { limit?: number }) {
   const db = await requireDb();
   const limit = options?.limit ?? 20;
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT id, series_title, frequency, value_score, value_grade,
            avg_effectiveness_score, total_cumulative_cost,
            occurrence_count, avg_participant_count
     FROM ime_recurring_series
     ORDER BY value_score ASC
     LIMIT ${limit}
-  `));
+  `);
 
   return result.rows;
 }
@@ -9089,16 +8980,16 @@ export async function getOptimizationOutcomes(options?: {
   const limit = options?.limit ?? 50;
 
   let where = "1=1";
-  if (options?.actionTaken) where += ` AND action_taken = '${options.actionTaken}'`;
-  if (options?.productivityImpact) where += ` AND productivity_impact = '${options.productivityImpact}'`;
+  if (options?.actionTaken) where += ` AND action_taken = ${options.actionTaken}`;
+  if (options?.productivityImpact) where += ` AND productivity_impact = ${options.productivityImpact}`;
 
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(sql`
     SELECT *
     FROM ime_series_optimization_outcomes
     WHERE ${where}
     ORDER BY assessed_at DESC
     LIMIT ${limit}
-  `));
+  `);
 
   return result.rows;
 }
@@ -9110,45 +9001,45 @@ export async function getRecurringMeetingSummary(options?: { status?: string }) 
   const db = await requireDb();
 
   let where = "1=1";
-  if (options?.status) where += ` AND status = '${options.status}'`;
+  if (options?.status) where += ` AND status = ${options.status}`;
 
   // Series by frequency distribution
-  const freqResult = await db.execute(sql.raw(`
+  const freqResult = await db.execute(sql`
     SELECT frequency, COUNT(*) as count
     FROM ime_recurring_series
     WHERE ${where}
     GROUP BY frequency
     ORDER BY count DESC
-  `));
+  `);
 
   // Series by value grade distribution
-  const gradeResult = await db.execute(sql.raw(`
+  const gradeResult = await db.execute(sql`
     SELECT value_grade, COUNT(*) as count
     FROM ime_recurring_series
     WHERE ${where}
     GROUP BY value_grade
     ORDER BY value_grade ASC
-  `));
+  `);
 
   // Top 10 worst-value series
-  const worstResult = await db.execute(sql.raw(`
+  const worstResult = await db.execute(sql`
     SELECT id, series_title, frequency, value_score, value_grade,
            avg_effectiveness_score, total_cumulative_minutes, recommendation
     FROM ime_recurring_series
     WHERE ${where}
     ORDER BY value_score ASC
     LIMIT 10
-  `));
+  `);
 
   // Potential savings if all D/F series optimized
-  const savingsResult = await db.execute(sql.raw(`
+  const savingsResult = await db.execute(sql`
     SELECT
       COUNT(*) as df_count,
       COALESCE(SUM(total_cumulative_minutes), 0) as total_minutes,
       COALESCE(SUM(total_cumulative_cost), 0) as total_cost
     FROM ime_recurring_series
     WHERE value_grade IN ('D', 'F') AND status = 'active'
-  `));
+  `);
   const savingsStats = (savingsResult.rows as any[])[0] || {};
 
   return {
@@ -9182,11 +9073,11 @@ export async function analyzeDecisionEffectiveness(meetingId: string) {
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   // 2. Extract decisions from content blocks
-  const blocksRes = await db.execute(sql`SELECT content, speaker FROM meeting_content_blocks WHERE meeting_id = ${meetingId} AND block_type = 'decision'`);
+  const blocksRes = await db.execute(sql`SELECT content, speaker FROM meeting_content_blocks WHERE meeting_id = ${meetingId} AND block_type = 'decision' LIMIT 1000`);
   const decisionBlocks = blocksRes.rows as any[];
 
   // 3. Extract decisions from knowledge entities
-  const entitiesRes = await db.execute(sql`SELECT id, entity_name, context_text FROM ime_knowledge_entities WHERE meeting_id = ${meetingId} AND entity_type = 'decision'`);
+  const entitiesRes = await db.execute(sql`SELECT id, entity_name, context_text FROM ime_knowledge_entities WHERE meeting_id = ${meetingId} AND entity_type = 'decision' LIMIT 1000`);
   const decisionEntities = entitiesRes.rows as any[];
 
   // Merge decisions
@@ -9203,11 +9094,11 @@ export async function analyzeDecisionEffectiveness(meetingId: string) {
   }
 
   // 4. Cross-reference with decision outcomes
-  const outcomesRes = await db.execute(sql`SELECT id, decision_text, outcome_status, outcome_notes, resolved_date, created_at FROM ime_decision_outcomes WHERE meeting_id = ${meetingId}`);
+  const outcomesRes = await db.execute(sql`SELECT id, decision_text, outcome_status, outcome_notes, resolved_date, created_at FROM ime_decision_outcomes WHERE meeting_id = ${meetingId} LIMIT 1000`);
   const outcomes = outcomesRes.rows as any[];
 
   // 5. Cross-reference with action items
-  const actionsRes = await db.execute(sql`SELECT id, action_text, assignee, status, due_date, resolved_date FROM ime_action_items WHERE meeting_id = ${meetingId}`);
+  const actionsRes = await db.execute(sql`SELECT id, action_text, assignee, status, due_date, resolved_date FROM ime_action_items WHERE meeting_id = ${meetingId} LIMIT 1000`);
   const actionItems = actionsRes.rows as any[];
 
   // 6. For each decision compute follow-through status and velocity
@@ -9414,16 +9305,16 @@ export async function detectDecisionReversals(options?: { dateFrom?: string; dat
   const db = await requireDb();
 
   let dateFilter = "";
-  if (options?.dateFrom) dateFilter += ` AND decision_date >= '${options.dateFrom}'`;
-  if (options?.dateTo) dateFilter += ` AND decision_date <= '${options.dateTo}'`;
+  if (options?.dateFrom) dateFilter += ` AND decision_date >= ${options.dateFrom}`;
+  if (options?.dateTo) dateFilter += ` AND decision_date <= ${options.dateTo}`;
 
   // Load all tracked decisions chronologically
-  const decisionsRes = await db.execute(sql.raw(`
+  const decisionsRes = await db.execute(sql`
     SELECT id, decision_id, meeting_id, decision_text, decision_maker, department, decision_date
     FROM ime_decision_tracking
     WHERE 1=1 ${dateFilter}
     ORDER BY decision_date ASC, id ASC
-  `));
+  `);
   const decisions = decisionsRes.rows as any[];
 
   if (decisions.length < 2) {
@@ -9525,15 +9416,15 @@ export async function detectDecisionReversals(options?: { dateFrom?: string; dat
     const originalDec = decisions.find((d: any) => d.id === rev.originalDecisionId);
     const reversalDec = decisions.find((d: any) => d.id === rev.reversalDecisionId);
     if (originalDec && reversalDec) {
-      const safeReason = String(rev.reason).replace(/'/g, "''");
-      await db.execute(sql.raw(`
+      const safeReason = String(rev.reason);
+      await db.execute(sql`
         UPDATE ime_decision_tracking
         SET is_reversed = 1,
-            reversal_meeting_id = '${reversalDec.meeting_id}',
-            reversal_date = '${reversalDec.decision_date}',
-            reversal_reason = '${safeReason}'
+            reversal_meeting_id = ${reversalDec.meeting_id},
+            reversal_date = ${reversalDec.decision_date},
+            reversal_reason = ${safeReason}
         WHERE id = ${originalDec.id}
-      `));
+      `);
     }
   }
 
@@ -9568,12 +9459,12 @@ export async function computeDecisionVelocity(options?: { department?: string; d
   const db = await requireDb();
 
   let where = "follow_through_status = 'implemented' AND total_velocity_days IS NOT NULL";
-  if (options?.department) where += ` AND department = '${options.department.replace(/'/g, "''")}'`;
-  if (options?.dateFrom) where += ` AND decision_date >= '${options.dateFrom}'`;
-  if (options?.dateTo) where += ` AND decision_date <= '${options.dateTo}'`;
+  if (options?.department) where += ` AND department = ${options.department}`;
+  if (options?.dateFrom) where += ` AND decision_date >= ${options.dateFrom}`;
+  if (options?.dateTo) where += ` AND decision_date <= ${options.dateTo}`;
 
   // Overall velocity stats
-  const overallRes = await db.execute(sql.raw(`
+  const overallRes = await db.execute(sql`
     SELECT
       COUNT(*) as total_count,
       COALESCE(AVG(total_velocity_days), 0) as avg_velocity,
@@ -9581,16 +9472,16 @@ export async function computeDecisionVelocity(options?: { department?: string; d
       COALESCE(MAX(total_velocity_days), 0) as slowest
     FROM ime_decision_tracking
     WHERE ${where}
-  `));
+  `);
   const overall = (overallRes.rows as any[])[0] || {};
 
   // Get all velocity values for median and p90 calculation
-  const allVelocityRes = await db.execute(sql.raw(`
+  const allVelocityRes = await db.execute(sql`
     SELECT total_velocity_days
     FROM ime_decision_tracking
     WHERE ${where}
     ORDER BY total_velocity_days ASC
-  `));
+  `);
   const velocityValues = (allVelocityRes.rows as any[]).map((r: any) => Number(r.total_velocity_days));
 
   let median = 0;
@@ -9610,7 +9501,7 @@ export async function computeDecisionVelocity(options?: { department?: string; d
   else if (avgVelocity < 60) overallGrade = "D";
 
   // By department
-  const deptRes = await db.execute(sql.raw(`
+  const deptRes = await db.execute(sql`
     SELECT
       department,
       COUNT(*) as total_count,
@@ -9621,7 +9512,7 @@ export async function computeDecisionVelocity(options?: { department?: string; d
     WHERE ${where}
     GROUP BY department
     ORDER BY avg_velocity ASC
-  `));
+  `);
   const byDepartment = (deptRes.rows as any[]).map((r: any) => {
     const deptAvg = Math.round(Number(r.avg_velocity) || 0);
     let grade = "F";
@@ -9669,16 +9560,12 @@ export async function assessDecisionQuality(decisionId: number) {
   const db = await requireDb();
 
   // Load the decision
-  const decRes = await db.execute(sql.raw(
-    `SELECT * FROM ime_decision_tracking WHERE id = ${decisionId} LIMIT 1`
-  ));
+  const decRes = await db.execute(sql`SELECT * FROM ime_decision_tracking WHERE id = ${decisionId} LIMIT 1`);
   const decision = (decRes.rows as any[])[0];
   if (!decision) throw new Error(`Decision ${decisionId} not found`);
 
   // Load meeting context
-  const meetingRes = await db.execute(sql.raw(
-    `SELECT title, objective, summary FROM meeting_records WHERE id = '${String(decision.meeting_id).replace(/'/g, "''")}' LIMIT 1`
-  ));
+  const meetingRes = await db.execute(sql`SELECT title, objective, summary FROM meeting_records WHERE id = ${String(decision.meeting_id)} LIMIT 1`);
   const meeting = (meetingRes.rows as any[])[0] || {};
 
   // Deep LLM assessment
@@ -9718,19 +9605,19 @@ export async function assessDecisionQuality(decisionId: number) {
   const parsed = JSON.parse(llmResult.choices[0]?.message?.content || "{}");
 
   // Update ime_decision_tracking with AI scores
-  const safeNarrative = String(parsed.narrative || "").replace(/'/g, "''");
-  const safeRecs = JSON.stringify(parsed.recommendations || []).replace(/'/g, "''");
+  const safeNarrative = String(parsed.narrative || "");
+  const safeRecs = JSON.stringify(parsed.recommendations || []);
 
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     UPDATE ime_decision_tracking
     SET ai_quality_score = ${parsed.quality_score || 0},
         ai_clarity_score = ${parsed.clarity_score || 0},
         ai_alignment_score = ${parsed.alignment_score || 0},
-        ai_narrative = '${safeNarrative}',
-        ai_recommendations = '${safeRecs}',
+        ai_narrative = ${safeNarrative},
+        ai_recommendations = ${safeRecs},
         computed_at = NOW()
     WHERE id = ${decisionId}
-  `));
+  `);
 
   return {
     decisionId,
@@ -9761,15 +9648,15 @@ export async function computeDecisionIntelligenceSnapshot(
 
   let where = "1=1";
   if (scope === "department" && scopeId) {
-    where += ` AND department = '${scopeId.replace(/'/g, "''")}'`;
+    where += ` AND department = ${scopeId}`;
   } else if ((scope === "team" || scope === "individual") && scopeId) {
-    where += ` AND decision_maker = '${scopeId.replace(/'/g, "''")}'`;
+    where += ` AND decision_maker = ${scopeId}`;
   }
-  if (dateFrom) where += ` AND decision_date >= '${dateFrom}'`;
-  if (dateTo) where += ` AND decision_date <= '${dateTo}'`;
+  if (dateFrom) where += ` AND decision_date >= ${dateFrom}`;
+  if (dateTo) where += ` AND decision_date <= ${dateTo}`;
 
   // Aggregate counts
-  const countsRes = await db.execute(sql.raw(`
+  const countsRes = await db.execute(sql`
     SELECT
       COUNT(*) as total_decisions,
       SUM(CASE WHEN follow_through_status = 'implemented' THEN 1 ELSE 0 END) as implemented_count,
@@ -9787,7 +9674,7 @@ export async function computeDecisionIntelligenceSnapshot(
       COALESCE(AVG(ai_alignment_score), 0) as avg_alignment_score
     FROM ime_decision_tracking
     WHERE ${where}
-  `));
+  `);
   const stats = (countsRes.rows as any[])[0] || {};
 
   const totalDecisions = Number(stats.total_decisions) || 0;
@@ -9808,12 +9695,12 @@ export async function computeDecisionIntelligenceSnapshot(
   const avgAlignmentScore = Math.round(Number(stats.avg_alignment_score) || 0);
 
   // Median velocity
-  const velRes = await db.execute(sql.raw(`
+  const velRes = await db.execute(sql`
     SELECT total_velocity_days
     FROM ime_decision_tracking
     WHERE ${where} AND total_velocity_days IS NOT NULL
     ORDER BY total_velocity_days ASC
-  `));
+  `);
   const velValues = (velRes.rows as any[]).map((r: any) => Number(r.total_velocity_days));
   let medianVelocityDays = 0;
   if (velValues.length > 0) {
@@ -9840,42 +9727,42 @@ export async function computeDecisionIntelligenceSnapshot(
   else if (overallScore >= 40) overallDecisionGrade = "D";
 
   // Top bottlenecks
-  const bottleneckRes = await db.execute(sql.raw(`
+  const bottleneckRes = await db.execute(sql`
     SELECT department, COUNT(*) as cnt
     FROM ime_decision_tracking
     WHERE ${where} AND total_velocity_days > ${avgVelocityDays * 2}
     GROUP BY department
     ORDER BY cnt DESC
     LIMIT 5
-  `));
+  `);
   const topBottlenecks = JSON.stringify((bottleneckRes.rows as any[]).map((r: any) => ({
     department: r.department,
     count: Number(r.cnt),
   })));
 
   // Top reversal reasons
-  const reversalReasonRes = await db.execute(sql.raw(`
+  const reversalReasonRes = await db.execute(sql`
     SELECT reversal_reason, COUNT(*) as cnt
     FROM ime_decision_tracking
     WHERE ${where} AND is_reversed = 1 AND reversal_reason IS NOT NULL AND reversal_reason != ''
     GROUP BY reversal_reason
     ORDER BY cnt DESC
     LIMIT 5
-  `));
+  `);
   const topReversalReasons = JSON.stringify((reversalReasonRes.rows as any[]).map((r: any) => ({
     reason: r.reversal_reason,
     count: Number(r.cnt),
   })));
 
   // Previous snapshot for trend comparison
-  const prevSnapshotRes = await db.execute(sql.raw(`
+  const prevSnapshotRes = await db.execute(sql`
     SELECT overall_decision_grade, follow_through_rate, avg_velocity_days, avg_quality_score
     FROM ime_decision_intelligence_snapshots
-    WHERE scope = '${scope.replace(/'/g, "''")}'
-      AND (scope_id = '${(scopeId || "").replace(/'/g, "''")}' OR (scope_id IS NULL AND '${scopeId || ""}' = ''))
+    WHERE scope = ${scope}
+      AND (scope_id = ${(scopeId || "")} OR (scope_id IS NULL AND ${scopeId || ""} = ''))
     ORDER BY computed_at DESC
     LIMIT 1
-  `));
+  `);
   const prevSnapshot = (prevSnapshotRes.rows as any[])[0];
   let trendVsPrevious = "stable";
   let trendSlope = 0;
@@ -9926,21 +9813,21 @@ export async function computeDecisionIntelligenceSnapshot(
     recommendations = "[]";
   }
 
-  const safeScopeId = (scopeId || "").replace(/'/g, "''");
+  const safeScopeId = (scopeId || "");
   const periodStart = dateFrom || new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
   const periodEnd = dateTo || new Date().toISOString().split("T")[0];
 
   // Delete existing snapshot for same scope/period
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     DELETE FROM ime_decision_intelligence_snapshots
-    WHERE scope = '${scope.replace(/'/g, "''")}'
-      AND (scope_id = '${safeScopeId}' OR (scope_id IS NULL AND '${safeScopeId}' = ''))
-      AND period_start = '${periodStart}'
-      AND period_end = '${periodEnd}'
-  `));
+    WHERE scope = ${scope}
+      AND (scope_id = ${safeScopeId} OR (scope_id IS NULL AND ${safeScopeId} = ''))
+      AND period_start = ${periodStart}
+      AND period_end = ${periodEnd}
+  `);
 
   // Insert new snapshot
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_decision_intelligence_snapshots (
       scope, scope_id, period_start, period_end,
       total_decisions, implemented_count, abandoned_count, reversed_count, pending_count,
@@ -9952,17 +9839,17 @@ export async function computeDecisionIntelligenceSnapshot(
       ai_narrative, trend_vs_previous, trend_slope, recommendations,
       computed_at, created_at
     ) VALUES (
-      '${scope.replace(/'/g, "''")}', ${safeScopeId ? `'${safeScopeId}'` : "NULL"}, '${periodStart}', '${periodEnd}',
+      ${scope}, ${safeScopeId ? `${safeScopeId}` : "NULL"}, ${periodStart}, ${periodEnd},
       ${totalDecisions}, ${implementedCount}, ${abandonedCount}, ${reversedCount}, ${pendingCount},
       ${followThroughRate}, ${reversalRate},
-      ${avgVelocityDays}, ${medianVelocityDays}, ${fastestVelocityDays}, ${slowestVelocityDays}, '${velocityGrade}',
+      ${avgVelocityDays}, ${medianVelocityDays}, ${fastestVelocityDays}, ${slowestVelocityDays}, ${velocityGrade},
       ${avgImpactScore}, ${positiveImpactCount}, ${negativeImpactCount},
       ${avgQualityScore}, ${avgClarityScore}, ${avgAlignmentScore},
-      '${overallDecisionGrade}', '${topBottlenecks.replace(/'/g, "''")}', '${topReversalReasons.replace(/'/g, "''")}',
-      '${aiNarrative.replace(/'/g, "''")}', '${trendVsPrevious}', ${trendSlope}, '${recommendations.replace(/'/g, "''")}',
+      ${overallDecisionGrade}, ${topBottlenecks}, ${topReversalReasons},
+      ${aiNarrative}, ${trendVsPrevious}, ${trendSlope}, ${recommendations},
       NOW(), NOW()
     )
-  `));
+  `);
 
   return {
     scope,
@@ -10008,11 +9895,11 @@ export async function getDecisionDashboard(filters?: { department?: string; date
   const db = await requireDb();
 
   let where = "1=1";
-  if (filters?.department) where += ` AND department = '${filters.department.replace(/'/g, "''")}'`;
-  if (filters?.dateFrom) where += ` AND decision_date >= '${filters.dateFrom}'`;
-  if (filters?.dateTo) where += ` AND decision_date <= '${filters.dateTo}'`;
+  if (filters?.department) where += ` AND department = ${filters.department}`;
+  if (filters?.dateFrom) where += ` AND decision_date >= ${filters.dateFrom}`;
+  if (filters?.dateTo) where += ` AND decision_date <= ${filters.dateTo}`;
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT
       COUNT(*) as total_decisions,
       SUM(CASE WHEN follow_through_status = 'implemented' THEN 1 ELSE 0 END) as implemented_count,
@@ -10021,7 +9908,7 @@ export async function getDecisionDashboard(filters?: { department?: string; date
       COALESCE(AVG(ai_quality_score), 0) as avg_quality_score
     FROM ime_decision_tracking
     WHERE ${where}
-  `));
+  `);
   const stats = (res.rows as any[])[0] || {};
 
   const totalDecisions = Number(stats.total_decisions) || 0;
@@ -10056,15 +9943,15 @@ export async function getDecisionTrackingList(options?: {
   const db = await requireDb();
 
   let where = "1=1";
-  if (options?.status) where += ` AND dt.follow_through_status = '${options.status.replace(/'/g, "''")}'`;
-  if (options?.department) where += ` AND dt.department = '${options.department.replace(/'/g, "''")}'`;
-  if (options?.impactCategory) where += ` AND dt.impact_category = '${options.impactCategory.replace(/'/g, "''")}'`;
-  if (options?.meetingId) where += ` AND dt.meeting_id = '${options.meetingId.replace(/'/g, "''")}'`;
+  if (options?.status) where += ` AND dt.follow_through_status = ${options.status}`;
+  if (options?.department) where += ` AND dt.department = ${options.department}`;
+  if (options?.impactCategory) where += ` AND dt.impact_category = ${options.impactCategory}`;
+  if (options?.meetingId) where += ` AND dt.meeting_id = ${options.meetingId}`;
 
   const limit = options?.limit || 50;
   const offset = options?.offset || 0;
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT
       dt.*,
       mr.title as meeting_title
@@ -10073,13 +9960,13 @@ export async function getDecisionTrackingList(options?: {
     WHERE ${where}
     ORDER BY dt.created_at DESC
     LIMIT ${limit} OFFSET ${offset}
-  `));
+  `);
 
-  const countRes = await db.execute(sql.raw(`
+  const countRes = await db.execute(sql`
     SELECT COUNT(*) as total
     FROM ime_decision_tracking dt
     WHERE ${where}
-  `));
+  `);
   const total = Number((countRes.rows as any[])[0]?.total) || 0;
 
   return {
@@ -10101,12 +9988,12 @@ export async function getDecisionVelocityTrend(options?: { scope?: string; scope
   const db = await requireDb();
 
   let where = "1=1";
-  if (options?.scope) where += ` AND scope = '${options.scope.replace(/'/g, "''")}'`;
-  if (options?.scopeId) where += ` AND scope_id = '${options.scopeId.replace(/'/g, "''")}'`;
+  if (options?.scope) where += ` AND scope = ${options.scope}`;
+  if (options?.scopeId) where += ` AND scope_id = ${options.scopeId}`;
 
   const limit = options?.limit || 20;
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT
       id, scope, scope_id, period_start, period_end,
       total_decisions, implemented_count, follow_through_rate, reversal_rate,
@@ -10119,7 +10006,7 @@ export async function getDecisionVelocityTrend(options?: { scope?: string; scope
     WHERE ${where}
     ORDER BY period_end DESC
     LIMIT ${limit}
-  `));
+  `);
 
   return res.rows;
 }
@@ -10135,12 +10022,12 @@ export async function getDecisionReversalAnalysis(options?: { department?: strin
   const db = await requireDb();
 
   let where = "is_reversed = 1";
-  if (options?.department) where += ` AND department = '${options.department.replace(/'/g, "''")}'`;
-  if (options?.dateFrom) where += ` AND decision_date >= '${options.dateFrom}'`;
-  if (options?.dateTo) where += ` AND decision_date <= '${options.dateTo}'`;
+  if (options?.department) where += ` AND department = ${options.department}`;
+  if (options?.dateFrom) where += ` AND decision_date >= ${options.dateFrom}`;
+  if (options?.dateTo) where += ` AND decision_date <= ${options.dateTo}`;
 
   // Get reversed decisions
-  const reversedRes = await db.execute(sql.raw(`
+  const reversedRes = await db.execute(sql`
     SELECT
       id, decision_id, meeting_id, decision_text, decision_maker, department,
       decision_date, reversal_meeting_id, reversal_date, reversal_reason,
@@ -10148,31 +10035,31 @@ export async function getDecisionReversalAnalysis(options?: { department?: strin
     FROM ime_decision_tracking
     WHERE ${where}
     ORDER BY reversal_date DESC
-  `));
+  `);
   const reversedDecisions = reversedRes.rows as any[];
 
   // Group by department
-  const byDeptRes = await db.execute(sql.raw(`
+  const byDeptRes = await db.execute(sql`
     SELECT department, COUNT(*) as cnt
     FROM ime_decision_tracking
     WHERE ${where}
     GROUP BY department
     ORDER BY cnt DESC
-  `));
+  `);
   const byDepartment = (byDeptRes.rows as any[]).map((r: any) => ({
     department: r.department || "unknown",
     count: Number(r.cnt),
   }));
 
   // Top reversal reasons
-  const reasonsRes = await db.execute(sql.raw(`
+  const reasonsRes = await db.execute(sql`
     SELECT reversal_reason, COUNT(*) as cnt
     FROM ime_decision_tracking
     WHERE ${where} AND reversal_reason IS NOT NULL AND reversal_reason != ''
     GROUP BY reversal_reason
     ORDER BY cnt DESC
     LIMIT 10
-  `));
+  `);
   const topReasons = (reasonsRes.rows as any[]).map((r: any) => ({
     reason: r.reversal_reason,
     count: Number(r.cnt),
@@ -10208,16 +10095,16 @@ export async function updateDecisionFollowThrough(
   const setClauses: string[] = [];
 
   if (updates.status) {
-    setClauses.push(`follow_through_status = '${updates.status.replace(/'/g, "''")}'`);
+    setClauses.push(`follow_through_status = ${updates.status}`);
   }
   if (updates.implementationStartDate) {
-    setClauses.push(`implementation_start_date = '${updates.implementationStartDate}'`);
+    setClauses.push(`implementation_start_date = ${updates.implementationStartDate}`);
   }
   if (updates.implementationEndDate) {
-    setClauses.push(`implementation_end_date = '${updates.implementationEndDate}'`);
+    setClauses.push(`implementation_end_date = ${updates.implementationEndDate}`);
   }
   if (updates.businessOutcome !== undefined) {
-    setClauses.push(`business_outcome = '${String(updates.businessOutcome).replace(/'/g, "''")}'`);
+    setClauses.push(`business_outcome = ${String(updates.businessOutcome)}`);
   }
   if (updates.impactScore !== undefined) {
     setClauses.push(`impact_score = ${updates.impactScore}`);
@@ -10225,7 +10112,7 @@ export async function updateDecisionFollowThrough(
     let impactCategory = "neutral";
     if (updates.impactScore > 0) impactCategory = "positive";
     else if (updates.impactScore < 0) impactCategory = "negative";
-    setClauses.push(`impact_category = '${impactCategory}'`);
+    setClauses.push(`impact_category = ${impactCategory}`);
   }
 
   // Compute velocity if both dates provided
@@ -10236,9 +10123,7 @@ export async function updateDecisionFollowThrough(
     setClauses.push(`start_to_completion_days = ${startToCompletion}`);
 
     // Also try to compute decision_to_start and total velocity
-    const decRes = await db.execute(sql.raw(
-      `SELECT decision_date FROM ime_decision_tracking WHERE id = ${id} LIMIT 1`
-    ));
+    const decRes = await db.execute(sql`SELECT decision_date FROM ime_decision_tracking WHERE id = ${id} LIMIT 1`);
     const dec = (decRes.rows as any[])[0];
     if (dec && dec.decision_date) {
       const decisionDate = new Date(dec.decision_date);
@@ -10253,7 +10138,7 @@ export async function updateDecisionFollowThrough(
       else if (totalVelocity < 14) velocityGrade = "B";
       else if (totalVelocity < 30) velocityGrade = "C";
       else if (totalVelocity < 60) velocityGrade = "D";
-      setClauses.push(`velocity_grade = '${velocityGrade}'`);
+      setClauses.push(`velocity_grade = ${velocityGrade}`);
     }
   }
 
@@ -10261,11 +10146,11 @@ export async function updateDecisionFollowThrough(
     return { success: true, id, message: "No updates provided" };
   }
 
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     UPDATE ime_decision_tracking
     SET ${setClauses.join(", ")}
     WHERE id = ${id}
-  `));
+  `);
 
   return { success: true, id };
 }
@@ -10287,7 +10172,7 @@ export async function analyzeMeetingAgendaStructure(meetingId: string) {
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   // Load content blocks
-  const blocksRes = await db.execute(sql`SELECT id, meeting_id, speaker, block_type, content, timestamp_start, timestamp_end, sort_order FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY sort_order ASC, timestamp_start ASC`);
+  const blocksRes = await db.execute(sql`SELECT id, meeting_id, speaker, block_type, content, timestamp_start, timestamp_end, sort_order FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY sort_order ASC, timestamp_start ASC LIMIT 1000`);
   const blocks = blocksRes.rows as any[];
 
   const agendaText = meeting.agenda || "";
@@ -10445,11 +10330,9 @@ export async function batchAnalyzeMeetingAgenda(meetingIds: string[]) {
  */
 export async function getTimeAllocationBreakdown(meetingId: string) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
+  const safeId = meetingId;
 
-  const res = await db.execute(sql.raw(
-    `SELECT * FROM ime_meeting_structure_analysis WHERE meeting_id = '${safeId}' ORDER BY agenda_item_index ASC`
-  ));
+  const res = await db.execute(sql`SELECT * FROM ime_meeting_structure_analysis WHERE meeting_id = ${safeId} ORDER BY agenda_item_index ASC LIMIT 1000`);
   const rows = res.rows as any[];
 
   const items = rows.map((r: any) => ({
@@ -10514,12 +10397,12 @@ export async function getTimeAllocationBreakdown(meetingId: string) {
 export async function getTimeAllocationComparison(options?: { department?: string; dateFrom?: string; dateTo?: string; limit?: number }) {
   const db = await requireDb();
 
-  const department = options?.department ? options.department.replace(/'/g, "''") : "";
+  const department = options?.department ? options.department : "";
   const dateFrom = options?.dateFrom || "";
   const dateTo = options?.dateTo || "";
   const limit = options?.limit || 50;
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT msa.meeting_id, mr.title,
       AVG(msa.meeting_time_efficiency_score) as efficiency,
       AVG(msa.overrun_percent) as avg_overrun_percent,
@@ -10527,13 +10410,13 @@ export async function getTimeAllocationComparison(options?: { department?: strin
     FROM ime_meeting_structure_analysis msa
     JOIN meeting_records mr ON mr.id = msa.meeting_id
     WHERE 1=1
-      ${department ? `AND mr.department = '${department}'` : ""}
-      ${dateFrom ? `AND mr.meeting_date >= '${dateFrom}'` : ""}
-      ${dateTo ? `AND mr.meeting_date <= '${dateTo}'` : ""}
+      ${department ? `AND mr.department = ${department}` : ""}
+      ${dateFrom ? `AND mr.meeting_date >= ${dateFrom}` : ""}
+      ${dateTo ? `AND mr.meeting_date <= ${dateTo}` : ""}
     GROUP BY msa.meeting_id, mr.title
     ORDER BY efficiency DESC
     LIMIT ${limit}
-  `));
+  `);
   const rows = res.rows as any[];
 
   const meetings = rows.map((r: any) => ({
@@ -10568,21 +10451,21 @@ export async function getTimeAllocationComparison(options?: { department?: strin
 export async function detectAgendaOverrunPatterns(options?: { department?: string; dateFrom?: string; dateTo?: string }) {
   const db = await requireDb();
 
-  const department = options?.department ? options.department.replace(/'/g, "''") : "";
+  const department = options?.department ? options.department : "";
   const dateFrom = options?.dateFrom || "";
   const dateTo = options?.dateTo || "";
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT agenda_item_title, agenda_item_category,
       planned_duration_minutes, actual_duration_minutes, overrun_minutes, overrun_percent
     FROM ime_meeting_structure_analysis msa
     JOIN meeting_records mr ON mr.id = msa.meeting_id
     WHERE was_skipped = 0
-      ${department ? `AND mr.department = '${department}'` : ""}
-      ${dateFrom ? `AND mr.meeting_date >= '${dateFrom}'` : ""}
-      ${dateTo ? `AND mr.meeting_date <= '${dateTo}'` : ""}
+      ${department ? `AND mr.department = ${department}` : ""}
+      ${dateFrom ? `AND mr.meeting_date >= ${dateFrom}` : ""}
+      ${dateTo ? `AND mr.meeting_date <= ${dateTo}` : ""}
     ORDER BY overrun_percent DESC
-  `));
+  `);
   const rows = res.rows as any[];
 
   if (rows.length === 0) {
@@ -10661,11 +10544,11 @@ export async function detectAgendaOverrunPatterns(options?: { department?: strin
 export async function detectCategoryTimeDistribution(options?: { department?: string; dateFrom?: string; dateTo?: string }) {
   const db = await requireDb();
 
-  const department = options?.department ? options.department.replace(/'/g, "''") : "";
+  const department = options?.department ? options.department : "";
   const dateFrom = options?.dateFrom || "";
   const dateTo = options?.dateTo || "";
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT agenda_item_category as category,
       COUNT(*) as count,
       AVG(actual_duration_minutes) as avg_duration,
@@ -10674,12 +10557,12 @@ export async function detectCategoryTimeDistribution(options?: { department?: st
     FROM ime_meeting_structure_analysis msa
     JOIN meeting_records mr ON mr.id = msa.meeting_id
     WHERE was_skipped = 0
-      ${department ? `AND mr.department = '${department}'` : ""}
-      ${dateFrom ? `AND mr.meeting_date >= '${dateFrom}'` : ""}
-      ${dateTo ? `AND mr.meeting_date <= '${dateTo}'` : ""}
+      ${department ? `AND mr.department = ${department}` : ""}
+      ${dateFrom ? `AND mr.meeting_date >= ${dateFrom}` : ""}
+      ${dateTo ? `AND mr.meeting_date <= ${dateTo}` : ""}
     GROUP BY agenda_item_category
     ORDER BY count DESC
-  `));
+  `);
   const rows = res.rows as any[];
 
   const categories = rows.map((r: any) => ({
@@ -10702,12 +10585,10 @@ export async function detectCategoryTimeDistribution(options?: { department?: st
  */
 export async function generateAgendaOptimization(meetingId: string) {
   const db = await requireDb();
-  const safeId = meetingId.replace(/'/g, "''");
+  const safeId = meetingId;
 
   // Get analysis rows
-  const res = await db.execute(sql.raw(
-    `SELECT * FROM ime_meeting_structure_analysis WHERE meeting_id = '${safeId}' ORDER BY agenda_item_index ASC`
-  ));
+  const res = await db.execute(sql`SELECT * FROM ime_meeting_structure_analysis WHERE meeting_id = ${safeId} ORDER BY agenda_item_index ASC LIMIT 1000`);
   const rows = res.rows as any[];
 
   if (rows.length === 0) {
@@ -10800,15 +10681,15 @@ export async function computeAgendaIntelligenceSnapshot(
 
   let where = "1=1";
   if (scope === "department" && scopeId) {
-    where += ` AND mr.department = '${scopeId.replace(/'/g, "''")}'`;
+    where += ` AND mr.department = ${scopeId}`;
   } else if ((scope === "team" || scope === "individual") && scopeId) {
-    where += ` AND mr.organizer = '${scopeId.replace(/'/g, "''")}'`;
+    where += ` AND mr.organizer = ${scopeId}`;
   }
-  if (dateFrom) where += ` AND mr.meeting_date >= '${dateFrom}'`;
-  if (dateTo) where += ` AND mr.meeting_date <= '${dateTo}'`;
+  if (dateFrom) where += ` AND mr.meeting_date >= ${dateFrom}`;
+  if (dateTo) where += ` AND mr.meeting_date <= ${dateTo}`;
 
   // Aggregate
-  const aggRes = await db.execute(sql.raw(`
+  const aggRes = await db.execute(sql`
     SELECT COUNT(DISTINCT msa.meeting_id) as total_meetings,
       COUNT(*) as total_items,
       AVG(msa.planned_duration_minutes) as avg_planned,
@@ -10824,7 +10705,7 @@ export async function computeAgendaIntelligenceSnapshot(
     FROM ime_meeting_structure_analysis msa
     JOIN meeting_records mr ON mr.id = msa.meeting_id
     WHERE ${where}
-  `));
+  `);
   const stats = (aggRes.rows as any[])[0] || {};
 
   const totalMeetings = Number(stats.total_meetings) || 0;
@@ -10849,15 +10730,15 @@ export async function computeAgendaIntelligenceSnapshot(
   else if (absOverrunPct < 50) overallGrade = "D";
 
   // Previous snapshot for trend comparison
-  const safeScopeId = (scopeId || "").replace(/'/g, "''");
-  const prevRes = await db.execute(sql.raw(`
+  const safeScopeId = (scopeId || "");
+  const prevRes = await db.execute(sql`
     SELECT avg_efficiency, avg_overrun_pct, overall_grade
     FROM ime_agenda_intelligence_snapshots
-    WHERE scope = '${scope.replace(/'/g, "''")}'
-      AND (scope_id = '${safeScopeId}' OR (scope_id IS NULL AND '${safeScopeId}' = ''))
+    WHERE scope = ${scope}
+      AND (scope_id = ${safeScopeId} OR (scope_id IS NULL AND ${safeScopeId} = ''))
     ORDER BY computed_at DESC
     LIMIT 1
-  `));
+  `);
   const prevSnapshot = (prevRes.rows as any[])[0];
   let trendVsPrevious = "stable";
   let trendSlope = 0;
@@ -10912,16 +10793,16 @@ export async function computeAgendaIntelligenceSnapshot(
   const periodEnd = dateTo || new Date().toISOString().split("T")[0];
 
   // Delete existing snapshot for same scope/period
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     DELETE FROM ime_agenda_intelligence_snapshots
-    WHERE scope = '${scope.replace(/'/g, "''")}'
-      AND (scope_id = '${safeScopeId}' OR (scope_id IS NULL AND '${safeScopeId}' = ''))
-      AND period_start = '${periodStart}'
-      AND period_end = '${periodEnd}'
-  `));
+    WHERE scope = ${scope}
+      AND (scope_id = ${safeScopeId} OR (scope_id IS NULL AND ${safeScopeId} = ''))
+      AND period_start = ${periodStart}
+      AND period_end = ${periodEnd}
+  `);
 
   // Insert new snapshot
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_agenda_intelligence_snapshots (
       scope, scope_id, period_start, period_end,
       total_meetings, total_items,
@@ -10931,15 +10812,15 @@ export async function computeAgendaIntelligenceSnapshot(
       overall_grade, ai_narrative, trend_vs_previous, trend_slope, recommendations,
       computed_at, created_at
     ) VALUES (
-      '${scope.replace(/'/g, "''")}', ${safeScopeId ? `'${safeScopeId}'` : "NULL"}, '${periodStart}', '${periodEnd}',
+      ${scope}, ${safeScopeId ? `${safeScopeId}` : "NULL"}, ${periodStart}, ${periodEnd},
       ${totalMeetings}, ${totalItems},
       ${avgPlanned}, ${avgActual}, ${avgOverrun}, ${avgOverrunPct},
       ${overrunRate}, ${underrunRate}, ${skippedRate},
       ${avgEngagement}, ${avgProductivity}, ${avgEfficiency},
-      '${overallGrade}', '${aiNarrative.replace(/'/g, "''")}', '${trendVsPrevious}', ${trendSlope}, '${recommendations.replace(/'/g, "''")}',
+      ${overallGrade}, ${aiNarrative}, ${trendVsPrevious}, ${trendSlope}, ${recommendations},
       NOW(), NOW()
     )
-  `));
+  `);
 
   return {
     success: true,
@@ -10979,11 +10860,11 @@ export async function computeAgendaIntelligenceSnapshot(
 export async function getAgendaDashboard(filters?: { department?: string; dateFrom?: string; dateTo?: string }) {
   const db = await requireDb();
 
-  const department = filters?.department ? filters.department.replace(/'/g, "''") : "";
+  const department = filters?.department ? filters.department : "";
   const dateFrom = filters?.dateFrom || "";
   const dateTo = filters?.dateTo || "";
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT COUNT(DISTINCT msa.meeting_id) as total_meetings,
       AVG(msa.meeting_time_efficiency_score) as avg_efficiency,
       AVG(msa.overrun_percent) as avg_overrun,
@@ -10992,25 +10873,25 @@ export async function getAgendaDashboard(filters?: { department?: string; dateFr
     FROM ime_meeting_structure_analysis msa
     JOIN meeting_records mr ON mr.id = msa.meeting_id
     WHERE 1=1
-      ${department ? `AND mr.department = '${department}'` : ""}
-      ${dateFrom ? `AND mr.meeting_date >= '${dateFrom}'` : ""}
-      ${dateTo ? `AND mr.meeting_date <= '${dateTo}'` : ""}
-  `));
+      ${department ? `AND mr.department = ${department}` : ""}
+      ${dateFrom ? `AND mr.meeting_date >= ${dateFrom}` : ""}
+      ${dateTo ? `AND mr.meeting_date <= ${dateTo}` : ""}
+  `);
   const stats = (res.rows as any[])[0] || {};
 
   // Top overrun category
-  const catRes = await db.execute(sql.raw(`
+  const catRes = await db.execute(sql`
     SELECT agenda_item_category, AVG(overrun_percent) as avg_overrun
     FROM ime_meeting_structure_analysis msa
     JOIN meeting_records mr ON mr.id = msa.meeting_id
     WHERE msa.was_skipped = 0 AND msa.overrun_percent > 0
-      ${department ? `AND mr.department = '${department}'` : ""}
-      ${dateFrom ? `AND mr.meeting_date >= '${dateFrom}'` : ""}
-      ${dateTo ? `AND mr.meeting_date <= '${dateTo}'` : ""}
+      ${department ? `AND mr.department = ${department}` : ""}
+      ${dateFrom ? `AND mr.meeting_date >= ${dateFrom}` : ""}
+      ${dateTo ? `AND mr.meeting_date <= ${dateTo}` : ""}
     GROUP BY agenda_item_category
     ORDER BY avg_overrun DESC
     LIMIT 1
-  `));
+  `);
   const topCat = (catRes.rows as any[])[0];
 
   return {
@@ -11042,26 +10923,26 @@ export async function getAgendaAnalysisList(options?: {
 
   const limit = options?.limit || 20;
   const offset = options?.offset || 0;
-  const grade = options?.grade ? options.grade.replace(/'/g, "''") : "";
-  const department = options?.department ? options.department.replace(/'/g, "''") : "";
+  const grade = options?.grade ? options.grade : "";
+  const department = options?.department ? options.department : "";
   const dateFrom = options?.dateFrom || "";
   const dateTo = options?.dateTo || "";
 
   let where = "1=1";
-  if (grade) where += ` AND MIN(msa.time_efficiency_grade) = '${grade}'`;
-  if (department) where += ` AND mr.department = '${department}'`;
-  if (dateFrom) where += ` AND mr.meeting_date >= '${dateFrom}'`;
-  if (dateTo) where += ` AND mr.meeting_date <= '${dateTo}'`;
+  if (grade) where += ` AND MIN(msa.time_efficiency_grade) = ${grade}`;
+  if (department) where += ` AND mr.department = ${department}`;
+  if (dateFrom) where += ` AND mr.meeting_date >= ${dateFrom}`;
+  if (dateTo) where += ` AND mr.meeting_date <= ${dateTo}`;
 
   // Build pre-group filters (WHERE) and post-group filters (HAVING)
   let preWhere = "1=1";
   let having = "";
-  if (department) preWhere += ` AND mr.department = '${department}'`;
-  if (dateFrom) preWhere += ` AND mr.meeting_date >= '${dateFrom}'`;
-  if (dateTo) preWhere += ` AND mr.meeting_date <= '${dateTo}'`;
-  if (grade) having = `HAVING MIN(msa.time_efficiency_grade) = '${grade}'`;
+  if (department) preWhere += ` AND mr.department = ${department}`;
+  if (dateFrom) preWhere += ` AND mr.meeting_date >= ${dateFrom}`;
+  if (dateTo) preWhere += ` AND mr.meeting_date <= ${dateTo}`;
+  if (grade) having = `HAVING MIN(msa.time_efficiency_grade) = ${grade}`;
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT msa.meeting_id, mr.title as meeting_title, mr.meeting_date,
       COUNT(*) as agenda_items_count,
       SUM(msa.planned_duration_minutes) as total_planned,
@@ -11076,11 +10957,11 @@ export async function getAgendaAnalysisList(options?: {
     ${having}
     ORDER BY msa.meeting_id DESC
     LIMIT ${limit} OFFSET ${offset}
-  `));
+  `);
   const rows = res.rows as any[];
 
   // Total count
-  const countRes = await db.execute(sql.raw(`
+  const countRes = await db.execute(sql`
     SELECT COUNT(*) as total FROM (
       SELECT msa.meeting_id
       FROM ime_meeting_structure_analysis msa
@@ -11089,7 +10970,7 @@ export async function getAgendaAnalysisList(options?: {
       GROUP BY msa.meeting_id
       ${having}
     ) sub
-  `));
+  `);
   const total = Number((countRes.rows as any[])[0]?.total) || 0;
 
   const mappedRows = rows.map((r: any) => ({
@@ -11117,18 +10998,18 @@ export async function getAgendaAnalysisList(options?: {
 export async function getAgendaTrendData(options?: { scope?: string; scopeId?: string; limit?: number }) {
   const db = await requireDb();
 
-  const scope = options?.scope ? options.scope.replace(/'/g, "''") : "";
-  const scopeId = options?.scopeId ? options.scopeId.replace(/'/g, "''") : "";
+  const scope = options?.scope ? options.scope : "";
+  const scopeId = options?.scopeId ? options.scopeId : "";
   const limit = options?.limit || 20;
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT * FROM ime_agenda_intelligence_snapshots
     WHERE 1=1
-      ${scope ? `AND scope = '${scope}'` : ""}
-      ${scopeId ? `AND scope_id = '${scopeId}'` : ""}
+      ${scope ? `AND scope = ${scope}` : ""}
+      ${scopeId ? `AND scope_id = ${scopeId}` : ""}
     ORDER BY period_end DESC
     LIMIT ${limit}
-  `));
+  `);
   const rows = res.rows as any[];
 
   const mapped = rows.map((r: any) => ({
@@ -11176,10 +11057,10 @@ export async function updateAgendaItemAnalysis(
   const setClauses: string[] = [];
 
   if (updates.agendaItemTitle !== undefined) {
-    setClauses.push(`agenda_item_title = '${String(updates.agendaItemTitle).replace(/'/g, "''")}'`);
+    setClauses.push(`agenda_item_title = ${String(updates.agendaItemTitle)}`);
   }
   if (updates.agendaItemCategory !== undefined) {
-    setClauses.push(`agenda_item_category = '${String(updates.agendaItemCategory).replace(/'/g, "''")}'`);
+    setClauses.push(`agenda_item_category = ${String(updates.agendaItemCategory)}`);
   }
 
   if (updates.plannedDurationMinutes !== undefined) {
@@ -11192,9 +11073,7 @@ export async function updateAgendaItemAnalysis(
   // Recompute overrun/grade if both durations are being set, or either is set
   if (updates.plannedDurationMinutes !== undefined || updates.actualDurationMinutes !== undefined) {
     // Need current values for the field not being updated
-    const currentRes = await db.execute(sql.raw(
-      `SELECT planned_duration_minutes, actual_duration_minutes FROM ime_meeting_structure_analysis WHERE id = ${id} LIMIT 1`
-    ));
+    const currentRes = await db.execute(sql`SELECT planned_duration_minutes, actual_duration_minutes FROM ime_meeting_structure_analysis WHERE id = ${id} LIMIT 1`);
     const current = (currentRes.rows as any[])[0];
     if (!current) throw new Error(`Agenda item analysis ${id} not found`);
 
@@ -11212,18 +11091,18 @@ export async function updateAgendaItemAnalysis(
 
     setClauses.push(`overrun_minutes = ${overrun}`);
     setClauses.push(`overrun_percent = ${overrunPercent}`);
-    setClauses.push(`time_efficiency_grade = '${grade}'`);
+    setClauses.push(`time_efficiency_grade = ${grade}`);
   }
 
   if (setClauses.length === 0) {
     return { success: true, id, message: "No updates provided" };
   }
 
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     UPDATE ime_meeting_structure_analysis
     SET ${setClauses.join(", ")}
     WHERE id = ${id}
-  `));
+  `);
 
   return { success: true, id };
 }
@@ -11239,16 +11118,12 @@ export async function analyzeMeetingFacilitator(meetingId: string) {
   const db = await requireDb();
 
   // 1. Get meeting info
-  const meetingResult = await db.execute(sql.raw(
-    `SELECT id, title, objective, summary FROM meeting_records WHERE id = '${meetingId.replace(/'/g, "''")}'`
-  ));
+  const meetingResult = await db.execute(sql`SELECT id, title, objective, summary FROM meeting_records WHERE id = ${meetingId} LIMIT 1000`);
   const meeting = (meetingResult.rows as any[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   // 2. Get content blocks
-  const blocksResult = await db.execute(sql.raw(
-    `SELECT speaker, block_type, content, timestamp_start, timestamp_end FROM meeting_content_blocks WHERE meeting_id = '${meetingId.replace(/'/g, "''")}' ORDER BY timestamp_start ASC`
-  ));
+  const blocksResult = await db.execute(sql`SELECT speaker, block_type, content, timestamp_start, timestamp_end FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY timestamp_start ASC LIMIT 1000`);
   const blocks = blocksResult.rows as any[];
   if (blocks.length === 0) throw new Error(`No content blocks for meeting ${meetingId}`);
 
@@ -11370,14 +11245,10 @@ Identify the facilitator, classify their style, and score their effectiveness ac
   else if (overallEffectivenessScore >= 40) effectivenessGrade = "D";
 
   // Get decisions + action items count
-  const decisionsRes = await db.execute(sql.raw(
-    `SELECT COUNT(*) as cnt FROM meeting_content_blocks WHERE meeting_id = '${meetingId.replace(/'/g, "''")}' AND block_type = 'decision'`
-  ));
+  const decisionsRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM meeting_content_blocks WHERE meeting_id = ${meetingId} AND block_type = 'decision'`);
   const decisionsCount = Number((decisionsRes.rows as any[])[0]?.cnt) || 0;
 
-  const actionsRes = await db.execute(sql.raw(
-    `SELECT COUNT(*) as cnt FROM meeting_content_blocks WHERE meeting_id = '${meetingId.replace(/'/g, "''")}' AND block_type = 'action_item'`
-  ));
+  const actionsRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM meeting_content_blocks WHERE meeting_id = ${meetingId} AND block_type = 'action_item'`);
   const actionItemsCount = Number((actionsRes.rows as any[])[0]?.cnt) || 0;
 
   const facilitatorSpeakingPercent = speakerMap[facilitatorName] ? Math.round((speakerMap[facilitatorName] / totalBlocks) * 100) : 0;
@@ -11388,12 +11259,10 @@ Identify the facilitator, classify their style, and score their effectiveness ac
   const narrative = llm.narrative || "";
 
   // Delete existing analysis for this meeting
-  await db.execute(sql.raw(
-    `DELETE FROM ime_facilitator_analysis WHERE meeting_id = '${meetingId.replace(/'/g, "''")}'`
-  ));
+  await db.execute(sql`DELETE FROM ime_facilitator_analysis WHERE meeting_id = ${meetingId}`);
 
   // Insert new analysis
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_facilitator_analysis (
       meeting_id, facilitator_name, facilitator_id, department,
       facilitation_style, style_confidence, overall_effectiveness_score,
@@ -11405,17 +11274,17 @@ Identify the facilitator, classify their style, and score their effectiveness ac
       ai_strengths, ai_weaknesses, ai_coaching_points, ai_narrative,
       computed_at, created_at
     ) VALUES (
-      '${meetingId.replace(/'/g, "''")}', '${facilitatorName.replace(/'/g, "''")}', '${facilitatorId.replace(/'/g, "''")}', '${department.replace(/'/g, "''")}',
-      '${facilitationStyle}', ${styleConfidence}, ${overallEffectivenessScore},
+      ${meetingId}, ${facilitatorName}, ${facilitatorId}, ${department},
+      ${facilitationStyle}, ${styleConfidence}, ${overallEffectivenessScore},
       ${engagementImpactScore}, ${decisionFacilitationScore}, ${timeManagementScore},
       ${inclusivityScore}, ${clarityScore}, ${conflictResolutionScore},
       ${meetingEffectivenessScore}, ${speakerBalanceIndex},
       ${dominantSpeakerPercent}, ${totalSpeakers}, ${facilitatorSpeakingPercent},
-      ${decisionsCount}, ${actionItemsCount}, '${effectivenessGrade}',
-      '${strengths.replace(/'/g, "''")}', '${weaknesses.replace(/'/g, "''")}', '${coachingPoints.replace(/'/g, "''")}', '${narrative.replace(/'/g, "''")}',
+      ${decisionsCount}, ${actionItemsCount}, ${effectivenessGrade},
+      ${strengths}, ${weaknesses}, ${coachingPoints}, ${narrative},
       NOW(), NOW()
     )
-  `));
+  `);
 
   return {
     meetingId,
@@ -11453,9 +11322,7 @@ export async function batchAnalyzeFacilitators(meetingIds: string[]) {
 export async function getFacilitatorProfile(facilitatorId: string) {
   const db = await requireDb();
 
-  const res = await db.execute(sql.raw(
-    `SELECT * FROM ime_facilitator_analysis WHERE facilitator_id = '${facilitatorId.replace(/'/g, "''")}' ORDER BY computed_at DESC`
-  ));
+  const res = await db.execute(sql`SELECT * FROM ime_facilitator_analysis WHERE facilitator_id = ${facilitatorId} ORDER BY computed_at DESC LIMIT 1000`);
   const rows = res.rows as any[];
   if (rows.length === 0) return { facilitatorId, facilitatorName: facilitatorId, meetingsFacilitated: 0, avgEffectiveness: 0, radarData: [], styleDistribution: [], trend: [] };
 
@@ -11500,10 +11367,10 @@ export async function getFacilitatorComparison(options?: { department?: string; 
 
   let where = "";
   if (options?.department) {
-    where = ` WHERE department = '${options.department.replace(/'/g, "''")}'`;
+    where = ` WHERE department = ${options.department}`;
   }
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT facilitator_id, facilitator_name, department,
       COUNT(*) as meetings_count,
       ROUND(AVG(overall_effectiveness_score)) as avg_effectiveness,
@@ -11517,7 +11384,7 @@ export async function getFacilitatorComparison(options?: { department?: string; 
     GROUP BY facilitator_id, facilitator_name, department
     ORDER BY avg_effectiveness DESC
     LIMIT ${options?.limit || 50}
-  `));
+  `);
   const facilitators = (res.rows as any[]).map(r => ({
     facilitatorId: r.facilitator_id,
     facilitatorName: r.facilitator_name,
@@ -11554,15 +11421,13 @@ export async function getFacilitatorComparison(options?: { department?: string; 
 export async function detectFacilitationPatterns(options?: { department?: string; dateFrom?: string; dateTo?: string }) {
   const db = await requireDb();
 
-  const conditions: string[] = [];
-  if (options?.department) conditions.push(`department = '${options.department.replace(/'/g, "''")}'`);
-  if (options?.dateFrom) conditions.push(`computed_at >= '${options.dateFrom}'`);
-  if (options?.dateTo) conditions.push(`computed_at <= '${options.dateTo}'`);
-  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+  const conditions: SQL[] = [];
+  if (options?.department) conditions.push(sql`department = ${options.department}`);
+  if (options?.dateFrom) conditions.push(sql`computed_at >= ${options.dateFrom}`);
+  if (options?.dateTo) conditions.push(sql`computed_at <= ${options.dateTo}`);
+  const where = conditions.length > 0 ? sql` WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
 
-  const res = await db.execute(sql.raw(
-    `SELECT facilitation_style, overall_effectiveness_score, engagement_impact_score, decision_facilitation_score, time_management_score, inclusivity_score, clarity_score, conflict_resolution_score, meeting_effectiveness_score, speaker_balance_index, facilitator_speaking_percent, decisions_count, action_items_count, effectiveness_grade FROM ime_facilitator_analysis${where} ORDER BY computed_at DESC LIMIT 200`
-  ));
+  const res = await db.execute(sql`SELECT facilitation_style, overall_effectiveness_score, engagement_impact_score, decision_facilitation_score, time_management_score, inclusivity_score, clarity_score, conflict_resolution_score, meeting_effectiveness_score, speaker_balance_index, facilitator_speaking_percent, decisions_count, action_items_count, effectiveness_grade FROM ime_facilitator_analysis${where} ORDER BY computed_at DESC LIMIT 200`);
   const rows = res.rows as any[];
   if (rows.length === 0) return { patterns: [], correlations: [], recommendations: [] };
 
@@ -11616,13 +11481,13 @@ export async function detectFacilitationPatterns(options?: { department?: string
 export async function classifyFacilitatorStyles(options?: { department?: string; dateFrom?: string; dateTo?: string }) {
   const db = await requireDb();
 
-  const conditions: string[] = [];
-  if (options?.department) conditions.push(`department = '${options.department.replace(/'/g, "''")}'`);
-  if (options?.dateFrom) conditions.push(`computed_at >= '${options.dateFrom}'`);
-  if (options?.dateTo) conditions.push(`computed_at <= '${options.dateTo}'`);
-  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+  const conditions: SQL[] = [];
+  if (options?.department) conditions.push(sql`department = ${options.department}`);
+  if (options?.dateFrom) conditions.push(sql`computed_at >= ${options.dateFrom}`);
+  if (options?.dateTo) conditions.push(sql`computed_at <= ${options.dateTo}`);
+  const where = conditions.length > 0 ? sql` WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT facilitation_style,
       COUNT(*) as cnt,
       ROUND(AVG(overall_effectiveness_score)) as avg_effectiveness,
@@ -11630,7 +11495,7 @@ export async function classifyFacilitatorStyles(options?: { department?: string;
     FROM ime_facilitator_analysis${where}
     GROUP BY facilitation_style
     ORDER BY avg_effectiveness DESC
-  `));
+  `);
 
   const styles = (res.rows as any[]).map(r => ({
     style: r.facilitation_style || "unknown",
@@ -11652,9 +11517,7 @@ export async function classifyFacilitatorStyles(options?: { department?: string;
 export async function generateFacilitatorCoaching(facilitatorId: string) {
   const db = await requireDb();
 
-  const res = await db.execute(sql.raw(
-    `SELECT * FROM ime_facilitator_analysis WHERE facilitator_id = '${facilitatorId.replace(/'/g, "''")}' ORDER BY computed_at DESC LIMIT 20`
-  ));
+  const res = await db.execute(sql`SELECT * FROM ime_facilitator_analysis WHERE facilitator_id = ${facilitatorId} ORDER BY computed_at DESC LIMIT 20`);
   const rows = res.rows as any[];
   if (rows.length === 0) throw new Error(`No facilitator analysis found for ${facilitatorId}`);
 
@@ -11726,20 +11589,18 @@ Generate a personalized coaching plan with specific improvement areas, target sc
 export async function computeFacilitatorSnapshot(scope: string, scopeId?: string, dateFrom?: string, dateTo?: string) {
   const db = await requireDb();
 
-  const safeScope = scope.replace(/'/g, "''");
-  const safeScopeId = (scopeId || "").replace(/'/g, "''");
+  const safeScope = scope;
+  const safeScopeId = (scopeId || "");
   const periodStart = dateFrom || new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
   const periodEnd = dateTo || new Date().toISOString().split("T")[0];
 
   // Build WHERE
-  const conditions: string[] = [`computed_at >= '${periodStart}'`, `computed_at <= '${periodEnd}'`];
-  if (scope === "department" && safeScopeId) conditions.push(`department = '${safeScopeId}'`);
-  if (scope === "individual" && safeScopeId) conditions.push(`facilitator_id = '${safeScopeId}'`);
-  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+  const conditions: SQL[] = [sql`computed_at >= ${periodStart}`, sql`computed_at <= ${periodEnd}`];
+  if (scope === "department" && safeScopeId) conditions.push(sql`department = ${safeScopeId}`);
+  if (scope === "individual" && safeScopeId) conditions.push(sql`facilitator_id = ${safeScopeId}`);
+  const where = conditions.length > 0 ? sql` WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
 
-  const res = await db.execute(sql.raw(
-    `SELECT * FROM ime_facilitator_analysis${where} ORDER BY computed_at DESC`
-  ));
+  const res = await db.execute(sql`SELECT * FROM ime_facilitator_analysis${where} ORDER BY computed_at DESC LIMIT 1000`);
   const rows = res.rows as any[];
   const totalMeetingsAnalyzed = rows.length;
 
@@ -11796,14 +11657,12 @@ export async function computeFacilitatorSnapshot(scope: string, scopeId?: string
   const prevStart = new Date(new Date(periodStart).getTime() - periodDuration).toISOString().split("T")[0];
   const prevEnd = periodStart;
 
-  const prevConditions = [`computed_at >= '${prevStart}'`, `computed_at <= '${prevEnd}'`];
-  if (scope === "department" && safeScopeId) prevConditions.push(`department = '${safeScopeId}'`);
-  if (scope === "individual" && safeScopeId) prevConditions.push(`facilitator_id = '${safeScopeId}'`);
+  const prevConditions = [`computed_at >= ${prevStart}`, `computed_at <= ${prevEnd}`];
+  if (scope === "department" && safeScopeId) prevConditions.push(`department = ${safeScopeId}`);
+  if (scope === "individual" && safeScopeId) prevConditions.push(`facilitator_id = ${safeScopeId}`);
   const prevWhere = ` WHERE ${prevConditions.join(" AND ")}`;
 
-  const prevRes = await db.execute(sql.raw(
-    `SELECT ROUND(AVG(overall_effectiveness_score)) as prev_avg FROM ime_facilitator_analysis${prevWhere}`
-  ));
+  const prevRes = await db.execute(sql`SELECT ROUND(AVG(overall_effectiveness_score)) as prev_avg FROM ime_facilitator_analysis${prevWhere}`);
   const prevAvg = Number((prevRes.rows as any[])[0]?.prev_avg) || 0;
 
   let trendVsPrevious = "stable";
@@ -11852,16 +11711,16 @@ Generate narrative, best practices, and recommendations.` }
   const recommendations = JSON.stringify(llm.recommendations || []);
 
   // Delete existing snapshot
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     DELETE FROM ime_facilitator_intelligence_snapshots
-    WHERE scope = '${safeScope}'
-      AND (scope_id = '${safeScopeId}' OR (scope_id IS NULL AND '${safeScopeId}' = ''))
-      AND period_start = '${periodStart}'
-      AND period_end = '${periodEnd}'
-  `));
+    WHERE scope = ${safeScope}
+      AND (scope_id = ${safeScopeId} OR (scope_id IS NULL AND ${safeScopeId} = ''))
+      AND period_start = ${periodStart}
+      AND period_end = ${periodEnd}
+  `);
 
   // Insert new snapshot
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     INSERT INTO ime_facilitator_intelligence_snapshots (
       scope, scope_id, period_start, period_end,
       total_meetings_analyzed, total_facilitators,
@@ -11873,17 +11732,17 @@ Generate narrative, best practices, and recommendations.` }
       best_practices, trend_vs_previous, trend_slope, recommendations,
       computed_at, created_at
     ) VALUES (
-      '${safeScope}', ${safeScopeId ? `'${safeScopeId}'` : "NULL"}, '${periodStart}', '${periodEnd}',
+      ${safeScope}, ${safeScopeId ? `${safeScopeId}` : "NULL"}, ${periodStart}, ${periodEnd},
       ${totalMeetingsAnalyzed}, ${totalFacilitators},
       ${avgEffectivenessScore}, ${avgEngagementImpact}, ${avgDecisionFacilitation},
       ${avgTimeManagement}, ${avgInclusivity}, ${avgClarity}, ${avgConflictResolution},
       ${avgSpeakerBalance}, ${avgFacilitatorSpeakingPercent},
-      '${styleDistribution.replace(/'/g, "''")}', '${topFacilitators.replace(/'/g, "''")}', '${bottomFacilitators.replace(/'/g, "''")}',
-      '${gradeDistribution.replace(/'/g, "''")}', '${overallGrade}', '${aiNarrative.replace(/'/g, "''")}',
-      '${bestPractices.replace(/'/g, "''")}', '${trendVsPrevious}', ${trendSlope}, '${recommendations.replace(/'/g, "''")}',
+      ${styleDistribution}, ${topFacilitators}, ${bottomFacilitators},
+      ${gradeDistribution}, ${overallGrade}, ${aiNarrative},
+      ${bestPractices}, ${trendVsPrevious}, ${trendSlope}, ${recommendations},
       NOW(), NOW()
     )
-  `));
+  `);
 
   return {
     success: true,
@@ -11916,29 +11775,29 @@ Generate narrative, best practices, and recommendations.` }
 export async function getFacilitatorDashboard(filters?: { department?: string; dateFrom?: string; dateTo?: string }) {
   const db = await requireDb();
 
-  const conditions: string[] = [];
-  if (filters?.department) conditions.push(`department = '${filters.department.replace(/'/g, "''")}'`);
-  if (filters?.dateFrom) conditions.push(`computed_at >= '${filters.dateFrom}'`);
-  if (filters?.dateTo) conditions.push(`computed_at <= '${filters.dateTo}'`);
-  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+  const conditions: SQL[] = [];
+  if (filters?.department) conditions.push(sql`department = ${filters.department}`);
+  if (filters?.dateFrom) conditions.push(sql`computed_at >= ${filters.dateFrom}`);
+  if (filters?.dateTo) conditions.push(sql`computed_at <= ${filters.dateTo}`);
+  const where = conditions.length > 0 ? sql` WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT
       COUNT(*) as total_meetings,
       ROUND(AVG(overall_effectiveness_score)) as avg_effectiveness,
       COUNT(DISTINCT facilitator_id) as total_facilitators
     FROM ime_facilitator_analysis${where}
-  `));
+  `);
   const row = (res.rows as any[])[0] || {};
 
   // Dominant style
-  const styleRes = await db.execute(sql.raw(`
+  const styleRes = await db.execute(sql`
     SELECT facilitation_style, COUNT(*) as cnt
     FROM ime_facilitator_analysis${where}
     GROUP BY facilitation_style
     ORDER BY cnt DESC
     LIMIT 1
-  `));
+  `);
   const dominantStyle = (styleRes.rows as any[])[0]?.facilitation_style || "unknown";
 
   const STYLE_LABELS: Record<string, string> = {
@@ -11963,27 +11822,25 @@ export async function getFacilitatorAnalysisList(options?: { limit?: number; off
   const limit = options?.limit || 20;
   const offset = options?.offset || 0;
 
-  const conditions: string[] = [];
-  if (options?.grade) conditions.push(`fa.effectiveness_grade = '${options.grade.replace(/'/g, "''")}'`);
-  if (options?.department) conditions.push(`fa.department = '${options.department.replace(/'/g, "''")}'`);
-  if (options?.facilitatorId) conditions.push(`fa.facilitator_id = '${options.facilitatorId.replace(/'/g, "''")}'`);
-  if (options?.dateFrom) conditions.push(`fa.computed_at >= '${options.dateFrom}'`);
-  if (options?.dateTo) conditions.push(`fa.computed_at <= '${options.dateTo}'`);
-  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+  const conditions: SQL[] = [];
+  if (options?.grade) conditions.push(sql`fa.effectiveness_grade = ${options.grade}`);
+  if (options?.department) conditions.push(sql`fa.department = ${options.department}`);
+  if (options?.facilitatorId) conditions.push(sql`fa.facilitator_id = ${options.facilitatorId}`);
+  if (options?.dateFrom) conditions.push(sql`fa.computed_at >= ${options.dateFrom}`);
+  if (options?.dateTo) conditions.push(sql`fa.computed_at <= ${options.dateTo}`);
+  const where = conditions.length > 0 ? sql` WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
 
-  const countRes = await db.execute(sql.raw(
-    `SELECT COUNT(*) as cnt FROM ime_facilitator_analysis fa${where}`
-  ));
+  const countRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_facilitator_analysis fa${where}`);
   const total = Number((countRes.rows as any[])[0]?.cnt) || 0;
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT fa.*, mr.title as meeting_title
     FROM ime_facilitator_analysis fa
     LEFT JOIN meeting_records mr ON fa.meeting_id = mr.id
     ${where}
     ORDER BY fa.computed_at DESC
     LIMIT ${limit} OFFSET ${offset}
-  `));
+  `);
 
   const rows = (res.rows as any[]).map(r => ({
     id: r.id,
@@ -12024,16 +11881,16 @@ export async function getFacilitatorAnalysisList(options?: { limit?: number; off
 export async function getFacilitatorTrendData(options?: { scope?: string; scopeId?: string; limit?: number }) {
   const db = await requireDb();
 
-  const conditions: string[] = [];
-  if (options?.scope) conditions.push(`scope = '${options.scope.replace(/'/g, "''")}'`);
-  if (options?.scopeId) conditions.push(`scope_id = '${options.scopeId.replace(/'/g, "''")}'`);
-  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+  const conditions: SQL[] = [];
+  if (options?.scope) conditions.push(sql`scope = ${options.scope}`);
+  if (options?.scopeId) conditions.push(sql`scope_id = ${options.scopeId}`);
+  const where = conditions.length > 0 ? sql` WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
 
-  const res = await db.execute(sql.raw(`
+  const res = await db.execute(sql`
     SELECT * FROM ime_facilitator_intelligence_snapshots${where}
     ORDER BY period_end DESC
     LIMIT ${options?.limit || 20}
-  `));
+  `);
 
   const rows = (res.rows as any[]).map(r => ({
     id: r.id,
@@ -12079,10 +11936,10 @@ export async function updateFacilitatorAnalysis(id: number, updates: {
   const setClauses: string[] = [];
 
   if (updates.facilitatorName !== undefined) {
-    setClauses.push(`facilitator_name = '${String(updates.facilitatorName).replace(/'/g, "''")}'`);
+    setClauses.push(`facilitator_name = ${String(updates.facilitatorName)}`);
   }
   if (updates.facilitationStyle !== undefined) {
-    setClauses.push(`facilitation_style = '${String(updates.facilitationStyle).replace(/'/g, "''")}'`);
+    setClauses.push(`facilitation_style = ${String(updates.facilitationStyle)}`);
   }
   if (updates.engagementImpactScore !== undefined) {
     setClauses.push(`engagement_impact_score = ${Number(updates.engagementImpactScore) || 0}`);
@@ -12108,9 +11965,7 @@ export async function updateFacilitatorAnalysis(id: number, updates: {
   const anyScoreChanged = scoreFields.some(f => (updates as any)[f] !== undefined);
 
   if (anyScoreChanged) {
-    const currentRes = await db.execute(sql.raw(
-      `SELECT engagement_impact_score, decision_facilitation_score, time_management_score, inclusivity_score, clarity_score, conflict_resolution_score FROM ime_facilitator_analysis WHERE id = ${id} LIMIT 1`
-    ));
+    const currentRes = await db.execute(sql`SELECT engagement_impact_score, decision_facilitation_score, time_management_score, inclusivity_score, clarity_score, conflict_resolution_score FROM ime_facilitator_analysis WHERE id = ${id} LIMIT 1`);
     const current = (currentRes.rows as any[])[0];
     if (!current) throw new Error(`Facilitator analysis ${id} not found`);
 
@@ -12129,18 +11984,18 @@ export async function updateFacilitatorAnalysis(id: number, updates: {
     else if (overall >= 40) grade = "D";
 
     setClauses.push(`overall_effectiveness_score = ${overall}`);
-    setClauses.push(`effectiveness_grade = '${grade}'`);
+    setClauses.push(`effectiveness_grade = ${grade}`);
   }
 
   if (setClauses.length === 0) {
     return { success: true, id, message: "No updates provided" };
   }
 
-  await db.execute(sql.raw(`
+  await db.execute(sql`
     UPDATE ime_facilitator_analysis
     SET ${setClauses.join(", ")}
     WHERE id = ${id}
-  `));
+  `);
 
   return { success: true, id };
 }

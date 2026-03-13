@@ -15,7 +15,8 @@ export async function getMyDelegations(userId: number) {
     .select()
     .from(approvalDelegations)
     .where(eq(approvalDelegations.delegatorId, userId))
-    .orderBy(desc(approvalDelegations.createdAt));
+    .orderBy(desc(approvalDelegations.createdAt))
+    .limit(1000);
 }
 
 /** 查询当前有效的、委托给我的记录 */
@@ -33,7 +34,8 @@ export async function getDelegationsToMe(userId: number) {
         gte(approvalDelegations.endDate, now),
       ),
     )
-    .orderBy(desc(approvalDelegations.createdAt));
+    .orderBy(desc(approvalDelegations.createdAt))
+    .limit(1000);
 }
 
 /** 新建委托 */

@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import { submitTask, getTaskStatus } from "../services/task-worker.service";
 
 export const projectIntelligenceRouter = router({
@@ -56,7 +56,7 @@ export const projectIntelligenceRouter = router({
     }),
 
   // 变更影响分析 (async — submits to task queue)
-  analyzeChangeImpact: protectedProcedure
+  analyzeChangeImpact: requirePermission('project:edit')
     .input(
       z.object({
         changeType: z.string().min(1),

@@ -106,7 +106,8 @@ export async function getChangeEventById(id: number) {
   const results = await db
     .select()
     .from(changeEvents)
-    .where(eq(changeEvents.id, id));
+    .where(eq(changeEvents.id, id))
+    .limit(1000);
 
   if (results.length === 0) return null;
   return parseAffectedItems(results[0]);
@@ -277,7 +278,8 @@ async function collectDownstream(db: any, parentId: number): Promise<any[]> {
     .select()
     .from(changeEvents)
     .where(eq(changeEvents.sourceChangeId, parentId))
-    .orderBy(changeEvents.createdAt);
+    .orderBy(changeEvents.createdAt)
+    .limit(1000);
 
   const result: any[] = [];
   for (const child of children) {

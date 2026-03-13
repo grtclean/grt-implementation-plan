@@ -11,6 +11,7 @@
  */
 
 import { useState, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import {
   Factory,
@@ -62,10 +63,10 @@ function gradeColor(grade: string): string {
   return "#ef4444";
 }
 
-function gradeLabel(grade: string): string {
-  if (grade === "world-class") return "World-Class";
-  if (grade === "acceptable") return "Acceptable";
-  return "Critical";
+function gradeLabelKey(grade: string): string {
+  if (grade === "world-class") return "manufacturing.oee.gradeWorldClass";
+  if (grade === "acceptable") return "manufacturing.oee.gradeAcceptable";
+  return "manufacturing.oee.gradeCritical";
 }
 
 function statusBadge(status: string) {
@@ -169,7 +170,7 @@ function LargeOEEGauge({ oee }: { oee: OEEResult }) {
 
 // ─── Machine Card ───────────────────────────────────────────────────
 
-function MachineCard({ machine }: { machine: MachineEntry }) {
+function MachineCard({ machine, t }: { machine: MachineEntry; t: (key: string) => string }) {
   const { oee } = machine;
   const borderColor = gradeColor(oee.grade);
 
@@ -195,7 +196,7 @@ function MachineCard({ machine }: { machine: MachineEntry }) {
             className="text-xs font-bold px-3 py-1 rounded-full"
             style={{ backgroundColor: `${borderColor}15`, color: borderColor, border: `1px solid ${borderColor}30` }}
           >
-            {gradeLabel(oee.grade)}
+            {t(gradeLabelKey(oee.grade))}
           </span>
         </div>
       </div>
@@ -208,13 +209,13 @@ function MachineCard({ machine }: { machine: MachineEntry }) {
       {/* 3 Component Gauges */}
       <div className="grid grid-cols-3 gap-2 px-4 pb-4">
         <div className="relative flex flex-col items-center">
-          <CircularGauge value={oee.availabilityPct} label="Availability" size={90} strokeWidth={7} />
+          <CircularGauge value={oee.availabilityPct} label={t("manufacturing.oee.availability")} size={90} strokeWidth={7} />
         </div>
         <div className="relative flex flex-col items-center">
-          <CircularGauge value={oee.performancePct} label="Performance" size={90} strokeWidth={7} />
+          <CircularGauge value={oee.performancePct} label={t("manufacturing.oee.performance")} size={90} strokeWidth={7} />
         </div>
         <div className="relative flex flex-col items-center">
-          <CircularGauge value={oee.qualityPct} label="Quality" size={90} strokeWidth={7} />
+          <CircularGauge value={oee.qualityPct} label={t("manufacturing.oee.quality")} size={90} strokeWidth={7} />
         </div>
       </div>
 
@@ -222,10 +223,10 @@ function MachineCard({ machine }: { machine: MachineEntry }) {
       <div className="px-5 py-3 bg-gray-950/50 border-t border-gray-800/30 flex items-center justify-between text-xs text-gray-500">
         <span className="flex items-center gap-1">
           <Clock className="w-3 h-3" />
-          {machine.shiftsToday} shift{machine.shiftsToday !== 1 ? "s" : ""} today
+          {machine.shiftsToday} {t("manufacturing.oee.shiftsToday")}
         </span>
         <span>
-          Updated: {new Date(machine.lastUpdated).toLocaleTimeString()}
+          {t("manufacturing.oee.updated")}: {new Date(machine.lastUpdated).toLocaleTimeString()}
         </span>
       </div>
     </div>
@@ -234,7 +235,7 @@ function MachineCard({ machine }: { machine: MachineEntry }) {
 
 // ─── Summary Bar ────────────────────────────────────────────────────
 
-function SummaryBar({ machines }: { machines: MachineEntry[] }) {
+function SummaryBar({ machines, t }: { machines: MachineEntry[]; t: (key: string) => string }) {
   const running = machines.filter((m) => m.status === "running").length;
   const avgOEE = machines.length > 0
     ? machines.reduce((s, m) => s + m.oee.oeePct, 0) / machines.length
@@ -245,10 +246,10 @@ function SummaryBar({ machines }: { machines: MachineEntry[] }) {
   return (
     <div className="grid grid-cols-4 gap-4">
       {[
-        { icon: Factory, label: "Machines Running", value: `${running} / ${machines.length}`, color: "text-blue-400" },
-        { icon: Gauge, label: "Average OEE", value: `${avgOEE.toFixed(1)}%`, color: avgOEE >= 85 ? "text-green-400" : avgOEE >= 70 ? "text-yellow-400" : "text-red-400" },
-        { icon: TrendingUp, label: "World-Class", value: String(worldClass), color: "text-green-400" },
-        { icon: TrendingDown, label: "Critical", value: String(critical), color: critical > 0 ? "text-red-400" : "text-green-400" },
+        { icon: Factory, label: t("manufacturing.oee.machinesRunning"), value: `${running} / ${machines.length}`, color: "text-blue-400" },
+        { icon: Gauge, label: t("manufacturing.oee.averageOee"), value: `${avgOEE.toFixed(1)}%`, color: avgOEE >= 85 ? "text-green-400" : avgOEE >= 70 ? "text-yellow-400" : "text-red-400" },
+        { icon: TrendingUp, label: t("manufacturing.oee.gradeWorldClass"), value: String(worldClass), color: "text-green-400" },
+        { icon: TrendingDown, label: t("manufacturing.oee.gradeCritical"), value: String(critical), color: critical > 0 ? "text-red-400" : "text-green-400" },
       ].map((stat, i) => (
         <div key={i} className="bg-gray-900/60 rounded-xl border border-gray-800/50 px-4 py-3 flex items-center gap-3">
           <div className={`p-2 rounded-lg bg-gray-800/50 ${stat.color}`}>
@@ -267,6 +268,7 @@ function SummaryBar({ machines }: { machines: MachineEntry[] }) {
 // ─── Main Component ─────────────────────────────────────────────────
 
 export default function OEEDashboard() {
+  const { t } = useLanguage();
   const dashQuery = trpc.oeeDashboard.dashboard.useQuery(undefined, {
     refetchInterval: 30000, // Refresh every 30s for live factory data
   });
@@ -298,10 +300,10 @@ export default function OEEDashboard() {
           </div>
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2">
-              OEE Dashboard
+              {t("manufacturing.oee.title")}
               <span className="text-xs font-normal text-gray-500 bg-gray-800 px-2 py-0.5 rounded">IATF 16949</span>
             </h1>
-            <p className="text-sm text-gray-500">Overall Equipment Effectiveness — Real-time Factory Monitor</p>
+            <p className="text-sm text-gray-500">{t("manufacturing.oee.subtitle")}</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -311,7 +313,7 @@ export default function OEEDashboard() {
               : "border-yellow-500/30 text-yellow-400 bg-yellow-500/10"
           }`}>
             {isLive ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-            {isLive ? "Live" : "Demo Data"}
+            {isLive ? t("manufacturing.oee.live") : t("manufacturing.oee.demoData")}
           </span>
           <div className="text-right text-sm">
             <div className="text-gray-400">{new Date().toLocaleDateString()}</div>
@@ -322,51 +324,51 @@ export default function OEEDashboard() {
 
       <div className="p-6 space-y-6">
         {/* Summary row */}
-        <SummaryBar machines={machines} />
+        <SummaryBar machines={machines} t={t} />
 
         {/* OEE Legend */}
         <div className="flex items-center gap-6 text-xs text-gray-500 px-1">
-          <span>OEE Grade:</span>
+          <span>{t("manufacturing.oee.gradeLabel")}:</span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-            World-Class (≥85%)
+            {t("manufacturing.oee.gradeWorldClass")} ({"\u2265"}85%)
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-            Acceptable (70–85%)
+            {t("manufacturing.oee.gradeAcceptable")} (70–85%)
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-            Critical (&lt;70%)
+            {t("manufacturing.oee.gradeCritical")} (&lt;70%)
           </span>
         </div>
 
         {/* Machine Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
           {machines.map((m) => (
-            <MachineCard key={m.machineId} machine={m} />
+            <MachineCard key={m.machineId} machine={m} t={t} />
           ))}
         </div>
 
         {/* Formula Reference */}
         <div className="mt-4 bg-gray-900/40 rounded-xl border border-gray-800/30 px-6 py-4">
-          <h4 className="text-xs uppercase tracking-wider text-gray-500 mb-3">OEE Formula Reference</h4>
+          <h4 className="text-xs uppercase tracking-wider text-gray-500 mb-3">{t("manufacturing.oee.formulaReference")}</h4>
           <div className="grid grid-cols-4 gap-4 text-sm text-gray-400">
             <div>
-              <span className="text-blue-400 font-mono font-bold">Availability</span>
-              <p className="text-xs text-gray-600 mt-1">Operating Time / Planned Time</p>
+              <span className="text-blue-400 font-mono font-bold">{t("manufacturing.oee.availability")}</span>
+              <p className="text-xs text-gray-600 mt-1">{t("manufacturing.oee.formulaAvailability")}</p>
             </div>
             <div>
-              <span className="text-purple-400 font-mono font-bold">Performance</span>
-              <p className="text-xs text-gray-600 mt-1">(Ideal Cycle x Count) / Op. Time</p>
+              <span className="text-purple-400 font-mono font-bold">{t("manufacturing.oee.performance")}</span>
+              <p className="text-xs text-gray-600 mt-1">{t("manufacturing.oee.formulaPerformance")}</p>
             </div>
             <div>
-              <span className="text-cyan-400 font-mono font-bold">Quality</span>
-              <p className="text-xs text-gray-600 mt-1">Good Count / Total Count</p>
+              <span className="text-cyan-400 font-mono font-bold">{t("manufacturing.oee.quality")}</span>
+              <p className="text-xs text-gray-600 mt-1">{t("manufacturing.oee.formulaQuality")}</p>
             </div>
             <div>
               <span className="text-white font-mono font-bold">OEE</span>
-              <p className="text-xs text-gray-600 mt-1">A x P x Q</p>
+              <p className="text-xs text-gray-600 mt-1">{t("manufacturing.oee.formulaOee")}</p>
             </div>
           </div>
         </div>

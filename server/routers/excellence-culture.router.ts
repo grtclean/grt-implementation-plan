@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 
 // ---------------------------------------------------------------------------
 // Excellence Culture Model — Data Types
@@ -229,7 +229,7 @@ export const excellenceCultureRouter = router({
     return currentModel;
   }),
 
-  uploadCsv: protectedProcedure
+  uploadCsv: requirePermission('capability:badges:award')
     .input(z.object({
       csvContent: z.string().min(10),
       userRole: z.string().optional(),
@@ -244,7 +244,7 @@ export const excellenceCultureRouter = router({
       return { success: true, pillarCount: newModel.pillars.length, version: newModel.version };
     }),
 
-  analyzeAlignment: protectedProcedure
+  analyzeAlignment: requirePermission('capability:badges:award')
     .input(z.object({
       employeeName: z.string().optional(),
       userRole: z.string().optional(),

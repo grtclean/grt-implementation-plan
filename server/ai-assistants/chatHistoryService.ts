@@ -289,7 +289,8 @@ export async function getBookmarkedMessages(userId: number) {
       eq(aiChatSessions.userId, userId),
       eq(aiChatMessages.isBookmarked, 1)
     ))
-    .orderBy(desc(aiChatMessages.createdAt));
+    .orderBy(desc(aiChatMessages.createdAt))
+    .limit(1000);
 
   return messages.map(({ message, session }) => ({
     ...message,
@@ -330,7 +331,8 @@ export async function getTemplates(params: {
     .select()
     .from(aiChatTemplates)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(aiChatTemplates.usageCount));
+    .orderBy(desc(aiChatTemplates.usageCount))
+    .limit(1000);
 
   return templates;
 }

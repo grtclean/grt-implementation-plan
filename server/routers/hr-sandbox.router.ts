@@ -5,7 +5,7 @@
  * No new tables needed — reuses ai_tasks table.
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiTasks } from "../../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -133,7 +133,7 @@ export const hrSandboxRouter = router({
   /**
    * batchParse — parse all employees in a department (RBAC: roleLevel ≥ 3)
    */
-  batchParse: protectedProcedure
+  batchParse: requirePermission('hr:employees:edit')
     .input(z.object({
       department: z.string(),
       userRole: z.string().optional(),
@@ -219,7 +219,7 @@ export const hrSandboxRouter = router({
   /**
    * submitDocParsing — async: submit DOC_PARSING task to worker queue
    */
-  submitDocParsing: protectedProcedure
+  submitDocParsing: requirePermission('hr:employees:edit')
     .input(z.object({
       documentText: z.string(),
       employeeName: z.string().optional(),
@@ -238,7 +238,7 @@ export const hrSandboxRouter = router({
   /**
    * submitIncidentAnalysis — async: submit INCIDENT_ANALYSIS task to worker queue
    */
-  submitIncidentAnalysis: protectedProcedure
+  submitIncidentAnalysis: requirePermission('hr:employees:edit')
     .input(z.object({
       incidentTitle: z.string(),
       incidentDescription: z.string(),

@@ -23,7 +23,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAdminCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 import {
   calculateMaterialLineCo2,
   calculateMaterialCarbon,
@@ -611,7 +611,7 @@ describe("generateCbamDeclaration", () => {
 
 describe("carbonFootprint.dashboard", () => {
   it("should return products array with summary", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.dashboard();
     expect(result).toHaveProperty("products");
     expect(result).toHaveProperty("summary");
@@ -619,7 +619,7 @@ describe("carbonFootprint.dashboard", () => {
   });
 
   it("should return exactly 3 products (GWM-3000, GUC-500, GSC-200)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.dashboard();
     expect(result.products.length).toBe(3);
     const codes = result.products.map((p: any) => p.productCode);
@@ -629,26 +629,26 @@ describe("carbonFootprint.dashboard", () => {
   });
 
   it("should have summary with correct totalProducts count", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.dashboard();
     expect(result.summary.totalProducts).toBe(3);
   });
 
   it("should have summary with totalCo2 > 0", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.dashboard();
     expect(result.summary.totalCo2).toBeGreaterThan(0);
   });
 
   it("should have compliant + atRisk + nonCompliant = totalProducts", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.dashboard();
     const { compliant, atRisk, nonCompliant, totalProducts } = result.summary;
     expect(compliant + atRisk + nonCompliant).toBe(totalProducts);
   });
 
   it("each product should have material and energy breakdowns", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.dashboard();
     for (const product of result.products) {
       expect(product).toHaveProperty("materialBreakdown");
@@ -661,7 +661,7 @@ describe("carbonFootprint.dashboard", () => {
   });
 
   it("each product should have a valid CBAM status", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.dashboard();
     for (const product of result.products) {
       expect(["COMPLIANT", "AT_RISK", "NON_COMPLIANT"]).toContain(product.status);
@@ -675,7 +675,7 @@ describe("carbonFootprint.dashboard", () => {
 
 describe("carbonFootprint.productDetail", () => {
   it("should return footprint for existing product GWM-3000", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.productDetail({ productCode: "GWM-3000" });
     expect(result).not.toBeNull();
     expect(result!.productCode).toBe("GWM-3000");
@@ -684,7 +684,7 @@ describe("carbonFootprint.productDetail", () => {
   });
 
   it("should return footprint for GUC-500", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.productDetail({ productCode: "GUC-500" });
     expect(result).not.toBeNull();
     expect(result!.productCode).toBe("GUC-500");
@@ -692,7 +692,7 @@ describe("carbonFootprint.productDetail", () => {
   });
 
   it("should return footprint for GSC-200 (custom, higher threshold)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.productDetail({ productCode: "GSC-200" });
     expect(result).not.toBeNull();
     expect(result!.productCode).toBe("GSC-200");
@@ -700,20 +700,20 @@ describe("carbonFootprint.productDetail", () => {
   });
 
   it("should return null for nonexistent product", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.productDetail({ productCode: "NONEXISTENT-999" });
     expect(result).toBeNull();
   });
 
   it("should include material and energy breakdowns", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.productDetail({ productCode: "GWM-3000" });
     expect(result!.materialBreakdown.length).toBeGreaterThan(0);
     expect(result!.energyBreakdown.length).toBeGreaterThan(0);
   });
 
   it("should have materialPercent + energyPercent = ~100%", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.productDetail({ productCode: "GWM-3000" });
     expect(result!.materialPercent + result!.energyPercent).toBeCloseTo(100, 0);
   });
@@ -725,7 +725,7 @@ describe("carbonFootprint.productDetail", () => {
 
 describe("carbonFootprint.simulateSwap", () => {
   it("should return swap result for valid product + part", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.simulateSwap({
       productCode: "GWM-3000",
       oldPartNumber: "SS316-PLATE",
@@ -740,7 +740,7 @@ describe("carbonFootprint.simulateSwap", () => {
   });
 
   it("should return null for nonexistent product", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.simulateSwap({
       productCode: "NONEXISTENT-999",
       oldPartNumber: "SS316-PLATE",
@@ -752,7 +752,7 @@ describe("carbonFootprint.simulateSwap", () => {
   });
 
   it("should show zero reduction when swapping to same factor", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.simulateSwap({
       productCode: "GWM-3000",
       oldPartNumber: "SS316-PLATE",
@@ -766,7 +766,7 @@ describe("carbonFootprint.simulateSwap", () => {
   });
 
   it("should preserve before and after status fields", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.simulateSwap({
       productCode: "GWM-3000",
       oldPartNumber: "SS316-PLATE",
@@ -780,7 +780,7 @@ describe("carbonFootprint.simulateSwap", () => {
   });
 
   it("should work for GUC-500 product", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.simulateSwap({
       productCode: "GUC-500",
       oldPartNumber: "SS316-PLATE",
@@ -799,7 +799,7 @@ describe("carbonFootprint.simulateSwap", () => {
 
 describe("carbonFootprint.generateDeclaration", () => {
   it("should generate a declaration for existing product", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.generateDeclaration({
       productCode: "GWM-3000",
     });
@@ -811,7 +811,7 @@ describe("carbonFootprint.generateDeclaration", () => {
   });
 
   it("should return null for nonexistent product", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.generateDeclaration({
       productCode: "NONEXISTENT-999",
     });
@@ -819,7 +819,7 @@ describe("carbonFootprint.generateDeclaration", () => {
   });
 
   it("should include material and energy breakdowns", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.generateDeclaration({
       productCode: "GWM-3000",
     });
@@ -828,7 +828,7 @@ describe("carbonFootprint.generateDeclaration", () => {
   });
 
   it("should set declarationDate as ISO string", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const before = new Date().toISOString();
     const result = await caller.carbonFootprint.generateDeclaration({
       productCode: "GWM-3000",
@@ -839,7 +839,7 @@ describe("carbonFootprint.generateDeclaration", () => {
   });
 
   it("should set certifiedBy from context user or fallback", async () => {
-    const caller = createAuthenticatedCaller({ name: "Li Ming" });
+    const caller = createAdminCaller({ name: "Li Ming" });
     const result = await caller.carbonFootprint.generateDeclaration({
       productCode: "GWM-3000",
     });
@@ -850,7 +850,7 @@ describe("carbonFootprint.generateDeclaration", () => {
   });
 
   it("should have a valid CBAM status in the declaration", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.generateDeclaration({
       productCode: "GWM-3000",
     });
@@ -858,7 +858,7 @@ describe("carbonFootprint.generateDeclaration", () => {
   });
 
   it("should include euThreshold in declaration", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.generateDeclaration({
       productCode: "GSC-200",
     });
@@ -867,7 +867,7 @@ describe("carbonFootprint.generateDeclaration", () => {
   });
 
   it("should generate declarationId containing CBAM prefix and product code", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.generateDeclaration({
       productCode: "GWM-3000",
     });
@@ -875,7 +875,7 @@ describe("carbonFootprint.generateDeclaration", () => {
   });
 
   it("should generate different declarationIds when calls are spaced apart", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-01T10:00:00Z"));
     const result1 = await caller.carbonFootprint.generateDeclaration({
@@ -983,14 +983,14 @@ describe("HARDENING: carbon footprint stress tests", () => {
   });
 
   it("dashboard products totalCo2 matches sum of individual product details", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const dashboard = await caller.carbonFootprint.dashboard();
     const total = dashboard.products.reduce((s: number, p: any) => s + p.totalCo2, 0);
     expect(Math.round(total * 100) / 100).toBe(dashboard.summary.totalCo2);
   });
 
   it("product detail matches corresponding dashboard product", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const dashboard = await caller.carbonFootprint.dashboard();
     const detail = await caller.carbonFootprint.productDetail({ productCode: "GWM-3000" });
     const dashboardProduct = dashboard.products.find((p: any) => p.productCode === "GWM-3000");
@@ -1007,7 +1007,7 @@ describe("HARDENING: carbon footprint stress tests", () => {
 
 describe("ESG Proof via tRPC: Green Steel swap moves toward compliance", () => {
   it("simulateSwap should show significant CO2 reduction for SS316 swap", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.simulateSwap({
       productCode: "GWM-3000",
       oldPartNumber: "SS316-PLATE",
@@ -1023,7 +1023,7 @@ describe("ESG Proof via tRPC: Green Steel swap moves toward compliance", () => {
   });
 
   it("GSC-200 custom system swap should also reduce CO2", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.carbonFootprint.simulateSwap({
       productCode: "GSC-200",
       oldPartNumber: "SS316-PLATE",

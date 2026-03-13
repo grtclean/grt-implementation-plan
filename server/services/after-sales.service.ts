@@ -134,7 +134,8 @@ export async function getEquipmentsDueSoon(daysAhead: number) {
       lte(schema.afterSalesEquipments.nextDueDate, futureDateStr),
       gte(schema.afterSalesEquipments.nextDueDate, todayStr)
     ))
-    .orderBy(schema.afterSalesEquipments.nextDueDate);
+    .orderBy(schema.afterSalesEquipments.nextDueDate)
+    .limit(1000);
 }
 
 export async function createEquipment(data: {
@@ -305,7 +306,8 @@ export async function listAttachments(serviceLogId: number) {
   const d = await db();
   return d.select().from(schema.serviceLogAttachments)
     .where(eq(schema.serviceLogAttachments.serviceLogId, serviceLogId))
-    .orderBy(desc(schema.serviceLogAttachments.id));
+    .orderBy(desc(schema.serviceLogAttachments.id))
+    .limit(1000);
 }
 
 export async function uploadAttachment(data: {
@@ -342,17 +344,18 @@ export async function getPendingSignatureLogs() {
     .where(and(
       eq(schema.afterSalesServiceLogs.status, "Completed"),
       eq(schema.afterSalesServiceLogs.signatureStatus, "pending")
-    )).orderBy(desc(schema.afterSalesServiceLogs.id));
+    )).orderBy(desc(schema.afterSalesServiceLogs.id))
+    .limit(1000);
   const clientIds = Array.from(new Set(logs.filter((l) => l.clientId).map((l) => l.clientId!)));
   const equipmentIds = Array.from(new Set(logs.map((l) => l.equipmentId)));
   let clientMap: Record<number, string> = {};
   let equipmentMap: Record<number, string> = {};
   if (clientIds.length > 0) {
-    const clients = await d.select({ id: schema.afterSalesClients.id, name: schema.afterSalesClients.name }).from(schema.afterSalesClients);
+    const clients = await d.select({ id: schema.afterSalesClients.id, name: schema.afterSalesClients.name }).from(schema.afterSalesClients).limit(1000);
     for (const c of clients) { if (clientIds.includes(c.id)) clientMap[c.id] = c.name; }
   }
   if (equipmentIds.length > 0) {
-    const equips = await d.select({ id: schema.afterSalesEquipments.id, serialNumber: schema.afterSalesEquipments.serialNumber }).from(schema.afterSalesEquipments);
+    const equips = await d.select({ id: schema.afterSalesEquipments.id, serialNumber: schema.afterSalesEquipments.serialNumber }).from(schema.afterSalesEquipments).limit(1000);
     for (const e of equips) { if (equipmentIds.includes(e.id)) equipmentMap[e.id] = e.serialNumber; }
   }
   return logs.map((log) => ({
@@ -486,7 +489,8 @@ export async function sendReminders() {
 export async function syncAllWorkflows() {
   const d = await db();
   const completedLogs = await d.select().from(schema.afterSalesServiceLogs)
-    .where(eq(schema.afterSalesServiceLogs.status, "Completed"));
+    .where(eq(schema.afterSalesServiceLogs.status, "Completed"))
+    .limit(1000);
   let successCount = 0;
   let failedCount = 0;
   for (const log of completedLogs) {
@@ -509,12 +513,13 @@ export async function syncAllWorkflows() {
   return { successCount, failedCount };
 }
 
+// demo — 基于真实员工
 const DEMO_CLIENTS = [
-  { name: "博世苏州", tier: "Strategic", contactPerson: "张明", contactPhone: "0512-12345678", contactEmail: "zhang.ming@bosch.com", industry: "汽车零部件", region: "华东", slaLevel: "Gold", responseTimeHours: 4, status: "Active" },
-  { name: "博世长沙", tier: "Strategic", contactPerson: "王芳", contactPhone: "0731-23456789", contactEmail: "wang.fang@bosch.com", industry: "汽车零部件", region: "华中", slaLevel: "Gold", responseTimeHours: 4, status: "Active" },
-  { name: "采埃孚上海", tier: "Strategic", contactPerson: "李强", contactPhone: "021-34567890", contactEmail: "li.qiang@zf.com", industry: "汽车传动系统", region: "华东", slaLevel: "Gold", responseTimeHours: 8, status: "Active" },
-  { name: "采埃孚北京", tier: "Key", contactPerson: "赵丽", contactPhone: "010-45678901", contactEmail: "zhao.li@zf.com", industry: "汽车传动系统", region: "华北", slaLevel: "Silver", responseTimeHours: 12, status: "Active" },
-  { name: "大陆芜湖", tier: "Key", contactPerson: "陈伟", contactPhone: "0553-56789012", contactEmail: "chen.wei@continental.com", industry: "汽车电子", region: "华东", slaLevel: "Silver", responseTimeHours: 12, status: "Active" },
+  { name: "博世苏州", tier: "Strategic", contactPerson: "张良", contactPhone: "0512-12345678", contactEmail: "zhang.liang@bosch.com", industry: "汽车零部件", region: "华东", slaLevel: "Gold", responseTimeHours: 4, status: "Active" },
+  { name: "博世长沙", tier: "Strategic", contactPerson: "孙淼", contactPhone: "0731-23456789", contactEmail: "sun.zhen@bosch.com", industry: "汽车零部件", region: "华中", slaLevel: "Gold", responseTimeHours: 4, status: "Active" },
+  { name: "采埃孚上海", tier: "Strategic", contactPerson: "韩保程", contactPhone: "021-34567890", contactEmail: "han.baocheng@zf.com", industry: "汽车传动系统", region: "华东", slaLevel: "Gold", responseTimeHours: 8, status: "Active" },
+  { name: "采埃孚北京", tier: "Key", contactPerson: "王犇", contactPhone: "010-45678901", contactEmail: "wang.dan@zf.com", industry: "汽车传动系统", region: "华北", slaLevel: "Silver", responseTimeHours: 12, status: "Active" },
+  { name: "大陆芜湖", tier: "Key", contactPerson: "洪小东", contactPhone: "0553-56789012", contactEmail: "hong.xiaodong@continental.com", industry: "汽车电子", region: "华东", slaLevel: "Silver", responseTimeHours: 12, status: "Active" },
 ];
 
 export async function seedClients() {
@@ -528,7 +533,8 @@ export async function seedClients() {
 
 export async function seedEquipments() {
   const d = await db();
-  const clients = await d.select({ id: schema.afterSalesClients.id, name: schema.afterSalesClients.name }).from(schema.afterSalesClients);
+  const clients = await d.select({ id: schema.afterSalesClients.id, name: schema.afterSalesClients.name }).from(schema.afterSalesClients)
+      .limit(1000);
   const clientIdByName: Record<string, number> = {};
   for (const c of clients) clientIdByName[c.name] = c.id;
   const DEMO_EQ = [
@@ -562,14 +568,16 @@ export async function seedEquipments() {
 
 export async function seedServiceLogs() {
   const d = await db();
-  const equips = await d.select({ id: schema.afterSalesEquipments.id, serialNumber: schema.afterSalesEquipments.serialNumber, clientId: schema.afterSalesEquipments.clientId }).from(schema.afterSalesEquipments);
+  const equips = await d.select({ id: schema.afterSalesEquipments.id, serialNumber: schema.afterSalesEquipments.serialNumber, clientId: schema.afterSalesEquipments.clientId }).from(schema.afterSalesEquipments)
+      .limit(1000);
   const eqBySerial: Record<string, { id: number; clientId: number }> = {};
   for (const e of equips) eqBySerial[e.serialNumber] = { id: e.id, clientId: e.clientId };
+  // demo — 基于真实员工
   const DEMO_LOGS: { eqSN: string; serviceType: string; priority: string; status: string; issueDescription: string; assignedEngineerName: string | null; scheduledDate: string; completionDate: string | null }[] = [
-    { eqSN: "SN2025001", serviceType: "Maintenance", priority: "Medium", status: "Completed", issueDescription: "设备定期保养", assignedEngineerName: "刘洋", scheduledDate: "2026-01-25", completionDate: "2026-01-25" },
-    { eqSN: "SN2025002", serviceType: "Repair", priority: "High", status: "In_Progress", issueDescription: "清洗喷头堵塞", assignedEngineerName: "张伟", scheduledDate: "2026-01-28", completionDate: null },
+    { eqSN: "SN2025001", serviceType: "Maintenance", priority: "Medium", status: "Completed", issueDescription: "设备定期保养", assignedEngineerName: "刘建年", scheduledDate: "2026-01-25", completionDate: "2026-01-25" },
+    { eqSN: "SN2025002", serviceType: "Repair", priority: "High", status: "In_Progress", issueDescription: "清洗喷头堵塞", assignedEngineerName: "张良", scheduledDate: "2026-01-28", completionDate: null },
     { eqSN: "SN2025003", serviceType: "Inspection", priority: "Low", status: "Pending", issueDescription: "季度巡检", assignedEngineerName: null, scheduledDate: "2026-02-01", completionDate: null },
-    { eqSN: "SN2025004", serviceType: "Maintenance", priority: "Medium", status: "Completed", issueDescription: "超声波换能器更换", assignedEngineerName: "陈亮", scheduledDate: "2026-01-20", completionDate: "2026-01-21" },
+    { eqSN: "SN2025004", serviceType: "Maintenance", priority: "Medium", status: "Completed", issueDescription: "超声波换能器更换", assignedEngineerName: "洪小东", scheduledDate: "2026-01-20", completionDate: "2026-01-21" },
     { eqSN: "SN2025005", serviceType: "Repair", priority: "Critical", status: "Pending", issueDescription: "控制系统报错E-305", assignedEngineerName: null, scheduledDate: "2026-02-05", completionDate: null },
   ];
   let created = 0;

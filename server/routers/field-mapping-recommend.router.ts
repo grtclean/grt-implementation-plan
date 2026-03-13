@@ -9,7 +9,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 
@@ -20,7 +20,7 @@ export const fieldMappingRecommendRouter = router({
       return [];
     }),
 
-  applyRecommendation: protectedProcedure
+  applyRecommendation: requirePermission('system:data:migrate')
     .input(z.object({ recommendationId: z.union([z.string(), z.number()]) }))
     .mutation(() => {
       return successResponse;

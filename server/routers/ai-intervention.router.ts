@@ -41,7 +41,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -333,7 +333,7 @@ export function completeIntervention(
 
 // ─── Mock Data (GRT Employees & Training) ────────────────────────────
 
-const MOCK_MODULES: TrainingModule[] = [
+const DEMO_MODULES: TrainingModule[] = [
   {
     id: 1, moduleCode: "TM-CNC-001", title: "CNC Precision Tuning & Defect Prevention",
     titleZh: "CNC精密调整与缺陷预防", category: "PROCESS_QUALITY", durationMinutes: 45,
@@ -368,10 +368,10 @@ const MOCK_MODULES: TrainingModule[] = [
 
 const NOW = new Date();
 
-const MOCK_INTERVENTIONS: ActiveIntervention[] = [
+const DEMO_INTERVENTIONS: ActiveIntervention[] = [
   // Li Ming — blocked from CNC-001 due to 4 defects
   {
-    id: 1, userId: 1002, userName: "李明 (Li Ming)",
+    id: 1, userId: 1002, userName: "殷小勇 (Yin Xiaoyong)",
     triggerType: "QUALITY_DEFECT",
     triggerReason: "4 defects on CNC-001 this week (threshold: >3). Failure mode: Dimensional tolerance exceeded ±0.05mm",
     assignedModuleId: 1, assignedModuleTitle: "CNC Precision Tuning & Defect Prevention",
@@ -382,7 +382,7 @@ const MOCK_INTERVENTIONS: ActiveIntervention[] = [
   },
   // New operator — blocked from HYD-BENCH due to hydraulic defects
   {
-    id: 2, userId: 1005, userName: "赵鑫 (Zhao Xin)",
+    id: 2, userId: 1005, userName: "匡凯旋 (Kuang Kaixuan)",
     triggerType: "QUALITY_DEFECT",
     triggerReason: "5 defects on HYD-BENCH-001 this week (threshold: >3). Failure mode: Oil Leakage at Manifold Joint",
     assignedModuleId: 2, assignedModuleTitle: "Hydraulic Assembly Safety & Quality",
@@ -393,7 +393,7 @@ const MOCK_INTERVENTIONS: ActiveIntervention[] = [
   },
   // Low collaboration score — assigned communication training
   {
-    id: 3, userId: 1006, userName: "周伟 (Zhou Wei)",
+    id: 3, userId: 1006, userName: "沈龙翔 (Shen Longxiang)",
     triggerType: "COLLABORATION_LOW",
     triggerReason: "Meeting score 45 is below threshold (60) for 2026-02",
     assignedModuleId: 4, assignedModuleTitle: "Effective Communication & Meeting Skills",
@@ -404,7 +404,7 @@ const MOCK_INTERVENTIONS: ActiveIntervention[] = [
   },
   // Recently completed — access restored
   {
-    id: 4, userId: 1003, userName: "王芳 (Wang Fang)",
+    id: 4, userId: 1003, userName: "孙淼 (Sun Miao)",
     triggerType: "QUALITY_DEFECT",
     triggerReason: "4 defects on NZL-CAL-001 last week. Failure mode: Spray Pattern Deviation",
     assignedModuleId: 6, assignedModuleTitle: "Nozzle Calibration & Spray Quality",
@@ -415,7 +415,7 @@ const MOCK_INTERVENTIONS: ActiveIntervention[] = [
   },
   // Manager override
   {
-    id: 5, userId: 1007, userName: "陈杰 (Chen Jie)",
+    id: 5, userId: 1007, userName: "徐家乐 (Xu Jiale)",
     triggerType: "QUALITY_DEFECT",
     triggerReason: "6 defects on WLD-TIG-001 this week. Failure mode: Weld Porosity",
     assignedModuleId: 3, assignedModuleTitle: "Advanced Welding Technique (SS316)",
@@ -434,23 +434,23 @@ export const aiInterventionRouter = router({
    * The AI HR Command Center data feed.
    */
   dashboard: protectedProcedure.query(async () => {
-    const active = MOCK_INTERVENTIONS.filter(i =>
+    const active = DEMO_INTERVENTIONS.filter(i =>
       i.status === "PENDING_TRAINING" || i.status === "IN_PROGRESS"
     );
-    const completed = MOCK_INTERVENTIONS.filter(i => i.status === "COMPLETED");
-    const overridden = MOCK_INTERVENTIONS.filter(i => i.status === "OVERRIDDEN");
+    const completed = DEMO_INTERVENTIONS.filter(i => i.status === "COMPLETED");
+    const overridden = DEMO_INTERVENTIONS.filter(i => i.status === "OVERRIDDEN");
 
     return {
-      interventions: MOCK_INTERVENTIONS,
+      interventions: DEMO_INTERVENTIONS,
       summary: {
-        total: MOCK_INTERVENTIONS.length,
+        total: DEMO_INTERVENTIONS.length,
         activeBlocking: active.length,
         completed: completed.length,
         overridden: overridden.length,
-        qualityTriggers: MOCK_INTERVENTIONS.filter(i => i.triggerType === "QUALITY_DEFECT").length,
-        collaborationTriggers: MOCK_INTERVENTIONS.filter(i => i.triggerType === "COLLABORATION_LOW").length,
+        qualityTriggers: DEMO_INTERVENTIONS.filter(i => i.triggerType === "QUALITY_DEFECT").length,
+        collaborationTriggers: DEMO_INTERVENTIONS.filter(i => i.triggerType === "COLLABORATION_LOW").length,
       },
-      modules: MOCK_MODULES,
+      modules: DEMO_MODULES,
       generatedAt: new Date().toISOString(),
       dataSource: "mock" as const,
     };
@@ -464,7 +464,7 @@ export const aiInterventionRouter = router({
     .input(z.object({ userId: z.number(), machineId: z.number(), machineCode: z.string() }))
     .query(async ({ input }) => {
       const result = verifyOperatorAccess(
-        input.userId, input.machineId, input.machineCode, MOCK_INTERVENTIONS
+        input.userId, input.machineId, input.machineCode, DEMO_INTERVENTIONS
       );
       return { ...result, dataSource: "mock" as const };
     }),
@@ -472,19 +472,19 @@ export const aiInterventionRouter = router({
   /**
    * runScan — execute the nightly intervention scan (manual trigger).
    */
-  runScan: protectedProcedure.mutation(async () => {
+  runScan: requirePermission('ai:hub:access').mutation(async () => {
     // Mock defect records for this week
     const defectRecords: DefectRecord[] = [
-      { userId: 1002, userName: "李明 (Li Ming)", machineId: 101, machineCode: "CNC-001", defectCount: 4, defectDates: ["2026-02-24", "2026-02-23", "2026-02-22", "2026-02-21"], failureMode: "Dimensional tolerance exceeded" },
-      { userId: 1005, userName: "赵鑫 (Zhao Xin)", machineId: 201, machineCode: "HYD-BENCH-001", defectCount: 5, defectDates: ["2026-02-25", "2026-02-24", "2026-02-23", "2026-02-22", "2026-02-21"], failureMode: "Oil Leakage at Manifold Joint" },
+      { userId: 1002, userName: "殷小勇 (Yin Xiaoyong)", machineId: 101, machineCode: "CNC-001", defectCount: 4, defectDates: ["2026-02-24", "2026-02-23", "2026-02-22", "2026-02-21"], failureMode: "Dimensional tolerance exceeded" },
+      { userId: 1005, userName: "匡凯旋 (Kuang Kaixuan)", machineId: 201, machineCode: "HYD-BENCH-001", defectCount: 5, defectDates: ["2026-02-25", "2026-02-24", "2026-02-23", "2026-02-22", "2026-02-21"], failureMode: "Oil Leakage at Manifold Joint" },
     ];
 
     const meetingScores: MeetingScoreRecord[] = [
-      { userId: 1006, userName: "周伟 (Zhou Wei)", meetingScore: 45, month: "2026-02" },
+      { userId: 1006, userName: "沈龙翔 (Shen Longxiang)", meetingScore: 45, month: "2026-02" },
     ];
 
     const result = runNightlyInterventionScan(
-      defectRecords, meetingScores, MOCK_MODULES, MOCK_INTERVENTIONS
+      defectRecords, meetingScores, DEMO_MODULES, DEMO_INTERVENTIONS
     );
 
     return { ...result, dataSource: "mock" as const };
@@ -493,13 +493,13 @@ export const aiInterventionRouter = router({
   /**
    * override — manager override to unblock a user.
    */
-  override: protectedProcedure
+  override: requirePermission('ai:hub:access')
     .input(z.object({
       interventionId: z.number(),
       reason: z.string().min(1),
     }))
     .mutation(async ({ input, ctx }) => {
-      const intervention = MOCK_INTERVENTIONS.find(i => i.id === input.interventionId);
+      const intervention = DEMO_INTERVENTIONS.find(i => i.id === input.interventionId);
       if (!intervention) {
         return { success: false, error: `Intervention ${input.interventionId} not found` };
       }

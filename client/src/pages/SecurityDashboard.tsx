@@ -56,6 +56,7 @@ import {
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { PageHeader, StatCard } from "@/components/grt";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ===== 类型定义 =====
 
@@ -101,28 +102,26 @@ const getSeverityIcon = (severity: Severity) => {
   }
 };
 
-const getEventTypeLabel = (eventType: string) => {
-  const labels: Record<string, string> = {
-    'auth.login': '用户登录',
-    'auth.logout': '用户登出',
-    'auth.failed': '登录失败',
-    'data.access': '数据访问',
-    'data.export': '数据导出',
-    'config.change': '配置变更',
-    'threat.detected': '威胁检测',
-    'license.check': '许可证检查',
-    'ip.blocked': 'IP封禁',
-    'ip.unblocked': 'IP解封',
-    'mfa.enabled': 'MFA启用',
-    'mfa.disabled': 'MFA禁用',
-  };
-  return labels[eventType] || eventType;
+const eventTypeLabelKeys: Record<string, string> = {
+  'auth.login': 'admin.secDash.eventUserLogin',
+  'auth.logout': 'admin.secDash.eventUserLogout',
+  'auth.failed': 'admin.secDash.eventLoginFailed',
+  'data.access': 'admin.secDash.eventDataAccess',
+  'data.export': 'admin.secDash.eventDataExport',
+  'config.change': 'admin.secDash.eventConfigChange',
+  'threat.detected': 'admin.secDash.eventThreatDetected',
+  'license.check': 'admin.secDash.eventLicenseCheck',
+  'ip.blocked': 'admin.secDash.eventIpBlocked',
+  'ip.unblocked': 'admin.secDash.eventIpUnblocked',
+  'mfa.enabled': 'admin.secDash.eventMfaEnabled',
+  'mfa.disabled': 'admin.secDash.eventMfaDisabled',
 };
 
 // ===== 主组件 =====
 
 export default function SecurityDashboard() {
   const { user } = useAuth();
+  const { t, tpl } = useLanguage();
   const [activeTab, setActiveTab] = useState('overview');
   const [logPage, setLogPage] = useState(1);
   const [logFilters, setLogFilters] = useState({
@@ -151,21 +150,21 @@ export default function SecurityDashboard() {
   // Mutations
   const blockIPMutation = trpc.security.blockIP.useMutation({
     onSuccess: () => {
-      toast.success('IP已封禁');
+      toast.success(t("admin.secDash.ipBlocked"));
       blockedIPsQuery.refetch();
     },
     onError: (error) => {
-      toast.error(`封禁失败: ${error.message}`);
+      toast.error(`${t("admin.secDash.blockFailed")}: ${error.message}`);
     },
   });
-  
+
   const unblockIPMutation = trpc.security.unblockIP.useMutation({
     onSuccess: () => {
-      toast.success('IP已解封');
+      toast.success(t("admin.secDash.ipUnblocked"));
       blockedIPsQuery.refetch();
     },
     onError: (error) => {
-      toast.error(`解封失败: ${error.message}`);
+      toast.error(`${t("admin.secDash.unblockFailed")}: ${error.message}`);
     },
   });
   
@@ -179,9 +178,9 @@ export default function SecurityDashboard() {
           <Card className="max-w-md">
             <CardContent className="pt-6 text-center">
               <ShieldOff className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-xl font-bold mb-2">访问受限</h2>
+              <h2 className="text-xl font-bold mb-2">{t("admin.secDash.accessRestricted")}</h2>
               <p className="text-muted-foreground">
-                安全监控仪表盘仅限管理员访问。如需访问权限，请联系系统管理员。
+                {t("admin.secDash.accessRestrictedDesc")}
               </p>
             </CardContent>
           </Card>
@@ -193,8 +192,8 @@ export default function SecurityDashboard() {
       <div className="space-y-6">
         <PageHeader
           icon={Shield}
-          title="安全监控中心"
-          description="实时监控系统安全状态、威胁检测和审计日志"
+          title={t("admin.secDash.title")}
+          description={t("admin.secDash.description")}
           actions={
             <Button
               variant="outline"
@@ -211,7 +210,7 @@ export default function SecurityDashboard() {
               ) : (
                 <RefreshCw className="w-4 h-4 mr-2" />
               )}
-              刷新数据
+              {t("admin.secDash.refreshData")}
             </Button>
           }
         />
@@ -220,31 +219,31 @@ export default function SecurityDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             icon={Activity}
-            label="24小时安全事件"
+            label={t("admin.secDash.events24h")}
             value={isLoading ? '-' : dashboard?.overview.totalEvents24h || 0}
-            subtitle="正常"
+            subtitle={t("admin.secDash.normal")}
             iconColor="text-blue-400"
             iconBg="bg-blue-500/10"
           />
           <StatCard
             icon={ShieldAlert}
-            label="严重威胁"
+            label={t("admin.secDash.criticalThreats")}
             value={isLoading ? '-' : dashboard?.overview.criticalEvents24h || 0}
-            subtitle={(dashboard?.overview.criticalEvents24h || 0) > 0 ? '需要关注' : '无威胁'}
+            subtitle={(dashboard?.overview.criticalEvents24h || 0) > 0 ? t("admin.secDash.needsAttention") : t("admin.secDash.noThreats")}
             iconColor="text-red-400"
             iconBg="bg-red-500/10"
           />
           <StatCard
             icon={XCircle}
-            label="登录失败"
+            label={t("admin.secDash.loginFailures")}
             value={isLoading ? '-' : dashboard?.overview.failedLogins24h || 0}
-            subtitle={(dashboard?.overview.failedLogins24h || 0) > 10 ? '异常增多' : '正常范围'}
+            subtitle={(dashboard?.overview.failedLogins24h || 0) > 10 ? t("admin.secDash.abnormalIncrease") : t("admin.secDash.normalRange")}
             iconColor="text-orange-400"
             iconBg="bg-orange-500/10"
           />
           <StatCard
             icon={Ban}
-            label="封禁IP"
+            label={t("admin.secDash.blockedIPs")}
             value={isLoading ? '-' : dashboard?.overview.blockedIPs || 0}
             subtitle=""
             iconColor="text-purple-400"
@@ -255,14 +254,14 @@ export default function SecurityDashboard() {
         {/* 标签页内容 */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-muted/50">
-            <TabsTrigger value="overview">安全概览</TabsTrigger>
-            <TabsTrigger value="installation">安装模式</TabsTrigger>
-            <TabsTrigger value="notes">重要事项</TabsTrigger>
-            <TabsTrigger value="audit">审计日志</TabsTrigger>
-            <TabsTrigger value="threats">威胁检测</TabsTrigger>
-            <TabsTrigger value="access">访问控制</TabsTrigger>
-            <TabsTrigger value="license">许可证</TabsTrigger>
-            <TabsTrigger value="alerts">告警配置</TabsTrigger>
+            <TabsTrigger value="overview">{t("admin.secDash.tabOverview")}</TabsTrigger>
+            <TabsTrigger value="installation">{t("admin.secDash.tabInstallation")}</TabsTrigger>
+            <TabsTrigger value="notes">{t("admin.secDash.tabNotes")}</TabsTrigger>
+            <TabsTrigger value="audit">{t("admin.secDash.tabAudit")}</TabsTrigger>
+            <TabsTrigger value="threats">{t("admin.secDash.tabThreats")}</TabsTrigger>
+            <TabsTrigger value="access">{t("admin.secDash.tabAccess")}</TabsTrigger>
+            <TabsTrigger value="license">{t("admin.secDash.tabLicense")}</TabsTrigger>
+            <TabsTrigger value="alerts">{t("admin.secDash.tabAlerts")}</TabsTrigger>
           </TabsList>
 
           {/* 安全概览 */}
@@ -273,23 +272,23 @@ export default function SecurityDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Key className="w-5 h-5" />
-                    许可证状态
+                    {t("admin.secDash.licenseStatus")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">状态</span>
+                      <span className="text-muted-foreground">{t("admin.secDash.status")}</span>
                       <Badge className={dashboard?.license.valid ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}>
-                        {dashboard?.license.valid ? '有效' : '无效'}
+                        {dashboard?.license.valid ? t("admin.secDash.valid") : t("admin.secDash.invalid")}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">类型</span>
+                      <span className="text-muted-foreground">{t("admin.secDash.type")}</span>
                       <span className="font-medium">{dashboard?.license.type || '-'}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">到期时间</span>
+                      <span className="text-muted-foreground">{t("admin.secDash.expiryTime")}</span>
                       <span className="font-medium">
                         {dashboard?.license.expiresAt 
                           ? new Date(dashboard.license.expiresAt).toLocaleDateString() 
@@ -297,9 +296,9 @@ export default function SecurityDashboard() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">剩余天数</span>
+                      <span className="text-muted-foreground">{t("admin.secDash.daysRemaining")}</span>
                       <span className={`font-medium ${(dashboard?.license.daysRemaining || 0) < 30 ? 'text-orange-400' : 'text-green-400'}`}>
-                        {dashboard?.license.daysRemaining || 0} 天
+                        {dashboard?.license.daysRemaining || 0} {t("admin.secDash.days")}
                       </span>
                     </div>
                     {dashboard?.license.warnings && dashboard.license.warnings.length > 0 && (
@@ -319,27 +318,27 @@ export default function SecurityDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Zap className="w-5 h-5" />
-                    AI脱敏代理
+                    {t("admin.secDash.aiProxy")}
                   </CardTitle>
-                  <CardDescription>保护敏感数据不被AI模型学习</CardDescription>
+                  <CardDescription>{t("admin.secDash.aiProxyDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">活跃映射数</span>
+                      <span className="text-muted-foreground">{t("admin.secDash.activeMaps")}</span>
                       <span className="font-medium">{dashboard?.aiProxy?.activeMaps || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">映射总数</span>
+                      <span className="text-muted-foreground">{t("admin.secDash.totalMappings")}</span>
                       <span className="font-medium text-primary">{dashboard?.aiProxy?.totalMappings || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">最早映射年龄(ms)</span>
+                      <span className="text-muted-foreground">{t("admin.secDash.oldestMapAge")}</span>
                       <span className="font-medium text-red-400">{dashboard?.aiProxy?.oldestMapAge || 0}</span>
                     </div>
                     <div className="mt-4">
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-muted-foreground">数据保护率</span>
+                        <span className="text-muted-foreground">{t("admin.secDash.dataProtectionRate")}</span>
                         <span className="font-medium">
                           {dashboard?.aiProxy?.activeMaps
                             ? Math.round((dashboard.aiProxy.totalMappings / dashboard.aiProxy.activeMaps) * 100)
@@ -362,20 +361,20 @@ export default function SecurityDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="w-5 h-5" />
-                    事件类型分布 (近7天)
+                    {t("admin.secDash.eventDistribution")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {eventStatsQuery.data?.slice(0, 8).map((stat, index) => (
                       <div key={index} className="p-4 rounded-lg bg-muted/30 border border-border">
-                        <p className="text-sm text-muted-foreground">{getEventTypeLabel(stat.eventType)}</p>
+                        <p className="text-sm text-muted-foreground">{eventTypeLabelKeys[stat.eventType] ? t(eventTypeLabelKeys[stat.eventType]) : stat.eventType}</p>
                         <p className="text-2xl font-bold mt-1">{stat.count}</p>
                       </div>
                     ))}
                     {(!eventStatsQuery.data || eventStatsQuery.data.length === 0) && (
                       <div className="col-span-4 text-center py-8 text-muted-foreground">
-                        暂无事件数据
+                        {t("admin.secDash.noEventData")}
                       </div>
                     )}
                   </div>
@@ -391,11 +390,11 @@ export default function SecurityDashboard() {
               <CardContent className="pt-6">
                 <div className="flex flex-wrap gap-4">
                   <div className="flex-1 min-w-[200px]">
-                    <Label className="text-xs text-muted-foreground">搜索</Label>
+                    <Label className="text-xs text-muted-foreground">{t("admin.secDash.search")}</Label>
                     <div className="relative mt-1">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
-                        placeholder="搜索操作内容..."
+                        placeholder={t("admin.secDash.searchPlaceholder")}
                         value={logFilters.search}
                         onChange={(e) => setLogFilters({ ...logFilters, search: e.target.value })}
                         className="pl-9"
@@ -403,40 +402,40 @@ export default function SecurityDashboard() {
                     </div>
                   </div>
                   <div className="w-[180px]">
-                    <Label className="text-xs text-muted-foreground">事件类型</Label>
+                    <Label className="text-xs text-muted-foreground">{t("admin.secDash.eventType")}</Label>
                     <Select
                       value={logFilters.eventType}
                       onValueChange={(v) => setLogFilters({ ...logFilters, eventType: v })}
                     >
                       <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="全部类型" />
+                        <SelectValue placeholder={t("admin.secDash.allTypes")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">全部类型</SelectItem>
-                        <SelectItem value="auth.login">用户登录</SelectItem>
-                        <SelectItem value="auth.failed">登录失败</SelectItem>
-                        <SelectItem value="data.access">数据访问</SelectItem>
-                        <SelectItem value="data.export">数据导出</SelectItem>
-                        <SelectItem value="config.change">配置变更</SelectItem>
-                        <SelectItem value="threat.detected">威胁检测</SelectItem>
+                        <SelectItem value="all">{t("admin.secDash.allTypes")}</SelectItem>
+                        <SelectItem value="auth.login">{t("admin.secDash.userLogin")}</SelectItem>
+                        <SelectItem value="auth.failed">{t("admin.secDash.loginFailed")}</SelectItem>
+                        <SelectItem value="data.access">{t("admin.secDash.dataAccess")}</SelectItem>
+                        <SelectItem value="data.export">{t("admin.secDash.dataExport")}</SelectItem>
+                        <SelectItem value="config.change">{t("admin.secDash.configChange")}</SelectItem>
+                        <SelectItem value="threat.detected">{t("admin.secDash.threatDetected")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="w-[150px]">
-                    <Label className="text-xs text-muted-foreground">严重程度</Label>
+                    <Label className="text-xs text-muted-foreground">{t("admin.secDash.severity")}</Label>
                     <Select
                       value={logFilters.severity}
                       onValueChange={(v) => setLogFilters({ ...logFilters, severity: v })}
                     >
                       <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="全部" />
+                        <SelectValue placeholder={t("admin.secDash.all")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">全部</SelectItem>
-                        <SelectItem value="critical">严重</SelectItem>
-                        <SelectItem value="high">高</SelectItem>
-                        <SelectItem value="medium">中</SelectItem>
-                        <SelectItem value="low">低</SelectItem>
+                        <SelectItem value="all">{t("admin.secDash.all")}</SelectItem>
+                        <SelectItem value="critical">{t("admin.secDash.critical")}</SelectItem>
+                        <SelectItem value="high">{t("admin.secDash.high")}</SelectItem>
+                        <SelectItem value="medium">{t("admin.secDash.medium")}</SelectItem>
+                        <SelectItem value="low">{t("admin.secDash.low")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -448,7 +447,7 @@ export default function SecurityDashboard() {
                         setLogPage(1);
                       }}
                     >
-                      重置
+                      {t("admin.secDash.reset")}
                     </Button>
                   </div>
                 </div>
@@ -461,13 +460,13 @@ export default function SecurityDashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[160px]">时间</TableHead>
-                      <TableHead className="w-[120px]">事件类型</TableHead>
-                      <TableHead>操作</TableHead>
-                      <TableHead className="w-[100px]">用户</TableHead>
-                      <TableHead className="w-[120px]">IP地址</TableHead>
-                      <TableHead className="w-[80px]">严重度</TableHead>
-                      <TableHead className="w-[80px]">结果</TableHead>
+                      <TableHead className="w-[160px]">{t("admin.secDash.time")}</TableHead>
+                      <TableHead className="w-[120px]">{t("admin.secDash.eventType")}</TableHead>
+                      <TableHead>{t("admin.secDash.action")}</TableHead>
+                      <TableHead className="w-[100px]">{t("admin.secDash.user")}</TableHead>
+                      <TableHead className="w-[120px]">{t("admin.secDash.ipAddress")}</TableHead>
+                      <TableHead className="w-[80px]">{t("admin.secDash.severityCol")}</TableHead>
+                      <TableHead className="w-[80px]">{t("admin.secDash.result")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -480,7 +479,7 @@ export default function SecurityDashboard() {
                     ) : auditLogsQuery.data?.logs.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                          暂无审计日志
+                          {t("admin.secDash.noAuditLogs")}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -491,7 +490,7 @@ export default function SecurityDashboard() {
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-xs">
-                              {getEventTypeLabel(log.eventType)}
+                              {eventTypeLabelKeys[log.eventType] ? t(eventTypeLabelKeys[log.eventType]) : log.eventType}
                             </Badge>
                           </TableCell>
                           <TableCell className="max-w-[300px] truncate" title={log.action}>
@@ -529,7 +528,7 @@ export default function SecurityDashboard() {
                 {auditLogsQuery.data && auditLogsQuery.data.pagination.totalPages > 1 && (
                   <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
                     <p className="text-sm text-muted-foreground">
-                      共 {auditLogsQuery.data.pagination.total} 条记录
+                      {tpl("admin.secDash.totalRecords", { count: String(auditLogsQuery.data.pagination.total) })}
                     </p>
                     <div className="flex gap-2">
                       <Button
@@ -538,7 +537,7 @@ export default function SecurityDashboard() {
                         disabled={logPage === 1}
                         onClick={() => setLogPage(p => p - 1)}
                       >
-                        上一页
+                        {t("admin.secDash.prevPage")}
                       </Button>
                       <span className="flex items-center px-3 text-sm">
                         {logPage} / {auditLogsQuery.data.pagination.totalPages}
@@ -549,7 +548,7 @@ export default function SecurityDashboard() {
                         disabled={logPage >= auditLogsQuery.data.pagination.totalPages}
                         onClick={() => setLogPage(p => p + 1)}
                       >
-                        下一页
+                        {t("admin.secDash.nextPage")}
                       </Button>
                     </div>
                   </div>
@@ -564,8 +563,8 @@ export default function SecurityDashboard() {
               {/* 威胁类型统计 */}
               <Card className="lg:col-span-2">
                 <CardHeader>
-                  <CardTitle>威胁类型分布</CardTitle>
-                  <CardDescription>近7天检测到的威胁类型统计</CardDescription>
+                  <CardTitle>{t("admin.secDash.threatDistribution")}</CardTitle>
+                  <CardDescription>{t("admin.secDash.threatDistributionDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -587,7 +586,7 @@ export default function SecurityDashboard() {
                     {(!threatStatsQuery.data || threatStatsQuery.data.length === 0) && (
                       <div className="text-center py-8 text-muted-foreground">
                         <ShieldCheck className="w-12 h-12 mx-auto mb-2 text-green-400" />
-                        <p>暂无威胁检测记录</p>
+                        <p>{t("admin.secDash.noThreatRecords")}</p>
                       </div>
                     )}
                   </div>
@@ -597,30 +596,30 @@ export default function SecurityDashboard() {
               {/* 威胁统计 */}
               <Card>
                 <CardHeader>
-                  <CardTitle>威胁统计</CardTitle>
+                  <CardTitle>{t("admin.secDash.threatStats")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
-                      <p className="text-sm text-muted-foreground">严重威胁</p>
+                      <p className="text-sm text-muted-foreground">{t("admin.secDash.criticalThreatsLabel")}</p>
                       <p className="text-2xl font-bold text-red-400">
                         {threatStatsQuery.data?.find((s) => s.severity === 'critical')?.count || 0}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/30">
-                      <p className="text-sm text-muted-foreground">高危威胁</p>
+                      <p className="text-sm text-muted-foreground">{t("admin.secDash.highThreats")}</p>
                       <p className="text-2xl font-bold text-orange-400">
                         {threatStatsQuery.data?.find((s) => s.severity === 'high')?.count || 0}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                      <p className="text-sm text-muted-foreground">中等威胁</p>
+                      <p className="text-sm text-muted-foreground">{t("admin.secDash.mediumThreats")}</p>
                       <p className="text-2xl font-bold text-yellow-400">
                         {threatStatsQuery.data?.find((s) => s.severity === 'medium')?.count || 0}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-                      <p className="text-sm text-muted-foreground">低危威胁</p>
+                      <p className="text-sm text-muted-foreground">{t("admin.secDash.lowThreats")}</p>
                       <p className="text-2xl font-bold text-green-400">
                         {threatStatsQuery.data?.find((s) => s.severity === 'low')?.count || 0}
                       </p>
@@ -639,25 +638,25 @@ export default function SecurityDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Ban className="w-5 h-5" />
-                    IP黑名单
+                    {t("admin.secDash.ipBlacklist")}
                   </CardTitle>
-                  <CardDescription>被封禁的IP地址列表</CardDescription>
+                  <CardDescription>{t("admin.secDash.ipBlacklistDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>IP地址</TableHead>
-                        <TableHead>封禁原因</TableHead>
-                        <TableHead>到期时间</TableHead>
-                        <TableHead className="w-[80px]">操作</TableHead>
+                        <TableHead>{t("admin.secDash.ipAddress")}</TableHead>
+                        <TableHead>{t("admin.secDash.banReason")}</TableHead>
+                        <TableHead>{t("admin.secDash.expiryTimeCol")}</TableHead>
+                        <TableHead className="w-[80px]">{t("admin.secDash.action")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {blockedIPsQuery.data?.items.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                            暂无封禁IP
+                            {t("admin.secDash.noBlockedIPs")}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -666,7 +665,7 @@ export default function SecurityDashboard() {
                             <TableCell className="font-mono">{ip.ipAddress}</TableCell>
                             <TableCell className="text-sm">{ip.reason}</TableCell>
                             <TableCell className="text-sm">
-                              {ip.expiresAt ? new Date(ip.expiresAt).toLocaleString() : '永久'}
+                              {ip.expiresAt ? new Date(ip.expiresAt).toLocaleString() : t("admin.secDash.permanent")}
                             </TableCell>
                             <TableCell>
                               <Button
@@ -675,7 +674,7 @@ export default function SecurityDashboard() {
                                 onClick={() => unblockIPMutation.mutate({ ipAddress: ip.ipAddress })}
                                 disabled={unblockIPMutation.isPending}
                               >
-                                解封
+                                {t("admin.secDash.unblock")}
                               </Button>
                             </TableCell>
                           </TableRow>
@@ -691,9 +690,9 @@ export default function SecurityDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Lock className="w-5 h-5" />
-                    手动封禁IP
+                    {t("admin.secDash.manualBlock")}
                   </CardTitle>
-                  <CardDescription>手动添加IP到黑名单</CardDescription>
+                  <CardDescription>{t("admin.secDash.manualBlockDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form 
@@ -715,26 +714,26 @@ export default function SecurityDashboard() {
                     }}
                   >
                     <div className="space-y-2">
-                      <Label>IP地址</Label>
-                      <Input name="ip" placeholder="例如: 192.168.1.100" required />
+                      <Label>{t("admin.secDash.ipAddressLabel")}</Label>
+                      <Input name="ip" placeholder={t("admin.secDash.ipPlaceholder")} required />
                     </div>
                     <div className="space-y-2">
-                      <Label>封禁原因</Label>
-                      <Input name="reason" placeholder="输入封禁原因" />
+                      <Label>{t("admin.secDash.banReasonLabel")}</Label>
+                      <Input name="reason" placeholder={t("admin.secDash.banReasonPlaceholder")} />
                     </div>
                     <div className="space-y-2">
-                      <Label>封禁时长 (小时)</Label>
+                      <Label>{t("admin.secDash.banDuration")}</Label>
                       <Select name="duration" defaultValue="24">
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="1">1小时</SelectItem>
-                          <SelectItem value="6">6小时</SelectItem>
-                          <SelectItem value="24">24小时</SelectItem>
-                          <SelectItem value="168">7天</SelectItem>
-                          <SelectItem value="720">30天</SelectItem>
-                          <SelectItem value="0">永久</SelectItem>
+                          <SelectItem value="1">{t("admin.secDash.hour1")}</SelectItem>
+                          <SelectItem value="6">{t("admin.secDash.hour6")}</SelectItem>
+                          <SelectItem value="24">{t("admin.secDash.hour24")}</SelectItem>
+                          <SelectItem value="168">{t("admin.secDash.day7")}</SelectItem>
+                          <SelectItem value="720">{t("admin.secDash.day30")}</SelectItem>
+                          <SelectItem value="0">{t("admin.secDash.permanentBan")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -744,7 +743,7 @@ export default function SecurityDashboard() {
                       ) : (
                         <Ban className="w-4 h-4 mr-2" />
                       )}
-                      封禁IP
+                      {t("admin.secDash.blockIP")}
                     </Button>
                   </form>
                 </CardContent>
@@ -758,49 +757,56 @@ export default function SecurityDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Key className="w-5 h-5" />
-                  许可证详情
+                  {t("admin.secDash.licenseDetails")}
                 </CardTitle>
-                <CardDescription>系统许可证信息和功能模块授权</CardDescription>
+                <CardDescription>{t("admin.secDash.licenseDetailsDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <h3 className="font-medium">基本信息</h3>
+                    <h3 className="font-medium">{t("admin.secDash.basicInfo")}</h3>
                     <div className="space-y-3">
                       <div className="flex justify-between py-2 border-b border-border">
-                        <span className="text-muted-foreground">许可证状态</span>
+                        <span className="text-muted-foreground">{t("admin.secDash.licenseStatusLabel")}</span>
                         <Badge className={dashboard?.license.valid ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}>
-                          {dashboard?.license.valid ? '有效' : '无效'}
+                          {dashboard?.license.valid ? t("admin.secDash.valid") : t("admin.secDash.invalid")}
                         </Badge>
                       </div>
                       <div className="flex justify-between py-2 border-b border-border">
-                        <span className="text-muted-foreground">许可证类型</span>
+                        <span className="text-muted-foreground">{t("admin.secDash.licenseType")}</span>
                         <span className="font-medium">{dashboard?.license.type || '-'}</span>
                       </div>
                       <div className="flex justify-between py-2 border-b border-border">
-                        <span className="text-muted-foreground">到期时间</span>
+                        <span className="text-muted-foreground">{t("admin.secDash.expiryTime")}</span>
                         <span className="font-medium">
-                          {dashboard?.license.expiresAt 
-                            ? new Date(dashboard.license.expiresAt).toLocaleDateString() 
+                          {dashboard?.license.expiresAt
+                            ? new Date(dashboard.license.expiresAt).toLocaleDateString()
                             : '-'}
                         </span>
                       </div>
                       <div className="flex justify-between py-2 border-b border-border">
-                        <span className="text-muted-foreground">剩余天数</span>
+                        <span className="text-muted-foreground">{t("admin.secDash.daysRemaining")}</span>
                         <span className={`font-medium ${(dashboard?.license.daysRemaining || 0) < 30 ? 'text-orange-400' : 'text-green-400'}`}>
-                          {dashboard?.license.daysRemaining || 0} 天
+                          {dashboard?.license.daysRemaining || 0} {t("admin.secDash.days")}
                         </span>
                       </div>
                     </div>
                   </div>
                   
                   <div className="space-y-4">
-                    <h3 className="font-medium">功能模块授权</h3>
+                    <h3 className="font-medium">{t("admin.secDash.moduleAuth")}</h3>
                     <div className="grid grid-cols-2 gap-2">
-                      {['CRM', '项目管理', '成本管理', '培训管理', 'AI助手', '报表分析'].map((module) => (
-                        <div key={module} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30">
+                      {[
+                        { key: 'CRM', labelKey: 'CRM' },
+                        { key: 'projectMgmt', labelKey: 'admin.secDash.projectMgmt' },
+                        { key: 'costMgmt', labelKey: 'admin.secDash.costMgmt' },
+                        { key: 'trainingMgmt', labelKey: 'admin.secDash.trainingMgmt' },
+                        { key: 'aiAssistant', labelKey: 'admin.secDash.aiAssistant' },
+                        { key: 'reportAnalytics', labelKey: 'admin.secDash.reportAnalytics' },
+                      ].map((module) => (
+                        <div key={module.key} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30">
                           <CheckCircle2 className="w-4 h-4 text-green-400" />
-                          <span className="text-sm">{module}</span>
+                          <span className="text-sm">{module.labelKey === 'CRM' ? 'CRM' : t(module.labelKey)}</span>
                         </div>
                       ))}
                     </div>
@@ -832,6 +838,7 @@ export default function SecurityDashboard() {
 // ===== 告警配置Tab组件 =====
 
 function AlertConfigTab() {
+  const { t } = useLanguage();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newConfig, setNewConfig] = useState({
     name: '',
@@ -859,7 +866,7 @@ function AlertConfigTab() {
   // 添加配置
   const addConfigMutation = trpc.security.addAlertConfig.useMutation({
     onSuccess: () => {
-      toast.success('告警配置添加成功');
+      toast.success(t("admin.secDash.alertAddSuccess"));
       setShowAddDialog(false);
       refetchConfigs();
       setNewConfig({
@@ -873,62 +880,59 @@ function AlertConfigTab() {
       });
     },
     onError: (error) => {
-      toast.error(`添加失败: ${error.message}`);
+      toast.error(`${t("admin.secDash.addFailed")}: ${error.message}`);
     },
   });
 
-  // 切换启用状态
   const toggleMutation = trpc.security.toggleAlertConfig.useMutation({
     onSuccess: () => {
-      toast.success('状态已更新');
+      toast.success(t("admin.secDash.statusUpdated"));
       refetchConfigs();
     },
   });
 
-  // 删除配置
   const deleteMutation = trpc.security.deleteAlertConfig.useMutation({
     onSuccess: () => {
-      toast.success('配置已删除');
+      toast.success(t("admin.secDash.configDeleted"));
       refetchConfigs();
     },
   });
 
-  // 测试配置
   const testMutation = trpc.security.testAlertConfig.useMutation({
     onSuccess: (result) => {
       if (result.success) {
-        toast.success('测试消息发送成功');
+        toast.success(t("admin.secDash.testSuccess"));
       } else {
-        toast.error(`测试失败: ${result.error}`);
+        toast.error(`${t("admin.secDash.testFailed")}: ${result.error}`);
       }
     },
   });
 
-  const alertTypeOptions: { value: SecurityAlertTypeValue; label: string }[] = [
-    { value: 'intrusion_attempt', label: '入侵尝试' },
-    { value: 'rate_limit_exceeded', label: '速率限制超出' },
-    { value: 'ip_blocked', label: 'IP被封禁' },
-    { value: 'sql_injection', label: 'SQL注入' },
-    { value: 'xss_attack', label: 'XSS攻击' },
-    { value: 'command_injection', label: '命令注入' },
-    { value: 'unauthorized_access', label: '未授权访问' },
-    { value: 'suspicious_activity', label: '可疑活动' },
-    { value: 'license_violation', label: '许可证违规' },
-    { value: 'data_exfiltration', label: '数据外泄' },
+  const alertTypeOptions: { value: SecurityAlertTypeValue; labelKey: string }[] = [
+    { value: 'intrusion_attempt', labelKey: 'admin.secDash.intrusionAttempt' },
+    { value: 'rate_limit_exceeded', labelKey: 'admin.secDash.rateLimitExceeded' },
+    { value: 'ip_blocked', labelKey: 'admin.secDash.ipBlockedAlert' },
+    { value: 'sql_injection', labelKey: 'admin.secDash.sqlInjection' },
+    { value: 'xss_attack', labelKey: 'admin.secDash.xssAttack' },
+    { value: 'command_injection', labelKey: 'admin.secDash.commandInjection' },
+    { value: 'unauthorized_access', labelKey: 'admin.secDash.unauthorizedAccess' },
+    { value: 'suspicious_activity', labelKey: 'admin.secDash.suspiciousActivity' },
+    { value: 'license_violation', labelKey: 'admin.secDash.licenseViolation' },
+    { value: 'data_exfiltration', labelKey: 'admin.secDash.dataExfiltration' },
   ];
 
-  const webhookTypeLabels: Record<string, string> = {
-    wecom: '企业微信',
-    dingtalk: '钉钉',
-    feishu: '飞书',
-    custom: '自定义',
+  const webhookTypeLabelKeys: Record<string, string> = {
+    wecom: 'admin.secDash.wecom',
+    dingtalk: 'admin.secDash.dingtalk',
+    feishu: 'admin.secDash.feishu',
+    custom: 'admin.secDash.custom',
   };
 
-  const severityLabels: Record<string, string> = {
-    info: '信息',
-    warning: '警告',
-    critical: '严重',
-    emergency: '紧急',
+  const severityLabelKeys: Record<string, string> = {
+    info: 'admin.secDash.info',
+    warning: 'admin.secDash.warning',
+    critical: 'admin.secDash.critical',
+    emergency: 'admin.secDash.emergency',
   };
 
   return (
@@ -939,7 +943,7 @@ function AlertConfigTab() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">告警配置</p>
+                <p className="text-sm text-muted-foreground">{t("admin.secDash.alertConfig")}</p>
                 <p className="text-2xl font-bold">{alertStats?.totalConfigs || 0}</p>
               </div>
               <Webhook className="w-8 h-8 text-primary" />
@@ -950,7 +954,7 @@ function AlertConfigTab() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">已启用</p>
+                <p className="text-sm text-muted-foreground">{t("admin.secDash.alertEnabled")}</p>
                 <p className="text-2xl font-bold text-green-500">{alertStats?.enabledConfigs || 0}</p>
               </div>
               <CheckCircle2 className="w-8 h-8 text-green-500" />
@@ -961,7 +965,7 @@ function AlertConfigTab() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">24小时告警</p>
+                <p className="text-sm text-muted-foreground">{t("admin.secDash.alerts24h")}</p>
                 <p className="text-2xl font-bold text-orange-500">{alertStats?.last24HoursAlerts || 0}</p>
               </div>
               <Bell className="w-8 h-8 text-orange-500" />
@@ -972,7 +976,7 @@ function AlertConfigTab() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">成功率</p>
+                <p className="text-sm text-muted-foreground">{t("admin.secDash.successRate")}</p>
                 <p className="text-2xl font-bold">
                   {alertStats?.totalAlertsSent 
                     ? Math.round((alertStats.successfulAlerts / alertStats.totalAlertsSent) * 100) 
@@ -992,34 +996,34 @@ function AlertConfigTab() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Webhook className="w-5 h-5" />
-                告警配置管理
+                {t("admin.secDash.alertConfigTitle")}
               </CardTitle>
-              <CardDescription>配置安全告警的Webhook推送目标</CardDescription>
+              <CardDescription>{t("admin.secDash.alertConfigDesc")}</CardDescription>
             </div>
             <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />
-                  添加配置
+                  {t("admin.secDash.addConfig")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>添加告警配置</DialogTitle>
-                  <DialogDescription>配置安全告警的Webhook推送目标</DialogDescription>
+                  <DialogTitle>{t("admin.secDash.addAlertConfig")}</DialogTitle>
+                  <DialogDescription>{t("admin.secDash.alertConfigDesc")}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>配置名称</Label>
+                      <Label>{t("admin.secDash.configName")}</Label>
                       <Input
                         value={newConfig.name}
                         onChange={(e) => setNewConfig({ ...newConfig, name: e.target.value })}
-                        placeholder="例如：入侵检测告警"
+                        placeholder={t("admin.secDash.configNamePlaceholder")}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Webhook类型</Label>
+                      <Label>{t("admin.secDash.webhookType")}</Label>
                       <Select
                         value={newConfig.webhookType}
                         onValueChange={(v) => setNewConfig({ ...newConfig, webhookType: v as typeof newConfig.webhookType })}
@@ -1028,10 +1032,10 @@ function AlertConfigTab() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="wecom">企业微信</SelectItem>
-                          <SelectItem value="dingtalk">钉钉</SelectItem>
-                          <SelectItem value="feishu">飞书</SelectItem>
-                          <SelectItem value="custom">自定义</SelectItem>
+                          <SelectItem value="wecom">{t("admin.secDash.wecom")}</SelectItem>
+                          <SelectItem value="dingtalk">{t("admin.secDash.dingtalk")}</SelectItem>
+                          <SelectItem value="feishu">{t("admin.secDash.feishu")}</SelectItem>
+                          <SelectItem value="custom">{t("admin.secDash.custom")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1046,7 +1050,7 @@ function AlertConfigTab() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>最低告警级别</Label>
+                      <Label>{t("admin.secDash.minSeverity")}</Label>
                       <Select
                         value={newConfig.minSeverity}
                         onValueChange={(v) => setNewConfig({ ...newConfig, minSeverity: v as typeof newConfig.minSeverity })}
@@ -1055,15 +1059,15 @@ function AlertConfigTab() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="info">信息</SelectItem>
-                          <SelectItem value="warning">警告</SelectItem>
-                          <SelectItem value="critical">严重</SelectItem>
-                          <SelectItem value="emergency">紧急</SelectItem>
+                          <SelectItem value="info">{t("admin.secDash.info")}</SelectItem>
+                          <SelectItem value="warning">{t("admin.secDash.warning")}</SelectItem>
+                          <SelectItem value="critical">{t("admin.secDash.critical")}</SelectItem>
+                          <SelectItem value="emergency">{t("admin.secDash.emergency")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>冷却时间（分钟）</Label>
+                      <Label>{t("admin.secDash.cooldown")}</Label>
                       <Input
                         type="number"
                         value={newConfig.cooldownMinutes}
@@ -1072,7 +1076,7 @@ function AlertConfigTab() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>告警类型</Label>
+                    <Label>{t("admin.secDash.alertTypes")}</Label>
                     <div className="grid grid-cols-2 gap-2">
                       {alertTypeOptions.map((opt) => (
                         <label key={opt.value} className="flex items-center gap-2 text-sm">
@@ -1088,7 +1092,7 @@ function AlertConfigTab() {
                             }}
                             className="rounded"
                           />
-                          {opt.label}
+                          {t(opt.labelKey)}
                         </label>
                       ))}
                     </div>
@@ -1100,16 +1104,16 @@ function AlertConfigTab() {
                       onChange={(e) => setNewConfig({ ...newConfig, mentionAll: e.target.checked })}
                       className="rounded"
                     />
-                    <Label>紧急告警时@所有人</Label>
+                    <Label>{t("admin.secDash.mentionAll")}</Label>
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowAddDialog(false)}>取消</Button>
+                  <Button variant="outline" onClick={() => setShowAddDialog(false)}>{t("admin.secDash.cancel")}</Button>
                   <Button
                     onClick={() => addConfigMutation.mutate(newConfig)}
                     disabled={!newConfig.name || !newConfig.webhookUrl || newConfig.alertTypes.length === 0}
                   >
-                    添加
+                    {t("admin.secDash.add")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -1125,11 +1129,11 @@ function AlertConfigTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>名称</TableHead>
-                  <TableHead>类型</TableHead>
-                  <TableHead>告警级别</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>操作</TableHead>
+                  <TableHead>{t("admin.secDash.configName")}</TableHead>
+                  <TableHead>{t("admin.secDash.type")}</TableHead>
+                  <TableHead>{t("admin.secDash.alertLevel")}</TableHead>
+                  <TableHead>{t("admin.secDash.status")}</TableHead>
+                  <TableHead>{t("admin.secDash.action")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1137,14 +1141,14 @@ function AlertConfigTab() {
                   <TableRow key={config.id}>
                     <TableCell className="font-medium">{config.name}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{webhookTypeLabels[config.webhookType]}</Badge>
+                      <Badge variant="outline">{t(webhookTypeLabelKeys[config.webhookType])}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">≥ {severityLabels[config.minSeverity]}</Badge>
+                      <Badge variant="secondary">&ge; {t(severityLabelKeys[config.minSeverity])}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={config.enabled ? 'default' : 'secondary'}>
-                        {config.enabled ? '已启用' : '已禁用'}
+                        {config.enabled ? t("admin.secDash.enabled") : t("admin.secDash.disabled")}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -1181,8 +1185,8 @@ function AlertConfigTab() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Webhook className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>暂无告警配置</p>
-              <p className="text-sm">点击上方“添加配置”按钮创建第一个告警配置</p>
+              <p>{t("admin.secDash.noAlertConfig")}</p>
+              <p className="text-sm">{t("admin.secDash.noAlertConfigHint")}</p>
             </div>
           )}
         </CardContent>
@@ -1193,20 +1197,20 @@ function AlertConfigTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Send className="w-5 h-5" />
-            告警发送历史
+            {t("admin.secDash.alertHistory")}
           </CardTitle>
-          <CardDescription>最近20条告警发送记录</CardDescription>
+          <CardDescription>{t("admin.secDash.alertHistoryDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {alertHistory && alertHistory.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>时间</TableHead>
-                  <TableHead>告警ID</TableHead>
-                  <TableHead>配置ID</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>错误信息</TableHead>
+                  <TableHead>{t("admin.secDash.alertTimeCol")}</TableHead>
+                  <TableHead>{t("admin.secDash.alertIdCol")}</TableHead>
+                  <TableHead>{t("admin.secDash.configIdCol")}</TableHead>
+                  <TableHead>{t("admin.secDash.statusCol")}</TableHead>
+                  <TableHead>{t("admin.secDash.errorMsgCol")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1219,7 +1223,7 @@ function AlertConfigTab() {
                     <TableCell className="font-mono text-xs">{record.configId.slice(0, 16)}...</TableCell>
                     <TableCell>
                       <Badge variant={record.success ? 'default' : 'destructive'}>
-                        {record.success ? '成功' : '失败'}
+                        {record.success ? t("admin.secDash.successResult") : t("admin.secDash.failedResult")}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
@@ -1232,7 +1236,7 @@ function AlertConfigTab() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Send className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>暂无告警发送记录</p>
+              <p>{t("admin.secDash.noAlertHistory")}</p>
             </div>
           )}
         </CardContent>
@@ -1244,6 +1248,7 @@ function AlertConfigTab() {
 // ===== 安装模式Tab组件 =====
 
 function InstallationModeTab() {
+  const { t } = useLanguage();
   const { data: installInfo, isLoading } = trpc.security.getInstallationInfo.useQuery(undefined, {
     refetchInterval: 60000,
   });
@@ -1258,7 +1263,7 @@ function InstallationModeTab() {
 
   const setPasswordMutation = trpc.security.setServerPassword.useMutation({
     onSuccess: () => {
-      toast.success('服务器密码已设置');
+      toast.success(t("admin.secDash.passwordSetSuccess"));
       setShowPasswordDialog(false);
       setNewPassword('');
     },
@@ -1267,7 +1272,7 @@ function InstallationModeTab() {
 
   const setSecurityLevelMutation = trpc.security.setSecurityLevel.useMutation({
     onSuccess: () => {
-      toast.success('安全级别已更新');
+      toast.success(t("admin.secDash.secLevelUpdated"));
       setShowSecurityDialog(false);
       setSecurityReason('');
     },
@@ -1287,10 +1292,10 @@ function InstallationModeTab() {
     lockdown: 'bg-red-500/20 text-red-400 border-red-500/30',
   };
 
-  const securityLevelLabels: Record<string, string> = {
-    standard: '标准模式',
-    elevated: '加强模式',
-    lockdown: '锁定模式',
+  const securityLevelLabelKeys: Record<string, string> = {
+    standard: 'admin.secDash.standardMode',
+    elevated: 'admin.secDash.elevatedMode',
+    lockdown: 'admin.secDash.lockdownMode',
   };
 
   return (
@@ -1301,7 +1306,7 @@ function InstallationModeTab() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Server className="w-4 h-4" />
-              当前安装模式
+              {t("admin.secDash.currentInstallMode")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1314,15 +1319,15 @@ function InstallationModeTab() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Lock className="w-4 h-4" />
-              密码保护
+              {t("admin.secDash.passwordProtection")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               {passwordStatus?.configured ? (
-                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">已设置</Badge>
+                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">{t("admin.secDash.passwordConfigured")}</Badge>
               ) : (
-                <Badge className="bg-red-500/20 text-red-400 border-red-500/30">未设置</Badge>
+                <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{t("admin.secDash.passwordNotConfigured")}</Badge>
               )}
             </div>
             <Button
@@ -1332,7 +1337,7 @@ function InstallationModeTab() {
               onClick={() => setShowPasswordDialog(true)}
             >
               <Key className="w-3.5 h-3.5 mr-1.5" />
-              {passwordStatus?.configured ? '更新密码' : '设置密码'}
+              {passwordStatus?.configured ? t("admin.secDash.updatePasswordBtn") : t("admin.secDash.setPasswordBtn")}
             </Button>
           </CardContent>
         </Card>
@@ -1341,13 +1346,13 @@ function InstallationModeTab() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Shield className="w-4 h-4" />
-              主动安全级别
+              {t("admin.secDash.activeSecurityLevel")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <Badge className={securityLevelColors[security?.level || 'standard']}>
-                {securityLevelLabels[security?.level || 'standard']}
+                {t(securityLevelLabelKeys[security?.level || 'standard'])}
               </Badge>
             </div>
             {security?.activatedAt && (
@@ -1365,7 +1370,7 @@ function InstallationModeTab() {
                   disabled={security?.level === lvl}
                   onClick={() => { setTargetLevel(lvl); setShowSecurityDialog(true); }}
                 >
-                  {securityLevelLabels[lvl]}
+                  {t(securityLevelLabelKeys[lvl])}
                 </Button>
               ))}
             </div>
@@ -1379,22 +1384,22 @@ function InstallationModeTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="w-5 h-5" />
-              三版本功能对比
+              {t("admin.secDash.versionCompare")}
             </CardTitle>
-            <CardDescription>社区开源版 vs 客户授权版 vs 企业内部版</CardDescription>
+            <CardDescription>{t("admin.secDash.versionCompareDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[200px]">功能</TableHead>
+                  <TableHead className="w-[200px]">{t("admin.secDash.featureCol")}</TableHead>
                   {(['community', 'customer', 'enterprise'] as const).map((m) => (
                     <TableHead key={m} className="text-center">
                       <div className="flex flex-col items-center gap-1">
                         <span className={m === currentMode ? 'font-bold text-primary' : ''}>
                           {modes[m]?.name}
                         </span>
-                        {m === currentMode && <Badge variant="default" className="text-[10px] h-4">当前</Badge>}
+                        {m === currentMode && <Badge variant="default" className="text-[10px] h-4">{t("admin.secDash.currentBadge")}</Badge>}
                       </div>
                     </TableHead>
                   ))}
@@ -1402,13 +1407,13 @@ function InstallationModeTab() {
               </TableHeader>
               <TableBody>
                 <TableRow>
-                  <TableCell className="font-medium">最大用户数</TableCell>
+                  <TableCell className="font-medium">{t("admin.secDash.maxUsersRow")}</TableCell>
                   <TableCell className="text-center">{modes.community?.maxUsers}</TableCell>
                   <TableCell className="text-center">{modes.customer?.maxUsers}</TableCell>
-                  <TableCell className="text-center">不限</TableCell>
+                  <TableCell className="text-center">{t("admin.secDash.unlimited")}</TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell className="font-medium">需要许可证</TableCell>
+                  <TableCell className="font-medium">{t("admin.secDash.needsLicenseRow")}</TableCell>
                   <TableCell className="text-center"><XCircle className="w-4 h-4 mx-auto text-muted-foreground" /></TableCell>
                   <TableCell className="text-center"><CheckCircle2 className="w-4 h-4 mx-auto text-green-400" /></TableCell>
                   <TableCell className="text-center"><CheckCircle2 className="w-4 h-4 mx-auto text-green-400" /></TableCell>
@@ -1442,18 +1447,18 @@ function InstallationModeTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShieldAlert className="w-5 h-5" />
-              当前安全策略 ({securityLevelLabels[security.level]})
+              {t("admin.secDash.currentSecPolicy")} ({t(securityLevelLabelKeys[security.level])})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
-                { label: '非管理员登录', value: security.policies.blockNonAdminLogin ? '阻止' : '允许', danger: security.policies.blockNonAdminLogin },
-                { label: '全员MFA', value: security.policies.requireMFAAll ? '必须' : '可选', danger: false },
-                { label: '严格限速', value: security.policies.strictRateLimits ? '开启' : '关闭', danger: false },
-                { label: '数据导出', value: security.policies.disableExport ? '禁用' : '允许', danger: security.policies.disableExport },
-                { label: 'API访问', value: security.policies.disableAPI ? '禁用' : '允许', danger: security.policies.disableAPI },
-                { label: '强制重认证', value: security.policies.forceReauthMinutes ? `${security.policies.forceReauthMinutes}分钟` : '关闭', danger: false },
+                { label: t("admin.secDash.blockNonAdminLogin"), value: security.policies.blockNonAdminLogin ? t("admin.secDash.blockAction") : t("admin.secDash.allowAction"), danger: security.policies.blockNonAdminLogin },
+                { label: t("admin.secDash.mfaAll"), value: security.policies.requireMFAAll ? t("admin.secDash.required") : t("admin.secDash.optional"), danger: false },
+                { label: t("admin.secDash.strictRateLimits"), value: security.policies.strictRateLimits ? t("admin.secDash.on") : t("admin.secDash.off"), danger: false },
+                { label: t("admin.secDash.dataExportPolicy"), value: security.policies.disableExport ? t("admin.secDash.disabledAction") : t("admin.secDash.allowAction"), danger: security.policies.disableExport },
+                { label: t("admin.secDash.apiAccess"), value: security.policies.disableAPI ? t("admin.secDash.disabledAction") : t("admin.secDash.allowAction"), danger: security.policies.disableAPI },
+                { label: t("admin.secDash.forceReauth"), value: security.policies.forceReauthMinutes ? `${security.policies.forceReauthMinutes}${t("admin.secDash.minutes")}` : t("admin.secDash.off"), danger: false },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                   <span className="text-sm">{item.label}</span>
@@ -1471,28 +1476,28 @@ function InstallationModeTab() {
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>设置服务器访问密码</DialogTitle>
-            <DialogDescription>此密码保护整个服务器实例，防止未授权访问。建议使用强密码。</DialogDescription>
+            <DialogTitle>{t("admin.secDash.setServerPassword")}</DialogTitle>
+            <DialogDescription>{t("admin.secDash.setServerPasswordDesc")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>新密码 (最少8位)</Label>
+              <Label>{t("admin.secDash.newPasswordLabel")}</Label>
               <Input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="输入新的服务器密码..."
+                placeholder={t("admin.secDash.newPasswordPlaceholder")}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>{t("admin.secDash.cancel")}</Button>
             <Button
               disabled={newPassword.length < 8 || setPasswordMutation.isPending}
               onClick={() => setPasswordMutation.mutate({ password: newPassword })}
             >
               {setPasswordMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Lock className="w-4 h-4 mr-1" />}
-              确认设置
+              {t("admin.secDash.confirmSet")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1502,32 +1507,32 @@ function InstallationModeTab() {
       <Dialog open={showSecurityDialog} onOpenChange={setShowSecurityDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>变更安全级别至: {securityLevelLabels[targetLevel]}</DialogTitle>
+            <DialogTitle>{t("admin.secDash.changeSecLevelTo")} {t(securityLevelLabelKeys[targetLevel])}</DialogTitle>
             <DialogDescription>
-              {targetLevel === 'lockdown' && '锁定模式将阻止所有非管理员登录，禁用数据导出和API。仅在紧急情况下使用。'}
-              {targetLevel === 'elevated' && '加强模式将启用全员MFA、严格限速、禁用数据导出。'}
-              {targetLevel === 'standard' && '恢复到标准安全级别，所有功能正常可用。'}
+              {targetLevel === 'lockdown' && t("admin.secDash.lockdownWarning")}
+              {targetLevel === 'elevated' && t("admin.secDash.elevatedWarning")}
+              {targetLevel === 'standard' && t("admin.secDash.standardInfo")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>变更原因 (必填)</Label>
+              <Label>{t("admin.secDash.changeReason")}</Label>
               <Input
                 value={securityReason}
                 onChange={(e) => setSecurityReason(e.target.value)}
-                placeholder="说明变更原因..."
+                placeholder={t("admin.secDash.changeReasonPlaceholder")}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSecurityDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setShowSecurityDialog(false)}>{t("admin.secDash.cancel")}</Button>
             <Button
               variant={targetLevel === 'lockdown' ? 'destructive' : 'default'}
               disabled={!securityReason.trim() || setSecurityLevelMutation.isPending}
               onClick={() => setSecurityLevelMutation.mutate({ level: targetLevel, reason: securityReason })}
             >
               {setSecurityLevelMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Shield className="w-4 h-4 mr-1" />}
-              确认变更
+              {t("admin.secDash.confirmChange")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1539,6 +1544,7 @@ function InstallationModeTab() {
 // ===== 管理员重要事项Tab组件 =====
 
 function AdminNotesTab() {
+  const { t } = useLanguage();
   const { data: notes, isLoading, refetch } = trpc.security.getAdminNotes.useQuery(
     { includeDismissed: false },
     { refetchInterval: 30000 }
@@ -1554,13 +1560,13 @@ function AdminNotesTab() {
   });
 
   const dismissMutation = trpc.security.dismissNote.useMutation({
-    onSuccess: () => { toast.success('已忽略'); refetch(); },
+    onSuccess: () => { toast.success(t("admin.secDash.dismissed")); refetch(); },
     onError: (err) => toast.error(err.message),
   });
 
   const addNoteMutation = trpc.security.addNote.useMutation({
     onSuccess: () => {
-      toast.success('事项已添加');
+      toast.success(t("admin.secDash.noteAdded"));
       setShowAddDialog(false);
       setNewNote({ category: 'system', severity: 'info', title: '', description: '' });
       refetch();
@@ -1578,12 +1584,12 @@ function AdminNotesTab() {
     action_required: <AlertCircle className="w-4 h-4" />,
   };
 
-  const categoryLabels: Record<string, string> = {
-    security: '安全',
-    license: '许可证',
-    system: '系统',
-    update: '更新',
-    action_required: '需要操作',
+  const categoryLabelKeys: Record<string, string> = {
+    security: 'admin.secDash.categorySecurity',
+    license: 'admin.secDash.categoryLicense',
+    system: 'admin.secDash.categorySystem',
+    update: 'admin.secDash.categoryUpdate',
+    action_required: 'admin.secDash.categoryActionRequired',
   };
 
   const severityColors: Record<string, string> = {
@@ -1601,7 +1607,7 @@ function AdminNotesTab() {
             <div className="text-2xl font-bold text-red-400">
               {notes?.filter((n) => n.severity === 'critical').length || 0}
             </div>
-            <p className="text-xs text-muted-foreground">紧急事项</p>
+            <p className="text-xs text-muted-foreground">{t("admin.secDash.urgentNotes")}</p>
           </CardContent>
         </Card>
         <Card>
@@ -1609,13 +1615,13 @@ function AdminNotesTab() {
             <div className="text-2xl font-bold text-yellow-400">
               {notes?.filter((n) => n.severity === 'warning').length || 0}
             </div>
-            <p className="text-xs text-muted-foreground">警告事项</p>
+            <p className="text-xs text-muted-foreground">{t("admin.secDash.warningNotes")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-3 text-center">
             <div className="text-2xl font-bold">{allNotes?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">全部事项(含已忽略)</p>
+            <p className="text-xs text-muted-foreground">{t("admin.secDash.allNotesIncDismissed")}</p>
           </CardContent>
         </Card>
       </div>
@@ -1626,11 +1632,11 @@ function AdminNotesTab() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Bell className="w-5 h-5" />
-              管理员重要事项
+              {t("admin.secDash.adminNotesTitle")}
             </CardTitle>
             <Button size="sm" variant="outline" onClick={() => setShowAddDialog(true)}>
               <Plus className="w-3.5 h-3.5 mr-1" />
-              添加事项
+              {t("admin.secDash.addNoteBtn")}
             </Button>
           </div>
         </CardHeader>
@@ -1649,7 +1655,7 @@ function AdminNotesTab() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <Badge className={severityColors[note.severity]} variant="outline">
-                      {categoryLabels[note.category]}
+                      {t(categoryLabelKeys[note.category])}
                     </Badge>
                     <span className="text-sm font-semibold">{note.title}</span>
                   </div>
@@ -1660,7 +1666,7 @@ function AdminNotesTab() {
                     </span>
                     {note.actionUrl && (
                       <Button variant="link" size="sm" className="text-xs h-5 px-0" asChild>
-                        <a href={note.actionUrl}>{note.actionLabel || '查看'}</a>
+                        <a href={note.actionUrl}>{note.actionLabel || t("admin.secDash.viewAction")}</a>
                       </Button>
                     )}
                   </div>
@@ -1678,7 +1684,7 @@ function AdminNotesTab() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <CheckCircle2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>没有待处理的重要事项</p>
+              <p>{t("admin.secDash.noPendingNotes")}</p>
             </div>
           )}
         </CardContent>
@@ -1688,52 +1694,52 @@ function AdminNotesTab() {
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>添加管理员事项</DialogTitle>
+            <DialogTitle>{t("admin.secDash.addAdminNote")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>类别</Label>
+                <Label>{t("admin.secDash.categoryLabel")}</Label>
                 <Select value={newNote.category} onValueChange={(v) => setNewNote((p) => ({ ...p, category: v as typeof p.category }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="security">安全</SelectItem>
-                    <SelectItem value="license">许可证</SelectItem>
-                    <SelectItem value="system">系统</SelectItem>
-                    <SelectItem value="update">更新</SelectItem>
-                    <SelectItem value="action_required">需要操作</SelectItem>
+                    <SelectItem value="security">{t("admin.secDash.categorySecurity")}</SelectItem>
+                    <SelectItem value="license">{t("admin.secDash.categoryLicense")}</SelectItem>
+                    <SelectItem value="system">{t("admin.secDash.categorySystem")}</SelectItem>
+                    <SelectItem value="update">{t("admin.secDash.categoryUpdate")}</SelectItem>
+                    <SelectItem value="action_required">{t("admin.secDash.categoryActionRequired")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>严重程度</Label>
+                <Label>{t("admin.secDash.noteSeverity")}</Label>
                 <Select value={newNote.severity} onValueChange={(v) => setNewNote((p) => ({ ...p, severity: v as typeof p.severity }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="info">信息</SelectItem>
-                    <SelectItem value="warning">警告</SelectItem>
-                    <SelectItem value="critical">紧急</SelectItem>
+                    <SelectItem value="info">{t("admin.secDash.info")}</SelectItem>
+                    <SelectItem value="warning">{t("admin.secDash.warning")}</SelectItem>
+                    <SelectItem value="critical">{t("admin.secDash.emergency")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-2">
-              <Label>标题</Label>
-              <Input value={newNote.title} onChange={(e) => setNewNote((p) => ({ ...p, title: e.target.value }))} placeholder="事项标题..." />
+              <Label>{t("admin.secDash.noteTitleLabel")}</Label>
+              <Input value={newNote.title} onChange={(e) => setNewNote((p) => ({ ...p, title: e.target.value }))} placeholder={t("admin.secDash.noteTitlePlaceholder")} />
             </div>
             <div className="space-y-2">
-              <Label>描述</Label>
-              <Input value={newNote.description} onChange={(e) => setNewNote((p) => ({ ...p, description: e.target.value }))} placeholder="详细描述..." />
+              <Label>{t("admin.secDash.noteDescLabel")}</Label>
+              <Input value={newNote.description} onChange={(e) => setNewNote((p) => ({ ...p, description: e.target.value }))} placeholder={t("admin.secDash.noteDescPlaceholder")} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>{t("admin.secDash.cancel")}</Button>
             <Button
               disabled={!newNote.title.trim() || addNoteMutation.isPending}
               onClick={() => addNoteMutation.mutate(newNote)}
             >
               {addNoteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
-              添加
+              {t("admin.secDash.add")}
             </Button>
           </DialogFooter>
         </DialogContent>

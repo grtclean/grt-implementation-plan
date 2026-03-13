@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import {
   generateEvidenceId,
   uploadEvidenceFile,
@@ -148,7 +148,7 @@ export const capabilityEvidenceRouter = router({
     }),
 
   // 删除证据（仅限pending状态）
-  deleteEvidence: protectedProcedure
+  deleteEvidence: requirePermission('capability:evidence:submit')
     .input(z.object({
       evidenceId: z.string(),
     }))

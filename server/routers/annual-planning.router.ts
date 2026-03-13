@@ -14,7 +14,7 @@
 
 import { z } from "zod";
 import { jsonValue } from "@shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, desc, and, count, sql, ne } from "drizzle-orm";
 import {
@@ -43,7 +43,7 @@ export const annualPlanningRouter = router({
       return rows[0] ?? null;
     }),
 
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('strategy:agenda:manage').input(z.object({
     year: z.number().optional(),
     type: z.string().optional(),
     departmentId: z.number().optional(),
@@ -80,7 +80,7 @@ export const annualPlanningRouter = router({
     return successResponse;
   }),
 
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('strategy:agenda:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     year: z.number().optional(),
     type: z.string().optional(),
@@ -107,7 +107,7 @@ export const annualPlanningRouter = router({
     return successResponse;
   }),
 
-  delete: protectedProcedure
+  delete: requirePermission('strategy:agenda:manage')
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -166,7 +166,7 @@ export const annualPlanningRouter = router({
     return { config: config ?? null };
   }),
 
-  createConfig: protectedProcedure.input(z.object({
+  createConfig: requirePermission('strategy:agenda:manage').input(z.object({
     year: z.number().optional(),
     version: z.string().optional(),
     versionName: z.string().optional(),
@@ -187,7 +187,7 @@ export const annualPlanningRouter = router({
     return { success: true, message: "Config created", id: result[0]?.id };
   }),
 
-  activateConfig: protectedProcedure.input(z.object({
+  activateConfig: requirePermission('strategy:agenda:manage').input(z.object({
     id: z.union([z.string(), z.number()]).optional(),
     configId: z.union([z.string(), z.number()]).optional(),
   })).mutation(async ({ input, ctx }) => {
@@ -223,7 +223,7 @@ export const annualPlanningRouter = router({
     return successResponse;
   }),
 
-  copyToNewYear: protectedProcedure.input(z.object({
+  copyToNewYear: requirePermission('strategy:agenda:manage').input(z.object({
     sourceConfigId: z.union([z.string(), z.number()]).optional(),
     configId: z.union([z.string(), z.number()]).optional(),
     id: z.union([z.string(), z.number()]).optional(),
@@ -252,7 +252,7 @@ export const annualPlanningRouter = router({
       }).returning();
 
       // Copy items
-      const sourceItems = await tx.select().from(annualPlanningItems).where(eq(annualPlanningItems.configId, sourceConfigId));
+      const sourceItems = await tx.select().from(annualPlanningItems).where(eq(annualPlanningItems.configId, sourceConfigId)).limit(1000);
       for (const item of sourceItems) {
         await tx.insert(annualPlanningItems).values({
           configId: newConfig.id,
@@ -294,7 +294,7 @@ export const annualPlanningRouter = router({
     return db.select().from(annualPlanningItems).orderBy(desc(annualPlanningItems.createdAt)).limit(1000);
   }),
 
-  createItem: protectedProcedure.input(z.object({
+  createItem: requirePermission('strategy:agenda:manage').input(z.object({
     configId: z.number().optional(),
     category: z.string().optional(),
     name: z.string().optional(),
@@ -351,7 +351,7 @@ export const annualPlanningRouter = router({
     return successResponse;
   }),
 
-  updateItem: protectedProcedure.input(z.object({
+  updateItem: requirePermission('strategy:agenda:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     configId: z.number().optional(),
     category: z.string().optional(),
@@ -407,7 +407,7 @@ export const annualPlanningRouter = router({
 
   // ==================== Seed Sample Data ====================
 
-  initSampleData: protectedProcedure.mutation(async () => {
+  initSampleData: requirePermission('strategy:agenda:manage').mutation(async () => {
     const db = await requireDb();
 
     // Check if data exists

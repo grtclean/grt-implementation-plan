@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 const emptyListResponse = { items: [] as any[], total: 0, page: 1, pageSize: 10 };
@@ -33,7 +33,7 @@ export const reportSchedulerRouter = router({
   }),
 
   // 更新报表调度
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('oa:reports:manage').input(z.object({
     id: z.string(),
     name: z.string().min(1).max(200).optional(),
     description: z.string().max(2000).optional(),
@@ -46,7 +46,7 @@ export const reportSchedulerRouter = router({
   }),
 
   // 删除报表调度
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async () => {
+  delete: requirePermission('oa:reports:manage').input(z.object({ id: z.string() })).mutation(async () => {
     return successResponse;
   }),
 
@@ -56,7 +56,7 @@ export const reportSchedulerRouter = router({
   }),
 
   // 更新调度
-  updateSchedule: protectedProcedure.input(z.object({
+  updateSchedule: requirePermission('oa:reports:manage').input(z.object({
     scheduleId: z.string(),
     enabled: z.boolean().optional(),
     cronExpression: z.string().max(100).optional(),
@@ -69,7 +69,7 @@ export const reportSchedulerRouter = router({
   }),
 
   // 添加接收人
-  addRecipient: protectedProcedure.input(z.object({
+  addRecipient: requirePermission('oa:reports:manage').input(z.object({
     scheduleId: z.string(),
     type: z.string().max(50),
     target: z.string().max(500),
@@ -79,7 +79,7 @@ export const reportSchedulerRouter = router({
   }),
 
   // 移除接收人
-  removeRecipient: protectedProcedure.input(z.object({
+  removeRecipient: requirePermission('oa:reports:manage').input(z.object({
     scheduleId: z.string(),
     target: z.string().max(500),
   })).mutation(async () => {
@@ -92,14 +92,14 @@ export const reportSchedulerRouter = router({
   }),
 
   // 立即发送
-  triggerSend: protectedProcedure.input(z.object({
+  triggerSend: requirePermission('oa:reports:manage').input(z.object({
     scheduleId: z.string(),
   })).mutation(async () => {
     return successResponse;
   }),
 
   // 预览报表
-  previewReport: protectedProcedure.input(z.object({
+  previewReport: requirePermission('oa:reports:manage').input(z.object({
     reportTypes: z.array(z.string().max(50)),
     period: z.string().max(50),
     format: z.string().max(50).optional(),

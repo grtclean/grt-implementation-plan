@@ -20,6 +20,11 @@ export const graphConfig = {
     teamsMessages: "https://graph.microsoft.com/v1.0/me/chats/{chatId}/messages",
     users: "https://graph.microsoft.com/v1.0/users",
     presence: "https://graph.microsoft.com/v1.0/me/presence",
+    // Outlook Mail endpoints (used by outlook.service.ts)
+    mailInbox: "https://graph.microsoft.com/v1.0/users/{userId}/mailFolders/inbox/messages",
+    mailFolders: "https://graph.microsoft.com/v1.0/users/{userId}/mailFolders",
+    mailMessages: "https://graph.microsoft.com/v1.0/users/{userId}/messages",
+    mailSend: "https://graph.microsoft.com/v1.0/users/{userId}/sendMail",
   },
 };
 
@@ -76,36 +81,69 @@ export async function getAccessToken(): Promise<string> {
   }
 }
 
-// 通用 Graph API 请求函数
+// ── Retry helpers ──
+
+function isRetryableError(err: any): boolean {
+  const msg = String(err?.message ?? "");
+  return msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT")
+    || msg.includes("ECONNREFUSED") || msg.includes("abort")
+    || msg.includes("fetch failed") || msg.includes("network");
+}
+
+function sleep(ms: number) { return new Promise<void>(r => setTimeout(r, ms)); }
+
+// 通用 Graph API 请求函数 — 带指数退避重试 + 超时 + 429 处理
 export async function graphRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  maxRetries = 3
 ): Promise<T | null> {
   const token = await getAccessToken();
-  
-  if (!token) {
-    return null;
-  }
+  if (!token) return null;
 
-  try {
-    const response = await fetch(endpoint, {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30_000);
 
-    if (!response.ok) {
-      throw new Error(`Graph API request failed: ${response.status}`);
+      const response = await fetch(endpoint, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
+      });
+      clearTimeout(timeout);
+
+      // Rate-limited: respect Retry-After header
+      if (response.status === 429) {
+        const retryAfter = parseInt(response.headers.get("Retry-After") ?? "5", 10);
+        if (attempt < maxRetries) {
+          log.warn({ attempt, retryAfter, endpoint }, "Graph API rate-limited, retrying");
+          await sleep(retryAfter * 1000);
+          continue;
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(`Graph API ${response.status}: ${endpoint}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      if (attempt < maxRetries && isRetryableError(error)) {
+        const delay = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s
+        log.warn({ attempt, delay, endpoint }, "Retrying Graph API request");
+        await sleep(delay);
+        continue;
+      }
+      log.error({ err: error, endpoint, attempt }, "Graph API request failed");
+      return null;
     }
-
-    return await response.json();
-  } catch (error) {
-    log.error({ err: error, endpoint }, "Request failed");
-    return null;
   }
+  return null;
 }
 
 // 检查 Graph API 是否已配置

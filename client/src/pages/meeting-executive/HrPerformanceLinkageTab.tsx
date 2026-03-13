@@ -7,25 +7,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link2, Plus, Trash2, Search, Play, CheckCircle, XCircle, Clock, Zap, ChevronDown, ChevronUp } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const CONDITION_TYPES: Record<string, string> = {
-  engagement_score: "参与度分数",
-  contribution_score: "贡献评分",
-  behavior_tag: "行为标签",
-  action_item_accepted: "接受行动项数",
-  decision_count: "决策数",
-  signal_type: "信号类型",
-  question_count: "提问数",
-  insight_count: "洞察数",
+const CONDITION_TYPE_KEYS: Record<string, string> = {
+  engagement_score: "meeting.hrLinkage.condEngagement",
+  contribution_score: "meeting.hrLinkage.condContribution",
+  behavior_tag: "meeting.hrLinkage.condBehavior",
+  action_item_accepted: "meeting.hrLinkage.condActionItems",
+  decision_count: "meeting.hrLinkage.condDecisions",
+  signal_type: "meeting.hrLinkage.condSignalType",
+  question_count: "meeting.hrLinkage.condQuestions",
+  insight_count: "meeting.hrLinkage.condInsights",
 };
 
-const ACTION_TYPES: Record<string, string> = {
-  update_kpi: "更新KPI",
-  flag_training: "标记培训",
-  add_achievement: "添加成就",
-  adjust_score: "调整评分",
-  create_key_result: "创建关键结果",
-  coaching_suggestion: "辅导建议",
+const ACTION_TYPE_KEYS: Record<string, string> = {
+  update_kpi: "meeting.hrLinkage.actUpdateKpi",
+  flag_training: "meeting.hrLinkage.actFlagTraining",
+  add_achievement: "meeting.hrLinkage.actAddAchievement",
+  adjust_score: "meeting.hrLinkage.actAdjustScore",
+  create_key_result: "meeting.hrLinkage.actCreateKeyResult",
+  coaching_suggestion: "meeting.hrLinkage.actCoachingSuggestion",
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -36,6 +37,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function HrPerformanceLinkageTab() {
+  const { t } = useLanguage();
   // Rule form
   const [ruleName, setRuleName] = useState("");
   const [condType, setCondType] = useState("contribution_score");
@@ -109,28 +111,28 @@ export function HrPerformanceLinkageTab() {
           <CardContent className="pt-4 text-center">
             <Link2 className="h-7 w-7 mx-auto text-blue-500 mb-1" />
             <div className="text-2xl font-bold">{dashboard?.activeRules || 0}</div>
-            <div className="text-xs text-muted-foreground">活跃规则</div>
+            <div className="text-xs text-muted-foreground">{t("meeting.hrLinkage.activeRules")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <Clock className="h-7 w-7 mx-auto text-yellow-500 mb-1" />
             <div className="text-2xl font-bold">{dashboard?.pendingActions || 0}</div>
-            <div className="text-xs text-muted-foreground">待审批操作</div>
+            <div className="text-xs text-muted-foreground">{t("meeting.hrLinkage.pendingActions")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <CheckCircle className="h-7 w-7 mx-auto text-green-500 mb-1" />
             <div className="text-2xl font-bold">{dashboard?.executedActions || 0}</div>
-            <div className="text-xs text-muted-foreground">已执行操作</div>
+            <div className="text-xs text-muted-foreground">{t("meeting.hrLinkage.executedActions")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <Zap className="h-7 w-7 mx-auto text-purple-500 mb-1" />
             <div className="text-2xl font-bold">{dashboard?.approvalRate || 0}%</div>
-            <div className="text-xs text-muted-foreground">批准率</div>
+            <div className="text-xs text-muted-foreground">{t("meeting.hrLinkage.approvalRate")}</div>
           </CardContent>
         </Card>
       </div>
@@ -140,17 +142,17 @@ export function HrPerformanceLinkageTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Link2 className="h-5 w-5" />
-            联动规则管理
+            {t("meeting.hrLinkage.ruleManagement")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <Input placeholder="规则名称" value={ruleName} onChange={e => setRuleName(e.target.value)} />
+            <Input placeholder={t("meeting.hrLinkage.ruleName")} value={ruleName} onChange={e => setRuleName(e.target.value)} />
             <Select value={condType} onValueChange={setCondType}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {Object.entries(CONDITION_TYPES).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                {Object.entries(CONDITION_TYPE_KEYS).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{t(v)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -163,34 +165,34 @@ export function HrPerformanceLinkageTab() {
                 <SelectItem value="<">{"<"}</SelectItem>
                 <SelectItem value="==">{"="}</SelectItem>
                 <SelectItem value="!=">{"≠"}</SelectItem>
-                <SelectItem value="contains">包含</SelectItem>
+                <SelectItem value="contains">{t("meeting.hrLinkage.contains")}</SelectItem>
               </SelectContent>
             </Select>
-            <Input placeholder="阈值" value={condThreshold} onChange={e => setCondThreshold(e.target.value)} />
+            <Input placeholder={t("meeting.hrLinkage.threshold")} value={condThreshold} onChange={e => setCondThreshold(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             <Select value={actType} onValueChange={setActType}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {Object.entries(ACTION_TYPES).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                {Object.entries(ACTION_TYPE_KEYS).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{t(v)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Input placeholder="操作目标" value={actTarget} onChange={e => setActTarget(e.target.value)} />
-            <Input placeholder="操作值" value={actValue} onChange={e => setActValue(e.target.value)} />
-            <Input placeholder="影响维度" value={impactDim} onChange={e => setImpactDim(e.target.value)} />
+            <Input placeholder={t("meeting.hrLinkage.actionTarget")} value={actTarget} onChange={e => setActTarget(e.target.value)} />
+            <Input placeholder={t("meeting.hrLinkage.actionValue")} value={actValue} onChange={e => setActValue(e.target.value)} />
+            <Input placeholder={t("meeting.hrLinkage.impactDimension")} value={impactDim} onChange={e => setImpactDim(e.target.value)} />
             <Select value={ruleScope} onValueChange={setRuleScope}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="individual">个人</SelectItem>
-                <SelectItem value="team">团队</SelectItem>
-                <SelectItem value="department">部门</SelectItem>
+                <SelectItem value="individual">{t("meeting.hrLinkage.scopeIndividual")}</SelectItem>
+                <SelectItem value="team">{t("meeting.hrLinkage.scopeTeam")}</SelectItem>
+                <SelectItem value="department">{t("meeting.hrLinkage.scopeDepartment")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex gap-2">
-            <Input className="w-24" placeholder="优先级" type="number" value={rulePriority} onChange={e => setRulePriority(e.target.value)} />
+            <Input className="w-24" placeholder={t("meeting.hrLinkage.priority")} type="number" value={rulePriority} onChange={e => setRulePriority(e.target.value)} />
             <Button
               onClick={() => createRuleMut.mutate({
                 name: ruleName,
@@ -208,7 +210,7 @@ export function HrPerformanceLinkageTab() {
               disabled={!ruleName || !condThreshold || createRuleMut.isPending}
             >
               <Plus className="h-4 w-4 mr-1" />
-              {createRuleMut.isPending ? "创建中..." : "创建规则"}
+              {createRuleMut.isPending ? t("meeting.hrLinkage.creating") : t("meeting.hrLinkage.createRule")}
             </Button>
           </div>
 
@@ -216,13 +218,13 @@ export function HrPerformanceLinkageTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>规则名称</TableHead>
-                  <TableHead>条件</TableHead>
-                  <TableHead>操作</TableHead>
-                  <TableHead>范围</TableHead>
-                  <TableHead>优先级</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>删除</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.ruleName")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.condition")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.operation")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.scope")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.priority")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.statusLabel")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.delete")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -230,16 +232,16 @@ export function HrPerformanceLinkageTab() {
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.name}</TableCell>
                     <TableCell className="text-sm">
-                      {CONDITION_TYPES[r.condition_type] || r.condition_type} {r.condition_operator} {r.condition_threshold}
+                      {CONDITION_TYPE_KEYS[r.condition_type] ? t(CONDITION_TYPE_KEYS[r.condition_type]) : r.condition_type} {r.condition_operator} {r.condition_threshold}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{ACTION_TYPES[r.action_type] || r.action_type}</Badge>
+                      <Badge variant="outline">{ACTION_TYPE_KEYS[r.action_type] ? t(ACTION_TYPE_KEYS[r.action_type]) : r.action_type}</Badge>
                     </TableCell>
                     <TableCell>{r.scope}</TableCell>
                     <TableCell>{r.priority}</TableCell>
                     <TableCell>
                       <Badge className={r.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}>
-                        {r.is_active ? "活跃" : "停用"}
+                        {r.is_active ? t("meeting.hrLinkage.statusActive") : t("meeting.hrLinkage.statusInactive")}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -260,26 +262,26 @@ export function HrPerformanceLinkageTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            会议联动评估
+            {t("meeting.hrLinkage.evaluateTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
-            <Input placeholder="输入会议ID" value={evalMeetingId} onChange={e => setEvalMeetingId(e.target.value)} className="max-w-md" />
+            <Input placeholder={t("meeting.hrLinkage.enterMeetingId")} value={evalMeetingId} onChange={e => setEvalMeetingId(e.target.value)} className="max-w-md" />
             <Button onClick={() => evaluateMut.mutate({ meetingId: evalMeetingId })} disabled={!evalMeetingId || evaluateMut.isPending}>
               <Play className="h-4 w-4 mr-1" />
-              {evaluateMut.isPending ? "评估中..." : "评估"}
+              {evaluateMut.isPending ? t("meeting.hrLinkage.evaluating") : t("meeting.hrLinkage.evaluate")}
             </Button>
           </div>
           {evaluateMut.data && (
             <div className="p-4 bg-muted rounded-lg space-y-2">
-              <div className="font-medium">评估结果: 生成 {(evaluateMut.data as any).actionsGenerated} 个HR操作</div>
+              <div className="font-medium">{t("meeting.hrLinkage.evalResult")} {(evaluateMut.data as any).actionsGenerated} {t("meeting.hrLinkage.hrActions")}</div>
               {((evaluateMut.data as any).byEmployee || []).map((emp: any, i: number) => (
                 <div key={i} className="ml-4 text-sm">
-                  <span className="font-medium">{emp.employeeName}</span>: {emp.actions.length} 个操作
+                  <span className="font-medium">{emp.employeeName}</span>: {emp.actions.length} {t("meeting.hrLinkage.actions")}
                   <ul className="ml-4 list-disc">
                     {emp.actions.map((a: any, j: number) => (
-                      <li key={j}>{a.ruleName} → {ACTION_TYPES[a.actionType] || a.actionType}</li>
+                      <li key={j}>{a.ruleName} → {ACTION_TYPE_KEYS[a.actionType] ? t(ACTION_TYPE_KEYS[a.actionType]) : a.actionType}</li>
                     ))}
                   </ul>
                 </div>
@@ -294,28 +296,28 @@ export function HrPerformanceLinkageTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            HR操作日志与审批
+            {t("meeting.hrLinkage.actionLogTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2 flex-wrap">
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-32"><SelectValue placeholder="状态" /></SelectTrigger>
+              <SelectTrigger className="w-32"><SelectValue placeholder={t("meeting.hrLinkage.statusLabel")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部状态</SelectItem>
-                <SelectItem value="pending">待审批</SelectItem>
-                <SelectItem value="approved">已批准</SelectItem>
-                <SelectItem value="rejected">已拒绝</SelectItem>
-                <SelectItem value="executed">已执行</SelectItem>
+                <SelectItem value="all">{t("meeting.hrLinkage.allStatus")}</SelectItem>
+                <SelectItem value="pending">{t("meeting.hrLinkage.pending")}</SelectItem>
+                <SelectItem value="approved">{t("meeting.hrLinkage.approved")}</SelectItem>
+                <SelectItem value="rejected">{t("meeting.hrLinkage.rejected")}</SelectItem>
+                <SelectItem value="executed">{t("meeting.hrLinkage.executed")}</SelectItem>
               </SelectContent>
             </Select>
-            <Input placeholder="员工搜索" value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)} className="w-40" />
+            <Input placeholder={t("meeting.hrLinkage.employeeSearch")} value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)} className="w-40" />
             <Select value={filterActionType} onValueChange={setFilterActionType}>
-              <SelectTrigger className="w-36"><SelectValue placeholder="操作类型" /></SelectTrigger>
+              <SelectTrigger className="w-36"><SelectValue placeholder={t("meeting.hrLinkage.actionType")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部类型</SelectItem>
-                {Object.entries(ACTION_TYPES).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                <SelectItem value="all">{t("meeting.hrLinkage.allTypes")}</SelectItem>
+                {Object.entries(ACTION_TYPE_KEYS).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{t(v)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -325,12 +327,12 @@ export function HrPerformanceLinkageTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>员工</TableHead>
-                  <TableHead>操作类型</TableHead>
-                  <TableHead>原因</TableHead>
-                  <TableHead>影响</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>审批</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.employee")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.actionType")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.reason")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.impactLabel")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.statusLabel")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.approval")}</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -339,7 +341,7 @@ export function HrPerformanceLinkageTab() {
                   <>
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.employee_name || a.employee_id}</TableCell>
-                      <TableCell><Badge variant="outline">{ACTION_TYPES[a.action_type] || a.action_type}</Badge></TableCell>
+                      <TableCell><Badge variant="outline">{ACTION_TYPE_KEYS[a.action_type] ? t(ACTION_TYPE_KEYS[a.action_type]) : a.action_type}</Badge></TableCell>
                       <TableCell className="text-sm max-w-xs truncate">{a.reason}</TableCell>
                       <TableCell className="text-sm">{a.impact_dimension} {a.impact_value}</TableCell>
                       <TableCell><Badge className={STATUS_COLORS[a.status] || ""}>{a.status}</Badge></TableCell>
@@ -365,12 +367,12 @@ export function HrPerformanceLinkageTab() {
                       <TableRow key={`${a.id}-detail`}>
                         <TableCell colSpan={7} className="bg-muted/50">
                           <div className="p-2 space-y-1 text-sm">
-                            <div><strong>详细描述:</strong> {a.action_description}</div>
-                            <div><strong>规则:</strong> {a.rule_name} (ID: {a.rule_id})</div>
-                            <div><strong>会议:</strong> {a.meeting_title || a.meeting_id}</div>
-                            {a.review_notes && <div><strong>审批备注:</strong> {a.review_notes}</div>}
+                            <div><strong>{t("meeting.hrLinkage.detailDesc")}</strong> {a.action_description}</div>
+                            <div><strong>{t("meeting.hrLinkage.rule")}</strong> {a.rule_name} (ID: {a.rule_id})</div>
+                            <div><strong>{t("meeting.hrLinkage.meeting")}</strong> {a.meeting_title || a.meeting_id}</div>
+                            {a.review_notes && <div><strong>{t("meeting.hrLinkage.reviewNotes")}</strong> {a.review_notes}</div>}
                             {a.source_data && (
-                              <div><strong>源数据:</strong> <code className="text-xs">{typeof a.source_data === "string" ? a.source_data : JSON.stringify(a.source_data)}</code></div>
+                              <div><strong>{t("meeting.hrLinkage.sourceData")}</strong> <code className="text-xs">{typeof a.source_data === "string" ? a.source_data : JSON.stringify(a.source_data)}</code></div>
                             )}
                           </div>
                         </TableCell>
@@ -381,7 +383,7 @@ export function HrPerformanceLinkageTab() {
               </TableBody>
             </Table>
           )}
-          {actions.length === 0 && <div className="text-center text-muted-foreground py-4">暂无HR操作记录</div>}
+          {actions.length === 0 && <div className="text-center text-muted-foreground py-4">{t("meeting.hrLinkage.noActionRecords")}</div>}
         </CardContent>
       </Card>
 
@@ -391,7 +393,7 @@ export function HrPerformanceLinkageTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5" />
-              执行已批准操作
+              {t("meeting.hrLinkage.executeApproved")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -411,10 +413,10 @@ export function HrPerformanceLinkageTab() {
                       }}
                     />
                   </TableHead>
-                  <TableHead>员工</TableHead>
-                  <TableHead>操作</TableHead>
-                  <TableHead>影响维度</TableHead>
-                  <TableHead>影响值</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.employee")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.operation")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.impactDimensionLabel")}</TableHead>
+                  <TableHead>{t("meeting.hrLinkage.impactValueLabel")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -424,7 +426,7 @@ export function HrPerformanceLinkageTab() {
                       <input type="checkbox" checked={selectedActions.includes(a.id)} onChange={() => toggleActionSelect(a.id)} />
                     </TableCell>
                     <TableCell className="font-medium">{a.employee_name || a.employee_id}</TableCell>
-                    <TableCell><Badge variant="outline">{ACTION_TYPES[a.action_type] || a.action_type}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{ACTION_TYPE_KEYS[a.action_type] ? t(ACTION_TYPE_KEYS[a.action_type]) : a.action_type}</Badge></TableCell>
                     <TableCell>{a.impact_dimension}</TableCell>
                     <TableCell>{a.impact_value}</TableCell>
                   </TableRow>
@@ -432,15 +434,15 @@ export function HrPerformanceLinkageTab() {
               </TableBody>
             </Table>
             <Button
-              onClick={() => { if (selectedActions.length > 0 && confirm(`确认执行 ${selectedActions.length} 个操作？`)) executeMut.mutate({ actionIds: selectedActions }); }}
+              onClick={() => { if (selectedActions.length > 0 && confirm(`${t("meeting.hrLinkage.confirmExecute")} ${selectedActions.length}?`)) executeMut.mutate({ actionIds: selectedActions }); }}
               disabled={selectedActions.length === 0 || executeMut.isPending}
             >
               <Play className="h-4 w-4 mr-1" />
-              {executeMut.isPending ? "执行中..." : `执行选中 (${selectedActions.length})`}
+              {executeMut.isPending ? t("meeting.hrLinkage.executing") : `${t("meeting.hrLinkage.executeSelected")} (${selectedActions.length})`}
             </Button>
             {executeMut.data && (
               <div className="text-sm text-muted-foreground">
-                执行完成: {(executeMut.data as any).executed} 成功, {(executeMut.data as any).failed} 失败
+                {t("meeting.hrLinkage.executeComplete")} {(executeMut.data as any).executed} {t("meeting.hrLinkage.successCount")}, {(executeMut.data as any).failed} {t("meeting.hrLinkage.failedCount")}
               </div>
             )}
           </CardContent>

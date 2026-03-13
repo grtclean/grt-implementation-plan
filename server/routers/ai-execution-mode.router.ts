@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import {
   executeAI,
   recordAdoption,
@@ -47,7 +47,7 @@ export const aiExecutionModeRouter = router({
     }),
 
   // 执行AI请求
-  execute: protectedProcedure
+  execute: requirePermission('ai:hub:access')
     .input(executeInputSchema)
     .mutation(async ({ input }) => {
       const result = await executeAI({
@@ -67,7 +67,7 @@ export const aiExecutionModeRouter = router({
     }),
 
   // 记录采纳反馈
-  recordAdoption: protectedProcedure
+  recordAdoption: requirePermission('ai:hub:access')
     .input(recordAdoptionInputSchema)
     .mutation(({ input }) => {
       const record = recordAdoption(
@@ -118,17 +118,17 @@ export const aiExecutionModeRouter = router({
     .query(() => null),
   
   // 创建（兼容占位符接口）
-  create: protectedProcedure
+  create: requirePermission('ai:hub:access')
     .input(z.object({ name: z.string().optional(), mode: z.string().optional(), config: z.record(z.string(), jsonValue).optional() }))
     .mutation(() => ({ success: true })),
 
   // 更新（兼容占位符接口）
-  update: protectedProcedure
+  update: requirePermission('ai:hub:access')
     .input(z.object({ id: z.string(), name: z.string().optional(), mode: z.string().optional(), config: z.record(z.string(), jsonValue).optional() }))
     .mutation(() => ({ success: true })),
   
   // 删除（兼容占位符接口）
-  delete: protectedProcedure
+  delete: requirePermission('ai:hub:access')
     .input(z.object({ id: z.string() }))
     .mutation(() => ({ success: true })),
 });

@@ -15,7 +15,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -80,6 +80,12 @@ function createMockDb() {
 
 const mockDb = createMockDb();
 
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => mockDb),
 }));
@@ -93,6 +99,9 @@ vi.mock("../../drizzle/smart-meetings-schema", () => ({
     status: "status",
     description: "description",
     transcript: "transcript",
+    aiSummary: "aiSummary",
+    projectId: "projectId",
+    departmentId: "departmentId",
     organizerName: "organizerName",
     organizerId: "organizerId",
     scheduledStart: "scheduledStart",
@@ -102,6 +111,10 @@ vi.mock("../../drizzle/smart-meetings-schema", () => ({
     expectedAttendees: "expectedAttendees",
     teamsUrl: "teamsUrl",
     aiQuizQuestions: "aiQuizQuestions",
+    stageCode: "stageCode",
+    meetingCategory: "meetingCategory",
+    direction: "direction",
+    tProjectId: "tProjectId",
     createdAt: "createdAt",
     updatedAt: "updatedAt",
   },
@@ -294,6 +307,7 @@ const mockSubmitTask = vi.fn().mockResolvedValue({ taskId: 42 });
 const mockGetTaskStatus = vi.fn().mockResolvedValue({ id: 42, status: "completed", resultData: {} });
 
 vi.mock("../services/task-worker.service", () => ({
+  registerTaskHandler: vi.fn(),
   submitTask: (...args: any[]) => mockSubmitTask(...args),
   getTaskStatus: (...args: any[]) => mockGetTaskStatus(...args),
 }));
@@ -324,7 +338,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns list of meetings with default limit", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const meetings = [
           { id: 1, title: "Meeting 1", status: "LIVE" },
           { id: 2, title: "Meeting 2", status: "UPCOMING" },
@@ -336,7 +350,7 @@ describe("smartMeeting router", () => {
       });
 
       it("filters by status and type when provided", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [{ id: 1, title: "Major Live", status: "LIVE", type: "MAJOR" }];
         const result = await caller.smartMeeting.meeting.list({
           status: "LIVE",
@@ -347,7 +361,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns empty array when no meetings", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [];
         const result = await caller.smartMeeting.meeting.list();
         expect(result).toEqual([]);
@@ -363,7 +377,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns meeting when found", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const meeting = { id: 1, title: "Test Meeting", status: "LIVE" };
         mockQueryResult = [meeting];
         const result = await caller.smartMeeting.meeting.getById({ id: 1 });
@@ -371,14 +385,14 @@ describe("smartMeeting router", () => {
       });
 
       it("returns null when not found", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [];
         const result = await caller.smartMeeting.meeting.getById({ id: 999 });
         expect(result).toBeNull();
       });
 
       it("accepts string id", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const meeting = { id: 42, title: "String ID Meeting" };
         mockQueryResult = [meeting];
         const result = await caller.smartMeeting.meeting.getById({ id: "42" });
@@ -395,7 +409,7 @@ describe("smartMeeting router", () => {
       });
 
       it("creates a meeting with required fields", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const created = {
           id: 1,
           title: "New Meeting",
@@ -411,7 +425,7 @@ describe("smartMeeting router", () => {
       });
 
       it("creates a meeting with all optional fields", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const created = {
           id: 2,
           title: "Full Meeting",
@@ -436,14 +450,14 @@ describe("smartMeeting router", () => {
       });
 
       it("rejects empty title", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.smartMeeting.meeting.create({ title: "" })
         ).rejects.toThrow();
       });
 
       it("rejects invalid type enum", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.smartMeeting.meeting.create({
             title: "Test",
@@ -462,7 +476,7 @@ describe("smartMeeting router", () => {
       });
 
       it("transitions to LIVE", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const updated = { id: 1, status: "LIVE", actualStart: new Date() };
         mockReturningResult = [updated];
         const result = await caller.smartMeeting.meeting.updateStatus({
@@ -473,7 +487,7 @@ describe("smartMeeting router", () => {
       });
 
       it("transitions to ENDED", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const updated = { id: 1, status: "ENDED", actualEnd: new Date() };
         mockReturningResult = [updated];
         const result = await caller.smartMeeting.meeting.updateStatus({
@@ -484,7 +498,7 @@ describe("smartMeeting router", () => {
       });
 
       it("accepts string id", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockReturningResult = [{ id: 5, status: "UPCOMING" }];
         const result = await caller.smartMeeting.meeting.updateStatus({
           id: "5",
@@ -494,7 +508,7 @@ describe("smartMeeting router", () => {
       });
 
       it("rejects invalid status enum", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.smartMeeting.meeting.updateStatus({
             id: 1,
@@ -516,7 +530,7 @@ describe("smartMeeting router", () => {
       });
 
       it("updates transcript successfully", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const updated = {
           id: 1,
           transcript: "New transcript content",
@@ -540,7 +554,7 @@ describe("smartMeeting router", () => {
       });
 
       it("throws when meeting not found", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [];
         await expect(
           caller.smartMeeting.meeting.generateQuiz({ id: 999 })
@@ -548,7 +562,7 @@ describe("smartMeeting router", () => {
       });
 
       it("submits task and returns taskId with processing status", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([
           {
             id: 1,
@@ -568,7 +582,7 @@ describe("smartMeeting router", () => {
       });
 
       it("calls submitTask with MEETING_QUIZ_GENERATE type", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([
           {
             id: 5,
@@ -589,7 +603,7 @@ describe("smartMeeting router", () => {
       });
 
       it("uses description when transcript is missing", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([
           {
             id: 1,
@@ -606,7 +620,7 @@ describe("smartMeeting router", () => {
       });
 
       it("uses title as fallback when both transcript and description are missing", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([
           {
             id: 1,
@@ -623,7 +637,7 @@ describe("smartMeeting router", () => {
       });
 
       it("propagates submitTask failure", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockSubmitTask.mockRejectedValueOnce(new Error("Queue unavailable"));
         selectResultsQueue.push([
           {
@@ -648,7 +662,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns completed status with quiz questions", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const questions = [
           { id: 1, question: "Q1?", type: "MULTIPLE_CHOICE", options: ["A", "B"], correctAnswer: "A" },
           { id: 2, question: "Q2?", type: "TRUE_FALSE", options: ["True", "False"], correctAnswer: "True" },
@@ -668,7 +682,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns not_found when task does not exist", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockGetTaskStatus.mockResolvedValue(null);
 
         const result = await caller.smartMeeting.meeting.getQuizStatus({
@@ -680,7 +694,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns pending status while task is queued", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockGetTaskStatus.mockResolvedValue({
           id: 42,
           status: "pending",
@@ -696,7 +710,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns processing status while task is running", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockGetTaskStatus.mockResolvedValue({
           id: 42,
           status: "processing",
@@ -712,7 +726,7 @@ describe("smartMeeting router", () => {
       });
 
       it("falls back to meeting quiz questions on task failure", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const existingQuestions = [
           { id: 1, question: "Existing?", type: "MULTIPLE_CHOICE", options: ["A"], correctAnswer: "A" },
         ];
@@ -734,7 +748,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns failed status when no fallback quiz exists", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockGetTaskStatus.mockResolvedValue({
           id: 42,
           status: "failed",
@@ -754,7 +768,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns failed when meeting not found in fallback", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockGetTaskStatus.mockResolvedValue({
           id: 42,
           status: "failed",
@@ -782,7 +796,7 @@ describe("smartMeeting router", () => {
       });
 
       it("throws when meeting not found", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [];
         await expect(
           caller.smartMeeting.meeting.createTeamsLink({ meetingId: 999 })
@@ -790,7 +804,7 @@ describe("smartMeeting router", () => {
       });
 
       it("creates Teams link and updates meeting", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([
           {
             id: 1,
@@ -820,7 +834,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns aggregated stats by status and type", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         // First query: status counts
         selectResultsQueue.push([
           { status: "LIVE", count: 3 },
@@ -845,7 +859,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns empty objects when no meetings exist", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([]);
         selectResultsQueue.push([]);
         const result = await caller.smartMeeting.meeting.getStats();
@@ -868,7 +882,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns attendance records for a meeting", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const records = [
           { id: 1, meetingId: 1, userId: 10, status: "PRESENT_PHYSICAL" },
           { id: 2, meetingId: 1, userId: 11, status: "ABSENT" },
@@ -881,7 +895,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns empty array when no records", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [];
         const result = await caller.smartMeeting.attendance.listByMeeting({
           id: 1,
@@ -902,7 +916,7 @@ describe("smartMeeting router", () => {
       });
 
       it("creates new attendance record when none exists", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         // First select: check existing (none found)
         selectResultsQueue.push([]);
         // Insert returning
@@ -922,7 +936,7 @@ describe("smartMeeting router", () => {
       });
 
       it("updates existing attendance record when one exists", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         // First select: check existing (found one)
         selectResultsQueue.push([{ id: 5, meetingId: 1, userId: 1, status: "ABSENT" }]);
         // Update returning
@@ -942,7 +956,7 @@ describe("smartMeeting router", () => {
       });
 
       it("accepts optional checkInMethod", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([]);
         mockReturningResult = [
           { id: 1, meetingId: 1, userId: 1, status: "PRESENT_PHYSICAL", checkInMethod: "NFC" },
@@ -956,7 +970,7 @@ describe("smartMeeting router", () => {
       });
 
       it("rejects invalid status enum", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.smartMeeting.attendance.checkIn({
             meetingId: 1,
@@ -978,7 +992,7 @@ describe("smartMeeting router", () => {
       });
 
       it("creates new leave record when no existing record", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([]);
         const newRecord = {
           id: 1,
@@ -997,7 +1011,7 @@ describe("smartMeeting router", () => {
       });
 
       it("updates existing record to LEAVED", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([
           { id: 3, meetingId: 1, userId: 1, status: "PRESENT_PHYSICAL" },
         ]);
@@ -1027,7 +1041,7 @@ describe("smartMeeting router", () => {
       });
 
       it("creates an ABSENT record", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const record = {
           id: 1,
           meetingId: 1,
@@ -1044,7 +1058,7 @@ describe("smartMeeting router", () => {
       });
 
       it("uses ctx.user.name for userName", async () => {
-        const caller = createAuthenticatedCaller({ name: "Custom Name" });
+        const caller = createAdminCaller({ name: "Custom Name" });
         mockReturningResult = [
           { id: 1, meetingId: 1, userId: 1, userName: "Custom Name", status: "ABSENT" },
         ];
@@ -1072,7 +1086,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns interaction when found", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const interaction = {
           id: 1,
           meetingId: 1,
@@ -1088,7 +1102,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns null when not found", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [];
         const result = await caller.smartMeeting.interaction.getByUser({
           meetingId: 1,
@@ -1110,7 +1124,7 @@ describe("smartMeeting router", () => {
       });
 
       it("creates new interaction when none exists", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([]);
         const newRecord = {
           id: 1,
@@ -1128,7 +1142,7 @@ describe("smartMeeting router", () => {
       });
 
       it("updates existing interaction notes", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([
           { id: 5, meetingId: 1, userId: 1, personalNotes: "Old notes" },
         ]);
@@ -1161,7 +1175,7 @@ describe("smartMeeting router", () => {
       });
 
       it("creates new quiz record when none exists", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([]);
         const answers = [
           { questionId: 1, selectedAnswer: "A", isCorrect: true },
@@ -1184,7 +1198,7 @@ describe("smartMeeting router", () => {
       });
 
       it("updates existing quiz record", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([
           { id: 3, meetingId: 1, userId: 1, aiQuizScore: 50 },
         ]);
@@ -1212,7 +1226,7 @@ describe("smartMeeting router", () => {
       });
 
       it("creates new reflection when none exists", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([]);
         const newRecord = {
           id: 1,
@@ -1230,7 +1244,7 @@ describe("smartMeeting router", () => {
       });
 
       it("updates existing reflection", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([
           { id: 7, meetingId: 1, userId: 1, takeawayReflection: "Old" },
         ]);
@@ -1262,7 +1276,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns list of penalties with default limit", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const penalties = [
           { id: 1, userId: 10, penaltyLevel: "WARNING" },
           { id: 2, userId: 11, penaltyLevel: "BLACK_L2" },
@@ -1273,7 +1287,7 @@ describe("smartMeeting router", () => {
       });
 
       it("filters by userId and penaltyLevel", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [{ id: 1, userId: 10, penaltyLevel: "WARNING" }];
         const result = await caller.smartMeeting.penalty.list({
           userId: 10,
@@ -1284,7 +1298,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns empty array when no penalties", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [];
         const result = await caller.smartMeeting.penalty.list();
         expect(result).toEqual([]);
@@ -1303,7 +1317,7 @@ describe("smartMeeting router", () => {
       });
 
       it("processes absences and returns actions", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const result = await caller.smartMeeting.penalty.processAbsences({
           meetingId: 1,
           meetingType: "MAJOR",
@@ -1315,7 +1329,7 @@ describe("smartMeeting router", () => {
       });
 
       it("processes MINOR meeting absences", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockProcessAbsences.mockResolvedValueOnce([]);
         const result = await caller.smartMeeting.penalty.processAbsences({
           meetingId: 2,
@@ -1327,7 +1341,7 @@ describe("smartMeeting router", () => {
       });
 
       it("rejects invalid meetingType enum", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.smartMeeting.penalty.processAbsences({
             meetingId: 1,
@@ -1346,7 +1360,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns penalty stats by level", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [
           { level: "WARNING", count: 5 },
           { level: "BLACK_L2", count: 2 },
@@ -1361,7 +1375,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns empty stats when no penalties", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [];
         const result = await caller.smartMeeting.penalty.getStats();
         expect(result.byLevel).toEqual({});
@@ -1382,7 +1396,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns empty array for meeting with no chat", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const result = await caller.smartMeeting.chat.getMessages({
           id: 99999,
         });
@@ -1402,7 +1416,7 @@ describe("smartMeeting router", () => {
       });
 
       it("sends message and returns it", async () => {
-        const caller = createAuthenticatedCaller({ id: 42, name: "Alice" });
+        const caller = createAdminCaller({ id: 42, name: "Alice" });
         const result = await caller.smartMeeting.chat.sendMessage({
           meetingId: 50000,
           message: "Hello everyone!",
@@ -1415,7 +1429,7 @@ describe("smartMeeting router", () => {
 
       it("messages persist in chat store and can be retrieved", async () => {
         const meetingId = 50001;
-        const caller = createAuthenticatedCaller({ id: 1, name: "Test User" });
+        const caller = createAdminCaller({ id: 1, name: "Test User" });
         await caller.smartMeeting.chat.sendMessage({
           meetingId,
           message: "First message",
@@ -1433,7 +1447,7 @@ describe("smartMeeting router", () => {
       });
 
       it("rejects empty message", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.smartMeeting.chat.sendMessage({
             meetingId: 1,
@@ -1443,7 +1457,7 @@ describe("smartMeeting router", () => {
       });
 
       it("falls back to User#id when name is missing", async () => {
-        const caller = createAuthenticatedCaller({ id: 77, name: undefined as any });
+        const caller = createAdminCaller({ id: 77, name: undefined as any });
         const result = await caller.smartMeeting.chat.sendMessage({
           meetingId: 50002,
           message: "No name user",
@@ -1466,8 +1480,8 @@ describe("smartMeeting router", () => {
       });
 
       it("returns existing meeting if demo already seeded", async () => {
-        const caller = createAuthenticatedCaller();
-        const existing = { id: 1, title: "GRT 2026 demo" };
+        const caller = createAdminCaller();
+        const existing = { id: 1, title: "GRT 2026 demo", aiSummary: { highlights: ["test"] } };
         selectResultsQueue.push([existing]);
         const result = await caller.smartMeeting.seed.seedDemo();
         expect(result).toHaveProperty("message", "Demo meeting already exists");
@@ -1475,7 +1489,7 @@ describe("smartMeeting router", () => {
       });
 
       it("seeds new demo meeting when none exists", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         // Check existing: none found
         selectResultsQueue.push([]);
         // Insert returning: new meeting
@@ -1502,7 +1516,7 @@ describe("smartMeeting router", () => {
       });
 
       it("runs diarization analysis and returns result", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const result = await caller.smartMeeting.speaker.analyze({
           meetingId: 1,
         });
@@ -1514,7 +1528,7 @@ describe("smartMeeting router", () => {
       });
 
       it("accepts string meetingId", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await caller.smartMeeting.speaker.analyze({ meetingId: "42" });
         expect(mockAnalyzeMeetingAudio).toHaveBeenCalledWith(42);
       });
@@ -1529,7 +1543,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns speakers for a meeting", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const speakers = [
           { id: 1, meetingId: 1, speakerLabel: "Speaker 1" },
           { id: 2, meetingId: 1, speakerLabel: "Speaker 2" },
@@ -1542,7 +1556,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns empty array when no speakers", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [];
         const result = await caller.smartMeeting.speaker.listByMeeting({
           meetingId: 999,
@@ -1565,7 +1579,7 @@ describe("smartMeeting router", () => {
       });
 
       it("binds speaker to a profile", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const updated = {
           id: 1,
           matchedProfileId: 100,
@@ -1585,7 +1599,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns null when speaker not found", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockReturningResult = [];
         const result = await caller.smartMeeting.speaker.bindProfile({
           speakerId: 999,
@@ -1597,7 +1611,7 @@ describe("smartMeeting router", () => {
       });
 
       it("rejects invalid profileType enum", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.smartMeeting.speaker.bindProfile({
             speakerId: 1,
@@ -1609,7 +1623,7 @@ describe("smartMeeting router", () => {
       });
 
       it("accepts EXTERNAL profileType", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockReturningResult = [
           { id: 1, matchedProfileType: "EXTERNAL", matchedProfileName: "External Speaker" },
         ];
@@ -1632,7 +1646,7 @@ describe("smartMeeting router", () => {
       });
 
       it("resets speaker profile to unknown", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const updated = {
           id: 1,
           matchedProfileId: null,
@@ -1652,7 +1666,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns null when speaker not found", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockReturningResult = [];
         const result = await caller.smartMeeting.speaker.unbindProfile({
           speakerId: 999,
@@ -1661,7 +1675,7 @@ describe("smartMeeting router", () => {
       });
 
       it("accepts string speakerId", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockReturningResult = [{ id: 42, matchedProfileId: null }];
         const result = await caller.smartMeeting.speaker.unbindProfile({
           speakerId: "42",
@@ -1684,7 +1698,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns ROI for a meeting", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const result = await caller.smartMeeting.analytics.meetingRoi({
           meetingId: 1,
         });
@@ -1699,7 +1713,7 @@ describe("smartMeeting router", () => {
       });
 
       it("accepts string meetingId", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await caller.smartMeeting.analytics.meetingRoi({ meetingId: "5" });
         expect(mockCalculateMeetingROI).toHaveBeenCalledWith(5);
       });
@@ -1714,7 +1728,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns aggregated ROI across all meetings", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const result = await caller.smartMeeting.analytics.aggregatedRoi();
         expect(result).toHaveProperty("totalMeetings", 3);
         expect(result).toHaveProperty("avgRoiScore", 65);
@@ -1745,7 +1759,7 @@ describe("smartMeeting router", () => {
       });
 
       it("creates a review meeting with speakers and evaluators", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const meeting = { id: 10, title: "Annual Review", type: "MAJOR", status: "LIVE" };
         mockReturningResult = [meeting];
         const result = await caller.smartMeeting.review.createReviewMeeting({
@@ -1766,7 +1780,7 @@ describe("smartMeeting router", () => {
       });
 
       it("accepts optional teamsLink", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockReturningResult = [{ id: 11, title: "Review with Teams" }];
         const result = await caller.smartMeeting.review.createReviewMeeting({
           title: "Review with Teams",
@@ -1778,7 +1792,7 @@ describe("smartMeeting router", () => {
       });
 
       it("rejects empty title", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.smartMeeting.review.createReviewMeeting({
             title: "",
@@ -1803,7 +1817,7 @@ describe("smartMeeting router", () => {
       });
 
       it("submits evaluation (delete then insert upsert)", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const evaluation = {
           id: 1,
           meetingId: 1,
@@ -1827,7 +1841,7 @@ describe("smartMeeting router", () => {
       });
 
       it("validates score range (min 1, max 10)", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.smartMeeting.review.submitEvaluation({
             meetingId: 1,
@@ -1847,7 +1861,7 @@ describe("smartMeeting router", () => {
       });
 
       it("rejects invalid dimension", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.smartMeeting.review.submitEvaluation({
             meetingId: 1,
@@ -1859,7 +1873,7 @@ describe("smartMeeting router", () => {
       });
 
       it("accepts all valid dimension values", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const dimensions = ["performance", "execution", "innovation", "teamwork", "strategy"] as const;
         for (const dim of dimensions) {
           mockReturningResult = [
@@ -1876,7 +1890,7 @@ describe("smartMeeting router", () => {
       });
 
       it("includes optional speakerName and comment", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockReturningResult = [
           {
             id: 1,
@@ -1910,7 +1924,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns evaluations grouped by speaker", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [
           { speakerId: 201, speakerName: "Speaker A", dimension: "performance", score: 8, evaluatorId: 1 },
           { speakerId: 201, speakerName: "Speaker A", dimension: "execution", score: 7, evaluatorId: 1 },
@@ -1928,7 +1942,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns empty object when no evaluations", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [];
         const result = await caller.smartMeeting.review.getEvaluations({
           meetingId: 999,
@@ -1946,7 +1960,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns analysis with radar data and rankings", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [
           { speakerId: 201, speakerName: "Speaker A", dimension: "performance", score: 8 },
           { speakerId: 201, speakerName: "Speaker A", dimension: "execution", score: 7 },
@@ -1978,7 +1992,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns empty analysis when no evaluations", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [];
         const result = await caller.smartMeeting.review.getAnalysis({
           meetingId: 999,
@@ -1988,7 +2002,7 @@ describe("smartMeeting router", () => {
       });
 
       it("handles multiple evaluators for the same dimension (averages scores)", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [
           { speakerId: 201, speakerName: "Speaker A", dimension: "performance", score: 8 },
           { speakerId: 201, speakerName: "Speaker A", dimension: "performance", score: 6 },
@@ -2006,7 +2020,7 @@ describe("smartMeeting router", () => {
       });
 
       it("handles null scores gracefully", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockQueryResult = [
           { speakerId: 201, speakerName: "Speaker A", dimension: "performance", score: null },
           { speakerId: 201, speakerName: "Speaker A", dimension: "execution", score: 8 },
@@ -2033,7 +2047,7 @@ describe("smartMeeting router", () => {
       });
 
       it("returns existing if review demo already seeded", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         selectResultsQueue.push([{ id: 5, title: "Existing Review" }]);
         const result = await caller.smartMeeting.review.seedDemo();
         expect(result).toHaveProperty(
@@ -2044,7 +2058,7 @@ describe("smartMeeting router", () => {
       });
 
       it("seeds review demo with meeting + evaluations", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         // First query: check existing (none)
         selectResultsQueue.push([]);
         // Insert returning: new meeting
@@ -2059,6 +2073,134 @@ describe("smartMeeting router", () => {
         // Should have called insert at least twice (meeting + evaluations)
         expect(mockDb.insert).toHaveBeenCalled();
       });
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  //  createStageMeeting
+  // ═══════════════════════════════════════════════════════════
+  describe("meeting.createStageMeeting", () => {
+    it("should reject anonymous callers", async () => {
+      const caller = createAnonymousCaller();
+      await expect(
+        caller.smartMeeting.meeting.createStageMeeting({
+          title: "M3 立项评审",
+          stageCode: "M3",
+          meetingCategory: "GATE_REVIEW",
+          direction: "INTERNAL",
+        })
+      ).rejects.toThrow();
+    });
+
+    it("should create meeting with stage, category, direction", async () => {
+      const admin = createAdminCaller();
+      mockReturningResult = [{
+        id: 50,
+        title: "M3 立项评审",
+        stageCode: "M3",
+        meetingCategory: "GATE_REVIEW",
+        direction: "INTERNAL",
+        type: "MINOR",
+        status: "UPCOMING",
+      }];
+      const result = await admin.smartMeeting.meeting.createStageMeeting({
+        title: "M3 立项评审",
+        stageCode: "M3",
+        meetingCategory: "GATE_REVIEW",
+        direction: "INTERNAL",
+      });
+      expect(result.id).toBe(50);
+      expect(result.stageCode).toBe("M3");
+      expect(result.meetingCategory).toBe("GATE_REVIEW");
+      expect(result.direction).toBe("INTERNAL");
+    });
+
+    it("should reject invalid stageCode", async () => {
+      const admin = createAdminCaller();
+      await expect(
+        admin.smartMeeting.meeting.createStageMeeting({
+          title: "Test",
+          stageCode: "M99" as any,
+          meetingCategory: "OTHER",
+          direction: "INTERNAL",
+        })
+      ).rejects.toThrow();
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  //  listMeetingsByStage
+  // ═══════════════════════════════════════════════════════════
+  describe("meeting.listMeetingsByStage", () => {
+    it("should return meetings filtered by stageCode", async () => {
+      const admin = createAdminCaller();
+      selectResultsQueue.push([
+        { id: 1, title: "M3 Review", stageCode: "M3" },
+        { id: 2, title: "M3 Customer", stageCode: "M3" },
+      ]);
+      const result = await admin.smartMeeting.meeting.listMeetingsByStage({
+        stageCode: "M3",
+      });
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBe(2);
+    });
+
+    it("should return meetings filtered by category", async () => {
+      const admin = createAdminCaller();
+      selectResultsQueue.push([
+        { id: 10, title: "Gate Review 1", meetingCategory: "GATE_REVIEW" },
+      ]);
+      const result = await admin.smartMeeting.meeting.listMeetingsByStage({
+        meetingCategory: "GATE_REVIEW",
+      });
+      expect(result.length).toBe(1);
+    });
+
+    it("should return meetings filtered by direction", async () => {
+      const admin = createAdminCaller();
+      selectResultsQueue.push([
+        { id: 20, title: "Customer Meeting", direction: "EXTERNAL" },
+      ]);
+      const result = await admin.smartMeeting.meeting.listMeetingsByStage({
+        direction: "EXTERNAL",
+      });
+      expect(result.length).toBe(1);
+    });
+
+    it("should return all meetings without filters", async () => {
+      const admin = createAdminCaller();
+      selectResultsQueue.push([
+        { id: 1 }, { id: 2 }, { id: 3 },
+      ]);
+      const result = await admin.smartMeeting.meeting.listMeetingsByStage();
+      expect(result.length).toBe(3);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  //  create with new fields
+  // ═══════════════════════════════════════════════════════════
+  describe("meeting.create with stageCode/category/direction", () => {
+    it("should accept new fields in create mutation", async () => {
+      const admin = createAdminCaller();
+      mockReturningResult = [{
+        id: 60,
+        title: "M5 Design Review",
+        stageCode: "M5",
+        meetingCategory: "DESIGN_REVIEW",
+        direction: "INTERNAL",
+        type: "MINOR",
+        status: "UPCOMING",
+      }];
+      const result = await admin.smartMeeting.meeting.create({
+        title: "M5 Design Review",
+        stageCode: "M5",
+        meetingCategory: "DESIGN_REVIEW",
+        direction: "INTERNAL",
+      });
+      expect(result.stageCode).toBe("M5");
+      expect(result.meetingCategory).toBe("DESIGN_REVIEW");
+      expect(result.direction).toBe("INTERNAL");
     });
   });
 });

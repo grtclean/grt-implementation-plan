@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { jsonValue } from "@shared/validators";
 import { aiChatSessions, aiChatMessages, aiChatTemplates } from "../../drizzle/schema";
@@ -7,7 +7,7 @@ import { eq, desc } from "drizzle-orm";
 import { submitTask, getTaskStatus } from "../services/task-worker.service";
 
 export const aiChatRouter = router({
-  sendMessage: protectedProcedure.input(z.object({
+  sendMessage: requirePermission('ai:assistant:chat').input(z.object({
     sessionId: z.number().optional(),
     assistantType: z.enum(["solution", "quotation", "planning", "kpi", "personal"]).optional(),
     message: z.string().min(1),

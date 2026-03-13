@@ -325,7 +325,7 @@ export const performanceRecordRouter = router({
   /**
    * seedDemo — create demo performance records
    */
-  seedDemo: protectedProcedure.mutation(async () => {
+  seedDemo: requirePermission('hr:performance:manage').mutation(async () => {
     const db = await requireDb();
 
     // Ensure table exists

@@ -7,18 +7,18 @@
  *   - seedFleet: insert demo fleet data
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import * as iotSvc from "./iot-digital-twin.service";
 import { requireDb } from "../db";
 import { eq, desc, count, sql } from "drizzle-orm";
 import { iotFleetMachines, iotPredictiveAlerts } from "../../drizzle/schema";
 
 export const iotDigitalTwinRouter = router({
-  register: protectedProcedure
+  register: requirePermission('rnd:digital-twin:view')
     .input(z.object({ equipmentId: z.number(), equipmentCode: z.string().optional(), equipmentName: z.string().optional(), location: z.string().optional(), metadata: z.string().optional() }))
     .mutation(async ({ input }) => { return iotSvc.registerEquipment(input); }),
 
-  updateTelemetry: protectedProcedure
+  updateTelemetry: requirePermission('rnd:digital-twin:view')
     .input(z.object({ equipmentId: z.number(), metricType: z.string(), value: z.number(), unit: z.string().optional() }))
     .mutation(async ({ input }) => { return iotSvc.updateTelemetry(input.equipmentId, input); }),
 
@@ -30,7 +30,7 @@ export const iotDigitalTwinRouter = router({
     .input(z.object({ equipmentId: z.number().optional() }).optional())
     .query(async ({ input }) => { return iotSvc.getAlerts(input?.equipmentId); }),
 
-  predictMaintenance: protectedProcedure
+  predictMaintenance: requirePermission('rnd:digital-twin:view')
     .input(z.object({ equipmentId: z.number() }))
     .mutation(async ({ input }) => { return iotSvc.predictMaintenance(input.equipmentId); }),
 
@@ -39,7 +39,8 @@ export const iotDigitalTwinRouter = router({
     try {
       const db = await requireDb();
       const machines = await db.select().from(iotFleetMachines)
-        .orderBy(iotFleetMachines.machineId);
+        .orderBy(iotFleetMachines.machineId)
+      .limit(1000);
       const alerts = await db.select().from(iotPredictiveAlerts)
         .where(eq(iotPredictiveAlerts.status, "active"))
         .orderBy(desc(iotPredictiveAlerts.createdAt))
@@ -68,7 +69,7 @@ export const iotDigitalTwinRouter = router({
   }),
 
   /** Seed fleet demo data */
-  seedFleet: protectedProcedure.mutation(async () => {
+  seedFleet: requirePermission('rnd:digital-twin:view').mutation(async () => {
     try {
       const db = await requireDb();
       const [existing] = await db.select({ value: count() }).from(iotFleetMachines);

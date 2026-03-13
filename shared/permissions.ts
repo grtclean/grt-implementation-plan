@@ -42,6 +42,8 @@ export const SYSTEM_ROLES: SystemRole[] = [
   { id: "cs_engineer", name: "客服工程师", nameEn: "Customer Service Engineer", description: "客户服务工程师，负责维修和现场支持", level: 2 },
   { id: "procurement_eng", name: "采购工程师", nameEn: "Procurement Engineer", description: "采购工程师，负责供应链和采购管理", level: 2 },
   { id: "quality_eng", name: "质量工程师", nameEn: "Quality Engineer", description: "质量工程师，负责FMEA/PPAP/8D", level: 2 },
+  // External roles
+  { id: "customer", name: "客户代表", nameEn: "Customer Representative", description: "外部客户在GRT客户门户中的受控访问角色", level: 0 },
   // System admin
   { id: "admin", name: "系统管理员", nameEn: "System Admin", description: "系统管理权限", level: 10 },
 ];
@@ -120,6 +122,12 @@ export const FUNCTION_MODULES: FunctionModule[] = [
   { id: "sys_audit_log", name: "审计日志", nameEn: "Audit Log", category: "System", description: "操作日志", sensitivityLevel: "high" },
   { id: "sys_scheduler", name: "定时任务", nameEn: "Scheduler", category: "System", description: "定时任务管理", sensitivityLevel: "high" },
   { id: "sys_config", name: "系统配置", nameEn: "System Config", category: "System", description: "系统参数配置", sensitivityLevel: "high" },
+  // PDM模块
+  { id: "pdm", name: "产品数据管理", nameEn: "Product Data Management", category: "R&D", description: "PDM产品全生命周期数据管理", sensitivityLevel: "medium" },
+  // Go-Live模块
+  { id: "go_live", name: "上线指挥中心", nameEn: "Go-Live Command Center", category: "System", description: "上线就绪评估、薪资导入、编码合规、军团模拟", sensitivityLevel: "high" },
+  // Smart Payroll模块
+  { id: "smart_payroll", name: "智能薪酬引擎", nameEn: "Smart Payroll Engine", category: "Finance", description: "薪资计算、审批流转、个税阶梯、五险一金", sensitivityLevel: "critical" },
 ];
 
 // ============================================

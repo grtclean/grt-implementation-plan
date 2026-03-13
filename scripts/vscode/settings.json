@@ -1,0 +1,70 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  "tailwindCSS.experimental.classRegex": [
+    ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*)[\"'`]"],
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*)[\"'`]"]
+  ],
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+
+  "terminal.integrated.defaultProfile.windows": "Git Bash",
+  "terminal.integrated.env.windows": {
+    "GRT_PROJECT_ID": "1",
+    "GRT_API_BASE": "http://localhost:5000"
+  },
+  "terminal.integrated.env.linux": {
+    "GRT_PROJECT_ID": "1",
+    "GRT_API_BASE": "http://localhost:5000"
+  },
+
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/coverage": true,
+    "**/.claude": true,
+    "**/.git": true
+  },
+
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+
+  "path-intellisense.mappings": {
+    "@": "${workspaceFolder}/client/src",
+    "@shared": "${workspaceFolder}/shared"
+  },
+
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "grt.whitepaper": "doc/whitepaper-system-map.md",
+  "grt.architecture": {
+    "closedLoop": "server/services/oiling-control-guard.service.ts",
+    "conflictCheck": "server/services/design-conflict-check.service.ts",
+    "sensorFusion": "server/services/sensor-fusion.service.ts",
+    "sharepoint": "server/services/microsoft-graph/sharepoint-site.service.ts",
+    "aei": "server/routers/aei-extended.router.ts",
+    "ctoDashboard": "server/routers/cto-dashboard.router.ts",
+    "ceoDashboard": "server/routers/ceo-dashboard.router.ts",
+    "devEnvInit": "server/routers/dev-env.router.ts"
+  }
+}

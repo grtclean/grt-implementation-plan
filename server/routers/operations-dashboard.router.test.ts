@@ -40,7 +40,7 @@ vi.mock("drizzle-orm", () => ({
 
 // ─── Import callers AFTER mocks ─────────────────────────────────────
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -94,7 +94,7 @@ describe("operationsDashboard.getPositions", () => {
     // Actual query
     executeResults.push({ rows: [{ items: samplePositions }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getPositions();
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
@@ -106,7 +106,7 @@ describe("operationsDashboard.getPositions", () => {
     // After first call, _opsDashReady is true — no bootstrap execute calls
     executeResults.push({ rows: [{ items: samplePositions }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getPositions();
     expect(result).toHaveLength(2);
     expect(result[0].id).toBe(1);
@@ -116,7 +116,7 @@ describe("operationsDashboard.getPositions", () => {
   it("returns empty array when rows is empty", async () => {
     executeResults.push({ rows: [] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getPositions();
     expect(result).toEqual([]);
   });
@@ -124,7 +124,7 @@ describe("operationsDashboard.getPositions", () => {
   it("returns empty array when items is undefined", async () => {
     executeResults.push({ rows: [{}] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getPositions();
     expect(result).toEqual([]);
   });
@@ -142,7 +142,7 @@ describe("operationsDashboard.getGanttTasks", () => {
   it("returns gantt tasks when data exists", async () => {
     executeResults.push({ rows: [{ items: sampleGanttTasks }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getGanttTasks();
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
@@ -154,7 +154,7 @@ describe("operationsDashboard.getGanttTasks", () => {
   it("returns empty array when no rows", async () => {
     executeResults.push({ rows: [] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getGanttTasks();
     expect(result).toEqual([]);
   });
@@ -162,7 +162,7 @@ describe("operationsDashboard.getGanttTasks", () => {
   it("returns empty array when items is missing from row", async () => {
     executeResults.push({ rows: [{ something_else: "data" }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getGanttTasks();
     expect(result).toEqual([]);
   });
@@ -180,7 +180,7 @@ describe("operationsDashboard.getMaterials", () => {
   it("returns materials when data exists", async () => {
     executeResults.push({ rows: [{ items: sampleMaterials }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getMaterials();
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(1);
@@ -192,7 +192,7 @@ describe("operationsDashboard.getMaterials", () => {
   it("returns empty array when no rows", async () => {
     executeResults.push({ rows: [] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getMaterials();
     expect(result).toEqual([]);
   });
@@ -200,7 +200,7 @@ describe("operationsDashboard.getMaterials", () => {
   it("returns empty array when items is null", async () => {
     executeResults.push({ rows: [{ items: null }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getMaterials();
     // null ?? [] → []
     expect(result).toEqual([]);
@@ -219,7 +219,7 @@ describe("operationsDashboard.getProcesses", () => {
   it("returns processes when data exists", async () => {
     executeResults.push({ rows: [{ items: sampleProcesses }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getProcesses();
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
@@ -232,7 +232,7 @@ describe("operationsDashboard.getProcesses", () => {
   it("returns empty array when no rows", async () => {
     executeResults.push({ rows: [] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getProcesses();
     expect(result).toEqual([]);
   });
@@ -240,7 +240,7 @@ describe("operationsDashboard.getProcesses", () => {
   it("returns empty array when row has no items field", async () => {
     executeResults.push({ rows: [{}] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getProcesses();
     expect(result).toEqual([]);
   });
@@ -258,7 +258,7 @@ describe("operationsDashboard.getTeamMembers", () => {
   it("returns team members when data exists", async () => {
     executeResults.push({ rows: [{ items: sampleTeamMembers }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getTeamMembers();
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
@@ -272,7 +272,7 @@ describe("operationsDashboard.getTeamMembers", () => {
   it("returns empty array when no rows", async () => {
     executeResults.push({ rows: [] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getTeamMembers();
     expect(result).toEqual([]);
   });
@@ -280,7 +280,7 @@ describe("operationsDashboard.getTeamMembers", () => {
   it("returns empty array when items is undefined in row", async () => {
     executeResults.push({ rows: [{ items: undefined }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getTeamMembers();
     // undefined ?? [] → []
     expect(result).toEqual([]);
@@ -299,7 +299,7 @@ describe("operationsDashboard.getUSOrders", () => {
   it("returns US orders when data exists", async () => {
     executeResults.push({ rows: [{ items: sampleUSOrders }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getUSOrders();
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
@@ -313,7 +313,7 @@ describe("operationsDashboard.getUSOrders", () => {
   it("returns empty array when no rows", async () => {
     executeResults.push({ rows: [] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getUSOrders();
     expect(result).toEqual([]);
   });
@@ -321,7 +321,7 @@ describe("operationsDashboard.getUSOrders", () => {
   it("returns empty array when items is null", async () => {
     executeResults.push({ rows: [{ items: null }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getUSOrders();
     expect(result).toEqual([]);
   });
@@ -330,7 +330,7 @@ describe("operationsDashboard.getUSOrders", () => {
     const singleOrder = [{ order_id: "US-2026-0099", customer_name: "Test Customer" }];
     executeResults.push({ rows: [{ items: singleOrder }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.operationsDashboard.getUSOrders();
     expect(result).toHaveLength(1);
     expect(result[0].order_id).toBe("US-2026-0099");
@@ -354,7 +354,7 @@ describe("operationsDashboard — bootstrap behavior", () => {
     executeResults.push({ rows: [{ items: sampleGanttTasks }] });
     executeResults.push({ rows: [{ items: sampleMaterials }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const positions = await caller.operationsDashboard.getPositions();
     expect(positions).toHaveLength(2);
@@ -374,7 +374,7 @@ describe("operationsDashboard — bootstrap behavior", () => {
     executeResults.push({ rows: [{ items: [{ id: 5 }] }] });
     executeResults.push({ rows: [{ items: [{ id: 6 }] }] });
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
 
     const r1 = await caller.operationsDashboard.getPositions();
     expect(r1).toEqual([{ id: 1 }]);

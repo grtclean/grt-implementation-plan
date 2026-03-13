@@ -11,7 +11,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import {
   listChangeEvents,
@@ -106,7 +106,7 @@ export const changeEventRouter = router({
    * 确认变更事件
    * 将状态从 pending 变为 acknowledged
    */
-  acknowledge: protectedProcedure
+  acknowledge: requirePermission('strategy:change:manage')
     .input(
       z.object({
         id: z.number(),
@@ -143,7 +143,7 @@ export const changeEventRouter = router({
   /**
    * 将变更事件标记为已解决
    */
-  resolve: protectedProcedure
+  resolve: requirePermission('strategy:change:manage')
     .input(
       z.object({
         id: z.number(),

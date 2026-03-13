@@ -110,15 +110,15 @@ async function main() {
     stats["user_roles"] = r6.rowCount ?? 0;
     console.log(`[6/8] user_roles: deleted ${stats["user_roles"]} orphaned rows`);
 
-    // 7. Purge JDY import run logs (if table exists)
-    const jdyExists = await client.query(`SELECT to_regclass('public.jiandaoyun_import_runs') AS oid`);
-    if (jdyExists.rows[0]?.oid) {
-      const r7 = await client.query(`DELETE FROM jiandaoyun_import_runs RETURNING id`);
-      stats["jiandaoyun_import_runs"] = r7.rowCount ?? 0;
+    // 7. Purge ext sync import run logs (if table exists)
+    const extSyncExists = await client.query(`SELECT to_regclass('public.ext_sync_import_runs') AS oid`);
+    if (extSyncExists.rows[0]?.oid) {
+      const r7 = await client.query(`DELETE FROM ext_sync_import_runs RETURNING id`);
+      stats["ext_sync_import_runs"] = r7.rowCount ?? 0;
     } else {
-      stats["jiandaoyun_import_runs"] = 0;
+      stats["ext_sync_import_runs"] = 0;
     }
-    console.log(`[7/8] jiandaoyun_import_runs: deleted ${stats["jiandaoyun_import_runs"]} rows`);
+    console.log(`[7/8] ext_sync_import_runs: deleted ${stats["ext_sync_import_runs"]} rows`);
 
     // 8. Purge non-GRT company_employees
     const r8 = await client.query(

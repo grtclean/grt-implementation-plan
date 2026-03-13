@@ -1,5 +1,5 @@
 /**
- * 简道云角色与GRT权限系统映射服务
+ * 外部数据平台角色与GRT权限系统映射服务
  * 实现统一权限管理
  */
 
@@ -59,10 +59,10 @@ export const GRT_PERMISSIONS = {
   AI_ASSISTANT_USE: 'ai:use',
   AI_ASSISTANT_ADMIN: 'ai:admin',
   
-  // 简道云集成
-  JIANDAOYUN_VIEW: 'jiandaoyun:view',
-  JIANDAOYUN_SYNC: 'jiandaoyun:sync',
-  JIANDAOYUN_ADMIN: 'jiandaoyun:admin',
+  // 外部数据平台集成
+  EXT_SYNC_VIEW: 'externalSync:view',
+  EXT_SYNC_SYNC: 'externalSync:sync',
+  EXT_SYNC_ADMIN: 'externalSync:admin',
 } as const;
 
 /**
@@ -88,9 +88,9 @@ export const GRT_ROLES = {
       GRT_PERMISSIONS.USER_CREATE,
       GRT_PERMISSIONS.USER_EDIT,
       GRT_PERMISSIONS.USER_DELETE,
-      GRT_PERMISSIONS.JIANDAOYUN_VIEW,
-      GRT_PERMISSIONS.JIANDAOYUN_SYNC,
-      GRT_PERMISSIONS.JIANDAOYUN_ADMIN,
+      GRT_PERMISSIONS.EXT_SYNC_VIEW,
+      GRT_PERMISSIONS.EXT_SYNC_SYNC,
+      GRT_PERMISSIONS.EXT_SYNC_ADMIN,
     ],
   },
   
@@ -193,7 +193,7 @@ export const GRT_ROLES = {
 } as const;
 
 /**
- * 简道云角色到GRT角色的默认映射规则
+ * 外部数据平台角色到GRT角色的默认映射规则
  */
 export const DEFAULT_ROLE_MAPPINGS: Record<string, string> = {
   // 管理员类
@@ -248,16 +248,16 @@ export class PermissionMappingService {
   }
 
   /**
-   * 根据简道云角色名称获取建议的GRT角色
+   * 根据外部数据平台角色名称获取建议的GRT角色
    */
-  suggestGrtRole(jdyRoleName: string): string {
+  suggestGrtRole(extRoleName: string): string {
     // 精确匹配
-    if (DEFAULT_ROLE_MAPPINGS[jdyRoleName]) {
-      return DEFAULT_ROLE_MAPPINGS[jdyRoleName];
+    if (DEFAULT_ROLE_MAPPINGS[extRoleName]) {
+      return DEFAULT_ROLE_MAPPINGS[extRoleName];
     }
-    
+
     // 模糊匹配
-    const lowerName = jdyRoleName.toLowerCase();
+    const lowerName = extRoleName.toLowerCase();
     for (const [key, value] of Object.entries(DEFAULT_ROLE_MAPPINGS)) {
       if (lowerName.includes(key.toLowerCase()) || key.toLowerCase().includes(lowerName)) {
         return value;
@@ -285,8 +285,8 @@ export class PermissionMappingService {
     // 获取用户的角色映射
     const userMapping = await db.execute(
       drizzleSql`SELECT jrm.grt_role_id, jrm.permission_mapping 
-        FROM jiandaoyun_user_mappings jum
-        LEFT JOIN jiandaoyun_role_mappings jrm ON JSON_CONTAINS(jum.jdy_departments, CAST(jrm.jdy_role_no AS JSON))
+        FROM ext_sync_user_mappings jum
+        LEFT JOIN ext_sync_role_mappings jrm ON JSON_CONTAINS(jum.ext_departments, CAST(jrm.ext_role_no AS JSON))
         WHERE jum.grt_user_id = ${userId}`
     );
     
@@ -322,8 +322,8 @@ export class PermissionMappingService {
     // 获取用户的角色映射
     const userMapping = await db.execute(
       drizzleSql`SELECT jrm.grt_role_id, jrm.permission_mapping 
-        FROM jiandaoyun_user_mappings jum
-        LEFT JOIN jiandaoyun_role_mappings jrm ON jum.id IS NOT NULL
+        FROM ext_sync_user_mappings jum
+        LEFT JOIN ext_sync_role_mappings jrm ON jum.id IS NOT NULL
         WHERE jum.grt_user_id = ${userId}`
     );
     
@@ -354,7 +354,7 @@ export class PermissionMappingService {
   }
 
   /**
-   * 自动映射简道云角色到GRT角色
+   * 自动映射外部数据平台角色到GRT角色
    */
   async autoMapRoles(): Promise<{
     mapped: number;
@@ -368,21 +368,21 @@ export class PermissionMappingService {
       errors: [] as string[],
     };
     
-    // 获取所有未映射的简道云角色
+    // 获取所有未映射的外部数据平台角色
     const unmappedRoles = await db.execute(
-      drizzleSql`SELECT * FROM jiandaoyun_role_mappings WHERE grt_role_id IS NULL OR grt_role_id = ''`
+      drizzleSql`SELECT * FROM ext_sync_role_mappings WHERE grt_role_id IS NULL OR grt_role_id = ''`
     );
     
     const roles = (unmappedRoles as any)[0] || [];
     
     for (const role of roles) {
       try {
-        const suggestedRole = this.suggestGrtRole(role.jdy_role_name);
+        const suggestedRole = this.suggestGrtRole(role.ext_role_name);
         const grtRole = Object.values(GRT_ROLES).find(r => r.id === suggestedRole);
         
         if (grtRole) {
           await db.execute(
-            drizzleSql`UPDATE jiandaoyun_role_mappings 
+            drizzleSql`UPDATE ext_sync_role_mappings 
               SET grt_role_id = ${grtRole.id},
                   grt_role_name = ${grtRole.name},
                   permission_mapping = ${JSON.stringify(Object.fromEntries(grtRole.permissions.map(p => [p, true])))},
@@ -395,7 +395,7 @@ export class PermissionMappingService {
           result.skipped++;
         }
       } catch (error: any) {
-        result.errors.push(`Failed to map role ${role.jdy_role_name}: ${error.message}`);
+        result.errors.push(`Failed to map role ${role.ext_role_name}: ${error.message}`);
       }
     }
     
@@ -418,12 +418,12 @@ export class PermissionMappingService {
         COUNT(*) as total,
         SUM(CASE WHEN grt_role_id IS NOT NULL AND grt_role_id != '' THEN 1 ELSE 0 END) as mapped,
         SUM(CASE WHEN grt_role_id IS NULL OR grt_role_id = '' THEN 1 ELSE 0 END) as unmapped
-      FROM jiandaoyun_role_mappings`
+      FROM ext_sync_role_mappings`
     );
     
     const distributionResult = await db.execute(
       drizzleSql`SELECT grt_role_id, grt_role_name, COUNT(*) as count 
-        FROM jiandaoyun_role_mappings 
+        FROM ext_sync_role_mappings 
         WHERE grt_role_id IS NOT NULL AND grt_role_id != ''
         GROUP BY grt_role_id, grt_role_name`
     );

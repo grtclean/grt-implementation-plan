@@ -121,7 +121,7 @@ function queueExecute(...results: any[]) {
 // Import test utils AFTER mock setup
 // ---------------------------------------------------------------------------
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -208,7 +208,7 @@ describe("rndPipeline router", () => {
   describe("quotation", () => {
     describe("list", () => {
       it("returns items and stats for an empty table", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         // The last execute call is the actual SELECT; bootstrap calls hit default
         // We need to make sure the actual SELECT gets empty rows.
         // Since bootstrap flags may or may not be set, we set a default that works
@@ -242,7 +242,7 @@ describe("rndPipeline router", () => {
       });
 
       it("returns formatted items with stats", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         // We need the final execute call (the SELECT) to return data rows.
         // Bootstrap calls get the default { rows: [{ cnt: 99 }] } which is fine.
         // But the SELECT must return specific rows.
@@ -309,7 +309,7 @@ describe("rndPipeline router", () => {
       });
 
       it("calls execute for search filter", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         // Return empty for everything
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
@@ -321,7 +321,7 @@ describe("rndPipeline router", () => {
       });
 
       it("calls execute for bu filter", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.quotation.list({ bu: "BU1" });
@@ -329,7 +329,7 @@ describe("rndPipeline router", () => {
       });
 
       it("calls execute for both search and bu filters", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.quotation.list({
@@ -340,7 +340,7 @@ describe("rndPipeline router", () => {
       });
 
       it("formats amounts correctly for thousands", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 1, quoteNumber: "QT-001", customer: "C", project: "P",
           bu: "BU3", amount: "5000", currency: "USD", status: "draft",
@@ -353,7 +353,7 @@ describe("rndPipeline router", () => {
       });
 
       it("formats amounts correctly for small values", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 1, quoteNumber: "QT-001", customer: "C", project: "P",
           bu: "BU3", amount: "500", currency: "CNY", status: "draft",
@@ -367,7 +367,7 @@ describe("rndPipeline router", () => {
       });
 
       it("handles NaN amount in formatAmount", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 1, quoteNumber: "QT-001", customer: "C", project: "P",
           bu: "BU3", amount: "not-a-number", currency: "CNY", status: "draft",
@@ -380,7 +380,7 @@ describe("rndPipeline router", () => {
       });
 
       it("returns correct totalAmount and winRate in stats", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [
           {
             id: 1, quoteNumber: "QT-001", customer: "C", project: "P",
@@ -402,7 +402,7 @@ describe("rndPipeline router", () => {
       });
 
       it("handles undefined rows gracefully", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         // Return object without rows — (result.rows as any[]) || [] should give []
         mockExecuteFn.mockResolvedValue({ rows: undefined });
 
@@ -414,7 +414,7 @@ describe("rndPipeline router", () => {
 
     describe("create", () => {
       it("creates a quotation with required fields", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 1, quoteNumber: "QT-2026-123" }],
         });
@@ -428,7 +428,7 @@ describe("rndPipeline router", () => {
       });
 
       it("creates a quotation with all optional fields", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 2, quoteNumber: "QT-2026-456" }],
         });
@@ -444,7 +444,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty customer", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.quotation.create({
             customer: "",
@@ -454,7 +454,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty project", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.quotation.create({
             customer: "Test",
@@ -471,7 +471,7 @@ describe("rndPipeline router", () => {
   describe("requirement", () => {
     describe("list", () => {
       it("returns items from the database", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 1, reqNumber: "REQ-2026-001", customer: "Customer A",
           title: "Req Title", status: "approved", priority: "high",
@@ -486,7 +486,7 @@ describe("rndPipeline router", () => {
       });
 
       it("filters by bu", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.requirement.list({ bu: "BU1" });
@@ -494,7 +494,7 @@ describe("rndPipeline router", () => {
       });
 
       it("filters by status", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.requirement.list({ status: "approved" });
@@ -502,7 +502,7 @@ describe("rndPipeline router", () => {
       });
 
       it("filters by search term", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.requirement.list({ search: "清洗" });
@@ -510,7 +510,7 @@ describe("rndPipeline router", () => {
       });
 
       it("treats status=all as no status filter", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.requirement.list({ status: "all" });
@@ -518,7 +518,7 @@ describe("rndPipeline router", () => {
       });
 
       it("combines bu, status, and search filters", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.requirement.list({
@@ -530,7 +530,7 @@ describe("rndPipeline router", () => {
       });
 
       it("handles null date gracefully", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 1, reqNumber: "REQ-001", customer: "C", title: "T",
           status: "draft", priority: "low", bu: "BU3", assignee: "A", date: null,
@@ -544,7 +544,7 @@ describe("rndPipeline router", () => {
 
     describe("create", () => {
       it("creates a requirement with required fields", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 1, reqNumber: "REQ-2026-001" }],
         });
@@ -559,7 +559,7 @@ describe("rndPipeline router", () => {
       });
 
       it("creates a requirement with optional fields", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 2, reqNumber: "REQ-2026-002" }],
         });
@@ -575,7 +575,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty title", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.requirement.create({
             title: "",
@@ -586,7 +586,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty customer", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.requirement.create({
             title: "T",
@@ -597,7 +597,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty assignee", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.requirement.create({
             title: "T",
@@ -610,7 +610,7 @@ describe("rndPipeline router", () => {
 
     describe("updateStatus", () => {
       it("updates the status of a requirement", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.requirement.updateStatus({
@@ -621,7 +621,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects non-numeric id via input validation", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           (caller.rndPipeline.requirement.updateStatus as any)({
             id: "abc",
@@ -638,7 +638,7 @@ describe("rndPipeline router", () => {
   describe("solution", () => {
     describe("list", () => {
       it("returns all solutions when no filter provided", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 1, solNumber: "SOL-001", project: "Project", customer: "Customer",
           status: "设计中", bu: "BU3", version: "V2.1", engineer: "Engineer",
@@ -652,7 +652,7 @@ describe("rndPipeline router", () => {
       });
 
       it("filters by bu", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.solution.list({ bu: "BU1" });
@@ -660,7 +660,7 @@ describe("rndPipeline router", () => {
       });
 
       it("handles null date", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 1, solNumber: "SOL-001", project: "P", customer: "C",
           status: "设计中", bu: "BU3", version: "V1.0", engineer: "E", date: null,
@@ -674,7 +674,7 @@ describe("rndPipeline router", () => {
 
     describe("create", () => {
       it("creates a solution with required fields", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 1, solNumber: "SOL-123" }],
         });
@@ -689,7 +689,7 @@ describe("rndPipeline router", () => {
       });
 
       it("creates a solution with optional bu", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 2, solNumber: "SOL-456" }],
         });
@@ -704,7 +704,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty project", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.solution.create({
             project: "",
@@ -715,7 +715,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty engineer", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.solution.create({
             project: "P",
@@ -733,7 +733,7 @@ describe("rndPipeline router", () => {
   describe("mechanical", () => {
     describe("list", () => {
       it("returns mechanical design tasks", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 1, taskNumber: "MD-001", name: "Design task", project: "Project",
           status: "设计中", bu: "BU3", rev: "R3", engineer: "Engineer",
@@ -748,7 +748,7 @@ describe("rndPipeline router", () => {
       });
 
       it("filters by bu", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.mechanical.list({ bu: "BU1" });
@@ -758,7 +758,7 @@ describe("rndPipeline router", () => {
 
     describe("create", () => {
       it("creates a mechanical design task", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 1, taskNumber: "MD-999" }],
         });
@@ -773,7 +773,7 @@ describe("rndPipeline router", () => {
       });
 
       it("creates with optional bu", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 2, taskNumber: "MD-100" }],
         });
@@ -788,7 +788,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty name", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.mechanical.create({
             name: "",
@@ -799,7 +799,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty project", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.mechanical.create({
             name: "N",
@@ -810,7 +810,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty engineer", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.mechanical.create({
             name: "N",
@@ -828,7 +828,7 @@ describe("rndPipeline router", () => {
   describe("electrical", () => {
     describe("list", () => {
       it("returns electrical design tasks", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 5, taskNumber: "ED-001", name: "PLC Design", project: "Project",
           status: "编程中", bu: "BU3", rev: "R1", engineer: "Engineer",
@@ -842,7 +842,7 @@ describe("rndPipeline router", () => {
       });
 
       it("returns empty items for unknown bu", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.electrical.list({ bu: "BU99" });
@@ -852,7 +852,7 @@ describe("rndPipeline router", () => {
 
     describe("create", () => {
       it("creates an electrical design task", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 5, taskNumber: "ED-888" }],
         });
@@ -867,7 +867,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty project", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.electrical.create({
             name: "Design",
@@ -878,7 +878,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty engineer", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.electrical.create({
             name: "Design",
@@ -896,7 +896,7 @@ describe("rndPipeline router", () => {
   describe("installation", () => {
     describe("list", () => {
       it("returns installation items with formatted dates", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 1, instNumber: "INS-001", project: "Project", customer: "Customer",
           location: "Location", status: "安装中", bu: "BU3", team: "Team A",
@@ -912,7 +912,7 @@ describe("rndPipeline router", () => {
       });
 
       it("handles null dates gracefully", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 1, instNumber: "INS-001", project: "P", customer: "C",
           location: "L", status: "待出发", bu: "BU3", team: "T",
@@ -926,7 +926,7 @@ describe("rndPipeline router", () => {
       });
 
       it("filters by bu", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.installation.list({ bu: "BU4" });
@@ -936,7 +936,7 @@ describe("rndPipeline router", () => {
 
     describe("create", () => {
       it("creates an installation with all required fields", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 1, instNumber: "INS-999" }],
         });
@@ -954,7 +954,7 @@ describe("rndPipeline router", () => {
       });
 
       it("creates with optional bu", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 2, instNumber: "INS-100" }],
         });
@@ -972,7 +972,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty project", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.installation.create({
             project: "",
@@ -986,7 +986,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty location", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.installation.create({
             project: "P",
@@ -1000,7 +1000,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty team", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.installation.create({
             project: "P",
@@ -1014,7 +1014,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty customer", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.installation.create({
             project: "P",
@@ -1035,7 +1035,7 @@ describe("rndPipeline router", () => {
   describe("satTest", () => {
     describe("list", () => {
       it("returns SAT test items", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 1, satNumber: "SAT-001", project: "Project", customer: "Customer",
           bu: "BU3", status: "测试中", passRate: 85, totalItems: 48,
@@ -1050,7 +1050,7 @@ describe("rndPipeline router", () => {
       });
 
       it("filters by bu", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.satTest.list({ bu: "BU4" });
@@ -1058,7 +1058,7 @@ describe("rndPipeline router", () => {
       });
 
       it("returns empty items array when no data", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.satTest.list();
@@ -1068,7 +1068,7 @@ describe("rndPipeline router", () => {
 
     describe("create", () => {
       it("creates a SAT test with required fields", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 1, satNumber: "SAT-999" }],
         });
@@ -1083,7 +1083,7 @@ describe("rndPipeline router", () => {
       });
 
       it("creates with optional bu", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 2, satNumber: "SAT-100" }],
         });
@@ -1098,7 +1098,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty project", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.satTest.create({
             project: "",
@@ -1109,7 +1109,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects zero totalItems", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.satTest.create({
             project: "P",
@@ -1120,7 +1120,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects negative totalItems", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.satTest.create({
             project: "P",
@@ -1131,7 +1131,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty customer", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.satTest.create({
             project: "P",
@@ -1149,7 +1149,7 @@ describe("rndPipeline router", () => {
   describe("acceptance", () => {
     describe("list", () => {
       it("returns acceptance items with formatted dates", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 1, accNumber: "ACC-001", project: "Project", customer: "Customer",
           bu: "BU4", status: "已验收", date: "2026-01-25T00:00:00.000Z",
@@ -1165,7 +1165,7 @@ describe("rndPipeline router", () => {
       });
 
       it("handles null date", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [{
           id: 1, accNumber: "ACC-001", project: "P", customer: "C",
           bu: "BU3", status: "待验收", date: null, signedBy: "-", score: 0,
@@ -1177,7 +1177,7 @@ describe("rndPipeline router", () => {
       });
 
       it("filters by bu", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.acceptance.list({ bu: "BU2" });
@@ -1187,7 +1187,7 @@ describe("rndPipeline router", () => {
 
     describe("create", () => {
       it("creates an acceptance record with required fields", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 1, accNumber: "ACC-999" }],
         });
@@ -1202,7 +1202,7 @@ describe("rndPipeline router", () => {
       });
 
       it("creates with optional bu", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 2, accNumber: "ACC-100" }],
         });
@@ -1217,7 +1217,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty project", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.acceptance.create({
             project: "",
@@ -1228,7 +1228,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty customer", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.acceptance.create({
             project: "P",
@@ -1246,7 +1246,7 @@ describe("rndPipeline router", () => {
   describe("rfqKanban", () => {
     describe("list", () => {
       it("returns all RFQ cards", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         const rows = [
           {
             id: 1, rfqCode: "RFQ-001", titleZh: "超声换能器",
@@ -1268,7 +1268,7 @@ describe("rndPipeline router", () => {
       });
 
       it("returns empty items", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: [] });
 
         const result = await caller.rndPipeline.rfqKanban.list();
@@ -1276,7 +1276,7 @@ describe("rndPipeline router", () => {
       });
 
       it("handles undefined rows", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({ rows: undefined });
 
         const result = await caller.rndPipeline.rfqKanban.list();
@@ -1286,7 +1286,7 @@ describe("rndPipeline router", () => {
 
     describe("create", () => {
       it("creates an RFQ card with required fields", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 1, rfqCode: "RFQ-999" }],
         });
@@ -1300,7 +1300,7 @@ describe("rndPipeline router", () => {
       });
 
       it("creates with all optional fields", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         mockExecuteFn.mockResolvedValue({
           rows: [{ id: 2, rfqCode: "RFQ-100" }],
         });
@@ -1316,7 +1316,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty titleZh", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.rfqKanban.create({
             titleZh: "",
@@ -1326,7 +1326,7 @@ describe("rndPipeline router", () => {
       });
 
       it("rejects empty supplier", async () => {
-        const caller = createAuthenticatedCaller();
+        const caller = createAdminCaller();
         await expect(
           caller.rndPipeline.rfqKanban.create({
             titleZh: "T",
@@ -1342,63 +1342,63 @@ describe("rndPipeline router", () => {
   // =========================================================================
   describe("input validation edge cases", () => {
     it("quotation.list accepts no input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockExecuteFn.mockResolvedValue({ rows: [] });
       const result = await caller.rndPipeline.quotation.list();
       expect(result).toHaveProperty("items");
     });
 
     it("requirement.list accepts no input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockExecuteFn.mockResolvedValue({ rows: [] });
       const result = await caller.rndPipeline.requirement.list();
       expect(result).toHaveProperty("items");
     });
 
     it("solution.list accepts no input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockExecuteFn.mockResolvedValue({ rows: [] });
       const result = await caller.rndPipeline.solution.list();
       expect(result).toHaveProperty("items");
     });
 
     it("mechanical.list accepts no input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockExecuteFn.mockResolvedValue({ rows: [] });
       const result = await caller.rndPipeline.mechanical.list();
       expect(result).toHaveProperty("items");
     });
 
     it("electrical.list accepts no input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockExecuteFn.mockResolvedValue({ rows: [] });
       const result = await caller.rndPipeline.electrical.list();
       expect(result).toHaveProperty("items");
     });
 
     it("installation.list accepts no input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockExecuteFn.mockResolvedValue({ rows: [] });
       const result = await caller.rndPipeline.installation.list();
       expect(result).toHaveProperty("items");
     });
 
     it("satTest.list accepts no input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockExecuteFn.mockResolvedValue({ rows: [] });
       const result = await caller.rndPipeline.satTest.list();
       expect(result).toHaveProperty("items");
     });
 
     it("acceptance.list accepts no input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockExecuteFn.mockResolvedValue({ rows: [] });
       const result = await caller.rndPipeline.acceptance.list();
       expect(result).toHaveProperty("items");
     });
 
     it("rfqKanban.list accepts empty object input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockExecuteFn.mockResolvedValue({ rows: [] });
       const result = await caller.rndPipeline.rfqKanban.list({});
       expect(result).toHaveProperty("items");

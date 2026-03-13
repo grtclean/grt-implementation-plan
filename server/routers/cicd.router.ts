@@ -17,8 +17,9 @@
  *                    addGeminiAnalysis, askGeminiPlanner, autoFetch, delete
  */
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { jsonValue } from "@shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { cicdTasks, cicdStageLogs } from "../../drizzle/cicd-pipeline-schema";
 import { eq, desc, sql, and, count, type SQL } from "drizzle-orm";
@@ -186,7 +187,8 @@ export const cicdRouter = router({
     const [row] = await db
       .select()
       .from(cicdTasks)
-      .where(eq(cicdTasks.id, toNum(input.id)));
+      .where(eq(cicdTasks.id, toNum(input.id)))
+      .limit(1000);
     return row ?? null;
   }),
 
@@ -197,7 +199,8 @@ export const cicdRouter = router({
       .select()
       .from(cicdStageLogs)
       .where(eq(cicdStageLogs.taskId, toNum(input.id)))
-      .orderBy(desc(cicdStageLogs.createdAt));
+      .orderBy(desc(cicdStageLogs.createdAt))
+      .limit(1000);
   }),
 
   // Dashboard aggregation stats
@@ -297,7 +300,7 @@ export const cicdRouter = router({
   // CRITICAL: When status transitions to IN_PROGRESS, the backend writes
   // a Claude-prompt .md file to data/dev-queue/pending/. This is the
   // FILE-BASED QUEUE BRIDGE that connects the web UI to the CLI.
-  updateStage: protectedProcedure
+  updateStage: requirePermission('devops:deployment:manage')
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -310,7 +313,8 @@ export const cicdRouter = router({
       const [task] = await db
         .select()
         .from(cicdTasks)
-        .where(eq(cicdTasks.id, toNum(input.id)));
+        .where(eq(cicdTasks.id, toNum(input.id)))
+        .limit(1000);
       if (!task) throw new Error("Task not found");
 
       const stageField =
@@ -359,7 +363,7 @@ export const cicdRouter = router({
     }),
 
   // Promote task to next stage (requires approval)
-  promoteStage: protectedProcedure
+  promoteStage: requirePermission('devops:deployment:manage')
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -371,7 +375,8 @@ export const cicdRouter = router({
       const [task] = await db
         .select()
         .from(cicdTasks)
-        .where(eq(cicdTasks.id, toNum(input.id)));
+        .where(eq(cicdTasks.id, toNum(input.id)))
+        .limit(1000);
       if (!task) throw new Error("Task not found");
 
       const stageIdx = STAGES.indexOf(task.currentStage as typeof STAGES[number]);
@@ -410,7 +415,7 @@ export const cicdRouter = router({
     }),
 
   // Reject / rollback a stage (CEO says No-Go)
-  rejectStage: protectedProcedure
+  rejectStage: requirePermission('devops:deployment:manage')
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -423,7 +428,8 @@ export const cicdRouter = router({
       const [task] = await db
         .select()
         .from(cicdTasks)
-        .where(eq(cicdTasks.id, toNum(input.id)));
+        .where(eq(cicdTasks.id, toNum(input.id)))
+        .limit(1000);
       if (!task) throw new Error("Task not found");
 
       const target = input.rollbackTo ?? "DEV";
@@ -457,7 +463,7 @@ export const cicdRouter = router({
     }),
 
   // Store Gemini's analysis for a given stage
-  addGeminiAnalysis: protectedProcedure
+  addGeminiAnalysis: requirePermission('devops:deployment:manage')
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -470,7 +476,8 @@ export const cicdRouter = router({
       const [task] = await db
         .select()
         .from(cicdTasks)
-        .where(eq(cicdTasks.id, toNum(input.id)));
+        .where(eq(cicdTasks.id, toNum(input.id)))
+        .limit(1000);
       if (!task) throw new Error("Task not found");
 
       const existing = (task.geminiAnalysis ?? {}) as Record<string, unknown>;
@@ -485,17 +492,17 @@ export const cicdRouter = router({
       return updated;
     }),
 
-  // ── Gemini Planner Stub ──
-  // Calls LLM (or returns mock) to analyze a requirement and suggest
-  // task structure. In production, this would call the Google Generative AI SDK.
-  askGeminiPlanner: protectedProcedure
+  // ── Gemini Planner — GRT开发第一定律: Async Task Queue ──
+  // Enqueues LLM call via task worker, returns taskId for polling.
+  startGeminiPlanner: requirePermission('devops:deployment:manage')
     .input(z.object({ prompt: z.string().min(1) }))
-    .mutation(async ({ input }) => {
-      // Try real LLM first; fall back to rule-based mock
-      try {
-        // System prompt instructs the LLM to act as Gemini, the strategic planner.
-        // It must return a JSON object with `reply` and `suggestedTask` fields.
-        const system = `You are Gemini, the strategic AI planner for the GRT manufacturing system.
+    .mutation(async ({ ctx, input }) => {
+      const { submitTask, registerTaskHandler } = await import("../services/task-worker.service");
+
+      // Register handler (idempotent)
+      registerTaskHandler("GEMINI_PLANNER", async (_taskId, taskInput) => {
+        try {
+          const system = `You are Gemini, the strategic AI planner for the GRT manufacturing system.
 Analyze the user's requirement and return a JSON object with:
 {
   "reply": "Your strategic analysis and decomposition advice",
@@ -509,44 +516,60 @@ Analyze the user's requirement and return a JSON object with:
 }
 Always respond in the same language as the user's prompt.`;
 
-        const result = await invokeLLM({
-          system,
-          prompt: input.prompt,
-        });
-
-        // Try to parse JSON from LLM response content
-        const content = result.content ?? "";
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          return JSON.parse(jsonMatch[0]);
+          const result = await invokeLLM({ system, prompt: taskInput.prompt as string });
+          const content = result.content ?? "";
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) return JSON.parse(jsonMatch[0]);
+          return { reply: content, suggestedTask: null };
+        } catch {
+          // Fallback: rule-based mock response
+          const prompt = taskInput.prompt as string;
+          const scopeGuess = prompt.includes("报表") || prompt.includes("dashboard")
+            ? "M6-MES"
+            : prompt.includes("客户") || prompt.includes("CRM")
+            ? "CRM"
+            : prompt.includes("质量") || prompt.includes("quality")
+            ? "Quality"
+            : "General";
+          return {
+            reply: `[Gemini Mock] 分析您的需求："${prompt}"。建议拆分为前端优化 + 后端数据查询两个子任务。`,
+            suggestedTask: {
+              title: prompt.slice(0, 80),
+              scope: scopeGuess,
+              categories: ["Frontend", "Backend"],
+              rules: "Response < 500ms",
+              priority: 3,
+            },
+          };
         }
-        return { reply: content, suggestedTask: null };
-      } catch {
-        // Fallback: rule-based mock response
-        const scopeGuess = input.prompt.includes("报表") || input.prompt.includes("dashboard")
-          ? "M6-MES"
-          : input.prompt.includes("客户") || input.prompt.includes("CRM")
-          ? "CRM"
-          : input.prompt.includes("质量") || input.prompt.includes("quality")
-          ? "Quality"
-          : "General";
+      });
 
-        return {
-          reply: `[Gemini Mock] 分析您的需求："${input.prompt}"。建议拆分为前端优化 + 后端数据查询两个子任务。`,
-          suggestedTask: {
-            title: input.prompt.slice(0, 80),
-            scope: scopeGuess,
-            categories: ["Frontend", "Backend"],
-            rules: "Response < 500ms",
-            priority: 3,
-          },
-        };
-      }
+      const { taskId } = await submitTask(
+        "GEMINI_PLANNER",
+        { prompt: input.prompt },
+        ctx.user?.name ?? "system",
+        { submittedById: ctx.user?.id },
+      );
+      return { taskId };
+    }),
+
+  // Poll for Gemini Planner result
+  getGeminiPlannerResult: protectedProcedure
+    .input(z.object({ taskId: z.number() }))
+    .query(async ({ input }) => {
+      const { getTaskStatus } = await import("../services/task-worker.service");
+      const task = await getTaskStatus(input.taskId);
+      if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
+      return {
+        status: task.status,
+        result: task.resultData,
+        error: task.errorMessage,
+      };
     }),
 
   // ── Auto-Fetch: Scrape system logs/errors/feedback ──
   // In production, this would poll monitoring endpoints, Sentry, etc.
-  autoFetch: protectedProcedure.mutation(async () => {
+  autoFetch: requirePermission('devops:deployment:manage').mutation(async () => {
     // Mock: return a few "scraped" issues
     const mockIssues = [
       {
@@ -619,7 +642,7 @@ Always respond in the same language as the user's prompt.`;
   //  API REFERENCE:
   //  https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event
   //
-  triggerGitHubDispatch: protectedProcedure
+  triggerGitHubDispatch: requirePermission('devops:deployment:manage')
     .input(
       z.object({
         taskId: z.union([z.string(), z.number()]),
@@ -702,7 +725,7 @@ Always respond in the same language as the user's prompt.`;
     }),
 
   // Delete a task
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('devops:deployment:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(cicdStageLogs).where(eq(cicdStageLogs.taskId, toNum(input.id)));
     await db.delete(cicdTasks).where(eq(cicdTasks.id, toNum(input.id)));
@@ -739,7 +762,7 @@ Always respond in the same language as the user's prompt.`;
   // Scan the completed/ folder for finished tasks.
   // For each task_[id].md found in completed/, update the DB status
   // to COMPLETED and log the transition. Called by frontend polling.
-  checkCompletedTasks: protectedProcedure.mutation(async () => {
+  checkCompletedTasks: requirePermission('devops:deployment:manage').mutation(async () => {
     const db = await requireDb();
     const updated: number[] = [];
 
@@ -759,7 +782,8 @@ Always respond in the same language as the user's prompt.`;
       const [task] = await db
         .select()
         .from(cicdTasks)
-        .where(eq(cicdTasks.id, taskId));
+        .where(eq(cicdTasks.id, taskId))
+        .limit(1000);
       if (!task) continue;
 
       // Only update if the task is still IN_PROGRESS
@@ -848,7 +872,7 @@ Always respond in the same language as the user's prompt.`;
 
   // CEO writes an answer. This creates an answer file that Claude CLI
   // is watching for, allowing it to resume execution.
-  answerQuestion: protectedProcedure
+  answerQuestion: requirePermission('devops:deployment:manage')
     .input(
       z.object({
         taskId: z.number(),

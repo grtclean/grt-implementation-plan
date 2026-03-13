@@ -65,6 +65,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageHeader, StatCard } from "@/components/grt";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import QueryErrorBanner from "@/components/QueryErrorBanner";
 import {
@@ -96,6 +97,7 @@ const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"
 // ============================================================================
 
 function OverviewTab() {
+  const { t } = useLanguage();
   const { data: dashboard, isLoading } = trpc.ime.dashboard.useQuery({});
 
   const stats = dashboard?.stats;
@@ -112,31 +114,27 @@ function OverviewTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={BarChart3}
-          label="已分析会议"
+          label={t("mi.exec.analyzedMeetings")}
           value={isLoading ? "..." : stats?.analyzedMeetings ?? 0}
-          subtitle="Total Meetings Analyzed"
         />
         <StatCard
           icon={Target}
-          label="平均效能"
+          label={t("mi.exec.avgEffectiveness")}
           value={isLoading ? "..." : `${stats?.avgEffectiveness ?? 0}%`}
-          subtitle="Avg Effectiveness"
           iconColor="text-green-600"
           iconBg="bg-green-50"
         />
         <StatCard
           icon={Award}
-          label="最高贡献者"
+          label={t("mi.exec.topContributor")}
           value={isLoading ? "..." : (topContributors[0]?.employee_name ?? "—")}
-          subtitle="Top Contributor"
           iconColor="text-amber-600"
           iconBg="bg-amber-50"
         />
         <StatCard
           icon={Users}
-          label="活跃参会者"
+          label={t("mi.exec.activeParticipants")}
           value={isLoading ? "..." : stats?.activeParticipants ?? 0}
-          subtitle="Active Participants"
           iconColor="text-blue-600"
           iconBg="bg-blue-50"
         />
@@ -145,8 +143,8 @@ function OverviewTab() {
       {/* Effectiveness Trend */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">会议效能趋势</CardTitle>
-          <CardDescription>Meeting Effectiveness Trend (recent)</CardDescription>
+          <CardTitle className="text-base">{t("mi.exec.effectivenessTrend")}</CardTitle>
+          <CardDescription>{t("mi.exec.effectivenessTrendDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {trend.length > 0 ? (
@@ -162,15 +160,15 @@ function OverviewTab() {
                   stroke="#6366f1"
                   strokeWidth={2}
                   dot={{ r: 3 }}
-                  name="效能分"
+                  name={t("mi.exec.effectivenessScore")}
                 />
               </LineChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <BarChart3 className="h-12 w-12 mb-3 opacity-30" />
-              <p>暂无分析数据</p>
-              <p className="text-sm">请先对会议进行AI分析</p>
+              <p>{t("mi.exec.noAnalysisData")}</p>
+              <p className="text-sm">{t("mi.exec.pleaseAnalyzeFirst")}</p>
             </div>
           )}
         </CardContent>
@@ -179,8 +177,8 @@ function OverviewTab() {
       {/* Top 10 Contributors */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">贡献排行榜 Top 10</CardTitle>
-          <CardDescription>Top contributors by average score</CardDescription>
+          <CardTitle className="text-base">{t("mi.exec.contributorRanking")}</CardTitle>
+          <CardDescription>{t("mi.exec.contributorRankingDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {topContributors.length > 0 ? (
@@ -188,11 +186,11 @@ function OverviewTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10">#</TableHead>
-                  <TableHead>姓名</TableHead>
-                  <TableHead className="text-center">参与会议</TableHead>
-                  <TableHead className="text-center">平均得分</TableHead>
-                  <TableHead className="text-center">决策数</TableHead>
-                  <TableHead className="text-center">行动项</TableHead>
+                  <TableHead>{t("mi.exec.thName")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thMeetingCount")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thAvgScore")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thDecisions")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thActionItems")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -218,7 +216,7 @@ function OverviewTab() {
               </TableBody>
             </Table>
           ) : (
-            <p className="text-center py-6 text-muted-foreground">暂无贡献数据</p>
+            <p className="text-center py-6 text-muted-foreground">{t("mi.exec.noContributorData")}</p>
           )}
         </CardContent>
       </Card>
@@ -231,6 +229,7 @@ function OverviewTab() {
 // ============================================================================
 
 function ParticipantsTab() {
+  const { t } = useLanguage();
   const [employeeId, setEmployeeId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [engagementMeetingId, setEngagementMeetingId] = useState("");
@@ -280,17 +279,17 @@ function ParticipantsTab() {
     }
     const n = trendData.length;
     const base = [
-      { dimension: "发言时长", value: Math.min(100, (totals.speaking / n) / 3) },
-      { dimension: "决策力", value: Math.min(100, (totals.decisions / n) * 25) },
-      { dimension: "行动力", value: Math.min(100, (totals.actions / n) * 20) },
-      { dimension: "参与度", value: Math.min(100, (totals.interventions / n) * 10) },
-      { dimension: "综合得分", value: totals.score / n },
+      { dimension: t("mi.exec.speakingTime"), value: Math.min(100, (totals.speaking / n) / 3) },
+      { dimension: t("mi.exec.decisionAbility"), value: Math.min(100, (totals.decisions / n) * 25) },
+      { dimension: t("mi.exec.executionAbility"), value: Math.min(100, (totals.actions / n) * 20) },
+      { dimension: t("mi.exec.participationDegree"), value: Math.min(100, (totals.interventions / n) * 10) },
+      { dimension: t("mi.exec.overallScore"), value: totals.score / n },
     ];
     if (engTotals.count > 0) {
       base.push(
-        { dimension: "贡献价值", value: (engTotals.cv / engTotals.count) * 10 },
-        { dimension: "逻辑简洁", value: (engTotals.lc / engTotals.count) * 10 },
-        { dimension: "建设性", value: (engTotals.co / engTotals.count) * 10 },
+        { dimension: t("mi.exec.contributionValueLabel"), value: (engTotals.cv / engTotals.count) * 10 },
+        { dimension: t("mi.exec.logicConcisenessLabel"), value: (engTotals.lc / engTotals.count) * 10 },
+        { dimension: t("mi.exec.constructivenessLabel"), value: (engTotals.co / engTotals.count) * 10 },
       );
     }
     return base;
@@ -329,14 +328,14 @@ function ParticipantsTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Zap className="h-4 w-4 text-amber-500" />
-            参与度分析
+            {t("mi.exec.engagementAnalysis")}
           </CardTitle>
-          <CardDescription>输入会议ID分析参会者的贡献价值、逻辑简洁度和建设性</CardDescription>
+          <CardDescription>{t("mi.exec.engagementDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3">
             <Input
-              placeholder="输入会议ID..."
+              placeholder={t("mi.exec.enterMeetingId")}
               value={engagementMeetingId}
               onChange={(e) => setEngagementMeetingId(e.target.value)}
               className="max-w-sm"
@@ -350,7 +349,7 @@ function ParticipantsTab() {
               ) : (
                 <Target className="h-4 w-4 mr-2" />
               )}
-              分析参与度
+              {t("mi.exec.analyzeEngagement")}
             </Button>
           </div>
 
@@ -359,15 +358,15 @@ function ParticipantsTab() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>姓名</TableHead>
-                    <TableHead className="text-center">角色</TableHead>
-                    <TableHead className="text-center">参与度</TableHead>
-                    <TableHead className="text-center">贡献值</TableHead>
-                    <TableHead className="text-center">逻辑简洁</TableHead>
-                    <TableHead className="text-center">建设性</TableHead>
-                    <TableHead>关键贡献</TableHead>
-                    <TableHead>行为标签</TableHead>
-                    <TableHead>辅导建议</TableHead>
+                    <TableHead>{t("mi.exec.thName")}</TableHead>
+                    <TableHead className="text-center">{t("mi.exec.thRole")}</TableHead>
+                    <TableHead className="text-center">{t("mi.exec.thEngagement")}</TableHead>
+                    <TableHead className="text-center">{t("mi.exec.thContributionValue")}</TableHead>
+                    <TableHead className="text-center">{t("mi.exec.thLogicConciseness")}</TableHead>
+                    <TableHead className="text-center">{t("mi.exec.thConstructiveness")}</TableHead>
+                    <TableHead>{t("mi.exec.thKeyContribution")}</TableHead>
+                    <TableHead>{t("mi.exec.thBehaviorTags")}</TableHead>
+                    <TableHead>{t("mi.exec.thCoachingSuggestion")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -411,7 +410,7 @@ function ParticipantsTab() {
           )}
 
           {engagementMutation.isError && (
-            <p className="text-sm text-red-500">分析失败: {engagementMutation.error?.message ?? "Unknown error"}</p>
+            <p className="text-sm text-red-500">{t("mi.exec.analysisFailed")}: {engagementMutation.error?.message ?? "Unknown error"}</p>
           )}
         </CardContent>
       </Card>
@@ -421,14 +420,14 @@ function ParticipantsTab() {
         <CardContent className="pt-6">
           <div className="flex gap-3">
             <Input
-              placeholder="输入员工ID或姓名..."
+              placeholder={t("mi.exec.enterEmployeeId")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-sm"
             />
             <Button onClick={() => setEmployeeId(searchTerm)} disabled={!searchTerm}>
               <Users className="h-4 w-4 mr-2" />
-              查询
+              {t("mi.exec.query")}
             </Button>
           </div>
         </CardContent>
@@ -439,7 +438,7 @@ function ParticipantsTab() {
           {/* Radar Chart */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">能力雷达图</CardTitle>
+              <CardTitle className="text-base">{t("mi.exec.radarChart")}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
@@ -452,7 +451,7 @@ function ParticipantsTab() {
                     stroke="#6366f1"
                     fill="#6366f1"
                     fillOpacity={0.3}
-                    name="得分"
+                    name={t("mi.exec.score")}
                   />
                   <Tooltip />
                 </RadarChart>
@@ -463,7 +462,7 @@ function ParticipantsTab() {
           {/* Contribution Breakdown Bar */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">贡献明细</CardTitle>
+              <CardTitle className="text-base">{t("mi.exec.contributionBreakdown")}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
@@ -473,9 +472,9 @@ function ParticipantsTab() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="decision_count" fill="#6366f1" name="决策" />
-                  <Bar dataKey="action_item_count" fill="#22c55e" name="行动项" />
-                  <Bar dataKey="intervention_count" fill="#f59e0b" name="发言次数" />
+                  <Bar dataKey="decision_count" fill="#6366f1" name={t("mi.exec.decisions")} />
+                  <Bar dataKey="action_item_count" fill="#22c55e" name={t("mi.exec.actionItemsLabel")} />
+                  <Bar dataKey="intervention_count" fill="#f59e0b" name={t("mi.exec.speakingCount")} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -484,7 +483,7 @@ function ParticipantsTab() {
           {/* Score Trend */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">贡献分趋势</CardTitle>
+              <CardTitle className="text-base">{t("mi.exec.scoreTrend")}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={240}>
@@ -493,7 +492,7 @@ function ParticipantsTab() {
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="contribution_score" stroke="#6366f1" strokeWidth={2} name="贡献分" />
+                  <Line type="monotone" dataKey="contribution_score" stroke="#6366f1" strokeWidth={2} name={t("mi.exec.contributionScore")} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -505,13 +504,13 @@ function ParticipantsTab() {
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Lightbulb className="h-4 w-4 text-amber-500" />
-                  AI 分析
+                  {t("mi.exec.aiAnalysis")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" /> 优势
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" /> {t("mi.exec.strengths")}
                   </h4>
                   <ul className="space-y-1">
                     {latestAnalysis.strengths?.map((s: string, i: number) => (
@@ -521,7 +520,7 @@ function ParticipantsTab() {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
-                    <TrendingUp className="h-3.5 w-3.5 text-blue-500" /> 改进方向
+                    <TrendingUp className="h-3.5 w-3.5 text-blue-500" /> {t("mi.exec.improvements")}
                   </h4>
                   <ul className="space-y-1">
                     {latestAnalysis.improvements?.map((s: string, i: number) => (
@@ -532,7 +531,7 @@ function ParticipantsTab() {
                 {latestAnalysis.keyQuotes?.length > 0 && (
                   <div>
                     <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
-                      <MessageSquare className="h-3.5 w-3.5 text-purple-500" /> 关键发言
+                      <MessageSquare className="h-3.5 w-3.5 text-purple-500" /> {t("mi.exec.keyQuotes")}
                     </h4>
                     {latestAnalysis.keyQuotes?.map((q: string, i: number) => (
                       <blockquote key={i} className="text-sm italic text-muted-foreground border-l-2 border-purple-200 pl-3 my-1">
@@ -544,23 +543,23 @@ function ParticipantsTab() {
                 {latestAnalysis.engagement && (
                   <div>
                     <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
-                      <Target className="h-3.5 w-3.5 text-indigo-500" /> 参与度评估
+                      <Target className="h-3.5 w-3.5 text-indigo-500" /> {t("mi.exec.engagementAssessment")}
                     </h4>
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div className="text-center p-2 rounded bg-muted/50">
-                        <div className="text-xs text-muted-foreground">贡献价值</div>
+                        <div className="text-xs text-muted-foreground">{t("mi.exec.contributionValueLabel")}</div>
                         <div className={`font-semibold ${scoreColor(latestAnalysis.engagement.contribution_value)}`}>
                           {Number(latestAnalysis.engagement.contribution_value).toFixed(1)}
                         </div>
                       </div>
                       <div className="text-center p-2 rounded bg-muted/50">
-                        <div className="text-xs text-muted-foreground">逻辑简洁</div>
+                        <div className="text-xs text-muted-foreground">{t("mi.exec.logicConcisenessLabel")}</div>
                         <div className={`font-semibold ${scoreColor(latestAnalysis.engagement.logic_conciseness)}`}>
                           {Number(latestAnalysis.engagement.logic_conciseness).toFixed(1)}
                         </div>
                       </div>
                       <div className="text-center p-2 rounded bg-muted/50">
-                        <div className="text-xs text-muted-foreground">建设性</div>
+                        <div className="text-xs text-muted-foreground">{t("mi.exec.constructivenessLabel")}</div>
                         <div className={`font-semibold ${scoreColor(latestAnalysis.engagement.constructiveness)}`}>
                           {Number(latestAnalysis.engagement.constructiveness).toFixed(1)}
                         </div>
@@ -591,14 +590,14 @@ function ParticipantsTab() {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>该员工暂无贡献分析数据</p>
+            <p>{t("mi.exec.noContributionAnalysis")}</p>
           </CardContent>
         </Card>
       ) : (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>请输入员工ID查询贡献分析</p>
+            <p>{t("mi.exec.enterEmployeeIdToQuery")}</p>
           </CardContent>
         </Card>
       )}
@@ -611,6 +610,7 @@ function ParticipantsTab() {
 // ============================================================================
 
 function MeetingScoresTab() {
+  const { t } = useLanguage();
   const [expanded, setExpanded] = useState<string | null>(null);
   const { data: meetings, isLoading } = trpc.ime.effectivenessList.useQuery({ limit: 50 });
   const meetingList = (meetings ?? []) as any[];
@@ -619,22 +619,22 @@ function MeetingScoresTab() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">会议效能评分列表</CardTitle>
-          <CardDescription>Click on a meeting to see detailed scores</CardDescription>
+          <CardTitle className="text-base">{t("mi.exec.meetingScoresList")}</CardTitle>
+          <CardDescription>{t("mi.exec.meetingScoresListDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-center py-6 text-muted-foreground">加载中...</p>
+            <p className="text-center py-6 text-muted-foreground">{t("mi.exec.loading")}</p>
           ) : meetingList.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>会议名称</TableHead>
-                  <TableHead className="text-center">日期</TableHead>
-                  <TableHead className="text-center">参与人数</TableHead>
-                  <TableHead className="text-center">总分</TableHead>
-                  <TableHead className="text-center">目标达成</TableHead>
-                  <TableHead className="text-center">参与均衡</TableHead>
+                  <TableHead>{t("mi.exec.thMeetingName")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thDate")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thParticipantCount")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thTotalScore")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thObjectiveAchievement")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thParticipationBalance")}</TableHead>
                   <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -669,15 +669,15 @@ function MeetingScoresTab() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
                             {/* Pie chart of 4 dimensions */}
                             <div>
-                              <h4 className="text-sm font-medium mb-3">维度分布</h4>
+                              <h4 className="text-sm font-medium mb-3">{t("mi.exec.dimensionDistribution")}</h4>
                               <ResponsiveContainer width="100%" height={200}>
                                 <PieChart>
                                   <Pie
                                     data={[
-                                      { name: "目标达成", value: Number(m.objective_achievement) || 0 },
-                                      { name: "参与均衡", value: Number(m.participation_balance) || 0 },
-                                      { name: "决策清晰", value: Number(m.decision_clarity) || 0 },
-                                      { name: "可执行成果", value: Number(m.actionable_outcomes) || 0 },
+                                      { name: t("mi.exec.objectiveAchievementLabel"), value: Number(m.objective_achievement) || 0 },
+                                      { name: t("mi.exec.participationBalanceLabel"), value: Number(m.participation_balance) || 0 },
+                                      { name: t("mi.exec.decisionClarityLabel"), value: Number(m.decision_clarity) || 0 },
+                                      { name: t("mi.exec.actionableOutcomesLabel"), value: Number(m.actionable_outcomes) || 0 },
                                     ]}
                                     cx="50%"
                                     cy="50%"
@@ -697,14 +697,14 @@ function MeetingScoresTab() {
                             <div>
                               <h4 className="text-sm font-medium mb-3 flex items-center gap-1">
                                 <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
-                                AI 效能叙述
+                                {t("mi.exec.aiNarrative")}
                               </h4>
                               <p className="text-sm text-muted-foreground leading-relaxed">
-                                {m.ai_narrative || "暂无AI分析叙述"}
+                                {m.ai_narrative || t("mi.exec.noAiNarrative")}
                               </p>
                               {m.objective && (
                                 <div className="mt-3">
-                                  <span className="text-xs font-medium text-muted-foreground">会议目标: </span>
+                                  <span className="text-xs font-medium text-muted-foreground">{t("mi.exec.meetingObjective")}: </span>
                                   <span className="text-xs">{m.objective}</span>
                                 </div>
                               )}
@@ -720,8 +720,8 @@ function MeetingScoresTab() {
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Target className="h-12 w-12 mb-3 opacity-30" />
-              <p>暂无会议效能评分</p>
-              <p className="text-sm">请先对会议进行AI分析</p>
+              <p>{t("mi.exec.noMeetingScores")}</p>
+              <p className="text-sm">{t("mi.exec.pleaseAnalyzeFirst")}</p>
             </div>
           )}
         </CardContent>
@@ -735,6 +735,7 @@ function MeetingScoresTab() {
 // ============================================================================
 
 function PerformanceLinkTab() {
+  const { t } = useLanguage();
   const [meetingIds, setMeetingIds] = useState("");
   const batchMutation = trpc.ime.batchAnalyze.useMutation();
   const { data: dashboard } = trpc.ime.dashboard.useQuery({});
@@ -752,13 +753,13 @@ function PerformanceLinkTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Link2 className="h-4 w-4" />
-            绩效关联说明
+            {t("mi.exec.performanceLinkTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-sm text-muted-foreground space-y-2">
-            <p>会议贡献分析结果会自动关联到员工绩效追踪系统 (Performance Trace)。</p>
-            <p>流程: 会议内容块 → AI贡献分析 → 贡献评分 → 绩效追踪记录 (sourceType: meeting_contribution)</p>
+            <p>{t("mi.exec.performanceLinkDesc1")}</p>
+            <p>{t("mi.exec.performanceLinkDesc2")}</p>
           </div>
         </CardContent>
       </Card>
@@ -768,9 +769,9 @@ function PerformanceLinkTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Zap className="h-4 w-4 text-amber-500" />
-            批量分析
+            {t("mi.exec.batchAnalysis")}
           </CardTitle>
-          <CardDescription>输入会议ID(逗号分隔)进行批量AI分析与绩效关联</CardDescription>
+          <CardDescription>{t("mi.exec.batchAnalysisDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3">
@@ -789,7 +790,7 @@ function PerformanceLinkTab() {
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
-              批量分析
+              {t("mi.exec.batchAnalysis")}
             </Button>
           </div>
           {Array.isArray(batchMutation.data) && (
@@ -813,20 +814,20 @@ function PerformanceLinkTab() {
       {/* Contributor → Trace mapping */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">贡献 → 绩效追踪映射</CardTitle>
-          <CardDescription>已分析员工的会议贡献评分与绩效关联</CardDescription>
+          <CardTitle className="text-base">{t("mi.exec.contributorMapping")}</CardTitle>
+          <CardDescription>{t("mi.exec.contributorMappingDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {topContributors.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>员工</TableHead>
-                  <TableHead className="text-center">参与会议</TableHead>
-                  <TableHead className="text-center">平均贡献分</TableHead>
-                  <TableHead className="text-center">决策数</TableHead>
-                  <TableHead className="text-center">行动项</TableHead>
-                  <TableHead className="text-center">绩效指标</TableHead>
+                  <TableHead>{t("mi.exec.thEmployee")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thMeetingCount")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thAvgContribution")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thDecisions")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thActionItems")}</TableHead>
+                  <TableHead className="text-center">{t("mi.exec.thPerfMetric")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -847,7 +848,7 @@ function PerformanceLinkTab() {
               </TableBody>
             </Table>
           ) : (
-            <p className="text-center py-6 text-muted-foreground">暂无绩效关联数据</p>
+            <p className="text-center py-6 text-muted-foreground">{t("mi.exec.noPerfLinkData")}</p>
           )}
         </CardContent>
       </Card>
@@ -861,6 +862,7 @@ function PerformanceLinkTab() {
 
 
 function AIPerformanceTab() {
+  const { t } = useLanguage();
   // ── tRPC queries with fallback ─────────────────────────────
   const dashboardQuery = trpc.aiPerformance.dashboard.useQuery({});
   const leaderboardQuery = trpc.aiPerformance.leaderboard.useQuery({ limit: 10 });
@@ -980,31 +982,27 @@ function AIPerformanceTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Users}
-          label="评估员工"
+          label={t("mi.exec.evaluatedEmployees")}
           value={totalEvaluated}
-          subtitle="Employees Evaluated"
         />
         <StatCard
           icon={Target}
-          label="平均会议分"
+          label={t("mi.exec.avgMeetingScore")}
           value={`${avgScore}`}
-          subtitle="Avg Meeting Score"
           iconColor="text-green-600"
           iconBg="bg-green-50"
         />
         <StatCard
           icon={CheckCircle2}
-          label="行动项完成率"
+          label={t("mi.exec.actionItemCompletion")}
           value={`${completionRate}%`}
-          subtitle="Action Item Completion"
           iconColor="text-blue-600"
           iconBg="bg-blue-50"
         />
         <StatCard
           icon={Award}
-          label="最佳员工"
+          label={t("mi.exec.bestEmployee")}
           value={topName}
-          subtitle={`${topScore} pts`}
           iconColor="text-amber-600"
           iconBg="bg-amber-50"
         />
@@ -1150,7 +1148,7 @@ function AIPerformanceTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Activity className="h-4 w-4 text-indigo-500" />
-            Meeting ROI Pipeline — 声纹雷达 + 协作画布 → 绩效引擎
+            {t("mi.exec.roiPipeline")}
           </CardTitle>
           <CardDescription>
             Aggregated from Speaker Radar (talk-time distribution) and Canvas Action Items
@@ -1198,8 +1196,8 @@ function AIPerformanceTab() {
           ) : (
             <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
               <Activity className="h-10 w-10 mb-3 opacity-30" />
-              <p className="text-sm">暂无 ROI 数据</p>
-              <p className="text-xs mt-1">请先在 Meeting Hub 中运行声纹分析并在协作画布中提取 Action Items</p>
+              <p className="text-sm">{t("mi.exec.noRoiData")}</p>
+              <p className="text-xs mt-1">{t("mi.exec.noRoiDataDesc")}</p>
             </div>
           )}
         </CardContent>
@@ -1213,7 +1211,7 @@ function AIPerformanceTab() {
 // ============================================================================
 
 class TabErrorBoundary extends Component<
-  { children: ReactNode; tabName: string },
+  { children: ReactNode; tabName: string; failedLabel?: string; reloadLabel?: string },
   { hasError: boolean; error: Error | null }
 > {
   state = { hasError: false, error: null as Error | null };
@@ -1226,7 +1224,7 @@ class TabErrorBoundary extends Component<
         <Card>
           <CardContent className="py-12 text-center">
             <AlertTriangle className="h-8 w-8 mx-auto mb-3 text-amber-500" />
-            <p className="font-medium">"{this.props.tabName}" 加载失败</p>
+            <p className="font-medium">"{this.props.tabName}" {this.props.failedLabel ?? "Load Failed"}</p>
             <p className="text-sm text-muted-foreground mt-1">
               {this.state.error?.message}
             </p>
@@ -1234,7 +1232,7 @@ class TabErrorBoundary extends Component<
               onClick={() => this.setState({ hasError: false, error: null })}
               className="mt-4"
             >
-              重新加载
+              {this.props.reloadLabel ?? "Reload"}
             </Button>
           </CardContent>
         </Card>
@@ -1249,6 +1247,7 @@ class TabErrorBoundary extends Component<
 // ============================================================================
 
 function ManagementRhythmTab() {
+  const { t } = useLanguage();
   const meetingsQuery = trpc.automation.listTriggeredMeetings.useQuery(
     { limit: 20 },
     { retry: false }
@@ -1301,18 +1300,18 @@ function ManagementRhythmTab() {
         <div className="p-4 border-b">
           <div className="flex items-center gap-2">
             <RefreshCw className="w-4 h-4 text-indigo-500" />
-            <h3 className="font-semibold text-sm">管理节奏闭环</h3>
+            <h3 className="font-semibold text-sm">{t("mi.exec.managementRhythmLoop")}</h3>
             <span className="text-xs text-gray-400">Strategy OKR → Automation → Meeting → Action → OKR Update</span>
           </div>
         </div>
         <div className="p-4">
           <div className="flex items-center justify-between gap-2 overflow-x-auto">
             {[
-              { icon: "🎯", label: "战略OKR", desc: "公司/BU/部门目标", color: "bg-purple-50 border-purple-200 text-purple-700" },
-              { icon: "⚡", label: "自动化规则", desc: `${5}条规则引擎`, color: "bg-amber-50 border-amber-200 text-amber-700" },
-              { icon: "📅", label: "触发会议", desc: `${stats?.totalTriggered ?? 0}场已触发`, color: "bg-blue-50 border-blue-200 text-blue-700" },
-              { icon: "✅", label: "行动项", desc: `${stats?.pending ?? 0}项待处理`, color: "bg-green-50 border-green-200 text-green-700" },
-              { icon: "📊", label: "OKR更新", desc: `达成率 ${okrDash?.avgProgress ?? 0}%`, color: "bg-purple-50 border-purple-200 text-purple-700" },
+              { icon: "🎯", label: t("mi.exec.strategyOkr"), desc: "OKR", color: "bg-purple-50 border-purple-200 text-purple-700" },
+              { icon: "⚡", label: t("mi.exec.automationRules"), desc: `5`, color: "bg-amber-50 border-amber-200 text-amber-700" },
+              { icon: "📅", label: t("mi.exec.triggeredMeetings"), desc: `${stats?.totalTriggered ?? 0}`, color: "bg-blue-50 border-blue-200 text-blue-700" },
+              { icon: "✅", label: t("mi.exec.actionItemsStatus"), desc: `${stats?.pending ?? 0}`, color: "bg-green-50 border-green-200 text-green-700" },
+              { icon: "📊", label: t("mi.exec.okrUpdate"), desc: `${okrDash?.avgProgress ?? 0}%`, color: "bg-purple-50 border-purple-200 text-purple-700" },
             ].map((step, i, arr) => (
               <div key={step.label} className="flex items-center gap-2 shrink-0">
                 <div className={`flex flex-col items-center p-3 rounded-lg border ${step.color} min-w-[100px]`}>
@@ -1331,7 +1330,7 @@ function ManagementRhythmTab() {
             </div>
           </div>
           <div className="mt-3 text-xs text-gray-400 text-center">
-            闭环逻辑: OKR目标滞后 / T节点异常 / 质量问题 / 供应商违约 → 自动创建会议 → 产出行动项 → 回写OKR进度
+            {t("mi.exec.closedLoopDesc")}
           </div>
         </div>
       </div>
@@ -1341,7 +1340,7 @@ function ManagementRhythmTab() {
         <div className="p-4 border-b flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-amber-500" />
-            <h3 className="font-semibold text-sm">自动触发会议</h3>
+            <h3 className="font-semibold text-sm">{t("mi.exec.autoTriggeredMeetings")}</h3>
             {meetings.length > 0 && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
                 {meetings.length}
@@ -1360,68 +1359,68 @@ function ManagementRhythmTab() {
               disabled={triggerPhaseMut.isPending}
               className="text-xs px-3 py-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors border border-blue-200 disabled:opacity-50"
             >
-              模拟M2签约触发
+              {t("mi.exec.simulateM2")}
             </button>
             <button
               onClick={() =>
                 triggerTNodeMut.mutate({
                   tNode: "T12",
-                  projectTitle: "喷淋清洗机-A项目",
+                  projectTitle: "Demo Project",
                   severity: "CRITICAL",
                 })
               }
               disabled={triggerTNodeMut.isPending}
               className="text-xs px-3 py-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors border border-red-200 disabled:opacity-50"
             >
-              模拟T12异常触发
+              {t("mi.exec.simulateT12")}
             </button>
             <button
               onClick={() =>
                 triggerOKRMut.mutate({
-                  objectiveTitle: "年度交付100台清洗设备",
+                  objectiveTitle: "Annual Delivery Target",
                   progress: 28,
                   threshold: 40,
-                  ownerName: "销售部总监",
+                  ownerName: "Sales Director",
                 })
               }
               disabled={triggerOKRMut.isPending}
               className="text-xs px-3 py-1.5 bg-orange-50 text-orange-600 rounded hover:bg-orange-100 transition-colors border border-orange-200 disabled:opacity-50"
             >
-              模拟OKR滞后
+              {t("mi.exec.simulateOkrLag")}
             </button>
             <button
               onClick={() =>
                 triggerQualityMut.mutate({
-                  reportTitle: "超声波清洗机泄漏-8D",
+                  reportTitle: "Ultrasonic Cleaner Leak-8D",
                   severity: "CRITICAL",
-                  productName: "GRT-UC200超声波清洗机",
-                  customerName: "比亚迪半导体",
+                  productName: "GRT-UC200",
+                  customerName: "Customer A",
                 })
               }
               disabled={triggerQualityMut.isPending}
               className="text-xs px-3 py-1.5 bg-rose-50 text-rose-600 rounded hover:bg-rose-100 transition-colors border border-rose-200 disabled:opacity-50"
             >
-              模拟8D升级
+              {t("mi.exec.simulate8dEscalation")}
             </button>
             <button
               onClick={() =>
                 triggerSupplierMut.mutate({
-                  supplierName: "华东不锈钢",
+                  supplierName: "Supplier A",
                   penaltyCount: 5,
                   threshold: 3,
-                  latestReason: "不锈钢板材到货延迟7天",
+                  latestReason: "Delayed delivery",
                 })
               }
               disabled={triggerSupplierMut.isPending}
               className="text-xs px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded hover:bg-yellow-100 transition-colors border border-yellow-200 disabled:opacity-50"
             >
-              模拟供应商违约
+              {t("mi.exec.simulateSupplierBreach")}
             </button>
           </div>
           {/* Error feedback for any failed mutation */}
           {(triggerPhaseMut.isError || triggerTNodeMut.isError || triggerOKRMut.isError || triggerQualityMut.isError || triggerSupplierMut.isError) && (
             <div className="mt-2 px-3 py-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded">
-              触发失败: {triggerPhaseMut.error?.message || triggerTNodeMut.error?.message || triggerOKRMut.error?.message || triggerQualityMut.error?.message || triggerSupplierMut.error?.message}
+              {t("mi.exec.triggerFailed")}: {triggerPhaseMut.error?.message || triggerTNodeMut.error?.message || triggerOKRMut.error?.message || triggerQualityMut.error?.message || triggerSupplierMut.error?.message}
             </div>
           )}
         </div>
@@ -1429,7 +1428,7 @@ function ManagementRhythmTab() {
         <div className="p-4">
           {meetings.length === 0 ? (
             <div className="text-center py-8 text-gray-400 text-sm">
-              暂无自动触发会议 — 点击上方按钮模拟
+              {t("mi.exec.noAutoTriggeredMeetings")}
             </div>
           ) : (
             <div className="space-y-3">
@@ -1483,7 +1482,7 @@ function ManagementRhythmTab() {
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-purple-500" />
             <h3 className="font-semibold text-sm">
-              年度总结暨绩效评审准备
+              {t("mi.exec.annualSummary")}
             </h3>
           </div>
         </div>
@@ -1492,7 +1491,7 @@ function ManagementRhythmTab() {
           {/* 2x2 KPI grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-              <div className="text-xs text-purple-600 mb-1">OKR达成率</div>
+              <div className="text-xs text-purple-600 mb-1">{t("mi.exec.okrAchievementRate")}</div>
               <div className="text-xl font-bold text-purple-700">
                 {okrDash?.avgProgress ?? 0}%
               </div>
@@ -1506,19 +1505,19 @@ function ManagementRhythmTab() {
               </div>
             </div>
             <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-              <div className="text-xs text-blue-600 mb-1">目标数量</div>
+              <div className="text-xs text-blue-600 mb-1">{t("mi.exec.objectiveCount")}</div>
               <div className="text-xl font-bold text-blue-700">
                 {okrDash?.totalObjectives ?? 0}
               </div>
             </div>
             <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
-              <div className="text-xs text-amber-600 mb-1">已触发会议数</div>
+              <div className="text-xs text-amber-600 mb-1">{t("mi.exec.triggeredMeetingCount")}</div>
               <div className="text-xl font-bold text-amber-700">
                 {stats?.totalTriggered ?? 0}
               </div>
             </div>
             <div className="p-3 bg-green-50 rounded-lg border border-green-100">
-              <div className="text-xs text-green-600 mb-1">待处理行动项</div>
+              <div className="text-xs text-green-600 mb-1">{t("mi.exec.pendingActionItems")}</div>
               <div className="text-xl font-bold text-green-700">
                 {stats?.pending ?? 0}
               </div>
@@ -1531,7 +1530,7 @@ function ManagementRhythmTab() {
               href="/strategy/okr-matrix"
               className="text-xs px-3 py-1.5 bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors border border-purple-200 inline-flex items-center gap-1"
             >
-              查看OKR矩阵
+              {t("mi.exec.viewOkrMatrix")}
               <ChevronDown className="w-3 h-3 rotate-[-90deg]" />
             </Link>
             <button
@@ -1545,7 +1544,7 @@ function ManagementRhythmTab() {
               disabled={triggerPhaseMut.isPending}
               className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
-              触发年度总结会议
+              {t("mi.exec.triggerAnnualMeeting")}
             </button>
           </div>
         </div>
@@ -1559,191 +1558,192 @@ function ManagementRhythmTab() {
 // ============================================================================
 
 export default function MeetingExecutive() {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
-        title="会议效能分析"
-        description="G-IME: Intelligent Meeting Executive — 参会者贡献分析与会议效能看板"
+        title={t("mi.exec.title")}
+        description={t("mi.exec.description")}
       />
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="flex-wrap h-auto gap-1">
-          <TabsTrigger value="overview">概览</TabsTrigger>
-          <TabsTrigger value="participants">参会者分析</TabsTrigger>
-          <TabsTrigger value="scores">会议效能</TabsTrigger>
-          <TabsTrigger value="performance">绩效关联</TabsTrigger>
-          <TabsTrigger value="department">部门分析</TabsTrigger>
-          <TabsTrigger value="patterns">会议模式</TabsTrigger>
-          <TabsTrigger value="hr-signals">HR信号</TabsTrigger>
-          <TabsTrigger value="live">实时助手</TabsTrigger>
-          <TabsTrigger value="cost">会议成本</TabsTrigger>
-          <TabsTrigger value="action-items">行动项追踪</TabsTrigger>
-          <TabsTrigger value="topics">议题追踪</TabsTrigger>
-          <TabsTrigger value="sentiment">情感分析</TabsTrigger>
-          <TabsTrigger value="health">健康度</TabsTrigger>
-          <TabsTrigger value="digest">摘要警报</TabsTrigger>
-          <TabsTrigger value="roi">ROI分析</TabsTrigger>
-          <TabsTrigger value="attendee-opt">参会优化</TabsTrigger>
-          <TabsTrigger value="predictions">预测分析</TabsTrigger>
-          <TabsTrigger value="reports">报告导出</TabsTrigger>
-          <TabsTrigger value="knowledge">知识图谱</TabsTrigger>
-          <TabsTrigger value="ai-assistant">AI助手</TabsTrigger>
-          <TabsTrigger value="workflow">自动化教练</TabsTrigger>
-          <TabsTrigger value="integrations">集成设置</TabsTrigger>
-          <TabsTrigger value="gamification">游戏化</TabsTrigger>
-          <TabsTrigger value="feedback">反馈改进</TabsTrigger>
-          <TabsTrigger value="compliance">合规治理</TabsTrigger>
-          <TabsTrigger value="hr-linkage">HR绩效联动</TabsTrigger>
-          <TabsTrigger value="api">Intelligence API</TabsTrigger>
-          <TabsTrigger value="collaboration">协作网络</TabsTrigger>
-          <TabsTrigger value="load-wellbeing">负荷健康</TabsTrigger>
-          <TabsTrigger value="recurring-value">周期会议</TabsTrigger>
-          <TabsTrigger value="decision-effectiveness">决策效能</TabsTrigger>
-          <TabsTrigger value="agenda-time">议程时间</TabsTrigger>
-          <TabsTrigger value="facilitator">引导效能</TabsTrigger>
-          <TabsTrigger value="ai-performance">AI绩效引擎</TabsTrigger>
-          <TabsTrigger value="management-rhythm">管理节奏</TabsTrigger>
+          <TabsTrigger value="overview">{t("mi.exec.tabOverview")}</TabsTrigger>
+          <TabsTrigger value="participants">{t("mi.exec.tabParticipants")}</TabsTrigger>
+          <TabsTrigger value="scores">{t("mi.exec.tabScores")}</TabsTrigger>
+          <TabsTrigger value="performance">{t("mi.exec.tabPerformance")}</TabsTrigger>
+          <TabsTrigger value="department">{t("mi.exec.tabDepartment")}</TabsTrigger>
+          <TabsTrigger value="patterns">{t("mi.exec.tabPatterns")}</TabsTrigger>
+          <TabsTrigger value="hr-signals">{t("mi.exec.tabHrSignals")}</TabsTrigger>
+          <TabsTrigger value="live">{t("mi.exec.tabLive")}</TabsTrigger>
+          <TabsTrigger value="cost">{t("mi.exec.tabCost")}</TabsTrigger>
+          <TabsTrigger value="action-items">{t("mi.exec.tabActionItems")}</TabsTrigger>
+          <TabsTrigger value="topics">{t("mi.exec.tabTopics")}</TabsTrigger>
+          <TabsTrigger value="sentiment">{t("mi.exec.tabSentiment")}</TabsTrigger>
+          <TabsTrigger value="health">{t("mi.exec.tabHealth")}</TabsTrigger>
+          <TabsTrigger value="digest">{t("mi.exec.tabDigest")}</TabsTrigger>
+          <TabsTrigger value="roi">{t("mi.exec.tabRoi")}</TabsTrigger>
+          <TabsTrigger value="attendee-opt">{t("mi.exec.tabAttendeeOpt")}</TabsTrigger>
+          <TabsTrigger value="predictions">{t("mi.exec.tabPredictions")}</TabsTrigger>
+          <TabsTrigger value="reports">{t("mi.exec.tabReports")}</TabsTrigger>
+          <TabsTrigger value="knowledge">{t("mi.exec.tabKnowledge")}</TabsTrigger>
+          <TabsTrigger value="ai-assistant">{t("mi.exec.tabAiAssistant")}</TabsTrigger>
+          <TabsTrigger value="workflow">{t("mi.exec.tabWorkflow")}</TabsTrigger>
+          <TabsTrigger value="integrations">{t("mi.exec.tabIntegrations")}</TabsTrigger>
+          <TabsTrigger value="gamification">{t("mi.exec.tabGamification")}</TabsTrigger>
+          <TabsTrigger value="feedback">{t("mi.exec.tabFeedback")}</TabsTrigger>
+          <TabsTrigger value="compliance">{t("mi.exec.tabCompliance")}</TabsTrigger>
+          <TabsTrigger value="hr-linkage">{t("mi.exec.tabHrLinkage")}</TabsTrigger>
+          <TabsTrigger value="api">{t("mi.exec.tabApi")}</TabsTrigger>
+          <TabsTrigger value="collaboration">{t("mi.exec.tabCollaboration")}</TabsTrigger>
+          <TabsTrigger value="load-wellbeing">{t("mi.exec.tabLoadWellbeing")}</TabsTrigger>
+          <TabsTrigger value="recurring-value">{t("mi.exec.tabRecurringValue")}</TabsTrigger>
+          <TabsTrigger value="decision-effectiveness">{t("mi.exec.tabDecisionEffectiveness")}</TabsTrigger>
+          <TabsTrigger value="agenda-time">{t("mi.exec.tabAgendaTime")}</TabsTrigger>
+          <TabsTrigger value="facilitator">{t("mi.exec.tabFacilitator")}</TabsTrigger>
+          <TabsTrigger value="ai-performance">{t("mi.exec.tabAiPerformance")}</TabsTrigger>
+          <TabsTrigger value="management-rhythm">{t("mi.exec.tabManagementRhythm")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
-          <TabErrorBoundary tabName="概览"><OverviewTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabOverview")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><OverviewTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="participants">
-          <TabErrorBoundary tabName="参会者分析"><ParticipantsTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabParticipants")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><ParticipantsTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="scores">
-          <TabErrorBoundary tabName="会议效能"><MeetingScoresTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabScores")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><MeetingScoresTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="performance">
-          <TabErrorBoundary tabName="绩效关联"><PerformanceLinkTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabPerformance")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><PerformanceLinkTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="department">
-          <TabErrorBoundary tabName="部门分析"><DepartmentRollupTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabDepartment")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><DepartmentRollupTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="patterns">
-          <TabErrorBoundary tabName="会议模式"><MeetingPatternsTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabPatterns")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><MeetingPatternsTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="hr-signals">
-          <TabErrorBoundary tabName="HR信号"><HrSignalsTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabHrSignals")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><HrSignalsTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="live">
-          <TabErrorBoundary tabName="实时助手"><LiveAssistantTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabLive")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><LiveAssistantTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="cost">
-          <TabErrorBoundary tabName="会议成本"><MeetingCostTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabCost")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><MeetingCostTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="action-items">
-          <TabErrorBoundary tabName="行动项追踪"><ActionItemTrackerTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabActionItems")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><ActionItemTrackerTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="topics">
-          <TabErrorBoundary tabName="议题追踪"><TopicContinuityTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabTopics")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><TopicContinuityTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="sentiment">
-          <TabErrorBoundary tabName="情感分析"><SentimentAnalysisTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabSentiment")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><SentimentAnalysisTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="health">
-          <TabErrorBoundary tabName="健康度"><MeetingHealthTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabHealth")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><MeetingHealthTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="digest">
-          <TabErrorBoundary tabName="摘要警报"><DigestAlertsTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabDigest")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><DigestAlertsTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="roi">
-          <TabErrorBoundary tabName="ROI分析"><MeetingRoiTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabRoi")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><MeetingRoiTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="attendee-opt">
-          <TabErrorBoundary tabName="参会优化"><AttendeeOptimizationTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabAttendeeOpt")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><AttendeeOptimizationTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="predictions">
-          <TabErrorBoundary tabName="预测分析"><PredictiveAnalyticsTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabPredictions")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><PredictiveAnalyticsTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="reports">
-          <TabErrorBoundary tabName="报告导出"><ReportsTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabReports")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><ReportsTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="knowledge">
-          <TabErrorBoundary tabName="知识图谱"><KnowledgeGraphTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabKnowledge")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><KnowledgeGraphTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="ai-assistant">
-          <TabErrorBoundary tabName="AI助手"><MeetingAssistantTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabAiAssistant")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><MeetingAssistantTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="workflow">
-          <TabErrorBoundary tabName="自动化教练"><WorkflowCoachingTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabWorkflow")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><WorkflowCoachingTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="integrations">
-          <TabErrorBoundary tabName="集成设置"><IntegrationSettingsTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabIntegrations")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><IntegrationSettingsTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="gamification">
-          <TabErrorBoundary tabName="游戏化"><GamificationTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabGamification")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><GamificationTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="feedback">
-          <TabErrorBoundary tabName="反馈改进"><FeedbackTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabFeedback")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><FeedbackTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="compliance">
-          <TabErrorBoundary tabName="合规治理"><ComplianceTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabCompliance")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><ComplianceTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="hr-linkage">
-          <TabErrorBoundary tabName="HR绩效联动"><HrPerformanceLinkageTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabHrLinkage")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><HrPerformanceLinkageTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="api">
-          <TabErrorBoundary tabName="Intelligence API"><MeetingIntelligenceApiTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabApi")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><MeetingIntelligenceApiTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="collaboration">
-          <TabErrorBoundary tabName="协作网络"><CollaborationNetworkTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabCollaboration")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><CollaborationNetworkTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="load-wellbeing">
-          <TabErrorBoundary tabName="负荷健康"><MeetingLoadWellbeingTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabLoadWellbeing")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><MeetingLoadWellbeingTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="recurring-value">
-          <TabErrorBoundary tabName="周期会议"><RecurringMeetingValueTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabRecurringValue")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><RecurringMeetingValueTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="decision-effectiveness">
-          <TabErrorBoundary tabName="决策效能"><DecisionEffectivenessTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabDecisionEffectiveness")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><DecisionEffectivenessTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="agenda-time">
-          <TabErrorBoundary tabName="议程时间"><AgendaTimeAllocationTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabAgendaTime")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><AgendaTimeAllocationTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="facilitator">
-          <TabErrorBoundary tabName="引导效能"><FacilitatorEffectivenessTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabFacilitator")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><FacilitatorEffectivenessTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="ai-performance">
-          <TabErrorBoundary tabName="AI绩效引擎"><AIPerformanceTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabAiPerformance")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><AIPerformanceTab /></TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="management-rhythm">
-          <TabErrorBoundary tabName="管理节奏"><ManagementRhythmTab /></TabErrorBoundary>
+          <TabErrorBoundary tabName={t("mi.exec.tabManagementRhythm")} failedLabel={t("mi.exec.tabLoadFailed")} reloadLabel={t("mi.exec.reload")}><ManagementRhythmTab /></TabErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>

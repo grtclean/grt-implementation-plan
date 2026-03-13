@@ -7,7 +7,7 @@
  */
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { requireDb } from "../db";
 import { expenseClaims, aiTasks } from "../../drizzle/schema";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
@@ -28,7 +28,7 @@ export const financeAgentRouter = router({
    * submitForReview — Submit an expense claim for AI review
    * Sets status to ai_reviewing, creates async task
    */
-  submitForReview: protectedProcedure
+  submitForReview: requirePermission('finance:expense:create')
     .input(z.object({ claimId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
@@ -37,7 +37,8 @@ export const financeAgentRouter = router({
       const [claim] = await db
         .select()
         .from(expenseClaims)
-        .where(eq(expenseClaims.id, input.claimId));
+        .where(eq(expenseClaims.id, input.claimId))
+        .limit(1000);
 
       if (!claim) throw new TRPCError({ code: "NOT_FOUND", message: "报销单不存在" });
 
@@ -82,7 +83,8 @@ export const financeAgentRouter = router({
         const [task] = await db
           .select()
           .from(aiTasks)
-          .where(eq(aiTasks.id, input.taskId));
+          .where(eq(aiTasks.id, input.taskId))
+          .limit(1000);
 
         if (!task) return { taskStatus: "not_found" as const, report: null, score: null };
 
@@ -102,7 +104,8 @@ export const financeAgentRouter = router({
         const [claim] = await db
           .select()
           .from(expenseClaims)
-          .where(eq(expenseClaims.id, input.claimId));
+          .where(eq(expenseClaims.id, input.claimId))
+          .limit(1000);
 
         if (!claim) return { taskStatus: "not_found" as const, report: null, score: null };
 
@@ -136,7 +139,8 @@ export const financeAgentRouter = router({
       const [claim] = await db
         .select()
         .from(expenseClaims)
-        .where(eq(expenseClaims.id, input.claimId));
+        .where(eq(expenseClaims.id, input.claimId))
+        .limit(1000);
 
       if (!claim) throw new TRPCError({ code: "NOT_FOUND", message: "报销单不存在" });
 
@@ -160,7 +164,7 @@ export const financeAgentRouter = router({
   /**
    * overrideAndApprove — Manager override intercept with justification
    */
-  overrideAndApprove: protectedProcedure
+  overrideAndApprove: requirePermission('finance:expense:approve')
     .input(z.object({
       claimId: z.number(),
       justification: z.string().min(10, "理由至少10个字符"),
@@ -170,7 +174,8 @@ export const financeAgentRouter = router({
       const [claim] = await db
         .select()
         .from(expenseClaims)
-        .where(eq(expenseClaims.id, input.claimId));
+        .where(eq(expenseClaims.id, input.claimId))
+        .limit(1000);
 
       if (!claim) throw new TRPCError({ code: "NOT_FOUND", message: "报销单不存在" });
 
@@ -317,7 +322,7 @@ export const financeAgentRouter = router({
   /**
    * seedDemo — Create 5 demo claims with varied AI results
    */
-  seedDemo: protectedProcedure.mutation(async () => {
+  seedDemo: requirePermission('finance:budget:manage').mutation(async () => {
     const db = await requireDb();
     const now = new Date().toISOString();
 

@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import { AlertWebhookService, LogArchiveService } from "../services/security-enhanced.service";
 
 export const securityEnhancedRouter = router({

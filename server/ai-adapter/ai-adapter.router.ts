@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { protectedProcedure, router } from '../_core/trpc';
+import {protectedProcedure, router, requirePermission} from '../_core/trpc';
 import {
   AIServiceFactory,
   getAIService,
@@ -57,7 +57,7 @@ export const aiAdapterRouter = router({
   // ---------------------------------------------------------------------------
   // 生成文本
   // ---------------------------------------------------------------------------
-  generateText: protectedProcedure
+  generateText: requirePermission('ai:hub:access')
     .input(z.object({
       messages: z.array(messageSchema),
       temperature: z.number().min(0).max(2).optional(),
@@ -77,7 +77,7 @@ export const aiAdapterRouter = router({
   // ---------------------------------------------------------------------------
   // 分析BOM
   // ---------------------------------------------------------------------------
-  analyzeBOM: protectedProcedure
+  analyzeBOM: requirePermission('ai:hub:access')
     .input(z.object({
       bomContent: z.string(),
       projectContext: z.string().optional(),
@@ -96,7 +96,7 @@ export const aiAdapterRouter = router({
   // ---------------------------------------------------------------------------
   // 翻译文档
   // ---------------------------------------------------------------------------
-  translateDocument: protectedProcedure
+  translateDocument: requirePermission('ai:hub:access')
     .input(z.object({
       text: z.string(),
       targetLanguage: z.string(),
@@ -117,7 +117,7 @@ export const aiAdapterRouter = router({
   // ---------------------------------------------------------------------------
   // 切换区域（用于测试）
   // ---------------------------------------------------------------------------
-  switchRegion: protectedProcedure
+  switchRegion: requirePermission('ai:hub:access')
     .input(z.object({
       region: regionSchema,
     }))

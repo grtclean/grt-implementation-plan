@@ -50,7 +50,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -609,9 +609,9 @@ const MOCK_MODULE_DATA = {
   people: {
     blocksActive: 1, avgCombatPower: 76,
     topEmployees: [
-      { name: "王工 (Wang)", score: 94 },
-      { name: "李明 (Li Ming)", score: 88 },
-      { name: "张伟 (Zhang Wei)", score: 85 },
+      { name: "洪香龙 (Hong Xilong)", score: 94 },
+      { name: "李大鹏 (Li Dapeng)", score: 88 },
+      { name: "孙国祥 (Sun Guoxiang)", score: 85 },
     ],
     trainingInProgress: 3,
   },
@@ -636,7 +636,7 @@ const MOCK_EVENTS: ThreadEvent[] = [
   createThreadEvent("OEE", "ALERT", "WARNING", "CNC-003", "machine", "CNC-003 OEE降至62%，低于85%目标", "CNC-003 OEE dropped to 62%, below 85% target", {}, new Date("2026-02-25T13:00:00Z")),
   createThreadEvent("COMPLIANCE", "ALERT", "WARNING", "AUDIT-ISO9001", "audit", "ISO 9001年度审核将在15天后到期", "ISO 9001 annual audit due in 15 days", {}, new Date("2026-02-25T14:00:00Z")),
   createThreadEvent("HR_AI", "UNBLOCKED", "INFO", "OP-LiMing", "operator", "李明完成AI培训模块（评分85/80），操作权限已恢复", "Li Ming completed training (score 85/80), access restored", { linkedUser: "li.ming" }, new Date("2026-02-25T15:00:00Z")),
-  createThreadEvent("EMPLOYEE", "STATUS_CHANGE", "INFO", "EMP-WangGong", "employee", "王工战斗力评分提升至94（新获得TIG焊接认证）", "Wang's combat power score up to 94 (new TIG welding cert)", { linkedUser: "wang.gong" }, new Date("2026-02-25T15:30:00Z")),
+  createThreadEvent("EMPLOYEE", "STATUS_CHANGE", "INFO", "EMP-HongXilong", "employee", "洪香龙战斗力评分提升至94（新获得TIG焊接认证）", "Hong Xilong's combat power score up to 94 (new TIG welding cert)", { linkedUser: "hong.xilong" }, new Date("2026-02-25T15:30:00Z")),
   createThreadEvent("SOP", "CREATED", "INFO", "SOP-CNC-SETUP", "sop", "新增CNC开机标准化SOP（含视频指导）", "New CNC startup SOP created (with video guide)", {}, new Date("2026-02-25T16:00:00Z")),
 ];
 

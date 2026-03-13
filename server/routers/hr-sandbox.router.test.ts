@@ -16,8 +16,9 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
+  createAuthenticatedCaller,
 } from "../_test/trpc-test-utils";
 
 // ── Hoisted mocks ──
@@ -46,6 +47,12 @@ const {
 });
 
 // Mock DB
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => {
     const chain: any = {
@@ -111,6 +118,7 @@ vi.mock("../services/hr-sandbox.service", () => ({
 
 // Mock task-worker.service
 vi.mock("../services/task-worker.service", () => ({
+  registerTaskHandler: vi.fn(),
   submitTask: mockSubmitTask,
 }));
 
@@ -142,7 +150,7 @@ const sampleTask = {
   id: 1,
   taskType: "HR_CAPABILITY_PARSING",
   status: "completed",
-  inputData: { employeeId: 1001, role: "bu_gm" },
+  inputData: { employeeId: 1, role: "bu_gm" },
   resultData: sampleParsingResult,
   errorMessage: null,
   createdBy: "1",
@@ -247,7 +255,7 @@ describe("hrSandbox router", () => {
       mockParseCapabilityModel.mockResolvedValueOnce(sampleParsingResult);
 
       const result = await caller().hrSandbox.submitParsing({
-        employeeId: 1001,
+        employeeId: 1,
         role: "bu_gm",
       });
       expect(result.taskId).toBe(10);
@@ -365,7 +373,7 @@ describe("hrSandbox router", () => {
     it("throws for low-level roles (level < 3)", async () => {
       await expect(
         caller().hrSandbox.batchParse({
-          department: "海外BU",
+          department: "事业一部",
           userRole: "employee",
         })
       ).rejects.toThrow("Only managers and above (level \u2265 3) can run batch parsing");
@@ -374,7 +382,7 @@ describe("hrSandbox router", () => {
     it("throws for team_lead (level 2)", async () => {
       await expect(
         caller().hrSandbox.batchParse({
-          department: "海外BU",
+          department: "事业一部",
           userRole: "team_lead",
         })
       ).rejects.toThrow("Only managers and above");
@@ -383,7 +391,7 @@ describe("hrSandbox router", () => {
     it("throws for bu_sales (level 2)", async () => {
       await expect(
         caller().hrSandbox.batchParse({
-          department: "海外BU",
+          department: "事业一部",
           userRole: "bu_sales",
         })
       ).rejects.toThrow();
@@ -392,7 +400,7 @@ describe("hrSandbox router", () => {
     it("throws for unknown role (defaults to level 1)", async () => {
       await expect(
         caller().hrSandbox.batchParse({
-          department: "海外BU",
+          department: "事业一部",
           userRole: "unknown_role",
         })
       ).rejects.toThrow();
@@ -401,7 +409,7 @@ describe("hrSandbox router", () => {
     it("defaults to employee role (level 1) when userRole not provided", async () => {
       await expect(
         caller().hrSandbox.batchParse({
-          department: "海外BU",
+          department: "事业一部",
         })
       ).rejects.toThrow();
     });
@@ -420,7 +428,7 @@ describe("hrSandbox router", () => {
     it("processes employees in department for dept_manager (level 3)", async () => {
       executeResults.push(undefined); // ensureTables
 
-      // 海外BU has 4 employees: 1001, 1002, 1003, 1013
+      // 事业一部 has 4 employees: 4, 5, 22, 63
       // 4 task inserts returning
       mockReturningResult.push({ id: 101 });
       // The mock returning is called once per insert. Each call uses mockReturningResult
@@ -446,11 +454,11 @@ describe("hrSandbox router", () => {
       mockParseCapabilityModel.mockResolvedValue(sampleParsingResult);
 
       const result = await caller().hrSandbox.batchParse({
-        department: "海外BU",
+        department: "事业一部",
         userRole: "dept_manager",
       });
 
-      expect(result.department).toBe("海外BU");
+      expect(result.department).toBe("事业一部");
       expect(result.totalEmployees).toBe(4);
       expect(result.taskIds).toHaveLength(4);
       expect(result.results).toHaveLength(4);
@@ -463,17 +471,17 @@ describe("hrSandbox router", () => {
     it("handles parse failures gracefully in batch", async () => {
       executeResults.push(undefined); // ensureTables
 
-      // 半导体BU has 2 employees: 1008, 1009
+      // 事业四部 has 2 employees: 18, 24
       mockParseCapabilityModel
         .mockResolvedValueOnce(sampleParsingResult)
         .mockRejectedValueOnce(new Error("Parse error"));
 
       const result = await caller().hrSandbox.batchParse({
-        department: "半导体BU",
+        department: "事业四部",
         userRole: "admin",
       });
 
-      expect(result.department).toBe("半导体BU");
+      expect(result.department).toBe("事业四部");
       expect(result.totalEmployees).toBe(2);
       expect(result.results).toHaveLength(2);
 
@@ -487,10 +495,10 @@ describe("hrSandbox router", () => {
       mockParseCapabilityModel.mockResolvedValue(sampleParsingResult);
 
       const result = await caller().hrSandbox.batchParse({
-        department: "总经办",
+        department: "总裁办",
         userRole: "admin",
       });
-      // 总经办 has 1 employee: Donnie (1017)
+      // 总裁办 has 1 employee: 倪亚东 (1)
       expect(result.totalEmployees).toBe(1);
       expect(result.results).toHaveLength(1);
     });
@@ -503,17 +511,17 @@ describe("hrSandbox router", () => {
         department: "财务部",
         userRole: "hr_manager",
       });
-      // 财务部 has 1 employee: Ma Chao (1012)
-      expect(result.totalEmployees).toBe(1);
+      // 财务部 has 4 employees: 2(黄晓兰), 54(王秀萍), 101(王汝月), 66(李新正)
+      expect(result.totalEmployees).toBe(4);
     });
 
     it("processes in chunks of 3 (concurrency limit)", async () => {
       executeResults.push(undefined);
       mockParseCapabilityModel.mockResolvedValue(sampleParsingResult);
 
-      // 海外BU has 4 employees => 2 chunks: [3] + [1]
+      // 事业一部 has 4 employees => 2 chunks: [3] + [1]
       const result = await caller().hrSandbox.batchParse({
-        department: "海外BU",
+        department: "事业一部",
         userRole: "director",
       });
       expect(result.totalEmployees).toBe(4);
@@ -546,7 +554,7 @@ describe("hrSandbox router", () => {
       mockWhatIfSimulate.mockReturnValueOnce(sampleWhatIfResult);
 
       await caller().hrSandbox.whatIfSimulation({
-        employeeId: 1001,
+        employeeId: 1,
         role: "bu_gm",
         baseScores: { T: 80, S: 75, D: 70, C: 85, K: 78, L: 60 },
         adjustments: { T: 90, S: 85 },
@@ -621,7 +629,7 @@ describe("hrSandbox router", () => {
         documentText: "评估报告",
         employeeName: "王磊",
         role: "bu_gm",
-        department: "海外BU",
+        department: "事业一部",
       });
 
       expect(mockSubmitTask).toHaveBeenCalledWith(
@@ -630,7 +638,7 @@ describe("hrSandbox router", () => {
           documentText: "评估报告",
           employeeName: "王磊",
           role: "bu_gm",
-          department: "海外BU",
+          department: "事业一部",
         }),
         "1"
       );
@@ -843,7 +851,7 @@ describe("hrSandbox router", () => {
         {
           ...sampleTask,
           id: 1,
-          inputData: { employeeId: 1001 },
+          inputData: { employeeId: 1 },
           resultData: sampleParsingResult,
           status: "completed",
           createdAt: "2026-03-01T00:00:00.000Z",
@@ -851,7 +859,7 @@ describe("hrSandbox router", () => {
         {
           ...sampleTask,
           id: 2,
-          inputData: { employeeId: 1002 },
+          inputData: { employeeId: 80 },
           resultData: { ...sampleParsingResult, overallScore: 68, overallGrade: "B" },
           status: "completed",
           createdAt: "2026-03-01T00:01:00.000Z",
@@ -870,8 +878,8 @@ describe("hrSandbox router", () => {
     it("filters to only requested task IDs", async () => {
       executeResults.push(undefined);
       selectResultsQueue.push([
-        { ...sampleTask, id: 1, inputData: { employeeId: 1001 }, resultData: sampleParsingResult },
-        { ...sampleTask, id: 2, inputData: { employeeId: 1002 }, resultData: sampleParsingResult },
+        { ...sampleTask, id: 1, inputData: { employeeId: 1 }, resultData: sampleParsingResult },
+        { ...sampleTask, id: 2, inputData: { employeeId: 80 }, resultData: sampleParsingResult },
         { ...sampleTask, id: 3, inputData: { employeeId: 1003 }, resultData: sampleParsingResult },
       ]);
 
@@ -889,8 +897,8 @@ describe("hrSandbox router", () => {
     it("returns all rows when taskIds is empty", async () => {
       executeResults.push(undefined);
       selectResultsQueue.push([
-        { ...sampleTask, id: 1, inputData: { employeeId: 1001 }, resultData: sampleParsingResult },
-        { ...sampleTask, id: 2, inputData: { employeeId: 1002 }, resultData: sampleParsingResult },
+        { ...sampleTask, id: 1, inputData: { employeeId: 1 }, resultData: sampleParsingResult },
+        { ...sampleTask, id: 2, inputData: { employeeId: 80 }, resultData: sampleParsingResult },
       ]);
 
       const result = await caller().hrSandbox.exportReport({
@@ -906,7 +914,7 @@ describe("hrSandbox router", () => {
         {
           ...sampleTask,
           id: 1,
-          inputData: { employeeId: 1001 },
+          inputData: { employeeId: 1 },
           resultData: sampleParsingResult,
         },
       ]);
@@ -915,9 +923,9 @@ describe("hrSandbox router", () => {
         taskIds: [1],
       });
 
-      expect(result.items[0].employeeName).toBe("王磊");
-      expect(result.items[0].department).toBe("海外BU");
-      expect(result.items[0].role).toBe("BU总经理");
+      expect(result.items[0].employeeName).toBe("倪亚东");
+      expect(result.items[0].department).toBe("总裁办");
+      expect(result.items[0].role).toBe("董事长");
     });
 
     it("returns default name when employeeId not in assessments", async () => {
@@ -964,7 +972,7 @@ describe("hrSandbox router", () => {
         {
           ...sampleTask,
           id: 7,
-          inputData: { employeeId: 1001 },
+          inputData: { employeeId: 1 },
           resultData: null,
           status: "failed",
         },
@@ -1019,7 +1027,7 @@ describe("hrSandbox router", () => {
         {
           ...sampleTask,
           id: 10,
-          inputData: { employeeId: 1004 },
+          inputData: { employeeId: 62 },
           resultData: sampleParsingResult,
           status: "completed",
         },
@@ -1031,8 +1039,8 @@ describe("hrSandbox router", () => {
 
       const item = result.items[0];
       expect(item).toHaveProperty("taskId", 10);
-      expect(item).toHaveProperty("employeeName", "陈明");
-      expect(item).toHaveProperty("department", "商用车BU");
+      expect(item).toHaveProperty("employeeName", "朱宇浩");
+      expect(item).toHaveProperty("department", "事业二部");
       expect(item).toHaveProperty("role", "项目经理");
       expect(item).toHaveProperty("status", "completed");
       expect(item).toHaveProperty("overallScore", 75);
@@ -1071,7 +1079,7 @@ describe("hrSandbox router", () => {
       const anonCaller = createAnonymousCaller();
       await expect(
         anonCaller.hrSandbox.batchParse({
-          department: "海外BU",
+          department: "事业一部",
           userRole: "admin",
         })
       ).rejects.toThrow();
@@ -1180,9 +1188,9 @@ describe("hrSandbox router", () => {
         userRole: "bu_gm",
       });
 
-      // 财务部 has 1 employee: Ma Chao (1012)
-      expect(result.results[0].name).toBe("马超");
-      expect(result.results[0].employeeId).toBe(1012);
+      // 财务部 has 4 employees, first is 黄晓兰 (2)
+      expect(result.results[0].name).toBe("黄晓兰");
+      expect(result.results[0].employeeId).toBe(2);
     });
 
     it("whatIfSimulation is synchronous (no DB call needed)", async () => {
@@ -1203,7 +1211,7 @@ describe("hrSandbox router", () => {
       // eq(aiTasks.taskType, TASK_TYPE) in the where clause.
       executeResults.push(undefined);
       selectResultsQueue.push([
-        { ...sampleTask, id: 1, inputData: { employeeId: 1001 }, resultData: sampleParsingResult },
+        { ...sampleTask, id: 1, inputData: { employeeId: 1 }, resultData: sampleParsingResult },
       ]);
 
       const result = await caller().hrSandbox.exportReport({

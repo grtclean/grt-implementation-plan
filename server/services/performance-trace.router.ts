@@ -2,11 +2,11 @@
  * Performance Trace Router (Task #76)
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import * as ptSvc from "./performance-trace.service";
 
 export const performanceTraceRouter = router({
-  trace: protectedProcedure
+  trace: requirePermission('system:monitoring:view')
     .input(z.object({ userId: z.number(), metric: z.string(), value: z.number(),
       source: z.object({ type: z.string().optional(), id: z.number().optional(), description: z.string().optional(), unit: z.string().optional(), period: z.string().optional() }).optional() }))
     .mutation(async ({ input }) => {

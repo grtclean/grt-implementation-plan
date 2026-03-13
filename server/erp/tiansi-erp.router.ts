@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
+import {router, adminProcedure, protectedProcedure, requirePermission} from "../_core/trpc";
 import { createTiansiERPIntegration } from "./tiansi-erp-integration";
 
 // 天思ERP配置Schema

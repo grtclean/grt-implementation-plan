@@ -18,8 +18,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { 
-  FileText, 
+import { useLanguage } from "@/contexts/LanguageContext";
+import {
+  FileText,
   FolderOpen, 
   Image, 
   Plus, 
@@ -80,6 +81,7 @@ const mockPhaseDocuments = [
 ];
 
 export default function LiveDocumentManager() {
+  const { t } = useLanguage();
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("gtr");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
@@ -89,10 +91,10 @@ export default function LiveDocumentManager() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "active": return <Badge className="bg-green-500">生效</Badge>;
-      case "draft": return <Badge variant="secondary">草稿</Badge>;
-      case "review": return <Badge className="bg-yellow-500">评审中</Badge>;
-      case "archived": return <Badge variant="outline">已归档</Badge>;
+      case "active": return <Badge className="bg-green-500">{t("admin.liveDoc.statusActive")}</Badge>;
+      case "draft": return <Badge variant="secondary">{t("admin.liveDoc.statusDraft")}</Badge>;
+      case "review": return <Badge className="bg-yellow-500">{t("admin.liveDoc.statusReview")}</Badge>;
+      case "archived": return <Badge variant="outline">{t("admin.liveDoc.statusArchived")}</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
@@ -109,54 +111,54 @@ export default function LiveDocumentManager() {
       <div className="space-y-6">
         <PageHeader
           icon={FileText}
-          title="活文档管理"
-          description="基于Nocobase架构的技术文档与图形规范管理系统"
+          title={t("admin.liveDoc.title")}
+          description={t("admin.liveDoc.description")}
           actions={
             <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <Upload className="h-4 w-4 mr-2" />
-                  上传文档
+                  {t("admin.liveDoc.uploadDocument")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>上传文档</DialogTitle>
+                  <DialogTitle>{t("admin.liveDoc.uploadTitle")}</DialogTitle>
                   <DialogDescription>
-                    支持PDF、Word、图片等格式，系统将自动解析图形和表格
+                    {t("admin.liveDoc.uploadDesc")}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="border-2 border-dashed rounded-lg p-8 text-center">
                     <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <p className="text-sm text-muted-foreground mb-2">
-                      拖拽文件到此处，或点击选择文件
+                      {t("admin.liveDoc.dragOrClick")}
                     </p>
-                    <Button variant="outline" size="sm">选择文件</Button>
+                    <Button variant="outline" size="sm">{t("admin.liveDoc.selectFile")}</Button>
                   </div>
                   <div className="space-y-2">
-                    <Label>文档类型</Label>
+                    <Label>{t("admin.liveDoc.documentType")}</Label>
                     <Select defaultValue="gtr">
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="gtr">GTR 通用技术要求</SelectItem>
-                        <SelectItem value="csr">CSR 客户特定要求</SelectItem>
-                        <SelectItem value="phase">阶段文档</SelectItem>
+                        <SelectItem value="gtr">{t("admin.liveDoc.typeGTR")}</SelectItem>
+                        <SelectItem value="csr">{t("admin.liveDoc.typeCSR")}</SelectItem>
+                        <SelectItem value="phase">{t("admin.liveDoc.typePhase")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsUploadOpen(false)}>
-                    取消
+                    {t("admin.liveDoc.cancel")}
                   </Button>
                   <Button onClick={() => {
-                    toast.success("文档上传成功，正在解析...");
+                    toast.success(t("admin.liveDoc.uploadSuccess"));
                     setIsUploadOpen(false);
                   }}>
-                    上传
+                    {t("admin.liveDoc.upload")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -171,7 +173,7 @@ export default function LiveDocumentManager() {
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                  placeholder="搜索文档..." 
+                  placeholder={t("admin.liveDoc.searchDocuments")}
                   className="pl-10"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
@@ -179,13 +181,13 @@ export default function LiveDocumentManager() {
               </div>
               <Select defaultValue="all">
                 <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="状态" />
+                  <SelectValue placeholder={t("admin.liveDoc.statusPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部状态</SelectItem>
-                  <SelectItem value="active">生效</SelectItem>
-                  <SelectItem value="draft">草稿</SelectItem>
-                  <SelectItem value="review">评审中</SelectItem>
+                  <SelectItem value="all">{t("admin.liveDoc.allStatus")}</SelectItem>
+                  <SelectItem value="active">{t("admin.liveDoc.statusActive")}</SelectItem>
+                  <SelectItem value="draft">{t("admin.liveDoc.statusDraft")}</SelectItem>
+                  <SelectItem value="review">{t("admin.liveDoc.statusReview")}</SelectItem>
                 </SelectContent>
               </Select>
               <div className="flex items-center border rounded-md">
@@ -212,19 +214,19 @@ export default function LiveDocumentManager() {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="gtr" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
-              GTR 通用要求
+              {t("admin.liveDoc.tabGTR")}
             </TabsTrigger>
             <TabsTrigger value="csr" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              CSR 客户要求
+              {t("admin.liveDoc.tabCSR")}
             </TabsTrigger>
             <TabsTrigger value="graphics" className="flex items-center gap-2">
               <Image className="h-4 w-4" />
-              图形规范
+              {t("admin.liveDoc.tabGraphics")}
             </TabsTrigger>
             <TabsTrigger value="phases" className="flex items-center gap-2">
               <FolderOpen className="h-4 w-4" />
-              M0-M12 阶段
+              {t("admin.liveDoc.tabPhases")}
             </TabsTrigger>
           </TabsList>
 
@@ -232,20 +234,20 @@ export default function LiveDocumentManager() {
           <TabsContent value="gtr" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>GTR 通用技术要求文档</CardTitle>
-                <CardDescription>管理公司级通用技术规范和标准</CardDescription>
+                <CardTitle>{t("admin.liveDoc.gtrTitle")}</CardTitle>
+                <CardDescription>{t("admin.liveDoc.gtrDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>文档编号</TableHead>
-                      <TableHead>文档标题</TableHead>
-                      <TableHead>版本</TableHead>
-                      <TableHead>类别</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead>更新时间</TableHead>
-                      <TableHead>操作</TableHead>
+                      <TableHead>{t("admin.liveDoc.colDocCode")}</TableHead>
+                      <TableHead>{t("admin.liveDoc.colDocTitle")}</TableHead>
+                      <TableHead>{t("admin.liveDoc.colVersion")}</TableHead>
+                      <TableHead>{t("admin.liveDoc.colCategory")}</TableHead>
+                      <TableHead>{t("admin.liveDoc.colStatus")}</TableHead>
+                      <TableHead>{t("admin.liveDoc.colUpdatedAt")}</TableHead>
+                      <TableHead>{t("admin.liveDoc.colActions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -262,17 +264,17 @@ export default function LiveDocumentManager() {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Button variant="ghost" size="icon"
-                              onClick={() => toast.info(`查看文档: ${doc.title}`)}
+                              onClick={() => toast.info(`${t("admin.liveDoc.viewDoc")}: ${doc.title}`)}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon"
-                              onClick={() => toast.info(`编辑文档: ${doc.title}`)}
+                              onClick={() => toast.info(`${t("admin.liveDoc.editDoc")}: ${doc.title}`)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon"
-                              onClick={() => toast.info(`下载文档: ${doc.title}`)}
+                              onClick={() => toast.info(`${t("admin.liveDoc.downloadDoc")}: ${doc.title}`)}
                             >
                               <Download className="h-4 w-4" />
                             </Button>
@@ -286,24 +288,24 @@ export default function LiveDocumentManager() {
             </Card>
           </TabsContent>
 
-          {/* CSR 客户特定要求 */}
+          {/* CSR */}
           <TabsContent value="csr" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>CSR 客户特定要求文档</CardTitle>
-                <CardDescription>管理客户定制化技术要求和规范</CardDescription>
+                <CardTitle>{t("admin.liveDoc.csrTitle")}</CardTitle>
+                <CardDescription>{t("admin.liveDoc.csrDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>文档编号</TableHead>
-                      <TableHead>客户</TableHead>
-                      <TableHead>文档标题</TableHead>
-                      <TableHead>版本</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead>更新时间</TableHead>
-                      <TableHead>操作</TableHead>
+                      <TableHead>{t("admin.liveDoc.colDocCode")}</TableHead>
+                      <TableHead>{t("admin.liveDoc.colCustomer")}</TableHead>
+                      <TableHead>{t("admin.liveDoc.colDocTitle")}</TableHead>
+                      <TableHead>{t("admin.liveDoc.colVersion")}</TableHead>
+                      <TableHead>{t("admin.liveDoc.colStatus")}</TableHead>
+                      <TableHead>{t("admin.liveDoc.colUpdatedAt")}</TableHead>
+                      <TableHead>{t("admin.liveDoc.colActions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -320,17 +322,17 @@ export default function LiveDocumentManager() {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Button variant="ghost" size="icon"
-                              onClick={() => toast.info(`查看文档: ${doc.title}`)}
+                              onClick={() => toast.info(`${t("admin.liveDoc.viewDoc")}: ${doc.title}`)}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon"
-                              onClick={() => toast.info(`编辑文档: ${doc.title}`)}
+                              onClick={() => toast.info(`${t("admin.liveDoc.editDoc")}: ${doc.title}`)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon"
-                              onClick={() => toast.info(`下载文档: ${doc.title}`)}
+                              onClick={() => toast.info(`${t("admin.liveDoc.downloadDoc")}: ${doc.title}`)}
                             >
                               <Download className="h-4 w-4" />
                             </Button>
@@ -348,8 +350,8 @@ export default function LiveDocumentManager() {
           <TabsContent value="graphics" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>图形规范管理</CardTitle>
-                <CardDescription>管理文档中的图形、图表和附件，支持辅助框显示</CardDescription>
+                <CardTitle>{t("admin.liveDoc.graphicsTitle")}</CardTitle>
+                <CardDescription>{t("admin.liveDoc.graphicsDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -359,24 +361,24 @@ export default function LiveDocumentManager() {
                         {graphic.hasPlaceholder ? (
                           <div className="text-center p-4">
                             <Image className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                            <p className="text-sm text-muted-foreground">图形辅助框</p>
-                            <p className="text-xs text-muted-foreground">原图待上传</p>
+                            <p className="text-sm text-muted-foreground">{t("admin.liveDoc.graphicPlaceholder")}</p>
+                            <p className="text-xs text-muted-foreground">{t("admin.liveDoc.graphicPending")}</p>
                           </div>
                         ) : (
                           <Image className="h-16 w-16 text-muted-foreground" />
                         )}
                         {graphic.hasPlaceholder && (
-                          <Badge className="absolute top-2 right-2 bg-yellow-500">待补充</Badge>
+                          <Badge className="absolute top-2 right-2 bg-yellow-500">{t("admin.liveDoc.graphicPendingBadge")}</Badge>
                         )}
                       </div>
                       <CardContent className="p-4">
                         <h4 className="font-medium mb-1">{graphic.name}</h4>
                         <p className="text-sm text-muted-foreground mb-2">
-                          原文名称: {graphic.originalName}
+                          {t("admin.liveDoc.originalName")}: {graphic.originalName}
                         </p>
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>来源: {graphic.documentRef}</span>
-                          <span>位置: {graphic.position}</span>
+                          <span>{t("admin.liveDoc.source")}: {graphic.documentRef}</span>
+                          <span>{t("admin.liveDoc.position")}: {graphic.position}</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -390,8 +392,8 @@ export default function LiveDocumentManager() {
           <TabsContent value="phases" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>M0-M12 项目阶段文档</CardTitle>
-                <CardDescription>按项目生命周期阶段管理文档</CardDescription>
+                <CardTitle>{t("admin.liveDoc.phasesTitle")}</CardTitle>
+                <CardDescription>{t("admin.liveDoc.phasesDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -406,7 +408,7 @@ export default function LiveDocumentManager() {
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
                           <Badge variant="outline" className="font-mono">{phase.phase}</Badge>
-                          <span className="text-sm text-muted-foreground">{phase.count} 文档</span>
+                          <span className="text-sm text-muted-foreground">{phase.count} {t("admin.liveDoc.documentCount")}</span>
                         </div>
                         <h4 className="font-medium mb-2">{phase.name}</h4>
                         {selectedPhase === phase.phase && (

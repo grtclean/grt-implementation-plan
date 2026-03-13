@@ -81,7 +81,7 @@ function queueExecute(...results: any[]) {
 // Import test utils AFTER mock setup
 // ---------------------------------------------------------------------------
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -200,7 +200,7 @@ describe("rdVerification router", () => {
   // =========================================================================
   describe("getProjects", () => {
     it("returns project items from the database (triggers bootstrap on first call)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First procedure call in the suite triggers bootstrap:
       //   1. CREATE TABLE (result ignored)
       //   2. SELECT COUNT → cnt > 0 means skip seed INSERT
@@ -220,7 +220,7 @@ describe("rdVerification router", () => {
     });
 
     it("returns empty array when no rows match", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Bootstrap already ran (flag is set), only the actual query executes
       queueExecute({ rows: [] });
 
@@ -230,7 +230,7 @@ describe("rdVerification router", () => {
     });
 
     it("returns empty array when items field is null/undefined", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       queueExecute({ rows: [{ items: undefined }] });
 
       const result = await caller.rdVerification.getProjects();
@@ -238,7 +238,7 @@ describe("rdVerification router", () => {
     });
 
     it("returns a single-item array", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const single = [sampleProjects[0]];
       queueExecute({ rows: [{ items: single }] });
 
@@ -253,7 +253,7 @@ describe("rdVerification router", () => {
   // =========================================================================
   describe("getChecklists", () => {
     it("returns checklist items as an object keyed by gate phase", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       queueExecute({ rows: [{ items: sampleChecklists }] });
 
       const result = await caller.rdVerification.getChecklists();
@@ -265,7 +265,7 @@ describe("rdVerification router", () => {
     });
 
     it("returns empty object when no rows match", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       queueExecute({ rows: [] });
 
       const result = await caller.rdVerification.getChecklists();
@@ -275,7 +275,7 @@ describe("rdVerification router", () => {
     });
 
     it("returns empty object when items field is null/undefined", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       queueExecute({ rows: [{ items: undefined }] });
 
       const result = await caller.rdVerification.getChecklists();
@@ -283,7 +283,7 @@ describe("rdVerification router", () => {
     });
 
     it("returns checklists with a single gate phase", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const singleGate = { M5: [{ id: 10, checkItem: "3D模型最终版发布", status: "pass", isMandatory: true }] };
       queueExecute({ rows: [{ items: singleGate }] });
 
@@ -298,7 +298,7 @@ describe("rdVerification router", () => {
   // =========================================================================
   describe("getReviews", () => {
     it("returns review items from the database", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       queueExecute({ rows: [{ items: sampleReviews }] });
 
       const result = await caller.rdVerification.getReviews();
@@ -310,7 +310,7 @@ describe("rdVerification router", () => {
     });
 
     it("returns empty array when no rows match", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       queueExecute({ rows: [] });
 
       const result = await caller.rdVerification.getReviews();
@@ -319,7 +319,7 @@ describe("rdVerification router", () => {
     });
 
     it("returns empty array when items field is null/undefined", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       queueExecute({ rows: [{ items: undefined }] });
 
       const result = await caller.rdVerification.getReviews();
@@ -327,7 +327,7 @@ describe("rdVerification router", () => {
     });
 
     it("returns reviews with various statuses", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const mixedReviews = [
         { id: 1, status: "approved" },
         { id: 2, status: "conditional" },
@@ -351,7 +351,7 @@ describe("rdVerification router", () => {
   // =========================================================================
   describe("getSignals", () => {
     it("returns signal items from the database", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       queueExecute({ rows: [{ items: sampleSignals }] });
 
       const result = await caller.rdVerification.getSignals();
@@ -363,7 +363,7 @@ describe("rdVerification router", () => {
     });
 
     it("returns empty array when no rows match", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       queueExecute({ rows: [] });
 
       const result = await caller.rdVerification.getSignals();
@@ -372,7 +372,7 @@ describe("rdVerification router", () => {
     });
 
     it("returns empty array when items field is null/undefined", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       queueExecute({ rows: [{ items: undefined }] });
 
       const result = await caller.rdVerification.getSignals();
@@ -380,7 +380,7 @@ describe("rdVerification router", () => {
     });
 
     it("returns signals with nested actionPayload", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const signalsWithPayload = [
         {
           id: 10,
@@ -405,7 +405,7 @@ describe("rdVerification router", () => {
   // =========================================================================
   describe("bootstrap behavior", () => {
     it("calls db.execute for the actual query (bootstrap already completed from earlier tests)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       queueExecute({ rows: [{ items: sampleProjects }] });
 
       await caller.rdVerification.getProjects();
@@ -415,7 +415,7 @@ describe("rdVerification router", () => {
     });
 
     it("db.execute is called at least once per procedure call", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       queueExecute({ rows: [{ items: [] }] });
       mockExecuteFn.mockClear();
 
@@ -430,7 +430,7 @@ describe("rdVerification router", () => {
   // =========================================================================
   describe("edge cases", () => {
     it("getProjects handles large datasets", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const largeDataset = Array.from({ length: 100 }, (_, i) => ({
         id: i + 1,
         name: `Project ${i + 1}`,
@@ -447,7 +447,7 @@ describe("rdVerification router", () => {
     });
 
     it("getChecklists returns object with many gate phases", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const manyGates: Record<string, any[]> = {};
       for (let i = 0; i <= 12; i++) {
         manyGates[`M${i}`] = [{ id: i, checkItem: `Gate M${i} item`, status: "pass", isMandatory: true }];
@@ -461,7 +461,7 @@ describe("rdVerification router", () => {
     });
 
     it("getSignals returns items with empty actionPayload", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const signals = [{ id: 1, upstreamGate: "M1", triggerEvent: "test", targetAasId: "X", status: "pending", actionPayload: {} }];
       queueExecute({ rows: [{ items: signals }] });
 

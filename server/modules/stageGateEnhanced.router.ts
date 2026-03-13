@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import { jsonValue } from "@shared/validators";
 import { requireDb } from "../db";
 import { TRPCError } from "@trpc/server";
@@ -20,7 +20,7 @@ export const stageGateEnhancedRouter = router({
   // ==================== 项目导入向导 ====================
 
   // 获取字段映射建议
-  suggestFieldMapping: protectedProcedure
+  suggestFieldMapping: requirePermission('project:stage-gate:manage')
     .input(
       z.object({
         headers: z.array(z.string()),
@@ -37,7 +37,7 @@ export const stageGateEnhancedRouter = router({
     }),
 
   // 验证导入数据
-  validateImportData: protectedProcedure
+  validateImportData: requirePermission('project:stage-gate:manage')
     .input(
       z.object({
         data: z.array(z.record(z.string(), jsonValue)),
@@ -340,7 +340,7 @@ export const stageGateEnhancedRouter = router({
   }),
 
   // 推送交付信息到ERP
-  pushDeliveryToERP: protectedProcedure
+  pushDeliveryToERP: requirePermission('project:stage-gate:manage')
     .input(
       z.object({
         projectId: z.number(),

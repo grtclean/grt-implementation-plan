@@ -11,7 +11,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
 import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
@@ -86,7 +86,7 @@ export const bomRouter = router({
   /**
    * 创建BOM主记录
    */
-  createBomMaster: protectedProcedure
+  createBomMaster: requirePermission('rnd:bom:manage')
     .input(BomMasterCreateSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -205,7 +205,7 @@ export const bomRouter = router({
   /**
    * 更新BOM主记录
    */
-  updateBomMaster: protectedProcedure
+  updateBomMaster: requirePermission('rnd:bom:manage')
     .input(BomMasterUpdateSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -234,7 +234,7 @@ export const bomRouter = router({
   /**
    * 更新BOM状态（审批流: draft→pending_review→approved→active）
    */
-  updateBomStatus: protectedProcedure
+  updateBomStatus: requirePermission('rnd:bom:manage')
     .input(z.object({
       id: z.number(),
       status: z.enum(['draft', 'pending_review', 'approved', 'active', 'superseded', 'obsolete']),
@@ -262,7 +262,7 @@ export const bomRouter = router({
   /**
    * 删除BOM (仅draft状态)
    */
-  deleteBomMaster: protectedProcedure
+  deleteBomMaster: requirePermission('rnd:bom:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -284,7 +284,7 @@ export const bomRouter = router({
   /**
    * 添加BOM明细行
    */
-  addBomItem: protectedProcedure
+  addBomItem: requirePermission('rnd:bom:manage')
     .input(BomItemCreateSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -329,7 +329,7 @@ export const bomRouter = router({
   /**
    * 更新BOM明细行
    */
-  updateBomItem: protectedProcedure
+  updateBomItem: requirePermission('rnd:bom:manage')
     .input(BomItemUpdateSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -380,7 +380,7 @@ export const bomRouter = router({
   /**
    * 删除BOM明细行
    */
-  deleteBomItem: protectedProcedure
+  deleteBomItem: requirePermission('rnd:bom:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -401,7 +401,8 @@ export const bomRouter = router({
       const allItems = await db
         .select()
         .from(bomItems)
-        .where(eq(bomItems.bomMasterId, input.bomMasterId));
+        .where(eq(bomItems.bomMasterId, input.bomMasterId))
+        .limit(1000);
 
       // 构建树结构
       type BomItemRow = typeof allItems[number];
@@ -425,7 +426,7 @@ export const bomRouter = router({
   /**
    * 批量添加BOM明细行
    */
-  batchAddBomItems: protectedProcedure
+  batchAddBomItems: requirePermission('rnd:bom:manage')
     .input(z.object({
       bomMasterId: z.number(),
       items: z.array(BomItemCreateSchema.omit({ bomMasterId: true })),
@@ -484,7 +485,7 @@ export const bomRouter = router({
   /**
    * 创建新版本 / ECN变更
    */
-  createVersion: protectedProcedure
+  createVersion: requirePermission('rnd:bom:manage')
     .input(BomVersionCreateSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -527,13 +528,14 @@ export const bomRouter = router({
         .select()
         .from(bomVersions)
         .where(eq(bomVersions.bomMasterId, input.bomMasterId))
-        .orderBy(desc(bomVersions.id));
+        .orderBy(desc(bomVersions.id))
+        .limit(1000);
     }),
 
   /**
    * 审批版本
    */
-  approveVersion: protectedProcedure
+  approveVersion: requirePermission('rnd:bom:manage')
     .input(z.object({
       id: z.number(),
       action: z.enum(['approve', 'reject']),
@@ -573,7 +575,7 @@ export const bomRouter = router({
   /**
    * 触发成本卷积计算
    */
-  calculateCostRollup: protectedProcedure
+  calculateCostRollup: requirePermission('rnd:bom:manage')
     .input(z.object({
       bomMasterId: z.number(),
       costType: z.enum(['standard', 'actual', 'estimated', 'budget']).default('standard'),
@@ -667,7 +669,8 @@ export const bomRouter = router({
         .select()
         .from(bomCostRollups)
         .where(and(...conditions))
-        .orderBy(desc(bomCostRollups.id));
+        .orderBy(desc(bomCostRollups.id))
+        .limit(1000);
     }),
 
   // ---- 统计与搜索 ----
@@ -710,7 +713,8 @@ export const bomRouter = router({
       const matchingItems = await db
         .select()
         .from(bomItems)
-        .where(eq(bomItems.materialCode, input.materialCode));
+        .where(eq(bomItems.materialCode, input.materialCode))
+        .limit(1000);
 
       // Collect unique bomMasterIds
       const bomMasterIds = Array.from(new Set(matchingItems.map(i => i.bomMasterId)));
@@ -744,7 +748,7 @@ export const bomRouter = router({
   /**
    * 天思ERP同步标记
    */
-  markErpSynced: protectedProcedure
+  markErpSynced: requirePermission('rnd:bom:manage')
     .input(z.object({
       id: z.number(),
       erpBomId: z.string(),

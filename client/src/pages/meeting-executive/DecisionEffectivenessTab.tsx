@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,19 +29,33 @@ const STATUS_COLORS: Record<string, string> = {
   implemented: "bg-green-100 text-green-800", abandoned: "bg-red-100 text-red-800",
   reversed: "bg-orange-100 text-orange-800",
 };
-const STATUS_LABELS: Record<string, string> = {
-  pending: "待执行", in_progress: "执行中", implemented: "已实施", abandoned: "已放弃", reversed: "已逆转",
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  pending: "meeting.decision.statusPending",
+  in_progress: "meeting.decision.statusInProgress",
+  implemented: "meeting.decision.statusImplemented",
+  abandoned: "meeting.decision.statusAbandoned",
+  reversed: "meeting.decision.statusReversed",
 };
 const IMPACT_COLORS: Record<string, string> = {
   positive: "bg-green-100 text-green-800", neutral: "bg-gray-100 text-gray-800", negative: "bg-red-100 text-red-800",
 };
-const IMPACT_LABELS: Record<string, string> = { positive: "积极", neutral: "中性", negative: "消极" };
+const IMPACT_LABEL_KEYS: Record<string, string> = {
+  positive: "meeting.decision.impactPositive",
+  neutral: "meeting.decision.impactNeutral",
+  negative: "meeting.decision.impactNegative",
+};
 const TREND_COLORS: Record<string, string> = {
   improving: "bg-green-100 text-green-800", stable: "bg-gray-100 text-gray-800", declining: "bg-red-100 text-red-800",
 };
-const TREND_LABELS: Record<string, string> = { improving: "改善中", stable: "稳定", declining: "下降中" };
+const TREND_LABEL_KEYS: Record<string, string> = {
+  improving: "meeting.decision.trendImproving",
+  stable: "meeting.decision.trendStable",
+  declining: "meeting.decision.trendDeclining",
+};
 
 export function DecisionEffectivenessTab() {
+  const { t } = useLanguage();
+
   // Section 1: Analyze form
   const [meetingId, setMeetingId] = useState("");
   const [batchIds, setBatchIds] = useState("");
@@ -116,12 +131,12 @@ export function DecisionEffectivenessTab() {
 
   // Compute status distribution from tracking list for pie chart
   const statusDistMap: Record<string, number> = {};
-  for (const t of trackingList) {
-    const s = t.follow_through_status || "pending";
+  for (const item of trackingList) {
+    const s = item.follow_through_status || "pending";
     statusDistMap[s] = (statusDistMap[s] || 0) + 1;
   }
   const statusPieData = Object.entries(statusDistMap).map(([name, value]) => ({
-    name: STATUS_LABELS[name] || name,
+    name: t(STATUS_LABEL_KEYS[name] || "meeting.decision.statusPending"),
     value,
   }));
 
@@ -132,15 +147,15 @@ export function DecisionEffectivenessTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Zap className="h-4 w-4 text-amber-500" />
-            分析决策效能
+            {t("meeting.decision.analyzeTitle")}
           </CardTitle>
-          <CardDescription>输入会议ID进行决策效能分析</CardDescription>
+          <CardDescription>{t("meeting.decision.analyzeDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Single analysis */}
           <div className="flex gap-3">
             <Input
-              placeholder="输入会议ID..."
+              placeholder={t("meeting.decision.inputMeetingId")}
               value={meetingId}
               onChange={(e) => setMeetingId(e.target.value)}
               className="w-60"
@@ -154,24 +169,24 @@ export function DecisionEffectivenessTab() {
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
-              分析决策效能
+              {t("meeting.decision.analyzeBtn")}
             </Button>
           </div>
           {analyzeMut.data && (
             <p className="text-sm text-green-600">
-              分析完成，识别到 {(analyzeMut.data as any).decisionsAnalyzed ?? 0} 个决策
+              {t("meeting.decision.analyzeSuccess")}: {(analyzeMut.data as any).decisionsAnalyzed ?? 0} {t("meeting.decision.decisionsUnit")}
             </p>
           )}
           {analyzeMut.isError && (
-            <p className="text-sm text-red-500">错误: {analyzeMut.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.decision.error")}: {analyzeMut.error.message}</p>
           )}
 
           {/* Batch analysis */}
           <div className="border-t pt-4">
-            <p className="text-sm font-medium mb-2">批量分析</p>
+            <p className="text-sm font-medium mb-2">{t("meeting.decision.batchAnalysis")}</p>
             <div className="flex gap-3">
               <Input
-                placeholder="会议ID（逗号分隔），如: m001,m002,m003"
+                placeholder={t("meeting.decision.batchPlaceholder")}
                 value={batchIds}
                 onChange={(e) => setBatchIds(e.target.value)}
                 className="flex-1"
@@ -188,16 +203,16 @@ export function DecisionEffectivenessTab() {
                 ) : (
                   <Play className="h-4 w-4 mr-2" />
                 )}
-                批量分析
+                {t("meeting.decision.batchBtn")}
               </Button>
             </div>
             {batchAnalyzeMut.data && (
               <p className="text-sm text-green-600 mt-2">
-                已完成 {(batchAnalyzeMut.data as any[]).filter((r: any) => r.success).length} 个, 失败 {(batchAnalyzeMut.data as any[]).filter((r: any) => !r.success).length} 个
+                {t("meeting.decision.batchCompleted")} {(batchAnalyzeMut.data as any[]).filter((r: any) => r.success).length} {t("meeting.decision.batchSuccessUnit")}, {t("meeting.decision.batchFailed")} {(batchAnalyzeMut.data as any[]).filter((r: any) => !r.success).length} {t("meeting.decision.batchSuccessUnit")}
               </p>
             )}
             {batchAnalyzeMut.isError && (
-              <p className="text-sm text-red-500">错误: {batchAnalyzeMut.error.message}</p>
+              <p className="text-sm text-red-500">{t("meeting.decision.error")}: {batchAnalyzeMut.error.message}</p>
             )}
           </div>
         </CardContent>
@@ -207,31 +222,27 @@ export function DecisionEffectivenessTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Target}
-          label="决策总数"
+          label={t("meeting.decision.totalDecisions")}
           value={dashboard?.totalDecisions ?? "..."}
-          subtitle="Total Decisions"
         />
         <StatCard
           icon={CheckCircle2}
-          label="执行率"
+          label={t("meeting.decision.followThroughRate")}
           value={dashboard?.followThroughRate ? `${dashboard.followThroughRate}%` : "..."}
-          subtitle="Follow-through Rate"
           iconColor="text-green-600"
           iconBg="bg-green-50"
         />
         <StatCard
           icon={Clock}
-          label="平均速度(天)"
+          label={t("meeting.decision.avgVelocityDays")}
           value={dashboard?.avgVelocityDays ?? "..."}
-          subtitle="Avg Velocity Days"
           iconColor="text-blue-600"
           iconBg="bg-blue-50"
         />
         <StatCard
           icon={AlertTriangle}
-          label="逆转数"
+          label={t("meeting.decision.reversedCount")}
           value={dashboard?.reversedCount ?? "..."}
-          subtitle="Reversals"
           iconColor="text-red-600"
           iconBg="bg-red-50"
         />
@@ -240,8 +251,8 @@ export function DecisionEffectivenessTab() {
       {/* Section 3: Decision Tracking Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">决策跟踪列表</CardTitle>
-          <CardDescription>查看所有已识别决策的执行状态与质量评估</CardDescription>
+          <CardTitle className="text-base">{t("meeting.decision.trackingTitle")}</CardTitle>
+          <CardDescription>{t("meeting.decision.trackingDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {trackingList.length > 0 ? (
@@ -249,14 +260,14 @@ export function DecisionEffectivenessTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
-                  <TableHead>会议</TableHead>
-                  <TableHead>决策内容</TableHead>
-                  <TableHead>决策者</TableHead>
-                  <TableHead className="text-center">状态</TableHead>
-                  <TableHead className="text-center">速度(天)</TableHead>
-                  <TableHead className="text-center">影响</TableHead>
-                  <TableHead className="text-center">质量分</TableHead>
-                  <TableHead className="text-center">等级</TableHead>
+                  <TableHead>{t("meeting.decision.thMeeting")}</TableHead>
+                  <TableHead>{t("meeting.decision.thDecisionContent")}</TableHead>
+                  <TableHead>{t("meeting.decision.thDecisionMaker")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.decision.thStatus")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.decision.thVelocityDays")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.decision.thImpact")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.decision.thQualityScore")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.decision.thGrade")}</TableHead>
                   <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -278,14 +289,14 @@ export function DecisionEffectivenessTab() {
                       <TableCell>{row.decision_maker || "—"}</TableCell>
                       <TableCell className="text-center">
                         <Badge className={STATUS_COLORS[row.follow_through_status] || ""} variant="secondary">
-                          {STATUS_LABELS[row.follow_through_status] || row.follow_through_status}
+                          {t(STATUS_LABEL_KEYS[row.follow_through_status] || "meeting.decision.statusPending")}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">{row.total_velocity_days ?? "—"}</TableCell>
                       <TableCell className="text-center">
                         {row.impact_category ? (
                           <Badge className={IMPACT_COLORS[row.impact_category] || ""} variant="secondary">
-                            {IMPACT_LABELS[row.impact_category] || row.impact_category}
+                            {t(IMPACT_LABEL_KEYS[row.impact_category] || "meeting.decision.impactNeutral")}
                           </Badge>
                         ) : "—"}
                       </TableCell>
@@ -309,11 +320,11 @@ export function DecisionEffectivenessTab() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 text-sm">
                             <div className="space-y-2">
                               <div>
-                                <span className="font-medium">完整决策内容: </span>
+                                <span className="font-medium">{t("meeting.decision.fullDecisionContent")}: </span>
                                 <span className="text-muted-foreground">{row.decision_text || "—"}</span>
                               </div>
                               <div>
-                                <span className="font-medium">利益相关者: </span>
+                                <span className="font-medium">{t("meeting.decision.stakeholders")}: </span>
                                 {(() => {
                                   try {
                                     return JSON.parse(row.stakeholders || "[]").join(", ") || "—";
@@ -323,29 +334,29 @@ export function DecisionEffectivenessTab() {
                                 })()}
                               </div>
                               <div>
-                                <span className="font-medium">决策日期: </span>
+                                <span className="font-medium">{t("meeting.decision.decisionDate")}: </span>
                                 {row.decision_date ? new Date(row.decision_date).toLocaleDateString("zh-CN") : "—"}
                               </div>
                               <div>
-                                <span className="font-medium">执行开始: </span>
+                                <span className="font-medium">{t("meeting.decision.implStartDate")}: </span>
                                 {row.implementation_start_date ? new Date(row.implementation_start_date).toLocaleDateString("zh-CN") : "—"}
                               </div>
                               <div>
-                                <span className="font-medium">执行结束: </span>
+                                <span className="font-medium">{t("meeting.decision.implEndDate")}: </span>
                                 {row.implementation_end_date ? new Date(row.implementation_end_date).toLocaleDateString("zh-CN") : "—"}
                               </div>
                               <div>
-                                <span className="font-medium">业务结果: </span>
+                                <span className="font-medium">{t("meeting.decision.businessOutcome")}: </span>
                                 <span className="text-muted-foreground">{row.business_outcome || "—"}</span>
                               </div>
                               <div>
-                                <span className="font-medium">影响分数: </span>{row.impact_score ?? "—"}
+                                <span className="font-medium">{t("meeting.decision.impactScore")}: </span>{row.impact_score ?? "—"}
                               </div>
                             </div>
                             <div className="space-y-2">
                               {row.ai_narrative && (
                                 <>
-                                  <div className="font-medium">AI分析:</div>
+                                  <div className="font-medium">{t("meeting.decision.aiAnalysis")}:</div>
                                   <p className="text-muted-foreground">{row.ai_narrative}</p>
                                 </>
                               )}
@@ -355,7 +366,7 @@ export function DecisionEffectivenessTab() {
                                   if (recs.length > 0) {
                                     return (
                                       <div>
-                                        <div className="font-medium">建议:</div>
+                                        <div className="font-medium">{t("meeting.decision.recommendations")}:</div>
                                         <ul className="mt-1 space-y-1">
                                           {recs.map((r: string, i: number) => (
                                             <li key={i} className="text-muted-foreground">• {r}</li>
@@ -373,12 +384,12 @@ export function DecisionEffectivenessTab() {
                                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-2">
                                   <div className="font-medium text-orange-800 flex items-center gap-1">
                                     <AlertTriangle className="h-3 w-3" />
-                                    逆转详情
+                                    {t("meeting.decision.reversalDetails")}
                                   </div>
                                   <div className="text-muted-foreground mt-1">
-                                    <div>逆转原因: {row.reversal_reason || "—"}</div>
-                                    <div>逆转会议: {row.reversal_meeting_id || "—"}</div>
-                                    <div>逆转日期: {row.reversal_date ? new Date(row.reversal_date).toLocaleDateString("zh-CN") : "—"}</div>
+                                    <div>{t("meeting.decision.reversalReason")}: {row.reversal_reason || "—"}</div>
+                                    <div>{t("meeting.decision.reversalMeeting")}: {row.reversal_meeting_id || "—"}</div>
+                                    <div>{t("meeting.decision.reversalDate")}: {row.reversal_date ? new Date(row.reversal_date).toLocaleDateString("zh-CN") : "—"}</div>
                                   </div>
                                 </div>
                               )}
@@ -394,8 +405,8 @@ export function DecisionEffectivenessTab() {
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <BarChart3 className="h-12 w-12 mb-3 opacity-30" />
-              <p>暂无决策跟踪数据</p>
-              <p className="text-sm">请先在上方输入会议ID进行决策分析</p>
+              <p>{t("meeting.decision.noTrackingData")}</p>
+              <p className="text-sm">{t("meeting.decision.noTrackingDataHint")}</p>
             </div>
           )}
         </CardContent>
@@ -404,8 +415,8 @@ export function DecisionEffectivenessTab() {
       {/* Section 4: Velocity Trend Chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">决策速度趋势</CardTitle>
-          <CardDescription>跟踪决策从制定到执行的速度变化与执行率趋势</CardDescription>
+          <CardTitle className="text-base">{t("meeting.decision.velocityTrendTitle")}</CardTitle>
+          <CardDescription>{t("meeting.decision.velocityTrendDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {velocityTrend.length > 0 ? (
@@ -427,7 +438,7 @@ export function DecisionEffectivenessTab() {
                   dataKey="avg_velocity_days"
                   stroke="#6366f1"
                   strokeWidth={2}
-                  name="平均速度(天)"
+                  name={t("meeting.decision.chartAvgVelocity")}
                   dot={{ r: 3 }}
                 />
                 <Line
@@ -436,13 +447,13 @@ export function DecisionEffectivenessTab() {
                   dataKey="follow_through_rate"
                   stroke="#22c55e"
                   strokeWidth={2}
-                  name="执行率(%)"
+                  name={t("meeting.decision.chartFollowThroughRate")}
                   dot={{ r: 3 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-center py-8 text-muted-foreground">暂无速度趋势数据</p>
+            <p className="text-center py-8 text-muted-foreground">{t("meeting.decision.noVelocityTrendData")}</p>
           )}
         </CardContent>
       </Card>
@@ -452,7 +463,7 @@ export function DecisionEffectivenessTab() {
         {/* Status distribution pie */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">决策状态分布</CardTitle>
+            <CardTitle className="text-base">{t("meeting.decision.statusDistribution")}</CardTitle>
           </CardHeader>
           <CardContent>
             {statusPieData.length > 0 ? (
@@ -475,7 +486,7 @@ export function DecisionEffectivenessTab() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center py-8 text-muted-foreground">暂无数据</p>
+              <p className="text-center py-8 text-muted-foreground">{t("meeting.decision.noData")}</p>
             )}
           </CardContent>
         </Card>
@@ -483,7 +494,7 @@ export function DecisionEffectivenessTab() {
         {/* Velocity by department bar */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">各部门决策速度</CardTitle>
+            <CardTitle className="text-base">{t("meeting.decision.deptVelocityTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
             {velocityByDept.length > 0 ? (
@@ -498,12 +509,12 @@ export function DecisionEffectivenessTab() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="avgVelocity" name="平均速度(天)" fill="#6366f1" />
-                  <Bar dataKey="count" name="决策数" fill="#22c55e" />
+                  <Bar dataKey="avgVelocity" name={t("meeting.decision.chartAvgVelocity")} fill="#6366f1" />
+                  <Bar dataKey="count" name={t("meeting.decision.chartDecisionCount")} fill="#22c55e" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center py-8 text-muted-foreground">暂无部门速度数据</p>
+              <p className="text-center py-8 text-muted-foreground">{t("meeting.decision.noDeptVelocityData")}</p>
             )}
           </CardContent>
         </Card>
@@ -514,9 +525,9 @@ export function DecisionEffectivenessTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-orange-500" />
-            决策逆转检测
+            {t("meeting.decision.reversalDetectionTitle")}
           </CardTitle>
-          <CardDescription>检测在后续会议中被逆转或推翻的决策</CardDescription>
+          <CardDescription>{t("meeting.decision.reversalDetectionDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3 flex-wrap">
@@ -525,14 +536,14 @@ export function DecisionEffectivenessTab() {
               value={reversalDateFrom}
               onChange={(e) => setReversalDateFrom(e.target.value)}
               className="w-44"
-              placeholder="开始日期"
+              placeholder={t("meeting.decision.startDate")}
             />
             <Input
               type="date"
               value={reversalDateTo}
               onChange={(e) => setReversalDateTo(e.target.value)}
               className="w-44"
-              placeholder="结束日期"
+              placeholder={t("meeting.decision.endDate")}
             />
             <Button
               onClick={() =>
@@ -548,23 +559,23 @@ export function DecisionEffectivenessTab() {
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
-              检测决策逆转
+              {t("meeting.decision.detectReversalsBtn")}
             </Button>
           </div>
           {detectReversalsMut.data && (
             <div className="space-y-3">
               <p className="text-sm text-green-600">
-                检测完成，发现 {(detectReversalsMut.data as any).reversalsDetected ?? 0} 个决策逆转
+                {t("meeting.decision.detectionComplete")}: {(detectReversalsMut.data as any).reversalsDetected ?? 0} {t("meeting.decision.reversalsUnit")}
               </p>
               {((detectReversalsMut.data as any).reversals || []).length > 0 && (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>原始决策</TableHead>
-                      <TableHead>原始会议</TableHead>
-                      <TableHead>逆转会议</TableHead>
-                      <TableHead>逆转日期</TableHead>
-                      <TableHead>原因</TableHead>
+                      <TableHead>{t("meeting.decision.thOriginalDecision")}</TableHead>
+                      <TableHead>{t("meeting.decision.thOriginalMeeting")}</TableHead>
+                      <TableHead>{t("meeting.decision.thReversalMeeting")}</TableHead>
+                      <TableHead>{t("meeting.decision.thReversalDate")}</TableHead>
+                      <TableHead>{t("meeting.decision.thReason")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -583,24 +594,24 @@ export function DecisionEffectivenessTab() {
             </div>
           )}
           {detectReversalsMut.isError && (
-            <p className="text-sm text-red-500">错误: {detectReversalsMut.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.decision.error")}: {detectReversalsMut.error.message}</p>
           )}
 
           {/* Reversal analysis aggregate */}
           {(reversalAnalysis?.totalReversals !== undefined || reversalAnalysis?.byDepartment?.length > 0) && (
             <div className="border-t pt-4 space-y-3">
-              <h4 className="text-sm font-medium">逆转分析汇总</h4>
+              <h4 className="text-sm font-medium">{t("meeting.decision.reversalSummary")}</h4>
               <div className="flex gap-4 text-sm">
-                <span>逆转总数: <strong>{reversalAnalysis.totalReversals ?? 0}</strong></span>
+                <span>{t("meeting.decision.totalReversals")}: <strong>{reversalAnalysis.totalReversals ?? 0}</strong></span>
               </div>
               {(reversalAnalysis.byDepartment || []).length > 0 && (
                 <div>
-                  <h5 className="text-sm font-medium mb-1">按部门分布</h5>
+                  <h5 className="text-sm font-medium mb-1">{t("meeting.decision.byDepartment")}</h5>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>部门</TableHead>
-                        <TableHead className="text-center">逆转数</TableHead>
+                        <TableHead>{t("meeting.decision.thDepartment")}</TableHead>
+                        <TableHead className="text-center">{t("meeting.decision.thReversalCount")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -616,11 +627,11 @@ export function DecisionEffectivenessTab() {
               )}
               {(reversalAnalysis.topReasons || []).length > 0 && (
                 <div>
-                  <h5 className="text-sm font-medium mb-1">主要逆转原因</h5>
+                  <h5 className="text-sm font-medium mb-1">{t("meeting.decision.topReversalReasons")}</h5>
                   <ul className="space-y-1 text-sm">
                     {(reversalAnalysis.topReasons as any[]).map((r: any, i: number) => (
                       <li key={i} className="text-muted-foreground">
-                        • {r.reason || r} {r.count ? `(${r.count}次)` : ""}
+                        • {r.reason || r} {r.count ? `(${r.count}${t("meeting.decision.timesUnit")})` : ""}
                       </li>
                     ))}
                   </ul>
@@ -636,14 +647,14 @@ export function DecisionEffectivenessTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Zap className="h-4 w-4 text-amber-500" />
-            AI决策质量评估
+            {t("meeting.decision.aiQualityTitle")}
           </CardTitle>
-          <CardDescription>使用AI对单个决策进行深度质量评估</CardDescription>
+          <CardDescription>{t("meeting.decision.aiQualityDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3">
             <Input
-              placeholder="输入决策跟踪ID..."
+              placeholder={t("meeting.decision.inputDecisionId")}
               type="number"
               value={qualityDecisionId}
               onChange={(e) => setQualityDecisionId(e.target.value)}
@@ -658,14 +669,14 @@ export function DecisionEffectivenessTab() {
               ) : (
                 <Zap className="h-4 w-4 mr-2" />
               )}
-              评估决策质量
+              {t("meeting.decision.assessQualityBtn")}
             </Button>
           </div>
           {assessQualityMut.data && (
             <div className="bg-muted/50 rounded-lg p-4 space-y-3 text-sm">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <div className="text-muted-foreground mb-1">质量分</div>
+                  <div className="text-muted-foreground mb-1">{t("meeting.decision.qualityScore")}</div>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 bg-gray-200 rounded-full h-3">
                       <div
@@ -677,7 +688,7 @@ export function DecisionEffectivenessTab() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground mb-1">清晰度分</div>
+                  <div className="text-muted-foreground mb-1">{t("meeting.decision.clarityScore")}</div>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 bg-gray-200 rounded-full h-3">
                       <div
@@ -689,7 +700,7 @@ export function DecisionEffectivenessTab() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground mb-1">对齐度分</div>
+                  <div className="text-muted-foreground mb-1">{t("meeting.decision.alignmentScore")}</div>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 bg-gray-200 rounded-full h-3">
                       <div
@@ -703,7 +714,7 @@ export function DecisionEffectivenessTab() {
               </div>
               {((assessQualityMut.data as any).riskFactors || []).length > 0 && (
                 <div>
-                  <span className="font-medium">风险因素:</span>
+                  <span className="font-medium">{t("meeting.decision.riskFactors")}:</span>
                   <ul className="mt-1 space-y-1">
                     {((assessQualityMut.data as any).riskFactors as string[]).map((f: string, i: number) => (
                       <li key={i} className="text-muted-foreground">• {f}</li>
@@ -713,7 +724,7 @@ export function DecisionEffectivenessTab() {
               )}
               {((assessQualityMut.data as any).recommendations || []).length > 0 && (
                 <div>
-                  <span className="font-medium">改进建议:</span>
+                  <span className="font-medium">{t("meeting.decision.improveSuggestions")}:</span>
                   <ul className="mt-1 space-y-1">
                     {((assessQualityMut.data as any).recommendations as string[]).map((r: string, i: number) => (
                       <li key={i} className="text-muted-foreground">• {r}</li>
@@ -723,14 +734,14 @@ export function DecisionEffectivenessTab() {
               )}
               {(assessQualityMut.data as any).narrative && (
                 <div>
-                  <span className="font-medium">AI叙述: </span>
+                  <span className="font-medium">{t("meeting.decision.aiNarrative")}: </span>
                   <span className="text-muted-foreground">{(assessQualityMut.data as any).narrative}</span>
                 </div>
               )}
             </div>
           )}
           {assessQualityMut.isError && (
-            <p className="text-sm text-red-500">错误: {assessQualityMut.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.decision.error")}: {assessQualityMut.error.message}</p>
           )}
         </CardContent>
       </Card>
@@ -740,32 +751,32 @@ export function DecisionEffectivenessTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            更新决策跟踪
+            {t("meeting.decision.updateTrackingTitle")}
           </CardTitle>
-          <CardDescription>手动更新决策的执行状态和业务成果</CardDescription>
+          <CardDescription>{t("meeting.decision.updateTrackingDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Input
-              placeholder="决策跟踪ID"
+              placeholder={t("meeting.decision.trackingIdPlaceholder")}
               type="number"
               value={updateId}
               onChange={(e) => setUpdateId(e.target.value)}
             />
             <Select value={updateStatus} onValueChange={setUpdateStatus}>
               <SelectTrigger>
-                <SelectValue placeholder="选择状态..." />
+                <SelectValue placeholder={t("meeting.decision.selectStatus")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="pending">待执行</SelectItem>
-                <SelectItem value="in_progress">执行中</SelectItem>
-                <SelectItem value="implemented">已实施</SelectItem>
-                <SelectItem value="abandoned">已放弃</SelectItem>
-                <SelectItem value="reversed">已逆转</SelectItem>
+                <SelectItem value="pending">{t("meeting.decision.statusPending")}</SelectItem>
+                <SelectItem value="in_progress">{t("meeting.decision.statusInProgress")}</SelectItem>
+                <SelectItem value="implemented">{t("meeting.decision.statusImplemented")}</SelectItem>
+                <SelectItem value="abandoned">{t("meeting.decision.statusAbandoned")}</SelectItem>
+                <SelectItem value="reversed">{t("meeting.decision.statusReversed")}</SelectItem>
               </SelectContent>
             </Select>
             <Input
-              placeholder="影响分数 (-100 到 +100)"
+              placeholder={t("meeting.decision.impactScorePlaceholder")}
               type="number"
               min={-100}
               max={100}
@@ -775,7 +786,7 @@ export function DecisionEffectivenessTab() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">执行开始日期</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.decision.implStartDateLabel")}</label>
               <Input
                 type="date"
                 value={updateStartDate}
@@ -783,7 +794,7 @@ export function DecisionEffectivenessTab() {
               />
             </div>
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">执行结束日期</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t("meeting.decision.implEndDateLabel")}</label>
               <Input
                 type="date"
                 value={updateEndDate}
@@ -792,7 +803,7 @@ export function DecisionEffectivenessTab() {
             </div>
           </div>
           <Input
-            placeholder="业务成果描述..."
+            placeholder={t("meeting.decision.outcomeDescPlaceholder")}
             value={updateOutcome}
             onChange={(e) => setUpdateOutcome(e.target.value)}
           />
@@ -814,13 +825,13 @@ export function DecisionEffectivenessTab() {
             ) : (
               <Target className="h-4 w-4 mr-2" />
             )}
-            更新跟踪
+            {t("meeting.decision.updateTrackingBtn")}
           </Button>
           {updateFollowThroughMut.data && (
-            <p className="text-sm text-green-600">跟踪信息已更新</p>
+            <p className="text-sm text-green-600">{t("meeting.decision.trackingUpdated")}</p>
           )}
           {updateFollowThroughMut.isError && (
-            <p className="text-sm text-red-500">错误: {updateFollowThroughMut.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.decision.error")}: {updateFollowThroughMut.error.message}</p>
           )}
         </CardContent>
       </Card>
@@ -830,26 +841,26 @@ export function DecisionEffectivenessTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Building2 className="h-4 w-4 text-indigo-500" />
-            组织决策智能
+            {t("meeting.decision.orgIntelTitle")}
           </CardTitle>
-          <CardDescription>生成组织级、部门级或个人级的决策效能快照</CardDescription>
+          <CardDescription>{t("meeting.decision.orgIntelDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3 flex-wrap">
             <Select value={snapshotScope} onValueChange={setSnapshotScope}>
               <SelectTrigger className="w-40">
-                <SelectValue placeholder="选择范围..." />
+                <SelectValue placeholder={t("meeting.decision.selectScope")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="org">组织</SelectItem>
-                <SelectItem value="department">部门</SelectItem>
-                <SelectItem value="team">团队</SelectItem>
-                <SelectItem value="individual">个人</SelectItem>
+                <SelectItem value="org">{t("meeting.decision.scopeOrg")}</SelectItem>
+                <SelectItem value="department">{t("meeting.decision.scopeDept")}</SelectItem>
+                <SelectItem value="team">{t("meeting.decision.scopeTeam")}</SelectItem>
+                <SelectItem value="individual">{t("meeting.decision.scopeIndividual")}</SelectItem>
               </SelectContent>
             </Select>
             {snapshotScope !== "org" && (
               <Input
-                placeholder={`输入${snapshotScope === "department" ? "部门" : snapshotScope === "team" ? "团队" : "人员"}ID...`}
+                placeholder={`${t("meeting.decision.inputScopeId")}${snapshotScope === "department" ? t("meeting.decision.scopeDept") : snapshotScope === "team" ? t("meeting.decision.scopeTeam") : t("meeting.decision.scopeIndividual")}ID...`}
                 value={snapshotScopeId}
                 onChange={(e) => setSnapshotScopeId(e.target.value)}
                 className="w-48"
@@ -883,7 +894,7 @@ export function DecisionEffectivenessTab() {
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
-              生成快照
+              {t("meeting.decision.generateSnapshot")}
             </Button>
           </div>
           {snapshotMut.data && (
@@ -894,42 +905,42 @@ export function DecisionEffectivenessTab() {
                   <CardContent className="pt-4 text-center">
                     <Target className="h-5 w-5 mx-auto text-indigo-500 mb-1" />
                     <div className="text-xl font-bold">{(snapshotMut.data as any).totalDecisions ?? 0}</div>
-                    <div className="text-xs text-muted-foreground">决策总数</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.decision.totalDecisions")}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 text-center">
                     <CheckCircle2 className="h-5 w-5 mx-auto text-green-500 mb-1" />
                     <div className="text-xl font-bold">{(snapshotMut.data as any).implementedCount ?? 0}</div>
-                    <div className="text-xs text-muted-foreground">已实施</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.decision.statusImplemented")}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 text-center">
                     <Clock className="h-5 w-5 mx-auto text-blue-500 mb-1" />
                     <div className="text-xl font-bold">{(snapshotMut.data as any).avgVelocityDays ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground">平均速度(天)</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.decision.avgVelocityDays")}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 text-center">
                     <TrendingUp className="h-5 w-5 mx-auto text-emerald-500 mb-1" />
                     <div className="text-xl font-bold">{(snapshotMut.data as any).followThroughRate ?? "—"}%</div>
-                    <div className="text-xs text-muted-foreground">执行率</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.decision.followThroughRate")}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 text-center">
                     <AlertTriangle className="h-5 w-5 mx-auto text-orange-500 mb-1" />
                     <div className="text-xl font-bold">{(snapshotMut.data as any).reversedCount ?? 0}</div>
-                    <div className="text-xs text-muted-foreground">逆转数</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.decision.reversedCount")}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 text-center">
                     <BarChart3 className="h-5 w-5 mx-auto text-purple-500 mb-1" />
                     <div className="text-xl font-bold">{(snapshotMut.data as any).avgQualityScore ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground">平均质量分</div>
+                    <div className="text-xs text-muted-foreground">{t("meeting.decision.avgQualityScore")}</div>
                   </CardContent>
                 </Card>
               </div>
@@ -937,7 +948,7 @@ export function DecisionEffectivenessTab() {
               {/* Trend badge */}
               {(snapshotMut.data as any).trendVsPrevious && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">整体趋势:</span>
+                  <span className="text-sm font-medium">{t("meeting.decision.overallTrend")}:</span>
                   <Badge className={TREND_COLORS[(snapshotMut.data as any).trendVsPrevious] || ""} variant="secondary">
                     {(() => {
                       const trend = (snapshotMut.data as any).trendVsPrevious;
@@ -945,7 +956,7 @@ export function DecisionEffectivenessTab() {
                       return (
                         <>
                           <Icon className="h-3 w-3 mr-1" />
-                          {TREND_LABELS[trend] || trend}
+                          {t(TREND_LABEL_KEYS[trend] || "meeting.decision.trendStable")}
                         </>
                       );
                     })()}
@@ -956,7 +967,7 @@ export function DecisionEffectivenessTab() {
               {/* Bottlenecks */}
               {((snapshotMut.data as any).topBottlenecks || []).length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mb-1">瓶颈分析</h4>
+                  <h4 className="text-sm font-medium mb-1">{t("meeting.decision.bottleneckAnalysis")}</h4>
                   <ul className="space-y-1 text-sm">
                     {((snapshotMut.data as any).topBottlenecks as string[]).map((b: string, i: number) => (
                       <li key={i} className="text-muted-foreground">• {b}</li>
@@ -968,7 +979,7 @@ export function DecisionEffectivenessTab() {
               {/* Reversal reasons */}
               {((snapshotMut.data as any).topReversalReasons || []).length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mb-1">逆转原因</h4>
+                  <h4 className="text-sm font-medium mb-1">{t("meeting.decision.reversalReasons")}</h4>
                   <ul className="space-y-1 text-sm">
                     {((snapshotMut.data as any).topReversalReasons as string[]).map((r: string, i: number) => (
                       <li key={i} className="text-muted-foreground">• {r}</li>
@@ -980,7 +991,7 @@ export function DecisionEffectivenessTab() {
               {/* AI narrative */}
               {(snapshotMut.data as any).aiNarrative && (
                 <div className="bg-muted/50 rounded-lg p-4">
-                  <h4 className="text-sm font-medium mb-1">AI分析</h4>
+                  <h4 className="text-sm font-medium mb-1">{t("meeting.decision.aiAnalysis")}</h4>
                   <p className="text-sm text-muted-foreground">{(snapshotMut.data as any).aiNarrative}</p>
                 </div>
               )}
@@ -988,7 +999,7 @@ export function DecisionEffectivenessTab() {
               {/* Recommendations */}
               {((snapshotMut.data as any).recommendations || []).length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mb-1">优化建议</h4>
+                  <h4 className="text-sm font-medium mb-1">{t("meeting.decision.optimizeSuggestions")}</h4>
                   <ul className="space-y-1 text-sm">
                     {((snapshotMut.data as any).recommendations as string[]).map((r: string, i: number) => (
                       <li key={i} className="text-muted-foreground">• {r}</li>
@@ -999,7 +1010,7 @@ export function DecisionEffectivenessTab() {
             </div>
           )}
           {snapshotMut.isError && (
-            <p className="text-sm text-red-500">错误: {snapshotMut.error.message}</p>
+            <p className="text-sm text-red-500">{t("meeting.decision.error")}: {snapshotMut.error.message}</p>
           )}
         </CardContent>
       </Card>

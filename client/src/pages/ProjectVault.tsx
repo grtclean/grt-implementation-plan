@@ -49,6 +49,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import {
   CheckCircle2,
@@ -159,6 +160,7 @@ const CURRENT_USER_NAME = "Admin";
 // ══════════════════════════════════════════════════════
 
 export default function ProjectVault() {
+  const { t } = useLanguage();
   const [projectId] = useState<number | undefined>(undefined);
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebouncedValue(searchInput, 300);
@@ -304,25 +306,25 @@ export default function ProjectVault() {
     <div className="space-y-4">
       <PageHeader
         icon={FolderLock}
-        title="Project Vault"
-        description="Engineering document management — SolidWorks, EPLAN, firmware, manuals"
+        title={t("projects.vault.title")}
+        description={t("projects.vault.desc")}
         actions={
           <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" /> New Document
+            <Plus className="w-4 h-4 mr-1" /> {t("projects.vault.newDocument")}
           </Button>
         }
       />
 
       {/* ── Stat cards (from dedicated getStats query, always accurate) ── */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <StatCard icon={FileBox} label="Total Files" value={totalDocs} iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={CheckCircle2} label="Released" value={releasedCount} iconColor="text-emerald-500" iconBg="bg-emerald-500/20" />
-        <StatCard icon={Clock} label="In Review" value={inReviewCount} iconColor="text-blue-500" iconBg="bg-blue-500/20" />
-        <StatCard icon={ShieldCheck} label="Frozen" value={frozenCount} iconColor="text-green-500" iconBg="bg-green-500/20" />
+        <StatCard icon={FileBox} label={t("projects.vault.totalFiles")} value={totalDocs} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={CheckCircle2} label={t("projects.vault.released")} value={releasedCount} iconColor="text-emerald-500" iconBg="bg-emerald-500/20" />
+        <StatCard icon={Clock} label={t("projects.vault.inReview")} value={inReviewCount} iconColor="text-blue-500" iconBg="bg-blue-500/20" />
+        <StatCard icon={ShieldCheck} label={t("projects.vault.frozen")} value={frozenCount} iconColor="text-green-500" iconBg="bg-green-500/20" />
         <Card className="bg-card/50 border-border">
           <CardContent className="p-4 flex flex-col justify-center gap-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Freeze Rate</span>
+              <span className="text-sm text-muted-foreground">{t("projects.vault.freezeRate")}</span>
               <span className="font-bold font-mono tabular-nums">{freezeRate}%</span>
             </div>
             <Progress value={freezeRate} className="h-2" />
@@ -346,7 +348,7 @@ export default function ProjectVault() {
         <div className="flex flex-col items-center gap-2">
           <Upload className={`w-8 h-8 ${isDragging ? "text-primary animate-bounce" : "text-muted-foreground"}`} />
           <p className="text-sm font-medium">
-            {isDragging ? "Drop files here to upload" : "Drag & drop SolidWorks, EPLAN, or other files here"}
+            {isDragging ? t("projects.vault.dropToUpload") : t("projects.vault.dragDropHint")}
           </p>
           <p className="text-xs text-muted-foreground">
             .sldprt, .sldasm, .slddrw, .elk, .elp, .step, .dwg, .pdf, ...
@@ -360,7 +362,7 @@ export default function ProjectVault() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             className="pl-8 h-8 text-xs"
-            placeholder="Search documents..."
+            placeholder={t("projects.vault.searchDocs")}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
@@ -368,30 +370,30 @@ export default function ProjectVault() {
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
-            <SelectItem value="mechanical">Mechanical</SelectItem>
-            <SelectItem value="electrical">Electrical</SelectItem>
-            <SelectItem value="software">Software</SelectItem>
-            <SelectItem value="manual">Manual</SelectItem>
+            <SelectItem value="all">{t("projects.vault.allTypes")}</SelectItem>
+            <SelectItem value="mechanical">{t("projects.vault.mechanical")}</SelectItem>
+            <SelectItem value="electrical">{t("projects.vault.electrical")}</SelectItem>
+            <SelectItem value="software">{t("projects.vault.software")}</SelectItem>
+            <SelectItem value="manual">{t("projects.vault.manual")}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="in_review">In Review</SelectItem>
-            <SelectItem value="released">Released</SelectItem>
-            <SelectItem value="obsolete">Obsolete</SelectItem>
+            <SelectItem value="all">{t("projects.vault.allStatuses")}</SelectItem>
+            <SelectItem value="draft">{t("projects.vault.statusDraft")}</SelectItem>
+            <SelectItem value="in_review">{t("projects.vault.statusInReview")}</SelectItem>
+            <SelectItem value="released">{t("projects.vault.statusReleased")}</SelectItem>
+            <SelectItem value="obsolete">{t("projects.vault.statusObsolete")}</SelectItem>
           </SelectContent>
         </Select>
         {(typeFilter !== "all" || statusFilter !== "all" || searchInput) && (
           <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setTypeFilter("all"); setStatusFilter("all"); setSearchInput(""); }}>
-            Clear
+            {t("projects.vault.clear")}
           </Button>
         )}
         <span className="ml-auto text-xs text-muted-foreground font-mono tabular-nums">
-          {docs.length} / {docsData?.total ?? 0} documents
+          {docs.length} / {docsData?.total ?? 0} {t("projects.vault.documents")}
         </span>
       </div>
 
@@ -404,32 +406,32 @@ export default function ProjectVault() {
         ) : docs.length === 0 ? (
           <div className="flex flex-col items-center py-12 text-muted-foreground">
             <FileBox className="w-12 h-12 mb-3" />
-            <p className="text-sm">No documents found</p>
-            <p className="text-xs mt-1">Drag & drop files above or click "New Document"</p>
+            <p className="text-sm">{t("projects.vault.noDocuments")}</p>
+            <p className="text-xs mt-1">{t("projects.vault.noDocumentsHint")}</p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="text-xs">
                 <TableHead className="w-[32px]"></TableHead>
-                <TableHead className="w-[120px]">Doc Number</TableHead>
-                <TableHead className="min-w-[180px]">Title</TableHead>
-                <TableHead className="w-[90px] text-center">Type</TableHead>
-                <TableHead className="w-[80px] text-center">Version</TableHead>
-                <TableHead className="w-[90px] text-center">Status</TableHead>
+                <TableHead className="w-[120px]">{t("projects.vault.docNumber")}</TableHead>
+                <TableHead className="min-w-[180px]">{t("projects.vault.titleColumn")}</TableHead>
+                <TableHead className="w-[90px] text-center">{t("projects.vault.type")}</TableHead>
+                <TableHead className="w-[80px] text-center">{t("projects.vault.version")}</TableHead>
+                <TableHead className="w-[90px] text-center">{t("projects.vault.status")}</TableHead>
                 <TableHead className="w-[44px] text-center">
                   <TooltipProvider delayDuration={200}>
                     <Tooltip>
                       <TooltipTrigger>
                         <Shield className="w-3.5 h-3.5 mx-auto" />
                       </TooltipTrigger>
-                      <TooltipContent>Design Freeze Gate</TooltipContent>
+                      <TooltipContent>{t("projects.vault.designFreezeGate")}</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </TableHead>
-                <TableHead className="w-[110px]">Owner</TableHead>
-                <TableHead className="w-[90px]">Updated</TableHead>
-                <TableHead className="w-[80px] text-center">Actions</TableHead>
+                <TableHead className="w-[110px]">{t("projects.vault.owner")}</TableHead>
+                <TableHead className="w-[90px]">{t("projects.vault.updated")}</TableHead>
+                <TableHead className="w-[80px] text-center">{t("projects.vault.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -487,7 +489,7 @@ export default function ProjectVault() {
                             <ShieldCheck className="w-4 h-4 text-green-400 mx-auto" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            Design Freeze Approved
+                            {t("projects.vault.designFreezeApproved")}
                             {doc.designFreezeAt && ` · ${new Date(doc.designFreezeAt).toLocaleDateString()}`}
                           </TooltipContent>
                         </Tooltip>
@@ -498,7 +500,7 @@ export default function ProjectVault() {
                           <TooltipTrigger>
                             <ShieldX className="w-4 h-4 text-red-400/50 mx-auto" />
                           </TooltipTrigger>
-                          <TooltipContent>Not yet frozen</TooltipContent>
+                          <TooltipContent>{t("projects.vault.notYetFrozen")}</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     )}
@@ -527,7 +529,7 @@ export default function ProjectVault() {
                               <Eye className="w-3.5 h-3.5" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>View details</TooltipContent>
+                          <TooltipContent>{t("projects.vault.viewDetails")}</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     </div>
@@ -602,6 +604,7 @@ function DocumentDetailPanel({
   onRecordDecision: (reviewId: number, status: "approved" | "rejected" | "revision_requested", comments?: string) => void;
   isDecisionPending: boolean;
 }) {
+  const { t } = useLanguage();
   const versions = doc.versions ?? [];
   const reviews = doc.reviews ?? [];
 
@@ -617,42 +620,42 @@ function DocumentDetailPanel({
             </StatusBadge>
             {doc.designFreezeApproved && (
               <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30">
-                <ShieldCheck className="w-3 h-3 mr-1" /> Frozen
+                <ShieldCheck className="w-3 h-3 mr-1" /> {t("projects.vault.frozenBadge")}
               </Badge>
             )}
           </CardTitle>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={onSubmitReview}>
-              <Send className="w-3.5 h-3.5 mr-1" /> Request Review
+              <Send className="w-3.5 h-3.5 mr-1" /> {t("projects.vault.requestReview")}
             </Button>
             <Button size="sm" onClick={onUploadVersion}>
-              <Upload className="w-3.5 h-3.5 mr-1" /> Upload Version
+              <Upload className="w-3.5 h-3.5 mr-1" /> {t("projects.vault.uploadVersion")}
             </Button>
-            <Button size="sm" variant="ghost" onClick={onClose}>Close</Button>
+            <Button size="sm" variant="ghost" onClick={onClose}>{t("projects.vault.close")}</Button>
           </div>
         </div>
         <p className="text-xs text-muted-foreground font-mono">
-          {doc.docNumber} · {doc.currentVersionString} · {doc.totalVersions ?? 0} versions · Owner: {doc.ownerName ?? "—"}
+          {doc.docNumber} · {doc.currentVersionString} · {doc.totalVersions ?? 0} {t("projects.vault.versions")} · {t("projects.vault.owner")}: {doc.ownerName ?? "—"}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Version History */}
         <div>
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
-            <History className="w-3.5 h-3.5" /> Version History
+            <History className="w-3.5 h-3.5" /> {t("projects.vault.versionHistory")}
           </h4>
           {versions.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No versions uploaded yet</p>
+            <p className="text-xs text-muted-foreground">{t("projects.vault.noVersions")}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="text-xs">
-                  <TableHead className="w-[60px]">Version</TableHead>
-                  <TableHead>File</TableHead>
-                  <TableHead>Change Reason</TableHead>
-                  <TableHead className="w-[100px]">Uploaded By</TableHead>
-                  <TableHead className="w-[100px]">Uploaded At</TableHead>
-                  <TableHead className="w-[70px] text-center">Size</TableHead>
+                  <TableHead className="w-[60px]">{t("projects.vault.version")}</TableHead>
+                  <TableHead>{t("projects.vault.file")}</TableHead>
+                  <TableHead>{t("projects.vault.changeReason")}</TableHead>
+                  <TableHead className="w-[100px]">{t("projects.vault.uploadedBy")}</TableHead>
+                  <TableHead className="w-[100px]">{t("projects.vault.uploadedAt")}</TableHead>
+                  <TableHead className="w-[70px] text-center">{t("projects.vault.size")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -660,7 +663,7 @@ function DocumentDetailPanel({
                   <TableRow key={v.id} className={v.isLatest ? "bg-primary/5" : ""}>
                     <TableCell className="font-mono text-xs font-semibold py-1">
                       {v.versionString}
-                      {v.isLatest && <Badge variant="outline" className="ml-1 text-[8px] px-1 py-0 bg-primary/20 text-primary border-primary/30">latest</Badge>}
+                      {v.isLatest && <Badge variant="outline" className="ml-1 text-[8px] px-1 py-0 bg-primary/20 text-primary border-primary/30">{t("projects.vault.latest")}</Badge>}
                     </TableCell>
                     <TableCell className="text-xs py-1 truncate max-w-[200px] text-muted-foreground" title={v.fileUrlPath}>
                       {v.originalFileName ?? v.fileUrlPath}
@@ -686,7 +689,7 @@ function DocumentDetailPanel({
         {reviews.length > 0 && (
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
-              <Shield className="w-3.5 h-3.5" /> Design Reviews (latest version)
+              <Shield className="w-3.5 h-3.5" /> {t("projects.vault.designReviews")}
             </h4>
             <div className="space-y-2">
               {reviews.map((r: any) => (
@@ -701,10 +704,10 @@ function DocumentDetailPanel({
                   </div>
                   <div className="text-[10px] text-muted-foreground font-mono tabular-nums text-right">
                     {r.reviewedAt
-                      ? <span>Decided: {new Date(r.reviewedAt).toLocaleString()}</span>
-                      : <span>Requested: {new Date(r.requestedAt).toLocaleString()}</span>
+                      ? <span>{t("projects.vault.decided")}: {new Date(r.reviewedAt).toLocaleString()}</span>
+                      : <span>{t("projects.vault.requested")}: {new Date(r.requestedAt).toLocaleString()}</span>
                     }
-                    {r.dueDate && <p>Due: {new Date(r.dueDate).toLocaleDateString()}</p>}
+                    {r.dueDate && <p>{t("projects.vault.due")}: {new Date(r.dueDate).toLocaleDateString()}</p>}
                   </div>
                   {r.reviewStatus === "pending" && (
                     <div className="flex gap-1">
@@ -714,7 +717,7 @@ function DocumentDetailPanel({
                         disabled={isDecisionPending}
                         onClick={() => onRecordDecision(r.id, "approved")}
                       >
-                        Approve
+                        {t("projects.vault.approve")}
                       </Button>
                       <Button
                         size="sm" variant="outline"
@@ -722,7 +725,7 @@ function DocumentDetailPanel({
                         disabled={isDecisionPending}
                         onClick={() => onRecordDecision(r.id, "rejected", "Needs revision")}
                       >
-                        Reject
+                        {t("projects.vault.reject")}
                       </Button>
                     </div>
                   )}
@@ -747,6 +750,7 @@ function CreateDocumentDialog({ open, onOpenChange, projectId, onSubmit, isPendi
   onSubmit: (data: any) => void;
   isPending: boolean;
 }) {
+  const { t } = useLanguage();
   const [title, setTitle] = useState("");
   const [docType, setDocType] = useState<string>("mechanical");
   const [description, setDescription] = useState("");
@@ -770,44 +774,44 @@ function CreateDocumentDialog({ open, onOpenChange, projectId, onSubmit, isPendi
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Plus className="w-5 h-5 text-primary" /> New Document
+            <Plus className="w-5 h-5 text-primary" /> {t("projects.vault.newDocDialog")}
           </DialogTitle>
           <DialogDescription>
-            Create a document record. You can upload the first file version afterwards.
+            {t("projects.vault.newDocDesc")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div className="space-y-1">
-            <Label>Title *</Label>
+            <Label>{t("projects.vault.labelTitle")}</Label>
             <Input
-              placeholder="e.g. Detroit Project Main Assembly"
+              placeholder={t("projects.vault.titlePlaceholder")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
           <div className="space-y-1">
-            <Label>Document Type *</Label>
+            <Label>{t("projects.vault.docType")}</Label>
             <Select value={docType} onValueChange={setDocType}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="mechanical">Mechanical (SolidWorks)</SelectItem>
-                <SelectItem value="electrical">Electrical (EPLAN)</SelectItem>
-                <SelectItem value="software">Software (PLC/HMI)</SelectItem>
-                <SelectItem value="manual">Manual / SOP</SelectItem>
+                <SelectItem value="mechanical">{t("projects.vault.typeMechanical")}</SelectItem>
+                <SelectItem value="electrical">{t("projects.vault.typeElectrical")}</SelectItem>
+                <SelectItem value="software">{t("projects.vault.typeSoftware")}</SelectItem>
+                <SelectItem value="manual">{t("projects.vault.typeManual")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <Label>Description</Label>
+            <Label>{t("projects.vault.descriptionLabel")}</Label>
             <Textarea
               rows={2}
-              placeholder="Optional description..."
+              placeholder={t("projects.vault.descriptionPlaceholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>{t("projects.vault.cancelBtn")}</Button>
             <Button
               disabled={!title.trim() || isPending}
               onClick={() => {
@@ -825,7 +829,7 @@ function CreateDocumentDialog({ open, onOpenChange, projectId, onSubmit, isPendi
               }}
             >
               {isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
-              Create Document
+              {t("projects.vault.createDocument")}
             </Button>
           </div>
         </div>
@@ -843,6 +847,7 @@ function UploadVersionDialog({ open, onOpenChange, documentId, onSubmit, isPendi
   onSubmit: (data: any) => void;
   isPending: boolean;
 }) {
+  const { t } = useLanguage();
   const [changeReason, setChangeReason] = useState("");
   const [fileUrlPath, setFileUrlPath] = useState("");
 
@@ -859,15 +864,15 @@ function UploadVersionDialog({ open, onOpenChange, documentId, onSubmit, isPendi
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Upload className="w-5 h-5 text-primary" /> Upload New Version
+            <Upload className="w-5 h-5 text-primary" /> {t("projects.vault.uploadNewVersion")}
           </DialogTitle>
           <DialogDescription>
-            Upload a new file revision. Version number will auto-increment.
+            {t("projects.vault.uploadNewVersionDesc")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div className="space-y-1">
-            <Label>File Path / URL</Label>
+            <Label>{t("projects.vault.filePathUrl")}</Label>
             <Input
               placeholder="/data/plm/projects/42/assembly-v2.sldasm or s3://..."
               value={fileUrlPath}
@@ -875,16 +880,16 @@ function UploadVersionDialog({ open, onOpenChange, documentId, onSubmit, isPendi
             />
           </div>
           <div className="space-y-1">
-            <Label>Change Reason *</Label>
+            <Label>{t("projects.vault.changeReasonRequired")}</Label>
             <Textarea
               rows={2}
-              placeholder="What changed in this version..."
+              placeholder={t("projects.vault.changeReasonPlaceholder")}
               value={changeReason}
               onChange={(e) => setChangeReason(e.target.value)}
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>{t("projects.vault.cancelBtn")}</Button>
             <Button
               disabled={!documentId || !changeReason.trim() || !fileUrlPath.trim() || isPending}
               onClick={() => {
@@ -899,7 +904,7 @@ function UploadVersionDialog({ open, onOpenChange, documentId, onSubmit, isPendi
               }}
             >
               {isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
-              Upload Version
+              {t("projects.vault.uploadVersion")}
             </Button>
           </div>
         </div>
@@ -917,6 +922,7 @@ function SubmitReviewDialog({ open, onOpenChange, docDetail, onSubmit, isPending
   onSubmit: (data: any) => void;
   isPending: boolean;
 }) {
+  const { t } = useLanguage();
   const [reviewerName, setReviewerName] = useState("");
   const [reviewerRole, setReviewerRole] = useState("reviewer");
   const [isFreeze, setIsFreeze] = useState(false);
@@ -937,34 +943,34 @@ function SubmitReviewDialog({ open, onOpenChange, docDetail, onSubmit, isPending
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Send className="w-5 h-5 text-blue-400" /> Submit for Design Review
+            <Send className="w-5 h-5 text-blue-400" /> {t("projects.vault.submitForReview")}
           </DialogTitle>
           <DialogDescription>
             {latestVersion
-              ? `Requesting review for ${latestVersion.versionString}`
-              : "No version to review — upload a file first"
+              ? `${t("projects.vault.requestReview")} ${latestVersion.versionString}`
+              : t("projects.vault.noVersionToReview")
             }
           </DialogDescription>
         </DialogHeader>
         {latestVersion && (
           <div className="space-y-4 pt-2">
             <div className="space-y-1">
-              <Label>Reviewer Name</Label>
+              <Label>{t("projects.vault.reviewerName")}</Label>
               <Input
-                placeholder="e.g. Zhang Wei"
+                placeholder={t("projects.vault.reviewerNamePlaceholder")}
                 value={reviewerName}
                 onChange={(e) => setReviewerName(e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <Label>Reviewer Role</Label>
+              <Label>{t("projects.vault.reviewerRole")}</Label>
               <Select value={reviewerRole} onValueChange={setReviewerRole}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="checker">Checker</SelectItem>
-                  <SelectItem value="reviewer">Reviewer</SelectItem>
-                  <SelectItem value="approver">Approver</SelectItem>
-                  <SelectItem value="quality_gate">Quality Gate</SelectItem>
+                  <SelectItem value="checker">{t("projects.vault.roleChecker")}</SelectItem>
+                  <SelectItem value="reviewer">{t("projects.vault.roleReviewer")}</SelectItem>
+                  <SelectItem value="approver">{t("projects.vault.roleApprover")}</SelectItem>
+                  <SelectItem value="quality_gate">{t("projects.vault.roleQualityGate")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -977,11 +983,11 @@ function SubmitReviewDialog({ open, onOpenChange, docDetail, onSubmit, isPending
                 className="rounded border-border"
               />
               <Label htmlFor="freeze-check" className="text-xs cursor-pointer">
-                This is a <strong>Design Freeze Gate</strong> review
+                {t("projects.vault.freezeGateReview")}
               </Label>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>{t("projects.vault.cancelBtn")}</Button>
               <Button
                 disabled={!reviewerName.trim() || isPending}
                 onClick={() => {
@@ -996,7 +1002,7 @@ function SubmitReviewDialog({ open, onOpenChange, docDetail, onSubmit, isPending
                 }}
               >
                 {isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
-                Submit Review Request
+                {t("projects.vault.submitReviewRequest")}
               </Button>
             </div>
           </div>

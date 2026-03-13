@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import {
   createBomVerification,
   getBomVerifications,
@@ -19,7 +19,7 @@ import {
 
 export const bomVerificationRouter = router({
   // ============ BOM校验记录 ============
-  create: protectedProcedure
+  create: requirePermission('rnd:bom:verify')
     .input(z.object({
       projectId: z.string(),
       fromProcess: z.string(),
@@ -75,7 +75,7 @@ export const bomVerificationRouter = router({
       return getChecklistItems(input.verificationId);
     }),
 
-  updateItemStatus: protectedProcedure
+  updateItemStatus: requirePermission('rnd:bom:verify')
     .input(z.object({
       itemId: z.number(),
       checkStatus: z.enum(['pending', 'present', 'missing', 'excess', 'wrong_spec']),
@@ -89,7 +89,7 @@ export const bomVerificationRouter = router({
       });
     }),
 
-  batchUpdateItems: protectedProcedure
+  batchUpdateItems: requirePermission('rnd:bom:verify')
     .input(z.object({
       items: z.array(z.object({
         id: z.number(),
@@ -105,7 +105,7 @@ export const bomVerificationRouter = router({
     }),
 
   // ============ BOM校验执行 ============
-  execute: protectedProcedure
+  execute: requirePermission('rnd:bom:verify')
     .input(z.object({
       verificationId: z.number(),
       projectId: z.string(),
@@ -120,7 +120,7 @@ export const bomVerificationRouter = router({
       });
     }),
 
-  waive: protectedProcedure
+  waive: requirePermission('rnd:bom:verify')
     .input(z.object({
       verificationId: z.number(),
       waivedReason: z.string(),

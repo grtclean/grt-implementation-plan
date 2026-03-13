@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { CheckCircle, ExternalLink, Loader2, RefreshCw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
@@ -8,6 +9,7 @@ import { useLocation } from "wouter";
 const SESSION_STORAGE_KEY = "app_session_token";
 
 export default function LoginSuccess() {
+  const { t, tpl } = useLanguage();
   const [, setLocation] = useLocation();
   const [countdown, setCountdown] = useState(3);
   const [returnPath, setReturnPath] = useState("/");
@@ -111,15 +113,15 @@ export default function LoginSuccess() {
           <div className="mx-auto w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-4">
             <CheckCircle className="w-10 h-10 text-green-500" />
           </div>
-          <CardTitle className="text-2xl text-green-600">登录成功！</CardTitle>
+          <CardTitle className="text-2xl text-green-600">{t("auth.loginSuccessTitle")}</CardTitle>
           <CardDescription className="text-base mt-2">
-            您已成功登录系统
+            {t("auth.loginSuccessDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="text-center space-y-2">
             <p className="text-sm text-muted-foreground">
-              即将跳转到：
+              {t("auth.redirectingTo")}
             </p>
             <code className="bg-muted px-3 py-1.5 rounded text-sm font-mono block">
               {returnPath}
@@ -130,7 +132,7 @@ export default function LoginSuccess() {
             <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
               <p className="text-sm text-green-700 dark:text-green-300 text-center flex items-center justify-center gap-2">
                 <CheckCircle className="w-4 h-4" />
-                登录凭证已保存
+                {t("auth.credentialsSaved")}
               </p>
             </div>
           )}
@@ -141,12 +143,12 @@ export default function LoginSuccess() {
                 {messageSent ? (
                   <>
                     <CheckCircle className="w-4 h-4 inline mr-2 text-green-500" />
-                    已通知原窗口，请返回预览窗口查看
+                    {t("auth.notifiedOpener")}
                   </>
                 ) : (
                   <>
                     <RefreshCw className="w-4 h-4 inline mr-2 animate-spin" />
-                    正在通知原窗口...
+                    {t("auth.notifyingOpener")}
                   </>
                 )}
               </p>
@@ -157,10 +159,12 @@ export default function LoginSuccess() {
             {countdown > 0 ? (
               <p className="flex items-center justify-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                窗口将在 <span className="font-bold text-primary">{countdown}</span> 秒后自动{isPopup ? "关闭" : "跳转"}
+                {isPopup
+                  ? tpl("auth.autoCloseIn", { countdown })
+                  : tpl("auth.autoRedirectIn", { countdown })}
               </p>
             ) : (
-              <p>正在{isPopup ? "关闭窗口" : "跳转"}...</p>
+              <p>{isPopup ? t("auth.closingWindow") : t("auth.redirectingNow")}</p>
             )}
           </div>
 
@@ -168,19 +172,19 @@ export default function LoginSuccess() {
             {isPopup ? (
               <Button onClick={handleClose} className="flex-1" variant="default">
                 <X className="w-4 h-4 mr-2" />
-                关闭此窗口
+                {t("auth.closeWindow")}
               </Button>
             ) : (
               <Button onClick={handleGoToPage} className="flex-1" variant="default">
                 <ExternalLink className="w-4 h-4 mr-2" />
-                立即跳转
+                {t("auth.redirectNow")}
               </Button>
             )}
           </div>
           
           {isPopup && (
             <p className="text-xs text-center text-muted-foreground">
-              关闭此窗口后，请返回原预览窗口。页面将自动刷新显示目标内容。
+              {t("auth.popupCloseHint")}
             </p>
           )}
         </CardContent>

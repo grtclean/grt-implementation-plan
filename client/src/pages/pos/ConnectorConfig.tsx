@@ -35,6 +35,7 @@ import {
   Key
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // 连接器类型图标映射
 const connectorIcons: Record<string, React.ReactNode> = {
@@ -46,14 +47,14 @@ const connectorIcons: Record<string, React.ReactNode> = {
   API: <Link2 className="w-5 h-5" />,
 };
 
-// 连接器类型描述
-const connectorDescriptions: Record<string, string> = {
-  ERP: "企业资源计划系统，用于采购订单提交和库存同步",
-  MES: "制造执行系统，用于工单创建和生产进度回写",
-  IM: "即时通讯系统，用于消息通知（飞书/企业微信/Teams）",
-  Email: "邮件服务，用于发送通知和报告",
-  Webhook: "Webhook回调，用于事件触发和外部系统集成",
-  API: "通用API接口，用于自定义集成",
+// 连接器类型描述 (i18n key references)
+const connectorDescriptionKeys: Record<string, string> = {
+  ERP: "projects.pos.connector.descErp",
+  MES: "projects.pos.connector.descMes",
+  IM: "projects.pos.connector.descIm",
+  Email: "projects.pos.connector.descEmail",
+  Webhook: "projects.pos.connector.descWebhook",
+  API: "projects.pos.connector.descApi",
 };
 
 // 模拟连接器数据
@@ -108,6 +109,7 @@ interface ConnectorFormData {
 
 export default function ConnectorConfig() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [connectors, setConnectors] = useState(mockConnectors);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingConnector, setEditingConnector] = useState<typeof mockConnectors[0] | null>(null);
@@ -131,7 +133,7 @@ export default function ConnectorConfig() {
         : c
     ) as any);
     setTestingId(null);
-    toast.success("连接测试成功");
+    toast.success(t("projects.pos.connector.testSuccess"));
   };
 
   // 切换启用状态
@@ -139,13 +141,13 @@ export default function ConnectorConfig() {
     setConnectors(prev => prev.map(c => 
       c.id === id ? { ...c, isEnabled: enabled } : c
     ));
-    toast.success(enabled ? "连接器已启用" : "连接器已禁用");
+    toast.success(enabled ? t("projects.pos.connector.connectorEnabled") : t("projects.pos.connector.connectorDisabled"));
   };
 
   // 删除连接器
   const handleDelete = (id: number) => {
     setConnectors(prev => prev.filter(c => c.id !== id));
-    toast.success("连接器已删除");
+    toast.success(t("projects.pos.connector.connectorDeleted"));
   };
 
   // 保存连接器
@@ -156,7 +158,7 @@ export default function ConnectorConfig() {
           ? { ...c, ...formData, connectorType: formData.connectorType as typeof c.connectorType }
           : c
       ) as any);
-      toast.success("连接器已更新");
+      toast.success(t("projects.pos.connector.connectorUpdated"));
     } else {
       const newConnector = {
         id: Math.max(...connectors.map(c => c.id)) + 1,
@@ -167,7 +169,7 @@ export default function ConnectorConfig() {
         lastTestResult: "NotTested" as const,
       };
       setConnectors(prev => [...prev, newConnector] as any);
-      toast.success("连接器已创建");
+      toast.success(t("projects.pos.connector.connectorCreated"));
     }
     setIsAddDialogOpen(false);
     setEditingConnector(null);
@@ -191,8 +193,8 @@ export default function ConnectorConfig() {
         {/* 页面标题 */}
         <PageHeader
           icon={Settings}
-          title="第三方连接器配置"
-          description="管理ERP、MES、IM等第三方系统连接，所有敏感信息通过环境变量管理"
+          title={t("projects.pos.connector.title")}
+          description={t("projects.pos.connector.description")}
           actions={
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
@@ -201,20 +203,20 @@ export default function ConnectorConfig() {
                   setFormData({ connectorCode: "", connectorName: "", connectorType: "ERP", config: "{}" });
                 }}>
                   <Plus className="w-4 h-4 mr-2" />
-                  添加连接器
+                  {t("projects.pos.connector.addConnector")}
                 </Button>
               </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>{editingConnector ? "编辑连接器" : "添加连接器"}</DialogTitle>
+                <DialogTitle>{editingConnector ? t("projects.pos.connector.editConnector") : t("projects.pos.connector.addConnector")}</DialogTitle>
                 <DialogDescription>
-                  配置第三方系统连接信息。敏感信息（如API密钥）请通过环境变量配置。
+                  {t("projects.pos.connector.dialogDesc")}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="connectorCode">连接器代码</Label>
+                    <Label htmlFor="connectorCode">{t("projects.pos.connector.connectorCode")}</Label>
                     <Input
                       id="connectorCode"
                       placeholder="ERP_TIANSI"
@@ -223,7 +225,7 @@ export default function ConnectorConfig() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="connectorName">连接器名称</Label>
+                    <Label htmlFor="connectorName">{t("projects.pos.connector.connectorName")}</Label>
                     <Input
                       id="connectorName"
                       placeholder="天思ERP"
@@ -233,26 +235,26 @@ export default function ConnectorConfig() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="connectorType">连接器类型</Label>
+                  <Label htmlFor="connectorType">{t("projects.pos.connector.connectorType")}</Label>
                   <Select
                     value={formData.connectorType}
                     onValueChange={value => setFormData(prev => ({ ...prev, connectorType: value }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="选择类型" />
+                      <SelectValue placeholder={t("projects.pos.connector.selectType")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ERP">ERP - 企业资源计划</SelectItem>
-                      <SelectItem value="MES">MES - 制造执行系统</SelectItem>
-                      <SelectItem value="IM">IM - 即时通讯</SelectItem>
-                      <SelectItem value="Email">Email - 邮件服务</SelectItem>
-                      <SelectItem value="Webhook">Webhook - 回调接口</SelectItem>
-                      <SelectItem value="API">API - 通用接口</SelectItem>
+                      <SelectItem value="ERP">{t("projects.pos.connector.typeErp")}</SelectItem>
+                      <SelectItem value="MES">{t("projects.pos.connector.typeMes")}</SelectItem>
+                      <SelectItem value="IM">{t("projects.pos.connector.typeIm")}</SelectItem>
+                      <SelectItem value="Email">{t("projects.pos.connector.typeEmail")}</SelectItem>
+                      <SelectItem value="Webhook">{t("projects.pos.connector.typeWebhook")}</SelectItem>
+                      <SelectItem value="API">{t("projects.pos.connector.typeApi")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="config">配置信息 (JSON)</Label>
+                  <Label htmlFor="config">{t("projects.pos.connector.configJson")}</Label>
                   <Textarea
                     id="config"
                     placeholder='{"baseUrl": "https://api.example.com", "timeout": 30000}'
@@ -262,16 +264,16 @@ export default function ConnectorConfig() {
                   />
                   <p className="text-xs text-muted-foreground">
                     <Key className="w-3 h-3 inline mr-1" />
-                    敏感信息请使用环境变量引用，如 {"${ERP_API_KEY}"}
+                    {t("projects.pos.connector.envVarHint")}
                   </p>
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  取消
+                  {t("projects.pos.connector.cancel")}
                 </Button>
                 <Button onClick={handleSave}>
-                  {editingConnector ? "保存更改" : "创建连接器"}
+                  {editingConnector ? t("projects.pos.connector.saveChanges") : t("projects.pos.connector.createConnector")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -281,14 +283,14 @@ export default function ConnectorConfig() {
 
         {/* 连接器类型说明 */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {Object.entries(connectorDescriptions).map(([type, desc]) => (
+          {Object.entries(connectorDescriptionKeys).map(([type, descKey]) => (
             <Card key={type} className="bg-card/50">
               <CardContent className="p-4 text-center">
                 <div className="mx-auto w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-2 text-primary">
                   {connectorIcons[type]}
                 </div>
                 <h3 className="font-medium text-sm">{type}</h3>
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{desc}</p>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{t(descKey)}</p>
               </CardContent>
             </Card>
           ))}
@@ -297,9 +299,9 @@ export default function ConnectorConfig() {
         {/* 连接器列表 */}
         <Tabs defaultValue="all" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="all">全部</TabsTrigger>
-            <TabsTrigger value="enabled">已启用</TabsTrigger>
-            <TabsTrigger value="disabled">已禁用</TabsTrigger>
+            <TabsTrigger value="all">{t("projects.pos.connector.all")}</TabsTrigger>
+            <TabsTrigger value="enabled">{t("projects.pos.connector.enabled")}</TabsTrigger>
+            <TabsTrigger value="disabled">{t("projects.pos.connector.disabled")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
@@ -350,20 +352,20 @@ export default function ConnectorConfig() {
           <CardHeader>
             <CardTitle className="text-amber-600 flex items-center gap-2">
               <Key className="w-5 h-5" />
-              敏感信息管理
+              {t("projects.pos.connector.sensitiveInfoTitle")}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>
-              所有API密钥、Token等敏感信息应通过环境变量管理，不要在配置JSON中直接填写。
+              {t("projects.pos.connector.sensitiveInfoDesc")}
             </p>
-            <p>推荐的环境变量命名规范：</p>
+            <p>{t("projects.pos.connector.envVarNaming")}</p>
             <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><code className="bg-muted px-1 rounded">ERP_API_KEY</code> - ERP系统API密钥</li>
-              <li><code className="bg-muted px-1 rounded">MES_API_KEY</code> - MES系统API密钥</li>
-              <li><code className="bg-muted px-1 rounded">FEISHU_WEBHOOK_URL</code> - 飞书Webhook地址</li>
-              <li><code className="bg-muted px-1 rounded">WECHAT_WORK_WEBHOOK_URL</code> - 企业微信Webhook地址</li>
-              <li><code className="bg-muted px-1 rounded">TEAMS_WEBHOOK_URL</code> - Teams Webhook地址</li>
+              <li><code className="bg-muted px-1 rounded">ERP_API_KEY</code> - {t("projects.pos.connector.envErpKey")}</li>
+              <li><code className="bg-muted px-1 rounded">MES_API_KEY</code> - {t("projects.pos.connector.envMesKey")}</li>
+              <li><code className="bg-muted px-1 rounded">FEISHU_WEBHOOK_URL</code> - {t("projects.pos.connector.envFeishuUrl")}</li>
+              <li><code className="bg-muted px-1 rounded">WECHAT_WORK_WEBHOOK_URL</code> - {t("projects.pos.connector.envWechatUrl")}</li>
+              <li><code className="bg-muted px-1 rounded">TEAMS_WEBHOOK_URL</code> - {t("projects.pos.connector.envTeamsUrl")}</li>
             </ul>
           </CardContent>
         </Card>
@@ -387,6 +389,7 @@ function ConnectorCard({
   onDelete: () => void;
   isTesting: boolean;
 }) {
+  const { t } = useLanguage();
   return (
     <Card className={connector.isEnabled ? "" : "opacity-60"}>
       <CardContent className="p-6">
@@ -404,24 +407,24 @@ function ConnectorCard({
                 {connector.lastTestResult === "Success" && (
                   <Badge variant="default" className="bg-green-500">
                     <CheckCircle2 className="w-3 h-3 mr-1" />
-                    已连接
+                    {t("projects.pos.connector.connected")}
                   </Badge>
                 )}
                 {(connector.lastTestResult as any) === "Failed" && (
                   <Badge variant="destructive">
                     <XCircle className="w-3 h-3 mr-1" />
-                    连接失败
+                    {t("projects.pos.connector.connectionFailed")}
                   </Badge>
                 )}
                 {connector.lastTestResult === "NotTested" && (
-                  <Badge variant="secondary">未测试</Badge>
+                  <Badge variant="secondary">{t("projects.pos.connector.notTested")}</Badge>
                 )}
               </div>
               <p className="text-sm text-muted-foreground mt-1">
-                代码: {connector.connectorCode}
+                {t("projects.pos.connector.code")}: {connector.connectorCode}
                 {connector.lastTestedAt && (
                   <span className="ml-4">
-                    最后测试: {new Date(connector.lastTestedAt).toLocaleString()}
+                    {t("projects.pos.connector.lastTest")}: {new Date(connector.lastTestedAt).toLocaleString()}
                   </span>
                 )}
               </p>
@@ -430,7 +433,7 @@ function ConnectorCard({
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Label htmlFor={`enabled-${connector.id}`} className="text-sm">
-                启用
+                {t("projects.pos.connector.enable")}
               </Label>
               <Switch
                 id={`enabled-${connector.id}`}
@@ -449,7 +452,7 @@ function ConnectorCard({
               ) : (
                 <TestTube className="w-4 h-4" />
               )}
-              <span className="ml-2">测试</span>
+              <span className="ml-2">{t("projects.pos.connector.test")}</span>
             </Button>
             <Button variant="outline" size="sm" onClick={onEdit}>
               <Edit className="w-4 h-4" />

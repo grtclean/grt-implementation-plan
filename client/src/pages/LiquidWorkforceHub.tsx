@@ -16,6 +16,7 @@ import {
   Briefcase, Award, Gavel, FileCheck, Search, Plus,
   TrendingUp
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const initialSkillCapsules = [
   { id: "sk_001", name: "高压喷嘴流体仿真 Level 5", ownerDid: "did:grt:user001", royaltyRate: 15, usageCount: 234, validationProof: "0x7a8b...3f2e" },
@@ -34,6 +35,7 @@ const mockContracts = [
 ];
 
 export default function LiquidWorkforceHub() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("skills");
   const [searchQuery, setSearchQuery] = useState("");
@@ -51,12 +53,12 @@ export default function LiquidWorkforceHub() {
 
   const handlePublishSubmit = () => {
     if (!formSkillName) {
-      toast.error('请填写技能名称');
+      toast.error(t("hr.liquidWorkforceHub.nameRequired"));
       return;
     }
     const rate = Number(formRoyaltyRate);
     if (formRoyaltyRate && (rate < 0 || rate > 100)) {
-      toast.error('分润比例须在 0~100 之间');
+      toast.error(t("hr.liquidWorkforceHub.royaltyRateError"));
       return;
     }
     const newSkill = {
@@ -70,7 +72,7 @@ export default function LiquidWorkforceHub() {
     setSkillCapsules((prev) => [newSkill, ...prev]);
     setPublishOpen(false);
     resetPublishForm();
-    toast.success(`技能 "${newSkill.name}" 发布成功`);
+    toast.success(`${newSkill.name} — ${t("hr.liquidWorkforceHub.publishSuccess")}`);
   };
 
   const getStatusColor = (status: string) => {
@@ -85,31 +87,31 @@ export default function LiquidWorkforceHub() {
     <div className="space-y-6">
       <PageHeader
         icon={Briefcase}
-        title="液态用工中心"
-        description="技能胶囊市场、任务竞标、智能合约管理"
-        actions={<Button size="sm" onClick={() => setPublishOpen(true)}><Plus className="w-4 h-4 mr-2" />发布技能</Button>}
+        title={t("hr.liquidWorkforceHub.title")}
+        description={t("hr.liquidWorkforceHub.description")}
+        actions={<Button size="sm" onClick={() => setPublishOpen(true)}><Plus className="w-4 h-4 mr-2" />{t("hr.liquidWorkforceHub.publishSkill")}</Button>}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={Award} label="技能胶囊" value={156} iconColor="text-primary" iconBg="bg-primary/10" />
-        <StatCard icon={Gavel} label="活跃竞标" value={23} iconColor="text-green-500" iconBg="bg-green-500/10" />
-        <StatCard icon={FileCheck} label="执行中合约" value={8} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
-        <StatCard icon={TrendingUp} label="本月收益" value="¥45K" iconColor="text-purple-500" iconBg="bg-purple-500/10" />
+        <StatCard icon={Award} label={t("hr.liquidWorkforceHub.skillCapsules")} value={156} iconColor="text-primary" iconBg="bg-primary/10" />
+        <StatCard icon={Gavel} label={t("hr.liquidWorkforceHub.activeBids")} value={23} iconColor="text-green-500" iconBg="bg-green-500/10" />
+        <StatCard icon={FileCheck} label={t("hr.liquidWorkforceHub.activeContracts")} value={8} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
+        <StatCard icon={TrendingUp} label={t("hr.liquidWorkforceHub.monthlyEarnings")} value="¥45K" iconColor="text-purple-500" iconBg="bg-purple-500/10" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
-          <TabsTrigger value="skills" className="flex items-center gap-2"><Award className="w-4 h-4" />技能市场</TabsTrigger>
-          <TabsTrigger value="bids" className="flex items-center gap-2"><Gavel className="w-4 h-4" />竞标大厅</TabsTrigger>
-          <TabsTrigger value="contracts" className="flex items-center gap-2"><FileCheck className="w-4 h-4" />合约追踪</TabsTrigger>
-          <TabsTrigger value="earnings" className="flex items-center gap-2"><TrendingUp className="w-4 h-4" />收益报表</TabsTrigger>
+          <TabsTrigger value="skills" className="flex items-center gap-2"><Award className="w-4 h-4" />{t("hr.liquidWorkforceHub.tabSkillMarket")}</TabsTrigger>
+          <TabsTrigger value="bids" className="flex items-center gap-2"><Gavel className="w-4 h-4" />{t("hr.liquidWorkforceHub.tabBidHall")}</TabsTrigger>
+          <TabsTrigger value="contracts" className="flex items-center gap-2"><FileCheck className="w-4 h-4" />{t("hr.liquidWorkforceHub.tabContractTracking")}</TabsTrigger>
+          <TabsTrigger value="earnings" className="flex items-center gap-2"><TrendingUp className="w-4 h-4" />{t("hr.liquidWorkforceHub.tabEarningsReport")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="skills" className="space-y-4">
           <div className="flex items-center gap-4 mb-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="搜索技能胶囊..." className="pl-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Input placeholder={t("hr.liquidWorkforceHub.searchSkillCapsules")} className="pl-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -117,19 +119,19 @@ export default function LiquidWorkforceHub() {
               <Card key={skill.id} className="hover:border-primary/50 transition-colors">
                 <CardHeader>
                   <CardTitle className="text-lg">{skill.name}</CardTitle>
-                  <CardDescription>ZKP证明: {skill.validationProof}</CardDescription>
+                  <CardDescription>{t("hr.liquidWorkforceHub.zkpProof")}: {skill.validationProof}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between text-sm mb-3">
-                    <span className="text-muted-foreground">版税率: {skill.royaltyRate}%</span>
-                    <span className="text-muted-foreground">调用: {skill.usageCount}次</span>
+                    <span className="text-muted-foreground">{t("hr.liquidWorkforceHub.royaltyRateLabel")}: {skill.royaltyRate}%</span>
+                    <span className="text-muted-foreground">{t("hr.liquidWorkforceHub.usageLabel")}: {skill.usageCount}{t("hr.liquidWorkforceHub.usageSuffix")}</span>
                   </div>
                   <Button
                     className="w-full"
                     size="sm"
-                    onClick={() => toast.success(`技能 "${skill.name}" 调用请求已发送`)}
+                    onClick={() => toast.success(`${skill.name} — ${t("hr.liquidWorkforceHub.skillInvokeRequested")}`)}
                   >
-                    调用技能
+                    {t("hr.liquidWorkforceHub.invokeSkill")}
                   </Button>
                 </CardContent>
               </Card>
@@ -139,7 +141,7 @@ export default function LiquidWorkforceHub() {
 
         <TabsContent value="bids" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>任务竞标池</CardTitle><CardDescription>AI评分辅助的智能竞标系统</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("hr.liquidWorkforceHub.bidPool")}</CardTitle><CardDescription>{t("hr.liquidWorkforceHub.bidPoolDesc")}</CardDescription></CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {mockTaskBids.map((bid) => (
@@ -148,15 +150,15 @@ export default function LiquidWorkforceHub() {
                       <Gavel className="w-8 h-8 text-primary/50" />
                       <div>
                         <p className="font-medium">{bid.taskName}</p>
-                        <p className="text-sm text-muted-foreground">报价: ¥{bid.bidPrice} · SLA: {bid.promisedSla}</p>
+                        <p className="text-sm text-muted-foreground">{t("hr.liquidWorkforceHub.bidQuote")}: ¥{bid.bidPrice} · {t("hr.liquidWorkforceHub.sla")}: {bid.promisedSla}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right text-sm">
-                        <p>信誉分: {bid.creditScore}</p>
-                        <p className="text-primary">AI评分: {bid.aiJudgeScore}</p>
+                        <p>{t("hr.liquidWorkforceHub.creditScoreLabel")}: {bid.creditScore}</p>
+                        <p className="text-primary">{t("hr.liquidWorkforceHub.aiScoreLabel")}: {bid.aiJudgeScore}</p>
                       </div>
-                      <Badge className={getStatusColor(bid.status)}>{bid.status === "accepted" ? "已中标" : "竞标中"}</Badge>
+                      <Badge className={getStatusColor(bid.status)}>{bid.status === "accepted" ? t("hr.liquidWorkforceHub.bidAccepted") : t("hr.liquidWorkforceHub.bidding")}</Badge>
                     </div>
                   </div>
                 ))}
@@ -167,7 +169,7 @@ export default function LiquidWorkforceHub() {
 
         <TabsContent value="contracts" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>智能合约账本</CardTitle><CardDescription>链上合约执行状态追踪</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("hr.liquidWorkforceHub.contractLedger")}</CardTitle><CardDescription>{t("hr.liquidWorkforceHub.contractLedgerDesc")}</CardDescription></CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {mockContracts.map((contract) => (
@@ -176,7 +178,7 @@ export default function LiquidWorkforceHub() {
                       <FileCheck className="w-8 h-8 text-primary/50" />
                       <div>
                         <p className="font-medium font-mono">{contract.address}</p>
-                        <p className="text-sm text-muted-foreground">触发条件: {contract.triggerCondition}</p>
+                        <p className="text-sm text-muted-foreground">{t("hr.liquidWorkforceHub.triggerCondition")}: {contract.triggerCondition}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -184,7 +186,7 @@ export default function LiquidWorkforceHub() {
                         <p className="font-bold">¥{contract.amount}</p>
                         <Badge variant="outline">{contract.paymentType}</Badge>
                       </div>
-                      <Badge className={getStatusColor(contract.status)}>{contract.status === "locked" ? "锁定中" : "已释放"}</Badge>
+                      <Badge className={getStatusColor(contract.status)}>{contract.status === "locked" ? t("hr.liquidWorkforceHub.statusLocked") : t("hr.liquidWorkforceHub.statusReleased")}</Badge>
                     </div>
                   </div>
                 ))}
@@ -195,9 +197,9 @@ export default function LiquidWorkforceHub() {
 
         <TabsContent value="earnings" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>收益报表</CardTitle><CardDescription>技能调用收益和版税统计</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t("hr.liquidWorkforceHub.earningsReport")}</CardTitle><CardDescription>{t("hr.liquidWorkforceHub.earningsReportDesc")}</CardDescription></CardHeader>
             <CardContent>
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">[收益趋势图 - 按月统计版税收入]</div>
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">{t("hr.liquidWorkforceHub.earningsChartPlaceholder")}</div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -207,25 +209,25 @@ export default function LiquidWorkforceHub() {
       <Dialog open={publishOpen} onOpenChange={(open) => { setPublishOpen(open); if (!open) resetPublishForm(); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>发布技能胶囊</DialogTitle>
-            <DialogDescription>填写技能信息，发布后将出现在技能市场中。</DialogDescription>
+            <DialogTitle>{t("hr.liquidWorkforceHub.publishSkillCapsule")}</DialogTitle>
+            <DialogDescription>{t("hr.liquidWorkforceHub.publishSkillCapsuleDesc")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="skillName">技能名称 *</Label>
+              <Label htmlFor="skillName">{t("hr.liquidWorkforceHub.skillNameRequired")}</Label>
               <Input
                 id="skillName"
-                placeholder="如 高压喷嘴流体仿真 Level 5"
+                placeholder={t("hr.liquidWorkforceHub.skillNamePlaceholder")}
                 value={formSkillName}
                 onChange={(e) => setFormSkillName(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="royaltyRate">分润比例 (0-100%)</Label>
+              <Label htmlFor="royaltyRate">{t("hr.liquidWorkforceHub.royaltyRateRange")}</Label>
               <Input
                 id="royaltyRate"
                 type="number"
-                placeholder="如 15"
+                placeholder="15"
                 min={0}
                 max={100}
                 value={formRoyaltyRate}
@@ -234,8 +236,8 @@ export default function LiquidWorkforceHub() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setPublishOpen(false); resetPublishForm(); }}>取消</Button>
-            <Button onClick={handlePublishSubmit}>发布技能</Button>
+            <Button variant="outline" onClick={() => { setPublishOpen(false); resetPublishForm(); }}>{t("hr.liquidWorkforceHub.cancel")}</Button>
+            <Button onClick={handlePublishSubmit}>{t("hr.liquidWorkforceHub.publishBtn")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

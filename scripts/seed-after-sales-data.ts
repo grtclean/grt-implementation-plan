@@ -121,7 +121,7 @@ async function main() {
       },
       {
         name: "上汽通用", tier: "Key",
-        contact: "李明辉", phone: "+86-21-5012-3456",
+        contact: "焦斌", phone: "+86-21-5012-3456", // demo
         email: "liminghui@sgm.com.cn",
         address: "上海市浦东新区申江路1500号",
         industry: "Automotive — Joint Venture Assembly", region: "华东",
@@ -132,8 +132,8 @@ async function main() {
       },
       {
         name: "宝马沈阳", tier: "Key",
-        contact: "张伟", phone: "+86-24-2584-1000",
-        email: "wei.zhang@brilliance-bmw.com",
+        contact: "张超", phone: "+86-24-2584-1000",
+        email: "chao.zhang@brilliance-bmw.com",
         address: "辽宁省沈阳市大东区大东路17号",
         industry: "Automotive — Premium Vehicle Manufacturing", region: "东北",
         contractStart: "2025-04-01", contractEnd: "2027-03-31",

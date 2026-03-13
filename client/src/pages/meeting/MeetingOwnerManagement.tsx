@@ -33,21 +33,22 @@ import {
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader, StatCard } from '@/components/grt';
+import { useLanguage } from '@/contexts/LanguageContext';
 
-// 会议类型配置
-const MEETING_TYPES = [
-  { id: 'employee_interview', name: '员工访谈', category: 'internal' },
-  { id: 'performance_dialog', name: '员工绩效对话', category: 'internal' },
-  { id: 'production_weekly', name: '生产周会', category: 'internal' },
-  { id: 'monthly_analysis', name: '月度经营分析会', category: 'internal' },
-  { id: 'monthly_planning', name: '月度计划会议', category: 'internal' },
-  { id: 'annual_planning', name: '年度规划会议', category: 'internal' },
-  { id: 'annual_summary', name: '年度总结会议', category: 'internal' },
-  { id: 'customer_initial', name: '客户首次沟通', category: 'customer' },
-  { id: 'customer_review', name: '客户图纸评审会', category: 'customer' },
-  { id: 'customer_pre_acceptance', name: '客户预验收会议', category: 'customer' },
-  { id: 'customer_final_acceptance', name: '客户终验收会议', category: 'customer' },
-  { id: 'customer_solution', name: '客户方案沟通确认会议', category: 'customer' }
+// 会议类型配置 (i18n key references)
+const MEETING_TYPE_KEYS = [
+  { id: 'employee_interview', nameKey: 'meeting.owner.type.employee_interview', category: 'internal' },
+  { id: 'performance_dialog', nameKey: 'meeting.owner.type.performance_dialog', category: 'internal' },
+  { id: 'production_weekly', nameKey: 'meeting.owner.type.production_weekly', category: 'internal' },
+  { id: 'monthly_analysis', nameKey: 'meeting.owner.type.monthly_analysis', category: 'internal' },
+  { id: 'monthly_planning', nameKey: 'meeting.owner.type.monthly_planning', category: 'internal' },
+  { id: 'annual_planning', nameKey: 'meeting.owner.type.annual_planning', category: 'internal' },
+  { id: 'annual_summary', nameKey: 'meeting.owner.type.annual_summary', category: 'internal' },
+  { id: 'customer_initial', nameKey: 'meeting.owner.type.customer_initial', category: 'customer' },
+  { id: 'customer_review', nameKey: 'meeting.owner.type.customer_review', category: 'customer' },
+  { id: 'customer_pre_acceptance', nameKey: 'meeting.owner.type.customer_pre_acceptance', category: 'customer' },
+  { id: 'customer_final_acceptance', nameKey: 'meeting.owner.type.customer_final_acceptance', category: 'customer' },
+  { id: 'customer_solution', nameKey: 'meeting.owner.type.customer_solution', category: 'customer' }
 ];
 
 interface MeetingOwner {
@@ -81,6 +82,7 @@ interface ReportRule {
 
 export default function MeetingOwnerManagement() {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -99,36 +101,36 @@ export default function MeetingOwnerManagement() {
   // 创建/更新MO
   const saveMutation = (trpc.meetingTaskLoop as any).saveMeetingOwner.useMutation({
     onSuccess: () => {
-      toast({ title: '保存成功' });
+      toast({ title: t("meeting.owner.saveSuccess") });
       setShowAddDialog(false);
       setEditingOwner(null);
       refetch();
     },
     onError: (error) => {
-      toast({ title: '保存失败', description: error.message, variant: 'destructive' });
+      toast({ title: t("meeting.owner.saveFailed"), description: error.message, variant: 'destructive' });
     }
   });
 
   // 删除MO
   const deleteMutation = (trpc.meetingTaskLoop as any).deleteMeetingOwner.useMutation({
     onSuccess: () => {
-      toast({ title: '删除成功' });
+      toast({ title: t("meeting.owner.deleteSuccess") });
       refetch();
     },
     onError: (error) => {
-      toast({ title: '删除失败', description: error.message, variant: 'destructive' });
+      toast({ title: t("meeting.owner.deleteFailed"), description: error.message, variant: 'destructive' });
     }
   });
 
   // 保存上报规则
   const saveRuleMutation = (trpc.meetingTaskLoop as any).saveReportRule.useMutation({
     onSuccess: () => {
-      toast({ title: '规则保存成功' });
+      toast({ title: t("meeting.owner.ruleSaveSuccess") });
       setShowRuleDialog(false);
       setEditingRule(null);
     },
     onError: (error) => {
-      toast({ title: '保存失败', description: error.message, variant: 'destructive' });
+      toast({ title: t("meeting.owner.saveFailed"), description: error.message, variant: 'destructive' });
     }
   });
 
@@ -139,7 +141,7 @@ export default function MeetingOwnerManagement() {
       owner.meetingTypeName.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchCategory = categoryFilter === 'all' || 
-      MEETING_TYPES.find(t => t.id === owner.meetingType)?.category === categoryFilter;
+      MEETING_TYPE_KEYS.find(t => t.id === owner.meetingType)?.category === categoryFilter;
     
     return matchSearch && matchCategory;
   });
@@ -147,8 +149,8 @@ export default function MeetingOwnerManagement() {
   // 统计
   const stats = {
     total: owners.length,
-    internal: owners.filter(o => MEETING_TYPES.find(t => t.id === o.meetingType)?.category === 'internal').length,
-    customer: owners.filter(o => MEETING_TYPES.find(t => t.id === o.meetingType)?.category === 'customer').length,
+    internal: owners.filter(o => MEETING_TYPE_KEYS.find(t => t.id === o.meetingType)?.category === 'internal').length,
+    customer: owners.filter(o => MEETING_TYPE_KEYS.find(t => t.id === o.meetingType)?.category === 'customer').length,
     autoReport: owners.filter(o => o.autoReportEnabled).length
   };
 
@@ -158,29 +160,29 @@ export default function MeetingOwnerManagement() {
         {/* 页面标题 */}
         <PageHeader
           icon={Crown}
-          title="Meeting Owner 管理"
-          description="为不同会议类型指派负责人，配置自动上报规则"
+          title={t("meeting.owner.title")}
+          description={t("meeting.owner.desc")}
           actions={
             <Button onClick={() => setShowAddDialog(true)}>
               <Plus className="h-4 w-4 mr-1" />
-              指派MO
+              {t("meeting.owner.assignMO")}
             </Button>
           }
         />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-4 gap-4">
-          <StatCard icon={Crown} label="总MO数" value={stats.total} iconColor="text-primary" iconBg="bg-primary/10" />
-          <StatCard icon={Users} label="内部会议" value={stats.internal} iconColor="text-blue-600" iconBg="bg-blue-500/10" />
-          <StatCard icon={Users} label="客户会议" value={stats.customer} iconColor="text-green-600" iconBg="bg-green-500/10" />
-          <StatCard icon={Bell} label="自动上报" value={stats.autoReport} iconColor="text-yellow-600" iconBg="bg-yellow-500/10" />
+          <StatCard icon={Crown} label={t("meeting.owner.totalMO")} value={stats.total} iconColor="text-primary" iconBg="bg-primary/10" />
+          <StatCard icon={Users} label={t("meeting.owner.internalMeeting")} value={stats.internal} iconColor="text-blue-600" iconBg="bg-blue-500/10" />
+          <StatCard icon={Users} label={t("meeting.owner.customerMeeting")} value={stats.customer} iconColor="text-green-600" iconBg="bg-green-500/10" />
+          <StatCard icon={Bell} label={t("meeting.owner.autoReport")} value={stats.autoReport} iconColor="text-yellow-600" iconBg="bg-yellow-500/10" />
         </div>
 
         <Tabs defaultValue="owners" className="w-full">
           <TabsList>
-            <TabsTrigger value="owners">MO列表</TabsTrigger>
-            <TabsTrigger value="rules">上报规则</TabsTrigger>
-            <TabsTrigger value="evidence">举证配置</TabsTrigger>
+            <TabsTrigger value="owners">{t("meeting.owner.tabOwners")}</TabsTrigger>
+            <TabsTrigger value="rules">{t("meeting.owner.tabRules")}</TabsTrigger>
+            <TabsTrigger value="evidence">{t("meeting.owner.tabEvidence")}</TabsTrigger>
           </TabsList>
 
           {/* MO列表 */}
@@ -189,14 +191,14 @@ export default function MeetingOwnerManagement() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Meeting Owner 列表</CardTitle>
-                    <CardDescription>管理各类会议的负责人</CardDescription>
+                    <CardTitle>{t("meeting.owner.ownerListTitle")}</CardTitle>
+                    <CardDescription>{t("meeting.owner.ownerListDesc")}</CardDescription>
                   </div>
                   <div className="flex gap-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        placeholder="搜索..."
+                        placeholder={t("meeting.owner.search")}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-9 w-[200px]"
@@ -208,9 +210,9 @@ export default function MeetingOwnerManagement() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">全部</SelectItem>
-                        <SelectItem value="internal">内部会议</SelectItem>
-                        <SelectItem value="customer">客户会议</SelectItem>
+                        <SelectItem value="all">{t("meeting.owner.filterAll")}</SelectItem>
+                        <SelectItem value="internal">{t("meeting.owner.internalMeeting")}</SelectItem>
+                        <SelectItem value="customer">{t("meeting.owner.customerMeeting")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -220,14 +222,14 @@ export default function MeetingOwnerManagement() {
                 <ScrollArea className="h-[500px]">
                   {isLoading ? (
                     <div className="flex items-center justify-center h-40">
-                      <p className="text-muted-foreground">加载中...</p>
+                      <p className="text-muted-foreground">{t("meeting.owner.loadingText")}</p>
                     </div>
                   ) : filteredOwners.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                       <AlertCircle className="h-12 w-12 mb-2 opacity-50" />
-                      <p>暂无数据</p>
+                      <p>{t("meeting.owner.noData")}</p>
                       <Button variant="link" onClick={() => setShowAddDialog(true)}>
-                        点击指派MO
+                        {t("meeting.owner.clickToAssign")}
                       </Button>
                     </div>
                   ) : (
@@ -239,8 +241,8 @@ export default function MeetingOwnerManagement() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
                                   <Badge variant="outline">
-                                    {MEETING_TYPES.find(t => t.id === owner.meetingType)?.category === 'internal' 
-                                      ? '内部' : '客户'}
+                                    {MEETING_TYPE_KEYS.find(mt => mt.id === owner.meetingType)?.category === 'internal'
+                                      ? t("meeting.owner.internal") : t("meeting.owner.customer")}
                                   </Badge>
                                   <span className="font-medium">{owner.meetingTypeName}</span>
                                 </div>
@@ -253,7 +255,7 @@ export default function MeetingOwnerManagement() {
                                   {owner.backupOwnerName && (
                                     <div className="flex items-center gap-1 text-muted-foreground">
                                       <Users className="h-4 w-4" />
-                                      <span>备份: {owner.backupOwnerName}</span>
+                                      <span>{t("meeting.owner.backupLabel")}: {owner.backupOwnerName}</span>
                                     </div>
                                   )}
                                   <div className="flex items-center gap-1 text-muted-foreground">
@@ -266,19 +268,19 @@ export default function MeetingOwnerManagement() {
                                   {owner.autoReportEnabled && (
                                     <Badge variant="secondary" className="flex items-center gap-1">
                                       <Bell className="h-3 w-3" />
-                                      自动上报
+                                      {t("meeting.owner.autoReport")}
                                     </Badge>
                                   )}
                                   {owner.evidenceRequired && (
                                     <Badge variant="secondary" className="flex items-center gap-1">
                                       <FileCheck className="h-3 w-3" />
-                                      需要举证
+                                      {t("meeting.owner.evidenceRequired")}
                                     </Badge>
                                   )}
                                   {owner.notificationChannels.map((channel, i) => (
                                     <Badge key={i} variant="outline" className="text-xs">
-                                      {channel === 'email' ? '邮件' : 
-                                       channel === 'webhook' ? '企微/钉钉' : '站内'}
+                                      {channel === 'email' ? t("meeting.owner.channelEmail") :
+                                       channel === 'webhook' ? t("meeting.owner.channelWebhook") : t("meeting.owner.channelInApp")}
                                     </Badge>
                                   ))}
                                 </div>
@@ -299,7 +301,7 @@ export default function MeetingOwnerManagement() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => {
-                                    if (confirm('确定删除该MO配置？')) {
+                                    if (confirm(t("meeting.owner.confirmDelete"))) {
                                       deleteMutation.mutate({ id: owner.id });
                                     }
                                   }}
@@ -324,12 +326,12 @@ export default function MeetingOwnerManagement() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>自动上报规则</CardTitle>
-                    <CardDescription>配置任务完成后的自动上报逻辑</CardDescription>
+                    <CardTitle>{t("meeting.owner.reportRulesTitle")}</CardTitle>
+                    <CardDescription>{t("meeting.owner.reportRulesDesc")}</CardDescription>
                   </div>
                   <Button onClick={() => setShowRuleDialog(true)}>
                     <Plus className="h-4 w-4 mr-1" />
-                    添加规则
+                    {t("meeting.owner.addRule")}
                   </Button>
                 </div>
               </CardHeader>
@@ -338,7 +340,7 @@ export default function MeetingOwnerManagement() {
                   {rules.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                       <Settings className="h-12 w-12 mb-2 opacity-50" />
-                      <p>暂无上报规则</p>
+                      <p>{t("meeting.owner.noReportRules")}</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -350,14 +352,14 @@ export default function MeetingOwnerManagement() {
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className="font-medium">{rule.ruleName}</span>
                                   <Badge variant={rule.isActive ? 'default' : 'secondary'}>
-                                    {rule.isActive ? '启用' : '禁用'}
+                                    {rule.isActive ? t("meeting.owner.ruleEnabled") : t("meeting.owner.ruleDisabled")}
                                   </Badge>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                  触发条件: {rule.triggerCondition}
+                                  {t("meeting.owner.triggerCondition")}: {rule.triggerCondition}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
-                                  上报给: {rule.reportTo.join(', ')}
+                                  {t("meeting.owner.reportTo")}: {rule.reportTo.join(', ')}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
@@ -381,12 +383,12 @@ export default function MeetingOwnerManagement() {
           <TabsContent value="evidence">
             <Card>
               <CardHeader>
-                <CardTitle>举证要求配置</CardTitle>
-                <CardDescription>配置不同会议类型的举证材料要求</CardDescription>
+                <CardTitle>{t("meeting.owner.evidenceConfigTitle")}</CardTitle>
+                <CardDescription>{t("meeting.owner.evidenceConfigDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {MEETING_TYPES.map((type) => {
+                  {MEETING_TYPE_KEYS.map((type) => {
                     const owner = owners.find(o => o.meetingType === type.id);
                     return (
                       <Card key={type.id} className="bg-muted/30">
@@ -395,9 +397,9 @@ export default function MeetingOwnerManagement() {
                             <div>
                               <div className="flex items-center gap-2 mb-1">
                                 <Badge variant="outline">
-                                  {type.category === 'internal' ? '内部' : '客户'}
+                                  {type.category === 'internal' ? t("meeting.owner.internal") : t("meeting.owner.customer")}
                                 </Badge>
-                                <span className="font-medium">{type.name}</span>
+                                <span className="font-medium">{t(type.nameKey)}</span>
                               </div>
                               {owner?.evidenceTypes && owner.evidenceTypes.length > 0 ? (
                                 <div className="flex flex-wrap gap-1 mt-2">
@@ -408,13 +410,13 @@ export default function MeetingOwnerManagement() {
                                   ))}
                                 </div>
                               ) : (
-                                <p className="text-sm text-muted-foreground">未配置举证要求</p>
+                                <p className="text-sm text-muted-foreground">{t("meeting.owner.noEvidenceConfig")}</p>
                               )}
                             </div>
                             <div className="flex items-center gap-2">
                               <Switch checked={owner?.evidenceRequired || false} />
                               <span className="text-sm text-muted-foreground">
-                                {owner?.evidenceRequired ? '需要举证' : '无需举证'}
+                                {owner?.evidenceRequired ? t("meeting.owner.evidenceRequired") : t("meeting.owner.noEvidenceLabel")}
                               </span>
                             </div>
                           </div>
@@ -463,6 +465,7 @@ interface MeetingOwnerDialogProps {
 }
 
 function MeetingOwnerDialog({ open, onOpenChange, owner, onSave }: MeetingOwnerDialogProps) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     meetingType: '',
     ownerId: '',
@@ -509,27 +512,27 @@ function MeetingOwnerDialog({ open, onOpenChange, owner, onSave }: MeetingOwnerD
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{owner ? '编辑' : '指派'} Meeting Owner</DialogTitle>
+          <DialogTitle>{owner ? t("meeting.owner.dialogTitleEdit") : t("meeting.owner.assignMO")}</DialogTitle>
           <DialogDescription>
-            为会议类型指定负责人和配置上报规则
+            {t("meeting.owner.dialogDesc")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 max-h-[60vh] overflow-y-auto">
           <div className="space-y-2">
-            <Label>会议类型 *</Label>
+            <Label>{t("meeting.owner.meetingType")} *</Label>
             <Select
               value={formData.meetingType}
               onValueChange={(value) => setFormData(prev => ({ ...prev, meetingType: value }))}
             >
               <SelectTrigger>
-                <SelectValue placeholder="选择会议类型" />
+                <SelectValue placeholder={t("meeting.owner.selectMeetingType")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__placeholder__" disabled>选择会议类型</SelectItem>
-                {MEETING_TYPES.map((type) => (
+                <SelectItem value="__placeholder__" disabled>{t("meeting.owner.selectMeetingType")}</SelectItem>
+                {MEETING_TYPE_KEYS.map((type) => (
                   <SelectItem key={type.id} value={type.id}>
-                    [{type.category === 'internal' ? '内部' : '客户'}] {type.name}
+                    [{type.category === 'internal' ? t("meeting.owner.internal") : t("meeting.owner.customer")}] {t(type.nameKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -540,35 +543,35 @@ function MeetingOwnerDialog({ open, onOpenChange, owner, onSave }: MeetingOwnerD
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>MO姓名 *</Label>
+              <Label>{t("meeting.owner.moName")} *</Label>
               <Input
                 value={formData.ownerName}
                 onChange={(e) => setFormData(prev => ({ ...prev, ownerName: e.target.value }))}
-                placeholder="输入负责人姓名"
+                placeholder={t("meeting.owner.moNamePlaceholder")}
               />
             </div>
             <div className="space-y-2">
-              <Label>MO邮箱 *</Label>
+              <Label>{t("meeting.owner.moEmail")} *</Label>
               <Input
                 type="email"
                 value={formData.ownerEmail}
                 onChange={(e) => setFormData(prev => ({ ...prev, ownerEmail: e.target.value }))}
-                placeholder="输入邮箱"
+                placeholder={t("meeting.owner.moEmailPlaceholder")}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>备份MO姓名</Label>
+              <Label>{t("meeting.owner.backupMoName")}</Label>
               <Input
                 value={formData.backupOwnerName}
                 onChange={(e) => setFormData(prev => ({ ...prev, backupOwnerName: e.target.value }))}
-                placeholder="可选"
+                placeholder={t("meeting.owner.optional")}
               />
             </div>
             <div className="space-y-2">
-              <Label>上报频率</Label>
+              <Label>{t("meeting.owner.reportFrequency")}</Label>
               <Select
                 value={formData.reportFrequency}
                 onValueChange={(value: 'immediate' | 'daily' | 'weekly') => 
@@ -579,9 +582,9 @@ function MeetingOwnerDialog({ open, onOpenChange, owner, onSave }: MeetingOwnerD
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="immediate">即时</SelectItem>
-                  <SelectItem value="daily">每日汇总</SelectItem>
-                  <SelectItem value="weekly">每周汇总</SelectItem>
+                  <SelectItem value="immediate">{t("meeting.owner.freqImmediate")}</SelectItem>
+                  <SelectItem value="daily">{t("meeting.owner.freqDaily")}</SelectItem>
+                  <SelectItem value="weekly">{t("meeting.owner.freqWeekly")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -592,8 +595,8 @@ function MeetingOwnerDialog({ open, onOpenChange, owner, onSave }: MeetingOwnerD
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label>自动上报</Label>
-                <p className="text-xs text-muted-foreground">任务完成后自动通知MO</p>
+                <Label>{t("meeting.owner.autoReport")}</Label>
+                <p className="text-xs text-muted-foreground">{t("meeting.owner.autoReportDesc")}</p>
               </div>
               <Switch
                 checked={formData.autoReportEnabled}
@@ -605,8 +608,8 @@ function MeetingOwnerDialog({ open, onOpenChange, owner, onSave }: MeetingOwnerD
 
             <div className="flex items-center justify-between">
               <div>
-                <Label>需要举证</Label>
-                <p className="text-xs text-muted-foreground">任务完成时需上传证明材料</p>
+                <Label>{t("meeting.owner.evidenceRequired")}</Label>
+                <p className="text-xs text-muted-foreground">{t("meeting.owner.evidenceRequiredDesc")}</p>
               </div>
               <Switch
                 checked={formData.evidenceRequired}
@@ -618,12 +621,12 @@ function MeetingOwnerDialog({ open, onOpenChange, owner, onSave }: MeetingOwnerD
           </div>
 
           <div className="space-y-2">
-            <Label>通知渠道</Label>
+            <Label>{t("meeting.owner.notificationChannel")}</Label>
             <div className="flex gap-4">
               {[
-                { id: 'email', label: '邮件', icon: Mail },
-                { id: 'webhook', label: '企微/钉钉', icon: MessageSquare },
-                { id: 'inApp', label: '站内通知', icon: Bell }
+                { id: 'email', labelKey: 'meeting.owner.channelEmail', icon: Mail },
+                { id: 'webhook', labelKey: 'meeting.owner.channelWebhook', icon: MessageSquare },
+                { id: 'inApp', labelKey: 'meeting.owner.channelInApp', icon: Bell }
               ].map((channel) => (
                 <label key={channel.id} className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -645,7 +648,7 @@ function MeetingOwnerDialog({ open, onOpenChange, owner, onSave }: MeetingOwnerD
                     className="rounded"
                   />
                   <channel.icon className="h-4 w-4" />
-                  <span className="text-sm">{channel.label}</span>
+                  <span className="text-sm">{t(channel.labelKey)}</span>
                 </label>
               ))}
             </div>
@@ -654,11 +657,11 @@ function MeetingOwnerDialog({ open, onOpenChange, owner, onSave }: MeetingOwnerD
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            取消
+            {t("meeting.owner.cancel")}
           </Button>
           <Button onClick={handleSubmit}>
             <Save className="h-4 w-4 mr-1" />
-            保存
+            {t("meeting.owner.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -675,6 +678,7 @@ interface ReportRuleDialogProps {
 }
 
 function ReportRuleDialog({ open, onOpenChange, rule, onSave }: ReportRuleDialogProps) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     meetingType: '',
     ruleName: '',
@@ -697,42 +701,42 @@ function ReportRuleDialog({ open, onOpenChange, rule, onSave }: ReportRuleDialog
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{rule ? '编辑' : '添加'}上报规则</DialogTitle>
+          <DialogTitle>{rule ? t("meeting.owner.ruleDialogTitleEdit") : t("meeting.owner.addRule")}</DialogTitle>
           <DialogDescription>
-            配置任务完成后的自动上报逻辑
+            {t("meeting.owner.reportRulesDesc")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>规则名称 *</Label>
+            <Label>{t("meeting.owner.ruleName")} *</Label>
             <Input
               value={formData.ruleName}
               onChange={(e) => setFormData(prev => ({ ...prev, ruleName: e.target.value }))}
-              placeholder="输入规则名称"
+              placeholder={t("meeting.owner.ruleNamePlaceholder")}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>适用会议类型 *</Label>
+            <Label>{t("meeting.owner.applicableMeetingType")} *</Label>
             <Select
               value={formData.meetingType}
               onValueChange={(value) => setFormData(prev => ({ ...prev, meetingType: value }))}
             >
               <SelectTrigger>
-                <SelectValue placeholder="选择会议类型" />
+                <SelectValue placeholder={t("meeting.owner.selectMeetingType")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">所有会议</SelectItem>
-                {MEETING_TYPES.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                <SelectItem value="all">{t("meeting.owner.allMeetings")}</SelectItem>
+                {MEETING_TYPE_KEYS.map((type) => (
+                  <SelectItem key={type.id} value={type.id}>{t(type.nameKey)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label>触发条件</Label>
+            <Label>{t("meeting.owner.triggerCondition")}</Label>
             <Select
               value={formData.triggerCondition}
               onValueChange={(value) => setFormData(prev => ({ ...prev, triggerCondition: value }))}
@@ -741,15 +745,15 @@ function ReportRuleDialog({ open, onOpenChange, rule, onSave }: ReportRuleDialog
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="task_completed">任务完成时</SelectItem>
-                <SelectItem value="task_overdue">任务逾期时</SelectItem>
-                <SelectItem value="all_tasks_completed">所有任务完成时</SelectItem>
+                <SelectItem value="task_completed">{t("meeting.owner.triggerTaskCompleted")}</SelectItem>
+                <SelectItem value="task_overdue">{t("meeting.owner.triggerTaskOverdue")}</SelectItem>
+                <SelectItem value="all_tasks_completed">{t("meeting.owner.triggerAllCompleted")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label>提前提醒天数</Label>
+            <Label>{t("meeting.owner.reminderDays")}</Label>
             <Input
               type="number"
               value={formData.reminderDays}
@@ -760,7 +764,7 @@ function ReportRuleDialog({ open, onOpenChange, rule, onSave }: ReportRuleDialog
           </div>
 
           <div className="flex items-center justify-between">
-            <Label>包含举证材料</Label>
+            <Label>{t("meeting.owner.includeEvidence")}</Label>
             <Switch
               checked={formData.includeEvidence}
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, includeEvidence: checked }))}
@@ -768,7 +772,7 @@ function ReportRuleDialog({ open, onOpenChange, rule, onSave }: ReportRuleDialog
           </div>
 
           <div className="flex items-center justify-between">
-            <Label>启用规则</Label>
+            <Label>{t("meeting.owner.enableRule")}</Label>
             <Switch
               checked={formData.isActive}
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
@@ -778,10 +782,10 @@ function ReportRuleDialog({ open, onOpenChange, rule, onSave }: ReportRuleDialog
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            取消
+            {t("meeting.owner.cancel")}
           </Button>
           <Button onClick={handleSubmit}>
-            保存规则
+            {t("meeting.owner.saveRule")}
           </Button>
         </DialogFooter>
       </DialogContent>

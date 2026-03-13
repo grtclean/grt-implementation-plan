@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller, createAdminCaller } from "./_test/trpc-test-utils";
+import { createAdminCaller, createAnonymousCaller } from "./_test/trpc-test-utils";
 
 // Mock requireDb so we never hit a real database
 // Default result for queries — can be overridden per-test via mockQueryResult

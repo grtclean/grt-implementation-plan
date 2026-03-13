@@ -3,11 +3,11 @@
  * Phase 21 P1: US-007 合格证 · US-008 SPC · US-009 NCR
  */
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import { generateCertificate, analyzeSPC, analyzeNCR } from "./qualityAdvanced.service";
 
 export const qualityAdvancedRouter = router({
-  generateCertificate: protectedProcedure
+  generateCertificate: requirePermission('mfg:qc:manage')
     .input(z.object({
       productName: z.string().min(1), batchNumber: z.string().min(1), customerName: z.string().min(1),
       inspectionData: z.string().min(1), cleanlinessResult: z.string().min(1), standard: z.string().min(1),
@@ -15,7 +15,7 @@ export const qualityAdvancedRouter = router({
     }))
     .mutation(async ({ input }) => await generateCertificate(input)),
 
-  analyzeSPC: protectedProcedure
+  analyzeSPC: requirePermission('mfg:qc:manage')
     .input(z.object({
       processName: z.string().min(1), measurementParameter: z.string().min(1),
       sampleData: z.string().min(1), specification: z.string().min(1),
@@ -23,7 +23,7 @@ export const qualityAdvancedRouter = router({
     }))
     .mutation(async ({ input }) => await analyzeSPC(input)),
 
-  analyzeNCR: protectedProcedure
+  analyzeNCR: requirePermission('mfg:qc:manage')
     .input(z.object({
       productName: z.string().min(1), batchNumber: z.string().min(1),
       defectDescription: z.string().min(1), defectCategory: z.string().min(1),

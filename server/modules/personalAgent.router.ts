@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { invokeLLM } from "../_core/llm";
 import { TRPCError } from "@trpc/server";
@@ -82,7 +82,7 @@ export const personalAgentRouter = router({
     }),
 
   // 记录行为日志
-  logBehavior: protectedProcedure
+  logBehavior: requirePermission('ai:assistant:chat')
     .input(z.object({
       context: z.string(),
       actionType: z.string().optional(),
@@ -198,7 +198,7 @@ export const personalAgentRouter = router({
       const recentContexts = await (db as any).execute(
         `SELECT context, COUNT(*) as count
          FROM behavior_logs
-         WHERE user_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+         WHERE user_id = ? AND created_at >= NOW() - INTERVAL '30 days'
          GROUP BY context
          ORDER BY count DESC
          LIMIT 10`,
@@ -208,12 +208,12 @@ export const personalAgentRouter = router({
       // 获取技能成长趋势（按周统计）
       const growthTrend = await (db as any).execute(
         `SELECT
-           YEARWEEK(created_at) as week,
+           to_char(created_at, 'IYYY-IW') as week,
            COUNT(DISTINCT implied_skill) as unique_skills,
            COUNT(*) as total_actions
          FROM behavior_logs
-         WHERE user_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 12 WEEK)
-         GROUP BY YEARWEEK(created_at)
+         WHERE user_id = ? AND created_at >= NOW() - INTERVAL '12 weeks'
+         GROUP BY to_char(created_at, 'IYYY-IW')
          ORDER BY week`,
         [targetUserId]
       );

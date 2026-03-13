@@ -151,6 +151,7 @@ export const ROUTER_MANIFEST: RouterManifest[] = [
   { name: "aiSales", file: "modules/aiSales.router.ts", domain: "sales", authLevel: "public", buScoped: true, owner: "bu_sales", status: "beta", procedureCount: 5 },
   { name: "aiSalesEnhanced", file: "modules/aiSalesEnhanced.router.ts", domain: "sales", authLevel: "public", buScoped: true, owner: "bu_sales", status: "beta", procedureCount: 5 },
   { name: "serviceSalesAdvanced", file: "service-sales-advanced/serviceSalesAdvanced.router.ts", domain: "sales", authLevel: "public", buScoped: true, owner: "bu_sales", status: "beta", procedureCount: 6 },
+  { name: "marketingPlatform", file: "routers/marketing-platform.router.ts", domain: "sales", authLevel: "permission", buScoped: false, owner: "director", status: "production", procedureCount: 59 },
 
   // ===== Manufacturing =====
   { name: "mes", file: "routers/mes.router.ts", domain: "manufacturing", authLevel: "public", buScoped: false, owner: "dept_manager", status: "production", procedureCount: 10 },
@@ -196,7 +197,11 @@ export const ROUTER_MANIFEST: RouterManifest[] = [
   { name: "meetingTaskLoop", file: "meeting-intelligence/meeting-task-loop.router.ts", domain: "meeting", authLevel: "public", buScoped: false, owner: "team_lead", status: "production", procedureCount: 6 },
   { name: "customerSolutionMeeting", file: "meeting-intelligence/customer-solution-meeting.router.ts", domain: "meeting", authLevel: "public", buScoped: false, owner: "bu_pm", status: "beta", procedureCount: 5 },
   { name: "smartMeeting", file: "routers/smart-meeting.router.ts", domain: "meeting", authLevel: "public", buScoped: false, owner: "team_lead", status: "beta", procedureCount: 12 },
+  { name: "meetingIntelligence", file: "routers/meetingIntelligence.router.ts", domain: "meeting", authLevel: "protected", buScoped: false, owner: "team_lead", status: "production", procedureCount: 5 },
   { name: "ime", file: "ime/ime.router.ts", domain: "meeting", authLevel: "public", buScoped: false, owner: "team_lead", status: "beta", procedureCount: 6 },
+
+  // ===== Security & Compliance =====
+  { name: "securityCompliance", file: "routers/security-compliance.router.ts", domain: "core", authLevel: "permission", buScoped: false, owner: "admin", status: "production", procedureCount: 11 },
 
   // ===== AI Engines =====
   { name: "ai", file: "ai/ai.router.ts", domain: "ai", authLevel: "public", buScoped: false, owner: "admin", status: "production", procedureCount: 5 },
@@ -214,6 +219,12 @@ export const ROUTER_MANIFEST: RouterManifest[] = [
   { name: "aiExecutionMode", file: "routers/ai-execution-mode.router.ts", domain: "ai", authLevel: "public", buScoped: false, owner: "admin", status: "beta", procedureCount: 4 },
   { name: "aiTrigger", file: "routers/ai-trigger.router.ts", domain: "ai", authLevel: "public", buScoped: false, owner: "admin", status: "production", procedureCount: 5 },
   { name: "aiServices", file: "ai-services/ai-services.router.ts", domain: "ai", authLevel: "public", buScoped: false, owner: "admin", status: "production", procedureCount: 8 },
+  { name: "aiClaw", file: "routers/ai-claw.router.ts", domain: "ai", authLevel: "permission", buScoped: false, owner: "admin", status: "beta", procedureCount: 15 },
+  { name: "empowerment", file: "routers/empowerment.router.ts", domain: "hr", authLevel: "public", buScoped: false, owner: "employee", status: "production", procedureCount: 17 },
+  { name: "employeeGrowth", file: "routers/employee-growth.router.ts", domain: "hr", authLevel: "permission", buScoped: false, owner: "hr", status: "production", procedureCount: 48 },
+  { name: "executiveReview", file: "routers/executive-review.router.ts", domain: "management", authLevel: "permission", buScoped: false, owner: "ceo", status: "production", procedureCount: 35 },
+  { name: "knowledgeCompliance", file: "routers/knowledge-compliance.router.ts", domain: "hr", authLevel: "protected", buScoped: false, owner: "hr", status: "production", procedureCount: 32 },
+  { name: "lifecycleEcosystem", file: "routers/lifecycle-ecosystem.router.ts", domain: "hr", authLevel: "protected", buScoped: false, owner: "hr", status: "production", procedureCount: 30 },
   { name: "aiEarlyWarning", file: "services/ai-early-warning.router.ts", domain: "ai", authLevel: "public", buScoped: false, owner: "director", status: "beta", procedureCount: 5 },
   { name: "aiIntervention", file: "routers/ai-intervention.router.ts", domain: "ai", authLevel: "public", buScoped: false, owner: "hr_manager", status: "beta", procedureCount: 6 },
   { name: "hrSandbox", file: "routers/hr-sandbox.router.ts", domain: "ai", authLevel: "public", buScoped: false, owner: "hr_manager", status: "production", procedureCount: 5 },
@@ -229,7 +240,7 @@ export const ROUTER_MANIFEST: RouterManifest[] = [
 
   // ===== Platform / Integration =====
   { name: "dingtalk", file: "dingtalk/dingtalk.router.ts", domain: "platform", authLevel: "public", buScoped: false, owner: "admin", status: "production", procedureCount: 5 },
-  { name: "jiandaoyun", file: "routers/jiandaoyun.router.ts", domain: "platform", authLevel: "public", buScoped: false, owner: "admin", status: "production", procedureCount: 6 },
+  { name: "externalSync", file: "routers/external-sync.router.ts", domain: "platform", authLevel: "public", buScoped: false, owner: "admin", status: "production", procedureCount: 6 },
   { name: "microsoftGraph", file: "services/microsoft-graph.router.ts", domain: "platform", authLevel: "public", buScoped: false, owner: "admin", status: "beta", procedureCount: 5 },
   { name: "o365Sync", file: "services/o365-sync.router.ts", domain: "platform", authLevel: "public", buScoped: false, owner: "admin", status: "beta", procedureCount: 4 },
   { name: "syncDispatch", file: "routers/sync-dispatch.router.ts", domain: "platform", authLevel: "public", buScoped: false, owner: "admin", status: "beta", procedureCount: 4 },
@@ -280,6 +291,13 @@ export const ROUTER_MANIFEST: RouterManifest[] = [
   { name: "violationEvent", file: "routers/violation-event.router.ts", domain: "hr", authLevel: "public", buScoped: false, owner: "hr_manager", status: "production", procedureCount: 6 },
   { name: "automation", file: "routers/automation.router.ts", domain: "platform", authLevel: "public", buScoped: false, owner: "admin", status: "beta", procedureCount: 5 },
   { name: "projectAgent", file: "routers/project-agent.router.ts", domain: "ai", authLevel: "public", buScoped: true, owner: "bu_pm", status: "production", procedureCount: 8 },
+  { name: "robotCleaning", file: "routers/robot-cleaning.router.ts", domain: "manufacturing", authLevel: "permission", buScoped: false, owner: "quality_eng", status: "production", procedureCount: 18 },
+  { name: "robotFleet", file: "routers/robot-fleet.router.ts", domain: "manufacturing", authLevel: "permission", buScoped: false, owner: "quality_eng", status: "production", procedureCount: 40 },
+  { name: "semiconductorCleaning", file: "routers/semiconductor-cleaning.router.ts", domain: "manufacturing", authLevel: "permission", buScoped: false, owner: "quality_eng", status: "production", procedureCount: 32 },
+  { name: "targetedShowcase", file: "routers/targeted-showcase.router.ts", domain: "sales", authLevel: "permission", buScoped: false, owner: "bu_sales", status: "production", procedureCount: 10 },
+  { name: "smartProductionScheduling", file: "routers/smart-production-scheduling.router.ts", domain: "manufacturing", authLevel: "permission", buScoped: false, owner: "bu_pm", status: "production", procedureCount: 26 },
+  { name: "rndNpi", file: "routers/rnd-npi.router.ts", domain: "pm", authLevel: "permission", buScoped: true, owner: "engineer", status: "production", procedureCount: 38 },
+  { name: "devEnv", file: "routers/dev-env.router.ts", domain: "core", authLevel: "permission", buScoped: false, owner: "admin", status: "production", procedureCount: 4 },
 
   // ===== Gemini Modules =====
   { name: "socialCommunity", file: "modules/socialCommunity.router.ts", domain: "platform", authLevel: "public", buScoped: false, owner: "hr_manager", status: "beta", procedureCount: 5 },
@@ -326,6 +344,58 @@ export const ROUTER_MANIFEST: RouterManifest[] = [
   { name: "purchaseAssistant", file: "ai-assistants/purchaseRoutes.ts", domain: "ai", authLevel: "public", buScoped: false, owner: "procurement_eng", status: "beta", procedureCount: 4 },
   { name: "qualityAssistant", file: "ai-assistants/qualityRoutes.ts", domain: "ai", authLevel: "public", buScoped: false, owner: "quality_eng", status: "beta", procedureCount: 4 },
   { name: "serviceAssistant", file: "ai-assistants/serviceRoutes.ts", domain: "ai", authLevel: "public", buScoped: false, owner: "cs_engineer", status: "beta", procedureCount: 4 },
+
+  // ===== GRT 5.0 Full-Domain Architecture =====
+  { name: "fileUpload", file: "routers/file-upload.router.ts", domain: "platform", authLevel: "protected", buScoped: false, owner: "admin", status: "production", procedureCount: 5 },
+  { name: "grtInit", file: "routers/grt-init.router.ts", domain: "platform", authLevel: "protected", buScoped: false, owner: "admin", status: "production", procedureCount: 6 },
+  { name: "closedLoop", file: "routers/closed-loop.router.ts", domain: "manufacturing", authLevel: "permission", buScoped: false, owner: "quality_eng", status: "production", procedureCount: 3 },
+  { name: "aeiExtended", file: "routers/aei-extended.router.ts", domain: "hr", authLevel: "protected", buScoped: false, owner: "hr_manager", status: "production", procedureCount: 6 },
+  { name: "ceoDashboard", file: "routers/ceo-dashboard.router.ts", domain: "platform", authLevel: "protected", buScoped: false, owner: "director", status: "production", procedureCount: 5 },
+  { name: "ctoDashboard", file: "routers/cto-dashboard.router.ts", domain: "platform", authLevel: "protected", buScoped: false, owner: "director", status: "production", procedureCount: 6 },
+  { name: "systemStability", file: "routers/system-stability.router.ts", domain: "platform", authLevel: "protected", buScoped: false, owner: "admin", status: "production", procedureCount: 3 },
+  { name: "ido", file: "routers/ido.router.ts", domain: "platform", authLevel: "protected", buScoped: false, owner: "bu_pm", status: "production", procedureCount: 25 },
+
+  // ===== PDM — Product Data Management =====
+  { name: "pdm", file: "routers/pdm.router.ts", domain: "rnd", authLevel: "permission", buScoped: true, owner: "bu_pm", status: "production", procedureCount: 55 },
+
+  // ===== Go-Live Command Center — 上线指挥中心 =====
+  { name: "goLive", file: "routers/go-live.router.ts", domain: "core", authLevel: "permission", buScoped: false, owner: "admin", status: "production", procedureCount: 44 },
+
+  // ===== Smart Payroll Engine — 薪资计算与审批 =====
+  { name: "payroll", file: "routers/payroll.router.ts", domain: "hr", authLevel: "permission", buScoped: false, owner: "finance_manager", status: "production", procedureCount: 31 },
+
+  // ===== Attendance Clock — GPS考勤打卡 + 离岗追踪 + 考勤确认 =====
+  { name: "attendanceClock", file: "routers/attendance-clock.router.ts", domain: "hr", authLevel: "permission", buScoped: false, owner: "hr_manager", status: "production", procedureCount: 14 },
+
+  // ===== Performance Calibration & Incentive — 智能绩效校准与激励 =====
+  { name: "perfCalibration", file: "routers/perf-calibration.router.ts", domain: "hr", authLevel: "permission", buScoped: false, owner: "hr_manager", status: "production", procedureCount: 45 },
+
+  // ===== Sales Coach Engine — 全球销售全域赋能与战术指导 =====
+  { name: "salesCoach", file: "routers/sales-coach.router.ts", domain: "sales", authLevel: "permission", buScoped: true, owner: "bu_sales", status: "production", procedureCount: 18 },
+
+  // ===== Battle Arena — 斗兽场排名 & 月度战情室 =====
+  { name: "battleArena", file: "routers/battle-arena.router.ts", domain: "hr", authLevel: "permission", buScoped: true, owner: "director", status: "production", procedureCount: 16 },
+
+  // ===== BI Report — 综合报告平台 =====
+  { name: "biReport", file: "routers/bi-report.router.ts", domain: "analytics", authLevel: "permission", buScoped: true, owner: "director", status: "production", procedureCount: 22 },
+  { name: "oemDeveloperPortal", file: "routers/oem-developer-portal.router.ts", domain: "platform", authLevel: "permission", buScoped: false, owner: "admin", status: "production", procedureCount: 24 },
+
+  // ===== Employee Points — 员工积分奖惩系统 =====
+  { name: "employeePoints", file: "routers/employee-points.router.ts", domain: "hr", authLevel: "permission", buScoped: false, owner: "hr_manager", status: "production", procedureCount: 20 },
+  { name: "workstationPreset", file: "routers/workstation-preset.router.ts", domain: "hr", authLevel: "permission", buScoped: false, owner: "hr_manager", status: "production", procedureCount: 7 },
+  { name: "skillAssessment", file: "routers/skill-assessment.router.ts", domain: "hr", authLevel: "permission", buScoped: false, owner: "hr_manager", status: "production", procedureCount: 25 },
+  { name: "assessmentLifecycle", file: "routers/assessment-lifecycle.router.ts", domain: "hr", authLevel: "permission", buScoped: false, owner: "hr_manager", status: "production", procedureCount: 20 },
+  { name: "authorizationHierarchy", file: "routers/authorization-hierarchy.router.ts", domain: "core", authLevel: "permission", buScoped: true, owner: "admin", status: "production", procedureCount: 40 },
+  { name: "deptProcedure", file: "routers/dept-procedure.router.ts", domain: "core", authLevel: "permission", buScoped: false, owner: "hr_manager", status: "production", procedureCount: 30 },
+
+  // ===== Remote Governance — 远程维护指挥中心 =====
+  { name: "remoteGovernance", file: "routers/remote-governance.router.ts", domain: "security", authLevel: "permission", buScoped: false, owner: "admin", status: "production", procedureCount: 12 },
+
+  // ===== Electrical Standards — 电气规范治理平台 =====
+  { name: "electricalStandards", file: "routers/electrical-standards.router.ts", domain: "quality", authLevel: "permission", buScoped: true, owner: "bu_elec", status: "production", procedureCount: 22 },
+
+  // ===== Mechanical Config Standards — 机械配置标准治理平台 =====
+  { name: "mechanicalConfig", file: "routers/mechanical-config.router.ts", domain: "quality", authLevel: "permission", buScoped: true, owner: "bu_mech", status: "production", procedureCount: 45 },
 ];
 
 // ===== Manifest Utilities =====

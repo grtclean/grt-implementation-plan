@@ -13,6 +13,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 // @ts-expect-error - @tiptap/extension-link is an optional dependency
 import Link from "@tiptap/extension-link";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +42,7 @@ interface AIInsight {
 }
 
 export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
+  const { t } = useLanguage();
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
@@ -74,7 +76,7 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
     extensions: [
       StarterKit,
       Placeholder.configure({
-        placeholder: "开始输入会议笔记...",
+        placeholder: t("mi.editor.notesPlaceholder"),
       }),
       Link.configure({
         openOnClick: false,
@@ -180,7 +182,7 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
   }
 
   if (!meeting) {
-    return <div className="text-center py-12">会议不存在</div>;
+    return <div className="text-center py-12">{t("mi.editor.meetingNotFound")}</div>;
   }
 
   return (
@@ -203,12 +205,12 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
                 {isSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    保存中...
+                    {t("mi.editor.saving")}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    保存
+                    {t("mi.editor.save")}
                   </>
                 )}
               </Button>
@@ -223,24 +225,24 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
                 {isGeneratingInsights ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    生成中...
+                    {t("mi.editor.generating")}
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    AI分析
+                    {t("mi.editor.aiAnalyze")}
                   </>
                 )}
               </Button>
 
               <Button variant="outline" size="sm" className="gap-2">
                 <Download className="w-4 h-4" />
-                导出
+                {t("mi.editor.export")}
               </Button>
 
               <Button variant="outline" size="sm" className="gap-2">
                 <Share2 className="w-4 h-4" />
-                分享
+                {t("mi.editor.share")}
               </Button>
             </>
           }
@@ -255,19 +257,19 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
             })}
           </div>
 
-          <div>项目阶段: {meeting.projectPhase || "未指定"}</div>
+          <div>{t("mi.editor.projectPhase")}: {meeting.projectPhase || t("mi.editor.unspecified")}</div>
 
           {meeting.revenueTarget && (
-            <div>收入目标: ¥{meeting.revenueTarget}M</div>
+            <div>{t("mi.editor.revenueTarget")}: ¥{meeting.revenueTarget}M</div>
           )}
 
           {meeting.profitMargin && (
-            <div>利润率: {meeting.profitMargin}%</div>
+            <div>{t("mi.editor.profitMargin")}: {meeting.profitMargin}%</div>
           )}
 
           {lastSaved && (
             <div className="text-xs text-gray-500">
-              最后保存: {format(lastSaved, "HH:mm:ss")}
+              {t("mi.editor.lastSaved")}: {format(lastSaved, "HH:mm:ss")}
             </div>
           )}
         </div>
@@ -276,9 +278,9 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
       {/* 编辑器和洞察 */}
       <Tabs defaultValue="editor" className="w-full">
         <TabsList>
-          <TabsTrigger value="editor">笔记编辑</TabsTrigger>
-          <TabsTrigger value="insights">AI洞察</TabsTrigger>
-          <TabsTrigger value="participants">参与者</TabsTrigger>
+          <TabsTrigger value="editor">{t("mi.editor.noteEditor")}</TabsTrigger>
+          <TabsTrigger value="insights">{t("mi.editor.aiInsightsTab")}</TabsTrigger>
+          <TabsTrigger value="participants">{t("mi.editor.participantsTab")}</TabsTrigger>
         </TabsList>
 
         {/* 编辑器标签 */}
@@ -301,9 +303,9 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
             {insights.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <p className="text-gray-500 mb-4">暂无AI洞察</p>
+                  <p className="text-gray-500 mb-4">{t("mi.editor.noInsights")}</p>
                   <Button onClick={handleGenerateInsights}>
-                    生成AI洞察
+                    {t("mi.editor.generateAiInsights")}
                   </Button>
                 </CardContent>
               </Card>
@@ -313,10 +315,10 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">
-                        {getInsightTypeLabel(insight.insightType)}
+                        {getInsightTypeLabel(insight.insightType, t)}
                       </CardTitle>
                       <div className="text-xs text-gray-500">
-                        置信度: {(insight.confidenceScore * 100).toFixed(0)}%
+                        {t("mi.editor.confidence")}: {(insight.confidenceScore * 100).toFixed(0)}%
                       </div>
                     </div>
                   </CardHeader>
@@ -324,6 +326,7 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
                     <InsightContent
                       type={insight.insightType}
                       content={insight.content}
+                      t={t}
                     />
                   </CardContent>
                 </Card>
@@ -338,7 +341,7 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                参与者
+                {t("mi.editor.participants")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -356,13 +359,13 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
                         </p>
                       </div>
                       <div className="text-xs text-gray-500">
-                        加入: {format(new Date(participant.joinedAt), "HH:mm")}
+                        {t("mi.editor.joined")}: {format(new Date(participant.joinedAt), "HH:mm")}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500">暂无参与者</p>
+                <p className="text-gray-500">{t("mi.editor.noParticipants")}</p>
               )}
             </CardContent>
           </Card>
@@ -375,21 +378,21 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
 /**
  * 获取洞察类型标签
  */
-function getInsightTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    summary: "会议总结",
-    action_items: "行动项",
-    decisions: "决策",
-    risks: "风险",
-    opportunities: "机会",
+function getInsightTypeLabel(type: string, t: (key: string) => string): string {
+  const keyMap: Record<string, string> = {
+    summary: "mi.editor.meetingSummary",
+    action_items: "mi.editor.actionItemsLabel",
+    decisions: "mi.editor.decisionsLabel",
+    risks: "mi.editor.risksLabel",
+    opportunities: "mi.editor.opportunitiesLabel",
   };
-  return labels[type] || type;
+  return keyMap[type] ? t(keyMap[type]) : type;
 }
 
 /**
  * 洞察内容渲染组件
  */
-function InsightContent({ type, content }: { type: string; content: string }) {
+function InsightContent({ type, content, t }: { type: string; content: string; t: (key: string) => string }) {
   try {
     const data = JSON.parse(content);
 
@@ -410,11 +413,11 @@ function InsightContent({ type, content }: { type: string; content: string }) {
                   <div>
                     <p className="font-medium">{item.task}</p>
                     {item.owner && (
-                      <p className="text-sm text-gray-600">负责人: {item.owner}</p>
+                      <p className="text-sm text-gray-600">{t("mi.editor.owner")}: {item.owner}</p>
                     )}
                     {item.deadline && (
                       <p className="text-sm text-gray-600">
-                        截止日期: {item.deadline}
+                        {t("mi.editor.deadline")}: {item.deadline}
                       </p>
                     )}
                   </div>
@@ -444,7 +447,7 @@ function InsightContent({ type, content }: { type: string; content: string }) {
                 <li key={idx} className="border-l-4 border-red-500 pl-3">
                   <p className="font-medium text-red-700">{risk.risk}</p>
                   <p className="text-sm text-gray-600">
-                    缓解: {risk.mitigation}
+                    {t("mi.editor.mitigation")}: {risk.mitigation}
                   </p>
                 </li>
               ))}

@@ -40,11 +40,11 @@ interface AnalysisResult {
 // ────────────────── Mock Sample Data for Demo ──────────────────
 
 const DEMO_DIRTY_DATA = [
-  { CustName: "上海大众汽车", CustCode: "SAIC-VW-001", Contact: "张伟", Tel: "13800138000", Email: "zhang.wei@saicvw.com", Addr: "上海市嘉定区安亭镇", OrderNo: "PO-2026-0045", Qty: 500, UnitPrice: 128.50, Total: 64250, Status: "已确认", Remark: "Q2批次交付" },
-  { CustName: "宁德时代新能源", CustCode: "CATL-002", Contact: "李敏", Tel: "13900139000", Email: "li.min@catl.com", Addr: "福建省宁德市蕉城区", OrderNo: "PO-2026-0046", Qty: 1200, UnitPrice: 45.00, Total: 54000, Status: "生产中", Remark: "电池壳体清洗" },
-  { CustName: "博世(中国)投资", CustCode: "BOSCH-003", Contact: "王强", Tel: "13700137000", Email: "wang.qiang@bosch.cn", Addr: "上海市浦东新区张江路", OrderNo: "PO-2026-0047", Qty: 800, UnitPrice: 95.00, Total: 76000, Status: "待审核", Remark: "半导体部件" },
-  { CustName: "比亚迪股份", CustCode: "BYD-004", Contact: "赵丽", Tel: "13600136000", Email: "zhao.li@byd.com", Addr: "深圳市坪山区比亚迪路", OrderNo: "PO-2026-0048", Qty: 2000, UnitPrice: 68.00, Total: 136000, Status: "已确认", Remark: "新能源清洗线" },
-  { CustName: "三一重工股份", CustCode: "SANY-005", Contact: "刘洋", Tel: "13500135000", Email: "liu.yang@sany.com", Addr: "湖南省长沙市经开区", OrderNo: "PO-2026-0049", Qty: 300, UnitPrice: 210.00, Total: 63000, Status: "已发货", Remark: "工程机械部件" },
+  { CustName: "上海大众汽车", CustCode: "SAIC-VW-001", Contact: "吴卫成", Tel: "13800138000", Email: "wu.weib@saicvw.com", Addr: "上海市嘉定区安亭镇", OrderNo: "PO-2026-0045", Qty: 500, UnitPrice: 128.50, Total: 64250, Status: "已确认", Remark: "Q2批次交付" },
+  { CustName: "宁德时代新能源", CustCode: "CATL-002", Contact: "孙淼", Tel: "13900139000", Email: "sun.zhen@catl.com", Addr: "福建省宁德市蕉城区", OrderNo: "PO-2026-0046", Qty: 1200, UnitPrice: 45.00, Total: 54000, Status: "生产中", Remark: "电池壳体清洗" },
+  { CustName: "博世(中国)投资", CustCode: "BOSCH-003", Contact: "杜显文", Tel: "13700137000", Email: "du.xianw@bosch.cn", Addr: "上海市浦东新区张江路", OrderNo: "PO-2026-0047", Qty: 800, UnitPrice: 95.00, Total: 76000, Status: "待审核", Remark: "半导体部件" },
+  { CustName: "比亚迪股份", CustCode: "BYD-004", Contact: "王犇", Tel: "13600136000", Email: "wang.dan@byd.com", Addr: "深圳市坪山区比亚迪路", OrderNo: "PO-2026-0048", Qty: 2000, UnitPrice: 68.00, Total: 136000, Status: "已确认", Remark: "新能源清洗线" },
+  { CustName: "三一重工股份", CustCode: "SANY-005", Contact: "廉龙海", Tel: "13500135000", Email: "qu.longh@sany.com", Addr: "湖南省长沙市经开区", OrderNo: "PO-2026-0049", Qty: 300, UnitPrice: 210.00, Total: 63000, Status: "已发货", Remark: "工程机械部件" },
 ];
 
 // ────────────────── GRT Standard Fields (for override dropdowns) ──────────────────
@@ -87,8 +87,7 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
 // ────────────────── Component ──────────────────
 
 export default function DataMigrationHub() {
-  const { language } = useLanguage();
-  const isEn = language === "en";
+  const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State
@@ -114,7 +113,7 @@ export default function DataMigrationHub() {
 
   const handleDemoLoad = useCallback(() => {
     setRawData(DEMO_DIRTY_DATA);
-    setUploadedFileName("jiandaoyun_export_2026Q1.csv");
+    setUploadedFileName("external_sync_export_2026Q1.csv");
     setAnalysis(null);
     setMappingOverrides({});
     setCommitResult(null);
@@ -260,12 +259,10 @@ export default function DataMigrationHub() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#323130]">
-            {isEn ? "Data Cleansing & Migration Hub" : "数据清洗与迁移中心"}
+            {t("admin.migration.title")}
           </h1>
           <p className="text-sm text-[#605e5c] mt-1">
-            {isEn
-              ? "Import legacy data from Jiandao Cloud / ERP systems. AI maps dirty fields to GRT standards."
-              : "从简道云 / ERP系统导入历史数据，AI自动将脏字段映射到GRT标准字段。"}
+            {t("admin.migration.desc")}
           </p>
         </div>
         {/* Sandbox Stats */}
@@ -273,13 +270,13 @@ export default function DataMigrationHub() {
           <div className="bg-white border border-[#edebe9] rounded-lg px-4 py-2 flex items-center gap-3 text-sm">
             <Database className="w-4 h-4 text-[#0078d4]" />
             <div>
-              <span className="text-[#605e5c]">{isEn ? "Sandbox:" : "沙盒:"}</span>
+              <span className="text-[#605e5c]">{t("admin.migration.sandbox")}:</span>
               <span className="ml-1 font-semibold text-[#323130]">
-                {sandboxStats.data?.totalImports ?? 0} {isEn ? "imports" : "批次"}
+                {sandboxStats.data?.totalImports ?? 0} {t("admin.migration.imports")}
               </span>
               <span className="text-[#a19f9d] mx-1">/</span>
               <span className="font-semibold text-[#323130]">
-                {sandboxStats.data?.totalRecords ?? 0} {isEn ? "records" : "条记录"}
+                {sandboxStats.data?.totalRecords ?? 0} {t("admin.migration.records")}
               </span>
             </div>
             <Shield className="w-4 h-4 text-green-600" />
@@ -292,7 +289,7 @@ export default function DataMigrationHub() {
         <div className="px-6 py-4 border-b border-[#edebe9] flex items-center gap-2">
           <Upload className="w-5 h-5 text-[#0078d4]" />
           <h2 className="text-lg font-semibold text-[#323130]">
-            {isEn ? "Legacy Data Import" : "历史数据导入"}
+            {t("admin.migration.legacyImport")}
           </h2>
         </div>
         <div className="p-6">
@@ -322,17 +319,17 @@ export default function DataMigrationHub() {
                 <FileSpreadsheet className="w-12 h-12 mx-auto text-green-500" />
                 <p className="text-[#323130] font-medium">{uploadedFileName}</p>
                 <p className="text-sm text-[#605e5c]">
-                  {rawData?.length ?? 0} {isEn ? "records loaded" : "条记录已加载"}
+                  {rawData?.length ?? 0} {t("admin.migration.recordsLoaded")}
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
                 <FileUp className="w-12 h-12 mx-auto text-[#c8c6c4]" />
                 <p className="text-[#323130] font-medium">
-                  {isEn ? "Drop CSV / Excel / JSON file here" : "拖放 CSV / Excel / JSON 文件到此处"}
+                  {t("admin.migration.dropFile")}
                 </p>
                 <p className="text-sm text-[#a19f9d]">
-                  {isEn ? "or click to browse" : "或点击浏览文件"}
+                  {t("admin.migration.orClickBrowse")}
                 </p>
               </div>
             )}
@@ -346,7 +343,7 @@ export default function DataMigrationHub() {
               className="border-[#0078d4] text-[#0078d4] hover:bg-[#deecf9]"
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              {isEn ? "Load Demo Data (Jiandao Cloud)" : "加载演示数据 (简道云)"}
+              {t("admin.migration.loadDemo")}
             </Button>
             {rawData && (
               <Button
@@ -360,8 +357,8 @@ export default function DataMigrationHub() {
                   <Brain className="w-4 h-4 mr-2" />
                 )}
                 {isAnalyzing
-                  ? (isEn ? "AI Analyzing..." : "AI分析中...")
-                  : (isEn ? "Run AI Field Mapping" : "运行AI字段映射")}
+                  ? t("admin.migration.aiAnalyzing")
+                  : t("admin.migration.runAiMapping")}
               </Button>
             )}
           </div>
@@ -375,18 +372,18 @@ export default function DataMigrationHub() {
             <div className="flex items-center gap-2">
               <Brain className="w-5 h-5 text-[#8764b8]" />
               <h2 className="text-lg font-semibold text-[#323130]">
-                {isEn ? "AI Field Mapping Preview" : "AI字段映射预览"}
+                {t("admin.migration.aiFieldMapping")}
               </h2>
             </div>
             <div className="flex items-center gap-4 text-sm">
               <span className="text-green-600 font-medium">
                 <CheckCircle2 className="w-4 h-4 inline mr-1" />
-                {analysis.autoMappedCount} {isEn ? "auto-mapped" : "自动映射"}
+                {analysis.autoMappedCount} {t("admin.migration.autoMapped")}
               </span>
               {analysis.unmappedCount > 0 && (
                 <span className="text-red-500 font-medium">
                   <AlertTriangle className="w-4 h-4 inline mr-1" />
-                  {analysis.unmappedCount} {isEn ? "unmapped" : "未映射"}
+                  {analysis.unmappedCount} {t("admin.migration.unmapped")}
                 </span>
               )}
             </div>
@@ -397,12 +394,12 @@ export default function DataMigrationHub() {
             <table className="w-full">
               <thead>
                 <tr className="bg-[#f3f2f1] text-xs text-[#605e5c] font-medium uppercase">
-                  <th className="px-6 py-3 text-left">{isEn ? "Source Field (Legacy)" : "源字段 (旧系统)"}</th>
-                  <th className="px-6 py-3 text-left">{isEn ? "Sample Value" : "示例值"}</th>
+                  <th className="px-6 py-3 text-left">{t("admin.migration.sourceField")}</th>
+                  <th className="px-6 py-3 text-left">{t("admin.migration.sampleValue")}</th>
                   <th className="px-4 py-3 text-center w-10"><ArrowRight className="w-4 h-4 mx-auto text-[#0078d4]" /></th>
-                  <th className="px-6 py-3 text-left">{isEn ? "GRT Standard Field" : "GRT标准字段"}</th>
-                  <th className="px-6 py-3 text-center">{isEn ? "Confidence" : "置信度"}</th>
-                  <th className="px-6 py-3 text-left">{isEn ? "Manual Override" : "手动覆盖"}</th>
+                  <th className="px-6 py-3 text-left">{t("admin.migration.grtField")}</th>
+                  <th className="px-6 py-3 text-center">{t("admin.migration.confidence")}</th>
+                  <th className="px-6 py-3 text-left">{t("admin.migration.manualOverride")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -427,7 +424,7 @@ export default function DataMigrationHub() {
                           {m.targetField}
                         </code>
                       ) : (
-                        <span className="text-red-400 text-sm italic">{isEn ? "— not mapped —" : "— 未映射 —"}</span>
+                        <span className="text-red-400 text-sm italic">{t("admin.migration.notMapped")}</span>
                       )}
                     </td>
                     <td className="px-6 py-3 text-center">
@@ -440,11 +437,11 @@ export default function DataMigrationHub() {
                           onChange={(e) => handleOverride(m.sourceField, e.target.value)}
                           className="appearance-none w-full bg-white border border-[#edebe9] rounded-md px-3 py-1.5 pr-8 text-sm text-[#323130] hover:border-[#0078d4] focus:outline-none focus:ring-1 focus:ring-[#0078d4]"
                         >
-                          <option value="">{isEn ? "— Keep AI suggestion —" : "— 保持AI建议 —"}</option>
+                          <option value="">{t("admin.migration.keepAiSuggestion")}</option>
                           {STANDARD_FIELDS.map(f => (
                             <option key={f} value={f}>{f}</option>
                           ))}
-                          <option value="__unmapped__">{isEn ? "❌ Skip / Ignore" : "❌ 跳过 / 忽略"}</option>
+                          <option value="__unmapped__">{t("admin.migration.skipIgnore")}</option>
                         </select>
                         <ChevronDown className="w-3.5 h-3.5 text-[#a19f9d] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       </div>
@@ -458,9 +455,7 @@ export default function DataMigrationHub() {
           {/* Commit to Sandbox */}
           <div className="px-6 py-4 border-t border-[#edebe9] flex items-center justify-between bg-[#f3f2f1]">
             <p className="text-sm text-[#605e5c]">
-              {isEn
-                ? `${analysis.totalRows} rows will be staged in the sandbox (NOT production).`
-                : `${analysis.totalRows} 条数据将暂存到沙盒（不会写入生产库）。`}
+              {analysis.totalRows} {t("admin.migration.sandboxStaged")}
             </p>
             <Button
               onClick={handleCommit}
@@ -473,8 +468,8 @@ export default function DataMigrationHub() {
                 <Database className="w-4 h-4 mr-2" />
               )}
               {isCommitting
-                ? (isEn ? "Committing..." : "提交中...")
-                : (isEn ? "Commit to Sandbox" : "提交到沙盒")}
+                ? t("admin.migration.committing")
+                : t("admin.migration.commitToSandbox")}
             </Button>
           </div>
 
@@ -492,14 +487,12 @@ export default function DataMigrationHub() {
         <div className="px-6 py-4 border-b border-red-200 bg-red-50 flex items-center gap-2">
           <AlertTriangle className="w-5 h-5 text-red-600" />
           <h2 className="text-lg font-semibold text-red-700">
-            {isEn ? "Danger Zone" : "危险区域"}
+            {t("admin.migration.dangerZone")}
           </h2>
         </div>
         <div className="p-6">
           <p className="text-sm text-[#605e5c] mb-4">
-            {isEn
-              ? "Permanently delete ALL sandbox/test data to prepare the database for production launch. This action cannot be undone."
-              : "永久删除所有沙盒/测试数据，为生产环境上线做好准备。此操作不可撤销。"}
+            {t("admin.migration.dangerDesc")}
           </p>
 
           {!wipeConfirmOpen ? (
@@ -510,21 +503,17 @@ export default function DataMigrationHub() {
               className="bg-red-600 hover:bg-red-700 text-white font-bold px-8 py-3 text-base shadow-lg"
             >
               <Trash2 className="w-5 h-5 mr-2" />
-              {isEn
-                ? "Wipe All Mock/Test Data for Production Readiness"
-                : "清除所有模拟/测试数据 — 生产就绪"}
+              {t("admin.migration.wipeAll")}
             </Button>
           ) : (
             <div className="bg-red-50 border border-red-300 rounded-lg p-4 max-w-lg">
               <p className="text-sm font-semibold text-red-700 mb-3">
-                {isEn
-                  ? "⚠ Are you absolutely sure? This will permanently destroy:"
-                  : "⚠ 确认要执行吗？此操作将永久销毁："}
+                {t("admin.migration.confirmWipe")}
               </p>
               <ul className="text-sm text-red-600 mb-4 space-y-1 pl-5 list-disc">
-                <li>{sandboxStats.data?.totalImports ?? 0} {isEn ? "sandbox imports" : "沙盒导入批次"}</li>
-                <li>{sandboxStats.data?.totalRecords ?? 0} {isEn ? "staged records" : "暂存记录"}</li>
-                <li>{isEn ? "All field mapping history" : "所有字段映射历史"}</li>
+                <li>{sandboxStats.data?.totalImports ?? 0} {t("admin.migration.sandboxImports")}</li>
+                <li>{sandboxStats.data?.totalRecords ?? 0} {t("admin.migration.stagedRecords")}</li>
+                <li>{t("admin.migration.fieldMappingHistory")}</li>
               </ul>
               <div className="flex gap-3">
                 <Button
@@ -539,11 +528,11 @@ export default function DataMigrationHub() {
                     <Trash2 className="w-4 h-4 mr-2" />
                   )}
                   {isWiping
-                    ? (isEn ? "Wiping..." : "清除中...")
-                    : (isEn ? "Yes, Wipe Everything" : "确认，清除全部")}
+                    ? t("admin.migration.wiping")
+                    : t("admin.migration.confirmWipeAll")}
                 </Button>
                 <Button variant="outline" onClick={() => setWipeConfirmOpen(false)}>
-                  {isEn ? "Cancel" : "取消"}
+                  {t("admin.migration.cancel")}
                 </Button>
               </div>
             </div>

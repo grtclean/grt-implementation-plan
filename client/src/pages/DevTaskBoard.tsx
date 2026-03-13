@@ -98,7 +98,7 @@ const assignees = [
   { id: "chen", name: "陈工", nameEn: "Chen", initials: "陈", avatarColor: "bg-emerald-500" },
   { id: "li", name: "李工", nameEn: "Li", initials: "李", avatarColor: "bg-violet-500" },
   { id: "zhang", name: "张工", nameEn: "Zhang", initials: "张", avatarColor: "bg-orange-500" },
-  { id: "wang", name: "王工", nameEn: "Wang", initials: "王", avatarColor: "bg-pink-500" },
+  { id: "wang", name: "焦斌", nameEn: "Jiao", initials: "焦", avatarColor: "bg-pink-500" },
   { id: "liu", name: "刘工", nameEn: "Liu", initials: "刘", avatarColor: "bg-cyan-500" },
   { id: "huang", name: "黄工", nameEn: "Huang", initials: "黄", avatarColor: "bg-amber-500" },
   { id: "zhou", name: "周工", nameEn: "Zhou", initials: "周", avatarColor: "bg-indigo-500" },

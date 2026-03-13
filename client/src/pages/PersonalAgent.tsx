@@ -4,6 +4,7 @@
  */
 
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,16 +25,6 @@ import {
 } from "lucide-react";
 import { PageHeader, StatCard, StatusBadge, createStatusColorMap } from "@/components/grt";
 
-// 行为上下文类型
-const BEHAVIOR_CONTEXTS = [
-  { id: "IDE_Code_Commit", name: "代码提交", icon: Code },
-  { id: "CAD_Save", name: "CAD保存", icon: Cpu },
-  { id: "Document_Edit", name: "文档编辑", icon: FileText },
-  { id: "Meeting_Attend", name: "会议参与", icon: User },
-  { id: "Training_Complete", name: "培训完成", icon: BookOpen },
-  { id: "Project_Milestone", name: "项目里程碑", icon: Target },
-];
-
 const skillLevelColorMap = createStatusColorMap({
   "4": "green",
   "5": "green",
@@ -44,7 +35,18 @@ const skillLevelColorMap = createStatusColorMap({
 });
 
 export default function PersonalAgent() {
+  const { t } = useLanguage();
   const { user } = useAuth();
+
+  // 行为上下文类型
+  const BEHAVIOR_CONTEXTS = [
+    { id: "IDE_Code_Commit", name: t("ai.personalAgent.codeCommit"), icon: Code },
+    { id: "CAD_Save", name: t("ai.personalAgent.cadSave"), icon: Cpu },
+    { id: "Document_Edit", name: t("ai.personalAgent.docEdit"), icon: FileText },
+    { id: "Meeting_Attend", name: t("ai.personalAgent.meetingAttend"), icon: User },
+    { id: "Training_Complete", name: t("ai.personalAgent.trainingComplete"), icon: BookOpen },
+    { id: "Project_Milestone", name: t("ai.personalAgent.projectMilestone"), icon: Target },
+  ];
   const [activeTab, setActiveTab] = useState("profile");
   const [showAddNoteDialog, setShowAddNoteDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -71,33 +73,33 @@ export default function PersonalAgent() {
   // tRPC mutations
   const createNoteMutation = trpc.personalAgent.createProcessNote.useMutation({
     onSuccess: () => {
-      toast.success("过程笔记已保存");
+      toast.success(t("ai.personalAgent.noteSaved"));
       setShowAddNoteDialog(false);
       setNewNote({ projectPhase: "", problemDesc: "", solutionDesc: "" });
       refetchNotes();
     },
     onError: (error) => {
-      toast.error(`保存失败: ${error.message}`);
+      toast.error(`${t("ai.personalAgent.saveFailed")}: ${error.message}`);
     },
   });
 
   const extractKnowledgeMutation = (trpc.personalAgent as any).extractKnowledge.useMutation({
     onSuccess: () => {
-      toast.success("知识提取完成");
+      toast.success(t("ai.personalAgent.knowledgeExtracted"));
       refetchNotes();
     },
     onError: (error) => {
-      toast.error(`提取失败: ${error.message}`);
+      toast.error(`${t("ai.personalAgent.extractFailed")}: ${error.message}`);
     },
   });
 
   const inferSkillMutation = (trpc.personalAgent as any).inferSkillFromBehavior.useMutation({
     onSuccess: (data) => {
-      toast.success(`技能推断完成: ${data.impliedSkill}`);
+      toast.success(`${t("ai.personalAgent.inferredSkills")}: ${data.impliedSkill}`);
       refetchLogs();
     },
     onError: (error) => {
-      toast.error(`推断失败: ${error.message}`);
+      toast.error(`${t("ai.personalAgent.inferFailed")}: ${error.message}`);
     },
   });
 
@@ -124,22 +126,22 @@ export default function PersonalAgent() {
       <div className="space-y-6">
         <PageHeader
           icon={Brain}
-          title="个人智能体"
-          description="行为探针、过程笔记、技能推断与知识提取"
+          title={t("ai.personalAgent.title")}
+          description={t("ai.personalAgent.description")}
           actions={
             <Button variant="outline" onClick={() => { refetchLogs(); refetchNotes(); }}>
               <RefreshCw className="w-4 h-4 mr-2" />
-              刷新
+              {t("ai.personalAgent.refresh")}
             </Button>
           }
         />
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={Activity} label="行为记录" value={stats?.totalBehaviors || 0} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
-          <StatCard icon={FileText} label="过程笔记" value={stats?.totalNotes || 0} iconColor="text-green-400" iconBg="bg-green-500/10" />
-          <StatCard icon={Lightbulb} label="推断技能" value={stats?.inferredSkills || 0} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
-          <StatCard icon={Brain} label="知识提取" value={stats?.extractedKnowledge || 0} iconColor="text-orange-400" iconBg="bg-orange-500/10" />
+          <StatCard icon={Activity} label={t("ai.personalAgent.behaviorRecords")} value={stats?.totalBehaviors || 0} iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+          <StatCard icon={FileText} label={t("ai.personalAgent.processNotes")} value={stats?.totalNotes || 0} iconColor="text-green-400" iconBg="bg-green-500/10" />
+          <StatCard icon={Lightbulb} label={t("ai.personalAgent.inferredSkills")} value={stats?.inferredSkills || 0} iconColor="text-purple-400" iconBg="bg-purple-500/10" />
+          <StatCard icon={Brain} label={t("ai.personalAgent.knowledgeExtraction")} value={stats?.extractedKnowledge || 0} iconColor="text-orange-400" iconBg="bg-orange-500/10" />
         </div>
 
         {/* 主要内容区 */}
@@ -147,19 +149,19 @@ export default function PersonalAgent() {
           <TabsList className="bg-muted/50">
             <TabsTrigger value="profile">
               <User className="w-4 h-4 mr-2" />
-              能力画像
+              {t("ai.personalAgent.tabProfile")}
             </TabsTrigger>
             <TabsTrigger value="behaviors">
               <Activity className="w-4 h-4 mr-2" />
-              行为探针
+              {t("ai.personalAgent.tabBehaviors")}
             </TabsTrigger>
             <TabsTrigger value="notes">
               <FileText className="w-4 h-4 mr-2" />
-              过程笔记
+              {t("ai.personalAgent.tabNotes")}
             </TabsTrigger>
             <TabsTrigger value="knowledge">
               <Lightbulb className="w-4 h-4 mr-2" />
-              知识图谱
+              {t("ai.personalAgent.tabKnowledge")}
             </TabsTrigger>
           </TabsList>
 
@@ -171,7 +173,7 @@ export default function PersonalAgent() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <User className="w-5 h-5" />
-                    个人信息
+                    {t("ai.personalAgent.personalInfo")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -180,7 +182,7 @@ export default function PersonalAgent() {
                       <User className="w-8 h-8 text-primary" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold">{user?.name || "未登录"}</h3>
+                      <h3 className="text-xl font-bold">{user?.name || t("ai.personalAgent.notLoggedIn")}</h3>
                       <p className="text-sm text-muted-foreground">
                         DID: {user?.openId?.slice(0, 16)}...
                       </p>
@@ -188,11 +190,11 @@ export default function PersonalAgent() {
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">角色</span>
+                      <span className="text-muted-foreground">{t("ai.personalAgent.role")}</span>
                       <Badge>{user?.role || "user"}</Badge>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">注册时间</span>
+                      <span className="text-muted-foreground">{t("ai.personalAgent.registerTime")}</span>
                       <span>{user?.createdAt ? formatTime(user.createdAt) : "-"}</span>
                     </div>
                   </div>
@@ -204,21 +206,21 @@ export default function PersonalAgent() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Target className="w-5 h-5" />
-                    技能等级 (L1-L5)
+                    {t("ai.personalAgent.skillLevel")}
                   </CardTitle>
                   <CardDescription>
-                    基于行为数据自动推断的能力等级
+                    {t("ai.personalAgent.skillLevelDesc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {[
-                      { name: "技术能力 (T)", level: skillProfile?.technology || 0 },
-                      { name: "系统理解 (S)", level: skillProfile?.systemUnderstanding || 0 },
-                      { name: "交付能力 (D)", level: skillProfile?.delivery || 0 },
-                      { name: "客户价值 (C)", level: skillProfile?.customerValue || 0 },
-                      { name: "知识沉淀 (K)", level: skillProfile?.knowledge || 0 },
-                      { name: "领导力 (L)", level: skillProfile?.leadership || 0 },
+                      { name: t("ai.personalAgent.skillTech"), level: skillProfile?.technology || 0 },
+                      { name: t("ai.personalAgent.skillSystem"), level: skillProfile?.systemUnderstanding || 0 },
+                      { name: t("ai.personalAgent.skillDelivery"), level: skillProfile?.delivery || 0 },
+                      { name: t("ai.personalAgent.skillCustomer"), level: skillProfile?.customerValue || 0 },
+                      { name: t("ai.personalAgent.skillKnowledge"), level: skillProfile?.knowledge || 0 },
+                      { name: t("ai.personalAgent.skillLeadership"), level: skillProfile?.leadership || 0 },
                     ].map((skill) => (
                       <div key={skill.name} className="space-y-1">
                         <div className="flex justify-between text-sm">
@@ -240,14 +242,14 @@ export default function PersonalAgent() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="w-5 h-5" />
-                  最近技能成长
+                  {t("ai.personalAgent.recentGrowth")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {skillProfile?.recentGrowth?.length === 0 ? (
                     <p className="text-center text-muted-foreground py-4">
-                      暂无技能成长记录，继续完成项目和任务以积累能力证据
+                      {t("ai.personalAgent.noGrowthRecord")}
                     </p>
                   ) : (
                     skillProfile?.recentGrowth?.map((growth: any, index: number) => (
@@ -260,7 +262,7 @@ export default function PersonalAgent() {
                           </div>
                         </div>
                         <Badge variant="outline" className="bg-green-500/10 text-green-400">
-                          +{growth.points} 点
+                          +{growth.points} {t("ai.personalAgent.points")}
                         </Badge>
                       </div>
                     ))
@@ -276,10 +278,10 @@ export default function PersonalAgent() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Activity className="w-5 h-5" />
-                  行为探针日志
+                  {t("ai.personalAgent.behaviorLogTitle")}
                 </CardTitle>
                 <CardDescription>
-                  自动采集的用户行为数据，用于技能推断
+                  {t("ai.personalAgent.behaviorLogDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -287,8 +289,8 @@ export default function PersonalAgent() {
                   {behaviorLogs?.items?.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>暂无行为记录</p>
-                      <p className="text-sm mt-2">系统将自动采集IDE、CAD等工具的操作行为</p>
+                      <p>{t("ai.personalAgent.noBehaviorRecords")}</p>
+                      <p className="text-sm mt-2">{t("ai.personalAgent.noBehaviorRecordsHint")}</p>
                     </div>
                   ) : (
                     behaviorLogs?.items?.map((log: any) => {
@@ -329,7 +331,7 @@ export default function PersonalAgent() {
                                 disabled={inferSkillMutation.isPending}
                               >
                                 <Brain className="w-4 h-4 mr-1" />
-                                推断技能
+                                {t("ai.personalAgent.inferSkill")}
                               </Button>
                             )}
                           </div>
@@ -348,7 +350,7 @@ export default function PersonalAgent() {
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="搜索笔记..."
+                  placeholder={t("ai.personalAgent.searchNotes")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -358,47 +360,47 @@ export default function PersonalAgent() {
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
-                    新建笔记
+                    {t("ai.personalAgent.newNote")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>新建过程笔记</DialogTitle>
+                    <DialogTitle>{t("ai.personalAgent.newNoteTitle")}</DialogTitle>
                     <DialogDescription>
-                      记录项目过程中的问题和解决方案，AI将自动提取结构化知识
+                      {t("ai.personalAgent.newNoteDesc")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <Label>项目阶段</Label>
+                      <Label>{t("ai.personalAgent.projectPhase")}</Label>
                       <Input
                         value={newNote.projectPhase}
                         onChange={(e) => setNewNote({ ...newNote, projectPhase: e.target.value })}
-                        placeholder="如: M5设计验证、M7生产准备"
+                        placeholder={t("ai.personalAgent.projectPhasePlaceholder")}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>问题描述</Label>
+                      <Label>{t("ai.personalAgent.problemDesc")}</Label>
                       <Textarea
                         value={newNote.problemDesc}
                         onChange={(e) => setNewNote({ ...newNote, problemDesc: e.target.value })}
-                        placeholder="详细描述遇到的问题..."
+                        placeholder={t("ai.personalAgent.problemDescPlaceholder")}
                         rows={4}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>解决方案</Label>
+                      <Label>{t("ai.personalAgent.solutionDesc")}</Label>
                       <Textarea
                         value={newNote.solutionDesc}
                         onChange={(e) => setNewNote({ ...newNote, solutionDesc: e.target.value })}
-                        placeholder="描述如何解决这个问题..."
+                        placeholder={t("ai.personalAgent.solutionDescPlaceholder")}
                         rows={4}
                       />
                     </div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setShowAddNoteDialog(false)}>
-                      取消
+                      {t("ai.personalAgent.cancel")}
                     </Button>
                     <Button
                       onClick={() => createNoteMutation.mutate({
@@ -408,7 +410,7 @@ export default function PersonalAgent() {
                       })}
                       disabled={createNoteMutation.isPending}
                     >
-                      {createNoteMutation.isPending ? "保存中..." : "保存"}
+                      {createNoteMutation.isPending ? t("ai.personalAgent.saving") : t("ai.personalAgent.save")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -420,8 +422,8 @@ export default function PersonalAgent() {
                 <Card>
                   <CardContent className="p-8 text-center text-muted-foreground">
                     <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>暂无过程笔记</p>
-                    <p className="text-sm mt-2">点击"新建笔记"记录项目经验</p>
+                    <p>{t("ai.personalAgent.noNotes")}</p>
+                    <p className="text-sm mt-2">{t("ai.personalAgent.noNotesHint")}</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -443,24 +445,24 @@ export default function PersonalAgent() {
                             disabled={extractKnowledgeMutation.isPending}
                           >
                             <Sparkles className="w-4 h-4 mr-1" />
-                            AI提取知识
+                            {t("ai.personalAgent.aiExtractKnowledge")}
                           </Button>
                         )}
                       </div>
                       <div className="space-y-3">
                         <div>
-                          <p className="text-sm font-medium text-red-400 mb-1">问题</p>
+                          <p className="text-sm font-medium text-red-400 mb-1">{t("ai.personalAgent.problem")}</p>
                           <p className="text-sm">{note.problem_desc}</p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-green-400 mb-1">解决方案</p>
+                          <p className="text-sm font-medium text-green-400 mb-1">{t("ai.personalAgent.solution")}</p>
                           <p className="text-sm">{note.solution_desc}</p>
                         </div>
                         {note.ai_extracted_knowledge && (
                           <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
                             <p className="text-sm font-medium text-purple-400 mb-2 flex items-center gap-1">
                               <Brain className="w-4 h-4" />
-                              AI提取的结构化知识
+                              {t("ai.personalAgent.aiExtractedKnowledge")}
                             </p>
                             <div className="text-sm">
                               {typeof note.ai_extracted_knowledge === "object" ? (
@@ -487,31 +489,31 @@ export default function PersonalAgent() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <GitBranch className="w-5 h-5" />
-                  知识图谱
+                  {t("ai.personalAgent.knowledgeGraphTitle")}
                 </CardTitle>
                 <CardDescription>
-                  从过程笔记和行为数据中提取的结构化知识网络
+                  {t("ai.personalAgent.knowledgeGraphDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-12 text-muted-foreground">
                   <GitBranch className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">知识图谱可视化</p>
+                  <p className="text-lg">{t("ai.personalAgent.knowledgeGraphVis")}</p>
                   <p className="text-sm mt-2">
-                    随着过程笔记和行为数据的积累，系统将自动构建个人知识图谱
+                    {t("ai.personalAgent.knowledgeGraphHint")}
                   </p>
                   <div className="mt-6 flex justify-center gap-4">
                     <div className="p-4 bg-muted/30 rounded-lg">
                       <p className="text-2xl font-bold text-primary">{stats?.extractedKnowledge || 0}</p>
-                      <p className="text-xs">知识节点</p>
+                      <p className="text-xs">{t("ai.personalAgent.knowledgeNodes")}</p>
                     </div>
                     <div className="p-4 bg-muted/30 rounded-lg">
                       <p className="text-2xl font-bold text-green-400">0</p>
-                      <p className="text-xs">知识关联</p>
+                      <p className="text-xs">{t("ai.personalAgent.knowledgeLinks")}</p>
                     </div>
                     <div className="p-4 bg-muted/30 rounded-lg">
                       <p className="text-2xl font-bold text-purple-400">0</p>
-                      <p className="text-xs">技能映射</p>
+                      <p className="text-xs">{t("ai.personalAgent.skillMappings")}</p>
                     </div>
                   </div>
                 </div>

@@ -5,7 +5,7 @@ import { useState } from "react";
 
 interface DemoModalProps {
   toolName: string;
-  type: "jiandaoyun" | "agent";
+  type: "externalSync" | "agent";
 }
 
 export default function DemoModal({ toolName, type }: DemoModalProps) {
@@ -22,17 +22,17 @@ export default function DemoModal({ toolName, type }: DemoModalProps) {
         <DialogHeader>
           <DialogTitle className="font-heading text-xl">{toolName} - 功能演示</DialogTitle>
           <DialogDescription>
-            {type === "jiandaoyun" 
-              ? "简道云低代码平台：快速搭建业务流程与数据看板" 
+            {type === "externalSync"
+              ? "外部数据平台：快速搭建业务流程与数据看板"
               : "AI Agent：基于大模型的智能业务助手"}
           </DialogDescription>
         </DialogHeader>
         
         <div className="relative aspect-video bg-black/90 rounded-md overflow-hidden border border-border flex items-center justify-center group">
           {/* Simulated Video Player UI */}
-          {type === "jiandaoyun" ? (
+          {type === "externalSync" ? (
             <div className="w-full h-full p-4 flex flex-col gap-4 animate-in fade-in duration-500">
-              {/* Mock Interface for JianDaoYun */}
+              {/* Mock Interface for External Sync */}
               <div className="flex gap-4 h-full">
                 <div className="w-1/4 bg-sidebar border border-border rounded-sm p-2 space-y-2">
                   <div className="h-4 w-2/3 bg-muted rounded-sm"></div>

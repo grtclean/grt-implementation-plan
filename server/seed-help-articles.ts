@@ -319,6 +319,166 @@ const articles: HelpArticleSeed[] = [
     related_routes: ["/expense-comparison", "/expense-reports"],
     sort_order: 1,
   },
+
+  // ═══════ Workspace Data Architecture & Role-Based Access ═══════
+  {
+    route_path: "/workspace",
+    feature_key: "workspace.architecture",
+    title: "Workspace Data Architecture — File Storage & Access Guide",
+    title_zh: "万能工作台 — 数据架构与文件存取指南",
+    content: `# Workspace Data Architecture
+
+## Storage Model
+GRT Workspace uses **dual storage**: files are stored in GRT's internal Object Store AND optionally synced to SharePoint/OneDrive via Microsoft Graph API.
+
+- **Structured data** (spreadsheets, metadata) → parsed_content JSONB column
+- **Binary files** (CAD, images, PDFs) → Object Store with file_path reference
+- **Text-based files** (.md, .py, .tp, .src, .mod) → auto-decoded to parsed_content + Object Store
+
+## Supported File Types
+| Category | Extensions | Viewer | Edit |
+|----------|-----------|--------|------|
+| SolidWorks | .sldprt, .sldasm, .slddrw | CAD 3D viewer | Download |
+| EPLAN | .elc, .zw1, .epl | CAD viewer | Download |
+| Robot (FANUC) | .tp, .ls | Monaco editor | Online |
+| Robot (KUKA) | .src, .dat, .krl | Monaco editor | Online |
+| Robot (ABB) | .mod, .prg | Monaco editor | Online |
+| G-code | .nc, .gcode, .tap | Monaco editor | Online |
+| Office | .xlsx, .docx, .pptx | Inline editors | Online |
+| Documents | .pdf, .md | Preview/render | Online (md) |
+| Images | .png, .jpg, .svg | Image viewer | View only |
+
+## SharePoint Sync
+Folders can be mapped to SharePoint paths with 3 sync modes: Bidirectional, GRT→SP push, SP→GRT pull. Engineering folders auto-sync by default.`,
+    content_zh: `# 万能工作台数据架构
+
+## 存储模式
+GRT工作台采用**双存储**模式：文件同时存储在GRT内部对象存储中，并可通过Microsoft Graph API自动同步到SharePoint/OneDrive。
+
+- **结构化数据**（表格、元数据）→ parsed_content JSONB列
+- **二进制文件**（CAD、图片、PDF）→ 对象存储，通过file_path引用
+- **文本类文件**（.md, .py, .tp, .src, .mod）→ 自动解码存入parsed_content + 对象存储
+
+## 支持的文件类型
+| 类别 | 扩展名 | 查看方式 | 编辑方式 |
+|------|--------|---------|---------|
+| SolidWorks | .sldprt, .sldasm, .slddrw | CAD 3D查看器 | 下载编辑 |
+| EPLAN | .elc, .zw1, .epl | CAD查看器 | 下载编辑 |
+| 机器人(FANUC) | .tp, .ls | Monaco编辑器 | 在线编辑 |
+| 机器人(KUKA) | .src, .dat, .krl | Monaco编辑器 | 在线编辑 |
+| 机器人(ABB) | .mod, .prg | Monaco编辑器 | 在线编辑 |
+| G-code | .nc, .gcode, .tap | Monaco编辑器 | 在线编辑 |
+| Office | .xlsx, .docx, .pptx | 内联编辑器 | 在线编辑 |
+| 文档 | .pdf, .md | 预览/渲染 | 在线编辑(md) |
+| 图片 | .png, .jpg, .svg | 图片查看器 | 仅查看 |
+
+## SharePoint同步
+文件夹可映射到SharePoint路径，支持3种同步模式：双向同步、GRT→SP推送、SP→GRT拉取。工程类文件夹默认开启自动同步。`,
+    category: "FEATURE_GUIDE",
+    tags: ["workspace", "file", "storage", "architecture", "CAD", "SolidWorks", "EPLAN", "robot"],
+    related_routes: ["/workspace"],
+    sort_order: 0,
+  },
+  {
+    route_path: "/workspace",
+    feature_key: "workspace.role_access",
+    title: "Role-Based File Access Guide",
+    title_zh: "各角色文件存取指南",
+    content: `# Who Can Access What — Role-Based File Access
+
+## BU Mechanical Engineer (bu_mech)
+- **Primary folders**: 机械设计/ (3D Models, Engineering Drawings, Standard Parts)
+- **Actions**: Upload .sldprt/.sldasm/.slddrw/.step files, view/edit BOM spreadsheets
+- **SharePoint sync**: /Engineering/Mechanical (auto-sync enabled)
+
+## BU Electrical Engineer (bu_elec)
+- **Primary folders**: 电气设计/ (Schematics, Layouts, Component Lists)
+- **Actions**: Upload .elc/.zw1 EPLAN files, manage component BOM (.xlsx)
+- **SharePoint sync**: /Engineering/Electrical (auto-sync enabled)
+
+## BU Project Manager (bu_pm)
+- **Primary folders**: 项目文件/ (Active Projects, Completed Projects)
+- **Also access**: 客户资料/, 质量管理/, 会议纪要/
+- **Actions**: Create project sub-folders, upload specs/contracts/reports, manage review docs
+
+## BU Sales Engineer (bu_sales)
+- **Primary folders**: 客户资料/ (Mercedes-Benz, Stellantis, GM, Others)
+- **Also access**: 数字展厅/, 项目文件/
+- **Actions**: Upload customer specs, quotation spreadsheets, RFQ documents
+
+## Quality Engineer (quality_eng)
+- **Primary folders**: 质量管理/ (IATF 16949, Inspection Reports, PPAP)
+- **Actions**: Upload audit checklists, inspection reports, PPAP packages, 8D reports
+
+## Procurement Engineer (procurement_eng)
+- **Primary folders**: (shared access) 质量管理/检验报告/, 项目文件/
+- **Actions**: View supplier evaluation matrices, upload procurement specs
+
+## Customer Service Engineer (cs_engineer)
+- **Primary folders**: 客户资料/, 质量管理/检验报告/
+- **Actions**: View customer specs, upload field service reports
+
+## Director / BU GM (director, bu_gm)
+- **Full access**: All folders (read/write)
+- **Primary focus**: 运营管理/, 项目文件/, 会议纪要/
+
+## Employee (employee)
+- **Access**: 运营管理/规章制度/, 运营管理/培训资料/, 会议纪要/, 模板库/
+- **Actions**: View company policies, download templates
+
+## Admin (admin)
+- **Full access**: All folders, all operations
+- **Special**: SharePoint folder mapping configuration, sync management`,
+    content_zh: `# 各角色文件存取权限指南
+
+## BU机械工程师 (bu_mech)
+- **主要文件夹**: 机械设计/（3D模型、工程图纸、标准件库）
+- **可执行操作**: 上传 .sldprt/.sldasm/.slddrw/.step 文件，查看/编辑BOM表格
+- **SharePoint同步**: /Engineering/Mechanical（自动同步已开启）
+
+## BU电气工程师 (bu_elec)
+- **主要文件夹**: 电气设计/（原理图、布局图、元器件清单）
+- **可执行操作**: 上传 .elc/.zw1 EPLAN文件，管理元器件BOM表（.xlsx）
+- **SharePoint同步**: /Engineering/Electrical（自动同步已开启）
+
+## BU项目经理 (bu_pm)
+- **主要文件夹**: 项目文件/（在建项目、已完成项目）
+- **同时可访问**: 客户资料/、质量管理/、会议纪要/
+- **可执行操作**: 创建项目子文件夹，上传规范书/合同/报告，管理评审文档
+
+## BU销售工程师 (bu_sales)
+- **主要文件夹**: 客户资料/（Mercedes-Benz、Stellantis、GM、其他客户）
+- **同时可访问**: 数字展厅/、项目文件/
+- **可执行操作**: 上传客户技术规范、报价单、RFQ文档
+
+## 质量工程师 (quality_eng)
+- **主要文件夹**: 质量管理/（IATF 16949、检验报告、PPAP文件）
+- **可执行操作**: 上传审核检查表、检验报告、PPAP文件包、8D报告
+
+## 采购工程师 (procurement_eng)
+- **主要文件夹**: （共享访问）质量管理/检验报告/、项目文件/
+- **可执行操作**: 查看供应商评估矩阵，上传采购规范
+
+## 客服工程师 (cs_engineer)
+- **主要文件夹**: 客户资料/、质量管理/检验报告/
+- **可执行操作**: 查看客户技术规范，上传现场服务报告
+
+## 总监 / BU总经理 (director, bu_gm)
+- **全部访问**: 所有文件夹（读/写）
+- **主要关注**: 运营管理/、项目文件/、会议纪要/
+
+## 普通员工 (employee)
+- **可访问**: 运营管理/规章制度/、运营管理/培训资料/、会议纪要/、模板库/
+- **可执行操作**: 查看公司制度文件，下载模板
+
+## 系统管理员 (admin)
+- **全部访问**: 所有文件夹，所有操作
+- **专属功能**: SharePoint文件夹映射配置、同步管理`,
+    category: "FEATURE_GUIDE",
+    tags: ["workspace", "role", "permission", "access", "RBAC"],
+    related_routes: ["/workspace"],
+    sort_order: 1,
+  },
 ];
 
 async function main() {

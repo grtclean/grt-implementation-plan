@@ -3,7 +3,7 @@
  * 20 procedures across 4 groups: Dictionaries(6), Workflows(7), DataPolicies(4), AuditLogs(3)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAdminCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 
 // ── Mock state ──────────────────────────────────────────
 let mockQueryResult: any[] = [];
@@ -85,7 +85,7 @@ describe("governance router", () => {
   // ═══ Dictionaries ═══════════════════════════════════
   describe("listDictionaries", () => {
     it("returns paginated dictionaries", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, category: "status", code: "active", label: "Active" }]);
       selectResultsQueue.push([{ value: 1 }]);
       const result = await caller.governance.listDictionaries({});
@@ -94,7 +94,7 @@ describe("governance router", () => {
     });
 
     it("filters by category", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
       const result = await caller.governance.listDictionaries({ category: "type" });
@@ -102,7 +102,7 @@ describe("governance router", () => {
     });
 
     it("works with no input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
       const result = await caller.governance.listDictionaries();
@@ -112,7 +112,7 @@ describe("governance router", () => {
 
   describe("getDictionary", () => {
     it("returns dictionary by id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, code: "active" }]);
       const result = await caller.governance.getDictionary({ id: 1 });
       expect(result).not.toBeNull();
@@ -120,14 +120,14 @@ describe("governance router", () => {
     });
 
     it("returns null when not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.governance.getDictionary({ id: 999 });
       expect(result).toBeNull();
     });
 
     it("accepts string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 5, code: "test" }]);
       const result = await caller.governance.getDictionary({ id: "5" });
       expect(result).not.toBeNull();
@@ -136,7 +136,7 @@ describe("governance router", () => {
 
   describe("createDictionary", () => {
     it("creates a dictionary entry", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, category: "status", code: "draft", label: "Draft", labelZh: "草稿" }];
       const result = await caller.governance.createDictionary({
         category: "status", code: "draft", label: "Draft", labelZh: "草稿",
@@ -145,7 +145,7 @@ describe("governance router", () => {
     });
 
     it("rejects empty category", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.governance.createDictionary({
         category: "", code: "x", label: "X", labelZh: "X",
       })).rejects.toThrow();
@@ -154,14 +154,14 @@ describe("governance router", () => {
 
   describe("updateDictionary", () => {
     it("updates dictionary fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, label: "Updated" }];
       const result = await caller.governance.updateDictionary({ id: 1, label: "Updated" });
       expect(result.label).toBe("Updated");
     });
 
     it("throws when not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [];
       await expect(caller.governance.updateDictionary({ id: 999, label: "X" }))
         .rejects.toThrow("not found");
@@ -170,14 +170,14 @@ describe("governance router", () => {
 
   describe("deleteDictionary", () => {
     it("soft-deletes a dictionary", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, isActive: false }];
       const result = await caller.governance.deleteDictionary({ id: 1 });
       expect(result.isActive).toBe(false);
     });
 
     it("throws when not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [];
       await expect(caller.governance.deleteDictionary({ id: 999 }))
         .rejects.toThrow("not found");
@@ -186,7 +186,7 @@ describe("governance router", () => {
 
   describe("getDictionaryByCategory", () => {
     it("returns active items for a category", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ id: 1, code: "a" }, { id: 2, code: "b" }];
       const result = await caller.governance.getDictionaryByCategory({ category: "status" });
       expect(result.items).toHaveLength(2);
@@ -194,7 +194,7 @@ describe("governance router", () => {
     });
 
     it("rejects empty category", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.governance.getDictionaryByCategory({ category: "" }))
         .rejects.toThrow();
     });
@@ -203,7 +203,7 @@ describe("governance router", () => {
   // ═══ Workflow Definitions ═══════════════════════════
   describe("listWorkflowDefinitions", () => {
     it("returns paginated workflow definitions", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, code: "WF-001", name: "Approval Flow" }]);
       selectResultsQueue.push([{ value: 1 }]);
       const result = await caller.governance.listWorkflowDefinitions({});
@@ -212,7 +212,7 @@ describe("governance router", () => {
     });
 
     it("filters by entityType", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
       const result = await caller.governance.listWorkflowDefinitions({ entityType: "expense" });
@@ -222,7 +222,7 @@ describe("governance router", () => {
 
   describe("getWorkflowDefinition", () => {
     it("returns definition with nodes", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, code: "WF-001", name: "Approval" }]);
       selectResultsQueue.push([
         { id: 10, workflowDefinitionId: 1, nodeType: "START", name: "Start" },
@@ -235,7 +235,7 @@ describe("governance router", () => {
     });
 
     it("returns null when definition not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       const result = await caller.governance.getWorkflowDefinition({ id: 999 });
       expect(result).toBeNull();
@@ -244,7 +244,7 @@ describe("governance router", () => {
 
   describe("createWorkflowDefinition", () => {
     it("creates a workflow definition", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, code: "WF-NEW", name: "New Flow", createdBy: 1 }];
       const result = await caller.governance.createWorkflowDefinition({
         code: "WF-NEW", name: "New Flow", nameZh: "新流程",
@@ -254,7 +254,7 @@ describe("governance router", () => {
     });
 
     it("rejects empty code", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.governance.createWorkflowDefinition({
         code: "", name: "X", nameZh: "X",
       })).rejects.toThrow();
@@ -263,14 +263,14 @@ describe("governance router", () => {
 
   describe("updateWorkflowDefinition", () => {
     it("updates workflow fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, name: "Updated" }];
       const result = await caller.governance.updateWorkflowDefinition({ id: 1, name: "Updated" });
       expect(result.name).toBe("Updated");
     });
 
     it("throws when not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [];
       await expect(caller.governance.updateWorkflowDefinition({ id: 999, name: "X" }))
         .rejects.toThrow("not found");
@@ -279,7 +279,7 @@ describe("governance router", () => {
 
   describe("addWorkflowNode", () => {
     it("adds a node to existing definition", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First query: verify definition exists
       selectResultsQueue.push([{ id: 1, code: "WF-001" }]);
       mockReturningResult = [{ id: 10, workflowDefinitionId: 1, nodeType: "APPROVAL", name: "Manager Approval" }];
@@ -290,7 +290,7 @@ describe("governance router", () => {
     });
 
     it("throws when definition not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(caller.governance.addWorkflowNode({
         workflowDefinitionId: 999, nodeType: "START", name: "Start",
@@ -298,7 +298,7 @@ describe("governance router", () => {
     });
 
     it("rejects invalid node type", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.governance.addWorkflowNode({
         workflowDefinitionId: 1, nodeType: "INVALID" as any, name: "Bad",
       })).rejects.toThrow();
@@ -307,20 +307,20 @@ describe("governance router", () => {
 
   describe("updateWorkflowNode", () => {
     it("updates node fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 10, name: "Updated Node" }];
       const result = await caller.governance.updateWorkflowNode({ id: 10, name: "Updated Node" });
       expect(result.name).toBe("Updated Node");
     });
 
     it("throws when no fields to update", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.governance.updateWorkflowNode({ id: 10 }))
         .rejects.toThrow("No fields to update");
     });
 
     it("throws when not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [];
       await expect(caller.governance.updateWorkflowNode({ id: 999, name: "X" }))
         .rejects.toThrow("not found");
@@ -329,7 +329,7 @@ describe("governance router", () => {
 
   describe("deleteWorkflowNode", () => {
     it("deletes a workflow node", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 10 }];
       const result = await caller.governance.deleteWorkflowNode({ id: 10 });
       expect(result.deleted).toBe(true);
@@ -337,7 +337,7 @@ describe("governance router", () => {
     });
 
     it("throws when not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [];
       await expect(caller.governance.deleteWorkflowNode({ id: 999 }))
         .rejects.toThrow("not found");
@@ -347,7 +347,7 @@ describe("governance router", () => {
   // ═══ Data Policies ═════════════════════════════════
   describe("listDataPolicies", () => {
     it("returns paginated data policies", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, name: "BU Isolation", entityTable: "projects" }]);
       selectResultsQueue.push([{ value: 1 }]);
       const result = await caller.governance.listDataPolicies({});
@@ -356,7 +356,7 @@ describe("governance router", () => {
     });
 
     it("filters by entityTable", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
       const result = await caller.governance.listDataPolicies({ entityTable: "employees" });
@@ -366,7 +366,7 @@ describe("governance router", () => {
 
   describe("createDataPolicy", () => {
     it("creates a data policy", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, name: "BU Filter", entityTable: "projects", createdBy: 1 }];
       const result = await caller.governance.createDataPolicy({
         name: "BU Filter", entityTable: "projects", conditionExpression: "bu_id = :bu_id",
@@ -376,7 +376,7 @@ describe("governance router", () => {
     });
 
     it("rejects empty name", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.governance.createDataPolicy({
         name: "", entityTable: "x", conditionExpression: "1=1",
       })).rejects.toThrow();
@@ -385,14 +385,14 @@ describe("governance router", () => {
 
   describe("updateDataPolicy", () => {
     it("updates policy fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, name: "Updated Policy" }];
       const result = await caller.governance.updateDataPolicy({ id: 1, name: "Updated Policy" });
       expect(result.name).toBe("Updated Policy");
     });
 
     it("throws when not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [];
       await expect(caller.governance.updateDataPolicy({ id: 999, name: "X" }))
         .rejects.toThrow("not found");
@@ -401,14 +401,14 @@ describe("governance router", () => {
 
   describe("deleteDataPolicy", () => {
     it("soft-deletes a data policy", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, isActive: false }];
       const result = await caller.governance.deleteDataPolicy({ id: 1 });
       expect(result.isActive).toBe(false);
     });
 
     it("throws when not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [];
       await expect(caller.governance.deleteDataPolicy({ id: 999 }))
         .rejects.toThrow("not found");
@@ -418,7 +418,7 @@ describe("governance router", () => {
   // ═══ Audit Logs ════════════════════════════════════
   describe("listAuditLogs", () => {
     it("returns paginated audit logs", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([
         { id: 1, entityType: "project", action: "CREATE", actorId: 1 },
         { id: 2, entityType: "project", action: "UPDATE", actorId: 1 },
@@ -430,7 +430,7 @@ describe("governance router", () => {
     });
 
     it("filters by entityType and action", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
       const result = await caller.governance.listAuditLogs({
@@ -442,7 +442,7 @@ describe("governance router", () => {
 
   describe("createAuditLog", () => {
     it("creates an audit log entry", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, entityType: "project", action: "CREATE", actorId: 1 }];
       const result = await caller.governance.createAuditLog({
         entityType: "project", action: "CREATE",
@@ -453,14 +453,14 @@ describe("governance router", () => {
     });
 
     it("rejects invalid action", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.governance.createAuditLog({
         entityType: "project", action: "INVALID" as any,
       })).rejects.toThrow();
     });
 
     it("rejects empty entityType", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.governance.createAuditLog({
         entityType: "", action: "CREATE",
       })).rejects.toThrow();
@@ -469,7 +469,7 @@ describe("governance router", () => {
 
   describe("getAuditLogStats", () => {
     it("returns aggregated stats by action", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { action: "CREATE", count: 5 },
         { action: "UPDATE", count: 10 },
@@ -485,7 +485,7 @@ describe("governance router", () => {
     });
 
     it("returns zero when no logs in range", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.governance.getAuditLogStats({
         startDate: "2099-01-01", endDate: "2099-12-31",

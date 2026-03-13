@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { router, protectedProcedure, adminProcedure } from '../_core/trpc';
+import {router, protectedProcedure, adminProcedure, requirePermission} from '../_core/trpc';
 import {
   importCase,
   batchImportCases,
@@ -65,7 +65,7 @@ export const caseLibraryRouter = router({
     }),
 
   // 创建案例
-  create: protectedProcedure
+  create: requirePermission('collab:meeting:hub')
     .input(caseDataSchema)
     .mutation(async ({ input, ctx }) => {
       const caseData: CaseData = {
@@ -76,7 +76,7 @@ export const caseLibraryRouter = router({
     }),
 
   // 更新案例
-  update: protectedProcedure
+  update: requirePermission('collab:meeting:hub')
     .input(z.object({
       id: z.string(),
       updates: caseDataSchema.partial()
@@ -86,7 +86,7 @@ export const caseLibraryRouter = router({
     }),
 
   // 删除案例
-  delete: protectedProcedure
+  delete: requirePermission('collab:meeting:hub')
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       return await deleteCase(input.id);

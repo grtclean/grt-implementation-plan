@@ -4,7 +4,7 @@
  * Leave Balances(3), Announcements(4)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAdminCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 
 // ── Mock state ──────────────────────────────────────────
 let mockQueryResult: any[] = [];
@@ -106,7 +106,7 @@ describe("oa router", () => {
       // items + count in Promise.all
       selectResultsQueue.push([{ id: 1, type: "leave", status: "PENDING" }]);
       selectResultsQueue.push([{ value: 10 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.listWorkflows({});
       expect(result).toHaveProperty("items");
       expect(result).toHaveProperty("total");
@@ -115,7 +115,7 @@ describe("oa router", () => {
     it("returns empty with no input", async () => {
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.listWorkflows();
       expect(result.items).toHaveLength(0);
       expect(result.total).toBe(0);
@@ -124,7 +124,7 @@ describe("oa router", () => {
     it("filters by type and status", async () => {
       selectResultsQueue.push([{ id: 1 }]);
       selectResultsQueue.push([{ value: 1 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.listWorkflows({ type: "leave", status: "PENDING" });
       expect(result.items).toHaveLength(1);
     });
@@ -133,21 +133,21 @@ describe("oa router", () => {
   describe("getWorkflow", () => {
     it("returns workflow by id", async () => {
       mockQueryResult = [{ id: 1, type: "leave", status: "PENDING" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getWorkflow({ id: 1 });
       expect(result).toHaveProperty("id", 1);
     });
 
     it("returns null when not found", async () => {
       mockQueryResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getWorkflow({ id: 999 });
       expect(result).toBeNull();
     });
 
     it("accepts string id", async () => {
       mockQueryResult = [{ id: 5, type: "expense" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getWorkflow({ id: "5" });
       expect(result).toHaveProperty("id", 5);
     });
@@ -155,7 +155,7 @@ describe("oa router", () => {
 
   describe("createWorkflow", () => {
     it("creates workflow via service", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.createWorkflow({
         type: "leave", title: "Annual Leave",
       });
@@ -166,7 +166,7 @@ describe("oa router", () => {
     });
 
     it("passes optional fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.oa.createWorkflow({
         type: "expense", title: "Office Supplies",
         content: { amount: 500 }, linkedProjectId: 10, approverId: 2,
@@ -179,7 +179,7 @@ describe("oa router", () => {
     });
 
     it("rejects empty title", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.oa.createWorkflow({
         type: "leave", title: "",
       })).rejects.toThrow();
@@ -188,13 +188,13 @@ describe("oa router", () => {
 
   describe("approveWorkflow", () => {
     it("approves workflow via service", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.approveWorkflow({ id: 1 });
       expect(result).toHaveProperty("status", "APPROVED");
     });
 
     it("passes comment", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await caller.oa.approveWorkflow({ id: 1, comment: "OK" });
       expect(mockOAService.approveOARequest).toHaveBeenCalledWith(1, expect.any(Number), "OK");
     });
@@ -202,7 +202,7 @@ describe("oa router", () => {
 
   describe("rejectWorkflow", () => {
     it("rejects workflow via service", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.rejectWorkflow({ id: 1 });
       expect(result).toHaveProperty("status", "REJECTED");
     });
@@ -211,14 +211,14 @@ describe("oa router", () => {
   describe("cancelWorkflow", () => {
     it("cancels PENDING workflow", async () => {
       mockReturningResult = [{ id: 1, status: "CANCELLED" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.cancelWorkflow({ id: 1 });
       expect(result).toHaveProperty("status", "CANCELLED");
     });
 
     it("throws when not found or not PENDING", async () => {
       mockReturningResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.oa.cancelWorkflow({ id: 999 })).rejects.toThrow("not found or not PENDING");
     });
   });
@@ -226,13 +226,13 @@ describe("oa router", () => {
   describe("getMyPendingApprovals", () => {
     it("returns pending approvals for current user", async () => {
       mockQueryResult = [{ id: 1, status: "PENDING", approverId: 1 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getMyPendingApprovals();
       expect(result).toHaveLength(1);
     });
 
     it("returns empty when no pending", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getMyPendingApprovals();
       expect(result).toHaveLength(0);
     });
@@ -245,7 +245,7 @@ describe("oa router", () => {
         { type: "leave", status: "APPROVED", count: 10 },
         { type: "expense", status: "PENDING", count: 3 },
       ];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getWorkflowStats();
       expect(result).toHaveProperty("byTypeAndStatus");
       expect(result).toHaveProperty("totalPending", 8);
@@ -258,7 +258,7 @@ describe("oa router", () => {
   describe("listMeetings", () => {
     it("returns active meetings", async () => {
       mockQueryResult = [{ id: 1, title: "Monday Standup" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.listMeetings();
       expect(result).toHaveLength(1);
     });
@@ -267,14 +267,14 @@ describe("oa router", () => {
   describe("createMeeting", () => {
     it("creates meeting", async () => {
       mockReturningResult = [{ id: 1, title: "Sprint Review" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.createMeeting({ title: "Sprint Review" });
       expect(result).toHaveProperty("title", "Sprint Review");
     });
 
     it("creates meeting with all optional fields", async () => {
       mockReturningResult = [{ id: 2, title: "Weekly" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.createMeeting({
         title: "Weekly", description: "Team sync",
         departmentId: 1, organizerId: 1,
@@ -287,7 +287,7 @@ describe("oa router", () => {
     });
 
     it("rejects empty title", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.oa.createMeeting({ title: "" })).rejects.toThrow();
     });
   });
@@ -295,21 +295,21 @@ describe("oa router", () => {
   describe("updateMeeting", () => {
     it("updates meeting", async () => {
       mockReturningResult = [{ id: 1, title: "Updated" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.updateMeeting({ id: 1, title: "Updated" });
       expect(result).toHaveProperty("title", "Updated");
     });
 
     it("throws when not found", async () => {
       mockReturningResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.oa.updateMeeting({ id: 999, title: "X" })).rejects.toThrow("not found");
     });
   });
 
   describe("generateAgenda", () => {
     it("generates agenda via service", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.generateAgenda({ meetingId: 1 });
       expect(result).toHaveProperty("items", 5);
     });
@@ -318,14 +318,14 @@ describe("oa router", () => {
   describe("getAgendaItems", () => {
     it("returns agenda items for meeting", async () => {
       mockQueryResult = [{ id: 1, meetingId: 1, status: "open" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getAgendaItems({ meetingId: 1 });
       expect(result).toHaveLength(1);
     });
 
     it("filters by meetingDate", async () => {
       mockQueryResult = [{ id: 1 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getAgendaItems({ meetingId: 1, meetingDate: "2026-01-01" });
       expect(result).toHaveLength(1);
     });
@@ -334,7 +334,7 @@ describe("oa router", () => {
   describe("updateAgendaItem", () => {
     it("updates agenda item", async () => {
       mockReturningResult = [{ id: 1, status: "completed" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.updateAgendaItem({
         id: 1, status: "completed", decision: "Approved",
       });
@@ -343,7 +343,7 @@ describe("oa router", () => {
 
     it("throws when not found", async () => {
       mockReturningResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.oa.updateAgendaItem({ id: 999 })).rejects.toThrow("not found");
     });
   });
@@ -352,7 +352,7 @@ describe("oa router", () => {
     it("concludes meeting with batch updates", async () => {
       // transition of remaining open items
       mockReturningResult = [{ id: 3 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.concludeMeeting({
         meetingId: 1,
         meetingDate: "2026-03-01",
@@ -373,7 +373,7 @@ describe("oa router", () => {
     it("returns paginated trip reports", async () => {
       selectResultsQueue.push([{ id: 1, destination: "Shanghai" }]);
       selectResultsQueue.push([{ value: 5 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.listTripReports({});
       expect(result).toHaveProperty("items");
       expect(result).toHaveProperty("total", 5);
@@ -382,7 +382,7 @@ describe("oa router", () => {
     it("handles no input", async () => {
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ value: 0 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.listTripReports();
       expect(result.total).toBe(0);
     });
@@ -390,7 +390,7 @@ describe("oa router", () => {
 
   describe("createTripReport", () => {
     it("creates trip report via service", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.createTripReport({
         destination: "Beijing", tripSummary: "Client visit",
       });
@@ -402,13 +402,13 @@ describe("oa router", () => {
   describe("getTripReport", () => {
     it("returns trip report by id", async () => {
       mockQueryResult = [{ id: 1, destination: "Shanghai" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getTripReport({ id: 1 });
       expect(result).toHaveProperty("destination", "Shanghai");
     });
 
     it("returns null when not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getTripReport({ id: 999 });
       expect(result).toBeNull();
     });
@@ -418,14 +418,14 @@ describe("oa router", () => {
 
   describe("getMyLeaveBalances", () => {
     it("returns leave balances for current user", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getMyLeaveBalances({});
       expect(result).toHaveLength(1);
       expect(result[0]).toHaveProperty("leaveType", "annual");
     });
 
     it("handles no input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getMyLeaveBalances();
       expect(mockOAService.getLeaveBalances).toHaveBeenCalled();
     });
@@ -433,7 +433,7 @@ describe("oa router", () => {
 
   describe("initLeaveBalances", () => {
     it("initializes leave balances", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.initLeaveBalances({
         employeeId: 1, year: 2026,
         allocations: [{ leaveType: "annual", totalDays: 15 }],
@@ -446,7 +446,7 @@ describe("oa router", () => {
     it("returns all leave balances for year", async () => {
       selectResultsQueue.push([{ id: 1, year: 2026 }]);
       selectResultsQueue.push([{ value: 20 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.listAllLeaveBalances({});
       expect(result).toHaveProperty("items");
       expect(result).toHaveProperty("total", 20);
@@ -459,7 +459,7 @@ describe("oa router", () => {
     it("returns paginated announcements", async () => {
       selectResultsQueue.push([{ id: 1, title: "Notice" }]);
       selectResultsQueue.push([{ value: 5 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.listAnnouncements({});
       expect(result).toHaveProperty("items");
       expect(result).toHaveProperty("total", 5);
@@ -468,7 +468,7 @@ describe("oa router", () => {
     it("filters by status", async () => {
       selectResultsQueue.push([{ id: 1 }]);
       selectResultsQueue.push([{ value: 1 }]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.listAnnouncements({ status: "published" });
       expect(result.items).toHaveLength(1);
     });
@@ -477,13 +477,13 @@ describe("oa router", () => {
   describe("getAnnouncement", () => {
     it("returns announcement and increments view count", async () => {
       mockQueryResult = [{ id: 1, title: "Notice", viewCount: 5 }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getAnnouncement({ id: 1 });
       expect(result).toHaveProperty("title", "Notice");
     });
 
     it("returns null when not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.getAnnouncement({ id: 999 });
       expect(result).toBeNull();
     });
@@ -491,14 +491,14 @@ describe("oa router", () => {
 
   describe("createAnnouncement", () => {
     it("creates announcement via service", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.createAnnouncement({ title: "Test Notice" });
       expect(result).toHaveProperty("id", 1);
       expect(mockOAService.createAnnouncement).toHaveBeenCalled();
     });
 
     it("rejects empty title", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.oa.createAnnouncement({ title: "" })).rejects.toThrow();
     });
   });
@@ -506,14 +506,14 @@ describe("oa router", () => {
   describe("publishAnnouncement", () => {
     it("publishes announcement", async () => {
       mockReturningResult = [{ id: 1, status: "published" }];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.oa.publishAnnouncement({ id: 1 });
       expect(result).toHaveProperty("status", "published");
     });
 
     it("throws when not found", async () => {
       mockReturningResult = [];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.oa.publishAnnouncement({ id: 999 })).rejects.toThrow("not found");
     });
   });

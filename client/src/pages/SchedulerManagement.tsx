@@ -28,6 +28,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import AlertRuleManager from "@/components/AlertRuleManager";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ScheduledTask {
   id: string;
@@ -58,6 +59,7 @@ interface ReminderConfig {
 }
 
 export default function SchedulerManagement() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("tasks");
   
   // 获取定时任务列表
@@ -72,33 +74,33 @@ export default function SchedulerManagement() {
   // 触发任务
   const triggerMutation = (trpc.scheduler as any).triggerTask.useMutation({
     onSuccess: (data) => {
-      toast.success(`任务 "${data?.taskId}" 已触发`);
+      toast.success(`${t("admin.scheduler.taskTriggered")} "${data?.taskId}"`);
       refetchTasks();
       refetchLogs();
     },
     onError: (error) => {
-      toast.error(`触发失败: ${error.message}`);
+      toast.error(`${t("admin.scheduler.triggerFailed")}: ${error.message}`);
     }
   });
   
   // 启用/禁用任务
   const setEnabledMutation = (trpc.scheduler as any).setTaskEnabled.useMutation({
     onSuccess: () => {
-      toast.success("任务状态已更新");
+      toast.success(t("admin.scheduler.taskStatusUpdated"));
       refetchTasks();
     },
     onError: (error) => {
-      toast.error(`更新失败: ${error.message}`);
+      toast.error(`${t("admin.scheduler.updateFailed")}: ${error.message}`);
     }
   });
   
   // 更新提醒配置
   const updateConfigMutation = (trpc.scheduler as any).updateReminderConfig.useMutation({
     onSuccess: () => {
-      toast.success("配置已保存");
+      toast.success(t("admin.scheduler.configSaved"));
     },
     onError: (error) => {
-      toast.error(`保存失败: ${error.message}`);
+      toast.error(`${t("admin.scheduler.saveFailed")}: ${error.message}`);
     }
   });
   
@@ -110,18 +112,18 @@ export default function SchedulerManagement() {
   }
   
   const formatDateTime = (timestamp: number | null) => {
-    if (!timestamp) return "从未执行";
+    if (!timestamp) return t("admin.scheduler.neverExecuted");
     return new Date(timestamp).toLocaleString('zh-CN');
   };
   
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'success':
-        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30"><CheckCircle2 className="w-3 h-3 mr-1" />成功</Badge>;
+        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30"><CheckCircle2 className="w-3 h-3 mr-1" />{t("admin.scheduler.success")}</Badge>;
       case 'failed':
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><XCircle className="w-3 h-3 mr-1" />失败</Badge>;
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><XCircle className="w-3 h-3 mr-1" />{t("admin.scheduler.failed")}</Badge>;
       case 'running':
-        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30"><Loader2 className="w-3 h-3 mr-1 animate-spin" />运行中</Badge>;
+        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30"><Loader2 className="w-3 h-3 mr-1 animate-spin" />{t("admin.scheduler.running")}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -134,8 +136,8 @@ export default function SchedulerManagement() {
       <div className="space-y-6">
         <PageHeader
           icon={Timer}
-          title="定时任务管理"
-          description="管理系统定时任务，查看执行历史和配置提醒规则"
+          title={t("admin.scheduler.title")}
+          description={t("admin.scheduler.description")}
           actions={
             <Button
               variant="outline"
@@ -143,7 +145,7 @@ export default function SchedulerManagement() {
               className="gap-2"
             >
               <RefreshCw className="w-4 h-4" />
-              刷新
+              {t("admin.scheduler.refresh")}
             </Button>
           }
         />
@@ -153,19 +155,19 @@ export default function SchedulerManagement() {
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 max-w-lg gap-1">
             <TabsTrigger value="tasks" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
               <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">任务</span>列表
+              {t("admin.scheduler.taskList")}
             </TabsTrigger>
             <TabsTrigger value="logs" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
               <History className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">执行</span>日志
+              {t("admin.scheduler.executionLogs")}
             </TabsTrigger>
             <TabsTrigger value="alerts" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
               <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">告警</span>规则
+              {t("admin.scheduler.alertRules")}
             </TabsTrigger>
             <TabsTrigger value="config" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
               <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">提醒</span>配置
+              {t("admin.scheduler.reminderConfig")}
             </TabsTrigger>
           </TabsList>
 
@@ -178,7 +180,7 @@ export default function SchedulerManagement() {
             ) : tasks.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
-                  暂无定时任务
+                  {t("admin.scheduler.noTasks")}
                 </CardContent>
               </Card>
             ) : (
@@ -199,7 +201,7 @@ export default function SchedulerManagement() {
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
                             <Label htmlFor={`enable-${task.id}`} className="text-sm text-muted-foreground">
-                              {task.enabled ? '已启用' : '已禁用'}
+                              {task.enabled ? t("admin.scheduler.enabled") : t("admin.scheduler.disabled")}
                             </Label>
                             <Switch
                               id={`enable-${task.id}`}
@@ -221,7 +223,7 @@ export default function SchedulerManagement() {
                             ) : (
                               <Play className="w-4 h-4" />
                             )}
-                            立即执行
+                            {t("admin.scheduler.executeNow")}
                           </Button>
                         </div>
                       </div>
@@ -229,17 +231,17 @@ export default function SchedulerManagement() {
                     <CardContent>
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
-                          <span className="text-muted-foreground">Cron表达式：</span>
+                          <span className="text-muted-foreground">{t("admin.scheduler.cronExpression")}:</span>
                           <code className="ml-2 px-2 py-1 bg-muted rounded text-xs font-mono">
                             {task.cronExpression}
                           </code>
                         </div>
                         <div>
-                          <span className="text-muted-foreground">上次执行：</span>
+                          <span className="text-muted-foreground">{t("admin.scheduler.lastRun")}:</span>
                           <span className="ml-2">{formatDateTime(task.lastRun)}</span>
                         </div>
                         <div>
-                          <span className="text-muted-foreground">下次执行：</span>
+                          <span className="text-muted-foreground">{t("admin.scheduler.nextRun")}:</span>
                           <span className="ml-2 text-primary">{formatDateTime(task.nextRun)}</span>
                         </div>
                       </div>
@@ -259,14 +261,14 @@ export default function SchedulerManagement() {
             ) : logs.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
-                  暂无执行记录
+                  {t("admin.scheduler.noExecutionRecords")}
                 </CardContent>
               </Card>
             ) : (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">执行历史</CardTitle>
-                  <CardDescription>最近50条任务执行记录</CardDescription>
+                  <CardTitle className="text-lg">{t("admin.scheduler.executionHistory")}</CardTitle>
+                  <CardDescription>{t("admin.scheduler.last50Records")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -281,7 +283,7 @@ export default function SchedulerManagement() {
                             <p className="font-medium">{log.taskName}</p>
                             <p className="text-sm text-muted-foreground">
                               {formatDateTime(log.startTime)}
-                              {log.endTime && ` - 耗时 ${Math.round((log.endTime - log.startTime) / 1000)}秒`}
+                              {log.endTime && ` - ${t("admin.scheduler.duration")} ${Math.round((log.endTime - log.startTime) / 1000)}s`}
                             </p>
                           </div>
                         </div>
@@ -315,13 +317,13 @@ export default function SchedulerManagement() {
             ) : (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">商机提醒配置</CardTitle>
-                  <CardDescription>配置商机跟进提醒的触发规则</CardDescription>
+                  <CardTitle className="text-lg">{t("admin.scheduler.reminderConfigTitle")}</CardTitle>
+                  <CardDescription>{t("admin.scheduler.reminderConfigDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="noFollowUpDays">未跟进提醒天数</Label>
+                      <Label htmlFor="noFollowUpDays">{t("admin.scheduler.noFollowUpDays")}</Label>
                       <div className="flex items-center gap-2">
                         <Input
                           id="noFollowUpDays"
@@ -332,15 +334,15 @@ export default function SchedulerManagement() {
                           onChange={(e) => setLocalConfig(prev => prev ? { ...prev, noFollowUpDays: parseInt(e.target.value) || 3 } : null)}
                           className="w-24"
                         />
-                        <span className="text-muted-foreground">天</span>
+                        <span className="text-muted-foreground">{t("admin.scheduler.daysUnit")}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        商机超过此天数未跟进将触发提醒
+                        {t("admin.scheduler.noFollowUpHint")}
                       </p>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="dueSoonHours">任务即将到期提醒</Label>
+                      <Label htmlFor="dueSoonHours">{t("admin.scheduler.dueSoonHours")}</Label>
                       <div className="flex items-center gap-2">
                         <Input
                           id="dueSoonHours"
@@ -351,20 +353,20 @@ export default function SchedulerManagement() {
                           onChange={(e) => setLocalConfig(prev => prev ? { ...prev, dueSoonHours: parseInt(e.target.value) || 24 } : null)}
                           className="w-24"
                         />
-                        <span className="text-muted-foreground">小时</span>
+                        <span className="text-muted-foreground">{t("admin.scheduler.hoursUnit")}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        任务到期前此小时数将触发提醒
+                        {t("admin.scheduler.dueSoonHint")}
                       </p>
                     </div>
                   </div>
                   
                   <div className="border-t pt-6 space-y-4">
-                    <h4 className="font-medium">通知方式</h4>
+                    <h4 className="font-medium">{t("admin.scheduler.notificationMethod")}</h4>
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label>企业微信通知</Label>
-                        <p className="text-xs text-muted-foreground">通过企业微信推送提醒消息</p>
+                        <Label>{t("admin.scheduler.wechatNotification")}</Label>
+                        <p className="text-xs text-muted-foreground">{t("admin.scheduler.wechatNotificationDesc")}</p>
                       </div>
                       <Switch
                         checked={localConfig?.enableWechatNotification || false}
@@ -373,8 +375,8 @@ export default function SchedulerManagement() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label>邮件通知</Label>
-                        <p className="text-xs text-muted-foreground">通过邮件发送提醒消息</p>
+                        <Label>{t("admin.scheduler.emailNotification")}</Label>
+                        <p className="text-xs text-muted-foreground">{t("admin.scheduler.emailNotificationDesc")}</p>
                       </div>
                       <Switch
                         checked={localConfig?.enableEmailNotification || false}
@@ -395,7 +397,7 @@ export default function SchedulerManagement() {
                       {updateConfigMutation.isPending ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : null}
-                      保存配置
+                      {t("admin.scheduler.saveConfig")}
                     </Button>
                   </div>
                 </CardContent>

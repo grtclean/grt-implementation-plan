@@ -11,7 +11,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -27,7 +27,7 @@ describe("questionnaire router", () => {
   // ─── list ────────────────────────────────────────────────
   describe("list", () => {
     it("returns all questionnaires when no filters are given", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list();
       expect(result).toHaveProperty("items");
       expect(result).toHaveProperty("total");
@@ -42,20 +42,20 @@ describe("questionnaire router", () => {
     });
 
     it("returns all questionnaires when input is undefined", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list(undefined);
       expect(result.total).toBe(2);
     });
 
     it("returns empty input object without filters", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({});
       expect(result.total).toBe(2);
       expect(result.items).toHaveLength(2);
     });
 
     it("filters by status APPROVED", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({ status: "APPROVED" });
       expect(result.total).toBe(1);
       expect(result.items).toHaveLength(1);
@@ -64,14 +64,14 @@ describe("questionnaire router", () => {
     });
 
     it("filters by status UNDER_REVIEW", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({ status: "UNDER_REVIEW" });
       expect(result.total).toBe(1);
       expect(result.items[0].questionnaireNo).toBe("QN-2026-002");
     });
 
     it("filters by status with no matches returns empty", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({ status: "DRAFT" });
       expect(result.total).toBe(0);
       expect(result.items).toHaveLength(0);
@@ -79,48 +79,48 @@ describe("questionnaire router", () => {
     });
 
     it("searches by questionnaire number", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({ search: "QN-2026-001" });
       expect(result.total).toBe(1);
       expect(result.items[0].questionnaireNo).toBe("QN-2026-001");
     });
 
     it("searches by company name", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({ search: "精密机械" });
       expect(result.total).toBe(1);
       expect(result.items[0].company).toBe("精密机械有限公司");
     });
 
     it("searches by project name", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({ search: "超声波" });
       expect(result.total).toBe(1);
       expect(result.items[0].projectName).toContain("超声波");
     });
 
     it("searches by contact person", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({ search: "张工" });
       expect(result.total).toBe(1);
       expect(result.items[0].contactPerson).toBe("张工");
     });
 
     it("search is case-insensitive", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({ search: "qn-2026" });
       expect(result.total).toBe(2);
     });
 
     it("search with no matches returns empty", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({ search: "nonexistent" });
       expect(result.total).toBe(0);
       expect(result.items).toHaveLength(0);
     });
 
     it("respects page and pageSize for pagination", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({ page: 1, pageSize: 1 });
       expect(result.total).toBe(2);
       expect(result.items).toHaveLength(1);
@@ -131,7 +131,7 @@ describe("questionnaire router", () => {
     });
 
     it("returns second page correctly", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({ page: 2, pageSize: 1 });
       expect(result.items).toHaveLength(1);
       expect(result.items[0].id).toBe(2);
@@ -139,14 +139,14 @@ describe("questionnaire router", () => {
     });
 
     it("returns empty items when page exceeds total pages", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({ page: 100, pageSize: 10 });
       expect(result.items).toHaveLength(0);
       expect(result.total).toBe(2);
     });
 
     it("combines status filter and search", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({
         status: "APPROVED",
         search: "张工",
@@ -156,7 +156,7 @@ describe("questionnaire router", () => {
     });
 
     it("combined status and search with no overlap returns empty", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.list({
         status: "APPROVED",
         search: "精密机械",
@@ -169,7 +169,7 @@ describe("questionnaire router", () => {
   // ─── getById ─────────────────────────────────────────────
   describe("getById", () => {
     it("returns questionnaire for existing id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getById({ id: 1 });
       expect(result.id).toBe(1);
       expect(result.questionnaireNo).toBe("QN-2026-001");
@@ -179,7 +179,7 @@ describe("questionnaire router", () => {
     });
 
     it("returns second questionnaire", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getById({ id: 2 });
       expect(result.id).toBe(2);
       expect(result.questionnaireNo).toBe("QN-2026-002");
@@ -187,14 +187,14 @@ describe("questionnaire router", () => {
     });
 
     it("throws for non-existent id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.questionnaire.getById({ id: 999 }),
       ).rejects.toThrow("问卷不存在");
     });
 
     it("includes full data fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getById({ id: 1 });
       expect(result).toHaveProperty("partName");
       expect(result).toHaveProperty("materialTypes");
@@ -214,7 +214,7 @@ describe("questionnaire router", () => {
   // ─── getAiAnalysis ───────────────────────────────────────
   describe("getAiAnalysis", () => {
     it("returns AI analysis for existing questionnaire", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getAiAnalysis({ id: 1 });
       expect(result).toHaveProperty("analysis");
       expect(result).toHaveProperty("recommendedProducts");
@@ -233,7 +233,7 @@ describe("questionnaire router", () => {
     });
 
     it("returns AI analysis for second questionnaire", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getAiAnalysis({ id: 2 });
       expect(result.analysis.recommendedProductLine).toBe("UC-3000系列");
       expect(result.recommendedProducts).toEqual(["UC-3000-STD"]);
@@ -241,14 +241,14 @@ describe("questionnaire router", () => {
     });
 
     it("throws for non-existent questionnaire", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.questionnaire.getAiAnalysis({ id: 999 }),
       ).rejects.toThrow("问卷不存在");
     });
 
     it("generatedAt is a valid ISO string", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getAiAnalysis({ id: 1 });
       expect(() => new Date(result.generatedAt)).not.toThrow();
       expect(new Date(result.generatedAt).toISOString()).toBe(result.generatedAt);
@@ -258,7 +258,7 @@ describe("questionnaire router", () => {
   // ─── getFormOptions ──────────────────────────────────────
   describe("getFormOptions", () => {
     it("returns all form option categories", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getFormOptions();
       expect(result).toHaveProperty("materialTypes");
       expect(result).toHaveProperty("cleaningProducts");
@@ -270,7 +270,7 @@ describe("questionnaire router", () => {
     });
 
     it("materialTypes has correct entries", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getFormOptions();
       expect(result.materialTypes).toHaveLength(6);
       const values = result.materialTypes.map((m: any) => m.value);
@@ -283,7 +283,7 @@ describe("questionnaire router", () => {
     });
 
     it("cleaningProducts has correct entries", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getFormOptions();
       expect(result.cleaningProducts).toHaveLength(5);
       const values = result.cleaningProducts.map((c: any) => c.value);
@@ -293,7 +293,7 @@ describe("questionnaire router", () => {
     });
 
     it("contaminationTypes has correct entries", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getFormOptions();
       expect(result.contaminationTypes).toHaveLength(7);
       const values = result.contaminationTypes.map((c: any) => c.value);
@@ -304,7 +304,7 @@ describe("questionnaire router", () => {
     });
 
     it("loadingMethods has correct entries", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getFormOptions();
       expect(result.loadingMethods).toHaveLength(6);
       const values = result.loadingMethods.map((l: any) => l.value);
@@ -315,7 +315,7 @@ describe("questionnaire router", () => {
     });
 
     it("quoteTypes has 4 options", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getFormOptions();
       expect(result.quoteTypes).toHaveLength(4);
       const values = result.quoteTypes.map((q: any) => q.value);
@@ -323,7 +323,7 @@ describe("questionnaire router", () => {
     });
 
     it("dryingLevels has 5 levels (0-4)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getFormOptions();
       expect(result.dryingLevels).toHaveLength(5);
       expect(result.dryingLevels[0].value).toBe("LEVEL_0");
@@ -331,7 +331,7 @@ describe("questionnaire router", () => {
     });
 
     it("shiftPatterns has 4 options", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getFormOptions();
       expect(result.shiftPatterns).toHaveLength(4);
       const values = result.shiftPatterns.map((s: any) => s.value);
@@ -339,7 +339,7 @@ describe("questionnaire router", () => {
     });
 
     it("each option has value and label", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getFormOptions();
       for (const option of result.materialTypes) {
         expect(option).toHaveProperty("value");
@@ -348,7 +348,7 @@ describe("questionnaire router", () => {
     });
 
     it("material and contamination options include labelEn", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getFormOptions();
       for (const option of result.materialTypes) {
         expect(option).toHaveProperty("labelEn");
@@ -362,7 +362,7 @@ describe("questionnaire router", () => {
   // ─── getStats ────────────────────────────────────────────
   describe("getStats", () => {
     it("returns questionnaire statistics", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getStats();
       expect(result).toHaveProperty("total");
       expect(result).toHaveProperty("draft");
@@ -375,13 +375,13 @@ describe("questionnaire router", () => {
     });
 
     it("total matches mock data count", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getStats();
       expect(result.total).toBe(2);
     });
 
     it("status counts are correct for mock data", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getStats();
       expect(result.approved).toBe(1);
       expect(result.underReview).toBe(1);
@@ -391,7 +391,7 @@ describe("questionnaire router", () => {
     });
 
     it("avgBudget is calculated correctly", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getStats();
       // Q1: (2000000+3000000)/2 = 2500000; Q2: (800000+1200000)/2 = 1000000
       // Average: (2500000 + 1000000) / 2 = 1750000
@@ -399,7 +399,7 @@ describe("questionnaire router", () => {
     });
 
     it("totalPotentialValue sums aiEstimatedPrice", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.getStats();
       // Q1: 2500000 + Q2: 950000 = 3450000
       expect(result.totalPotentialValue).toBe(3450000);
@@ -413,7 +413,7 @@ describe("questionnaire router", () => {
   // ─── create ──────────────────────────────────────────────
   describe("create", () => {
     it("creates a new questionnaire with required fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.create({
         contactPerson: "王工程师",
         company: "测试公司",
@@ -431,7 +431,7 @@ describe("questionnaire router", () => {
     });
 
     it("creates with all optional fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.create({
         contactPerson: "赵工",
         company: "新公司",
@@ -455,7 +455,7 @@ describe("questionnaire router", () => {
     });
 
     it("supports all quoteType values", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       for (const quoteType of ["NEW_PROJECT", "REPLACEMENT", "UPGRADE", "CONSULTATION"] as const) {
         const result = await caller.questionnaire.create({
           contactPerson: "Test",
@@ -470,7 +470,7 @@ describe("questionnaire router", () => {
     });
 
     it("rejects invalid email", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.questionnaire.create({
           contactPerson: "Test",
@@ -484,7 +484,7 @@ describe("questionnaire router", () => {
     });
 
     it("rejects invalid quoteType", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.questionnaire.create({
           contactPerson: "Test",
@@ -498,7 +498,7 @@ describe("questionnaire router", () => {
     });
 
     it("rejects missing required fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.questionnaire.create({
           contactPerson: "Test",
@@ -515,7 +515,7 @@ describe("questionnaire router", () => {
   // ─── update ──────────────────────────────────────────────
   describe("update", () => {
     it("updates a questionnaire", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.update({
         id: 1,
         data: { company: "Updated Company" },
@@ -527,7 +527,7 @@ describe("questionnaire router", () => {
     });
 
     it("accepts empty data object", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.update({
         id: 1,
         data: {},
@@ -536,7 +536,7 @@ describe("questionnaire router", () => {
     });
 
     it("accepts complex data payload", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.update({
         id: 2,
         data: {
@@ -553,7 +553,7 @@ describe("questionnaire router", () => {
   // ─── submit ──────────────────────────────────────────────
   describe("submit", () => {
     it("submits a questionnaire for review", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.submit({ id: 1 });
       expect(result).toEqual({
         success: true,
@@ -562,7 +562,7 @@ describe("questionnaire router", () => {
     });
 
     it("works for different questionnaire ids", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.submit({ id: 2 });
       expect(result.success).toBe(true);
     });
@@ -571,7 +571,7 @@ describe("questionnaire router", () => {
   // ─── review ──────────────────────────────────────────────
   describe("review", () => {
     it("approves a questionnaire", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.review({
         id: 1,
         approved: true,
@@ -583,7 +583,7 @@ describe("questionnaire router", () => {
     });
 
     it("rejects a questionnaire", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.review({
         id: 1,
         approved: false,
@@ -595,7 +595,7 @@ describe("questionnaire router", () => {
     });
 
     it("approves with comments", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.review({
         id: 2,
         approved: true,
@@ -606,7 +606,7 @@ describe("questionnaire router", () => {
     });
 
     it("rejects with comments", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.review({
         id: 2,
         approved: false,
@@ -620,7 +620,7 @@ describe("questionnaire router", () => {
   // ─── triggerAiAnalysis ───────────────────────────────────
   describe("triggerAiAnalysis", () => {
     it("triggers AI analysis for a questionnaire", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.triggerAiAnalysis({ id: 1 });
       expect(result).toHaveProperty("success", true);
       expect(result).toHaveProperty("message", "AI分析已触发，请稍后查看结果");
@@ -628,7 +628,7 @@ describe("questionnaire router", () => {
     });
 
     it("works for different ids", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.triggerAiAnalysis({ id: 2 });
       expect(result.success).toBe(true);
       expect(result.estimatedTime).toBe("30秒");
@@ -638,7 +638,7 @@ describe("questionnaire router", () => {
   // ─── convertToProject ────────────────────────────────────
   describe("convertToProject", () => {
     it("converts questionnaire to project", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.convertToProject({
         id: 1,
         projectName: "发动机缸体清洗线项目",
@@ -649,7 +649,7 @@ describe("questionnaire router", () => {
     });
 
     it("project id is 100 + questionnaire id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.convertToProject({
         id: 2,
         projectName: "精密零件清洗项目",
@@ -658,7 +658,7 @@ describe("questionnaire router", () => {
     });
 
     it("supports optional assignedSalesId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.convertToProject({
         id: 1,
         projectName: "清洗项目",
@@ -669,7 +669,7 @@ describe("questionnaire router", () => {
     });
 
     it("works without assignedSalesId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.questionnaire.convertToProject({
         id: 1,
         projectName: "Test Project",
@@ -684,21 +684,21 @@ describe("questionnaire router", () => {
 
   describe("input validation", () => {
     it("list rejects invalid status enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.questionnaire.list({ status: "INVALID_STATUS" as any }),
       ).rejects.toThrow();
     });
 
     it("getById rejects non-number id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.questionnaire.getById({ id: "abc" as any }),
       ).rejects.toThrow();
     });
 
     it("create rejects missing contactPerson", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.questionnaire.create({
           company: "Company",
@@ -711,14 +711,14 @@ describe("questionnaire router", () => {
     });
 
     it("review rejects missing approved field", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.questionnaire.review({ id: 1 } as any),
       ).rejects.toThrow();
     });
 
     it("convertToProject rejects missing projectName", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         caller.questionnaire.convertToProject({ id: 1 } as any),
       ).rejects.toThrow();

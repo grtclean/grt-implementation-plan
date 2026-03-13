@@ -9,7 +9,7 @@
  */
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   globalCampaigns,
@@ -112,7 +112,8 @@ export const campaignRouter = router({
       const [campaign] = await db
         .select()
         .from(globalCampaigns)
-        .where(eq(globalCampaigns.id, numId));
+        .where(eq(globalCampaigns.id, numId))
+        .limit(1000);
       if (!campaign) return null;
 
       // Include payload count for summary
@@ -124,7 +125,7 @@ export const campaignRouter = router({
       return { ...campaign, payloadCount: Number(payloadCount) };
     }),
 
-  createCampaign: protectedProcedure
+  createCampaign: requirePermission('crm:leads:manage')
     .input(
       z.object({
         code: z.string().min(1).max(50),
@@ -151,7 +152,7 @@ export const campaignRouter = router({
       return campaign;
     }),
 
-  updateCampaign: protectedProcedure
+  updateCampaign: requirePermission('crm:leads:manage')
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -200,7 +201,7 @@ export const campaignRouter = router({
       return campaign;
     }),
 
-  deleteCampaign: protectedProcedure
+  deleteCampaign: requirePermission('crm:leads:manage')
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -246,11 +247,12 @@ export const campaignRouter = router({
         .select()
         .from(campaignPayloads)
         .where(eq(campaignPayloads.campaignId, toNum(input.campaignId)))
-        .orderBy(asc(campaignPayloads.executionOrder));
+        .orderBy(asc(campaignPayloads.executionOrder))
+        .limit(1000);
       return { items, total: items.length };
     }),
 
-  addPayload: protectedProcedure
+  addPayload: requirePermission('crm:leads:manage')
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -299,7 +301,7 @@ export const campaignRouter = router({
       return payload;
     }),
 
-  updatePayload: protectedProcedure
+  updatePayload: requirePermission('crm:leads:manage')
     .input(
       z.object({
         id: z.union([z.string(), z.number()]),
@@ -360,7 +362,7 @@ export const campaignRouter = router({
       return payload;
     }),
 
-  deletePayload: protectedProcedure
+  deletePayload: requirePermission('crm:leads:manage')
     .input(idInput)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -392,7 +394,7 @@ export const campaignRouter = router({
       return { deleted: true, id: deleted.id };
     }),
 
-  reorderPayloads: protectedProcedure
+  reorderPayloads: requirePermission('crm:leads:manage')
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -444,7 +446,7 @@ export const campaignRouter = router({
   // Campaign Lifecycle
   // ══════════════════════════════════════════════════
 
-  simulateCampaign: protectedProcedure
+  simulateCampaign: requirePermission('crm:leads:manage')
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -454,7 +456,7 @@ export const campaignRouter = router({
       return simulateOrgShift(toNum(input.campaignId));
     }),
 
-  approveCampaign: protectedProcedure
+  approveCampaign: requirePermission('crm:leads:manage')
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -492,7 +494,7 @@ export const campaignRouter = router({
       return campaign;
     }),
 
-  executeCampaign: protectedProcedure
+  executeCampaign: requirePermission('crm:leads:manage')
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -502,7 +504,7 @@ export const campaignRouter = router({
       return execCampaign(toNum(input.campaignId), ctx.user.id);
     }),
 
-  rollbackCampaign: protectedProcedure
+  rollbackCampaign: requirePermission('crm:leads:manage')
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -541,11 +543,12 @@ export const campaignRouter = router({
         .where(
           eq(inventoryFreezeLogs.campaignId, toNum(input.campaignId))
         )
-        .orderBy(desc(inventoryFreezeLogs.frozenAt));
+        .orderBy(desc(inventoryFreezeLogs.frozenAt))
+        .limit(1000);
       return { items, total: items.length };
     }),
 
-  freezeInventory: protectedProcedure
+  freezeInventory: requirePermission('crm:leads:manage')
     .input(
       z.object({
         campaignId: z.union([z.string(), z.number()]),
@@ -573,7 +576,7 @@ export const campaignRouter = router({
       return { freezeLogId, campaignId: toNum(input.campaignId) };
     }),
 
-  unfreezeInventory: protectedProcedure
+  unfreezeInventory: requirePermission('crm:leads:manage')
     .input(
       z.object({
         freezeLogId: z.union([z.string(), z.number()]),

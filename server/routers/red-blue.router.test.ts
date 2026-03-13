@@ -143,7 +143,7 @@ vi.mock("../../shared/validators", () => {
 // ---------------------------------------------------------------------------
 
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -170,7 +170,7 @@ describe("redBlue.list", () => {
       [{ count: 0 }],   // count
     );
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.list();
 
     expect(result.items).toEqual([]);
@@ -186,7 +186,7 @@ describe("redBlue.list", () => {
     ];
     selectResultsQueue.push(configs, [{ count: 2 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.list();
 
     expect(result.items).toHaveLength(2);
@@ -201,7 +201,7 @@ describe("redBlue.list", () => {
       [{ count: 5 }],
     );
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.list({ page: 2, pageSize: 2 });
 
     expect(result.page).toBe(2);
@@ -215,7 +215,7 @@ describe("redBlue.list", () => {
       [{ count: 1 }],
     );
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.list({ status: "active" });
 
     expect(result.items).toHaveLength(1);
@@ -228,7 +228,7 @@ describe("redBlue.list", () => {
       [{ count: 1 }],
     );
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.list({ projectId: 42 });
 
     expect(result.items).toHaveLength(1);
@@ -240,7 +240,7 @@ describe("redBlue.list", () => {
       [{ count: 1 }],
     );
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.list({ customerId: 99 });
 
     expect(result.items).toHaveLength(1);
@@ -252,7 +252,7 @@ describe("redBlue.list", () => {
       [{ count: 1 }],
     );
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.list({ status: "active", projectId: 42, customerId: 99 });
 
     expect(result.items).toHaveLength(1);
@@ -261,7 +261,7 @@ describe("redBlue.list", () => {
   it("defaults to page=1, pageSize=50 when input is undefined", async () => {
     selectResultsQueue.push([], [{ count: 0 }]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.list(undefined);
 
     expect(result.page).toBe(1);
@@ -271,7 +271,7 @@ describe("redBlue.list", () => {
   it("handles count result with missing count property", async () => {
     selectResultsQueue.push([], [{}]);
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.list();
 
     expect(result.total).toBe(0);
@@ -290,7 +290,7 @@ describe("redBlue.getById", () => {
     };
     mockQueryResult = [config];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getById({ id: 1 });
 
     expect(result).toEqual(config);
@@ -299,7 +299,7 @@ describe("redBlue.getById", () => {
   it("returns null when config not found", async () => {
     mockQueryResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getById({ id: 999 });
 
     expect(result).toBeNull();
@@ -308,7 +308,7 @@ describe("redBlue.getById", () => {
   it("accepts string id and coerces to number", async () => {
     mockQueryResult = [{ id: 5, configName: "String ID Config" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getById({ id: "5" });
 
     expect(result).toBeDefined();
@@ -318,7 +318,7 @@ describe("redBlue.getById", () => {
   it("accepts numeric id directly", async () => {
     mockQueryResult = [{ id: 10, configName: "Numeric ID Config" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getById({ id: 10 });
 
     expect(result).toBeDefined();
@@ -334,7 +334,7 @@ describe("redBlue.create", () => {
     const createdConfig = { id: 1, configCode: "RB-TEST", configName: "New Config", status: "draft" };
     mockReturningResult = [createdConfig];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.create({ configName: "New Config" });
 
     expect(result.success).toBe(true);
@@ -345,7 +345,7 @@ describe("redBlue.create", () => {
   it("uses provided configCode when supplied", async () => {
     mockReturningResult = [{ id: 2, configCode: "CUSTOM-CODE", configName: "Custom" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.create({
       configName: "Custom",
       configCode: "CUSTOM-CODE",
@@ -358,7 +358,7 @@ describe("redBlue.create", () => {
   it("generates configCode when not provided", async () => {
     mockReturningResult = [{ id: 3, configCode: "RB-AUTO", configName: "Auto Code" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.create({ configName: "Auto Code" });
 
     expect(result.success).toBe(true);
@@ -389,7 +389,7 @@ describe("redBlue.create", () => {
     };
     mockReturningResult = [fullConfig];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.create({
       configName: "Full Config",
       configCode: "RB-FULL",
@@ -419,7 +419,7 @@ describe("redBlue.create", () => {
   it("creates config with schedule and evaluation criteria", async () => {
     mockReturningResult = [{ id: 5, configName: "Scheduled" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.create({
       configName: "Scheduled",
       schedule: { startDate: "2026-03-01", endDate: "2026-03-15" },
@@ -433,7 +433,7 @@ describe("redBlue.create", () => {
   it("defaults customerTier to 'other' when not provided", async () => {
     mockReturningResult = [{ id: 6, configName: "Default Tier", customerTier: "other" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.create({ configName: "Default Tier" });
 
     expect(result.success).toBe(true);
@@ -442,7 +442,7 @@ describe("redBlue.create", () => {
   it("sets status to 'draft' for new configs", async () => {
     mockReturningResult = [{ id: 7, configName: "Draft", status: "draft" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.create({ configName: "Draft" });
 
     expect(result.success).toBe(true);
@@ -452,7 +452,7 @@ describe("redBlue.create", () => {
   it("records createdBy from context user", async () => {
     mockReturningResult = [{ id: 8, configName: "By User", createdBy: 1, createdByName: "Test User" }];
 
-    const caller = createAuthenticatedCaller({ id: 1, name: "Test User" });
+    const caller = createAdminCaller({ id: 1, name: "Test User" });
     const result = await caller.redBlue.create({ configName: "By User" });
 
     expect(result.success).toBe(true);
@@ -469,7 +469,7 @@ describe("redBlue.update", () => {
   it("updates config name", async () => {
     mockReturningResult = [{ id: 1, configName: "Updated Name" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.update({ id: 1, configName: "Updated Name" });
 
     expect(result.success).toBe(true);
@@ -480,7 +480,7 @@ describe("redBlue.update", () => {
   it("throws NOT_FOUND when config does not exist", async () => {
     mockReturningResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.redBlue.update({ id: 999, configName: "Ghost" })
     ).rejects.toThrow("配置不存在");
@@ -489,7 +489,7 @@ describe("redBlue.update", () => {
   it("updates status field", async () => {
     mockReturningResult = [{ id: 1, status: "active" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.update({ id: 1, status: "active" });
 
     expect(result.success).toBe(true);
@@ -501,7 +501,7 @@ describe("redBlue.update", () => {
       id: 1, results: { overallScore: 85 }, lessonsLearned: "Great session",
     }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.update({
       id: 1,
       results: { overallScore: 85 },
@@ -515,7 +515,7 @@ describe("redBlue.update", () => {
   it("updates improvement actions", async () => {
     mockReturningResult = [{ id: 1, improvementActions: [{ action: "Improve firewall" }] }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.update({
       id: 1,
       improvementActions: [{ action: "Improve firewall" }],
@@ -527,7 +527,7 @@ describe("redBlue.update", () => {
   it("accepts string id and coerces to number", async () => {
     mockReturningResult = [{ id: 5, configName: "Coerced" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.update({ id: "5", configName: "Coerced" });
 
     expect(result.success).toBe(true);
@@ -536,7 +536,7 @@ describe("redBlue.update", () => {
   it("only updates explicitly provided fields (ignores undefined)", async () => {
     mockReturningResult = [{ id: 1, configName: "Same" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     // Only configName provided; other fields should not be in the update payload
     const result = await caller.redBlue.update({ id: 1, configName: "Same" });
 
@@ -546,7 +546,7 @@ describe("redBlue.update", () => {
   it("allows setting nullable fields to null", async () => {
     mockReturningResult = [{ id: 1, projectId: null, projectCode: null }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.update({
       id: 1,
       projectId: null,
@@ -565,7 +565,7 @@ describe("redBlue.delete", () => {
   it("deletes config and child executions", async () => {
     mockQueryResult = [{ id: 1 }]; // existing config
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.delete({ id: 1 });
 
     expect(result.success).toBe(true);
@@ -575,7 +575,7 @@ describe("redBlue.delete", () => {
   it("throws NOT_FOUND when config does not exist", async () => {
     mockQueryResult = []; // no config found
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.redBlue.delete({ id: 999 })
     ).rejects.toThrow("配置不存在");
@@ -584,7 +584,7 @@ describe("redBlue.delete", () => {
   it("accepts string id and coerces to number", async () => {
     mockQueryResult = [{ id: 5 }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.delete({ id: "5" });
 
     expect(result.success).toBe(true);
@@ -593,7 +593,7 @@ describe("redBlue.delete", () => {
   it("calls delete on executions before configs", async () => {
     mockQueryResult = [{ id: 10 }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await caller.redBlue.delete({ id: 10 });
 
     // Verify delete was called (at least twice: once for executions, once for config)
@@ -609,7 +609,7 @@ describe("redBlue.getProjects", () => {
   it("returns empty array when no configs exist", async () => {
     mockQueryResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getProjects();
 
     expect(result).toEqual([]);
@@ -630,7 +630,7 @@ describe("redBlue.getProjects", () => {
     };
     mockQueryResult = [config];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getProjects();
 
     expect(result).toHaveLength(1);
@@ -653,7 +653,7 @@ describe("redBlue.getProjects", () => {
       createdAt: "2026-01-01", updatedAt: null,
     }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getProjects();
 
     expect(result[0].name).toBe("Fallback Project");
@@ -666,7 +666,7 @@ describe("redBlue.getProjects", () => {
       blueTeamLeaderName: null, createdAt: "2026-01-01", updatedAt: null,
     }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getProjects();
 
     expect(result[0].tier).toBe("other");
@@ -679,7 +679,7 @@ describe("redBlue.getProjects", () => {
       blueTeamLeaderName: "B", createdAt: "2026-01-15", updatedAt: null,
     }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getProjects();
 
     expect(result[0].targetDate).toBe("2026-01-15");
@@ -692,7 +692,7 @@ describe("redBlue.getProjects", () => {
       blueTeamLeaderName: null, createdAt: "2026-01-01", updatedAt: null,
     }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getProjects();
 
     expect(result[0].redTeamLead).toBe("");
@@ -710,7 +710,7 @@ describe("redBlue.getProjects", () => {
         createdAt: "2026-01-10", updatedAt: "2026-02-10" },
     ];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getProjects();
 
     expect(result).toHaveLength(2);
@@ -727,7 +727,7 @@ describe("redBlue.getGates", () => {
   it("returns empty array when no executions exist", async () => {
     mockQueryResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getGates();
 
     expect(result).toEqual([]);
@@ -741,7 +741,7 @@ describe("redBlue.getGates", () => {
     ];
     mockQueryResult = executions;
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getGates();
 
     expect(result).toHaveLength(3);
@@ -757,7 +757,7 @@ describe("redBlue.getTasks", () => {
   it("returns empty array when no scheduled tasks exist", async () => {
     mockQueryResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getTasks();
 
     expect(result).toEqual([]);
@@ -770,7 +770,7 @@ describe("redBlue.getTasks", () => {
     ];
     mockQueryResult = tasks;
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getTasks();
 
     expect(result).toHaveLength(2);
@@ -786,7 +786,7 @@ describe("redBlue.listExecutions", () => {
   it("returns empty list for config with no executions", async () => {
     mockQueryResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.listExecutions({ configId: 1 });
 
     expect(result.items).toEqual([]);
@@ -800,7 +800,7 @@ describe("redBlue.listExecutions", () => {
     ];
     mockQueryResult = executions;
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.listExecutions({ configId: 5 });
 
     expect(result.items).toHaveLength(2);
@@ -820,7 +820,7 @@ describe("redBlue.getExecution", () => {
     };
     mockQueryResult = [execution];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getExecution({ id: 1 });
 
     expect(result).toEqual(execution);
@@ -829,7 +829,7 @@ describe("redBlue.getExecution", () => {
   it("returns null when execution not found", async () => {
     mockQueryResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getExecution({ id: 999 });
 
     expect(result).toBeNull();
@@ -838,7 +838,7 @@ describe("redBlue.getExecution", () => {
   it("accepts string id", async () => {
     mockQueryResult = [{ id: 7, phase: "M2" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.getExecution({ id: "7" });
 
     expect(result).toBeDefined();
@@ -857,7 +857,7 @@ describe("redBlue.createExecution", () => {
     };
     mockReturningResult = [execution];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.createExecution({
       configId: 1,
       configCode: "RB-001",
@@ -879,7 +879,7 @@ describe("redBlue.createExecution", () => {
       status: "scheduled",
     }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.createExecution({
       configId: 1,
       configCode: "RB-001",
@@ -896,7 +896,7 @@ describe("redBlue.createExecution", () => {
   it("defaults status to 'scheduled' when not provided", async () => {
     mockReturningResult = [{ id: 3, status: "scheduled" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.createExecution({
       configId: 1,
       configCode: "RB-001",
@@ -911,7 +911,7 @@ describe("redBlue.createExecution", () => {
   it("accepts custom status", async () => {
     mockReturningResult = [{ id: 4, status: "in_progress" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.createExecution({
       configId: 1,
       configCode: "RB-001",
@@ -935,7 +935,7 @@ describe("redBlue.updateExecution", () => {
       id: 1, redTeamScore: 85, blueTeamScore: 90, status: "completed",
     }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.updateExecution({
       id: 1,
       redTeamScore: 85,
@@ -952,7 +952,7 @@ describe("redBlue.updateExecution", () => {
   it("throws NOT_FOUND when execution does not exist", async () => {
     mockReturningResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.redBlue.updateExecution({ id: 999, status: "completed" })
     ).rejects.toThrow("执行记录不存在");
@@ -964,7 +964,7 @@ describe("redBlue.updateExecution", () => {
       blueTeamResponses: [{ response: "Mitigated" }],
     }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.updateExecution({
       id: 1,
       redTeamFindings: "Found issue A",
@@ -979,7 +979,7 @@ describe("redBlue.updateExecution", () => {
       id: 1, actualStart: "2026-03-01T09:00:00Z", actualEnd: "2026-03-01T17:00:00Z",
     }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.updateExecution({
       id: 1,
       actualStart: "2026-03-01T09:00:00.000Z",
@@ -992,7 +992,7 @@ describe("redBlue.updateExecution", () => {
   it("accepts string id and coerces to number", async () => {
     mockReturningResult = [{ id: 5, status: "completed" }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.updateExecution({ id: "5", status: "completed" });
 
     expect(result.success).toBe(true);
@@ -1003,7 +1003,7 @@ describe("redBlue.updateExecution", () => {
       id: 1, issuesFound: [{ issue: "Security gap", severity: "high" }],
     }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.updateExecution({
       id: 1,
       issuesFound: [{ issue: "Security gap", severity: "high" }],
@@ -1015,7 +1015,7 @@ describe("redBlue.updateExecution", () => {
   it("updates red team actions", async () => {
     mockReturningResult = [{ id: 1, redTeamActions: [{ action: "Penetration test" }] }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.updateExecution({
       id: 1,
       redTeamActions: [{ action: "Penetration test" }],
@@ -1027,7 +1027,7 @@ describe("redBlue.updateExecution", () => {
   it("allows setting nullable fields to null", async () => {
     mockReturningResult = [{ id: 1, actualStart: null, actualEnd: null }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.updateExecution({
       id: 1,
       actualStart: null,
@@ -1048,7 +1048,7 @@ describe("redBlue.deleteExecution", () => {
   it("deletes execution when it exists", async () => {
     mockQueryResult = [{ id: 1 }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.deleteExecution({ id: 1 });
 
     expect(result.success).toBe(true);
@@ -1058,7 +1058,7 @@ describe("redBlue.deleteExecution", () => {
   it("throws NOT_FOUND when execution does not exist", async () => {
     mockQueryResult = [];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.redBlue.deleteExecution({ id: 999 })
     ).rejects.toThrow("执行记录不存在");
@@ -1067,7 +1067,7 @@ describe("redBlue.deleteExecution", () => {
   it("accepts string id", async () => {
     mockQueryResult = [{ id: 7 }];
 
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.redBlue.deleteExecution({ id: "7" });
 
     expect(result.success).toBe(true);
@@ -1169,35 +1169,35 @@ describe("redBlue auth guards", () => {
 
 describe("redBlue input validation", () => {
   it("rejects create with empty configName", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.redBlue.create({ configName: "" })
     ).rejects.toThrow();
   });
 
   it("rejects list with page < 1", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.redBlue.list({ page: 0 })
     ).rejects.toThrow();
   });
 
   it("rejects list with pageSize > 200", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.redBlue.list({ pageSize: 201 })
     ).rejects.toThrow();
   });
 
   it("rejects list with pageSize < 1", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.redBlue.list({ pageSize: 0 })
     ).rejects.toThrow();
   });
 
   it("rejects createExecution with non-integer configId", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.redBlue.createExecution({
         configId: 1.5 as any,
@@ -1209,7 +1209,7 @@ describe("redBlue input validation", () => {
   });
 
   it("rejects createExecution with invalid datetime scheduledStart", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.redBlue.createExecution({
         configId: 1,
@@ -1222,7 +1222,7 @@ describe("redBlue input validation", () => {
   });
 
   it("rejects updateExecution with invalid datetime actualStart", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.redBlue.updateExecution({
         id: 1,

@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -13,6 +14,12 @@ const { selectResultsQueue, returningQueue } = vi.hoisted(() => {
   const returningQueue: any[][] = [];
   return { selectResultsQueue, returningQueue };
 });
+
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
 
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => {

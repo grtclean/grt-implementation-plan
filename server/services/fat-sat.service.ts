@@ -151,7 +151,8 @@ export async function getTestPlan(planId: number) {
   const result = await db
     .select()
     .from(fatTestPlans)
-    .where(eq(fatTestPlans.id, planId));
+    .where(eq(fatTestPlans.id, planId))
+    .limit(1000);
   return result[0] ?? null;
 }
 
@@ -173,9 +174,9 @@ export async function listTestPlans(params: {
   }
   const query = db.select().from(fatTestPlans);
   if (conditions.length > 0) {
-    return await query.where(and(...conditions)).orderBy(desc(fatTestPlans.createdAt));
+    return await query.where(and(...conditions)).orderBy(desc(fatTestPlans.createdAt)).limit(1000);
   }
-  return await query.orderBy(desc(fatTestPlans.createdAt));
+  return await query.orderBy(desc(fatTestPlans.createdAt)).limit(1000);
 }
 
 export async function updateTestPlanStatus(planId: number, status: string) {
@@ -237,7 +238,8 @@ export async function getTestItems(planId: number, category?: string) {
     .select()
     .from(fatTestItems)
     .where(and(...conditions))
-    .orderBy(fatTestItems.sortOrder);
+    .orderBy(fatTestItems.sortOrder)
+    .limit(1000);
 }
 
 export async function batchUpdateTestItems(input: BatchUpdateTestItemInput) {
@@ -289,7 +291,8 @@ export async function getChecklists(planId: number) {
     .select()
     .from(fatChecklists)
     .where(eq(fatChecklists.planId, planId))
-    .orderBy(fatChecklists.sortOrder);
+    .orderBy(fatChecklists.sortOrder)
+    .limit(1000);
 }
 
 // ============================================================

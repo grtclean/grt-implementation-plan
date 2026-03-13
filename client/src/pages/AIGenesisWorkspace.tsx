@@ -7,6 +7,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/grt";
 import { Button } from "@/components/ui/button";
@@ -100,10 +101,10 @@ const STATUS_STYLES: Record<DocumentStatus, { color: string; label: string }> = 
   ARCHIVED: { color: "bg-muted text-muted-foreground border-muted", label: "Archived" },
 };
 
-const APPROVAL_STYLES: Record<ApprovalStatus, { color: string; label: string; labelCn: string }> = {
-  DRAFT: { color: "bg-slate-500/15 text-slate-400 border-slate-500/30", label: "Draft", labelCn: "草稿" },
-  PENDING_MANAGER: { color: "bg-amber-500/15 text-amber-400 border-amber-500/30", label: "Awaiting Approval", labelCn: "等待主管审核" },
-  APPROVED: { color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", label: "Approved", labelCn: "已批准" },
+const APPROVAL_STYLES: Record<ApprovalStatus, { color: string; labelKey: string }> = {
+  DRAFT: { color: "bg-slate-500/15 text-slate-400 border-slate-500/30", labelKey: "ai.genesis.draft" },
+  PENDING_MANAGER: { color: "bg-amber-500/15 text-amber-400 border-amber-500/30", labelKey: "ai.genesis.awaitingApproval" },
+  APPROVED: { color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", labelKey: "ai.genesis.approved" },
 };
 
 const PROPOSAL_STATUS_STYLES: Record<ProposalStatus, { color: string; label: string }> = {
@@ -136,6 +137,7 @@ function fileIcon(fileType: string) {
 // ---------------------------------------------------------------------------
 
 export default function AIGenesisWorkspace() {
+  const { t } = useLanguage();
   // State
   const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null);
   const [selectedProposalId, setSelectedProposalId] = useState<number | null>(null);
@@ -251,7 +253,7 @@ export default function AIGenesisWorkspace() {
 
   const feedbackMutation = trpc.genesis.feedbackToKnowledgeBase.useMutation({
     onSuccess: () => {
-      toast.success("反馈至知识炼金炉 — Fed back to Knowledge Base for AI learning");
+      toast.success(t("ai.genesis.feedbackSuccess"));
       utils.genesis.listProposalHistory.invalidate();
     },
     onError: (err) => toast.error(err.message),
@@ -435,7 +437,7 @@ export default function AIGenesisWorkspace() {
     setLocalDocuments((prev) =>
       prev.map((d) => (d.id === docId ? { ...d, approvalStatus: "PENDING_MANAGER" } : d))
     );
-    toast.info("Authorization requested — awaiting manager approval (申请已提交，等待主管审核)");
+    toast.info(t("ai.genesis.authRequested"));
   };
 
   const handleManagerApprove = (docId: number) => {
@@ -443,7 +445,7 @@ export default function AIGenesisWorkspace() {
     setLocalDocuments((prev) =>
       prev.map((d) => (d.id === docId ? { ...d, approvalStatus: "APPROVED" } : d))
     );
-    toast.success("Document approved — AI ingestion authorized (主管确认，AI处理已授权)");
+    toast.success(t("ai.genesis.docApproved"));
   };
 
   // ---------------------------------------------------------------------------
@@ -456,8 +458,8 @@ export default function AIGenesisWorkspace() {
       {/* Header */}
       <PageHeader
         icon={Brain}
-        title="AI Genesis Workspace"
-        description="Document ingestion and AI-driven proposal management"
+        title={t("ai.genesis.title")}
+        description={t("ai.genesis.description")}
         actions={
           <div className="flex items-center gap-3">
             {/* Mock RBAC role toggle */}
@@ -472,7 +474,7 @@ export default function AIGenesisWorkspace() {
               ) : (
                 <Shield className="w-3.5 h-3.5 text-blue-400" />
               )}
-              {mockRole === "manager" ? "Role: Manager (主管)" : "Role: Employee (员工)"}
+              {mockRole === "manager" ? t("ai.genesis.roleManager") : t("ai.genesis.roleEmployee")}
             </Button>
             <Badge variant="outline" className="gap-1">
               <FileText className="w-3 h-3" />
@@ -600,7 +602,7 @@ export default function AIGenesisWorkspace() {
                                 <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-0.5 ${approvalInfo.color}`}>
                                   {doc.approvalStatus === "PENDING_MANAGER" && <Clock className="w-2.5 h-2.5" />}
                                   {doc.approvalStatus === "APPROVED" && <ShieldCheck className="w-2.5 h-2.5" />}
-                                  {approvalInfo.labelCn}
+                                  {t(approvalInfo.labelKey)}
                                 </Badge>
                                 {doc.proposalCount > 0 && (
                                   <span className="text-[10px] text-muted-foreground">
@@ -621,7 +623,7 @@ export default function AIGenesisWorkspace() {
                                   onClick={(e) => { e.stopPropagation(); handleRequestAuthorization(doc.id); }}
                                 >
                                   <Shield className="w-3 h-3" />
-                                  申请授权 Request Authorization
+                                  {t("ai.genesis.requestAuth")}
                                 </Button>
                               )}
                               {mockRole === "employee" && doc.approvalStatus === "PENDING_MANAGER" && (
@@ -632,7 +634,7 @@ export default function AIGenesisWorkspace() {
                                   disabled
                                 >
                                   <Clock className="w-3 h-3 animate-pulse" />
-                                  等待主管审核 Awaiting Approval...
+                                  {t("ai.genesis.awaitingApproval")}...
                                 </Button>
                               )}
                               {mockRole === "manager" && doc.approvalStatus === "PENDING_MANAGER" && (
@@ -642,7 +644,7 @@ export default function AIGenesisWorkspace() {
                                   onClick={(e) => { e.stopPropagation(); handleManagerApprove(doc.id); }}
                                 >
                                   <ShieldCheck className="w-3 h-3" />
-                                  主管确认 Manager Approve
+                                  {t("ai.genesis.managerApprove")}
                                 </Button>
                               )}
                               {doc.approvalStatus === "APPROVED" && (
@@ -1118,7 +1120,7 @@ export default function AIGenesisWorkspace() {
                                         disabled={feedbackMutation.isPending}
                                       >
                                         <BookOpen className="w-3 h-3" />
-                                        反馈至知识炼金炉
+                                        {t("ai.genesis.feedbackToKB")}
                                       </Button>
                                     )}
                                   </div>

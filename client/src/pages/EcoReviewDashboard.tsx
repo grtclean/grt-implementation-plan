@@ -11,6 +11,7 @@
  */
 
 import React, { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,11 +30,11 @@ const RISK_COLORS: Record<RiskLevel, { color: string; bg: string; border: string
   CRITICAL: { color: "#ef4444", bg: "rgba(239,68,68,0.12)",  border: "rgba(239,68,68,0.3)" },
 };
 
-const CHANGE_TYPE_LABELS: Record<EcoChangeType, { label: string; color: string }> = {
-  SUBSTITUTE: { label: "Substitute", color: "#f97316" },
-  ADD:        { label: "Add",        color: "#3b82f6" },
-  REMOVE:     { label: "Remove",     color: "#ef4444" },
-  QUANTITY:   { label: "Qty Change", color: "#8b5cf6" },
+const CHANGE_TYPE_KEYS: Record<EcoChangeType, { labelKey: string; color: string }> = {
+  SUBSTITUTE: { labelKey: "admin.ecoReview.changeTypeSubstitute", color: "#f97316" },
+  ADD:        { labelKey: "admin.ecoReview.changeTypeAdd",        color: "#3b82f6" },
+  REMOVE:     { labelKey: "admin.ecoReview.changeTypeRemove",     color: "#ef4444" },
+  QUANTITY:   { labelKey: "admin.ecoReview.changeTypeQuantity",   color: "#8b5cf6" },
 };
 
 function formatCurrency(amount: number): string {
@@ -95,13 +96,14 @@ function InfoRow({ label, value, color }: { label: string; value: string; color?
 }
 
 function ChangeTypeBadge({ type }: { type: EcoChangeType }) {
-  const cfg = CHANGE_TYPE_LABELS[type];
+  const { t } = useLanguage();
+  const cfg = CHANGE_TYPE_KEYS[type];
   return (
     <span style={{
       padding: "2px 10px", borderRadius: 4, fontSize: 11, fontWeight: 600,
       color: cfg.color, background: `${cfg.color}20`,
     }}>
-      {cfg.label}
+      {t(cfg.labelKey)}
     </span>
   );
 }
@@ -123,6 +125,7 @@ function LoadingSkeleton() {
 // ─── Main Page ───────────────────────────────────────────────────
 
 export default function EcoReviewDashboard() {
+  const { t, tpl } = useLanguage();
   const pathParts = window.location.pathname.split("/");
   const ecoIdFromUrl = pathParts[pathParts.length - 1] || "ECO-2026-001";
 
@@ -148,7 +151,7 @@ export default function EcoReviewDashboard() {
     onSuccess: () => {
       setDecision("approved");
       setShowConfirmApprove(false);
-      toast.success("ECO approved — procurement workflow initiated");
+      toast.success(t("admin.ecoReview.approveSuccess"));
       impactQuery.refetch();
     },
     onError: (err) => toast.error(err.message),
@@ -157,7 +160,7 @@ export default function EcoReviewDashboard() {
   const rejectMut = trpc.ecoImpact.rejectEco.useMutation({
     onSuccess: () => {
       setDecision("rejected");
-      toast.success("ECO rejected");
+      toast.success(t("admin.ecoReview.rejectSuccess"));
       impactQuery.refetch();
     },
     onError: (err) => toast.error(err.message),
@@ -183,8 +186,8 @@ export default function EcoReviewDashboard() {
       <div style={{ minHeight: "100vh", background: "#0f172a", color: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🔗</div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: "#e2e8f0" }}>ECO Not Found</div>
-          <div style={{ fontSize: 14, marginTop: 4 }}>No data for ECO ID: {selectedEcoId}</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: "#e2e8f0" }}>{t("admin.ecoReview.notFound")}</div>
+          <div style={{ fontSize: 14, marginTop: 4 }}>{tpl("admin.ecoReview.noData", { id: selectedEcoId })}</div>
         </div>
       </div>
     );
@@ -199,13 +202,13 @@ export default function EcoReviewDashboard() {
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>PHASE 2.1 — CROSS-DOMAIN FUSION</div>
+            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>{t("admin.ecoReview.phase")}</div>
             <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 26 }}>🔗</span>
-              ECO Cost Impact Review
+              {t("admin.ecoReview.title")}
             </h1>
             <p style={{ color: "#64748b", margin: "4px 0 0", fontSize: 13 }}>
-              PLM (Engineering) × WMS (Warehouse) × ERP (Finance) — Three-Domain Data Fusion
+              {t("admin.ecoReview.subtitle")}
             </p>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -243,12 +246,12 @@ export default function EcoReviewDashboard() {
             <span style={{ fontSize: 28 }}>{decision === "approved" ? "✅" : "❌"}</span>
             <div>
               <div style={{ fontWeight: 700, fontSize: 16, color: decision === "approved" ? "#22c55e" : "#ef4444" }}>
-                ECO {decision === "approved" ? "APPROVED" : "REJECTED"}
+                {decision === "approved" ? t("admin.ecoReview.approved") : t("admin.ecoReview.rejected")}
               </div>
               <div style={{ fontSize: 13, color: "#94a3b8" }}>
                 {decision === "approved"
-                  ? `Financial impact of ${formatCurrency(impact.totalFinancialImpact)} acknowledged. Procurement workflow initiated.`
-                  : `Reason: ${rejectReason || "Cost impact too high"}`}
+                  ? tpl("admin.ecoReview.approvedDesc", { amount: formatCurrency(impact.totalFinancialImpact) })
+                  : tpl("admin.ecoReview.rejectedDesc", { reason: rejectReason || "Cost impact too high" })}
               </div>
             </div>
           </div>
@@ -262,7 +265,7 @@ export default function EcoReviewDashboard() {
             borderRadius: 12, padding: 24,
           }}>
             <h2 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 16px", color: "#e2e8f0" }}>
-              ECO Details
+              {t("admin.ecoReview.ecoDetails")}
             </h2>
             <div style={{
               background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: 16, marginBottom: 16,
@@ -276,15 +279,15 @@ export default function EcoReviewDashboard() {
               {eco.description}
             </p>
 
-            <InfoRow label="Status" value={(eco.status ?? "").replace(/_/g, " ").toUpperCase()} color="#eab308" />
-            <InfoRow label="Requested By" value={eco.requestedBy} />
-            <InfoRow label="Request Date" value={eco.requestDate} />
-            <InfoRow label="Target Machine" value={eco.targetMachine} />
-            <InfoRow label="Change Lines" value={`${(eco.changes ?? []).length} parts affected`} />
+            <InfoRow label={t("admin.ecoReview.statusLabel")} value={(eco.status ?? "").replace(/_/g, " ").toUpperCase()} color="#eab308" />
+            <InfoRow label={t("admin.ecoReview.requestedBy")} value={eco.requestedBy} />
+            <InfoRow label={t("admin.ecoReview.requestDate")} value={eco.requestDate} />
+            <InfoRow label={t("admin.ecoReview.targetMachine")} value={eco.targetMachine} />
+            <InfoRow label={t("admin.ecoReview.changeLines")} value={tpl("admin.ecoReview.partsAffected", { count: String((eco.changes ?? []).length) })} />
 
             {/* Inventory lookup */}
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: "20px 0 10px", color: "#e2e8f0" }}>
-              Warehouse Inventory (WMS)
+              {t("admin.ecoReview.warehouseInventory")}
             </h3>
             <div style={{ borderRadius: 8, overflow: "hidden", border: "1px solid #1e293b" }}>
               {(eco.inventory ?? []).map((inv: any, i: number) => (
@@ -312,13 +315,13 @@ export default function EcoReviewDashboard() {
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: "#e2e8f0" }}>
-                Financial Impact Radar
+                {t("admin.ecoReview.financialImpactRadar")}
               </h2>
               <span style={{
                 padding: "4px 14px", borderRadius: 9999, fontSize: 12, fontWeight: 700,
                 color: riskCfg.color, background: riskCfg.bg, border: `1px solid ${riskCfg.border}`,
               }}>
-                {impact.riskLevel} RISK
+                {tpl("admin.ecoReview.riskLabel", { level: impact.riskLevel })}
               </span>
             </div>
 
@@ -332,13 +335,13 @@ export default function EcoReviewDashboard() {
                   borderRadius: 10, padding: 16, marginBottom: 12,
                 }}>
                   <div style={{ fontSize: 12, color: "#ef4444", fontWeight: 500, marginBottom: 4 }}>
-                    SUNK COST (报废成本)
+                    {t("admin.ecoReview.sunkCost")}
                   </div>
                   <div style={{ fontSize: 28, fontWeight: 800, color: "#ef4444" }}>
                     {formatCurrency(impact.scrapRiskValue)}
                   </div>
                   <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
-                    {impact.affectedInventoryCount} units of existing inventory at risk
+                    {tpl("admin.ecoReview.unitsAtRisk", { count: String(impact.affectedInventoryCount) })}
                   </div>
                 </div>
 
@@ -347,13 +350,13 @@ export default function EcoReviewDashboard() {
                   borderRadius: 10, padding: 16,
                 }}>
                   <div style={{ fontSize: 12, color: "#f97316", fontWeight: 500, marginBottom: 4 }}>
-                    NEW PROCUREMENT (新增采购)
+                    {t("admin.ecoReview.newProcurement")}
                   </div>
                   <div style={{ fontSize: 28, fontWeight: 800, color: "#f97316" }}>
                     {formatCurrency(impact.newProcurementCost)}
                   </div>
                   <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
-                    Budget required for replacement parts
+                    {t("admin.ecoReview.budgetRequired")}
                   </div>
                 </div>
               </div>
@@ -368,13 +371,16 @@ export default function EcoReviewDashboard() {
               <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "#fca5a5", marginBottom: 2 }}>
-                  Inventory Obsolescence Warning
+                  {t("admin.ecoReview.obsolescenceWarning")}
                 </div>
-                <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.5 }}>
-                  Approving this ECO will instantly render <strong style={{ color: "#ef4444" }}>{formatCurrency(impact.scrapRiskValue)}</strong> of
-                  existing inventory obsolete across <strong style={{ color: "#eab308" }}>{impact.affectedInventoryCount} units</strong> in
-                  warehouse. Finance and warehouse teams will be notified automatically.
-                </div>
+                <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.5 }}
+                  dangerouslySetInnerHTML={{
+                    __html: tpl("admin.ecoReview.obsolescenceDesc", {
+                      amount: `<strong style="color:#ef4444">${formatCurrency(impact.scrapRiskValue)}</strong>`,
+                      count: `<strong style="color:#eab308">${impact.affectedInventoryCount}</strong>`,
+                    }),
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -386,14 +392,14 @@ export default function EcoReviewDashboard() {
           borderRadius: 12, padding: 24, marginBottom: 24,
         }}>
           <h2 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 16px", color: "#e2e8f0" }}>
-            BOM Change Lines — Part-Level Impact Breakdown
+            {t("admin.ecoReview.bomChangeLines")}
           </h2>
 
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #1e293b" }}>
-                  {["#", "Type", "Old Part", "New Part", "Stock", "Scrap Cost", "Procurement", "Reason"].map(h => (
+                  {[t("admin.ecoReview.thIndex"), t("admin.ecoReview.thType"), t("admin.ecoReview.thOldPart"), t("admin.ecoReview.thNewPart"), t("admin.ecoReview.thStock"), t("admin.ecoReview.thScrapCost"), t("admin.ecoReview.thProcurement"), t("admin.ecoReview.thReason")].map(h => (
                     <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: "#64748b", fontWeight: 500, fontSize: 12 }}>{h}</th>
                   ))}
                 </tr>
@@ -444,7 +450,7 @@ export default function EcoReviewDashboard() {
                 {/* Totals row */}
                 <tr style={{ borderTop: "2px solid #334155", background: "rgba(255,255,255,0.03)" }}>
                   <td colSpan={5} style={{ padding: "12px", fontWeight: 700, color: "#e2e8f0", textAlign: "right" }}>
-                    TOTAL FINANCIAL IMPACT
+                    {t("admin.ecoReview.totalFinancialImpact")}
                   </td>
                   <td style={{ padding: "12px", fontWeight: 700, color: "#ef4444", fontSize: 15 }}>
                     {formatCurrency(impact.scrapRiskValue)}
@@ -469,16 +475,16 @@ export default function EcoReviewDashboard() {
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#e2e8f0", marginBottom: 4 }}>Executive Decision Required</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#e2e8f0", marginBottom: 4 }}>{t("admin.ecoReview.executiveDecision")}</div>
               <div style={{ fontSize: 12, color: "#64748b" }}>
-                This ECO affects {(impact.partDetails ?? []).length} BOM lines across Engineering, Warehouse, and Finance.
+                {tpl("admin.ecoReview.affectsLines", { count: String((impact.partDetails ?? []).length) })}
               </div>
             </div>
 
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <input
                 type="text"
-                placeholder="Rejection reason..."
+                placeholder={t("admin.ecoReview.rejectPlaceholder")}
                 value={rejectReason}
                 onChange={e => setRejectReason(e.target.value)}
                 style={{
@@ -497,7 +503,7 @@ export default function EcoReviewDashboard() {
                   opacity: rejectReason.trim() ? 1 : 0.5,
                 }}
               >
-                {rejectMut.isPending ? "Rejecting..." : "Reject ECO"}
+                {rejectMut.isPending ? t("admin.ecoReview.rejecting") : t("admin.ecoReview.rejectEco")}
               </button>
 
               {!showConfirmApprove ? (
@@ -510,7 +516,7 @@ export default function EcoReviewDashboard() {
                     fontSize: 14, fontWeight: 700, cursor: "pointer",
                   }}
                 >
-                  Approve ECO
+                  {t("admin.ecoReview.approveEco")}
                 </button>
               ) : (
                 <button
@@ -524,7 +530,7 @@ export default function EcoReviewDashboard() {
                     animation: "pulse 1.5s infinite",
                   }}
                 >
-                  {approveMut.isPending ? "Approving..." : `CONFIRM — Accept ¥${impact.totalFinancialImpact.toLocaleString()} Impact`}
+                  {approveMut.isPending ? t("admin.ecoReview.confirming") : tpl("admin.ecoReview.confirmAccept", { amount: impact.totalFinancialImpact.toLocaleString() })}
                 </button>
               )}
             </div>
@@ -539,7 +545,7 @@ export default function EcoReviewDashboard() {
           fontSize: 12, color: "#64748b",
         }}>
           <div>
-            <strong style={{ color: "#94a3b8" }}>Data Sources:</strong>{" "}
+            <strong style={{ color: "#94a3b8" }}>{t("admin.ecoReview.dataSources")}</strong>{" "}
             PLM (engineering_change_orders) × WMS (inventory + warehouse_locations) × ERP (bom_items + materials)
           </div>
           <div>Phase 2.1 — Cross-Domain Fusion · GRT System v4.5</div>

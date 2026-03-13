@@ -36,7 +36,8 @@ async function buScopedEmployeeIds(ctx: any): Promise<number[] | undefined> {
   if (!buFilter) return undefined; // global scope — no filtering
   const db = await requireDb();
   // Get project IDs in user's BU
-  const buProjects = await db.select({ id: projects.id }).from(projects).where(buFilter);
+  const buProjects = await db.select({ id: projects.id }).from(projects).where(buFilter)
+      .limit(1000);
   if (buProjects.length === 0) return [];
   // Get distinct employee IDs who have time entries on those projects
   const rows = await db.selectDistinct({ employeeId: grtTimeEntries.employeeId })
@@ -93,7 +94,7 @@ export const complianceRouter = router({
       return rows[0] ?? null;
     }),
 
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('system:compliance:manage').input(z.object({
     employeeId: z.number().optional(),
     alertType: z.string().max(100).optional(),
     jurisdiction: z.string().max(10).optional(),
@@ -117,7 +118,7 @@ export const complianceRouter = router({
     return { success: true, message: "Alert created" };
   }),
 
-  update: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) }).passthrough()).mutation(async ({ input }) => {
+  update: requirePermission('system:compliance:manage').input(z.object({ id: z.union([z.string(), z.number()]) }).passthrough()).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id);
     if (!id) return { success: true, message: "操作成功" };
@@ -126,7 +127,7 @@ export const complianceRouter = router({
     return { success: true, message: "操作成功" };
   }),
 
-  delete: protectedProcedure
+  delete: requirePermission('system:compliance:manage')
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -178,7 +179,7 @@ export const complianceRouter = router({
     return { success: true, message: "Rule created" };
   }),
 
-  updateRule: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) }).passthrough()).mutation(async ({ input }) => {
+  updateRule: requirePermission('system:compliance:manage').input(z.object({ id: z.union([z.string(), z.number()]) }).passthrough()).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id);
     if (!id) return { success: true, message: "操作成功" };
@@ -190,14 +191,14 @@ export const complianceRouter = router({
     return { success: true, message: "Rule updated" };
   }),
 
-  deleteRule: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]).optional(), ruleId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
+  deleteRule: requirePermission('system:compliance:manage').input(z.object({ id: z.union([z.string(), z.number()]).optional(), ruleId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id ?? input.ruleId);
     if (id) await db.delete(grtComplianceRules).where(eq(grtComplianceRules.id, id));
     return { success: true, message: "Rule deleted" };
   }),
 
-  toggleRuleEnabled: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]).optional(), ruleId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
+  toggleRuleEnabled: requirePermission('system:compliance:manage').input(z.object({ id: z.union([z.string(), z.number()]).optional(), ruleId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id ?? input.ruleId);
     if (!id) return { success: true, message: "操作成功" };
@@ -263,7 +264,7 @@ export const complianceRouter = router({
     return { success: true, message: "Template created" };
   }),
 
-  updateTemplate: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]) }).passthrough()).mutation(async ({ input }) => {
+  updateTemplate: requirePermission('system:compliance:manage').input(z.object({ id: z.union([z.string(), z.number()]) }).passthrough()).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id);
     if (!id) return { success: true, message: "操作成功" };
@@ -273,14 +274,14 @@ export const complianceRouter = router({
     return { success: true, message: "Template updated" };
   }),
 
-  deleteTemplate: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]).optional(), templateId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
+  deleteTemplate: requirePermission('system:compliance:manage').input(z.object({ id: z.union([z.string(), z.number()]).optional(), templateId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id ?? input.templateId);
     if (id) await db.delete(grtComplianceEmailTemplates).where(eq(grtComplianceEmailTemplates.id, id));
     return { success: true, message: "Template deleted" };
   }),
 
-  toggleTemplateEnabled: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]).optional(), templateId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
+  toggleTemplateEnabled: requirePermission('system:compliance:manage').input(z.object({ id: z.union([z.string(), z.number()]).optional(), templateId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
     const db = await requireDb();
     const id = Number(input.id ?? input.templateId);
     if (!id) return { success: true, message: "操作成功" };
@@ -358,7 +359,7 @@ export const complianceRouter = router({
     return { compliant: issues.length === 0, issues, employeeId, jurisdiction: employee.jurisdiction, entriesChecked: entries.length, weeklyTotalHours: +(weeklyTotal / 60).toFixed(2) };
   }),
 
-  triggerComplianceCheck: protectedProcedure.input(z.object({
+  triggerComplianceCheck: requirePermission('system:compliance:manage').input(z.object({
     employeeIds: z.array(z.union([z.string(), z.number()])).optional(),
     employeeId: z.union([z.string(), z.number()]).optional(),
   }).optional()).mutation(async ({ input }) => {
@@ -366,7 +367,8 @@ export const complianceRouter = router({
     let employeeIds: number[] = input?.employeeIds?.map(Number) ?? (input?.employeeId ? [Number(input.employeeId)] : []);
 
     if (employeeIds.length === 0) {
-      const active = await db.select({ id: grtEmployees.id }).from(grtEmployees).where(eq(grtEmployees.isActive, 1));
+      const active = await db.select({ id: grtEmployees.id }).from(grtEmployees).where(eq(grtEmployees.isActive, 1))
+      .limit(1000);
       employeeIds = active.map(e => e.id);
     }
 
@@ -431,8 +433,8 @@ export const complianceRouter = router({
     return { success: true, message: `Compliance check complete. ${alertsCreated} alerts created.`, alertsCreated, employeesChecked: employeeIds.length };
   }),
 
-  runGermanDailyCheckNow: protectedProcedure.mutation(() => ({ success: true, message: "German daily check triggered (stub). Requires external scheduler service." })),
-  runUSWeeklyCheckNow: protectedProcedure.mutation(() => ({ success: true, message: "US weekly check triggered (stub). Requires external scheduler service." })),
+  runGermanDailyCheckNow: requirePermission('system:compliance:manage').mutation(() => ({ success: true, message: "German daily check triggered (stub). Requires external scheduler service." })),
+  runUSWeeklyCheckNow: requirePermission('system:compliance:manage').mutation(() => ({ success: true, message: "US weekly check triggered (stub). Requires external scheduler service." })),
 
   // ==================== Audit Statistics ====================
 
@@ -469,13 +471,13 @@ export const complianceRouter = router({
     return { stats: { total: rows.length, byType, byFormat } };
   }),
 
-  deleteReport: protectedProcedure.input(z.object({ id: z.union([z.string(), z.number()]).optional(), reportId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
+  deleteReport: requirePermission('system:compliance:manage').input(z.object({ id: z.union([z.string(), z.number()]).optional(), reportId: z.union([z.string(), z.number()]).optional() })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(grtComplianceReports).where(eq(grtComplianceReports.id, Number(input.id ?? input.reportId)));
     return { success: true, message: "Report deleted" };
   }),
 
-  exportReport: protectedProcedure.input(z.object({
+  exportReport: requirePermission('system:compliance:manage').input(z.object({
     reportType: z.string().max(50).optional(),
     format: z.string().max(20).optional(),
     jurisdiction: z.string().max(10).optional(),
@@ -675,12 +677,12 @@ export const complianceRouter = router({
     },
   })),
 
-  startSchedulers: protectedProcedure.mutation(() => ({ success: true, message: "Scheduler start requested (stub)." })),
-  stopSchedulers: protectedProcedure.mutation(() => ({ success: true, message: "Scheduler stop requested (stub)." })),
+  startSchedulers: requirePermission('system:compliance:manage').mutation(() => ({ success: true, message: "Scheduler start requested (stub)." })),
+  stopSchedulers: requirePermission('system:compliance:manage').mutation(() => ({ success: true, message: "Scheduler stop requested (stub)." })),
 
   // ==================== Seed Test Data ====================
 
-  seedTestData: protectedProcedure.mutation(async () => {
+  seedTestData: requirePermission('system:compliance:manage').mutation(async () => {
     const db = await requireDb();
 
     // Seed employees

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jsonValue } from "@shared/validators";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { taskExecutionLogs } from "../../drizzle/schema";
 import { eq, desc, count, sql, lt } from "drizzle-orm";
@@ -21,7 +21,7 @@ export const taskExecutionLogRouter = router({
   }),
 
   // 创建日志
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('project:tasks:manage').input(z.object({
     taskId: z.string().optional(),
     taskName: z.string().optional(),
     taskType: z.string().optional(),
@@ -47,7 +47,7 @@ export const taskExecutionLogRouter = router({
   }),
 
   // 更新日志
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('project:tasks:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     status: z.string().optional(),
     endTime: z.string().optional(),
@@ -74,7 +74,7 @@ export const taskExecutionLogRouter = router({
   }),
 
   // 删除日志
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  delete: requirePermission('project:tasks:manage').input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(taskExecutionLogs).where(eq(taskExecutionLogs.id, parseInt(input.id)));
     return { success: true, message: "删除成功" };
@@ -98,7 +98,7 @@ export const taskExecutionLogRouter = router({
   }),
 
   // 导出CSV
-  exportCSV: protectedProcedure.mutation(async () => {
+  exportCSV: requirePermission('project:tasks:manage').mutation(async () => {
     const db = await requireDb();
     const logs = await db.select().from(taskExecutionLogs).orderBy(desc(taskExecutionLogs.createdAt)).limit(1000);
     // Return data for client-side CSV generation
@@ -106,7 +106,7 @@ export const taskExecutionLogRouter = router({
   }),
 
   // 清理旧日志
-  cleanup: protectedProcedure.input(z.object({
+  cleanup: requirePermission('project:tasks:manage').input(z.object({
     daysToKeep: z.number().int().min(1).max(365).optional(),
   }).optional()).mutation(async ({ input }) => {
     const db = await requireDb();

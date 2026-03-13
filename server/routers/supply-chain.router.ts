@@ -10,7 +10,7 @@
 import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   supplierShipmentLabels,
@@ -120,7 +120,7 @@ const supplierLabelRouter = router({
       return label;
     }),
 
-  validate: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  validate: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const numId = toNum(input.id);
     const [label] = await db.select().from(supplierShipmentLabels).where(eq(supplierShipmentLabels.id, numId)).limit(1000);
@@ -138,7 +138,7 @@ const supplierLabelRouter = router({
     return updated;
   }),
 
-  batchValidate: protectedProcedure
+  batchValidate: requirePermission('supply:procurement:manage')
     .input(z.object({ ids: z.array(z.number()) }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -162,7 +162,7 @@ const supplierLabelRouter = router({
       return results;
     }),
 
-  markPrinted: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  markPrinted: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [updated] = await db.update(supplierShipmentLabels).set({
       printCount: sql`${supplierShipmentLabels.printCount} + 1`,
@@ -172,7 +172,7 @@ const supplierLabelRouter = router({
     return updated;
   }),
 
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(supplierShipmentLabels).where(eq(supplierShipmentLabels.id, toNum(input.id)));
     return { success: true };
@@ -276,7 +276,7 @@ const incomingInspectionRouter = router({
       return record;
     }),
 
-  submitResult: protectedProcedure
+  submitResult: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       inspectionResult: z.enum(["PASS", "FAIL", "CONDITIONAL"]),
@@ -332,7 +332,7 @@ const incomingInspectionRouter = router({
     }),
 
   // Auto-reject if test report missing or mismatched
-  rejectReceipt: protectedProcedure
+  rejectReceipt: requirePermission('supply:procurement:manage')
     .input(z.object({ id: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -386,7 +386,7 @@ const incomingInspectionRouter = router({
       return { autoRejected: true, reasons, updated };
     }),
 
-  linkTo8D: protectedProcedure
+  linkTo8D: requirePermission('supply:procurement:manage')
     .input(z.object({
       inspectionId: z.union([z.string(), z.number()]),
       eightDReportId: z.number(),
@@ -418,7 +418,7 @@ const incomingInspectionRouter = router({
     };
   }),
 
-  approve: protectedProcedure
+  approve: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       approvedByName: z.string().optional(),
@@ -432,7 +432,7 @@ const incomingInspectionRouter = router({
       return updated;
     }),
 
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(incomingInspectionRecords).where(eq(incomingInspectionRecords.id, toNum(input.id)));
     return { success: true };
@@ -460,7 +460,7 @@ const assemblyBomScanRouter = router({
     }),
 
   // Core scanning procedure: resolve barcode → BOM match
-  scanAndVerify: protectedProcedure
+  scanAndVerify: requirePermission('supply:procurement:manage')
     .input(z.object({
       projectNumber: z.string(),
       processCode: z.string(),
@@ -558,7 +558,7 @@ const assemblyBomScanRouter = router({
       };
     }),
 
-  confirmDeviation: protectedProcedure
+  confirmDeviation: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       deviationReason: z.string(),
@@ -617,7 +617,7 @@ const assemblyBomScanRouter = router({
     return item ?? null;
   }),
 
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(assemblyBomScanLogs).where(eq(assemblyBomScanLogs.id, toNum(input.id)));
     return { success: true };
@@ -652,7 +652,7 @@ const laborConfirmationRouter = router({
     return item ?? null;
   }),
 
-  clockIn: protectedProcedure
+  clockIn: requirePermission('supply:procurement:manage')
     .input(z.object({
       projectNumber: z.string(),
       processCode: z.string(),
@@ -671,7 +671,7 @@ const laborConfirmationRouter = router({
       return record;
     }),
 
-  clockOut: protectedProcedure
+  clockOut: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       qualityResult: z.string().optional(),
@@ -702,7 +702,7 @@ const laborConfirmationRouter = router({
       return updated;
     }),
 
-  supervisorConfirm: protectedProcedure
+  supervisorConfirm: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
     }))
@@ -753,13 +753,13 @@ const laborConfirmationRouter = router({
     };
   }),
 
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(assemblyLaborConfirmations).where(eq(assemblyLaborConfirmations.id, toNum(input.id)));
     return { success: true };
   }),
 
-  update: protectedProcedure
+  update: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       notes: z.string().optional(),
@@ -848,7 +848,7 @@ const customerComplaintRouter = router({
       return updated;
     }),
 
-  linkTo8D: protectedProcedure
+  linkTo8D: requirePermission('supply:procurement:manage')
     .input(z.object({
       complaintId: z.union([z.string(), z.number()]),
       eightDReportId: z.number(),
@@ -872,7 +872,7 @@ const customerComplaintRouter = router({
       return updated;
     }),
 
-  linkToCAPA: protectedProcedure
+  linkToCAPA: requirePermission('supply:procurement:manage')
     .input(z.object({
       complaintId: z.union([z.string(), z.number()]),
       capaId: z.number(),
@@ -919,7 +919,7 @@ const customerComplaintRouter = router({
     };
   }),
 
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(customerQualityComplaints).where(eq(customerQualityComplaints.id, toNum(input.id)));
     return { success: true };
@@ -952,7 +952,7 @@ const maintenanceRouter = router({
     return item ?? null;
   }),
 
-  create: protectedProcedure
+  create: requirePermission('supply:procurement:manage')
     .input(z.object({
       equipmentId: z.number(),
       equipmentName: z.string().optional(),
@@ -971,7 +971,7 @@ const maintenanceRouter = router({
       return record;
     }),
 
-  start: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  start: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [updated] = await db.update(equipmentMaintenanceRecords).set({
       status: "in_progress",
@@ -1096,7 +1096,8 @@ const scrapDisposalRouter = router({
       if (input.lotNumber) {
         // Look up the lot's numeric ID from inventoryLots
         const [lot] = await db.select({ id: inventoryLots.id }).from(inventoryLots)
-          .where(eq(inventoryLots.lotNumber, input.lotNumber));
+          .where(eq(inventoryLots.lotNumber, input.lotNumber))
+      .limit(1000);
         await db.insert(traceabilityGraphEdges).values({
           fromEntityType: "lot",
           fromEntityId: lot?.id ?? 0,
@@ -1110,7 +1111,7 @@ const scrapDisposalRouter = router({
       return record;
     }),
 
-  update: protectedProcedure
+  update: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       disposalMethod: z.enum(["recycle", "destroy", "return", "salvage"]).optional(),
@@ -1139,7 +1140,7 @@ const scrapDisposalRouter = router({
     return { total: all.length, totalCost, byMethod, replacementNeeded };
   }),
 
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(scrapDisposalRecords).where(eq(scrapDisposalRecords.id, toNum(input.id)));
     return { success: true };
@@ -1159,7 +1160,7 @@ const scrapDisposalRouter = router({
     return Object.fromEntries(byCategory);
   }),
 
-  linkToPenalty: protectedProcedure
+  linkToPenalty: requirePermission('supply:procurement:manage')
     .input(z.object({
       scrapId: z.union([z.string(), z.number()]),
       penaltyId: z.number(),
@@ -1318,7 +1319,7 @@ const sparePartsRouter = router({
       return items;
     }),
 
-  restock: protectedProcedure
+  restock: requirePermission('supply:procurement:manage')
     .input(z.object({
       sparePartId: z.number(),
       quantity: z.number(),
@@ -1419,7 +1420,7 @@ const supplierPenaltyRouter = router({
       return { penalty, escalation, occurrenceCount };
     }),
 
-  resolve: protectedProcedure
+  resolve: requirePermission('supply:procurement:manage')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
     }))
@@ -1479,7 +1480,7 @@ const supplierPenaltyRouter = router({
     return { total: all.length, active, resolved: all.length - active, blacklisted, byType };
   }),
 
-  delete: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  delete: requirePermission('supply:procurement:manage').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(supplierPenalties).where(eq(supplierPenalties.id, toNum(input.id)));
     return { success: true };

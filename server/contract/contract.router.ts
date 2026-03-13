@@ -7,7 +7,7 @@
  * - contract.analyzeDocument / getAnalysis / getAnalysesByContract / applyAnalysis
  */
 
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { z } from "zod";
 import {
   listContracts,
@@ -102,7 +102,7 @@ export const contractRouter = router({
       return updateContract(id, data);
     }),
 
-  delete: protectedProcedure
+  delete: requirePermission('crm:contracts:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return deleteContract(input.id);
@@ -116,7 +116,7 @@ export const contractRouter = router({
   // W2-05: Sign Contract → Auto-Create Project
   // ============================================================
 
-  signContract: protectedProcedure
+  signContract: requirePermission('crm:contracts:manage')
     .input(
       z.object({
         id: z.number(),
@@ -184,7 +184,7 @@ export const contractRouter = router({
       return getDocuments(input.contractId, input.docType);
     }),
 
-  deleteDocument: protectedProcedure
+  deleteDocument: requirePermission('crm:contracts:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return deleteDocument(input.id);
@@ -194,7 +194,7 @@ export const contractRouter = router({
   // P2: AI Document Analysis
   // ============================================================
 
-  analyzeDocument: protectedProcedure
+  analyzeDocument: requirePermission('crm:contracts:manage')
     .input(z.object({ documentId: z.number() }))
     .mutation(async ({ input }) => {
       return analyzeDocument(input.documentId);
@@ -212,7 +212,7 @@ export const contractRouter = router({
       return getAnalysesByContract(input.contractId);
     }),
 
-  applyAnalysis: protectedProcedure
+  applyAnalysis: requirePermission('crm:contracts:manage')
     .input(z.object({ analysisId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       return applyAnalysis(input.analysisId, ctx.user.id);

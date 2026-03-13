@@ -36,7 +36,7 @@ const systemModules = [
     color: "bg-blue-500",
     tables: ["crm_customers", "crm_contacts", "crm_opportunities"],
     entities: ["Customer", "Contact", "Opportunity"],
-    jiandaoyunMapping: "M0客户管理、商机管理",
+    extSyncMapping: "M0客户管理、商机管理",
     version: "v1.1",
     status: "planned"
   },
@@ -48,7 +48,7 @@ const systemModules = [
     color: "bg-green-500",
     tables: ["pm_projects", "pm_tasks", "pm_milestones"],
     entities: ["Project", "Task", "Milestone"],
-    jiandaoyunMapping: "M0-M12全生命周期",
+    extSyncMapping: "M0-M12全生命周期",
     version: "v1.2",
     status: "planned"
   },
@@ -60,7 +60,7 @@ const systemModules = [
     color: "bg-yellow-500",
     tables: ["cost_budgets", "cost_expenses", "cost_invoices"],
     entities: ["Budget", "Expense", "Invoice"],
-    jiandaoyunMapping: "项目收支、财务管理",
+    extSyncMapping: "项目收支、财务管理",
     version: "v1.3",
     status: "planned"
   },
@@ -72,7 +72,7 @@ const systemModules = [
     color: "bg-purple-500",
     tables: ["hr_employees", "hr_attendance", "hr_performance"],
     entities: ["Employee", "Attendance", "Performance"],
-    jiandaoyunMapping: "人事OA系统",
+    extSyncMapping: "人事OA系统",
     version: "v2.2",
     status: "planned"
   },
@@ -84,7 +84,7 @@ const systemModules = [
     color: "bg-orange-500",
     tables: ["scm_suppliers", "scm_purchase_orders", "scm_inventory"],
     entities: ["Supplier", "PurchaseOrder", "Inventory"],
-    jiandaoyunMapping: "采购、库存管理",
+    extSyncMapping: "采购、库存管理",
     version: "v3.0",
     status: "planned"
   },
@@ -96,7 +96,7 @@ const systemModules = [
     color: "bg-pink-500",
     tables: ["ai_chat_sessions", "ai_chat_messages", "ai_bant_scores"],
     entities: ["ChatSession", "Message", "BANTScore"],
-    jiandaoyunMapping: "AI销售助手",
+    extSyncMapping: "AI销售助手",
     version: "v2.0",
     status: "planned"
   },
@@ -108,7 +108,7 @@ const systemModules = [
     color: "bg-cyan-500",
     tables: ["iot_devices", "iot_uwb_locations", "iot_work_hours"],
     entities: ["Device", "Location", "WorkHour"],
-    jiandaoyunMapping: "UWB定位、CCD检测",
+    extSyncMapping: "UWB定位、CCD检测",
     version: "v2.1",
     status: "planned"
   }
@@ -221,8 +221,8 @@ export default function ArchitecturePlan() {
           icon={Layers}
           title={language === 'zh' ? '系统架构规划' : 'Architecture Plan'}
           description={language === 'zh'
-            ? '基于localhost:3000的科学化系统架构，整合简道云数据结构，便于Claude Code实施'
-            : 'Scientific system architecture based on localhost:3000, integrating Jiandaoyun data structure for Claude Code implementation'}
+            ? '基于localhost:3000的科学化系统架构，整合外部数据平台数据结构，便于Claude Code实施'
+            : 'Scientific system architecture based on localhost:3000, integrating External Sync data structure for Claude Code implementation'}
           actions={
             <>
               <Link href="/docs/guide">
@@ -436,9 +436,9 @@ export default function ArchitecturePlan() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">
-                        {language === 'zh' ? '简道云映射' : 'Jiandaoyun Mapping'}
+                        {language === 'zh' ? '外部数据平台映射' : 'External Sync Mapping'}
                       </p>
-                      <p className="text-sm text-primary">{module.jiandaoyunMapping}</p>
+                      <p className="text-sm text-primary">{module.extSyncMapping}</p>
                     </div>
                   </CardContent>
                 </Card>

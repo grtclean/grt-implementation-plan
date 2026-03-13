@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import { protectedProcedure, router } from '../_core/trpc';
+import {protectedProcedure, router, requirePermission} from '../_core/trpc';
 import { requireDb } from '../db';
 import { sql } from 'drizzle-orm';
 import * as wecomService from '../services/wecom.service';
@@ -139,7 +139,7 @@ export const socialPlatformConfigRouter = router({
   /**
    * 保存企业微信配置
    */
-  saveWeComConfig: protectedProcedure
+  saveWeComConfig: requirePermission('system:dingtalk:config')
     .input(z.object({
       config: WeComConfigSchema,
       webhookUrl: z.string().optional(),
@@ -170,7 +170,7 @@ export const socialPlatformConfigRouter = router({
   /**
    * 保存钉钉配置
    */
-  saveDingTalkConfig: protectedProcedure
+  saveDingTalkConfig: requirePermission('system:dingtalk:config')
     .input(z.object({
       config: DingTalkConfigSchema,
     }))
@@ -199,7 +199,7 @@ export const socialPlatformConfigRouter = router({
   /**
    * 保存飞书配置
    */
-  saveFeishuConfig: protectedProcedure
+  saveFeishuConfig: requirePermission('system:dingtalk:config')
     .input(z.object({
       config: FeishuConfigSchema,
       webhookUrl: z.string().optional(),
@@ -228,7 +228,7 @@ export const socialPlatformConfigRouter = router({
   /**
    * 启用/禁用平台
    */
-  togglePlatform: protectedProcedure
+  togglePlatform: requirePermission('system:dingtalk:config')
     .input(z.object({
       platform: PlatformEnum,
       enabled: z.boolean(),
@@ -252,7 +252,7 @@ export const socialPlatformConfigRouter = router({
   /**
    * 测试平台连接
    */
-  testConnection: protectedProcedure
+  testConnection: requirePermission('system:dingtalk:config')
     .input(z.object({ platform: PlatformEnum }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -323,7 +323,7 @@ export const socialPlatformConfigRouter = router({
   /**
    * 同步平台数据
    */
-  syncData: protectedProcedure
+  syncData: requirePermission('system:dingtalk:config')
     .input(z.object({ platform: PlatformEnum }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -410,7 +410,7 @@ export const socialPlatformConfigRouter = router({
   /**
    * 删除平台配置
    */
-  deleteConfig: protectedProcedure
+  deleteConfig: requirePermission('system:dingtalk:config')
     .input(z.object({ platform: PlatformEnum }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -427,7 +427,7 @@ export const socialPlatformConfigRouter = router({
   /**
    * 发送测试消息
    */
-  sendTestMessage: protectedProcedure
+  sendTestMessage: requirePermission('system:dingtalk:config')
     .input(z.object({
       platform: PlatformEnum,
       message: z.string().min(1, '消息内容不能为空'),

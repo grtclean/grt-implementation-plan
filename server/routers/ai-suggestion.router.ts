@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { aiProcessSuggestions, aiSuggestionExecutionLogs } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -34,7 +34,7 @@ export const aiSuggestionRouter = router({
    * generateSuggestion — async LLM-powered process improvement suggestion
    * Submits to task queue, returns taskId for polling via getSuggestionStatus.
    */
-  generateSuggestion: protectedProcedure.input(z.object({
+  generateSuggestion: requirePermission('ai:hub:access').input(z.object({
     processType: z.string(),
     processId: z.string().optional(),
     stepCode: z.string().optional(),
@@ -75,7 +75,7 @@ export const aiSuggestionRouter = router({
     return { taskStatus: task.status as "pending" | "processing", suggestion: null, id: null };
   }),
 
-  applySuggestion: protectedProcedure.input(z.union([
+  applySuggestion: requirePermission('ai:hub:access').input(z.union([
     z.number(),
     z.string(),
     z.object({
@@ -111,7 +111,7 @@ export const aiSuggestionRouter = router({
     return { success: true, data: log };
   }),
 
-  recordFeedback: protectedProcedure.input(z.object({
+  recordFeedback: requirePermission('ai:hub:access').input(z.object({
     suggestionId: z.union([z.string(), z.number()]),
     result: z.string().optional(),
     isPositive: z.boolean().optional(),

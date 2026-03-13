@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { sql } from "drizzle-orm";
@@ -101,7 +101,7 @@ export const workspaceRouter = router({
     }),
 
   // 创建工作区
-  create: protectedProcedure
+  create: requirePermission('workspace:preferences:manage')
     .input(z.object({
       name: z.string().min(1).max(200),
       description: z.string().optional(),
@@ -120,7 +120,7 @@ export const workspaceRouter = router({
       `);
 
       // 获取新创建的工作区ID
-      const idResult = await db.execute(sql`SELECT LAST_INSERT_ID() as id`);
+      const idResult = await db.execute(sql`SELECT LAST_INSERT_ID() as id LIMIT 1000`);
       const workspaceId = (idResult[0] as any[])[0]?.id;
 
       // 添加创建者为owner成员
@@ -139,7 +139,7 @@ export const workspaceRouter = router({
     }),
 
   // 更新工作区
-  update: protectedProcedure
+  update: requirePermission('workspace:preferences:manage')
     .input(z.object({
       id: z.number(),
       name: z.string().min(1).max(200).optional(),
@@ -187,7 +187,7 @@ export const workspaceRouter = router({
     }),
 
   // 删除工作区
-  delete: protectedProcedure
+  delete: requirePermission('workspace:preferences:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -230,7 +230,7 @@ export const workspaceRouter = router({
     }),
 
   // 添加成员
-  addMember: protectedProcedure
+  addMember: requirePermission('workspace:preferences:manage')
     .input(z.object({
       workspaceId: z.number(),
       userId: z.number(),
@@ -275,7 +275,7 @@ export const workspaceRouter = router({
     }),
 
   // 移除成员
-  removeMember: protectedProcedure
+  removeMember: requirePermission('workspace:preferences:manage')
     .input(z.object({
       workspaceId: z.number(),
       userId: z.number(),
@@ -365,7 +365,7 @@ export const workspaceRouter = router({
         UPDATE workspaces SET documents_count = documents_count + 1, last_activity_at = NOW() WHERE id = ${input.workspaceId}
       `);
 
-      const idResult = await db.execute(sql`SELECT LAST_INSERT_ID() as id`);
+      const idResult = await db.execute(sql`SELECT LAST_INSERT_ID() as id LIMIT 1000`);
       return { id: (idResult[0] as any[])[0]?.id, success: true };
     }),
 
@@ -421,12 +421,12 @@ export const workspaceRouter = router({
         UPDATE workspaces SET tasks_count = tasks_count + 1, last_activity_at = NOW() WHERE id = ${input.workspaceId}
       `);
 
-      const idResult = await db.execute(sql`SELECT LAST_INSERT_ID() as id`);
+      const idResult = await db.execute(sql`SELECT LAST_INSERT_ID() as id LIMIT 1000`);
       return { id: (idResult[0] as any[])[0]?.id, success: true };
     }),
 
   // 更新任务状态
-  updateTaskStatus: protectedProcedure
+  updateTaskStatus: requirePermission('workspace:preferences:manage')
     .input(z.object({
       taskId: z.number(),
       status: z.enum(['pending', 'in_progress', 'review', 'completed', 'cancelled']),
@@ -505,7 +505,7 @@ export const workspaceRouter = router({
         UPDATE workspaces SET last_activity_at = NOW() WHERE id = ${input.workspaceId}
       `);
 
-      const idResult = await db.execute(sql`SELECT LAST_INSERT_ID() as id`);
+      const idResult = await db.execute(sql`SELECT LAST_INSERT_ID() as id LIMIT 1000`);
       return { id: (idResult[0] as any[])[0]?.id, success: true };
     }),
 
@@ -573,7 +573,7 @@ export const workspaceRouter = router({
     }),
 
   // 通过邮箱邀请成员
-  inviteMember: protectedProcedure
+  inviteMember: requirePermission('workspace:preferences:manage')
     .input(z.object({
       workspaceId: z.number(),
       email: z.string().email(),
@@ -636,7 +636,7 @@ export const workspaceRouter = router({
     }),
 
   // 更新成员角色
-  updateMemberRole: protectedProcedure
+  updateMemberRole: requirePermission('workspace:preferences:manage')
     .input(z.object({
       workspaceId: z.number(),
       userId: z.number(),

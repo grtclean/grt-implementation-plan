@@ -32,15 +32,17 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { StatCard } from "@/components/grt";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const SIGNAL_TYPES: Record<string, { label: string; icon: typeof Star; color: string }> = {
-  promotion_ready: { label: "晋升就绪", icon: Star, color: "text-amber-600" },
-  training_needed: { label: "需要培训", icon: GraduationCap, color: "text-blue-600" },
-  declining_engagement: { label: "参与度下降", icon: TrendingDown, color: "text-red-600" },
-  leadership_emerging: { label: "领导力涌现", icon: UserCheck, color: "text-green-600" },
+const SIGNAL_TYPES: Record<string, { labelKey: string; icon: typeof Star; color: string }> = {
+  promotion_ready: { labelKey: "meeting.hrSignals.promotionReady", icon: Star, color: "text-amber-600" },
+  training_needed: { labelKey: "meeting.hrSignals.trainingNeeded", icon: GraduationCap, color: "text-blue-600" },
+  declining_engagement: { labelKey: "meeting.hrSignals.decliningEngagement", icon: TrendingDown, color: "text-red-600" },
+  leadership_emerging: { labelKey: "meeting.hrSignals.leadershipEmerging", icon: UserCheck, color: "text-green-600" },
 };
 
 export function HrSignalsTab() {
+  const { t } = useLanguage();
   const [department, setDepartment] = useState("");
   const [signalType, setSignalType] = useState("");
   const [minConfidence, setMinConfidence] = useState(0.5);
@@ -74,7 +76,7 @@ export function HrSignalsTab() {
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-3 items-end">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">生成信号 — 员工ID</label>
+              <label className="text-sm font-medium">{t("meeting.hrSignals.generateLabel")}</label>
               <Input
                 value={generateEmployeeId}
                 onChange={(e) => setGenerateEmployeeId(e.target.value)}
@@ -93,12 +95,12 @@ export function HrSignalsTab() {
               ) : (
                 <Sparkles className="h-4 w-4 mr-2" />
               )}
-              生成信号
+              {t("meeting.hrSignals.generateBtn")}
             </Button>
           </div>
           {generateMutation.data && (
             <div className="mt-3 text-sm text-muted-foreground">
-              为 {(generateMutation.data as any).employeeName} 生成了 {((generateMutation.data as any).signals || []).length} 个信号
+              {t("meeting.hrSignals.generatedFor")} {(generateMutation.data as any).employeeName} {((generateMutation.data as any).signals || []).length} {t("meeting.hrSignals.generatedSignals")}
             </div>
           )}
         </CardContent>
@@ -110,31 +112,31 @@ export function HrSignalsTab() {
           <div className="flex flex-wrap gap-4 items-end">
             <div className="space-y-1.5">
               <label className="text-sm font-medium flex items-center gap-1">
-                <Filter className="h-3.5 w-3.5" /> 部门
+                <Filter className="h-3.5 w-3.5" /> {t("meeting.hrSignals.department")}
               </label>
               <Input
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
-                placeholder="全部"
+                placeholder={t("meeting.hrSignals.allPlaceholder")}
                 className="w-[140px]"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">信号类型</label>
+              <label className="text-sm font-medium">{t("meeting.hrSignals.signalType")}</label>
               <Select value={signalType || "__all__"} onValueChange={(v) => setSignalType(v === "__all__" ? "" : v)}>
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="全部" />
+                  <SelectValue placeholder={t("meeting.hrSignals.allPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">全部</SelectItem>
-                  {Object.entries(SIGNAL_TYPES).map(([key, { label }]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  <SelectItem value="__all__">{t("meeting.hrSignals.allPlaceholder")}</SelectItem>
+                  {Object.entries(SIGNAL_TYPES).map(([key, { labelKey }]) => (
+                    <SelectItem key={key} value={key}>{t(labelKey)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5 min-w-[200px]">
-              <label className="text-sm font-medium">最低置信度: {minConfidence.toFixed(1)}</label>
+              <label className="text-sm font-medium">{t("meeting.hrSignals.minConfidence")}: {minConfidence.toFixed(1)}</label>
               <Slider
                 value={[minConfidence]}
                 onValueChange={([v]) => setMinConfidence(v)}
@@ -150,11 +152,11 @@ export function HrSignalsTab() {
 
       {/* Signal Type Count Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {Object.entries(SIGNAL_TYPES).map(([key, { label, icon, color }]) => (
+        {Object.entries(SIGNAL_TYPES).map(([key, { labelKey, icon, color }]) => (
           <StatCard
             key={key}
             icon={icon}
-            label={label}
+            label={t(labelKey)}
             value={typeCounts[key] || 0}
             subtitle={key}
             iconColor={color}
@@ -165,7 +167,7 @@ export function HrSignalsTab() {
       {/* Signals Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">HR 信号列表</CardTitle>
+          <CardTitle className="text-base">{t("meeting.hrSignals.signalList")}</CardTitle>
           <CardDescription>{signals.length} signals found</CardDescription>
         </CardHeader>
         <CardContent>
@@ -173,18 +175,18 @@ export function HrSignalsTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>员工</TableHead>
-                  <TableHead>部门</TableHead>
-                  <TableHead className="text-center">信号类型</TableHead>
-                  <TableHead className="text-center">置信度</TableHead>
-                  <TableHead className="text-center">状态</TableHead>
-                  <TableHead>操作</TableHead>
+                  <TableHead>{t("meeting.hrSignals.employee")}</TableHead>
+                  <TableHead>{t("meeting.hrSignals.department")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.hrSignals.signalType")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.hrSignals.confidence")}</TableHead>
+                  <TableHead className="text-center">{t("meeting.hrSignals.statusLabel")}</TableHead>
+                  <TableHead>{t("meeting.hrSignals.actions")}</TableHead>
                   <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {signals.map((s: any) => {
-                  const typeInfo = SIGNAL_TYPES[s.signal_type] || { label: s.signal_type, color: "text-gray-600" };
+                  const typeInfo = SIGNAL_TYPES[s.signal_type] || { labelKey: "", color: "text-gray-600" };
                   const isExpanded = expandedId === s.id;
 
                   return (
@@ -193,7 +195,7 @@ export function HrSignalsTab() {
                         <TableCell className="font-medium">{s.employee_name || s.employee_id}</TableCell>
                         <TableCell className="text-sm">{s.department || "—"}</TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="outline" className={typeInfo.color}>{typeInfo.label}</Badge>
+                          <Badge variant="outline" className={typeInfo.color}>{typeInfo.labelKey ? t(typeInfo.labelKey) : s.signal_type}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant={Number(s.confidence) >= 0.8 ? "default" : "secondary"}>
@@ -213,7 +215,7 @@ export function HrSignalsTab() {
                                   className="h-7 text-xs"
                                   onClick={(e) => { e.stopPropagation(); updateStatusMutation.mutate({ signalId: s.id, status: "acknowledged" }); }}
                                 >
-                                  确认
+                                  {t("meeting.hrSignals.acknowledge")}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -221,7 +223,7 @@ export function HrSignalsTab() {
                                   className="h-7 text-xs text-muted-foreground"
                                   onClick={(e) => { e.stopPropagation(); updateStatusMutation.mutate({ signalId: s.id, status: "dismissed" }); }}
                                 >
-                                  忽略
+                                  {t("meeting.hrSignals.dismiss")}
                                 </Button>
                               </>
                             )}
@@ -237,20 +239,20 @@ export function HrSignalsTab() {
                             <div className="p-3 space-y-2 text-sm">
                               {s.suggested_action && (
                                 <div>
-                                  <span className="font-medium">建议操作: </span>
+                                  <span className="font-medium">{t("meeting.hrSignals.suggestedAction")}: </span>
                                   <span className="text-muted-foreground">{s.suggested_action}</span>
                                 </div>
                               )}
                               {s.evidence && (
                                 <div>
-                                  <span className="font-medium">证据: </span>
+                                  <span className="font-medium">{t("meeting.hrSignals.evidence")}: </span>
                                   <pre className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap bg-muted/50 p-2 rounded">
                                     {typeof s.evidence === "string" ? s.evidence : JSON.stringify(s.evidence, null, 2)}
                                   </pre>
                                 </div>
                               )}
                               <div className="text-xs text-muted-foreground">
-                                创建于: {new Date(s.created_at).toLocaleString()}
+                                {t("meeting.hrSignals.createdAt")}: {new Date(s.created_at).toLocaleString()}
                               </div>
                             </div>
                           </TableCell>
@@ -264,8 +266,8 @@ export function HrSignalsTab() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <UserCheck className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>暂无HR信号</p>
-              <p className="text-sm">输入员工ID并点击"生成信号"</p>
+              <p>{t("meeting.hrSignals.noSignals")}</p>
+              <p className="text-sm">{t("meeting.hrSignals.noSignalsDesc")}</p>
             </div>
           )}
         </CardContent>

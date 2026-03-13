@@ -11,58 +11,59 @@ import {
   Rocket, GitBranch, ShieldCheck, Lock, Brain,
 } from "lucide-react";
 import BrandLogo from "@/components/common/BrandLogo";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ─── Slide Data ─────────────────────────────────────────────
 
-interface Slide {
-  title: string;
-  content: string;
+interface SlideConfig {
+  titleKey: string;
+  contentKey: string;
   icon: React.ComponentType<any>;
-  accent: string;       // gradient from
-  accentTo: string;     // gradient to
-  highlight: string;    // key metric or phrase
+  accent: string;
+  accentTo: string;
+  highlightKey: string;
 }
 
-const SLIDES: Slide[] = [
+const SLIDE_CONFIGS: SlideConfig[] = [
   {
-    title: "重塑基因 —— GRT 迈向世界级AI制造数字底座",
-    content: "告别数据孤岛与表哥表姐。目标：对标世界500强与IATF 16949标准。",
+    titleKey: "manufacturing.morningPresent.slide1Title",
+    contentKey: "manufacturing.morningPresent.slide1Content",
     icon: Rocket,
     accent: "#0078d4",
     accentTo: "#106ebe",
-    highlight: "世界级AI制造数字底座",
+    highlightKey: "manufacturing.morningPresent.slide1Highlight",
   },
   {
-    title: "核心战果 1：M0-M12 全生命周期贯通",
-    content: "一次录入，全程流转。161个核心字段、28张业务表单全面数字化，打破部门墙。",
+    titleKey: "manufacturing.morningPresent.slide2Title",
+    contentKey: "manufacturing.morningPresent.slide2Content",
     icon: GitBranch,
     accent: "#0078d4",
     accentTo: "#00b7c3",
-    highlight: "161个核心字段 · 28张表单",
+    highlightKey: "manufacturing.morningPresent.slide2Highlight",
   },
   {
-    title: "核心战果 2：车间质量防线 (Quality Guard)",
-    content: "全员能力矩阵底座。AI智能防呆拦截：核心工位技能不达标（如L1），系统瞬间拉响红灯并物理拦截，扼杀不良品。",
+    titleKey: "manufacturing.morningPresent.slide3Title",
+    contentKey: "manufacturing.morningPresent.slide3Content",
     icon: ShieldCheck,
     accent: "#d83b01",
     accentTo: "#ea4300",
-    highlight: "AI智能防呆 · 零不良品",
+    highlightKey: "manufacturing.morningPresent.slide3Highlight",
   },
   {
-    title: "核心战果 3：军工级数据安全底座",
-    content: "三塔架构与零信任隔离：1.生产金库(绝对断网) 2.开发沙盒 3.AI物理网关。图纸与配方100%安全。",
+    titleKey: "manufacturing.morningPresent.slide4Title",
+    contentKey: "manufacturing.morningPresent.slide4Content",
     icon: Lock,
     accent: "#107c10",
     accentTo: "#0b6a0b",
-    highlight: "三塔架构 · 零信任隔离",
+    highlightKey: "manufacturing.morningPresent.slide4Highlight",
   },
   {
-    title: "展望未来：AI 孪生指挥舱",
-    content: "数字员工后台极限推演。管理模式从'事后救火'跨入'事前推演'的AI时代！",
+    titleKey: "manufacturing.morningPresent.slide5Title",
+    contentKey: "manufacturing.morningPresent.slide5Content",
     icon: Brain,
     accent: "#5c2d91",
     accentTo: "#8661c5",
-    highlight: "事前推演 · AI时代",
+    highlightKey: "manufacturing.morningPresent.slide5Highlight",
   },
 ];
 
@@ -83,13 +84,14 @@ function exitFullscreen() {
 // ═══════════════════════════════════════════════════════════
 
 export default function MorningMeetingPresentation() {
+  const { t } = useLanguage();
   const [current, setCurrent] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const slide = SLIDES[current];
-  const Icon = slide.icon;
-  const total = SLIDES.length;
+  const slideConfig = SLIDE_CONFIGS[current];
+  const Icon = slideConfig.icon;
+  const total = SLIDE_CONFIGS.length;
 
   // ── Fullscreen state sync ──────────────────────────────
   useEffect(() => {
@@ -144,7 +146,7 @@ export default function MorningMeetingPresentation() {
         <div className="flex items-center gap-3">
           <BrandLogo size="sm" variant="icon" theme="dark" />
           <span className="text-sm font-medium text-white/70 tracking-wide">
-            GRT 晨会专栏
+            {t("manufacturing.morningPresent.topBarLabel")}
           </span>
           <span className="text-xs text-white/40 font-mono">
             {new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" })}
@@ -161,12 +163,12 @@ export default function MorningMeetingPresentation() {
             {isFullscreen ? (
               <>
                 <Minimize className="w-4 h-4" />
-                退出全屏
+                {t("manufacturing.morningPresent.exitFullscreen")}
               </>
             ) : (
               <>
                 <Maximize className="w-4 h-4" />
-                进入全屏演讲模式
+                {t("manufacturing.morningPresent.enterFullscreen")}
               </>
             )}
           </button>
@@ -179,7 +181,7 @@ export default function MorningMeetingPresentation() {
           className="h-full transition-all duration-500 ease-out"
           style={{
             width: `${progress}%`,
-            background: `linear-gradient(90deg, ${slide.accent}, ${slide.accentTo})`,
+            background: `linear-gradient(90deg, ${slideConfig.accent}, ${slideConfig.accentTo})`,
           }}
         />
       </div>
@@ -199,7 +201,7 @@ export default function MorningMeetingPresentation() {
         <div
           className="absolute inset-0 opacity-15 pointer-events-none"
           style={{
-            background: `radial-gradient(ellipse at 60% 50%, ${slide.accent} 0%, transparent 70%)`,
+            background: `radial-gradient(ellipse at 60% 50%, ${slideConfig.accent} 0%, transparent 70%)`,
           }}
         />
 
@@ -208,7 +210,7 @@ export default function MorningMeetingPresentation() {
           <div
             className="w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center shadow-2xl"
             style={{
-              background: `linear-gradient(135deg, ${slide.accent}, ${slide.accentTo})`,
+              background: `linear-gradient(135deg, ${slideConfig.accent}, ${slideConfig.accentTo})`,
             }}
           >
             <Icon className="w-10 h-10 md:w-12 md:h-12 text-white" />
@@ -217,25 +219,25 @@ export default function MorningMeetingPresentation() {
 
         {/* Title */}
         <h1 className="relative z-10 text-3xl md:text-5xl lg:text-6xl font-bold text-center leading-tight mb-8 max-w-[1200px]">
-          {slide.title}
+          {t(slideConfig.titleKey)}
         </h1>
 
         {/* Highlight Metric */}
         <div
           className="relative z-10 inline-flex items-center gap-2 px-6 py-3 rounded-full text-lg md:text-2xl font-bold mb-8"
           style={{
-            background: `linear-gradient(135deg, ${slide.accent}33, ${slide.accentTo}22)`,
-            border: `2px solid ${slide.accent}88`,
+            background: `linear-gradient(135deg, ${slideConfig.accent}33, ${slideConfig.accentTo}22)`,
+            border: `2px solid ${slideConfig.accent}88`,
           }}
         >
-          <span style={{ color: slide.accentTo === "#ea4300" ? "#ff6a33" : slide.accentTo }}>
-            {slide.highlight}
+          <span style={{ color: slideConfig.accentTo === "#ea4300" ? "#ff6a33" : slideConfig.accentTo }}>
+            {t(slideConfig.highlightKey)}
           </span>
         </div>
 
         {/* Content */}
         <p className="relative z-10 text-xl md:text-2xl lg:text-3xl text-white/80 text-center leading-relaxed max-w-[1000px]">
-          {slide.content}
+          {t(slideConfig.contentKey)}
         </p>
       </div>
 
@@ -248,12 +250,12 @@ export default function MorningMeetingPresentation() {
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-20 disabled:cursor-not-allowed hover:bg-white/10"
         >
           <ChevronLeft className="w-5 h-5" />
-          上一页
+          {t("manufacturing.morningPresent.prevPage")}
         </button>
 
         {/* Slide dots */}
         <div className="flex items-center gap-2">
-          {SLIDES.map((s, i) => (
+          {SLIDE_CONFIGS.map((s, i) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}
@@ -262,7 +264,7 @@ export default function MorningMeetingPresentation() {
                   ? "scale-125"
                   : "bg-white/30 hover:bg-white/50"
               }`}
-              style={i === current ? { background: `linear-gradient(135deg, ${slide.accent}, ${slide.accentTo})` } : undefined}
+              style={i === current ? { background: `linear-gradient(135deg, ${slideConfig.accent}, ${slideConfig.accentTo})` } : undefined}
             />
           ))}
         </div>
@@ -273,7 +275,7 @@ export default function MorningMeetingPresentation() {
           disabled={current === total - 1}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-20 disabled:cursor-not-allowed hover:bg-white/10"
         >
-          下一页
+          {t("manufacturing.morningPresent.nextPage")}
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
@@ -281,7 +283,7 @@ export default function MorningMeetingPresentation() {
       {/* ── Keyboard hint (only when not fullscreen) ───── */}
       {!isFullscreen && (
         <div className="text-center py-2 text-xs text-white/30">
-          快捷键：← → 翻页 · F 全屏 · ESC 退出全屏 · 点击画面左/右侧翻页
+          {t("manufacturing.morningPresent.keyboardHint")}
         </div>
       )}
     </div>

@@ -827,7 +827,7 @@ describe("evaluateSupplierRisk — GRT real-world scenario", () => {
 
 describe("supplierRisk.dashboard", () => {
   it("returns all suppliers with risk evaluations", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.dashboard();
 
     expect(result).toHaveProperty("suppliers");
@@ -838,7 +838,7 @@ describe("supplierRisk.dashboard", () => {
   });
 
   it("includes correct summary counts", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.dashboard();
     const { summary } = result;
 
@@ -851,7 +851,7 @@ describe("supplierRisk.dashboard", () => {
   });
 
   it("sorts suppliers: RESTRICTED first, then WARNING, then ACTIVE", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.dashboard();
 
     const statusOrder: Record<SupplierRiskStatus, number> = {
@@ -871,7 +871,7 @@ describe("supplierRisk.dashboard", () => {
   });
 
   it("each supplier has required risk evaluation fields", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.dashboard();
 
     for (const s of result.suppliers) {
@@ -892,7 +892,7 @@ describe("supplierRisk.dashboard", () => {
   });
 
   it("includes at least one RESTRICTED supplier (Dongguan HuaTai)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.dashboard();
 
     const restricted = result.suppliers.filter(
@@ -903,7 +903,7 @@ describe("supplierRisk.dashboard", () => {
   });
 
   it("includes at least one ACTIVE supplier (Bosch/Siemens)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.dashboard();
 
     const active = result.suppliers.filter((s) => s.status === "ACTIVE");
@@ -912,7 +912,7 @@ describe("supplierRisk.dashboard", () => {
   });
 
   it("generatedAt is a valid ISO date string", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.dashboard();
 
     expect(new Date(result.generatedAt).toISOString()).toBe(
@@ -930,7 +930,7 @@ describe("supplierRisk.dashboard", () => {
 
 describe("supplierRisk.evaluateOne", () => {
   it("returns found=true with evaluation for known supplier ID", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.evaluateOne({ supplierId: 1 });
 
     expect(result.found).toBe(true);
@@ -944,7 +944,7 @@ describe("supplierRisk.evaluateOne", () => {
   });
 
   it("returns found=false for unknown supplier ID", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.evaluateOne({ supplierId: 9999 });
 
     expect(result.found).toBe(false);
@@ -955,7 +955,7 @@ describe("supplierRisk.evaluateOne", () => {
   });
 
   it("evaluates Bosch (ID 1) as ACTIVE with high score", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.evaluateOne({ supplierId: 1 });
 
     expect(result.found).toBe(true);
@@ -967,7 +967,7 @@ describe("supplierRisk.evaluateOne", () => {
   });
 
   it("evaluates Dongguan HuaTai (ID 3) as RESTRICTED", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.evaluateOne({ supplierId: 3 });
 
     expect(result.found).toBe(true);
@@ -979,7 +979,7 @@ describe("supplierRisk.evaluateOne", () => {
   });
 
   it("evaluates Siemens (ID 4) as ACTIVE (new supplier, limited data)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.evaluateOne({ supplierId: 4 });
 
     expect(result.found).toBe(true);
@@ -991,7 +991,7 @@ describe("supplierRisk.evaluateOne", () => {
   });
 
   it("returns full inspection window in result for known supplier", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.evaluateOne({ supplierId: 2 });
 
     expect(result.found).toBe(true);
@@ -1015,7 +1015,7 @@ describe("supplierRisk.evaluateOne", () => {
 
 describe("supplierRisk.override", () => {
   it("succeeds with correct CEO PIN", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.override({
       supplierId: 3,
       ceoPin: "888888",
@@ -1035,7 +1035,7 @@ describe("supplierRisk.override", () => {
   });
 
   it("fails with wrong CEO PIN", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.override({
       supplierId: 3,
       ceoPin: "000000",
@@ -1050,7 +1050,7 @@ describe("supplierRisk.override", () => {
   });
 
   it("fails with short PIN (validation error)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.supplierRisk.override({
         supplierId: 3,
@@ -1061,7 +1061,7 @@ describe("supplierRisk.override", () => {
   });
 
   it("fails with empty reason (validation error)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.supplierRisk.override({
         supplierId: 3,
@@ -1072,7 +1072,7 @@ describe("supplierRisk.override", () => {
   });
 
   it("override timestamp is a valid ISO date string", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.override({
       supplierId: 3,
       ceoPin: "888888",
@@ -1086,7 +1086,7 @@ describe("supplierRisk.override", () => {
   });
 
   it("works for any supplierId (not just mock data IDs)", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.supplierRisk.override({
       supplierId: 99999,
       ceoPin: "888888",
@@ -1147,7 +1147,7 @@ describe("supplierRisk — authentication guards", () => {
 
 describe("supplierRisk — input validation", () => {
   it("evaluateOne rejects non-numeric supplierId", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       // @ts-expect-error — testing runtime validation
       caller.supplierRisk.evaluateOne({ supplierId: "abc" })
@@ -1155,7 +1155,7 @@ describe("supplierRisk — input validation", () => {
   });
 
   it("override rejects missing fields", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       // @ts-expect-error — testing runtime validation
       caller.supplierRisk.override({ supplierId: 1 })
@@ -1163,7 +1163,7 @@ describe("supplierRisk — input validation", () => {
   });
 
   it("override rejects missing reason", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       // @ts-expect-error — testing runtime validation
       caller.supplierRisk.override({ supplierId: 1, ceoPin: "888888" })

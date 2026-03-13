@@ -11,7 +11,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -193,7 +193,7 @@ describe("oaForms router", () => {
 
   describe("listTemplates", () => {
     it("returns templates list with total count", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const templates = [
         { id: 1, templateName: "出差申请", category: "hr", isActive: true },
         { id: 2, templateName: "合同审批", category: "finance", isActive: true },
@@ -205,7 +205,7 @@ describe("oaForms router", () => {
     });
 
     it("returns empty list when no templates exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.oaForms.listTemplates();
       expect(result.items).toHaveLength(0);
@@ -213,21 +213,21 @@ describe("oaForms router", () => {
     });
 
     it("accepts optional category filter", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ id: 1, templateName: "报销申请", category: "finance" }];
       const result = await caller.oaForms.listTemplates({ category: "finance" });
       expect(result.items).toHaveLength(1);
     });
 
     it("accepts optional search filter", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ id: 1, templateName: "出差申请", templateCode: "TRAVEL_REQ" }];
       const result = await caller.oaForms.listTemplates({ search: "出差" });
       expect(result.items).toHaveLength(1);
     });
 
     it("allows listing inactive templates with activeOnly=false", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 1, isActive: true },
         { id: 2, isActive: false },
@@ -237,7 +237,7 @@ describe("oaForms router", () => {
     });
 
     it("works when called with no input (optional object)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.oaForms.listTemplates();
       expect(result).toHaveProperty("items");
@@ -247,7 +247,7 @@ describe("oaForms router", () => {
 
   describe("getTemplate", () => {
     it("returns template by numeric ID", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const tpl = { id: 1, templateName: "出差申请", templateCode: "TRAVEL_REQ" };
       mockQueryResult = [tpl];
       const result = await caller.oaForms.getTemplate({ id: 1 });
@@ -255,7 +255,7 @@ describe("oaForms router", () => {
     });
 
     it("returns template by string ID", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const tpl = { id: 5, templateName: "合同审批" };
       mockQueryResult = [tpl];
       const result = await caller.oaForms.getTemplate({ id: "5" });
@@ -263,7 +263,7 @@ describe("oaForms router", () => {
     });
 
     it("returns null when template not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.oaForms.getTemplate({ id: 999 });
       expect(result).toBeNull();
@@ -272,7 +272,7 @@ describe("oaForms router", () => {
 
   describe("createTemplate", () => {
     it("creates a template and returns it", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const created = {
         id: 1,
         templateCode: "LEAVE_REQ",
@@ -290,7 +290,7 @@ describe("oaForms router", () => {
     });
 
     it("uses default category 'general' when not specified", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 2, category: "general" }];
       const result = await caller.oaForms.createTemplate({
         templateCode: "MISC",
@@ -303,7 +303,7 @@ describe("oaForms router", () => {
     });
 
     it("accepts optional approvalFlow and isSystem", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 3, isSystem: true }];
       const result = await caller.oaForms.createTemplate({
         templateCode: "SYS_TPL",
@@ -318,7 +318,7 @@ describe("oaForms router", () => {
 
   describe("updateTemplate", () => {
     it("snapshots current version and updates template", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const current = {
         id: 1,
         templateName: "出差申请",
@@ -345,7 +345,7 @@ describe("oaForms router", () => {
     });
 
     it("throws NOT_FOUND when template does not exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(
         caller.oaForms.updateTemplate({ id: 999, templateName: "不存在" })
@@ -353,7 +353,7 @@ describe("oaForms router", () => {
     });
 
     it("handles null version gracefully (defaults to 1)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const current = {
         id: 1,
         templateName: "旧表单",
@@ -376,7 +376,7 @@ describe("oaForms router", () => {
 
   describe("deleteTemplate", () => {
     it("soft-deletes template (sets isActive=false)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 1, isActive: false }];
       const result = await caller.oaForms.deleteTemplate({ id: 1 });
       expect(result).toHaveProperty("success", true);
@@ -384,7 +384,7 @@ describe("oaForms router", () => {
     });
 
     it("returns success even if template was already inactive", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [{ id: 2, isActive: false }];
       const result = await caller.oaForms.deleteTemplate({ id: 2 });
       expect(result.success).toBe(true);
@@ -397,7 +397,7 @@ describe("oaForms router", () => {
 
   describe("listSubmissions", () => {
     it("returns paginated submissions with total", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const items = [
         { id: 1, title: "张三出差申请", status: "pending" },
         { id: 2, title: "李四请假", status: "approved" },
@@ -415,7 +415,7 @@ describe("oaForms router", () => {
     });
 
     it("defaults to page 1, pageSize 20 when no input", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([{ count: 0 }]);
       const result = await caller.oaForms.listSubmissions();
@@ -425,7 +425,7 @@ describe("oaForms router", () => {
     });
 
     it("applies applicantId filter", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, applicantId: 5 }]);
       selectResultsQueue.push([{ count: 1 }]);
       const result = await caller.oaForms.listSubmissions({ applicantId: 5 });
@@ -433,7 +433,7 @@ describe("oaForms router", () => {
     });
 
     it("applies templateId filter", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, templateId: 3 }]);
       selectResultsQueue.push([{ count: 1 }]);
       const result = await caller.oaForms.listSubmissions({ templateId: 3 });
@@ -441,7 +441,7 @@ describe("oaForms router", () => {
     });
 
     it("applies status filter", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ id: 1, status: "rejected" }]);
       selectResultsQueue.push([{ count: 1 }]);
       const result = await caller.oaForms.listSubmissions({ status: "rejected" });
@@ -449,7 +449,7 @@ describe("oaForms router", () => {
     });
 
     it("returns 0 total when count result is missing", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([]);
       const result = await caller.oaForms.listSubmissions();
@@ -459,7 +459,7 @@ describe("oaForms router", () => {
 
   describe("getSubmission", () => {
     it("returns submission by numeric ID", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const sub = { id: 10, title: "测试提交", status: "pending" };
       mockQueryResult = [sub];
       const result = await caller.oaForms.getSubmission({ id: 10 });
@@ -467,7 +467,7 @@ describe("oaForms router", () => {
     });
 
     it("returns submission by string ID", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const sub = { id: 10, title: "测试提交" };
       mockQueryResult = [sub];
       const result = await caller.oaForms.getSubmission({ id: "10" });
@@ -475,7 +475,7 @@ describe("oaForms router", () => {
     });
 
     it("returns null when submission not found", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.oaForms.getSubmission({ id: 999 });
       expect(result).toBeNull();
@@ -484,7 +484,7 @@ describe("oaForms router", () => {
 
   describe("createSubmission", () => {
     it("creates submission with auto-approval when template has no approval flow", async () => {
-      const caller = createAuthenticatedCaller({ id: 1, name: "张三" });
+      const caller = createAdminCaller({ id: 1, name: "张三" });
       // First: look up template (no approval flow)
       selectResultsQueue.push([{
         id: 5,
@@ -512,7 +512,7 @@ describe("oaForms router", () => {
     });
 
     it("creates pending submission when template has approval flow with fixed_user", async () => {
-      const caller = createAuthenticatedCaller({ id: 1, name: "张三" });
+      const caller = createAdminCaller({ id: 1, name: "张三" });
       // First: look up template
       selectResultsQueue.push([{
         id: 10,
@@ -550,7 +550,7 @@ describe("oaForms router", () => {
     });
 
     it("throws NOT_FOUND when template does not exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(
         caller.oaForms.createSubmission({
@@ -562,7 +562,7 @@ describe("oaForms router", () => {
     });
 
     it("creates submission with approval flow where approver has displayName but no name", async () => {
-      const caller = createAuthenticatedCaller({ id: 1, name: "张三" });
+      const caller = createAdminCaller({ id: 1, name: "张三" });
       selectResultsQueue.push([{
         id: 10,
         templateCode: "X",
@@ -584,7 +584,7 @@ describe("oaForms router", () => {
     });
 
     it("creates submission with non-fixed_user approval type (no approver lookup)", async () => {
-      const caller = createAuthenticatedCaller({ id: 1, name: "张三" });
+      const caller = createAdminCaller({ id: 1, name: "张三" });
       selectResultsQueue.push([{
         id: 10,
         templateCode: "Y",
@@ -604,7 +604,7 @@ describe("oaForms router", () => {
     });
 
     it("uses fallback applicantName when ctx.user.name is null", async () => {
-      const caller = createAuthenticatedCaller({ id: 7, name: undefined as any });
+      const caller = createAdminCaller({ id: 7, name: undefined as any });
       selectResultsQueue.push([{
         id: 10,
         templateCode: "Z",
@@ -624,7 +624,7 @@ describe("oaForms router", () => {
 
   describe("withdrawSubmission", () => {
     it("withdraws a pending submission owned by the user", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       selectResultsQueue.push([{ id: 10, applicantId: 1, status: "pending" }]);
       mockReturningResult = [{ id: 10, status: "withdrawn" }];
 
@@ -633,7 +633,7 @@ describe("oaForms router", () => {
     });
 
     it("withdraws a draft submission owned by the user", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       selectResultsQueue.push([{ id: 11, applicantId: 1, status: "draft" }]);
       mockReturningResult = [{ id: 11, status: "withdrawn" }];
 
@@ -642,7 +642,7 @@ describe("oaForms router", () => {
     });
 
     it("throws NOT_FOUND when submission does not exist", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       selectResultsQueue.push([]);
       await expect(
         caller.oaForms.withdrawSubmission({ id: 999 })
@@ -650,7 +650,7 @@ describe("oaForms router", () => {
     });
 
     it("throws FORBIDDEN when non-owner tries to withdraw", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([{ id: 10, applicantId: 1, status: "pending" }]);
       await expect(
         caller.oaForms.withdrawSubmission({ id: 10 })
@@ -658,7 +658,7 @@ describe("oaForms router", () => {
     });
 
     it("throws BAD_REQUEST when submission is already approved", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       selectResultsQueue.push([{ id: 10, applicantId: 1, status: "approved" }]);
       await expect(
         caller.oaForms.withdrawSubmission({ id: 10 })
@@ -666,7 +666,7 @@ describe("oaForms router", () => {
     });
 
     it("throws BAD_REQUEST when submission is rejected", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       selectResultsQueue.push([{ id: 10, applicantId: 1, status: "rejected" }]);
       await expect(
         caller.oaForms.withdrawSubmission({ id: 10 })
@@ -674,7 +674,7 @@ describe("oaForms router", () => {
     });
 
     it("throws BAD_REQUEST when submission is withdrawn already", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       selectResultsQueue.push([{ id: 10, applicantId: 1, status: "withdrawn" }]);
       await expect(
         caller.oaForms.withdrawSubmission({ id: 10 })
@@ -684,7 +684,7 @@ describe("oaForms router", () => {
 
   describe("getMyPendingApprovals", () => {
     it("returns pending submissions where current user is approver", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       const items = [
         { id: 1, title: "张三出差", currentApproverId: 5, status: "pending" },
         { id: 2, title: "李四请假", currentApproverId: 5, status: "pending" },
@@ -696,7 +696,7 @@ describe("oaForms router", () => {
     });
 
     it("returns empty when no pending approvals for user", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       mockQueryResult = [];
       const result = await caller.oaForms.getMyPendingApprovals();
       expect(result.items).toHaveLength(0);
@@ -710,7 +710,7 @@ describe("oaForms router", () => {
 
   describe("approveSubmission", () => {
     it("approves final step and marks submission as approved", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, name: "审批人" });
+      const caller = createAdminCaller({ id: 5, name: "审批人" });
       // 1: Fetch submission
       selectResultsQueue.push([{
         id: 10,
@@ -738,7 +738,7 @@ describe("oaForms router", () => {
     });
 
     it("advances to next step when more steps remain", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, name: "主管" });
+      const caller = createAdminCaller({ id: 5, name: "主管" });
       // 1: Fetch submission (at step 0 of 2)
       selectResultsQueue.push([{
         id: 10,
@@ -778,7 +778,7 @@ describe("oaForms router", () => {
     });
 
     it("throws NOT_FOUND when submission does not exist", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([]);
       await expect(
         caller.oaForms.approveSubmission({ submissionId: 999 })
@@ -786,7 +786,7 @@ describe("oaForms router", () => {
     });
 
     it("throws CONFLICT when submission is not pending", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([{
         id: 10,
         applicantId: 1,
@@ -799,7 +799,7 @@ describe("oaForms router", () => {
     });
 
     it("throws FORBIDDEN for self-approval (applicant === approver)", async () => {
-      const caller = createAuthenticatedCaller({ id: 1, name: "张三" });
+      const caller = createAdminCaller({ id: 1, name: "张三" });
       selectResultsQueue.push([{
         id: 10,
         applicantId: 1,
@@ -812,7 +812,7 @@ describe("oaForms router", () => {
     });
 
     it("throws FORBIDDEN when caller is not the designated approver", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([{
         id: 10,
         applicantId: 1,
@@ -826,7 +826,7 @@ describe("oaForms router", () => {
     });
 
     it("throws CONFLICT when atomic update returns empty (race condition)", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, name: "审批人" });
+      const caller = createAdminCaller({ id: 5, name: "审批人" });
       // 1: Fetch submission
       selectResultsQueue.push([{
         id: 10,
@@ -852,7 +852,7 @@ describe("oaForms router", () => {
     });
 
     it("handles template with no approval flow (totalSteps=0, marks approved)", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, name: "审批人" });
+      const caller = createAdminCaller({ id: 5, name: "审批人" });
       selectResultsQueue.push([{
         id: 10,
         applicantId: 1,
@@ -871,7 +871,7 @@ describe("oaForms router", () => {
     });
 
     it("allows approval with optional comment", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, name: "审批人" });
+      const caller = createAdminCaller({ id: 5, name: "审批人" });
       selectResultsQueue.push([{
         id: 10,
         applicantId: 1,
@@ -892,7 +892,7 @@ describe("oaForms router", () => {
     });
 
     it("handles advance to next step with non-fixed_user approver type", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, name: "主管" });
+      const caller = createAdminCaller({ id: 5, name: "主管" });
       selectResultsQueue.push([{
         id: 10,
         applicantId: 1,
@@ -926,7 +926,7 @@ describe("oaForms router", () => {
     });
 
     it("allows approval when currentApproverId is null (any user can approve)", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, name: "审批人" });
+      const caller = createAdminCaller({ id: 5, name: "审批人" });
       selectResultsQueue.push([{
         id: 10,
         applicantId: 1,
@@ -946,7 +946,7 @@ describe("oaForms router", () => {
 
   describe("rejectSubmission", () => {
     it("rejects a pending submission", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, name: "审批人" });
+      const caller = createAdminCaller({ id: 5, name: "审批人" });
       // 1: Fetch submission
       selectResultsQueue.push([{
         id: 10,
@@ -969,7 +969,7 @@ describe("oaForms router", () => {
     });
 
     it("throws NOT_FOUND when submission does not exist", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([]);
       await expect(
         caller.oaForms.rejectSubmission({ submissionId: 999 })
@@ -977,7 +977,7 @@ describe("oaForms router", () => {
     });
 
     it("throws CONFLICT when submission is not pending", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([{
         id: 10,
         applicantId: 1,
@@ -990,7 +990,7 @@ describe("oaForms router", () => {
     });
 
     it("throws FORBIDDEN for self-rejection (applicant === approver)", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       selectResultsQueue.push([{
         id: 10,
         applicantId: 1,
@@ -1003,7 +1003,7 @@ describe("oaForms router", () => {
     });
 
     it("throws FORBIDDEN when caller is not the designated approver", async () => {
-      const caller = createAuthenticatedCaller({ id: 5 });
+      const caller = createAdminCaller({ id: 5 });
       selectResultsQueue.push([{
         id: 10,
         applicantId: 1,
@@ -1017,7 +1017,7 @@ describe("oaForms router", () => {
     });
 
     it("throws CONFLICT when atomic update returns empty (race condition)", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, name: "审批人" });
+      const caller = createAdminCaller({ id: 5, name: "审批人" });
       selectResultsQueue.push([{
         id: 10,
         applicantId: 1,
@@ -1034,7 +1034,7 @@ describe("oaForms router", () => {
     });
 
     it("rejects without comment (optional)", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, name: "审批人" });
+      const caller = createAdminCaller({ id: 5, name: "审批人" });
       selectResultsQueue.push([{
         id: 10,
         applicantId: 1,
@@ -1050,7 +1050,7 @@ describe("oaForms router", () => {
     });
 
     it("allows rejection when currentApproverId is null (any user can reject)", async () => {
-      const caller = createAuthenticatedCaller({ id: 5, name: "审批人" });
+      const caller = createAdminCaller({ id: 5, name: "审批人" });
       selectResultsQueue.push([{
         id: 10,
         applicantId: 1,
@@ -1072,7 +1072,7 @@ describe("oaForms router", () => {
 
   describe("getApprovalHistory", () => {
     it("returns approval records for a submission (numeric ID)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const records = [
         { id: 1, submissionId: 10, stepIndex: 0, action: "approve", approverName: "主管" },
         { id: 2, submissionId: 10, stepIndex: 1, action: "approve", approverName: "总监" },
@@ -1084,14 +1084,14 @@ describe("oaForms router", () => {
     });
 
     it("returns approval records for a submission (string ID)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ id: 1, submissionId: 10, action: "reject" }];
       const result = await caller.oaForms.getApprovalHistory({ submissionId: "10" });
       expect(result.items).toHaveLength(1);
     });
 
     it("returns empty when no records exist", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.oaForms.getApprovalHistory({ submissionId: 999 });
       expect(result.items).toHaveLength(0);
@@ -1105,7 +1105,7 @@ describe("oaForms router", () => {
 
   describe("listFavorites", () => {
     it("returns user favorites with joined template info", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       const items = [
         {
           id: 1,
@@ -1126,7 +1126,7 @@ describe("oaForms router", () => {
     });
 
     it("returns empty when user has no favorites", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       mockQueryResult = [];
       const result = await caller.oaForms.listFavorites();
       expect(result.items).toHaveLength(0);
@@ -1136,7 +1136,7 @@ describe("oaForms router", () => {
 
   describe("addFavorite", () => {
     it("adds a template to user favorites and returns success", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       mockReturningResult = [{ id: 1, userId: 1, templateId: 5, sortOrder: 0 }];
       const result = await caller.oaForms.addFavorite({ templateId: 5 });
       expect(result).toHaveProperty("success", true);
@@ -1144,7 +1144,7 @@ describe("oaForms router", () => {
     });
 
     it("returns success with message when already favorited (unique constraint 23505)", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       // Simulate unique constraint violation on .returning()
       const originalReturning = mockDb.insert().returning;
       // We need to make the insert chain throw — override returning for this test
@@ -1161,7 +1161,7 @@ describe("oaForms router", () => {
     });
 
     it("throws on non-unique-constraint errors", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       const chain = mockDb.insert();
       chain.returning.mockImplementationOnce(() => {
         const err: any = new Error("connection error");
@@ -1177,7 +1177,7 @@ describe("oaForms router", () => {
 
   describe("removeFavorite", () => {
     it("removes a template from user favorites", async () => {
-      const caller = createAuthenticatedCaller({ id: 1 });
+      const caller = createAdminCaller({ id: 1 });
       mockQueryResult = [];
       const result = await caller.oaForms.removeFavorite({ templateId: 5 });
       expect(result).toHaveProperty("success", true);
@@ -1191,7 +1191,7 @@ describe("oaForms router", () => {
 
   describe("getStats", () => {
     it("returns aggregated template and submission stats", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // First query: template stats
       selectResultsQueue.push([{ totalTemplates: 10, activeTemplates: 8 }]);
       // Second query: submission stats
@@ -1214,7 +1214,7 @@ describe("oaForms router", () => {
     });
 
     it("returns zeros when no data exists", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       selectResultsQueue.push([]);
 
@@ -1230,7 +1230,7 @@ describe("oaForms router", () => {
     });
 
     it("handles partial stats (only template stats available)", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ totalTemplates: 5, activeTemplates: 3 }]);
       selectResultsQueue.push([]);
 
@@ -1364,7 +1364,7 @@ describe("oaForms router", () => {
 
   describe("input validation", () => {
     it("rejects createTemplate with missing templateCode", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.oaForms.createTemplate as any)({
           templateName: "test",
@@ -1374,7 +1374,7 @@ describe("oaForms router", () => {
     });
 
     it("rejects createTemplate with missing templateName", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.oaForms.createTemplate as any)({
           templateCode: "X",
@@ -1384,7 +1384,7 @@ describe("oaForms router", () => {
     });
 
     it("rejects createTemplate with missing fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.oaForms.createTemplate as any)({
           templateCode: "X",
@@ -1394,7 +1394,7 @@ describe("oaForms router", () => {
     });
 
     it("rejects createSubmission with missing title", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.oaForms.createSubmission as any)({
           templateId: 1,
@@ -1404,7 +1404,7 @@ describe("oaForms router", () => {
     });
 
     it("rejects createSubmission with missing formData", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.oaForms.createSubmission as any)({
           templateId: 1,
@@ -1414,28 +1414,28 @@ describe("oaForms router", () => {
     });
 
     it("rejects approveSubmission with missing submissionId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.oaForms.approveSubmission as any)({})
       ).rejects.toThrow();
     });
 
     it("rejects rejectSubmission with missing submissionId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(
         (caller.oaForms.rejectSubmission as any)({})
       ).rejects.toThrow();
     });
 
     it("accepts getTemplate with string id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{ id: 1 }];
       const result = await caller.oaForms.getTemplate({ id: "1" });
       expect(result).toHaveProperty("id", 1);
     });
 
     it("accepts getApprovalHistory with string submissionId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.oaForms.getApprovalHistory({
         submissionId: "10",

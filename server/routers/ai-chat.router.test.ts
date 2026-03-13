@@ -15,7 +15,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -28,6 +28,12 @@ const { selectResultsQueue, returningQueue, mockSubmitTask, mockGetTaskStatus } 
 }));
 
 // ── Mock DB ─────────────────────────────────────────────────
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => {
     const chain: any = {
@@ -67,6 +73,7 @@ vi.mock("drizzle-orm", () => ({
 
 // ── Mock task-worker.service ────────────────────────────────
 vi.mock("../services/task-worker.service", () => ({
+  registerTaskHandler: vi.fn(),
   submitTask: (...args: any[]) => mockSubmitTask(...args),
   getTaskStatus: (...args: any[]) => mockGetTaskStatus(...args),
 }));
@@ -82,7 +89,7 @@ beforeEach(() => {
   });
 });
 
-const caller = () => createAuthenticatedCaller();
+const caller = () => createAdminCaller();
 
 // ══════════════════════════════════════════════════════════════
 // sendMessage

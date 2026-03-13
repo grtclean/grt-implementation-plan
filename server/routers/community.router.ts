@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   communityMembers,
@@ -27,7 +27,7 @@ export const communityRouter = router({
   }),
 
   // 添加成员
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('collab:community:post').input(z.object({
     externalId: z.string(),
     platform: z.enum(["wechat", "wecom", "dingtalk", "other"]).default("wechat"),
     nickname: z.string(),
@@ -41,7 +41,7 @@ export const communityRouter = router({
   }),
 
   // 更新成员
-  update: protectedProcedure.input(z.object({
+  update: requirePermission('collab:community:post').input(z.object({
     id: z.string(),
     nickname: z.string().optional(),
     realName: z.string().optional(),
@@ -59,7 +59,7 @@ export const communityRouter = router({
   }),
 
   // 删除成员
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  delete: requirePermission('collab:community:post').input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.delete(communityMembers).where(eq(communityMembers.id, parseInt(input.id)));
     return { success: true, message: "删除成功" };
@@ -76,7 +76,7 @@ export const communityRouter = router({
   }),
 
   // 点赞
-  like: protectedProcedure.input(z.object({ messageId: z.number() })).mutation(async ({ input, ctx }) => {
+  like: requirePermission('collab:community:post').input(z.object({ messageId: z.number() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     // Log as interaction
     await db.insert(interactionLogs).values({
@@ -122,7 +122,7 @@ export const communityRouter = router({
   }),
 
   // 验证成员
-  verifyMember: protectedProcedure.input(z.object({
+  verifyMember: requirePermission('collab:community:post').input(z.object({
     memberId: z.number(),
     status: z.enum(["verified", "rejected"]),
   })).mutation(async ({ input }) => {
@@ -138,7 +138,7 @@ export const communityRouter = router({
   }),
 
   // 创建内容
-  createContent: protectedProcedure.input(z.object({
+  createContent: requirePermission('collab:community:post').input(z.object({
     title: z.string(),
     content: z.string(),
     contentType: z.enum(["article", "case_study", "tip", "faq", "announcement", "tutorial"]).default("article"),
@@ -159,7 +159,7 @@ export const communityRouter = router({
   }),
 
   // 发布内容
-  publishContent: protectedProcedure.input(z.object({ contentId: z.number() })).mutation(async ({ input }) => {
+  publishContent: requirePermission('collab:community:post').input(z.object({ contentId: z.number() })).mutation(async ({ input }) => {
     const db = await requireDb();
     await db.update(contentLibrary)
       .set({
@@ -181,7 +181,7 @@ export const communityRouter = router({
   }),
 
   // 审核内容
-  approveContent: protectedProcedure.input(z.object({
+  approveContent: requirePermission('collab:community:post').input(z.object({
     contentId: z.number(),
     status: z.string(),
   })).mutation(async ({ input, ctx }) => {
@@ -205,7 +205,7 @@ export const communityRouter = router({
   }),
 
   // 添加敏感词
-  addSensitiveWord: protectedProcedure.input(z.object({
+  addSensitiveWord: requirePermission('collab:community:post').input(z.object({
     word: z.string(),
     category: z.string().optional(),
     severity: z.string().optional(),
@@ -220,7 +220,7 @@ export const communityRouter = router({
   }),
 
   // 初始化默认敏感词
-  initDefaultSensitiveWords: protectedProcedure.mutation(async () => {
+  initDefaultSensitiveWords: requirePermission('collab:community:post').mutation(async () => {
     const db = await requireDb();
     const existing = await db.select({ count: count() }).from(sensitiveWords);
     if (existing[0].count > 0) return { success: true, message: "敏感词库已存在" };
@@ -252,7 +252,7 @@ export const communityRouter = router({
   }),
 
   // 审核外发消息
-  approveOutboundMessage: protectedProcedure.input(z.object({
+  approveOutboundMessage: requirePermission('collab:community:post').input(z.object({
     messageId: z.number(),
     status: z.string(),
     reason: z.string().optional(),

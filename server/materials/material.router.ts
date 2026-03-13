@@ -4,7 +4,7 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
+import {router, adminProcedure, protectedProcedure, requirePermission} from "../_core/trpc";
 import { generateMaterialCode, parseMaterialCode, validateMaterialCode } from "./material-coding.config";
 import { requireDb } from "../db";
 import { eq, desc, and, like, count, sql } from "drizzle-orm";
@@ -115,7 +115,7 @@ export const materialRouter = router({
       });
 
       const insertId = result[0].insertId;
-      const rows = await db.select().from(materials).where(eq(materials.id, insertId));
+      const rows = await db.select().from(materials).where(eq(materials.id, insertId)).limit(1000);
       return rows[0];
     }),
 
@@ -181,7 +181,7 @@ export const materialRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const rows = await db.select().from(materials).where(eq(materials.id, input.id));
+      const rows = await db.select().from(materials).where(eq(materials.id, input.id)).limit(1000);
       return rows[0] ?? null;
     }),
 
@@ -209,7 +209,7 @@ export const materialRouter = router({
 
       await db.update(materials).set(updateValues).where(eq(materials.id, id));
 
-      const rows = await db.select().from(materials).where(eq(materials.id, id));
+      const rows = await db.select().from(materials).where(eq(materials.id, id)).limit(1000);
       return rows[0];
     }),
 
@@ -238,7 +238,7 @@ export const materialRouter = router({
         changedBy: ctx.user?.id ?? 0,
       });
 
-      const rows = await db.select().from(materials).where(eq(materials.id, input.id));
+      const rows = await db.select().from(materials).where(eq(materials.id, input.id)).limit(1000);
       const row = rows[0];
       return {
         id: row.id,
@@ -255,7 +255,7 @@ export const materialRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const [existing] = await db.select().from(materials).where(eq(materials.id, input.id));
+      const [existing] = await db.select().from(materials).where(eq(materials.id, input.id)).limit(1000);
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Material not found" });
       }
@@ -314,7 +314,7 @@ export const materialRouter = router({
       });
 
       const insertId = result[0].insertId;
-      const rows = await db.select().from(materialCategories).where(eq(materialCategories.id, insertId));
+      const rows = await db.select().from(materialCategories).where(eq(materialCategories.id, insertId)).limit(1000);
       return rows[0];
     }),
 
@@ -433,7 +433,8 @@ export const materialRouter = router({
           const existing = await db
             .select()
             .from(materials)
-            .where(eq(materials.materialCode, item.materialCode));
+            .where(eq(materials.materialCode, item.materialCode))
+            .limit(1000);
 
           if (existing.length === 0) {
             await db.insert(materials).values({

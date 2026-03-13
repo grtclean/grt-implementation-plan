@@ -7,6 +7,7 @@
 import { useParams } from "wouter";
 import { Link } from "wouter";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import UniversalDynamicForm from "@/components/UniversalDynamicForm";
 import {
@@ -51,6 +52,7 @@ function extractStage(code: string): string {
 // ═══════════════════════════════════════════════════════════
 
 export default function FormDetailPage() {
+  const { t, tpl } = useLanguage();
   const params = useParams<{ id: string }>();
   const templateId = params.id;
 
@@ -68,7 +70,7 @@ export default function FormDetailPage() {
     : null;
 
   const handleSubmit = (values: Record<string, unknown>) => {
-    toast.success(`${template?.templateName || "表单"} 提交成功（演示模式）`);
+    toast.success(tpl("admin.formDetail.submitSuccess", { name: template?.templateName || t("admin.mPhaseForm.forms") }));
   };
 
   // ─── Loading ────────────────────────────────────────────
@@ -77,7 +79,7 @@ export default function FormDetailPage() {
       <div className="min-h-screen bg-[#faf9f8] flex items-center justify-center">
         <div className="flex items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-[#0078d4]" />
-          <span className="text-sm text-[#605e5c]">加载表单模板...</span>
+          <span className="text-sm text-[#605e5c]">{t("admin.formDetail.loadingTemplate")}</span>
         </div>
       </div>
     );
@@ -89,16 +91,16 @@ export default function FormDetailPage() {
       <div className="min-h-screen bg-[#faf9f8] flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-[#a4262c] mx-auto mb-3" />
-          <h2 className="text-lg font-semibold text-[#323130] mb-2">表单模板未找到</h2>
+          <h2 className="text-lg font-semibold text-[#323130] mb-2">{t("admin.formDetail.notFound")}</h2>
           <p className="text-sm text-[#605e5c] mb-4">
-            模板 ID "{templateId}" 不存在或已被删除
+            {tpl("admin.formDetail.notFoundDesc", { id: templateId || "" })}
           </p>
           <Link
             href="/form-directory"
             className="inline-flex items-center gap-1.5 text-sm text-[#0078d4] hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
-            返回表单目录
+            {t("admin.formDetail.backToDirectory")}
           </Link>
         </div>
       </div>
@@ -132,7 +134,7 @@ export default function FormDetailPage() {
               </span>
             </div>
             <p className="text-xs text-[#605e5c]">
-              {stageInfo ? `${stageInfo.id} ${stageInfo.name}` : ""} — {fields.length} 字段
+              {stageInfo ? `${stageInfo.id} ${stageInfo.name}` : ""} — {tpl("admin.formDetail.fieldsCount", { count: fields.length })}
             </p>
           </div>
         </div>
@@ -145,15 +147,15 @@ export default function FormDetailPage() {
           className="inline-flex items-center gap-1.5 text-sm text-[#0078d4] hover:underline mb-4"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          返回表单目录
+          {t("admin.formDetail.backToDirectory")}
         </Link>
 
         <div className="bg-white rounded-lg border border-[#edebe9] p-6">
           <UniversalDynamicForm
             fields={fields as any[]}
             onSubmit={handleSubmit}
-            submitLabel="提交表单"
-            cancelLabel="返回目录"
+            submitLabel={t("admin.formDetail.submitForm")}
+            cancelLabel={t("admin.formDetail.backToDir")}
             onCancel={() => window.history.back()}
             showGroupHeaders={true}
           />

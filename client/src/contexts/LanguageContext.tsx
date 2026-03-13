@@ -125,13 +125,17 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [updatePreferencesMutation]);
 
   const t = useCallback((key: string): string => {
-    const langTranslations = translations[language] as Record<string, string>;
-    return langTranslations[key] || key;
+    return translations[language]?.[key]
+      || translations['en']?.[key]
+      || translations['zh']?.[key]
+      || key;
   }, [language]);
 
   const tpl = useCallback((key: string, vars: Record<string, string | number>): string => {
-    const langTranslations = translations[language] as Record<string, string>;
-    let result = langTranslations[key] || key;
+    let result = translations[language]?.[key]
+      || translations['en']?.[key]
+      || translations['zh']?.[key]
+      || key;
     for (const [k, v] of Object.entries(vars)) {
       result = result.replace(`{${k}}`, String(v));
     }

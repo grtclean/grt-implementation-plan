@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { jsonValue } from "@shared/validators";
 import { aiAgentTriggers, aiAgentTriggerExecutions } from "../../drizzle/schema";
@@ -201,7 +201,7 @@ export const aiTriggerRouter = router({
    * Delete a trigger by ID.
    * Also deletes associated execution records to avoid orphans.
    */
-  delete: protectedProcedure
+  delete: requirePermission('ai:hub:access')
     .input(z.object({ id: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -222,7 +222,7 @@ export const aiTriggerRouter = router({
   /**
    * Toggle the enabled/disabled state of a trigger.
    */
-  toggle: protectedProcedure
+  toggle: requirePermission('ai:hub:access')
     .input(z.object({ id: z.union([z.string(), z.number()]) }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -231,7 +231,8 @@ export const aiTriggerRouter = router({
       const [trigger] = await db
         .select()
         .from(aiAgentTriggers)
-        .where(eq(aiAgentTriggers.id, id));
+        .where(eq(aiAgentTriggers.id, id))
+        .limit(1000);
 
       if (!trigger) {
         return { success: false, message: "触发器不存在" };
@@ -254,7 +255,7 @@ export const aiTriggerRouter = router({
    * Manually execute a trigger.
    * Creates an execution record and updates trigger execution statistics.
    */
-  execute: protectedProcedure
+  execute: requirePermission('ai:hub:access')
     .input(z.object({
       id: z.union([z.string(), z.number()]),
       context: z.record(z.string(), jsonValue).optional(),
@@ -267,7 +268,8 @@ export const aiTriggerRouter = router({
       const [trigger] = await db
         .select()
         .from(aiAgentTriggers)
-        .where(eq(aiAgentTriggers.id, id));
+        .where(eq(aiAgentTriggers.id, id))
+        .limit(1000);
 
       if (!trigger) {
         return { success: false, message: "触发器不存在" };

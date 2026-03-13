@@ -3,7 +3,7 @@
  * 16 procedures: Work Orders (7), QC (3), Equipment (3), Dashboard/Stats (3)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createAuthenticatedCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
+import { createAdminCaller, createAnonymousCaller } from "../_test/trpc-test-utils";
 
 // ── Mock state ──────────────────────────────────────────
 let mockQueryResult: any[] = [];
@@ -107,7 +107,7 @@ describe("production router", () => {
   // ═══ Work Order CRUD ═══════════════════════════════
   describe("list", () => {
     it("returns paginated work orders", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Promise.all: [count, rows]
       selectResultsQueue.push([{ value: 2 }]);
       selectResultsQueue.push([makeWoRow(), makeWoRow({ id: 2 })]);
@@ -118,7 +118,7 @@ describe("production router", () => {
     });
 
     it("filters by status", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ value: 1 }]);
       selectResultsQueue.push([makeWoRow({ status: "in_progress" })]);
       const result = await caller.productionDashboard.list({ status: "in_progress" });
@@ -126,7 +126,7 @@ describe("production router", () => {
     });
 
     it("paginates correctly", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ value: 50 }]);
       selectResultsQueue.push([makeWoRow()]);
       const result = await caller.productionDashboard.list({ page: 3, pageSize: 10 });
@@ -137,7 +137,7 @@ describe("production router", () => {
 
   describe("getById", () => {
     it("returns work order by id", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [makeWoRow()];
       const result = await caller.productionDashboard.getById({ id: 1 });
       expect(result.id).toBe(1);
@@ -145,19 +145,19 @@ describe("production router", () => {
     });
 
     it("returns work order by orderCode", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [makeWoRow({ workOrderCode: "WO-2026-XY999" })];
       const result = await caller.productionDashboard.getById({ orderCode: "WO-2026-XY999" });
       expect(result.orderCode).toBe("WO-2026-XY999");
     });
 
     it("throws BAD_REQUEST when no id or orderCode", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.productionDashboard.getById({})).rejects.toThrow("请提供id或orderCode");
     });
 
     it("throws NOT_FOUND when work order missing", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       await expect(caller.productionDashboard.getById({ id: 999 })).rejects.toThrow("工单不存在");
     });
@@ -165,7 +165,7 @@ describe("production router", () => {
 
   describe("create", () => {
     it("creates a work order", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [makeWoRow()];
       const result = await caller.productionDashboard.create({ productName: "Widget", quantity: 5 });
       expect(result).toHaveProperty("id");
@@ -173,13 +173,13 @@ describe("production router", () => {
     });
 
     it("rejects quantity < 1", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.productionDashboard.create({ productName: "X", quantity: 0 }))
         .rejects.toThrow();
     });
 
     it("accepts optional priority", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockReturningResult = [makeWoRow({ priority: "urgent" })];
       const result = await caller.productionDashboard.create({
         productName: "Urgent Item", quantity: 1, priority: "urgent",
@@ -190,7 +190,7 @@ describe("production router", () => {
 
   describe("update", () => {
     it("updates work order fields", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Verify exists query
       selectResultsQueue.push([makeWoRow()]);
       mockReturningResult = [makeWoRow({ productName: "Updated" })];
@@ -199,7 +199,7 @@ describe("production router", () => {
     });
 
     it("throws NOT_FOUND for missing work order", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(caller.productionDashboard.update({ id: 999 })).rejects.toThrow("工单不存在");
     });
@@ -207,7 +207,7 @@ describe("production router", () => {
 
   describe("updateStatus", () => {
     it("updates status to in_progress with auto actualStartDate", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([makeWoRow({ status: "planned", actualStartDate: null })]);
       mockReturningResult = [makeWoRow({ status: "in_progress", actualStartDate: "2026-03-01" })];
       const result = await caller.productionDashboard.updateStatus({ id: 1, status: "in_progress" });
@@ -215,7 +215,7 @@ describe("production router", () => {
     });
 
     it("updates status to completed with auto actualEndDate and 100% progress", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([makeWoRow({ status: "in_progress" })]);
       mockReturningResult = [makeWoRow({ status: "completed", completionRate: "100.00" })];
       const result = await caller.productionDashboard.updateStatus({ id: 1, status: "completed" });
@@ -224,14 +224,14 @@ describe("production router", () => {
     });
 
     it("throws NOT_FOUND when work order missing", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(caller.productionDashboard.updateStatus({ id: 999, status: "completed" }))
         .rejects.toThrow("工单不存在");
     });
 
     it("rejects invalid status enum", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.productionDashboard.updateStatus({ id: 1, status: "invalid" as any }))
         .rejects.toThrow();
     });
@@ -239,7 +239,7 @@ describe("production router", () => {
 
   describe("updateProgress", () => {
     it("updates progress percentage", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([makeWoRow({ status: "in_progress" })]);
       mockReturningResult = [makeWoRow({ completionRate: "50.00" })];
       const result = await caller.productionDashboard.updateProgress({ id: 1, progress: 50 });
@@ -247,7 +247,7 @@ describe("production router", () => {
     });
 
     it("auto-transitions to quality_check at 100%", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([makeWoRow({ status: "in_progress" })]);
       mockReturningResult = [makeWoRow({ status: "quality_check", completionRate: "100.00" })];
       const result = await caller.productionDashboard.updateProgress({ id: 1, progress: 100 });
@@ -255,7 +255,7 @@ describe("production router", () => {
     });
 
     it("auto-transitions planned to in_progress when progress > 0", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([makeWoRow({ status: "planned", actualStartDate: null })]);
       mockReturningResult = [makeWoRow({ status: "in_progress", completionRate: "10.00" })];
       const result = await caller.productionDashboard.updateProgress({ id: 1, progress: 10 });
@@ -263,20 +263,20 @@ describe("production router", () => {
     });
 
     it("throws NOT_FOUND when work order missing", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(caller.productionDashboard.updateProgress({ id: 999, progress: 50 }))
         .rejects.toThrow("工单不存在");
     });
 
     it("rejects progress > 100", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.productionDashboard.updateProgress({ id: 1, progress: 150 }))
         .rejects.toThrow();
     });
 
     it("rejects progress < 0", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.productionDashboard.updateProgress({ id: 1, progress: -5 }))
         .rejects.toThrow();
     });
@@ -284,28 +284,28 @@ describe("production router", () => {
 
   describe("delete", () => {
     it("deletes a draft work order", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([makeWoRow({ status: "draft" })]);
       const result = await caller.productionDashboard.delete({ id: 1 });
       expect(result.success).toBe(true);
     });
 
     it("deletes a cancelled work order", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([makeWoRow({ status: "cancelled" })]);
       const result = await caller.productionDashboard.delete({ id: 1 });
       expect(result.success).toBe(true);
     });
 
     it("throws BAD_REQUEST for in_progress work order", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([makeWoRow({ status: "in_progress" })]);
       await expect(caller.productionDashboard.delete({ id: 1 }))
         .rejects.toThrow("只能删除草稿或已取消的工单");
     });
 
     it("throws NOT_FOUND when work order missing", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(caller.productionDashboard.delete({ id: 999 }))
         .rejects.toThrow("工单不存在");
@@ -315,7 +315,7 @@ describe("production router", () => {
   // ═══ QC Records ════════════════════════════════════
   describe("getQCRecords", () => {
     it("returns QC records", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [{
         id: 1, workOrderId: 1, inspectionType: "process", result: "pass",
         inspectorName: "张三", checklistItems: '{"checkPoint":"尺寸","totalItems":5,"passItems":5,"failItems":0}',
@@ -328,7 +328,7 @@ describe("production router", () => {
     });
 
     it("filters by workOrderId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.productionDashboard.getQCRecords({ workOrderId: 999 });
       expect(result).toHaveLength(0);
@@ -337,7 +337,7 @@ describe("production router", () => {
 
   describe("createQCRecord", () => {
     it("creates a QC record for existing work order", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Verify WO exists
       selectResultsQueue.push([makeWoRow()]);
       mockReturningResult = [{
@@ -353,7 +353,7 @@ describe("production router", () => {
     });
 
     it("throws NOT_FOUND when work order missing", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(caller.productionDashboard.createQCRecord({
         workOrderId: 999, checkType: "process", checkPoint: "X",
@@ -362,7 +362,7 @@ describe("production router", () => {
     });
 
     it("rejects invalid checkType", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       await expect(caller.productionDashboard.createQCRecord({
         workOrderId: 1, checkType: "invalid" as any, checkPoint: "X",
         totalItems: 1, passItems: 1, failItems: 0, result: "pass", inspector: "X",
@@ -372,7 +372,7 @@ describe("production router", () => {
 
   describe("getQCStats", () => {
     it("returns aggregated QC statistics", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Promise.all: [total, pass, fail, conditional]
       selectResultsQueue.push([{ value: 10 }]);
       selectResultsQueue.push([{ value: 8 }]);
@@ -392,7 +392,7 @@ describe("production router", () => {
     });
 
     it("returns zeros when no records", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ value: 0 }]);
       selectResultsQueue.push([{ value: 0 }]);
       selectResultsQueue.push([{ value: 0 }]);
@@ -407,7 +407,7 @@ describe("production router", () => {
   // ═══ Equipment ═════════════════════════════════════
   describe("getEquipments", () => {
     it("returns equipment list", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { id: 1, code: "EQ-001", name: "CNC-1", type: "cnc", status: "running", location: "A1", currentWorkOrderId: null, utilization: "85.00" },
       ];
@@ -417,7 +417,7 @@ describe("production router", () => {
     });
 
     it("filters by status", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [];
       const result = await caller.productionDashboard.getEquipments({ status: "fault" });
       expect(result).toHaveLength(0);
@@ -426,7 +426,7 @@ describe("production router", () => {
 
   describe("updateEquipmentStatus", () => {
     it("updates equipment status with history recording", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // Check exists
       selectResultsQueue.push([{
         id: 1, code: "EQ-001", name: "CNC-1", type: "cnc", status: "idle",
@@ -446,14 +446,14 @@ describe("production router", () => {
     });
 
     it("throws NOT_FOUND when equipment missing", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([]);
       await expect(caller.productionDashboard.updateEquipmentStatus({ id: 999, status: "running" }))
         .rejects.toThrow("设备不存在");
     });
 
     it("sets utilization to 0 for maintenance/fault/offline", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{
         id: 1, code: "EQ-001", name: "CNC-1", type: "cnc", status: "running",
         location: "A1", currentWorkOrderId: null, utilization: "80.00",
@@ -470,7 +470,7 @@ describe("production router", () => {
 
   describe("getEquipmentStatusHistory", () => {
     it("returns paginated status history", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ value: 3 }]);
       selectResultsQueue.push([
         { id: 1, equipmentId: 1, previousStatus: "idle", newStatus: "running" },
@@ -482,7 +482,7 @@ describe("production router", () => {
     });
 
     it("filters by equipmentId", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       selectResultsQueue.push([{ value: 0 }]);
       selectResultsQueue.push([]);
       const result = await caller.productionDashboard.getEquipmentStatusHistory({ equipmentId: 999 });
@@ -493,14 +493,15 @@ describe("production router", () => {
   // ═══ Dashboard Stats ══════════════════════════════
   describe("getDashboardStats", () => {
     it("returns comprehensive dashboard statistics", async () => {
-      const caller = createAuthenticatedCaller();
-      // Promise.all: [statusCounts, priorityCounts, teamCounts, quantityResult, equipStatusCounts, utilizationResult, recentRows]
-      selectResultsQueue.push([{ status: "in_progress", cnt: 3 }, { status: "completed", cnt: 5 }]);
-      selectResultsQueue.push([{ priority: "high", cnt: 2 }, { priority: "normal", cnt: 6 }]);
-      selectResultsQueue.push([{ team: "Team A", cnt: 4 }]);
-      selectResultsQueue.push([{ totalQuantity: 100, completedQuantity: 50, avgProgress: 45 }]);
-      selectResultsQueue.push([{ status: "running", cnt: 3 }, { status: "idle", cnt: 2 }]);
-      selectResultsQueue.push([{ avgUtil: 72 }]);
+      const caller = createAdminCaller();
+      // Promise.all: [woAggRows (combined status+priority+team), equipAggRows, recentRows]
+      selectResultsQueue.push([
+        { status: "in_progress", priority: "high", team: "Team A", cnt: 2, totalQty: 20, completedQty: 0, avgProgress: 30 },
+        { status: "in_progress", priority: "normal", team: "Team A", cnt: 1, totalQty: 10, completedQty: 0, avgProgress: 40 },
+        { status: "completed", priority: "normal", team: "Team A", cnt: 1, totalQty: 10, completedQty: 10, avgProgress: 100 },
+        { status: "completed", priority: "high", team: null, cnt: 4, totalQty: 60, completedQty: 40, avgProgress: 80 },
+      ]);
+      selectResultsQueue.push([{ status: "running", cnt: 3, avgUtil: 72 }, { status: "idle", cnt: 2, avgUtil: 0 }]);
       selectResultsQueue.push([makeWoRow()]);
       const result = await caller.productionDashboard.getDashboardStats();
       expect(result.summary.totalOrders).toBe(8);
@@ -513,7 +514,7 @@ describe("production router", () => {
 
   describe("getProgressTrend", () => {
     it("returns trend data for specified days", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       // db.execute returns rows
       mockDb.execute.mockResolvedValueOnce({ rows: [
         { date: "2026-02-28", completed: 2, in_progress: 3, planned: 1 },
@@ -526,7 +527,7 @@ describe("production router", () => {
     });
 
     it("returns zero-filled fallback on error", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockDb.execute.mockRejectedValueOnce(new Error("table not found"));
       const result = await caller.productionDashboard.getProgressTrend({ days: 5 });
       expect(result).toHaveLength(5);
@@ -536,7 +537,7 @@ describe("production router", () => {
 
   describe("getTeamCapacity", () => {
     it("returns team capacity with efficiency", async () => {
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       mockQueryResult = [
         { team: "Team A", totalOrders: 10, completedOrders: 7, inProgressOrders: 3, totalHours: 80, actualHours: 60 },
         { team: null, totalOrders: 2, completedOrders: 0, inProgressOrders: 0, totalHours: 0, actualHours: 0 },

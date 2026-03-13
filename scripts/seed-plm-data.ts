@@ -66,7 +66,7 @@ async function main() {
       `SELECT id, name, department, position FROM company_employees LIMIT 10`
     );
     if (empResult.rows.length === 0) {
-      console.error("[FATAL] No employees found in company_employees. Run seed-jiandaoyun-org.ts first.");
+      console.error("[FATAL] No employees found in company_employees. Run seed-ext-sync-org.ts first.");
       process.exit(1);
     }
     for (const e of empResult.rows) {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 
 const successResponse = { success: true, message: "操作成功" };
 const emptyListResponse = { items: [] as any[], total: 0, page: 1, pageSize: 10 };
@@ -16,17 +16,17 @@ export const fieldMappingRouter = router({
   }),
 
   // 创建字段映射
-  create: protectedProcedure.input(z.object({ sourceField: z.string(), targetField: z.string(), transformRule: z.string().optional() })).mutation(async () => {
+  create: requirePermission('system:data:migrate').input(z.object({ sourceField: z.string(), targetField: z.string(), transformRule: z.string().optional() })).mutation(async () => {
     return successResponse;
   }),
 
   // 更新字段映射
-  update: protectedProcedure.input(z.object({ id: z.string(), sourceField: z.string().optional(), targetField: z.string().optional(), transformRule: z.string().optional() })).mutation(async () => {
+  update: requirePermission('system:data:migrate').input(z.object({ id: z.string(), sourceField: z.string().optional(), targetField: z.string().optional(), transformRule: z.string().optional() })).mutation(async () => {
     return successResponse;
   }),
 
   // 删除字段映射
-  delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async () => {
+  delete: requirePermission('system:data:migrate').input(z.object({ id: z.string() })).mutation(async () => {
     return successResponse;
   }),
 
@@ -36,7 +36,7 @@ export const fieldMappingRouter = router({
   }),
 
   // 保存映射
-  saveMappings: protectedProcedure.input(z.object({ mappings: z.array(z.object({ sourceField: z.string(), targetField: z.string(), transformRule: z.string().optional() })) })).mutation(async () => {
+  saveMappings: requirePermission('system:data:migrate').input(z.object({ mappings: z.array(z.object({ sourceField: z.string(), targetField: z.string(), transformRule: z.string().optional() })) })).mutation(async () => {
     return successResponse;
   }),
 

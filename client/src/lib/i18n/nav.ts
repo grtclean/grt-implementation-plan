@@ -36,8 +36,9 @@ export const navTranslations: TranslationModule = {
     "nav.settings": "系统设置",
     "nav.community": "社群协作",
     "nav.groupNotifications": "群组通知",
-    "nav.jiandaoyun": "系统分析",
+    "nav.externalSync": "系统分析",
     "nav.migration": "迁移管理",
+    "nav.workspace": "工作台",
   },
 
   en: {
@@ -75,8 +76,9 @@ export const navTranslations: TranslationModule = {
     "nav.settings": "Settings",
     "nav.community": "Community",
     "nav.groupNotifications": "Group Notifications",
-    "nav.jiandaoyun": "System Analysis",
+    "nav.externalSync": "System Analysis",
     "nav.migration": "Migration",
+    "nav.workspace": "Workspace",
   },
 
   de: {
@@ -114,8 +116,9 @@ export const navTranslations: TranslationModule = {
     "nav.settings": "Einstellungen",
     "nav.community": "Community",
     "nav.groupNotifications": "Gruppenbenachrichtigungen",
-    "nav.jiandaoyun": "Systemanalyse",
+    "nav.externalSync": "Systemanalyse",
     "nav.migration": "Migration",
+    "nav.workspace": "Arbeitsbereich",
   },
 
   fr: {
@@ -153,7 +156,8 @@ export const navTranslations: TranslationModule = {
     "nav.settings": "Paramètres",
     "nav.community": "Communauté",
     "nav.groupNotifications": "Notifications de groupe",
-    "nav.jiandaoyun": "Analyse système",
+    "nav.externalSync": "Analyse système",
     "nav.migration": "Migration",
+    "nav.workspace": "Espace de travail",
   },
 };

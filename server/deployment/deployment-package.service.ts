@@ -82,9 +82,9 @@ BUILT_IN_FORGE_API_KEY=your_forge_api_key
 # 可选：Gemini API配置
 GEMINI_API_KEY=your_gemini_api_key
 
-# 可选：简道云集成
-JIANDAOYUN_API_KEY=your_jiandaoyun_api_key
-JIANDAOYUN_CORP_ID=your_corp_id
+# 可选：外部数据平台集成
+EXT_SYNC_API_KEY=your_ext_sync_api_key
+EXT_SYNC_CORP_ID=your_corp_id
 `;
 
 const dockerfileTemplate = `# GRT智慧系统 Dockerfile

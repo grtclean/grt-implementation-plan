@@ -437,15 +437,15 @@ export const helpContentMap: Record<string, PageHelpContent> = {
   "/employee-management": {
     title: "员工管理",
     description: "公司组织架构和人员信息管理",
-    overview: "员工管理页面提供公司组织架构和人员信息的统一管理，支持按事业部查看员工分布，一键同步简道云数据以保持信息最新。",
+    overview: "员工管理页面提供公司组织架构和人员信息的统一管理，支持按事业部查看员工分布，一键同步外部数据平台数据以保持信息最新。",
     steps: [
       { title: "查看BU分布", description: "顶部统计卡片展示各事业部员工数量" },
       { title: "搜索员工", description: "使用搜索框按姓名、工号或部门搜索员工" },
       { title: "同步数据", description: "点击一键更新组织架构按钮同步最新数据" },
     ],
     faq: [
-      { question: "数据来源是什么？", answer: "员工数据来自简道云HR系统，通过API自动同步。" },
-      { question: "如何初始化数据？", answer: "首次使用时点击初始化数据按钮，系统将从简道云拉取全量员工数据。" },
+      { question: "数据来源是什么？", answer: "员工数据来自外部数据平台HR系统，通过API自动同步。" },
+      { question: "如何初始化数据？", answer: "首次使用时点击初始化数据按钮，系统将从外部数据平台拉取全量员工数据。" },
     ],
   },
 
@@ -1923,12 +1923,12 @@ export const helpContentMap: Record<string, PageHelpContent> = {
       { question: "同步冲突如何处理？", answer: "系统会标记冲突记录，由管理员手动处理。" },
     ],
   },
-  "/jiandaoyun": {
-    title: "简道云分析",
-    description: "简道云数据分析与报表",
-    overview: "对接简道云平台数据，提供数据分析和可视化报表。",
+  "/external-sync": {
+    title: "外部数据平台分析",
+    description: "外部数据平台数据分析与报表",
+    overview: "对接外部数据平台数据，提供数据分析和可视化报表。",
     steps: [
-      { title: "连接数据源", description: "配置简道云API连接" },
+      { title: "连接数据源", description: "配置外部数据平台API连接" },
       { title: "选择表单", description: "选择要分析的表单数据" },
       { title: "生成报表", description: "生成数据分析报表" },
     ],
@@ -1936,17 +1936,17 @@ export const helpContentMap: Record<string, PageHelpContent> = {
       { question: "数据实时同步吗？", answer: "支持定时同步和手动刷新两种模式。" },
     ],
   },
-  "/jiandaoyun-integration": {
-    title: "简道云集成",
-    description: "简道云系统集成配置",
-    overview: "配置与简道云平台的数据集成，支持双向数据同步。",
+  "/external-sync-integration": {
+    title: "外部数据平台集成",
+    description: "外部数据平台系统集成配置",
+    overview: "配置与外部数据平台的数据集成，支持双向数据同步。",
     steps: [
       { title: "配置连接", description: "设置API密钥和权限" },
       { title: "映射字段", description: "配置字段映射关系" },
       { title: "启动同步", description: "启动数据同步任务" },
     ],
     faq: [
-      { question: "支持双向同步吗？", answer: "支持，可配置GRT到简道云和简道云到GRT的双向同步。" },
+      { question: "支持双向同步吗？", answer: "支持，可配置GRT到外部数据平台和外部数据平台到GRT的双向同步。" },
     ],
   },
   "/migration": {

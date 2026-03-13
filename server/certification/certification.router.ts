@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql, SQL } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
@@ -56,7 +56,7 @@ export const certificationRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const result = await db.execute(sql`SELECT * FROM certifications WHERE id = ${input.id}`);
+      const result = await db.execute(sql`SELECT * FROM certifications WHERE id = ${input.id} LIMIT 1000`);
       return (result[0] as any[])[0] || null;
     }),
 
@@ -90,7 +90,7 @@ export const certificationRouter = router({
     }),
 
   // 更新资质
-  update: protectedProcedure
+  update: requirePermission('strategy:certification:manage')
     .input(z.object({
       id: z.number(),
       status: certStatusEnum.optional(),
@@ -114,7 +114,7 @@ export const certificationRouter = router({
     }),
 
   // 删除资质
-  delete: protectedProcedure
+  delete: requirePermission('strategy:certification:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -127,12 +127,12 @@ export const certificationRouter = router({
     .input(z.object({ certificationId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const result = await db.execute(sql`SELECT * FROM certification_milestones WHERE certification_id = ${input.certificationId} ORDER BY sort_order ASC`);
+      const result = await db.execute(sql`SELECT * FROM certification_milestones WHERE certification_id = ${input.certificationId} ORDER BY sort_order ASC LIMIT 1000`);
       return result[0] as any[];
     }),
 
   // 创建里程碑
-  createMilestone: protectedProcedure
+  createMilestone: requirePermission('strategy:certification:manage')
     .input(z.object({
       certificationId: z.number(),
       milestoneCode: z.string(),
@@ -151,7 +151,7 @@ export const certificationRouter = router({
     }),
 
   // 更新里程碑状态
-  updateMilestone: protectedProcedure
+  updateMilestone: requirePermission('strategy:certification:manage')
     .input(z.object({
       id: z.number(),
       status: milestoneStatusEnum.optional(),
@@ -175,12 +175,12 @@ export const certificationRouter = router({
     .input(z.object({ certificationId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const result = await db.execute(sql`SELECT * FROM certification_reminders WHERE certification_id = ${input.certificationId}`);
+      const result = await db.execute(sql`SELECT * FROM certification_reminders WHERE certification_id = ${input.certificationId} LIMIT 1000`);
       return result[0] as any[];
     }),
 
   // 创建提醒配置
-  createReminder: protectedProcedure
+  createReminder: requirePermission('strategy:certification:manage')
     .input(z.object({
       certificationId: z.number(),
       reminderType: reminderTypeEnum,
@@ -199,7 +199,7 @@ export const certificationRouter = router({
     }),
 
   // 更新提醒配置
-  updateReminder: protectedProcedure
+  updateReminder: requirePermission('strategy:certification:manage')
     .input(z.object({
       id: z.number(),
       isEnabled: z.boolean().optional(),
@@ -232,7 +232,7 @@ export const certificationRouter = router({
         ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
         : sql``;
 
-      const result = await db.execute(sql`SELECT * FROM customer_cert_requirements ${whereClause} ORDER BY customer_type, customer_name`);
+      const result = await db.execute(sql`SELECT * FROM customer_cert_requirements ${whereClause} ORDER BY customer_type, customer_name LIMIT 1000`);
       return result[0] as any[];
     }),
 
@@ -258,16 +258,16 @@ export const certificationRouter = router({
     }),
 
   // 生成差距分析
-  generateGapAnalysis: protectedProcedure
+  generateGapAnalysis: requirePermission('strategy:certification:manage')
     .input(z.object({ customerId: z.number().optional() }).optional())
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const certifications = await db.execute(sql`SELECT cert_code, name, status FROM certifications`);
+      const certifications = await db.execute(sql`SELECT cert_code, name, status FROM certifications LIMIT 1000`);
       const certMap = new Map((certifications[0] as any[]).map(c => [c.cert_code, c]));
 
       const customers = input?.customerId
-        ? await db.execute(sql`SELECT * FROM customer_cert_requirements WHERE id = ${input.customerId}`)
-        : await db.execute(sql`SELECT * FROM customer_cert_requirements`);
+        ? await db.execute(sql`SELECT * FROM customer_cert_requirements WHERE id = ${input.customerId} LIMIT 1000`)
+        : await db.execute(sql`SELECT * FROM customer_cert_requirements LIMIT 1000`);
 
       let totalRequired = 0, totalMet = 0, totalPlanned = 0, totalGap = 0;
       const gapDetails: any[] = [];
@@ -306,7 +306,7 @@ export const certificationRouter = router({
 
       await db.execute(sql`
         INSERT INTO certification_gap_analysis (analysis_code, analysis_date, customer_id, total_required, total_met, total_planned, total_gap, coverage_rate, gap_details, created_by)
-        VALUES (${analysisCode}, CURDATE(), ${input?.customerId ?? null}, ${totalRequired}, ${totalMet}, ${totalPlanned}, ${totalGap}, ${Number(coverageRate)}, ${gapDetailsJson}, ${ctx.user?.id ?? null})
+        VALUES (${analysisCode}, CURRENT_DATE, ${input?.customerId ?? null}, ${totalRequired}, ${totalMet}, ${totalPlanned}, ${totalGap}, ${Number(coverageRate)}, ${gapDetailsJson}, ${ctx.user?.id ?? null})
       `);
 
       return {
@@ -339,7 +339,7 @@ export const certificationRouter = router({
     }),
 
   // 发送提醒通知（支持多渠道）
-  sendReminder: protectedProcedure
+  sendReminder: requirePermission('strategy:certification:manage')
     .input(z.object({
       certificationId: z.number(),
       message: z.string(),
@@ -347,7 +347,7 @@ export const certificationRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const certResult = await db.execute(sql`SELECT name, target_date, expiry_date FROM certifications WHERE id = ${input.certificationId}`);
+      const certResult = await db.execute(sql`SELECT name, target_date, expiry_date FROM certifications WHERE id = ${input.certificationId} LIMIT 1000`);
       const cert = (certResult[0] as any[])[0];
       if (!cert) return { success: false, message: "Certification not found", results: [] };
 
@@ -379,7 +379,7 @@ export const certificationRouter = router({
     }),
 
   // 检查并发送即将到期的资质提醒
-  checkAndSendExpiryReminders: protectedProcedure
+  checkAndSendExpiryReminders: requirePermission('strategy:certification:manage')
     .mutation(async () => {
       const db = await requireDb();
 
@@ -391,12 +391,12 @@ export const certificationRouter = router({
         WHERE cr.is_enabled = 1
           AND (
             (cr.reminder_type = 'expiry' AND c.expiry_date IS NOT NULL
-             AND c.expiry_date <= DATE_ADD(CURDATE(), INTERVAL cr.days_before DAY)
-             AND (cr.last_sent_at IS NULL OR cr.last_sent_at < DATE_SUB(NOW(), INTERVAL 1 DAY)))
+             AND c.expiry_date <= CURRENT_DATE + (cr.days_before || ' days')::interval
+             AND (cr.last_sent_at IS NULL OR cr.last_sent_at < NOW() - INTERVAL '1 day'))
             OR
             (cr.reminder_type = 'target_date' AND c.target_date IS NOT NULL
-             AND c.target_date <= DATE_ADD(CURDATE(), INTERVAL cr.days_before DAY)
-             AND (cr.last_sent_at IS NULL OR cr.last_sent_at < DATE_SUB(NOW(), INTERVAL 1 DAY)))
+             AND c.target_date <= CURRENT_DATE + (cr.days_before || ' days')::interval
+             AND (cr.last_sent_at IS NULL OR cr.last_sent_at < NOW() - INTERVAL '1 day'))
           )
       `);
 
@@ -443,7 +443,7 @@ export const certificationRouter = router({
 
     const expiringResult = await db.execute(sql`
       SELECT id, cert_code, name, expiry_date FROM certifications
-      WHERE status = 'valid' AND expiry_date IS NOT NULL AND expiry_date <= DATE_ADD(CURDATE(), INTERVAL 90 DAY)
+      WHERE status = 'valid' AND expiry_date IS NOT NULL AND expiry_date <= CURRENT_DATE + INTERVAL '90 days'
       ORDER BY expiry_date ASC LIMIT ${5}
     `);
 

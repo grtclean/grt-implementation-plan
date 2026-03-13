@@ -40,6 +40,26 @@ export const sysMeetings = pgTable(
     description: text("description"),
     // AI-transcribed or manually entered meeting transcript
     transcript: text("transcript"),
+    // AI-generated structured summary (agenda highlights, decisions, risks, next-steps)
+    aiSummary: json("ai_summary").$type<{
+      highlights?: string[];
+      decisions?: string[];
+      risks?: string[];
+      nextSteps?: string[];
+      sentiment?: string;
+      generatedAt?: string;
+    }>(),
+    // Project & department association for cross-domain queries
+    projectId: integer("project_id"),
+    // T-Project association (pre-contract temporary project)
+    tProjectId: integer("t_project_id"),
+    departmentId: integer("department_id"),
+    // Explicit M0-M12 stage association (nullable for backward compat)
+    stageCode: varchar("stage_code", { length: 10 }),
+    // Meeting purpose/category
+    meetingCategory: varchar("meeting_category", { length: 30 }).default("OTHER"),
+    // INTERNAL = 对内 | EXTERNAL = 对外
+    direction: varchar("direction", { length: 10 }).default("INTERNAL"),
     // Organiser info
     organizerName: varchar("organizer_name", { length: 100 }),
     organizerId: integer("organizer_id").references(() => users.id),
@@ -72,6 +92,12 @@ export const sysMeetings = pgTable(
     scheduledStartIdx: index("sys_meetings_scheduled_start_idx").on(
       table.scheduledStart
     ),
+    projectIdx: index("sys_meetings_project_idx").on(table.projectId),
+    tProjectIdx: index("sys_meetings_t_project_idx").on(table.tProjectId),
+    departmentIdx: index("sys_meetings_department_idx").on(table.departmentId),
+    stageCodeIdx: index("sys_meetings_stage_code_idx").on(table.stageCode),
+    meetingCategoryIdx: index("sys_meetings_meeting_category_idx").on(table.meetingCategory),
+    directionIdx: index("sys_meetings_direction_idx").on(table.direction),
   })
 );
 
@@ -270,6 +296,34 @@ export const hrAiPerformance = pgTable(
 );
 
 // ─────────────────────────────────────────────────────────────
+//  customer_interaction_feedback — 客户交互反馈结构化存储
+// ─────────────────────────────────────────────────────────────
+export const customerInteractionFeedback = pgTable(
+  "customer_interaction_feedback",
+  {
+    id: serial("id").primaryKey(),
+    projectId: integer("project_id").notNull(),
+    meetingId: integer("meeting_id"),
+    feedbackType: varchar("feedback_type", { length: 30 }).notNull(), // pain_point | requirement_change | objection | budget_signal
+    content: text("content").notNull(),
+    severity: varchar("severity", { length: 10 }).notNull().default("medium"), // high | medium | low
+    resolvedAt: timestamp("resolved_at"),
+    resolvedBy: varchar("resolved_by", { length: 50 }),
+    proposalId: integer("proposal_id"), // → ai_solution_proposals
+    createdBy: varchar("created_by", { length: 50 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    projectIdx: index("cif_project_idx").on(table.projectId),
+    meetingIdx: index("cif_meeting_idx").on(table.meetingId),
+    feedbackTypeIdx: index("cif_feedback_type_idx").on(table.feedbackType),
+  })
+);
+
+export type CustomerInteractionFeedback = typeof customerInteractionFeedback.$inferSelect;
+export type NewCustomerInteractionFeedback = typeof customerInteractionFeedback.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────
 //  meeting_review_evaluations — 述职报告多维度评分
 // ─────────────────────────────────────────────────────────────
 export const meetingReviewEvaluations = pgTable(
@@ -293,3 +347,74 @@ export const meetingReviewEvaluations = pgTable(
     evaluatorIdx: index("meeting_review_eval_evaluator_idx").on(table.evaluatorId),
   })
 );
+
+// ─────────────────────────────────────────────────────────────
+//  t_projects — Pre-contract temporary project tracking
+//  T-number format: T + yyMMdd + 2-digit sequence (e.g. T26030601)
+//  Status: INQUIRY → NEGOTIATING → ORDER_RECEIVED → CONVERTED → CANCELLED
+// ─────────────────────────────────────────────────────────────
+export const tProjects = pgTable(
+  "t_projects",
+  {
+    id: serial("id").primaryKey(),
+    tNumber: varchar("t_number", { length: 20 }).notNull(),
+    displayName: varchar("display_name", { length: 300 }).notNull(),
+    customerId: integer("customer_id"),
+    customerName: varchar("customer_name", { length: 200 }),
+    // INQUIRY → NEGOTIATING → ORDER_RECEIVED → CONVERTED → CANCELLED
+    status: varchar("status", { length: 30 }).notNull().default("INQUIRY"),
+    // Populated when converted to formal GRT project
+    convertedProjectId: integer("converted_project_id"),
+    grtNumber: varchar("grt_number", { length: 20 }),
+    convertedAt: timestamp("converted_at"),
+    convertedBy: varchar("converted_by", { length: 100 }),
+    description: text("description"),
+    // AI communication strategy analysis result
+    aiCommAnalysis: json("ai_comm_analysis").$type<{
+      approach?: string;
+      angle?: string;
+      suggestions?: string[];
+      followUpPlan?: string;
+      analyzedAt?: string;
+    }>(),
+    createdBy: varchar("created_by", { length: 100 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    tNumberIdx: index("t_projects_t_number_idx").on(table.tNumber),
+    statusIdx: index("t_projects_status_idx").on(table.status),
+    customerIdx: index("t_projects_customer_idx").on(table.customerId),
+  })
+);
+
+export type TProject = typeof tProjects.$inferSelect;
+export type NewTProject = typeof tProjects.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────
+//  t_project_evidence — Communication records & evidence for AI analysis
+//  Project managers can review these records
+// ─────────────────────────────────────────────────────────────
+export const tProjectEvidence = pgTable(
+  "t_project_evidence",
+  {
+    id: serial("id").primaryKey(),
+    tProjectId: integer("t_project_id").notNull(),
+    meetingId: integer("meeting_id"),
+    // communication_record | customer_feedback | technical_note | site_visit | email
+    evidenceType: varchar("evidence_type", { length: 30 }).notNull(),
+    title: varchar("title", { length: 300 }).notNull(),
+    content: text("content").notNull(),
+    metadata: json("metadata").$type<Record<string, unknown>>(),
+    recordedBy: varchar("recorded_by", { length: 100 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    tProjectIdx: index("t_project_evidence_t_project_idx").on(table.tProjectId),
+    meetingIdx: index("t_project_evidence_meeting_idx").on(table.meetingId),
+    typeIdx: index("t_project_evidence_type_idx").on(table.evidenceType),
+  })
+);
+
+export type TProjectEvidence = typeof tProjectEvidence.$inferSelect;
+export type NewTProjectEvidence = typeof tProjectEvidence.$inferInsert;

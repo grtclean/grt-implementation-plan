@@ -3,7 +3,7 @@
  * File management, version check-in, and Engineering Change Order workflows
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import {
   grtVaultFiles,
@@ -59,7 +59,7 @@ export const vaultRouter = router({
   }),
 
   /** Mock upload — inserts file record */
-  upload: protectedProcedure.input(z.object({
+  upload: requirePermission('rnd:vault:access').input(z.object({
     projectId: z.union([z.string(), z.number()]),
     fileName: z.string().min(1),
     fileType: z.enum(["SOLIDWORKS", "EPLAN", "WORD", "PDF", "EMAIL_EML", "MEETING_RECORD"]),
@@ -80,7 +80,7 @@ export const vaultRouter = router({
   }),
 
   /** Mock version bump — increments integer version */
-  checkin: protectedProcedure.input(idInput).mutation(async ({ input }) => {
+  checkin: requirePermission('rnd:vault:access').input(idInput).mutation(async ({ input }) => {
     const db = await requireDb();
     const [file] = await db.select().from(grtVaultFiles)
       .where(eq(grtVaultFiles.id, toNum(input.id))).limit(1000);
@@ -125,7 +125,7 @@ export const vaultRouter = router({
   }),
 
   /** Create new ECO with affected file IDs */
-  createEco: protectedProcedure.input(z.object({
+  createEco: requirePermission('rnd:vault:access').input(z.object({
     projectId: z.union([z.string(), z.number()]),
     ecoNumber: z.string().min(1),
     title: z.string().min(1),

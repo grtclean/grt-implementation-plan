@@ -1,7 +1,6 @@
 import { defineConfig } from "drizzle-kit";
 import dotenv from "dotenv";
 import path from "path";
-import { fileURLToPath } from "url";
 
 /**
  * Environment-aware Drizzle configuration.
@@ -17,14 +16,12 @@ import { fileURLToPath } from "url";
 const nodeEnv = process.env.NODE_ENV || "development";
 const envFile = `.env.${nodeEnv}`;
 
-// CJS/ESM compatible __dirname
-const __dirname = typeof import.meta.dirname === "string"
-  ? import.meta.dirname
-  : path.dirname(fileURLToPath(import.meta.url));
+// Use process.cwd() — works in both ESM and drizzle-kit's CJS transpilation
+const rootDir = process.cwd();
 
 // Load environment-specific file first, then generic .env as fallback
-dotenv.config({ path: path.resolve(__dirname, envFile) });
-dotenv.config({ path: path.resolve(__dirname, ".env") });
+dotenv.config({ path: path.resolve(rootDir, envFile) });
+dotenv.config({ path: path.resolve(rootDir, ".env") });
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {

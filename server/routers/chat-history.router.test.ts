@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createAuthenticatedCaller,
+  createAdminCaller,
   createAnonymousCaller,
 } from "../_test/trpc-test-utils";
 
@@ -178,7 +178,7 @@ describe("chatHistory.list", () => {
   it("returns items and pagination info", async () => {
     const sessions = [makeSession(), makeSession({ id: 2, title: "Session 2" })];
     mockQueryResult = sessions;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.list();
     expect(result).toEqual({
       items: sessions,
@@ -190,7 +190,7 @@ describe("chatHistory.list", () => {
 
   it("returns empty list when no sessions exist", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.list();
     expect(result).toEqual({ items: [], total: 0, page: 1, pageSize: 0 });
   });
@@ -198,7 +198,7 @@ describe("chatHistory.list", () => {
   it("returns single session", async () => {
     const session = makeSession();
     mockQueryResult = [session];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.list();
     expect(result.items).toHaveLength(1);
     expect(result.total).toBe(1);
@@ -216,14 +216,14 @@ describe("chatHistory.getById", () => {
   it("returns a session by string id", async () => {
     const session = makeSession({ id: 42 });
     mockQueryResult = [session];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.getById({ id: "42" });
     expect(result).toEqual(session);
   });
 
   it("returns null when session not found", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.getById({ id: "9999" });
     expect(result).toBeNull();
   });
@@ -231,7 +231,7 @@ describe("chatHistory.getById", () => {
   it("parses string id to integer", async () => {
     const session = makeSession({ id: 5 });
     mockQueryResult = [session];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.getById({ id: "5" });
     expect(result).toEqual(session);
     expect(mockDb.select).toHaveBeenCalled();
@@ -250,7 +250,7 @@ describe("chatHistory.getSessions", () => {
       makeSession({ id: 1, lastActivityAt: "2026-01-01T00:00:00.000Z" }),
     ];
     mockQueryResult = sessions;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.getSessions();
     expect(result).toEqual(sessions);
     expect(result).toHaveLength(2);
@@ -258,7 +258,7 @@ describe("chatHistory.getSessions", () => {
 
   it("returns empty array when no sessions", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.getSessions();
     expect(result).toEqual([]);
   });
@@ -273,7 +273,7 @@ describe("chatHistory.getMessages", () => {
   it("returns messages for a numeric sessionId", async () => {
     const messages = [makeMessage(), makeMessage({ id: 2, content: "Hi" })];
     mockQueryResult = messages;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.getMessages({ sessionId: 1 });
     expect(result).toEqual(messages);
   });
@@ -281,28 +281,28 @@ describe("chatHistory.getMessages", () => {
   it("returns messages for a string sessionId", async () => {
     const messages = [makeMessage({ sessionId: 5 })];
     mockQueryResult = messages;
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.getMessages({ sessionId: "5" });
     expect(result).toEqual(messages);
   });
 
   it("returns empty array when no messages", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.getMessages({ sessionId: 1 });
     expect(result).toEqual([]);
   });
 
   it("handles undefined input (defaults sessionId to 0)", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.getMessages();
     expect(result).toEqual([]);
   });
 
   it("handles empty object input", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.getMessages({});
     expect(result).toEqual([]);
   });
@@ -317,7 +317,7 @@ describe("chatHistory.getStats", () => {
   it("returns session and message counts", async () => {
     selectResultsQueue.push([{ count: 10 }]); // totalSessions
     selectResultsQueue.push([{ count: 150 }]); // totalMessages
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.getStats();
     expect(result).toEqual({
       stats: {
@@ -330,7 +330,7 @@ describe("chatHistory.getStats", () => {
   it("returns zeros when no data", async () => {
     selectResultsQueue.push([{ count: 0 }]); // totalSessions
     selectResultsQueue.push([{ count: 0 }]); // totalMessages
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.getStats();
     expect(result).toEqual({
       stats: {
@@ -354,7 +354,7 @@ describe("chatHistory.create", () => {
   it("creates a session with all fields", async () => {
     const session = makeSession({ id: 10, assistantType: "planning", projectId: 5, customerId: 3 });
     mockReturningResult = [session];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.create({
       assistantType: "planning",
       title: "Planning Session",
@@ -369,7 +369,7 @@ describe("chatHistory.create", () => {
   it("creates a session with minimal fields (defaults assistantType to solution)", async () => {
     const session = makeSession({ id: 11 });
     mockReturningResult = [session];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.create({});
     expect(result.success).toBe(true);
     expect(result.data).toEqual(session);
@@ -378,7 +378,7 @@ describe("chatHistory.create", () => {
   it("creates a session with specific assistantType", async () => {
     const session = makeSession({ id: 12, assistantType: "kpi" });
     mockReturningResult = [session];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.create({ assistantType: "kpi" });
     expect(result.success).toBe(true);
     expect(result.data).toEqual(session);
@@ -387,7 +387,7 @@ describe("chatHistory.create", () => {
   it("creates a session with metadata object", async () => {
     const session = makeSession({ id: 13, metadata: '{"foo":"bar"}' });
     mockReturningResult = [session];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.create({
       metadata: { foo: "bar" },
     });
@@ -402,14 +402,14 @@ describe("chatHistory.create", () => {
   });
 
   it("rejects invalid assistantType", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.chatHistory.create({ assistantType: "invalid" as any })
     ).rejects.toThrow();
   });
 
   it("rejects title exceeding 200 characters", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.chatHistory.create({ title: "x".repeat(201) })
     ).rejects.toThrow();
@@ -420,7 +420,7 @@ describe("chatHistory.update", () => {
   it("updates session title", async () => {
     const updated = makeSession({ title: "Updated Title" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.update({
       id: 1,
       title: "Updated Title",
@@ -432,7 +432,7 @@ describe("chatHistory.update", () => {
   it("updates session status", async () => {
     const updated = makeSession({ status: "archived" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.update({
       id: 1,
       status: "archived",
@@ -444,7 +444,7 @@ describe("chatHistory.update", () => {
   it("updates session with string id", async () => {
     const updated = makeSession({ id: 5, title: "New" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.update({
       id: "5",
       title: "New",
@@ -456,7 +456,7 @@ describe("chatHistory.update", () => {
   it("updates session with numeric id", async () => {
     const updated = makeSession({ id: 7, status: "deleted" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.update({
       id: 7,
       status: "deleted",
@@ -468,7 +468,7 @@ describe("chatHistory.update", () => {
   it("updates both title and status at once", async () => {
     const updated = makeSession({ title: "Archived Session", status: "archived" });
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.update({
       id: 1,
       title: "Archived Session",
@@ -487,14 +487,14 @@ describe("chatHistory.update", () => {
   });
 
   it("rejects invalid status value", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.chatHistory.update({ id: 1, status: "invalid" as any })
     ).rejects.toThrow();
   });
 
   it("rejects title exceeding 200 characters", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.chatHistory.update({ id: 1, title: "x".repeat(201) })
     ).rejects.toThrow();
@@ -506,7 +506,7 @@ describe("chatHistory.delete", () => {
     // delete messages (thenable chain) then delete session (thenable chain)
     selectResultsQueue.push([]); // delete messages result
     selectResultsQueue.push([]); // delete session result
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.delete({ id: "1" });
     expect(result).toEqual({ success: true, message: "删除成功" });
     expect(mockDb.delete).toHaveBeenCalledTimes(2);
@@ -515,7 +515,7 @@ describe("chatHistory.delete", () => {
   it("parses string id to integer for deletion", async () => {
     selectResultsQueue.push([]);
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.delete({ id: "42" });
     expect(result.success).toBe(true);
   });
@@ -523,7 +523,7 @@ describe("chatHistory.delete", () => {
   it("succeeds even when no messages exist for the session", async () => {
     selectResultsQueue.push([]); // no messages to delete
     selectResultsQueue.push([]); // delete session
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.delete({ id: "10" });
     expect(result).toEqual({ success: true, message: "删除成功" });
   });
@@ -540,7 +540,7 @@ describe("chatHistory.createSession", () => {
   it("creates a session with assistantType and title", async () => {
     const session = makeSession({ id: 20, assistantType: "quotation", title: "Quote Session" });
     mockReturningResult = [session];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.createSession({
       assistantType: "quotation",
       title: "Quote Session",
@@ -552,7 +552,7 @@ describe("chatHistory.createSession", () => {
   it("creates a session with defaults (solution type, 新会话 title)", async () => {
     const session = makeSession({ id: 21, assistantType: "solution", title: "新会话" });
     mockReturningResult = [session];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.createSession({});
     expect(result.success).toBe(true);
     expect(result.data).toEqual(session);
@@ -561,7 +561,7 @@ describe("chatHistory.createSession", () => {
   it("creates with personal assistantType", async () => {
     const session = makeSession({ id: 22, assistantType: "personal" });
     mockReturningResult = [session];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.createSession({
       assistantType: "personal",
     });
@@ -576,7 +576,7 @@ describe("chatHistory.createSession", () => {
   });
 
   it("rejects invalid assistantType", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.chatHistory.createSession({ assistantType: "bogus" as any })
     ).rejects.toThrow();
@@ -591,7 +591,7 @@ describe("chatHistory.addMessage", () => {
     selectResultsQueue.push([{ count: 5 }]);
     // update session (thenable chain)
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.addMessage({
       sessionId: 1,
       role: "user",
@@ -608,7 +608,7 @@ describe("chatHistory.addMessage", () => {
     mockReturningResult = [message];
     selectResultsQueue.push([{ count: 3 }]);
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.addMessage({
       sessionId: "5",
       role: "assistant",
@@ -623,7 +623,7 @@ describe("chatHistory.addMessage", () => {
     mockReturningResult = [message];
     selectResultsQueue.push([{ count: 1 }]);
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.addMessage({
       sessionId: 1,
     });
@@ -635,7 +635,7 @@ describe("chatHistory.addMessage", () => {
     mockReturningResult = [message];
     selectResultsQueue.push([{ count: 2 }]);
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.addMessage({
       sessionId: 1,
       role: "system",
@@ -649,7 +649,7 @@ describe("chatHistory.addMessage", () => {
     mockReturningResult = [message];
     selectResultsQueue.push([{ count: 4 }]);
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.addMessage({
       sessionId: 1,
       content: "const x = 1;",
@@ -663,7 +663,7 @@ describe("chatHistory.addMessage", () => {
     mockReturningResult = [message];
     selectResultsQueue.push([{ count: 6 }]);
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.addMessage({
       sessionId: 1,
       content: "| A | B |",
@@ -677,7 +677,7 @@ describe("chatHistory.addMessage", () => {
     mockReturningResult = [message];
     selectResultsQueue.push([{ count: 7 }]);
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.addMessage({
       sessionId: 1,
       content: "file://path/to/file",
@@ -691,7 +691,7 @@ describe("chatHistory.addMessage", () => {
     mockReturningResult = [message];
     selectResultsQueue.push([{ count: 8 }]);
     selectResultsQueue.push([]);
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.addMessage({
       sessionId: 1,
       content: "With metadata",
@@ -708,21 +708,21 @@ describe("chatHistory.addMessage", () => {
   });
 
   it("rejects invalid role", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.chatHistory.addMessage({ sessionId: 1, role: "invalid" as any })
     ).rejects.toThrow();
   });
 
   it("rejects invalid contentType", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.chatHistory.addMessage({ sessionId: 1, contentType: "html" as any })
     ).rejects.toThrow();
   });
 
   it("rejects content exceeding 50000 characters", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       caller.chatHistory.addMessage({ sessionId: 1, content: "x".repeat(50001) })
     ).rejects.toThrow();
@@ -735,7 +735,7 @@ describe("chatHistory.addMessage", () => {
 
 describe("chatHistory — input validation edge cases", () => {
   it("getById rejects missing id", async () => {
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     await expect(
       (caller.chatHistory.getById as any)({})
     ).rejects.toThrow();
@@ -744,7 +744,7 @@ describe("chatHistory — input validation edge cases", () => {
   it("create accepts empty object", async () => {
     const session = makeSession();
     mockReturningResult = [session];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.create({});
     expect(result.success).toBe(true);
   });
@@ -752,7 +752,7 @@ describe("chatHistory — input validation edge cases", () => {
   it("update accepts only id (no title or status)", async () => {
     const updated = makeSession();
     mockReturningResult = [updated];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.update({ id: 1 });
     expect(result.success).toBe(true);
   });
@@ -760,14 +760,14 @@ describe("chatHistory — input validation edge cases", () => {
   it("createSession accepts empty object", async () => {
     const session = makeSession();
     mockReturningResult = [session];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.createSession({});
     expect(result.success).toBe(true);
   });
 
   it("getMessages accepts undefined input", async () => {
     mockQueryResult = [];
-    const caller = createAuthenticatedCaller();
+    const caller = createAdminCaller();
     const result = await caller.chatHistory.getMessages(undefined);
     expect(result).toEqual([]);
   });
@@ -776,7 +776,7 @@ describe("chatHistory — input validation edge cases", () => {
     const types = ["solution", "quotation", "planning", "kpi", "personal"] as const;
     for (const t of types) {
       mockReturningResult = [makeSession({ assistantType: t })];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.chatHistory.create({ assistantType: t });
       expect(result.success).toBe(true);
     }
@@ -786,7 +786,7 @@ describe("chatHistory — input validation edge cases", () => {
     const statuses = ["active", "archived", "deleted"] as const;
     for (const s of statuses) {
       mockReturningResult = [makeSession({ status: s })];
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.chatHistory.update({ id: 1, status: s });
       expect(result.success).toBe(true);
     }
@@ -798,7 +798,7 @@ describe("chatHistory — input validation edge cases", () => {
       mockReturningResult = [makeMessage({ role: r })];
       selectResultsQueue.push([{ count: 1 }]);
       selectResultsQueue.push([]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.chatHistory.addMessage({ sessionId: 1, role: r, content: "test" });
       expect(result.success).toBe(true);
     }
@@ -810,7 +810,7 @@ describe("chatHistory — input validation edge cases", () => {
       mockReturningResult = [makeMessage({ contentType: ct })];
       selectResultsQueue.push([{ count: 1 }]);
       selectResultsQueue.push([]);
-      const caller = createAuthenticatedCaller();
+      const caller = createAdminCaller();
       const result = await caller.chatHistory.addMessage({ sessionId: 1, contentType: ct, content: "test" });
       expect(result.success).toBe(true);
     }

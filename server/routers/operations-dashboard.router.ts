@@ -6,7 +6,7 @@
  * Data source: ai_assistant_dashboard table (DB-backed)
  */
 
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 import { createChildLogger } from "../lib/logger";
@@ -58,11 +58,11 @@ async function ensureOpsDashData() {
         { id: "WP-005", name: "整机调试", category: "调试", avgTime: "8.0h", workers: 3, status: "待开始", quality: 0 },
       ]);
       const teamMembers = JSON.stringify([
-        { id: "user1", name: "张工程师", role: "高级服务工程师", capabilities: { T: 4, S: 3, D: 4, C: 3, K: 2, L: 2 }, totalPoints: 850 },
-        { id: "user2", name: "李技术员", role: "技术支持工程师", capabilities: { T: 3, S: 4, D: 3, C: 4, K: 3, L: 2 }, totalPoints: 720 },
-        { id: "user3", name: "王专家", role: "技术专家", capabilities: { T: 5, S: 4, D: 3, C: 3, K: 4, L: 3 }, totalPoints: 1200 },
-        { id: "user4", name: "赵工程师", role: "现场服务工程师", capabilities: { T: 2, S: 2, D: 3, C: 3, K: 1, L: 1 }, totalPoints: 320 },
-        { id: "user5", name: "陈主管", role: "服务主管", capabilities: { T: 3, S: 3, D: 4, C: 4, K: 3, L: 4 }, totalPoints: 980 },
+        { id: "user1", name: "洪香龙", role: "高级服务工程师", capabilities: { T: 4, S: 3, D: 4, C: 3, K: 2, L: 2 }, totalPoints: 850 },
+        { id: "user2", name: "李大鹏", role: "技术支持工程师", capabilities: { T: 3, S: 4, D: 3, C: 4, K: 3, L: 2 }, totalPoints: 720 },
+        { id: "user3", name: "杨勇", role: "技术专家", capabilities: { T: 5, S: 4, D: 3, C: 3, K: 4, L: 3 }, totalPoints: 1200 },
+        { id: "user4", name: "洪小东", role: "现场服务工程师", capabilities: { T: 2, S: 2, D: 3, C: 3, K: 1, L: 1 }, totalPoints: 320 },
+        { id: "user5", name: "金晓锋", role: "服务主管", capabilities: { T: 3, S: 3, D: 4, C: 4, K: 3, L: 4 }, totalPoints: 980 },
       ]);
       const usOrders = JSON.stringify([
         { order_id: "US-2026-0042", customer_name: "John Doe", customer_email: "john.doe@acme-corp.com", customer_phone: "+1-555-0142", unit_price: 2500, total_price: 5000, sku: "GRT-CLN-R200", quantity: 2, specs: "Robotic Cleaning System R200, 220V/60Hz, EN ISO 13849", shipping_address: "1234 Innovation Dr, San Jose, CA 95134", payment_method: "Wire Transfer — Chase Bank ****4821" },
@@ -88,45 +88,125 @@ async function ensureOpsDashData() {
 // ============================================================================
 
 export const operationsDashboardRouter = router({
+  /**
+   * Aggregate operations analytics for OperationsAnalytics.tsx.
+   * Real project counts, phase funnel, BU breakdown, violation warnings.
+   */
+  getOperationsAnalytics: protectedProcedure.query(async () => {
+    const db = await requireDb();
+    try {
+      // KPI: project counts
+      const projectStats = await db.execute(sql`
+        SELECT
+          COUNT(*)::int as total_projects,
+          SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END)::int as active,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)::int as completed
+        FROM projects
+        LIMIT 1
+      `);
+      const ps = ((projectStats as any).rows ?? [])[0] ?? {};
+
+      // Funnel: projects by phase
+      const funnelResult = await db.execute(sql`
+        SELECT current_phase as phase, COUNT(*)::int as cnt
+        FROM projects
+        WHERE status IN ('active', 'completed')
+        GROUP BY current_phase
+        ORDER BY phase
+        LIMIT 20
+      `);
+      const funnel = ((funnelResult as any).rows ?? []).map((r: any) => ({
+        stage: r.phase || 'Unknown',
+        count: Number(r.cnt ?? 0),
+      }));
+
+      // BU breakdown
+      const buResult = await db.execute(sql`
+        SELECT bu_code as bu, COUNT(*)::int as projects,
+          SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END)::int as active
+        FROM projects
+        WHERE bu_code IS NOT NULL
+        GROUP BY bu_code
+        ORDER BY projects DESC
+        LIMIT 10
+      `);
+      const buData = ((buResult as any).rows ?? []).map((r: any) => ({
+        bu: r.bu,
+        projects: Number(r.projects ?? 0),
+        active: Number(r.active ?? 0),
+      }));
+
+      // Warnings: recent violations
+      let warnings: any[] = [];
+      try {
+        const warnResult = await db.execute(sql`
+          SELECT id, title, severity, created_at
+          FROM violation_events
+          ORDER BY created_at DESC
+          LIMIT 5
+        `);
+        warnings = ((warnResult as any).rows ?? []).map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          level: r.severity || 'warning',
+          time: r.created_at,
+        }));
+      } catch { /* table may not exist */ }
+
+      return {
+        kpis: {
+          totalProjects: Number(ps.total_projects ?? 0),
+          activeProjects: Number(ps.active ?? 0),
+          completedProjects: Number(ps.completed ?? 0),
+        },
+        funnel,
+        buData,
+        warnings,
+      };
+    } catch {
+      return { kpis: { totalProjects: 0, activeProjects: 0, completedProjects: 0 }, funnel: [], buData: [], warnings: [] };
+    }
+  }),
+
   getPositions: protectedProcedure.query(async () => {
     await ensureOpsDashData();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'operations_dash' AND category = 'positions'`);
+    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'operations_dash' AND category = 'positions' LIMIT 1000`);
     return (rows[0] as any)?.items ?? [];
   }),
 
   getGanttTasks: protectedProcedure.query(async () => {
     await ensureOpsDashData();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'operations_dash' AND category = 'gantt_tasks'`);
+    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'operations_dash' AND category = 'gantt_tasks' LIMIT 1000`);
     return (rows[0] as any)?.items ?? [];
   }),
 
   getMaterials: protectedProcedure.query(async () => {
     await ensureOpsDashData();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'operations_dash' AND category = 'materials'`);
+    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'operations_dash' AND category = 'materials' LIMIT 1000`);
     return (rows[0] as any)?.items ?? [];
   }),
 
   getProcesses: protectedProcedure.query(async () => {
     await ensureOpsDashData();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'operations_dash' AND category = 'processes'`);
+    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'operations_dash' AND category = 'processes' LIMIT 1000`);
     return (rows[0] as any)?.items ?? [];
   }),
 
   getTeamMembers: protectedProcedure.query(async () => {
     await ensureOpsDashData();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'operations_dash' AND category = 'team_members'`);
+    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'operations_dash' AND category = 'team_members' LIMIT 1000`);
     return (rows[0] as any)?.items ?? [];
   }),
 
   getUSOrders: protectedProcedure.query(async () => {
     await ensureOpsDashData();
     const db = await requireDb();
-    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'operations_dash' AND category = 'us_orders'`);
+    const { rows } = await db.execute(sql`SELECT items FROM ai_assistant_dashboard WHERE assistant_type = 'operations_dash' AND category = 'us_orders' LIMIT 1000`);
     return (rows[0] as any)?.items ?? [];
   }),
 });

@@ -73,6 +73,12 @@ function createMockDb() {
 
 const mockDb = createMockDb();
 
+vi.mock("../permission-management/permission.service", () => ({
+  permissionService: {
+    checkPermission: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 vi.mock("../db", () => ({
   requireDb: vi.fn(async () => mockDb),
 }));

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { feedback } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
@@ -13,7 +13,7 @@ export const feedbackRouter = router({
   }),
 
   // 创建反馈
-  create: protectedProcedure.input(z.object({
+  create: requirePermission('workspace:preferences:manage').input(z.object({
     type: z.enum(["suggestion", "bug", "other"]).optional(),
     content: z.string().max(5000).optional(),
   })).mutation(async ({ input, ctx }) => {
@@ -28,7 +28,7 @@ export const feedbackRouter = router({
   }),
 
   // 提交反馈（前端调用 submit）
-  submit: protectedProcedure.input(z.object({
+  submit: requirePermission('workspace:preferences:manage').input(z.object({
     type: z.enum(["suggestion", "bug", "other"]).optional(),
     content: z.string().max(5000).optional(),
   })).mutation(async ({ input, ctx }) => {

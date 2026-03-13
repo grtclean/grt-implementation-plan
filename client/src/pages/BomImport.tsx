@@ -18,17 +18,19 @@ import {
   ArrowRight, List, History, FileText
 } from "lucide-react";
 
-const PROCESS_NAMES: Record<string, string> = {
-  T1: '机加工', T2: '冷作', T3: '机械部件装配', T4: '机械装配', T5: '机械总装',
-  T6: '电气装配', T7: '设备调试', T8: '跑和', T9: '包装', T10: '发货',
-  T11: '卸车', T12: '就位', T13: '水电气连接', T14: '现场调试', T15: '终验收',
+const PROCESS_NAME_KEYS: Record<string, string> = {
+  T1: "manufacturing.bom.import.processT1", T2: "manufacturing.bom.import.processT2", T3: "manufacturing.bom.import.processT3",
+  T4: "manufacturing.bom.import.processT4", T5: "manufacturing.bom.import.processT5", T6: "manufacturing.bom.import.processT6",
+  T7: "manufacturing.bom.import.processT7", T8: "manufacturing.bom.import.processT8", T9: "manufacturing.bom.import.processT9",
+  T10: "manufacturing.bom.import.processT10", T11: "manufacturing.bom.import.processT11", T12: "manufacturing.bom.import.processT12",
+  T13: "manufacturing.bom.import.processT13", T14: "manufacturing.bom.import.processT14", T15: "manufacturing.bom.import.processT15",
 };
 
-const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  completed: { bg: "bg-green-500/20", text: "text-green-400", label: "已完成" },
-  partial: { bg: "bg-yellow-500/20", text: "text-yellow-400", label: "部分导入" },
-  failed: { bg: "bg-red-500/20", text: "text-red-400", label: "导入失败" },
-  processing: { bg: "bg-blue-500/20", text: "text-blue-400", label: "处理中" },
+const STATUS_STYLE_KEYS: Record<string, { bg: string; text: string; labelKey: string }> = {
+  completed: { bg: "bg-green-500/20", text: "text-green-400", labelKey: "manufacturing.bom.import.statusCompleted" },
+  partial: { bg: "bg-yellow-500/20", text: "text-yellow-400", labelKey: "manufacturing.bom.import.statusPartial" },
+  failed: { bg: "bg-red-500/20", text: "text-red-400", labelKey: "manufacturing.bom.import.statusFailed" },
+  processing: { bg: "bg-blue-500/20", text: "text-blue-400", labelKey: "manufacturing.bom.import.statusProcessing" },
 };
 
 export default function BomImport() {
@@ -98,7 +100,7 @@ export default function BomImport() {
         materialCode: cols[0] || '',
         materialName: cols[1] || '',
         specification: cols[2] || '',
-        unit: cols[3] || '个',
+        unit: cols[3] || t("manufacturing.bom.import.unitPiece"),
         requiredQty: Number(cols[4]) || 1,
         category: cols[5] || 'standard',
       };
@@ -178,8 +180,8 @@ export default function BomImport() {
                   <Select value={importForm.processCode} onValueChange={(v) => setImportForm(p => ({ ...p, processCode: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(PROCESS_NAMES).map(([code, name]) => (
-                        <SelectItem key={code} value={code}>{code} - {name}</SelectItem>
+                      {Object.entries(PROCESS_NAME_KEYS).map(([code, key]) => (
+                        <SelectItem key={code} value={code}>{code} - {t(key)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -191,7 +193,7 @@ export default function BomImport() {
                     <SelectContent>
                       <SelectItem value="manual">{t("manufacturing.bom.import.sourceManual")}</SelectItem>
                       <SelectItem value="erp">{t("manufacturing.bom.import.sourceErp")}</SelectItem>
-                      <SelectItem value="jiandaoyun">{t("manufacturing.bom.import.sourceJiandaoyun")}</SelectItem>
+                      <SelectItem value="externalSync">{t("manufacturing.bom.import.sourceExternalSync")}</SelectItem>
                       <SelectItem value="excel">{t("manufacturing.bom.import.sourceExcel")}</SelectItem>
                     </SelectContent>
                   </Select>
@@ -203,7 +205,7 @@ export default function BomImport() {
                   value={importForm.csvData}
                   onChange={(e) => setImportForm(p => ({ ...p, csvData: e.target.value }))}
                   rows={10}
-                  placeholder={`${t("manufacturing.bom.import.csvPlaceholder")}\nMAT-001,螺栓M10x30,M10x30,个,24,standard\nMAT-002,密封圈DN50,DN50,个,8,critical\nMAT-003,轴承6205,6205-2RS,个,4,standard`}
+                  placeholder={`${t("manufacturing.bom.import.csvPlaceholder")}\nMAT-001,${t("manufacturing.bom.import.sampleBolt")},M10x30,${t("manufacturing.bom.import.unitPiece")},24,standard\nMAT-002,${t("manufacturing.bom.import.sampleSeal")},DN50,${t("manufacturing.bom.import.unitPiece")},8,critical\nMAT-003,${t("manufacturing.bom.import.sampleBearing")},6205-2RS,${t("manufacturing.bom.import.unitPiece")},4,standard`}
                   className="font-mono text-sm"
                 />
               </div>
@@ -252,7 +254,7 @@ export default function BomImport() {
           ) : (
             <div className="space-y-3">
               {history.map((record: any) => {
-                const status = STATUS_STYLES[record.status] || STATUS_STYLES.completed;
+                const status = STATUS_STYLE_KEYS[record.status] || STATUS_STYLE_KEYS.completed;
                 return (
                   <Card key={record.id} className="bg-card/50 border-border">
                     <CardContent className="p-4">
@@ -263,7 +265,7 @@ export default function BomImport() {
                           </div>
                           <div>
                             <p className="font-medium text-sm">
-                              {record.process_code} ({PROCESS_NAMES[record.process_code] || ''})
+                              {record.process_code} ({PROCESS_NAME_KEYS[record.process_code] ? t(PROCESS_NAME_KEYS[record.process_code]) : ''})
                               <span className="text-muted-foreground ml-2">{t("manufacturing.bom.import.source")}: {record.source}</span>
                             </p>
                             <p className="text-xs text-muted-foreground">
@@ -272,7 +274,7 @@ export default function BomImport() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <Badge className={`${status.bg} ${status.text} border-0`}>{status.label}</Badge>
+                          <Badge className={`${status.bg} ${status.text} border-0`}>{t(status.labelKey)}</Badge>
                           <p className="text-xs text-muted-foreground mt-1">
                             {record.created_at ? new Date(Number(record.created_at)).toLocaleString() : ''}
                           </p>
@@ -305,8 +307,8 @@ export default function BomImport() {
                 <Select value={importForm.processCode} onValueChange={(v) => setImportForm(p => ({ ...p, processCode: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(PROCESS_NAMES).map(([code, name]) => (
-                      <SelectItem key={code} value={code}>{code} - {name}</SelectItem>
+                    {Object.entries(PROCESS_NAME_KEYS).map(([code, key]) => (
+                      <SelectItem key={code} value={code}>{code} - {t(key)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -318,7 +320,7 @@ export default function BomImport() {
                   <SelectContent>
                     <SelectItem value="manual">{t("manufacturing.bom.import.sourceManual")}</SelectItem>
                     <SelectItem value="erp">{t("manufacturing.bom.import.sourceErp")}</SelectItem>
-                    <SelectItem value="jiandaoyun">{t("manufacturing.bom.import.sourceJiandaoyun")}</SelectItem>
+                    <SelectItem value="externalSync">{t("manufacturing.bom.import.sourceExternalSync")}</SelectItem>
                     <SelectItem value="excel">{t("manufacturing.bom.import.sourceExcel")}</SelectItem>
                   </SelectContent>
                 </Select>

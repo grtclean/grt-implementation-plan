@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
+import {router, adminProcedure, protectedProcedure, requirePermission} from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 
 // ===== 审批模板Schema =====
@@ -260,7 +260,7 @@ export const approvalRouter = router({
   /**
    * 批准审批任务
    */
-  approveTask: protectedProcedure
+  approveTask: requirePermission('oa:forms:manage')
     .input(ApprovalActionSchema)
     .mutation(async ({ input, ctx }) => {
       return {
@@ -275,7 +275,7 @@ export const approvalRouter = router({
   /**
    * 拒绝审批任务
    */
-  rejectTask: protectedProcedure
+  rejectTask: requirePermission('oa:forms:manage')
     .input(ApprovalActionSchema)
     .mutation(async ({ input, ctx }) => {
       return {
@@ -291,7 +291,7 @@ export const approvalRouter = router({
   /**
    * 退回审批任务
    */
-  returnTask: protectedProcedure
+  returnTask: requirePermission('oa:forms:manage')
     .input(ApprovalActionSchema)
     .mutation(async ({ input, ctx }) => {
       return {
@@ -418,7 +418,7 @@ export const approvalRouter = router({
   /**
    * 委托审批权限
    */
-  delegateApprovalAuthority: protectedProcedure
+  delegateApprovalAuthority: requirePermission('oa:forms:manage')
     .input(z.object({
       delegatedTo: z.number(),
       documentTypes: z.array(z.string()),
@@ -686,7 +686,7 @@ export const approvalRouter = router({
   /**
    * 处理审批（批准/拒绝/退回）
    */
-  processApproval: protectedProcedure
+  processApproval: requirePermission('oa:forms:manage')
     .input(z.object({
       instanceId: z.number(),
       action: z.enum(['approve', 'reject', 'return']),
@@ -778,7 +778,7 @@ export const approvalRouter = router({
   /**
    * 撤回审批
    */
-  withdrawApproval: protectedProcedure
+  withdrawApproval: requirePermission('oa:forms:manage')
     .input(z.object({
       instanceId: z.number(),
       reason: z.string().optional(),
@@ -879,7 +879,7 @@ export const approvalRouter = router({
   /**
    * 创建红蓝对抗配置
    */
-  createRedBlueConfig: protectedProcedure
+  createRedBlueConfig: requirePermission('oa:forms:manage')
     .input(RedBlueConfigSchema)
     .mutation(({ input, ctx }) => {
       const configCode = generateCode('RB');
@@ -902,7 +902,7 @@ export const approvalRouter = router({
   /**
    * 更新红蓝对抗配置
    */
-  updateRedBlueConfig: protectedProcedure
+  updateRedBlueConfig: requirePermission('oa:forms:manage')
     .input(z.object({
       id: z.number(),
     }).merge(RedBlueConfigSchema))
@@ -929,7 +929,7 @@ export const approvalRouter = router({
   /**
    * 提交红蓝对抗配置审批
    */
-  submitRedBlueConfigForApproval: protectedProcedure
+  submitRedBlueConfigForApproval: requirePermission('oa:forms:manage')
     .input(z.object({
       id: z.number(),
     }))
@@ -952,7 +952,7 @@ export const approvalRouter = router({
   /**
    * 删除红蓝对抗配置
    */
-  deleteRedBlueConfig: protectedProcedure
+  deleteRedBlueConfig: requirePermission('oa:forms:manage')
     .input(z.object({
       id: z.number(),
     }))
