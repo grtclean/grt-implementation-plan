@@ -12,6 +12,7 @@ import {
   Award,
   Globe,
   FileCheck,
+  FlaskConical,
   Library,
   Swords,
   Medal,
@@ -127,10 +128,14 @@ export interface MenuItem {
   requiresBU?: boolean;
   // 标记为新功能
   isNew?: boolean;
+  // 标记为沙盘入口
+  isSandbox?: boolean;
   // 禁用菜单项（功能开发中）
   disabled?: boolean;
   // 禁用原因提示
   disabledReason?: string;
+  // 描述信息（用于沙盘 I/O·M365·工具摘要等）
+  desc?: string;
 }
 
 /** 三级菜单子分组 — 用于大型模块（如生产制造54项）的逻辑归类 */
@@ -211,7 +216,7 @@ export const WAFFLE_APPS: WaffleApp[] = [
   // Engine 3: Strategy & OKR
   { id: "strategy",      name: "战略规划",    nameEn: "Strategy",      icon: Target,          color: "#4F6BED", menuGroupNames: ["战略规划"],                  defaultPath: "/strategy",                engine: "strategy" },
   { id: "ai",            name: "AI助手",      nameEn: "AI Hub",        icon: Bot,             color: "#0063B1", menuGroupNames: ["AI助手"],                   defaultPath: "/ai-hub",                  engine: "strategy" },
-  { id: "knowledge",     name: "知识大脑",    nameEn: "Knowledge Brain",   nameDe: "Wissenszentrale",   nameFr: "Cerveau de connaissances", icon: Brain,  color: "#744DA9", menuGroupNames: ["知识大脑"],  defaultPath: "/rag-training",   engine: "strategy" },
+  { id: "knowledge",     name: "知识大脑",    nameEn: "Knowledge Brain",   nameDe: "Wissenszentrale",   nameFr: "Cerveau de connaissances", icon: Brain,  color: "#744DA9", menuGroupNames: ["AI助手"],  defaultPath: "/rag-training",   engine: "strategy" },
   { id: "devops",        name: "AI DevOps",   nameEn: "AI DevOps Matrix",  nameDe: "KI-DevOps-Matrix",  nameFr: "Matrice IA DevOps",        icon: Code2,  color: "#C239B3", menuGroupNames: ["AI DevOps"],  defaultPath: "/dual-ai-matrix", engine: "strategy" },
   // Engine 4: Core Operations
   { id: "sales",         name: "市场与销售",  nameEn: "Sales & CRM",   icon: TrendingUp,      color: "#107C10", menuGroupNames: ["市场与销售"],                defaultPath: "/sales-crm",               engine: "operations" },
@@ -224,7 +229,7 @@ export const WAFFLE_APPS: WaffleApp[] = [
   { id: "hr",            name: "人力资源",    nameEn: "HR",            icon: Users,           color: "#CA5010", menuGroupNames: ["人力资源", "能力体系"],       defaultPath: "/hrm-intelligent",         engine: "resources" },
   { id: "finance",       name: "财务管理",    nameEn: "Finance",       icon: Wallet,          color: "#498205", menuGroupNames: ["财务管理"],                  defaultPath: "/expense-report",          engine: "resources" },
   { id: "oa",            name: "Smart OA",    nameEn: "Smart OA",      icon: ClipboardList,   color: "#881798", menuGroupNames: ["Smart OA", "协作与文档"],    defaultPath: "/oa-dashboard",            engine: "resources" },
-  { id: "admin",         name: "系统管理",    nameEn: "Admin",         icon: Settings,        color: "#69797E", menuGroupNames: ["系统管理", "平台能力"],       defaultPath: "/system-control-tower",    engine: "resources" },
+  { id: "admin",         name: "系统管理",    nameEn: "Admin",         icon: Settings,        color: "#69797E", menuGroupNames: ["系统管理"],                  defaultPath: "/system-control-tower",    engine: "resources" },
 ];
 
 // ============================================
@@ -243,38 +248,80 @@ export const menuConfig: MenuGroup[] = [
     defaultOpen: true,
     superCategory: "portal",
     items: [
-      { name: "千人千面", nameEn: "Me Engine", nameDe: "Mein Portal", nameFr: "Mon moteur", path: "/me", icon: User, isNew: true },
-      { name: "个人门户", nameEn: "My Workspace", nameDe: "Mein Portal", nameFr: "Mon portail", path: "/my-workspace", icon: Star, isNew: true },
-      { name: "赋能工作台", nameEn: "Empowerment Hub", nameDe: "Empowerment-Hub", nameFr: "Hub d'autonomisation", path: "/personal-dashboard", icon: Zap, isNew: true },
-      { name: "员工成长平台", nameEn: "Employee Growth", nameDe: "Mitarbeiterwachstum", nameFr: "Croissance employes", path: "/employee-growth", icon: GraduationCap, isNew: true },
-      { name: "企业知识合规", nameEn: "Knowledge & Compliance", nameDe: "Wissen & Compliance", nameFr: "Connaissances & Conformité", path: "/knowledge-compliance", icon: BookOpen, isNew: true },
-      { name: "生命旅程生态", nameEn: "Lifecycle Ecosystem", nameDe: "Lebenszyklus-Ökosystem", nameFr: "Écosystème du cycle de vie", path: "/lifecycle-ecosystem", icon: Rocket, isNew: true },
       { name: "我的看板", nameEn: "My Dashboard", nameDe: "Mein Dashboard", nameFr: "Mon tableau de bord", path: "/", icon: Home },
       { name: "通知中心", nameEn: "Notifications", nameDe: "Benachrichtigungen", nameFr: "Notifications", path: "/notifications", icon: BellRing },
       { name: "企业邮箱", nameEn: "Outlook Mail", nameDe: "Outlook Mail", nameFr: "Outlook Mail", path: "/outlook-mail", icon: Mail, isNew: true },
-      { name: "智慧会议", nameEn: "Smart Meeting", nameDe: "Intelligente Besprechung", nameFr: "Réunion intelligente", path: "/smart-meeting", icon: Video },
-      { name: "项目交互时间轴", nameEn: "Project Timeline", nameDe: "Projekt-Zeitachse", nameFr: "Chronologie projet", path: "/workspace/project-timeline", icon: Calendar, isNew: true },
-      { name: "会议效能分析", nameEn: "Meeting Executive", nameDe: "Besprechungsanalyse", nameFr: "Analyse des réunions", path: "/meeting-executive", icon: BarChart3, isNew: true },
-      { name: "实施路线图", nameEn: "Roadmap", nameDe: "Fahrplan", nameFr: "Feuille de route", path: "/roadmap", icon: Calendar },
       { name: "工具箱", nameEn: "Tools", nameDe: "Werkzeuge", nameFr: "Outils", path: "/tools", icon: Layers },
-      { name: "角色工作台", nameEn: "Role Dashboard", nameDe: "Rollen-Dashboard", nameFr: "Tableau de bord rôle", path: "/dashboard", icon: LayoutDashboard },
-      { name: "任务驾驶舱", nameEn: "Task Cockpit", nameDe: "Aufgaben-Cockpit", nameFr: "Cockpit des tâches", path: "/task-cockpit", icon: LayoutDashboard, isNew: true },
-      { name: "项目360驾驶舱", nameEn: "Project 360 Cockpit", nameDe: "Projekt-360-Cockpit", nameFr: "Cockpit Projet 360", path: "/project-360-cockpit", icon: LayoutDashboard, isNew: true },
-      { name: "CEO数字驾驶舱", nameEn: "CEO Executive Cockpit", nameDe: "CEO-Leitstand", nameFr: "Cockpit Exécutif CEO", path: "/ceo/executive-cockpit", icon: Crown, isNew: true },
-      { name: "CTO技术驾驶舱", nameEn: "CTO Technical Dashboard", nameDe: "CTO-Technik-Dashboard", nameFr: "Tableau CTO technique", path: "/cto/technical-dashboard", icon: Crown, isNew: true },
-      { name: "事业部经理驾驶舱", nameEn: "BU Manager Cockpit", nameDe: "BU-Manager-Cockpit", nameFr: "Cockpit directeur BU", path: "/bu-manager-cockpit", icon: Building2, isNew: true },
-      { name: "高管绩效总览", nameEn: "Executive Review Hub", nameDe: "Führungskräfte-Leistungsübersicht", nameFr: "Hub Revue Exécutive", path: "/executive-review", icon: Gauge, isNew: true, allowedRoles: ["admin", "director", "ceo", "cto", "cfo", "bu_gm", "hr_director"], minLevel: 5 },
+      { name: "实施路线图", nameEn: "Roadmap", nameDe: "Fahrplan", nameFr: "Feuille de route", path: "/roadmap", icon: Calendar },
       { name: "环境初始化", nameEn: "GRT Init Wizard", nameDe: "GRT-Initialisierung", nameFr: "Assistant GRT Init", path: "/grt-init", icon: Settings, isNew: true, minLevel: 7 },
-      { name: "会议智能", nameEn: "Meeting Intelligence", nameDe: "Besprechungsintelligenz", nameFr: "Intelligence réunion", path: "/meeting-intelligence", icon: Video },
-      { name: "个人设置", nameEn: "User Profile", nameDe: "Benutzerprofil", nameFr: "Profil utilisateur", path: "/user-profile", icon: UserCog },
-      { name: "我的360画像", nameEn: "My 360 Profile", nameDe: "Mein 360-Profil", nameFr: "Mon profil 360", path: "/my-360-profile", icon: Sparkles, isNew: true },
-      { name: "万能工作台", nameEn: "Universal Workspace", nameDe: "Universal-Arbeitsbereich", nameFr: "Espace universel", path: "/workspace", icon: LayoutDashboard, isNew: true },
-      { name: "大厅全球主屏", nameEn: "Global Lobby Screen", nameDe: "Globaler Lobby-Bildschirm", nameFr: "Écran global du hall", path: "/vision/lobby", icon: Globe, isNew: true },
-      { name: "车间生产总屏", nameEn: "Shopfloor Master Board", nameDe: "Werkstatt-Hauptbildschirm", nameFr: "Tableau principal d'atelier", path: "/vision/shopfloor", icon: Factory, isNew: true },
-      { name: "星火大屏", nameEn: "Spark of Hope", nameDe: "Hoffnungsfunke", nameFr: "Étincelle d'espoir", path: "/spark-of-hope", icon: Sparkles, isNew: true },
-      { name: "机器人清洗展厅", nameEn: "Robot Cleaning Showroom", nameDe: "Roboter-Reinigung Showroom", nameFr: "Showroom nettoyage robot", path: "/showroom", icon: Monitor, isNew: true },
-      { name: "发动机缸体AI清洗演示", nameEn: "Engine Block AI Cleaning Demo", nameDe: "AI-Motorblock-Reinigungsdemo", nameFr: "Démo nettoyage AI bloc moteur", path: "/showroom/engine-block-demo", icon: Cpu, isNew: true },
       { name: "组织卓越力中枢", nameEn: "Excellence Hub", nameDe: "Exzellenz-Hub", nameFr: "Hub d'excellence", path: "/excellence-showcase", icon: Award, isNew: true },
+    ],
+    subgroups: [
+      // ── 个人中心 ──
+      {
+        name: "个人中心",
+        nameEn: "Personal",
+        nameDe: "Persönlich",
+        nameFr: "Personnel",
+        icon: User,
+        items: [
+          { name: "千人千面", nameEn: "Me Engine", nameDe: "Mein Portal", nameFr: "Mon moteur", path: "/me", icon: User, isNew: true },
+          { name: "个人门户", nameEn: "My Workspace", nameDe: "Mein Portal", nameFr: "Mon portail", path: "/my-workspace", icon: Star, isNew: true },
+          { name: "个人设置", nameEn: "User Profile", nameDe: "Benutzerprofil", nameFr: "Profil utilisateur", path: "/user-profile", icon: UserCog },
+          { name: "我的360画像", nameEn: "My 360 Profile", nameDe: "Mein 360-Profil", nameFr: "Mon profil 360", path: "/my-360-profile", icon: Sparkles, isNew: true },
+          { name: "赋能工作台", nameEn: "Empowerment Hub", nameDe: "Empowerment-Hub", nameFr: "Hub d'autonomisation", path: "/personal-dashboard", icon: Zap, isNew: true },
+          { name: "员工成长平台", nameEn: "Employee Growth", nameDe: "Mitarbeiterwachstum", nameFr: "Croissance employes", path: "/employee-growth", icon: GraduationCap, isNew: true },
+          { name: "企业知识合规", nameEn: "Knowledge & Compliance", nameDe: "Wissen & Compliance", nameFr: "Connaissances & Conformité", path: "/knowledge-compliance", icon: BookOpen, isNew: true },
+          { name: "生命旅程生态", nameEn: "Lifecycle Ecosystem", nameDe: "Lebenszyklus-Ökosystem", nameFr: "Écosystème du cycle de vie", path: "/lifecycle-ecosystem", icon: Rocket, isNew: true },
+        ],
+      },
+      // ── 驾驶舱 ──
+      {
+        name: "驾驶舱",
+        nameEn: "Cockpits",
+        nameDe: "Cockpits",
+        nameFr: "Cockpits",
+        icon: Gauge,
+        items: [
+          { name: "角色工作台", nameEn: "Role Dashboard", nameDe: "Rollen-Dashboard", nameFr: "Tableau de bord rôle", path: "/dashboard", icon: LayoutDashboard },
+          { name: "万能工作台", nameEn: "Universal Workspace", nameDe: "Universal-Arbeitsbereich", nameFr: "Espace universel", path: "/workspace", icon: LayoutDashboard, isNew: true },
+          { name: "任务驾驶舱", nameEn: "Task Cockpit", nameDe: "Aufgaben-Cockpit", nameFr: "Cockpit des tâches", path: "/task-cockpit", icon: LayoutDashboard, isNew: true },
+          { name: "项目360驾驶舱", nameEn: "Project 360 Cockpit", nameDe: "Projekt-360-Cockpit", nameFr: "Cockpit Projet 360", path: "/project-360-cockpit", icon: LayoutDashboard, isNew: true },
+          { name: "CEO数字驾驶舱", nameEn: "CEO Executive Cockpit", nameDe: "CEO-Leitstand", nameFr: "Cockpit Exécutif CEO", path: "/ceo/executive-cockpit", icon: Crown, isNew: true },
+          { name: "CTO技术驾驶舱", nameEn: "CTO Technical Dashboard", nameDe: "CTO-Technik-Dashboard", nameFr: "Tableau CTO technique", path: "/cto/technical-dashboard", icon: Crown, isNew: true },
+          { name: "事业部经理驾驶舱", nameEn: "BU Manager Cockpit", nameDe: "BU-Manager-Cockpit", nameFr: "Cockpit directeur BU", path: "/bu-manager-cockpit", icon: Building2, isNew: true },
+          { name: "高管绩效总览", nameEn: "Executive Review Hub", nameDe: "Führungskräfte-Leistungsübersicht", nameFr: "Hub Revue Exécutive", path: "/executive-review", icon: Gauge, isNew: true, allowedRoles: ["admin", "director", "ceo", "cto", "cfo", "bu_gm", "hr_director"], minLevel: 5 },
+        ],
+      },
+      // ── 会议与效能 ──
+      {
+        name: "会议与效能",
+        nameEn: "Meetings & Productivity",
+        nameDe: "Besprechungen & Produktivität",
+        nameFr: "Réunions & productivité",
+        icon: Video,
+        items: [
+          { name: "智慧会议", nameEn: "Smart Meeting", nameDe: "Intelligente Besprechung", nameFr: "Réunion intelligente", path: "/smart-meeting", icon: Video },
+          { name: "会议智能", nameEn: "Meeting Intelligence", nameDe: "Besprechungsintelligenz", nameFr: "Intelligence réunion", path: "/meeting-intelligence", icon: Video },
+          { name: "会议效能分析", nameEn: "Meeting Executive", nameDe: "Besprechungsanalyse", nameFr: "Analyse des réunions", path: "/meeting-executive", icon: BarChart3, isNew: true },
+          { name: "项目交互时间轴", nameEn: "Project Timeline", nameDe: "Projekt-Zeitachse", nameFr: "Chronologie projet", path: "/workspace/project-timeline", icon: Calendar, isNew: true },
+        ],
+      },
+      // ── 可视化大屏 ──
+      {
+        name: "可视化大屏",
+        nameEn: "Display Screens",
+        nameDe: "Anzeigeschirme",
+        nameFr: "Écrans d'affichage",
+        icon: Monitor,
+        items: [
+          { name: "大厅全球主屏", nameEn: "Global Lobby Screen", nameDe: "Globaler Lobby-Bildschirm", nameFr: "Écran global du hall", path: "/vision/lobby", icon: Globe, isNew: true },
+          { name: "车间生产总屏", nameEn: "Shopfloor Master Board", nameDe: "Werkstatt-Hauptbildschirm", nameFr: "Tableau principal d'atelier", path: "/vision/shopfloor", icon: Factory, isNew: true },
+          { name: "星火大屏", nameEn: "Spark of Hope", nameDe: "Hoffnungsfunke", nameFr: "Étincelle d'espoir", path: "/spark-of-hope", icon: Sparkles, isNew: true },
+          { name: "机器人清洗展厅", nameEn: "Robot Cleaning Showroom", nameDe: "Roboter-Reinigung Showroom", nameFr: "Showroom nettoyage robot", path: "/showroom", icon: Monitor, isNew: true },
+          { name: "发动机缸体AI清洗演示", nameEn: "Engine Block AI Cleaning Demo", nameDe: "AI-Motorblock-Reinigungsdemo", nameFr: "Démo nettoyage AI bloc moteur", path: "/showroom/engine-block-demo", icon: Cpu, isNew: true },
+        ],
+      },
     ],
   },
 
@@ -290,33 +337,73 @@ export const menuConfig: MenuGroup[] = [
     superCategory: "operations",
     items: [
       { name: "销售CRM工作台", nameEn: "Sales CRM", nameDe: "Vertriebs-CRM", nameFr: "CRM Ventes", path: "/sales-crm", icon: TrendingUp, isNew: true },
-      { name: "销售教练工作台", nameEn: "Sales Coach", nameDe: "Vertriebscoach", nameFr: "Coach Ventes", path: "/sales-coach", icon: Sparkles, isNew: true,
-        requiresBU: true, allowedRoles: ["bu_sales", "bu_gm", "director", "admin"], minLevel: 2 },
-      { name: "定向数字展厅", nameEn: "Showcase Builder", nameDe: "Showcase-Generator", nameFr: "Générateur Vitrine", path: "/showcase-builder", icon: Monitor, isNew: true },
-      { name: "客户管理", nameEn: "Customers", nameDe: "Kunden", nameFr: "Clients", path: "/crm/customers", icon: Users, requiresBU: true },
-      { name: "商机管理", nameEn: "Opportunities", nameDe: "Geschäftschancen", nameFr: "Opportunités", path: "/crm/opportunities", icon: Target, requiresBU: true },
-      { name: "联系人", nameEn: "Contacts", nameDe: "Kontakte", nameFr: "Contacts", path: "/crm/contacts", icon: Contact },
-      { name: "线索管理", nameEn: "Leads", nameDe: "Leads", nameFr: "Prospects", path: "/leads", icon: TrendingUp },
-      { name: "报价管理", nameEn: "Quotation Mgmt", nameDe: "Angebotsverwaltung", nameFr: "Gestion devis", path: "/quotation-management", icon: Calculator, isNew: true, requiresBU: true },
-      { name: "合同管理", nameEn: "Contracts", nameDe: "Verträge", nameFr: "Contrats", path: "/contract-management", icon: FileCheck, isNew: true },
-      { name: "NDA/NPA管理 (开发中)", nameEn: "NDA Management", nameDe: "NDA-Verwaltung", nameFr: "Gestion NDA", path: "/nda-management", icon: Lock, isNew: true, disabled: true, disabledReason: "功能开发中" },
-      { name: "销售资料库 (开发中)", nameEn: "Sales Materials", nameDe: "Vertriebsmaterialien", nameFr: "Matériaux de vente", path: "/sales-materials", icon: BookOpen, isNew: true, disabled: true, disabledReason: "功能开发中" },
-      { name: "AI报价助手", nameEn: "AI Quotation", nameDe: "KI-Angebot", nameFr: "IA Devis", path: "/ai/quotation-assistant", icon: Bot },
       { name: "客户门户", nameEn: "Customer Portal", nameDe: "Kundenportal", nameFr: "Portail client", path: "/customer-portal", icon: UserCheck },
-      { name: "销售分析", nameEn: "Sales Analytics", nameDe: "Vertriebsanalyse", nameFr: "Analyse des ventes", path: "/sales-analytics", icon: BarChart3, isNew: true, requiresBU: true },
       { name: "客户价值视图", nameEn: "Customer Value", nameDe: "Kundenwert", nameFr: "Valeur client", path: "/customer-value-view", icon: Crown },
-      { name: "报价生成", nameEn: "Quotation Create", nameDe: "Angebot erstellen", nameFr: "Créer un devis", path: "/quotation-create", icon: Calculator, isNew: true, requiresBU: true },
-      { name: "营销工作台", nameEn: "Marketing Hub", nameDe: "Marketing-Zentrale", nameFr: "Hub Marketing", path: "/marketing-hub", icon: Target, isNew: true },
-      { name: "展会管理", nameEn: "Exhibitions", nameDe: "Messeverwaltung", nameFr: "Gestion salons", path: "/marketing-hub?tab=exhibition", icon: Building2, isNew: true },
-      { name: "播控矩阵", nameEn: "Broadcast Matrix", nameDe: "Anzeigesteuerung", nameFr: "Matrice diffusion", path: "/marketing-hub?tab=broadcast", icon: Monitor, isNew: true },
-      { name: "AI销售预测", nameEn: "AI Sales Forecast", nameDe: "KI-Vertriebsprognose", nameFr: "IA Prévision ventes", path: "/ai-sales-forecast", icon: TrendingUp, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "bu_sales", "dept_manager"] },
-      { name: "AI客户流失", nameEn: "AI Churn", nameDe: "KI-Abwanderung", nameFr: "IA Attrition", path: "/ai-customer-churn", icon: UserCheck, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "bu_sales", "dept_manager"] },
-      { name: "商机→需求转化", nameEn: "Opp Conversion", nameDe: "Chancen-Konvertierung", nameFr: "Conversion opportunité", path: "/opportunity-conversion", icon: Target, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "bu_sales", "bu_pm", "dept_manager"] },
-      { name: "评审→报价联动", nameEn: "Review→Quote", nameDe: "Prüfung→Angebot", nameFr: "Revue→Devis", path: "/review-to-quotation", icon: FileCheck, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "bu_sales", "bu_pm", "dept_manager"] },
+    ],
+    subgroups: [
+      // ── CRM核心 ──
+      {
+        name: "CRM核心",
+        nameEn: "CRM Core",
+        nameDe: "CRM-Kern",
+        nameFr: "Noyau CRM",
+        icon: Users,
+        items: [
+          { name: "客户管理", nameEn: "Customers", nameDe: "Kunden", nameFr: "Clients", path: "/crm/customers", icon: Users, requiresBU: true },
+          { name: "商机管理", nameEn: "Opportunities", nameDe: "Geschäftschancen", nameFr: "Opportunités", path: "/crm/opportunities", icon: Target, requiresBU: true },
+          { name: "联系人", nameEn: "Contacts", nameDe: "Kontakte", nameFr: "Contacts", path: "/crm/contacts", icon: Contact },
+          { name: "线索管理", nameEn: "Leads", nameDe: "Leads", nameFr: "Prospects", path: "/leads", icon: TrendingUp },
+          { name: "商机→需求转化", nameEn: "Opp Conversion", nameDe: "Chancen-Konvertierung", nameFr: "Conversion opportunité", path: "/opportunity-conversion", icon: Target, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "bu_sales", "bu_pm", "dept_manager"] },
+        ],
+      },
+      // ── 报价与合同 ──
+      {
+        name: "报价与合同",
+        nameEn: "Quotes & Contracts",
+        nameDe: "Angebote & Verträge",
+        nameFr: "Devis & contrats",
+        icon: Calculator,
+        items: [
+          { name: "报价管理", nameEn: "Quotation Mgmt", nameDe: "Angebotsverwaltung", nameFr: "Gestion devis", path: "/quotation-management", icon: Calculator, isNew: true, requiresBU: true },
+          { name: "报价生成", nameEn: "Quotation Create", nameDe: "Angebot erstellen", nameFr: "Créer un devis", path: "/quotation-create", icon: Calculator, isNew: true, requiresBU: true },
+          { name: "AI报价助手", nameEn: "AI Quotation", nameDe: "KI-Angebot", nameFr: "IA Devis", path: "/ai/quotation-assistant", icon: Bot },
+          { name: "评审→报价联动", nameEn: "Review→Quote", nameDe: "Prüfung→Angebot", nameFr: "Revue→Devis", path: "/review-to-quotation", icon: FileCheck, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "bu_sales", "bu_pm", "dept_manager"] },
+          { name: "合同管理", nameEn: "Contracts", nameDe: "Verträge", nameFr: "Contrats", path: "/contract-management", icon: FileCheck, isNew: true },
+        ],
+      },
+      // ── 营销推广 ──
+      {
+        name: "营销推广",
+        nameEn: "Marketing",
+        nameDe: "Marketing",
+        nameFr: "Marketing",
+        icon: Monitor,
+        items: [
+          { name: "营销工作台", nameEn: "Marketing Hub", nameDe: "Marketing-Zentrale", nameFr: "Hub Marketing", path: "/marketing-hub", icon: Target, isNew: true },
+          { name: "展会管理", nameEn: "Exhibitions", nameDe: "Messeverwaltung", nameFr: "Gestion salons", path: "/marketing-hub?tab=exhibition", icon: Building2, isNew: true },
+          { name: "播控矩阵", nameEn: "Broadcast Matrix", nameDe: "Anzeigesteuerung", nameFr: "Matrice diffusion", path: "/marketing-hub?tab=broadcast", icon: Monitor, isNew: true },
+          { name: "定向数字展厅", nameEn: "Showcase Builder", nameDe: "Showcase-Generator", nameFr: "Générateur Vitrine", path: "/showcase-builder", icon: Monitor, isNew: true },
+          { name: "销售教练工作台", nameEn: "Sales Coach", nameDe: "Vertriebscoach", nameFr: "Coach Ventes", path: "/sales-coach", icon: Sparkles, isNew: true,
+            requiresBU: true, allowedRoles: ["bu_sales", "bu_gm", "director", "admin"], minLevel: 2 },
+        ],
+      },
+      // ── AI销售智能 ──
+      {
+        name: "AI销售智能",
+        nameEn: "AI Sales Intelligence",
+        nameDe: "KI-Vertriebsintelligenz",
+        nameFr: "IA Intelligence commerciale",
+        icon: Bot,
+        items: [
+          { name: "销售分析", nameEn: "Sales Analytics", nameDe: "Vertriebsanalyse", nameFr: "Analyse des ventes", path: "/sales-analytics", icon: BarChart3, isNew: true, requiresBU: true },
+          { name: "AI销售预测", nameEn: "AI Sales Forecast", nameDe: "KI-Vertriebsprognose", nameFr: "IA Prévision ventes", path: "/ai-sales-forecast", icon: TrendingUp, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "bu_sales", "dept_manager"] },
+          { name: "AI客户流失", nameEn: "AI Churn", nameDe: "KI-Abwanderung", nameFr: "IA Attrition", path: "/ai-customer-churn", icon: UserCheck, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "bu_sales", "dept_manager"] },
+        ],
+      },
     ],
   },
 
@@ -332,25 +419,67 @@ export const menuConfig: MenuGroup[] = [
     items: [
       { name: "需求分析", nameEn: "Requirements", nameDe: "Anforderungen", nameFr: "Exigences", path: "/requirements-analysis", icon: ClipboardCheck, requiresBU: true, isNew: true },
       { name: "方案设计", nameEn: "Solution Design", nameDe: "Lösungsdesign", nameFr: "Conception solution", path: "/solution-design", icon: Lightbulb, requiresBU: true, isNew: true },
-      { name: "机械设计", nameEn: "Mechanical Design", nameDe: "Mechanikkonstruktion", nameFr: "Conception mécanique", path: "/mechanical-design", icon: Cog, requiresBU: true },
-      { name: "电气设计", nameEn: "Electrical Design", nameDe: "Elektrokonstruktion", nameFr: "Conception électrique", path: "/electrical-design", icon: Zap, requiresBU: true },
-      { name: "M3设计自动化", nameEn: "Design Automation", nameDe: "Design-Automatisierung", nameFr: "Automatisation conception", path: "/design-station-matrix", icon: Cpu, requiresBU: true, isNew: true },
-      { name: "BOM管理", nameEn: "BOM Management", nameDe: "BOM-Verwaltung", nameFr: "Gestion BOM", path: "/bom-management", icon: Package, requiresBU: true, isNew: true },
-      { name: "PLM工作台", nameEn: "PLM Workbench", nameDe: "PLM-Arbeitsplatz", nameFr: "Poste PLM", path: "/plm", icon: FileText, isNew: true },
-      { name: "技术文档", nameEn: "Tech Documents", nameDe: "Techn. Dokumente", nameFr: "Documents techniques", path: "/tech-documents", icon: FileText, isNew: true },
-      { name: "项目文件库", nameEn: "Project Vault", nameDe: "Projektarchiv", nameFr: "Coffre-fort projet", path: "/project-vault", icon: Database, isNew: true },
       { name: "数字孪生中心", nameEn: "Digital Twin Hub", nameDe: "Digitaler Zwilling", nameFr: "Jumeau numérique", path: "/digital-twin", icon: Box, isNew: true },
-      { name: "AI方案助手", nameEn: "AI Solution", nameDe: "KI-Lösung", nameFr: "IA Solution", path: "/ai/solution-assistant", icon: Bot },
-      { name: "AI需求分析", nameEn: "AI Requirements", nameDe: "KI-Anforderungen", nameFr: "IA Exigences", path: "/ai-requirements-analysis", icon: ClipboardCheck, isNew: true },
-      { name: "AI设计审查", nameEn: "AI Design Review", nameDe: "KI-Designprüfung", nameFr: "IA Revue conception", path: "/ai-design-review", icon: Shield, isNew: true },
-      { name: "3D模型预览", nameEn: "3D Model Viewer", nameDe: "3D-Modellansicht", nameFr: "Visionneuse 3D", path: "/model-viewer-3d", icon: Box, isNew: true },
-      { name: "BOM校验", nameEn: "BOM Verification", nameDe: "BOM-Prüfung", nameFr: "Vérification BOM", path: "/bom-verification", icon: CheckCircle, isNew: true },
-      { name: "BOM导入", nameEn: "BOM Import", nameDe: "BOM-Import", nameFr: "Import BOM", path: "/bom-import", icon: Upload, isNew: true },
-      { name: "BOM Excel导入", nameEn: "BOM Excel Import", nameDe: "BOM Excel-Import", nameFr: "Import BOM Excel", path: "/bom-excel-import", icon: Upload, isNew: true },
-      { name: "BDO图纸管理", nameEn: "Drawing Library", nameDe: "Zeichnungsbibliothek", nameFr: "Bibliothèque dessins", path: "/drawing-library", icon: FileText, isNew: true },
-      { name: "ECO成本影响", nameEn: "ECO Cost Impact", nameDe: "ECO-Kostenauswirkung", nameFr: "Impact coût ECO", path: "/engineering/eco-review", icon: GitCompare, isNew: true },
-      { name: "NPI新产品开发", nameEn: "NPI/NPD Workbench", nameDe: "NPI/NPD-Arbeitsplatz", nameFr: "Atelier NPI/NPD", path: "/rnd-npi", icon: TestTube, isNew: true, requiresBU: true },
-      { name: "PDM产品数据管理", nameEn: "PDM Workbench", nameDe: "PDM-Arbeitsplatz", nameFr: "Atelier PDM", path: "/pdm", icon: Database, isNew: true, requiresBU: true, allowedRoles: ["admin","director","bu_gm","bu_pm","bu_mech","bu_elec","quality_eng","cs_engineer"] },
+    ],
+    subgroups: [
+      // ── 设计工具 ──
+      {
+        name: "设计工具",
+        nameEn: "Design Tools",
+        nameDe: "Design-Werkzeuge",
+        nameFr: "Outils de conception",
+        icon: Cog,
+        items: [
+          { name: "机械设计", nameEn: "Mechanical Design", nameDe: "Mechanikkonstruktion", nameFr: "Conception mécanique", path: "/mechanical-design", icon: Cog, requiresBU: true },
+          { name: "电气设计", nameEn: "Electrical Design", nameDe: "Elektrokonstruktion", nameFr: "Conception électrique", path: "/electrical-design", icon: Zap, requiresBU: true },
+          { name: "M3设计自动化", nameEn: "Design Automation", nameDe: "Design-Automatisierung", nameFr: "Automatisation conception", path: "/design-station-matrix", icon: Cpu, requiresBU: true, isNew: true },
+          { name: "3D模型预览", nameEn: "3D Model Viewer", nameDe: "3D-Modellansicht", nameFr: "Visionneuse 3D", path: "/model-viewer-3d", icon: Box, isNew: true },
+        ],
+      },
+      // ── BOM管理 ──
+      {
+        name: "BOM管理",
+        nameEn: "BOM Management",
+        nameDe: "BOM-Verwaltung",
+        nameFr: "Gestion BOM",
+        icon: Package,
+        items: [
+          { name: "BOM管理", nameEn: "BOM Management", nameDe: "BOM-Verwaltung", nameFr: "Gestion BOM", path: "/bom-management", icon: Package, requiresBU: true, isNew: true },
+          { name: "BOM校验", nameEn: "BOM Verification", nameDe: "BOM-Prüfung", nameFr: "Vérification BOM", path: "/bom-verification", icon: CheckCircle, isNew: true },
+          { name: "BOM导入", nameEn: "BOM Import", nameDe: "BOM-Import", nameFr: "Import BOM", path: "/bom-import", icon: Upload, isNew: true },
+          { name: "BOM Excel导入", nameEn: "BOM Excel Import", nameDe: "BOM Excel-Import", nameFr: "Import BOM Excel", path: "/bom-excel-import", icon: Upload, isNew: true },
+          { name: "ECO成本影响", nameEn: "ECO Cost Impact", nameDe: "ECO-Kostenauswirkung", nameFr: "Impact coût ECO", path: "/engineering/eco-review", icon: GitCompare, isNew: true },
+        ],
+      },
+      // ── 文档与PLM ──
+      {
+        name: "文档与PLM",
+        nameEn: "Docs & PLM",
+        nameDe: "Dokumente & PLM",
+        nameFr: "Documents & PLM",
+        icon: FileText,
+        items: [
+          { name: "PLM工作台", nameEn: "PLM Workbench", nameDe: "PLM-Arbeitsplatz", nameFr: "Poste PLM", path: "/plm", icon: FileText, isNew: true },
+          { name: "PDM产品数据管理", nameEn: "PDM Workbench", nameDe: "PDM-Arbeitsplatz", nameFr: "Atelier PDM", path: "/pdm", icon: Database, isNew: true, requiresBU: true, allowedRoles: ["admin","director","bu_gm","bu_pm","bu_mech","bu_elec","quality_eng","cs_engineer"] },
+          { name: "技术文档", nameEn: "Tech Documents", nameDe: "Techn. Dokumente", nameFr: "Documents techniques", path: "/tech-documents", icon: FileText, isNew: true },
+          { name: "项目文件库", nameEn: "Project Vault", nameDe: "Projektarchiv", nameFr: "Coffre-fort projet", path: "/project-vault", icon: Database, isNew: true },
+          { name: "BDO图纸管理", nameEn: "Drawing Library", nameDe: "Zeichnungsbibliothek", nameFr: "Bibliothèque dessins", path: "/drawing-library", icon: FileText, isNew: true },
+          { name: "NPI新产品开发", nameEn: "NPI/NPD Workbench", nameDe: "NPI/NPD-Arbeitsplatz", nameFr: "Atelier NPI/NPD", path: "/rnd-npi", icon: TestTube, isNew: true, requiresBU: true },
+        ],
+      },
+      // ── AI研发助手 ──
+      {
+        name: "AI研发助手",
+        nameEn: "AI R&D",
+        nameDe: "KI-F&E",
+        nameFr: "IA R&D",
+        icon: Bot,
+        items: [
+          { name: "AI方案助手", nameEn: "AI Solution", nameDe: "KI-Lösung", nameFr: "IA Solution", path: "/ai/solution-assistant", icon: Bot },
+          { name: "AI需求分析", nameEn: "AI Requirements", nameDe: "KI-Anforderungen", nameFr: "IA Exigences", path: "/ai-requirements-analysis", icon: ClipboardCheck, isNew: true },
+          { name: "AI设计审查", nameEn: "AI Design Review", nameDe: "KI-Designprüfung", nameFr: "IA Revue conception", path: "/ai-design-review", icon: Shield, isNew: true },
+        ],
+      },
     ],
   },
 
@@ -366,6 +495,7 @@ export const menuConfig: MenuGroup[] = [
     items: [
       { name: "运营中枢", nameEn: "Operations Hub", nameDe: "Betriebszentrale", nameFr: "Centre opérations", path: "/operations", icon: Layers, isNew: true },
       { name: "新项目向导", nameEn: "New Project Wizard", nameDe: "Neues Projekt-Assistent", nameFr: "Assistant nouveau projet", path: "/operations/new-project", icon: Sparkles, isNew: true },
+      { name: "真实订单指挥中心", nameEn: "Real Order Command Center", nameDe: "Echtauftrag-Kommandozentrale", nameFr: "Centre de commande réel", path: "/operations/real-order-flow", icon: Activity, isNew: true },
       { name: "AI项目Agent", nameEn: "Project Agent", nameDe: "Projekt-Agent", nameFr: "Agent de Projet", path: "/project-agent", icon: Bot, isNew: true, allowedRoles: ["admin", "director", "bu_gm", "dept_manager", "bu_pm", "team_lead"] },
       { name: "项目列表", nameEn: "Projects", nameDe: "Projekte", nameFr: "Projets", path: "/projects", icon: FolderKanban, requiresBU: true },
     ],
@@ -444,6 +574,7 @@ export const menuConfig: MenuGroup[] = [
     items: [
       { name: "生产指挥中心", nameEn: "Command Center", nameDe: "Leitstand", nameFr: "Centre de commande", path: "/production-command-center", icon: Monitor, isNew: true },
       { name: "生产看板", nameEn: "Production Board", nameDe: "Produktions-Board", nameFr: "Tableau production", path: "/production-dashboard", icon: Factory },
+      { name: "机器人清洗监控", nameEn: "Robot Cleaning Monitor", nameDe: "Roboter-Reinigung Monitor", nameFr: "Moniteur nettoyage robot", path: "/robot-cleaning-monitor", icon: Activity, isNew: true },
     ],
     subgroups: [
       // ── 生产计划与排程 ──
@@ -563,19 +694,6 @@ export const menuConfig: MenuGroup[] = [
           { name: "工艺试验", nameEn: "Process Trials", nameDe: "Prozesstests", nameFr: "Essais de procédé", path: "/process-trials", icon: TestTube, isNew: true },
         ],
       },
-      // ── 机器人清洗 (TSMC Ready) ──
-      {
-        name: "机器人清洗",
-        nameEn: "Robot Cleaning",
-        nameDe: "Roboter-Reinigung",
-        nameFr: "Nettoyage robot",
-        icon: Bot,
-        items: [
-          { name: "机器人清洗监控", nameEn: "Robot Cleaning Monitor", nameDe: "Roboter-Reinigung Monitor", nameFr: "Moniteur nettoyage robot", path: "/robot-cleaning-monitor", icon: Activity, isNew: true },
-          { name: "半导体清洗合规", nameEn: "Semiconductor Compliance", nameDe: "Halbleiter-Konformität", nameFr: "Conformité semi-conducteurs", path: "/robot-cleaning-monitor", icon: ShieldCheck, isNew: true },
-          { name: "机器人车队管理", nameEn: "Robot Fleet Management", nameDe: "Roboterflotten-Verwaltung", nameFr: "Gestion de flotte robotique", path: "/robot-cleaning-monitor", icon: Cpu, isNew: true },
-        ],
-      },
     ],
   },
 
@@ -591,16 +709,38 @@ export const menuConfig: MenuGroup[] = [
     superCategory: "operations",
     items: [
       { name: "供应链工作台", nameEn: "Supply Chain Workbench", nameDe: "Lieferketten-Arbeitsplatz", nameFr: "Poste chaîne d'appro.", path: "/supply-chain", icon: LayoutDashboard, isNew: true },
-      { name: "物料管理", nameEn: "Material Management", nameDe: "Materialwirtschaft", nameFr: "Gestion matières", path: "/material-management", icon: Package, isNew: true },
-      { name: "采购管理", nameEn: "Procurement", nameDe: "Beschaffung", nameFr: "Approvisionnement", path: "/procurement-management", icon: ShoppingCart, isNew: true },
-      { name: "仓库管理", nameEn: "Warehouse Mgmt", nameDe: "Lagerverwaltung", nameFr: "Gestion entrepôt", path: "/warehouse-management", icon: Warehouse, isNew: true },
-      { name: "采购工作台", nameEn: "Procurement Workbench", nameDe: "Beschaffungs-Arbeitsplatz", nameFr: "Poste achats", path: "/procurement-workbench", icon: ShoppingCart, isNew: true },
       { name: "供应链计划", nameEn: "Supply Chain Planning", nameDe: "Lieferkettenplanung", nameFr: "Planification chaîne d'appro.", path: "/supply-chain-planning", icon: CalendarClock, isNew: true },
-      { name: "备件管理", nameEn: "Spare Parts", nameDe: "Ersatzteile", nameFr: "Pièces détachées", path: "/spare-parts", icon: Wrench, isNew: true },
-      { name: "AI询价Bot", nameEn: "AI RFQ Bot", nameDe: "AI-Angebotsbot", nameFr: "Bot RFQ IA", path: "/supply-chain-rfq", icon: Bot, isNew: true },
-      { name: "供应商风险雷达", nameEn: "Supplier Risk Radar", nameDe: "Lieferanten-Risikoradar", nameFr: "Radar risque fournisseur", path: "/supply-chain/risk-radar", icon: AlertTriangle, isNew: true },
-      { name: "天思ERP集成", nameEn: "Tiansi ERP", nameDe: "Tiansi ERP", nameFr: "Tiansi ERP", path: "/erp-integration", icon: RefreshCw, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "dept_manager"] },
+      { name: "物料管理", nameEn: "Material Management", nameDe: "Materialwirtschaft", nameFr: "Gestion matières", path: "/material-management", icon: Package, isNew: true },
+    ],
+    subgroups: [
+      // ── 采购 ──
+      {
+        name: "采购",
+        nameEn: "Procurement",
+        nameDe: "Beschaffung",
+        nameFr: "Approvisionnement",
+        icon: ShoppingCart,
+        items: [
+          { name: "采购管理", nameEn: "Procurement", nameDe: "Beschaffung", nameFr: "Approvisionnement", path: "/procurement-management", icon: ShoppingCart, isNew: true },
+          { name: "采购工作台", nameEn: "Procurement Workbench", nameDe: "Beschaffungs-Arbeitsplatz", nameFr: "Poste achats", path: "/procurement-workbench", icon: ShoppingCart, isNew: true },
+          { name: "AI询价Bot", nameEn: "AI RFQ Bot", nameDe: "AI-Angebotsbot", nameFr: "Bot RFQ IA", path: "/supply-chain-rfq", icon: Bot, isNew: true },
+        ],
+      },
+      // ── 仓储与备件 ──
+      {
+        name: "仓储与备件",
+        nameEn: "Warehouse & Parts",
+        nameDe: "Lager & Ersatzteile",
+        nameFr: "Entrepôt & pièces",
+        icon: Warehouse,
+        items: [
+          { name: "仓库管理", nameEn: "Warehouse Mgmt", nameDe: "Lagerverwaltung", nameFr: "Gestion entrepôt", path: "/warehouse-management", icon: Warehouse, isNew: true },
+          { name: "备件管理", nameEn: "Spare Parts", nameDe: "Ersatzteile", nameFr: "Pièces détachées", path: "/spare-parts", icon: Wrench, isNew: true },
+          { name: "供应商风险雷达", nameEn: "Supplier Risk Radar", nameDe: "Lieferanten-Risikoradar", nameFr: "Radar risque fournisseur", path: "/supply-chain/risk-radar", icon: AlertTriangle, isNew: true },
+          { name: "天思ERP集成", nameEn: "Tiansi ERP", nameDe: "Tiansi ERP", nameFr: "Tiansi ERP", path: "/erp-integration", icon: RefreshCw, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "dept_manager"] },
+        ],
+      },
     ],
   },
 
@@ -615,34 +755,65 @@ export const menuConfig: MenuGroup[] = [
     permissionKey: "canAccessCustomerService",
     superCategory: "operations",
     items: [
+      { name: "售后保修工作台", nameEn: "After-Sales Workbench", nameDe: "Kundendienst-Arbeitsplatz", nameFr: "Poste après-vente", path: "/after-sales-workbench", icon: Wrench, isNew: true },
       { name: "客户授权管理", nameEn: "Customer Authorization", nameDe: "Kundenautorisierung", nameFr: "Autorisation client", path: "/customer-authorization", icon: ShieldCheck, isNew: true,
         allowedRoles: ["admin", "director", "bu_gm", "bu_pm", "cs_engineer", "dept_manager"] },
-      { name: "售后保修工作台", nameEn: "After-Sales Workbench", nameDe: "Kundendienst-Arbeitsplatz", nameFr: "Poste après-vente", path: "/after-sales-workbench", icon: Wrench, isNew: true },
-      { name: "现场安装", nameEn: "Field Installation", nameDe: "Vor-Ort-Installation", nameFr: "Installation sur site", path: "/field-installation", icon: Wrench, isNew: true, requiresBU: true },
-      { name: "SAT测试", nameEn: "SAT Testing", nameDe: "SAT-Test", nameFr: "Test SAT", path: "/sat-testing", icon: TestTube, isNew: true, requiresBU: true },
-      { name: "终验收", nameEn: "Final Acceptance", nameDe: "Endabnahme", nameFr: "Réception finale", path: "/final-acceptance", icon: CheckCircle, isNew: true, requiresBU: true },
-      { name: "售后工单", nameEn: "Service Tickets", nameDe: "Service-Tickets", nameFr: "Tickets service", path: "/service-tickets", icon: Ticket, isNew: true },
-      { name: "客户反馈", nameEn: "Customer Feedback", nameDe: "Kundenfeedback", nameFr: "Retours clients", path: "/customer-feedback", icon: MessageCircle, isNew: true },
-      { name: "现场工程师", nameEn: "Field Engineer", nameDe: "Außendiensttechniker", nameFr: "Ingénieur terrain", path: "/m/field-dashboard", icon: Wrench, isNew: true },
-      { name: "AI故障诊断", nameEn: "AI Fault Diagnosis", nameDe: "KI-Fehlerdiagnose", nameFr: "IA Diagnostic pannes", path: "/ai-fault-diagnosis", icon: Stethoscope, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "dept_manager"] },
-      { name: "AI预防维护", nameEn: "AI Maintenance", nameDe: "KI-Wartungsplanung", nameFr: "IA Maintenance préventive", path: "/ai-maintenance-plan", icon: Wrench, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "dept_manager"] },
-      { name: "客户自助报修", nameEn: "Customer Repair", nameDe: "Selbstservice-Reparatur", nameFr: "Auto-réparation client", path: "/customer-repair", icon: Ticket, isNew: true },
-      // Phase 21 P1: 服务高级
-      { name: "AI远程支持", nameEn: "Remote Assist", nameDe: "Fernunterstützung", nameFr: "Assistance à distance", path: "/remote-assistance", icon: Headphones, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "dept_manager"] },
-      { name: "SLA分析仪表板", nameEn: "SLA Dashboard", nameDe: "SLA-Dashboard", nameFr: "Tableau de bord SLA", path: "/service-sla", icon: Gauge, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "dept_manager"] },
-      { name: "售后→设计反馈", nameEn: "Design Feedback", nameDe: "Design-Rückmeldung", nameFr: "Retour conception", path: "/aftersales-design-feedback", icon: GitBranch, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "bu_pm", "bu_mech", "dept_manager"] },
-      { name: "工单→知识库", nameEn: "Ticket→KB", nameDe: "Ticket→Wissensbasis", nameFr: "Ticket→Base de connaissances", path: "/ticket-to-kb", icon: BookOpen, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "dept_manager"] },
-      { name: "NPS满意度调查", nameEn: "NPS Survey", nameDe: "NPS-Umfrage", nameFr: "Enquête NPS", path: "/nps-survey", icon: Star, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "dept_manager"] },
-      { name: "QC终检→验收通知", nameEn: "QC→Acceptance", nameDe: "QS→Abnahme", nameFr: "CQ→Réception", path: "/qc-pass-notification", icon: CheckCircle, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "bu_pm", "dept_manager"] },
       { name: "客户数字孪生门户", nameEn: "Customer Digital Twin", nameDe: "Kunden-Digitaler-Zwilling", nameFr: "Portail jumeau numérique", path: "/customer-digital-twin", icon: Box, isNew: true },
+    ],
+    subgroups: [
+      // ── 交付与验收 ──
+      {
+        name: "交付与验收",
+        nameEn: "Delivery & Acceptance",
+        nameDe: "Lieferung & Abnahme",
+        nameFr: "Livraison & réception",
+        icon: CheckCircle,
+        items: [
+          { name: "现场安装", nameEn: "Field Installation", nameDe: "Vor-Ort-Installation", nameFr: "Installation sur site", path: "/field-installation", icon: Wrench, isNew: true, requiresBU: true },
+          { name: "SAT测试", nameEn: "SAT Testing", nameDe: "SAT-Test", nameFr: "Test SAT", path: "/sat-testing", icon: TestTube, isNew: true, requiresBU: true },
+          { name: "终验收", nameEn: "Final Acceptance", nameDe: "Endabnahme", nameFr: "Réception finale", path: "/final-acceptance", icon: CheckCircle, isNew: true, requiresBU: true },
+          { name: "QC终检→验收通知", nameEn: "QC→Acceptance", nameDe: "QS→Abnahme", nameFr: "CQ→Réception", path: "/qc-pass-notification", icon: CheckCircle, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "bu_pm", "dept_manager"] },
+          { name: "现场工程师", nameEn: "Field Engineer", nameDe: "Außendiensttechniker", nameFr: "Ingénieur terrain", path: "/m/field-dashboard", icon: Wrench, isNew: true },
+        ],
+      },
+      // ── 售后服务 ──
+      {
+        name: "售后服务",
+        nameEn: "After-Sales Service",
+        nameDe: "Kundendienst",
+        nameFr: "Service après-vente",
+        icon: Ticket,
+        items: [
+          { name: "售后工单", nameEn: "Service Tickets", nameDe: "Service-Tickets", nameFr: "Tickets service", path: "/service-tickets", icon: Ticket, isNew: true },
+          { name: "客户自助报修", nameEn: "Customer Repair", nameDe: "Selbstservice-Reparatur", nameFr: "Auto-réparation client", path: "/customer-repair", icon: Ticket, isNew: true },
+          { name: "客户反馈", nameEn: "Customer Feedback", nameDe: "Kundenfeedback", nameFr: "Retours clients", path: "/customer-feedback", icon: MessageCircle, isNew: true },
+          { name: "NPS满意度调查", nameEn: "NPS Survey", nameDe: "NPS-Umfrage", nameFr: "Enquête NPS", path: "/nps-survey", icon: Star, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "dept_manager"] },
+          { name: "SLA分析仪表板", nameEn: "SLA Dashboard", nameDe: "SLA-Dashboard", nameFr: "Tableau de bord SLA", path: "/service-sla", icon: Gauge, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "dept_manager"] },
+          { name: "售后→设计反馈", nameEn: "Design Feedback", nameDe: "Design-Rückmeldung", nameFr: "Retour conception", path: "/aftersales-design-feedback", icon: GitBranch, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "bu_pm", "bu_mech", "dept_manager"] },
+          { name: "工单→知识库", nameEn: "Ticket→KB", nameDe: "Ticket→Wissensbasis", nameFr: "Ticket→Base de connaissances", path: "/ticket-to-kb", icon: BookOpen, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "dept_manager"] },
+        ],
+      },
+      // ── AI智能服务 ──
+      {
+        name: "AI智能服务",
+        nameEn: "AI Service Intelligence",
+        nameDe: "KI-Serviceintelligenz",
+        nameFr: "IA Service intelligent",
+        icon: Stethoscope,
+        items: [
+          { name: "AI故障诊断", nameEn: "AI Fault Diagnosis", nameDe: "KI-Fehlerdiagnose", nameFr: "IA Diagnostic pannes", path: "/ai-fault-diagnosis", icon: Stethoscope, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "dept_manager"] },
+          { name: "AI预防维护", nameEn: "AI Maintenance", nameDe: "KI-Wartungsplanung", nameFr: "IA Maintenance préventive", path: "/ai-maintenance-plan", icon: Wrench, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "dept_manager"] },
+          { name: "AI远程支持", nameEn: "Remote Assist", nameDe: "Fernunterstützung", nameFr: "Assistance à distance", path: "/remote-assistance", icon: Headphones, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "cs_engineer", "dept_manager"] },
+        ],
+      },
     ],
   },
 
@@ -684,6 +855,8 @@ export const menuConfig: MenuGroup[] = [
             allowedRoles: ["admin", "hr_manager"] },
           { name: "BU团队管理", nameEn: "BU Team Mgmt", nameDe: "BU-Teamverwaltung", nameFr: "Gestion équipe BU", path: "/bu-team-management", icon: Building2, isNew: true,
             allowedRoles: ["admin", "director", "bu_gm", "dept_manager"] },
+          { name: "员工目录册", nameEn: "Employee Directory", nameDe: "Mitarbeiterverzeichnis", nameFr: "Annuaire employés", path: "/employee-directory", icon: Users, isNew: true,
+            allowedRoles: ["admin", "director", "hr_manager", "hr_specialist", "dept_manager", "ceo"] },
         ],
       },
       // ── 绩效管理 ──
@@ -714,6 +887,8 @@ export const menuConfig: MenuGroup[] = [
             allowedRoles: ["admin", "director", "bu_gm", "dept_manager"], minLevel: 3 },
           { name: "BI综合报告", nameEn: "BI Report Center", nameDe: "BI-Berichtszentrum", nameFr: "Centre de rapports BI", path: "/bi-report", icon: BarChart3, isNew: true,
             allowedRoles: ["admin", "director", "bu_gm", "dept_manager"], minLevel: 3 },
+          { name: "BI沙盘", nameEn: "BI Sandbox", nameDe: "BI-Sandbox", nameFr: "Bac à sable BI", path: "/bi-sandbox", icon: BarChart3, isNew: true, isSandbox: true,
+            allowedRoles: ["admin", "director", "ceo"], minLevel: 7 },
           { name: "月度薪资准备", nameEn: "Salary Wizard", nameDe: "Gehaltsassistent", nameFr: "Assistant salaire", path: "/salary-preparation", icon: Rocket, isNew: true,
             allowedRoles: ["admin", "director", "hr_manager", "finance_manager", "ceo"], minLevel: 4 },
         ],
@@ -744,6 +919,8 @@ export const menuConfig: MenuGroup[] = [
             allowedRoles: ["admin", "director", "hr_manager", "finance_manager"] },
           { name: "薪资终审仪表板", nameEn: "Payroll Approval Gate", nameDe: "Gehaltsfreigabe-Gate", nameFr: "Portail approbation paie", path: "/payroll-approval", icon: Shield, isNew: true,
             allowedRoles: ["admin", "director", "finance_manager", "ceo"], minLevel: 4 },
+          { name: "薪酬Agent", nameEn: "Payroll Agent", nameDe: "Gehalts-Agent", nameFr: "Agent paie", path: "/payroll-agent", icon: Bot, isNew: true,
+            allowedRoles: ["admin", "director", "finance_manager", "hr_manager", "ceo"], minLevel: 4 },
           { name: "五险一金计算", nameEn: "Social Insurance", nameDe: "Sozialversicherung", nameFr: "Assurance sociale", path: "/ai-social-insurance", icon: Calculator, isNew: true,
             allowedRoles: ["admin", "director", "dept_manager", "hr_manager", "hr_specialist"] },
         ],
@@ -799,21 +976,43 @@ export const menuConfig: MenuGroup[] = [
     icon: Brain,
     superCategory: "resources",
     items: [
-      { name: "能力雷达驾驶舱", nameEn: "Capability Radar Cockpit", nameDe: "Kompetenz-Radar-Cockpit", nameFr: "Cockpit Radar Compétences", path: "/capability-radar-cockpit", icon: Radar, isNew: true, allowedRoles: ["admin", "director", "ceo", "bu_gm"], minLevel: 5 },
       { name: "我的能力档案", nameEn: "My Capability", nameDe: "Meine Kompetenzen", nameFr: "Mes compétences", path: "/capability-os", icon: Brain },
       { name: "能力仪表板", nameEn: "Capability Dashboard", nameDe: "Kompetenz-Dashboard", nameFr: "Tableau compétences", path: "/capability-dashboard", icon: BarChart3 },
-      { name: "能力矩阵看板", nameEn: "Capability Matrix", nameDe: "Kompetenzmatrix", nameFr: "Matrice compétences", path: "/capability-matrix-board", icon: Grid3X3, isNew: true, minLevel: 2 },
-      { name: "证据提交", nameEn: "Evidence Submit", nameDe: "Nachweis einreichen", nameFr: "Soumettre une preuve", path: "/evidence-submission", icon: FileCheck },
-      { name: "能力证书", nameEn: "Certificates", nameDe: "Zertifikate", nameFr: "Certificats", path: "/capability-certificates", icon: Medal },
-      { name: "能力徽章", nameEn: "Badges", nameDe: "Abzeichen", nameFr: "Badges", path: "/capability-badges", icon: Award },
-      { name: "能力路径", nameEn: "Learning Path", nameDe: "Lernpfad", nameFr: "Parcours d'apprentissage", path: "/capability-path", icon: Route },
-      { name: "红蓝对抗", nameEn: "Red-Blue Board", nameDe: "Rot-Blau-Board", nameFr: "Tableau rouge-bleu", path: "/red-blue-board", icon: Swords },
-      { name: "团队能力分析", nameEn: "Team Analysis", nameDe: "Teamanalyse", nameFr: "Analyse d'équipe", path: "/team-capability-analysis", icon: Users, minLevel: 2 },
       { name: "能力排行榜", nameEn: "Leaderboard", nameDe: "Rangliste", nameFr: "Classement", path: "/capability-leaderboard", icon: TrendingUp },
-      { name: "证据审核", nameEn: "Evidence Review", nameDe: "Nachweisprüfung", nameFr: "Revue des preuves", path: "/evidence-review", icon: Award, minLevel: 2 },
-      { name: "能力评估矩阵", nameEn: "Assessment Matrix", nameDe: "Bewertungsmatrix", nameFr: "Matrice d'évaluation", path: "/capability-system", icon: LayoutGrid, isNew: true,
-        allowedRoles: ["admin", "director", "hr_manager", "hr_specialist", "dept_manager", "bu_gm"] },
-      { name: "HR沙盘解析", nameEn: "HR Sandbox", nameDe: "HR-Sandbox", nameFr: "Sandbox RH", path: "/hr-sandbox-capability", icon: Brain, isNew: true, minLevel: 3 },
+    ],
+    subgroups: [
+      // ── 个人能力 ──
+      {
+        name: "个人能力",
+        nameEn: "Personal Capabilities",
+        nameDe: "Persönliche Kompetenzen",
+        nameFr: "Compétences personnelles",
+        icon: Medal,
+        items: [
+          { name: "证据提交", nameEn: "Evidence Submit", nameDe: "Nachweis einreichen", nameFr: "Soumettre une preuve", path: "/evidence-submission", icon: FileCheck },
+          { name: "能力证书", nameEn: "Certificates", nameDe: "Zertifikate", nameFr: "Certificats", path: "/capability-certificates", icon: Medal },
+          { name: "能力徽章", nameEn: "Badges", nameDe: "Abzeichen", nameFr: "Badges", path: "/capability-badges", icon: Award },
+          { name: "能力路径", nameEn: "Learning Path", nameDe: "Lernpfad", nameFr: "Parcours d'apprentissage", path: "/capability-path", icon: Route },
+          { name: "红蓝对抗", nameEn: "Red-Blue Board", nameDe: "Rot-Blau-Board", nameFr: "Tableau rouge-bleu", path: "/red-blue-board", icon: Swords },
+        ],
+      },
+      // ── 团队与管理 ──
+      {
+        name: "团队与管理",
+        nameEn: "Team & Management",
+        nameDe: "Team & Management",
+        nameFr: "Équipe & gestion",
+        icon: Users,
+        items: [
+          { name: "能力雷达驾驶舱", nameEn: "Capability Radar Cockpit", nameDe: "Kompetenz-Radar-Cockpit", nameFr: "Cockpit Radar Compétences", path: "/capability-radar-cockpit", icon: Radar, isNew: true, allowedRoles: ["admin", "director", "ceo", "bu_gm"], minLevel: 5 },
+          { name: "能力矩阵看板", nameEn: "Capability Matrix", nameDe: "Kompetenzmatrix", nameFr: "Matrice compétences", path: "/capability-matrix-board", icon: Grid3X3, isNew: true, minLevel: 2 },
+          { name: "团队能力分析", nameEn: "Team Analysis", nameDe: "Teamanalyse", nameFr: "Analyse d'équipe", path: "/team-capability-analysis", icon: Users, minLevel: 2 },
+          { name: "证据审核", nameEn: "Evidence Review", nameDe: "Nachweisprüfung", nameFr: "Revue des preuves", path: "/evidence-review", icon: Award, minLevel: 2 },
+          { name: "能力评估矩阵", nameEn: "Assessment Matrix", nameDe: "Bewertungsmatrix", nameFr: "Matrice d'évaluation", path: "/capability-system", icon: LayoutGrid, isNew: true,
+            allowedRoles: ["admin", "director", "hr_manager", "hr_specialist", "dept_manager", "bu_gm"] },
+          { name: "HR沙盘解析", nameEn: "HR Sandbox", nameDe: "HR-Sandbox", nameFr: "Sandbox RH", path: "/hr-sandbox-capability", icon: Brain, isNew: true, minLevel: 3 },
+        ],
+      },
     ],
   },
 
@@ -827,29 +1026,49 @@ export const menuConfig: MenuGroup[] = [
     icon: Wallet,
     superCategory: "resources",
     items: [
-      // 全员可见 - 费用类
       { name: "费用报销", nameEn: "Expense Report", nameDe: "Spesenabrechnung", nameFr: "Note de frais", path: "/expense-report", icon: Receipt },
       { name: "出差申请", nameEn: "Trip Request", nameDe: "Dienstreiseantrag", nameFr: "Demande de déplacement", path: "/trip-request", icon: Plane },
       { name: "出差大屏", nameEn: "Travel Dashboard", nameDe: "Reise-Dashboard", nameFr: "Tableau déplacements", path: "/travel-dashboard", icon: Monitor },
-      // 管理类 - 需权限
-      { name: "预算管理", nameEn: "Budget Mgmt", nameDe: "Budgetverwaltung", nameFr: "Gestion budget", path: "/budget-management", icon: Wallet, minLevel: 3 },
-      { name: "成本管理", nameEn: "Cost Mgmt", nameDe: "Kostenverwaltung", nameFr: "Gestion des coûts", path: "/cost", icon: DollarSign,
-        allowedRoles: ["admin", "director", "bu_gm", "finance_manager", "finance_specialist"] },
-      { name: "费用对比", nameEn: "Expense Compare", nameDe: "Kostenvergleich", nameFr: "Comparaison des frais", path: "/expense-comparison", icon: GitCompare, minLevel: 2 },
-      { name: "超支审批", nameEn: "Overrun Approval", nameDe: "Überziehungsfreigabe", nameFr: "Approbation dépassement", path: "/budget-overrun-approval", icon: AlertTriangle, minLevel: 3 },
-      { name: "费用预测", nameEn: "Expense Forecast", nameDe: "Kostenprognose", nameFr: "Prévision des frais", path: "/expense-forecast", icon: LineChart, minLevel: 3 },
-      { name: "报表定时发送", nameEn: "Report Scheduler", nameDe: "Berichtsplaner", nameFr: "Planificateur rapports", path: "/expense-report-scheduler", icon: Send,
-        allowedRoles: ["admin", "finance_manager"] },
-      { name: "成本标准配置", nameEn: "Cost Standards", nameDe: "Kostenstandards", nameFr: "Standards de coûts", path: "/cost-standards", icon: Calculator, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "finance_manager"] },
-      { name: "AI预算分析", nameEn: "AI Budget", nameDe: "KI-Budgetanalyse", nameFr: "IA Analyse budget", path: "/ai-budget-analysis", icon: Wallet, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "finance_manager", "dept_manager"] },
-      { name: "AI成本优化", nameEn: "AI Cost Opt", nameDe: "KI-Kostenoptimierung", nameFr: "IA Optimisation coûts", path: "/ai-cost-optimization", icon: Calculator, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "finance_manager"] },
-      { name: "AI税费计算", nameEn: "AI VAT Calc", nameDe: "KI-MwSt-Rechner", nameFr: "IA Calcul TVA", path: "/ai-vat-calculator", icon: Receipt, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "finance_manager", "finance_specialist"] },
-      { name: "Finance Agent", nameEn: "Finance Agent", nameDe: "Finanz-Agent", nameFr: "Agent financier", path: "/finance-agent", icon: Brain, isNew: true,
-        allowedRoles: ["admin", "director", "bu_gm", "finance_manager", "dept_manager"] },
+    ],
+    subgroups: [
+      // ── 预算与成本 ──
+      {
+        name: "预算与成本",
+        nameEn: "Budget & Cost",
+        nameDe: "Budget & Kosten",
+        nameFr: "Budget & coûts",
+        icon: DollarSign,
+        items: [
+          { name: "预算管理", nameEn: "Budget Mgmt", nameDe: "Budgetverwaltung", nameFr: "Gestion budget", path: "/budget-management", icon: Wallet, minLevel: 3 },
+          { name: "成本管理", nameEn: "Cost Mgmt", nameDe: "Kostenverwaltung", nameFr: "Gestion des coûts", path: "/cost", icon: DollarSign,
+            allowedRoles: ["admin", "director", "bu_gm", "finance_manager", "finance_specialist"] },
+          { name: "成本标准配置", nameEn: "Cost Standards", nameDe: "Kostenstandards", nameFr: "Standards de coûts", path: "/cost-standards", icon: Calculator, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "finance_manager"] },
+          { name: "费用对比", nameEn: "Expense Compare", nameDe: "Kostenvergleich", nameFr: "Comparaison des frais", path: "/expense-comparison", icon: GitCompare, minLevel: 2 },
+          { name: "超支审批", nameEn: "Overrun Approval", nameDe: "Überziehungsfreigabe", nameFr: "Approbation dépassement", path: "/budget-overrun-approval", icon: AlertTriangle, minLevel: 3 },
+          { name: "费用预测", nameEn: "Expense Forecast", nameDe: "Kostenprognose", nameFr: "Prévision des frais", path: "/expense-forecast", icon: LineChart, minLevel: 3 },
+          { name: "报表定时发送", nameEn: "Report Scheduler", nameDe: "Berichtsplaner", nameFr: "Planificateur rapports", path: "/expense-report-scheduler", icon: Send,
+            allowedRoles: ["admin", "finance_manager"] },
+        ],
+      },
+      // ── AI财务智能 ──
+      {
+        name: "AI财务智能",
+        nameEn: "AI Finance",
+        nameDe: "KI-Finanzen",
+        nameFr: "IA Finances",
+        icon: Brain,
+        items: [
+          { name: "AI预算分析", nameEn: "AI Budget", nameDe: "KI-Budgetanalyse", nameFr: "IA Analyse budget", path: "/ai-budget-analysis", icon: Wallet, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "finance_manager", "dept_manager"] },
+          { name: "AI成本优化", nameEn: "AI Cost Opt", nameDe: "KI-Kostenoptimierung", nameFr: "IA Optimisation coûts", path: "/ai-cost-optimization", icon: Calculator, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "finance_manager"] },
+          { name: "AI税费计算", nameEn: "AI VAT Calc", nameDe: "KI-MwSt-Rechner", nameFr: "IA Calcul TVA", path: "/ai-vat-calculator", icon: Receipt, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "finance_manager", "finance_specialist"] },
+          { name: "Finance Agent", nameEn: "Finance Agent", nameDe: "Finanz-Agent", nameFr: "Agent financier", path: "/finance-agent", icon: Brain, isNew: true,
+            allowedRoles: ["admin", "director", "bu_gm", "finance_manager", "dept_manager"] },
+        ],
+      },
     ],
   },
 
@@ -932,27 +1151,6 @@ export const menuConfig: MenuGroup[] = [
   },
 
   // ────────────────────────────────────
-  // 知识大脑 — Knowledge Brain
-  // ────────────────────────────────────
-  {
-    name: "知识大脑",
-    nameEn: "Knowledge Brain",
-    nameDe: "Wissenszentrale",
-    nameFr: "Cerveau de connaissances",
-    icon: Brain,
-    superCategory: "strategy",
-    items: [
-      { name: "知识库训练", nameEn: "KB Training", nameDe: "Wissensbasis-Training", nameFr: "Formation base de connaissances", path: "/rag-training", icon: BookOpen, isNew: true },
-      { name: "知识库问答", nameEn: "Knowledge Q&A", nameDe: "Wissensbasis-Q&A", nameFr: "Q&R base de connaissances", path: "/knowledge-qa", icon: MessageSquare, isNew: true },
-      { name: "知识图谱", nameEn: "Knowledge Graph", nameDe: "Wissensgraph", nameFr: "Graphe de connaissances", path: "/knowledge-graph-approval", icon: Network, minLevel: 3 },
-      { name: "AI知识引擎", nameEn: "AI Genesis", nameDe: "KI-Wissensmotor", nameFr: "Moteur IA Genesis", path: "/ai-genesis", icon: Sparkles, isNew: true, minLevel: 3 },
-      { name: "外部同步知识库", nameEn: "External Sync Knowledge", nameDe: "Externe Sync-Wissensbasis", nameFr: "Base sync externe", path: "/external-sync-knowledge", icon: Database, isNew: true },
-      { name: "历史案例库", nameEn: "Historical Cases", nameDe: "Historische Fälle", nameFr: "Cas historiques", path: "/historical-cases", icon: BookOpen, isNew: true },
-      { name: "变更影响分析", nameEn: "Change Impact", nameDe: "Änderungsauswirkung", nameFr: "Impact du changement", path: "/change-impact", icon: GitBranch, isNew: true },
-    ],
-  },
-
-  // ────────────────────────────────────
   // AI DevOps — Dual-Engine Pipeline Console
   // ────────────────────────────────────
   {
@@ -968,8 +1166,6 @@ export const menuConfig: MenuGroup[] = [
       { name: "Gemini技术规格", nameEn: "Gemini Spec", nameDe: "Gemini-Spezifikation", nameFr: "Spécification Gemini", path: "/gemini-spec", icon: FileText, isNew: true },
       { name: "仿真指挥中心", nameEn: "Simulator", nameDe: "Simulator", nameFr: "Simulateur", path: "/simulator", icon: Zap, isNew: true },
       { name: "系统部署", nameEn: "Deployment", nameDe: "Bereitstellung", nameFr: "Déploiement", path: "/system-deployment", icon: Server },
-      { name: "AI效能追踪", nameEn: "AI Effectiveness", nameDe: "KI-Effizienz", nameFr: "Efficacité IA", path: "/ai-effectiveness", icon: Activity },
-      { name: "模型监控", nameEn: "Model Monitor", nameDe: "Modellüberwachung", nameFr: "Surveillance modèle", path: "/model-performance-monitor", icon: Activity, minLevel: 3 },
     ],
   },
 
@@ -985,14 +1181,36 @@ export const menuConfig: MenuGroup[] = [
     superCategory: "strategy",
     items: [
       { name: "战略中枢", nameEn: "Strategy Hub", nameDe: "Strategie-Zentrale", nameFr: "Centre stratégie", path: "/strategy", icon: Target, isNew: true },
-      { name: "卓越文化", nameEn: "Excellence Culture", nameDe: "Exzellenzkultur", nameFr: "Culture d'excellence", path: "/strategy/excellence", icon: Award, isNew: true },
-      { name: "OKR矩阵", nameEn: "OKR Matrix", nameDe: "OKR-Matrix", nameFr: "Matrice OKR", path: "/strategy/okr-matrix", icon: Target, isNew: true },
-      { name: "目标分解", nameEn: "Target Breakdown", nameDe: "Zielaufschlüsselung", nameFr: "Décomposition des objectifs", path: "/bu-sales-target", icon: BarChart3, isNew: true, minLevel: 3 },
-      { name: "资质管理", nameEn: "Certification", nameDe: "Zertifizierung", nameFr: "Certification", path: "/certification-management", icon: Award },
-      { name: "年度企业日程", nameEn: "Annual Agenda", nameDe: "Jahreskalender", nameFr: "Agenda annuel", path: "/annual-agenda", icon: Calendar },
-      { name: "全球增长追踪", nameEn: "Global Growth", nameDe: "Globales Wachstum", nameFr: "Croissance mondiale", path: "/global-growth-tracker", icon: Globe },
-      { name: "变更治理", nameEn: "Change Governance", nameDe: "Änderungssteuerung", nameFr: "Gouvernance changement", path: "/change-management", icon: ClipboardCheck },
       { name: "2026战略指挥", nameEn: "2026 Strategy Command", nameDe: "2026 Strategiekommando", nameFr: "Commandement stratégique 2026", path: "/ceo/strategy-2026", icon: Crown, isNew: true },
+    ],
+    subgroups: [
+      // ── 战略与OKR ──
+      {
+        name: "战略与OKR",
+        nameEn: "Strategy & OKR",
+        nameDe: "Strategie & OKR",
+        nameFr: "Stratégie & OKR",
+        icon: Target,
+        items: [
+          { name: "卓越文化", nameEn: "Excellence Culture", nameDe: "Exzellenzkultur", nameFr: "Culture d'excellence", path: "/strategy/excellence", icon: Award, isNew: true },
+          { name: "OKR矩阵", nameEn: "OKR Matrix", nameDe: "OKR-Matrix", nameFr: "Matrice OKR", path: "/strategy/okr-matrix", icon: Target, isNew: true },
+          { name: "目标分解", nameEn: "Target Breakdown", nameDe: "Zielaufschlüsselung", nameFr: "Décomposition des objectifs", path: "/bu-sales-target", icon: BarChart3, isNew: true, minLevel: 3 },
+          { name: "全球增长追踪", nameEn: "Global Growth", nameDe: "Globales Wachstum", nameFr: "Croissance mondiale", path: "/global-growth-tracker", icon: Globe },
+        ],
+      },
+      // ── 治理与规划 ──
+      {
+        name: "治理与规划",
+        nameEn: "Governance",
+        nameDe: "Governance",
+        nameFr: "Gouvernance",
+        icon: ClipboardCheck,
+        items: [
+          { name: "资质管理", nameEn: "Certification", nameDe: "Zertifizierung", nameFr: "Certification", path: "/certification-management", icon: Award },
+          { name: "年度企业日程", nameEn: "Annual Agenda", nameDe: "Jahreskalender", nameFr: "Agenda annuel", path: "/annual-agenda", icon: Calendar },
+          { name: "变更治理", nameEn: "Change Governance", nameDe: "Änderungssteuerung", nameFr: "Gouvernance changement", path: "/change-management", icon: ClipboardCheck },
+        ],
+      },
     ],
   },
 
@@ -1015,8 +1233,7 @@ export const menuConfig: MenuGroup[] = [
       { name: "售前技术问卷", nameEn: "Pre-Sales Questionnaire", nameDe: "Vorverkauf-Fragebogen", nameFr: "Questionnaire avant-vente", path: "/pre-sales-questionnaire", icon: ClipboardCheck, isNew: true },
       { name: "晨会看板(全屏)", nameEn: "Morning Meeting Board", nameDe: "Morgenbesprechung (Vollbild)", nameFr: "Réunion matinale (plein écran)", path: "/morning-meeting-board", icon: LayoutDashboard, isNew: true },
       { name: "汇报中枢", nameEn: "Briefing Center", nameDe: "Berichtszentrale", nameFr: "Centre de briefing", path: "/report-center", icon: Presentation, isNew: true },
-      { name: "大厅全球主屏", nameEn: "Lobby Global Screen", nameDe: "Lobby-Globalbildschirm", nameFr: "Écran global hall", path: "/vision/lobby", icon: Globe, isNew: true },
-      { name: "车间生产总屏", nameEn: "Shopfloor Master Board", nameDe: "Werkstatt-Hauptbildschirm", nameFr: "Écran principal atelier", path: "/vision/shopfloor", icon: Factory, isNew: true },
+      { name: "制度管理工作台", nameEn: "Procedures Workbench", nameDe: "Richtlinien-Arbeitsbereich", nameFr: "Tableau de bord procédures", path: "/dept-procedures", icon: ScrollText, isNew: true },
     ],
   },
 
@@ -1033,6 +1250,15 @@ export const menuConfig: MenuGroup[] = [
     items: [
       { name: "系统控制塔", nameEn: "Control Tower", nameDe: "Kontrollturm", nameFr: "Tour de contrôle", path: "/system-control-tower", icon: Landmark, isNew: true },
       { name: "上线指挥中心", nameEn: "Go-Live Command", nameDe: "Go-Live-Zentrale", nameFr: "Centre Go-Live", path: "/go-live-command", icon: Rocket, isNew: true, minLevel: 7, allowedRoles: ["admin", "director"] },
+      { name: "沙盘总览", nameEn: "Sandbox Overview", nameDe: "Sandbox-Übersicht", nameFr: "Vue Sandbox", path: "/sandbox", icon: FlaskConical, isSandbox: true, isNew: true, minLevel: 4, allowedRoles: ["admin", "director", "ceo"] },
+      { name: "系统脉络图", nameEn: "System Topology", nameDe: "System-Topologie", nameFr: "Topologie système", path: "/system-topology", icon: Network, isNew: true, minLevel: 5, allowedRoles: ["admin", "director", "ceo"] },
+      { name: "全局智能母座", nameEn: "Global App Shell", nameDe: "Globale App-Shell", nameFr: "Shell App Globale", path: "/app-shell", icon: Globe, isNew: true, minLevel: 7, allowedRoles: ["admin", "director", "ceo"] },
+      { name: "纵向打穿演示舱", nameEn: "Vertical Slicing Demo", nameDe: "Vertikale Durchstich-Demo", nameFr: "Démo tranche verticale", path: "/demo/vertical-slicing", icon: Zap, isNew: true, minLevel: 7, allowedRoles: ["admin", "director", "ceo"] },
+      { name: "全域事件编排中枢", nameEn: "Event Orchestrator", nameDe: "Event-Orchestrator", nameFr: "Orchestrateur d'événements", path: "/demo/event-orchestrator", icon: Zap, isNew: true, minLevel: 7, allowedRoles: ["admin", "director", "ceo"] },
+      { name: "全域编排中枢 V2", nameEn: "Orchestrator V2", nameDe: "Orchestrator V2", nameFr: "Orchestrateur V2", path: "/demo/event-orchestrator-v2", icon: Zap, isNew: true, minLevel: 7, allowedRoles: ["admin", "director", "ceo"] },
+      { name: "微前端协同母座", nameEn: "Micro-Frontend Shell", nameDe: "Mikro-Frontend Shell", nameFr: "Shell Micro-Frontend", path: "/demo/micro-frontend", icon: Zap, isNew: true, minLevel: 7, allowedRoles: ["admin", "director", "ceo"] },
+      { name: "元数据沙盘引擎", nameEn: "Metadata Engine", nameDe: "Metadaten-Engine", nameFr: "Moteur métadonnées", path: "/demo/metadata-engine", icon: Zap, isNew: true, minLevel: 7, allowedRoles: ["admin", "director", "ceo"] },
+      { name: "Agent 控制塔", nameEn: "Agent Control Tower", nameDe: "Agent-Kontrollturm", nameFr: "Tour de contrôle Agent", path: "/admin/agent-management", icon: Bot, isNew: true, minLevel: 7, allowedRoles: ["admin", "director"] },
       { name: "远程维护指挥", nameEn: "Remote Governance", nameDe: "Fernwartungs-Governance", nameFr: "Gouvernance accès distant", path: "/remote-governance", icon: ShieldAlert, isNew: true, minLevel: 5, allowedRoles: ["admin", "director", "bu_gm"] },
     ],
     subgroups: [
@@ -1067,16 +1293,6 @@ export const menuConfig: MenuGroup[] = [
           { name: "合规日历", nameEn: "Compliance Calendar", nameDe: "Compliance-Kalender", nameFr: "Calendrier de conformité", path: "/admin/compliance-calendar", icon: CalendarClock, isNew: true },
           { name: "安全态势中枢", nameEn: "Security Posture", nameDe: "Sicherheitslage", nameFr: "Posture sécurité", path: "/executive/security-dashboard", icon: Shield, isNew: true, minLevel: 8 },
           { name: "错误日志", nameEn: "Error Logs", nameDe: "Fehlerprotokolle", nameFr: "Journaux d'erreurs", path: "/error-logs", icon: AlertTriangle, isNew: true },
-        ],
-      },
-      // ── ESG & 碳合规 ──
-      {
-        name: "ESG & 碳合规",
-        nameEn: "ESG & Carbon",
-        nameDe: "ESG & CO₂",
-        nameFr: "ESG & Carbone",
-        icon: Leaf,
-        items: [
           { name: "CBAM碳足迹", nameEn: "CBAM Dashboard", nameDe: "CBAM-Dashboard", nameFr: "Tableau CBAM", path: "/esg/cbam-dashboard", icon: Leaf, isNew: true },
         ],
       },
@@ -1112,7 +1328,6 @@ export const menuConfig: MenuGroup[] = [
           { name: "数据同步导入", nameEn: "Data Sync Import", nameDe: "Datensync-Import", nameFr: "Import sync données", path: "/external-sync-import", icon: Upload, isNew: true, allowedRoles: ["admin", "director"] },
           { name: "表单浏览器", nameEn: "Form Browser", nameDe: "Formularbrowser", nameFr: "Navigateur formulaires", path: "/external-sync-forms", icon: Database, isNew: true },
           { name: "审批流程", nameEn: "Workflows", nameDe: "Workflows", nameFr: "Workflows", path: "/external-sync-workflows", icon: GitBranch, isNew: true },
-          { name: "知识库", nameEn: "Knowledge", nameDe: "Wissensbasis", nameFr: "Base de connaissances", path: "/external-sync-knowledge", icon: BookOpen, isNew: true },
           { name: "数据迁移中心", nameEn: "Data Migration Hub", nameDe: "Datenmigration", nameFr: "Centre de migration", path: "/data-migration", icon: Database, isNew: true },
           { name: "运营分析", nameEn: "Operations Analytics", nameDe: "Betriebsanalyse", nameFr: "Analyse opérations", path: "/operations-analytics", icon: Activity, isNew: true },
           { name: "菜单分析", nameEn: "Menu Analytics", nameDe: "Menüanalyse", nameFr: "Analyse menus", path: "/menu-analytics", icon: BarChart3, isNew: true },
@@ -1131,11 +1346,36 @@ export const menuConfig: MenuGroup[] = [
           { name: "定时任务", nameEn: "Scheduler", nameDe: "Zeitplaner", nameFr: "Planificateur", path: "/scheduler", icon: Timer },
           { name: "Cron监控", nameEn: "Cron Monitor", nameDe: "Cron-Überwachung", nameFr: "Surveillance Cron", path: "/cron-monitor", icon: Clock },
           { name: "死锁监控", nameEn: "Deadlock Monitor", nameDe: "Deadlock-Überwachung", nameFr: "Surveillance deadlock", path: "/deadlock-monitor", icon: ShieldAlert },
-          { name: "系统部署", nameEn: "Deployment", nameDe: "Bereitstellung", nameFr: "Déploiement", path: "/system-deployment", icon: Server },
           { name: "系统指南", nameEn: "System Guide", nameDe: "Systemanleitung", nameFr: "Guide système", path: "/system-guide", icon: BookOpen },
-          { name: "仿真指挥中心", nameEn: "Simulator", nameDe: "Simulator", nameFr: "Simulateur", path: "/simulator", icon: Zap, isNew: true },
-          { name: "双AI协作矩阵", nameEn: "Dual-AI Matrix", nameDe: "Dual-KI-Matrix", nameFr: "Matrice Double IA", path: "/dual-ai-matrix", icon: Zap, isNew: true },
           { name: "会议负责人", nameEn: "Meeting Owner", nameDe: "Besprechungsleiter", nameFr: "Responsable réunion", path: "/meeting-owner-management", icon: Video, isNew: true },
+        ],
+      },
+      // ── 沙盘中心 — 13 sandbox entries consolidated ──
+      {
+        name: "沙盘中心",
+        nameEn: "Sandbox Center",
+        nameDe: "Sandbox-Zentrale",
+        nameFr: "Centre Sandbox",
+        icon: FlaskConical,
+        allowedRoles: ["admin", "director", "ceo"],
+        minLevel: 4,
+        items: [
+          // Batch 1: Core Flow (项目→HR→排产→绩效→薪酬)
+          { name: "⑤ 项目M0-M12", nameEn: "Project Lifecycle", nameDe: "Projekt M0-M12", nameFr: "Projet M0-M12", path: "/sandbox/project-lifecycle", icon: FolderKanban, isSandbox: true, isNew: true, desc: "3↓5↑ · Planner+Teams+SP+OneNote+OneDrive · 5工具 · Excel/CSV导入 · Ctrl+G过门" },
+          { name: "④ HR生命周期", nameEn: "HR Lifecycle", nameDe: "HR-Lebenszyklus", nameFr: "Cycle RH", path: "/sandbox/hr-lifecycle", icon: Users, isSandbox: true, isNew: true, desc: "2↓3↑ · Outlook+Teams+Planner+OneNote+SP · 4工具 · CSV导入 · Ctrl+N新流程" },
+          { name: "⑫ 排产与报工", nameEn: "Production Scheduling", nameDe: "Produktionsplanung", nameFr: "Planification production", path: "/sandbox/production-scheduling", icon: CalendarClock, isSandbox: true, isNew: true, desc: "4↓5↑ · Teams+Planner+Outlook+SP+OneNote+OneDrive · 4工具 · 3导入 · Ctrl+Shift+W" },
+          { name: "③ 绩效与积分", nameEn: "Performance Points", nameDe: "Leistungspunkte", nameFr: "Points performance", path: "/sandbox/performance-points", icon: Award, isSandbox: true, isNew: true, desc: "3↓3↑ · Outlook+Teams+Planner+OneNote+OneDrive · 4工具 · CSV导入 · Ctrl+E证据" },
+          { name: "② 薪酬与打卡", nameEn: "Payroll & Attendance", nameDe: "Gehalt & Anwesenheit", nameFr: "Paie & présence", path: "/sandbox/payroll-attendance", icon: Wallet, isSandbox: true, isNew: true, desc: "4↓2↑ · Outlook+Teams+OneDrive+OneNote+SP · 4工具 · 3导入 · Ctrl+R试算" },
+          // Batch 2: Strategy Config (年度规划→报价→客户→机械→电气)
+          { name: "① 年度规划", nameEn: "Annual Planning", nameDe: "Jahresplanung", nameFr: "Planification annuelle", path: "/sandbox/annual-planning", icon: Target, isSandbox: true, isNew: true, desc: "2↓3↑ · Outlook+Planner+OneNote+Teams+SP · 4工具 · Excel/CSV导入 · Ctrl+K KPI" },
+          { name: "⑥ 报价与BOM", nameEn: "Quoting & BOM", nameDe: "Angebote & Stückliste", nameFr: "Devis & nomenclature", path: "/sandbox/quoting-bom", icon: Calculator, isSandbox: true, isNew: true, desc: "3↓3↑ · Outlook+SP+OneDrive+Teams+Planner · 4工具 · BOM/价格导入 · Ctrl+Q报价" },
+          { name: "⑨ 客户档案", nameEn: "Customer Config", nameDe: "Kundenkonfiguration", nameFr: "Config client", path: "/sandbox/customer-config", icon: Contact, isSandbox: true, isNew: true, desc: "2↓3↑ · Outlook+Teams+Planner+OneNote+SP · 4工具 · CSV批量导入 · Ctrl+P新建" },
+          { name: "⑦ 机械标准", nameEn: "Mechanical Standards", nameDe: "Mechanik-Standards", nameFr: "Standards mécaniques", path: "/sandbox/mechanical-standards", icon: Wrench, isSandbox: true, isNew: true, desc: "2↓3↑ · SP+Teams+OneNote+OneDrive · 4工具 · CSV配置导入 · Ctrl+V校验" },
+          { name: "⑧ 电气规范", nameEn: "Electrical Standards", nameDe: "Elektrik-Standards", nameFr: "Standards électriques", path: "/sandbox/electrical-standards", icon: Cable, isSandbox: true, isNew: true, desc: "2↓3↑ · SP+Teams+OneDrive+OneNote · 3工具 · IO点/PLC导入 · Ctrl+I校验" },
+          // Batch 3: Delivery Loop (验收→交付→AI孪生)
+          { name: "⑩ 验收追踪", nameEn: "Acceptance Tracking", nameDe: "Abnahmeverfolgung", nameFr: "Suivi réception", path: "/sandbox/acceptance-tracking", icon: ClipboardCheck, isSandbox: true, isNew: true, desc: "3↓3↑ · Outlook+Teams+SP+OneDrive+Planner · 4工具 · 清单/证据导入 · FAT/SAT" },
+          { name: "⑪ 现场交付", nameEn: "Site Delivery", nameDe: "Vor-Ort-Lieferung", nameFr: "Livraison site", path: "/sandbox/site-delivery", icon: MapPin, isSandbox: true, isNew: true, desc: "4↓2↑ · Teams+Outlook+Planner+OneNote+SP+OneDrive · 4工具 · 调试/照片导入" },
+          { name: "⑬ AI工艺孪生", nameEn: "AI Process Twin", nameDe: "KI-Prozesszwilling", nameFr: "Jumeau IA processus", path: "/sandbox/ai-process-twin", icon: Brain, isSandbox: true, isNew: true, desc: "4↓3↑ · OneNote+Teams+SP+OneDrive+Planner · 4工具 · FMEA/SOP/JSON导入 · AI SOP" },
         ],
       },
     ],
@@ -1155,58 +1395,44 @@ export const menuConfig: MenuGroup[] = [
       { name: "协同云盘", nameEn: "Collaboration Drive", nameDe: "Zusammenarbeitslaufwerk", nameFr: "Drive collaboratif", path: "/collaboration-docs", icon: FolderKanban, isNew: true },
       { name: "社群管理", nameEn: "Community", nameDe: "Community", nameFr: "Communauté", path: "/community", icon: MessageSquare },
       { name: "协作空间", nameEn: "Collaboration", nameDe: "Zusammenarbeit", nameFr: "Collaboration", path: "/collaboration", icon: Users },
-      { name: "智能会议中枢", nameEn: "Meeting Hub", nameDe: "Meeting-Hub", nameFr: "Hub de réunion", path: "/meeting-hub", icon: Presentation, isNew: true },
-      { name: "述职报告", nameEn: "Review Meeting", nameDe: "Leistungsbericht", nameFr: "Rapport de performance", path: "/performance-review", icon: Presentation, isNew: true },
-      { name: "跨境数据同步", nameEn: "Cross-Border Sync", nameDe: "Grenzüberschreitende Synchronisierung", nameFr: "Sync transfrontalière", path: "/cross-border-sync", icon: Globe, isNew: true },
-      { name: "群通知", nameEn: "Group Alerts", nameDe: "Gruppenbenachrichtigungen", nameFr: "Alertes de groupe", path: "/group-notifications", icon: Send },
       { name: "文档管理", nameEn: "Documents", nameDe: "Dokumente", nameFr: "Documents", path: "/docs", icon: FileText },
       { name: "文档智优", nameEn: "Doc Optimization", nameDe: "Dokumentenoptimierung", nameFr: "Optimisation documentaire", path: "/doc-optimization", icon: FileText, isNew: true },
       { name: "帮助中心", nameEn: "Help Center", nameDe: "Hilfecenter", nameFr: "Centre d'aide", path: "/help", icon: BookOpen },
     ],
-  },
-
-  // ────────────────────────────────────
-  // 平台能力扩展
-  // ────────────────────────────────────
-  {
-    name: "平台能力",
-    nameEn: "Platform Capabilities",
-    nameDe: "Plattformfähigkeiten",
-    nameFr: "Capacités plateforme",
-    icon: Cpu,
-    superCategory: "resources",
-    items: [
-      { name: "成就系统", nameEn: "Achievements", nameDe: "Erfolge", nameFr: "Réalisations", path: "/gamification", icon: Trophy, isNew: true },
-      { name: "IoT数字孪生", nameEn: "IoT Digital Twin", nameDe: "IoT Digitaler Zwilling", nameFr: "IoT Jumeau numérique", path: "/iot-dashboard", icon: Cpu, isNew: true },
-      { name: "IoT设备舰队", nameEn: "IoT Fleet Command", nameDe: "IoT-Flottensteuerung", nameFr: "Commande flotte IoT", path: "/iot-fleet", icon: Activity, isNew: true },
-      { name: "数字云厅", nameEn: "Digital Cloud Hall", nameDe: "Digitale Cloud-Halle", nameFr: "Hall Cloud Numérique", path: "/digital-cloud-hall", icon: Video, isNew: true, allowedRoles: ["admin", "director", "bu_gm", "bu_sales", "bu_pm", "cs_engineer", "dept_manager"], minLevel: 2 },
-      { name: "全球客服系统", nameEn: "Global Service Dashboard", nameDe: "Globales Service-Dashboard", nameFr: "Tableau de bord service global", path: "/digital-cloud-hall?module=service", icon: Globe, isNew: true, allowedRoles: ["admin", "director", "bu_gm", "bu_sales", "bu_pm", "cs_engineer", "dept_manager"], minLevel: 2 },
-      { name: "客服系统管理", nameEn: "Service Admin", nameDe: "Service-Verwaltung", nameFr: "Admin service", path: "/service-dashboard-admin", icon: Settings, allowedRoles: ["admin", "director"], minLevel: 5 },
-    ],
-  },
-
-  // ────────────────────────────────────
-  // 企业制度（制度总览 · 合规确认 · 版本管控）
-  // ────────────────────────────────────
-  {
-    name: "企业制度",
-    nameEn: "Procedures & Compliance",
-    nameDe: "Unternehmensrichtlinien",
-    nameFr: "Procédures & Conformité",
-    icon: ScrollText,
-    superCategory: "resources",
-    items: [
+    subgroups: [
+      // ── 会议 ──
       {
-        name: "制度管理工作台",
-        nameEn: "Procedures Workbench",
-        nameDe: "Richtlinien-Arbeitsbereich",
-        nameFr: "Tableau de bord procédures",
-        path: "/dept-procedures",
-        icon: ScrollText,
-        isNew: true,
+        name: "会议",
+        nameEn: "Meetings",
+        nameDe: "Besprechungen",
+        nameFr: "Réunions",
+        icon: Presentation,
+        items: [
+          { name: "智能会议中枢", nameEn: "Meeting Hub", nameDe: "Meeting-Hub", nameFr: "Hub de réunion", path: "/meeting-hub", icon: Presentation, isNew: true },
+          { name: "述职报告", nameEn: "Review Meeting", nameDe: "Leistungsbericht", nameFr: "Rapport de performance", path: "/performance-review", icon: Presentation, isNew: true },
+          { name: "群通知", nameEn: "Group Alerts", nameDe: "Gruppenbenachrichtigungen", nameFr: "Alertes de groupe", path: "/group-notifications", icon: Send },
+          { name: "跨境数据同步", nameEn: "Cross-Border Sync", nameDe: "Grenzüberschreitende Synchronisierung", nameFr: "Sync transfrontalière", path: "/cross-border-sync", icon: Globe, isNew: true },
+        ],
+      },
+      // ── 平台能力 ──
+      {
+        name: "平台能力",
+        nameEn: "Platform Capabilities",
+        nameDe: "Plattformfähigkeiten",
+        nameFr: "Capacités plateforme",
+        icon: Cpu,
+        items: [
+          { name: "成就系统", nameEn: "Achievements", nameDe: "Erfolge", nameFr: "Réalisations", path: "/gamification", icon: Trophy, isNew: true },
+          { name: "IoT数字孪生", nameEn: "IoT Digital Twin", nameDe: "IoT Digitaler Zwilling", nameFr: "IoT Jumeau numérique", path: "/iot-dashboard", icon: Cpu, isNew: true },
+          { name: "IoT设备舰队", nameEn: "IoT Fleet Command", nameDe: "IoT-Flottensteuerung", nameFr: "Commande flotte IoT", path: "/iot-fleet", icon: Activity, isNew: true },
+          { name: "数字云厅", nameEn: "Digital Cloud Hall", nameDe: "Digitale Cloud-Halle", nameFr: "Hall Cloud Numérique", path: "/digital-cloud-hall", icon: Video, isNew: true, allowedRoles: ["admin", "director", "bu_gm", "bu_sales", "bu_pm", "cs_engineer", "dept_manager"], minLevel: 2 },
+          { name: "全球客服系统", nameEn: "Global Service Dashboard", nameDe: "Globales Service-Dashboard", nameFr: "Tableau de bord service global", path: "/digital-cloud-hall?module=service", icon: Globe, isNew: true, allowedRoles: ["admin", "director", "bu_gm", "bu_sales", "bu_pm", "cs_engineer", "dept_manager"], minLevel: 2 },
+          { name: "客服系统管理", nameEn: "Service Admin", nameDe: "Service-Verwaltung", nameFr: "Admin service", path: "/service-dashboard-admin", icon: Settings, allowedRoles: ["admin", "director"], minLevel: 5 },
+        ],
       },
     ],
   },
+
 ];
 
 export default menuConfig;

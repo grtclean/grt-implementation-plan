@@ -5,6 +5,9 @@
  * Data source: trpc.smartProductionScheduling.* (DB-backed)
  */
 import { useState } from "react";
+import { useSandboxPageEnhancements } from "@/components/Sandbox/useSandboxPageEnhancements";
+import ShortcutOverlay from "@/components/Sandbox/ShortcutOverlay";
+import SandboxFileImport from "@/components/Sandbox/SandboxFileImport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -83,8 +86,20 @@ export default function SmartProductionScheduling() {
   const [activeTab, setActiveTab] = useState("bom-hours");
   const [selectedProjectId, setSelectedProjectId] = useState<number>(1);
 
+  // ── Sandbox enhancements ──
+  const { shortcutOverlayOpen, setShortcutOverlayOpen, shortcuts, lastSaved, isSaving } = useSandboxPageEnhancements({
+    sandboxShortcuts: [
+      { key: "ctrl+shift+w", label: "提交报工", labelEn: "Submit labor report", action: () => setActiveTab("labor-report") },
+    ],
+    autoSave: {
+      data: { activeTab, selectedProjectId },
+      onSave: async (d) => { localStorage.setItem("grt-sb-scheduling", JSON.stringify(d)); },
+    },
+  });
+
   return (
     <div className="p-4 md:p-6 space-y-4">
+      <ShortcutOverlay open={shortcutOverlayOpen} onClose={() => setShortcutOverlayOpen(false)} commonShortcuts={shortcuts.commonShortcuts} sandboxShortcuts={shortcuts.sandboxShortcuts} sandboxTitle="排产调度" />
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -234,10 +249,11 @@ function BomWorkHoursTab({ projectId }: { projectId: number }) {
           <Calculator className="h-4 w-4 mr-1" />
           自动计算
         </Button>
-        <Button size="sm" variant="outline" onClick={() => toast.info("请在智能排程Tab导入历史数据")}>
-          <Upload className="h-4 w-4 mr-1" />
-          导入历史
-        </Button>
+        <SandboxFileImport
+          accept=".csv"
+          label="导入工时"
+          onImport={(rows, fileName) => { toast.success(`已导入 ${rows.length} 行工时数据 (${fileName})`); }}
+        />
         <Button
           size="sm"
           variant="outline"

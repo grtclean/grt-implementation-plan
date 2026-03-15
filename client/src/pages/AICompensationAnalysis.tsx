@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ReportActionBar from "@/components/ReportActionBar";
+import ShareContextMenu from "@/components/ShareContextMenu";
 import {
   DollarSign, Loader2, Sparkles, TrendingUp, BarChart3, Shield,
 } from "lucide-react";
@@ -55,6 +57,7 @@ export default function AICompensationAnalysis() {
   const [education, setEducation] = useState("");
   const [result, setResult] = useState<CompensationResult | null>(null);
   const [taskId, setTaskId] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const mutation = trpc.hrIntelligence.analyzeCompensation.useMutation({
     onSuccess: (data) => setTaskId(data.taskId),
@@ -83,7 +86,9 @@ export default function AICompensationAnalysis() {
   }, [taskQuery.data]);
 
   const handleSubmit = () => {
-    if (!position.trim() || !experienceYears || !currentSalary || mutation.isPending || !!taskId) return;
+    if (!position.trim() || !experienceYears || !currentSalary) { setSubmitted(true); return; }
+    if (mutation.isPending || !!taskId) return;
+    setSubmitted(false);
     mutation.mutate({
       position,
       department,
@@ -153,7 +158,8 @@ export default function AICompensationAnalysis() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.compensation.positionName")}</label>
-                <Input placeholder="如: 高级机械工程师" value={position} onChange={(e) => setPosition(e.target.value)} />
+                <Input className={submitted && !position.trim() ? "border-red-500" : ""} placeholder="如: 高级机械工程师" value={position} onChange={(e) => setPosition(e.target.value)} />
+                {submitted && !position.trim() && <span className="text-xs text-red-500">必填项</span>}
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.compensation.department")}</label>
@@ -170,11 +176,13 @@ export default function AICompensationAnalysis() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.compensation.experience")}</label>
-                <Input type="number" placeholder="如: 8" value={experienceYears} onChange={(e) => setExperienceYears(e.target.value)} />
+                <Input className={submitted && !experienceYears ? "border-red-500" : ""} type="number" placeholder="如: 8" value={experienceYears} onChange={(e) => setExperienceYears(e.target.value)} />
+                {submitted && !experienceYears && <span className="text-xs text-red-500">必填项</span>}
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.compensation.currentSalary")}</label>
-                <Input type="number" placeholder="如: 25" value={currentSalary} onChange={(e) => setCurrentSalary(e.target.value)} />
+                <Input className={submitted && !currentSalary ? "border-red-500" : ""} type="number" placeholder="如: 25" value={currentSalary} onChange={(e) => setCurrentSalary(e.target.value)} />
+                {submitted && !currentSalary && <span className="text-xs text-red-500">必填项</span>}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -218,7 +226,12 @@ export default function AICompensationAnalysis() {
 
         {/* Results */}
         {result && (
-          <>
+          <ShareContextMenu
+            title="AI薪酬分析报告"
+            textContent={Object.entries(result).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n')}
+            jsonData={result as unknown as Record<string, unknown>}
+          >
+          <div className="space-y-6">
             {/* Competitiveness Score + Market Position */}
             <Card>
               <CardContent className="pt-6">
@@ -325,7 +338,14 @@ export default function AICompensationAnalysis() {
                 </CardContent>
               </Card>
             )}
-          </>
+
+            <ReportActionBar
+              title="AI薪酬分析报告"
+              textContent={Object.entries(result).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n')}
+              jsonData={result as unknown as Record<string, unknown>}
+            />
+          </div>
+          </ShareContextMenu>
         )}
       </div>
   );

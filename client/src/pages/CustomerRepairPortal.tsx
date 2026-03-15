@@ -11,6 +11,9 @@ import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ReportActionBar from "@/components/ReportActionBar";
+import ShareContextMenu from "@/components/ShareContextMenu";
+import ImageAttachmentZone, { type AttachedImage } from "@/components/ImageAttachmentZone";
 import {
   Ticket, Loader2, Sparkles, AlertTriangle, CheckCircle, Clock, Wrench,
   Package, BookOpen,
@@ -39,6 +42,8 @@ export default function CustomerRepairPortal() {
   const [operatingEnvironment, setOperatingEnvironment] = useState("");
   const [urgencyLevel, setUrgencyLevel] = useState("普通-功能受限");
   const [result, setResult] = useState<TriageResult | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [faultImages, setFaultImages] = useState<AttachedImage[]>([]);
 
   const EQUIPMENT_MODELS = [
     { value: "碳氢真空清洗机", label: t("crm.repair.modelHydrocarbon") },
@@ -60,7 +65,11 @@ export default function CustomerRepairPortal() {
   });
 
   const handleSubmit = () => {
-    if (!customerName.trim() || !faultDescription.trim() || mutation.isPending) return;
+    if (!customerName.trim() || !faultDescription.trim()) {
+      setSubmitted(true);
+      return;
+    }
+    setSubmitted(false);
     mutation.mutate({
       customerName, equipmentModel,
       serialNumber: serialNumber || undefined,
@@ -103,8 +112,9 @@ export default function CustomerRepairPortal() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">{t("crm.repair.customerName")}</label>
-                <Input placeholder={t("crm.repair.customerPlaceholder")} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                <label className={`text-sm ${submitted && !customerName.trim() ? "text-red-500" : "text-muted-foreground"}`}>{t("crm.repair.customerName")} <span className="text-red-500">*</span></label>
+                <Input className={submitted && !customerName.trim() ? "border-red-500" : ""} placeholder={t("crm.repair.customerPlaceholder")} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                {submitted && !customerName.trim() && <span className="text-xs text-red-500">必填项</span>}
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("crm.repair.equipmentModel")}</label>
@@ -136,9 +146,17 @@ export default function CustomerRepairPortal() {
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">{t("crm.repair.faultDescription")}</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[100px]" placeholder={t("crm.repair.faultPlaceholder")} value={faultDescription} onChange={(e) => setFaultDescription(e.target.value)} />
+              <label className={`text-sm ${submitted && !faultDescription.trim() ? "text-red-500" : "text-muted-foreground"}`}>{t("crm.repair.faultDescription")} <span className="text-red-500">*</span></label>
+              <textarea className={`w-full bg-background border rounded px-3 py-2 text-sm min-h-[100px] ${submitted && !faultDescription.trim() ? "border-red-500" : ""}`} placeholder={t("crm.repair.faultPlaceholder")} value={faultDescription} onChange={(e) => setFaultDescription(e.target.value)} />
+              {submitted && !faultDescription.trim() && <span className="text-xs text-red-500">必填项</span>}
             </div>
+            {/* 故障现场照片上传 */}
+            <ImageAttachmentZone
+              images={faultImages}
+              onChange={setFaultImages}
+              maxImages={8}
+              label="故障现场照片 (可选)"
+            />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("crm.repair.errorCodes")}</label>
@@ -159,7 +177,12 @@ export default function CustomerRepairPortal() {
         </Card>
 
         {result && (
-          <>
+          <ShareContextMenu
+            title="AI智能分诊报告"
+            textContent={`优先级: ${result.priority}\n工单类型: ${result.ticketCategory}\n预计响应: ${result.estimatedResponseTime}\n建议措施: ${result.recommendedAction}\n\n可能原因:\n${result.possibleCauses.map(c => `- ${c.cause} (${c.probability}%): ${c.description}`).join("\n")}\n\n自助排查:\n${result.selfHelpSteps.map((s, i) => `${i + 1}. ${s}`).join("\n")}\n\n备件建议:\n${result.spareParts.map(sp => `- ${sp.part} (${sp.likelihood})`).join("\n")}`}
+            jsonData={result as unknown as Record<string, unknown>}
+          >
+          <div className="space-y-6">
             {/* Triage Summary */}
             <Card>
               <CardContent className="pt-6">
@@ -261,7 +284,15 @@ export default function CustomerRepairPortal() {
                 </CardContent>
               </Card>
             )}
-          </>
+
+            {/* 操作栏: 复制/下载/Outlook分享/打印 */}
+            <ReportActionBar
+              title="AI智能分诊报告"
+              textContent={`客户: ${customerName} | 设备: ${equipmentModel} | 序列号: ${serialNumber}\n优先级: ${result.priority} | 工单类型: ${result.ticketCategory}\n预计响应: ${result.estimatedResponseTime}\n建议措施: ${result.recommendedAction}\n\n可能原因:\n${result.possibleCauses.map(c => `- ${c.cause} (${c.probability}%): ${c.description}`).join("\n")}\n\n自助排查步骤:\n${result.selfHelpSteps.map((s, i) => `${i + 1}. ${s}`).join("\n")}\n\n备件建议:\n${result.spareParts.map(sp => `- ${sp.part} (可能性: ${sp.likelihood})`).join("\n")}\n\nAI建议:\n${result.recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}`}
+              jsonData={result as unknown as Record<string, unknown>}
+            />
+          </div>
+          </ShareContextMenu>
         )}
       </div>
   );

@@ -86,16 +86,186 @@ export default function GoLiveCommand() {
 // ── Tab 1: Readiness ─────────────────────────────────────
 
 function ReadinessTab() {
-  const scorecard = trpc.goLive.readiness.getReadinessScorecard.useQuery();
-  const blockers = trpc.goLive.readiness.getBlockers.useQuery();
+  const scorecard = trpc.goLive.readiness.getReadinessScorecard.useQuery(undefined, { retry: 1 });
+  const blockers = trpc.goLive.readiness.getBlockers.useQuery(undefined, { retry: 1 });
   const preflightMut = trpc.goLive.readiness.runPreflightChecks.useMutation();
+  const [seedError, setSeedError] = useState<string | null>(null);
+  const seedMut = (trpc.goLive.readiness as any).seedFoundationData.useMutation({
+    onSuccess: (data: any) => {
+      setSeedError(null);
+      scorecard.refetch();
+      blockers.refetch();
+    },
+    onError: (err: any) => {
+      const msg = err?.message || err?.data?.message || "未知错误";
+      setSeedError(msg);
+      console.error("[seedFoundationData] Error:", err);
+    },
+  });
 
   const score = scorecard.data?.totalScore ?? 0;
   const grade = scorecard.data?.grade ?? "-";
   const gradeColor = grade === "A" ? "text-green-600" : grade === "B" ? "text-blue-600" : grade === "C" ? "text-yellow-600" : "text-red-600";
 
+  const hasCritical = (blockers.data?.criticalCount ?? 0) > 0;
+  const hasWarning = (blockers.data?.warningCount ?? 0) > 0;
+
+  // Detect DB/backend connectivity issues
+  const dbOffline = scorecard.isError || blockers.isError;
+  const dbErrorMsg = (scorecard.error as any)?.message || (blockers.error as any)?.message || "";
+
   return (
     <div className="space-y-4">
+      {/* DB offline banner */}
+      {dbOffline && (
+        <Card className="border-2 border-dashed border-red-400 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                  <XCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-red-900">数据库连接异常</h3>
+                  <p className="text-sm text-red-700">后端服务未启动或数据库不可达，请检查：</p>
+                  <ul className="text-xs text-red-600 mt-1 list-disc ml-4 space-y-0.5">
+                    <li>后端服务是否已启动（npm run dev）</li>
+                    <li>DATABASE_URL 环境变量是否已配置</li>
+                    <li>PostgreSQL/TiDB 数据库是否可访问</li>
+                  </ul>
+                  {dbErrorMsg && <p className="text-xs text-red-500 mt-1 font-mono bg-red-100 p-1 rounded">{dbErrorMsg}</p>}
+                </div>
+              </div>
+              <Button size="sm" variant="outline" className="border-red-300" onClick={() => { scorecard.refetch(); blockers.refetch(); }}>
+                <RefreshCw className="h-4 w-4 mr-1" /> 重试
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Seed success banner */}
+      {!dbOffline && seedMut.data && !seedMut.isPending && (
+        <Card className={`border-2 border-dashed ${seedMut.data.stepErrors?.length > 0 ? "border-yellow-400 bg-yellow-50" : "border-green-400 bg-green-50"}`}>
+          <CardContent className="pt-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${seedMut.data.stepErrors?.length > 0 ? "bg-yellow-100" : "bg-green-100"}`}>
+                  <CheckCircle className={`h-5 w-5 ${seedMut.data.stepErrors?.length > 0 ? "text-yellow-600" : "text-green-600"}`} />
+                </div>
+                <div>
+                  <h3 className={`font-bold ${seedMut.data.stepErrors?.length > 0 ? "text-yellow-900" : "text-green-900"}`}>
+                    {seedMut.data.totalSeeded > 0 ? `基础数据注入完成 (${seedMut.data.totalSeeded}条)` : "基础数据已就绪"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{seedMut.data.message}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-orange-300 text-orange-700"
+                  onClick={() => { setSeedError(null); seedMut.mutate({ force: true }); }}
+                  disabled={seedMut.isPending}
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" /> 强制重注
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setSeedError(null); seedMut.reset(); scorecard.refetch(); blockers.refetch(); }}
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" /> 刷新分数
+                </Button>
+              </div>
+            </div>
+            {/* Step Errors Detail */}
+            {seedMut.data.stepErrors?.length > 0 && (
+              <div className="bg-yellow-100 border border-yellow-300 rounded p-2 space-y-1">
+                <p className="text-xs font-semibold text-yellow-800">失败步骤 ({seedMut.data.stepErrors.length}):</p>
+                {seedMut.data.stepErrors.map((e: any, i: number) => (
+                  <p key={i} className="text-xs text-yellow-700 font-mono">Step{e.step} [{e.name}]: {e.error}</p>
+                ))}
+              </div>
+            )}
+            {/* Diagnostics — actual DB counts */}
+            {seedMut.data.diagnostics && (
+              <details className="text-xs">
+                <summary className="cursor-pointer text-blue-600 hover:underline">数据库实际记录数</summary>
+                <div className="mt-1 grid grid-cols-3 sm:grid-cols-5 gap-1 bg-blue-50 p-2 rounded">
+                  {Object.entries(seedMut.data.diagnostics as Record<string, number>).map(([k, v]) => (
+                    <span key={k} className={`font-mono ${(v as number) <= 0 ? "text-red-600 font-bold" : "text-blue-700"}`}>
+                      {k}:{String(v)}
+                    </span>
+                  ))}
+                </div>
+              </details>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Seed prompt + error banner when not ready */}
+      {!dbOffline && !(seedMut.data && !seedMut.isPending) && (hasCritical || hasWarning || score < 80) && (
+        <Card className={`border-2 border-dashed ${seedError ? "border-red-400 bg-red-50" : "border-orange-400 bg-orange-50"}`}>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${seedError ? "bg-red-100" : "bg-orange-100"}`}>
+                  {seedError
+                    ? <XCircle className="h-5 w-5 text-red-600" />
+                    : <Zap className="h-5 w-5 text-orange-600" />
+                  }
+                </div>
+                <div>
+                  <h3 className={`font-bold ${seedError ? "text-red-900" : "text-orange-900"}`}>
+                    {seedError ? "基础数据注入失败" : "系统基础数据未就绪"}
+                  </h3>
+                  {seedError ? (
+                    <>
+                      <p className="text-sm text-red-700 font-mono bg-red-100 p-1 rounded mt-1">{seedError}</p>
+                      <p className="text-xs text-red-600 mt-1">请检查: 后端服务是否运行、DATABASE_URL 是否配置、数据库是否可访问</p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-orange-700">一键注入全维度基础数据：权限/员工/薪资/项目/OEE/FMEA/物料/图纸/ECO/BOM/AI军团/能力评估/工时</p>
+                  )}
+                </div>
+              </div>
+              <Button
+                size="lg"
+                className={`gap-2 text-white px-6 ${seedError ? "bg-red-600 hover:bg-red-500" : "bg-orange-600 hover:bg-orange-500"}`}
+                onClick={() => { setSeedError(null); seedMut.mutate({}); }}
+                disabled={seedMut.isPending}
+              >
+                {seedMut.isPending ? (
+                  <><RefreshCw className="h-4 w-4 animate-spin" /> 正在注入...</>
+                ) : seedError ? (
+                  <><RefreshCw className="h-4 w-4" /> 重试注入</>
+                ) : (
+                  <><Database className="h-4 w-4" /> 一键注入基础数据</>
+                )}
+              </Button>
+              {!seedMut.isPending && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-orange-600 hover:text-orange-500"
+                  onClick={() => { setSeedError(null); seedMut.mutate({ force: true }); }}
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" /> 强制重注
+                </Button>
+              )}
+            </div>
+            {seedMut.isPending && (
+              <div className="mt-3 flex items-center gap-2 text-sm text-blue-700 bg-blue-50 p-2 rounded">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                正在注入全维度基础数据（RBAC权限+员工/薪资/项目/OEE/FMEA/物料等28步），请耐心等待...
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Score gauge */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="col-span-1">
@@ -111,22 +281,37 @@ function ReadinessTab() {
               </div>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">上线就绪度</p>
+            <Button size="sm" variant="ghost" className="mt-1 text-xs" onClick={() => scorecard.refetch()}>
+              <RefreshCw className="h-3 w-3 mr-1" /> 刷新
+            </Button>
           </CardContent>
         </Card>
 
         <Card className="col-span-1 md:col-span-2">
-          <CardHeader><CardTitle className="text-base">类别评分</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">类别评分 ({scorecard.data?.categories?.length ?? 0} 维度)</CardTitle></CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {(scorecard.data?.categories ?? []).map((cat) => (
-                <div key={cat.id} className="flex items-center gap-2 p-2 rounded border">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${cat.score >= 80 ? "bg-green-100 text-green-700" : cat.score >= 60 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>
-                    {cat.score}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+              {(scorecard.data?.categories ?? []).map((cat: any) => (
+                <div key={cat.id} className={`p-3 rounded border ${cat.score < 60 ? "border-red-200 bg-red-50" : cat.score < 80 ? "border-yellow-200 bg-yellow-50" : "border-green-200 bg-green-50"}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${cat.score >= 80 ? "bg-green-100 text-green-700" : cat.score >= 60 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>
+                      {cat.score}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium leading-tight">{cat.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{cat.nameEn}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">{cat.name}</p>
-                    <p className="text-xs text-muted-foreground">{cat.nameEn}</p>
-                  </div>
+                  {cat.items && Array.isArray(cat.items) && cat.items[0]?.score !== undefined && (
+                    <div className="space-y-1 mt-1">
+                      {cat.items.map((item: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between text-[11px]">
+                          <span className="text-muted-foreground truncate">{item.name}</span>
+                          <span className={`font-mono font-medium ${item.score >= item.max ? "text-green-600" : item.score > 0 ? "text-yellow-600" : "text-red-500"}`}>{item.score}/{item.max}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -137,42 +322,72 @@ function ReadinessTab() {
       {/* Blockers */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">阻塞项 Blockers</CardTitle>
-          <Button size="sm" variant="outline" onClick={() => preflightMut.mutate()} disabled={preflightMut.isPending}>
-            <Play className="h-3.5 w-3.5 mr-1" />
-            {preflightMut.isPending ? "检查中..." : "运行预检"}
-          </Button>
+          <CardTitle className="text-base">阻塞项 Blockers ({blockers.data?.criticalCount ?? 0} critical, {blockers.data?.warningCount ?? 0} warning)</CardTitle>
+          <div className="flex gap-2">
+            {hasCritical && (
+              <Button size="sm" variant="default" className="bg-orange-600 hover:bg-orange-500" onClick={() => seedMut.mutate({ force: true })} disabled={seedMut.isPending}>
+                <Zap className="h-3.5 w-3.5 mr-1" />
+                {seedMut.isPending ? "修复中..." : "一键修复"}
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => preflightMut.mutate()} disabled={preflightMut.isPending}>
+              <Play className="h-3.5 w-3.5 mr-1" />
+              {preflightMut.isPending ? "检查中..." : "运行预检"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          {blockers.data?.blockers.length === 0 && <p className="text-sm text-green-600 flex items-center gap-1"><CheckCircle className="h-4 w-4" /> 无阻塞项</p>}
+          {blockers.data?.blockers.length === 0 && <p className="text-sm text-green-600 flex items-center gap-1"><CheckCircle className="h-4 w-4" /> 无阻塞项 — 系统已就绪</p>}
           <div className="space-y-2">
             {(blockers.data?.blockers ?? []).map((b, i) => (
-              <div key={i} className={`flex items-start gap-2 p-2 rounded text-sm ${b.severity === "critical" ? "bg-red-50 border-red-200 border" : b.severity === "warning" ? "bg-yellow-50 border-yellow-200 border" : "bg-blue-50 border-blue-200 border"}`}>
-                {b.severity === "critical" ? <XCircle className="h-4 w-4 text-red-500 mt-0.5" /> : b.severity === "warning" ? <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5" /> : <Info className="h-4 w-4 text-blue-500 mt-0.5" />}
-                <div>
+              <div key={i} className={`flex items-start gap-2 p-3 rounded text-sm ${b.severity === "critical" ? "bg-red-50 border-red-200 border" : b.severity === "warning" ? "bg-yellow-50 border-yellow-200 border" : "bg-blue-50 border-blue-200 border"}`}>
+                {b.severity === "critical" ? <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" /> : b.severity === "warning" ? <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" /> : <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />}
+                <div className="flex-1">
                   <p className="font-medium">{b.messageZh}</p>
-                  <p className="text-xs text-muted-foreground">{b.remediation}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{b.message}</p>
+                  <p className="text-xs mt-1 flex items-center gap-1">
+                    <ArrowRight className="h-3 w-3" />
+                    <span className="font-medium">修复方法:</span> {b.remediation}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
 
+          {/* Seed result */}
+          {seedMut.data && (
+            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+              <span className="text-sm text-green-700 font-medium">{seedMut.data.message}</span>
+            </div>
+          )}
+
           {/* Preflight results */}
           {preflightMut.data && (
             <div className="mt-4 border-t pt-3">
-              <p className="text-sm font-medium mb-2">预检结果: {preflightMut.data.summary.readiness === "ready" ? "就绪" : preflightMut.data.summary.readiness === "partial" ? "部分就绪" : "未就绪"} ({preflightMut.data.summary.readinessPercent}%)</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium">
+                  预检结果:
+                  <Badge className={`ml-2 ${preflightMut.data.summary.readiness === "ready" ? "bg-green-100 text-green-700" : preflightMut.data.summary.readiness === "partial" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>
+                    {preflightMut.data.summary.readiness === "ready" ? "就绪" : preflightMut.data.summary.readiness === "partial" ? "部分就绪" : "未就绪"} ({preflightMut.data.summary.readinessPercent}%)
+                  </Badge>
+                </p>
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                 <div className="bg-green-50 p-2 rounded text-center"><span className="font-bold text-green-600">{preflightMut.data.summary.pass}</span> Pass</div>
                 <div className="bg-red-50 p-2 rounded text-center"><span className="font-bold text-red-600">{preflightMut.data.summary.fail}</span> Fail</div>
                 <div className="bg-yellow-50 p-2 rounded text-center"><span className="font-bold text-yellow-600">{preflightMut.data.summary.warn}</span> Warn</div>
                 <div className="bg-gray-50 p-2 rounded text-center"><span className="font-bold text-gray-600">{preflightMut.data.summary.skip}</span> Skip</div>
               </div>
-              <div className="mt-2 space-y-1">
-                {preflightMut.data.checks.map((c) => (
-                  <div key={c.id} className="flex items-center gap-2 text-xs">
-                    {c.status === "pass" ? <CheckCircle className="h-3 w-3 text-green-500" /> : c.status === "fail" ? <XCircle className="h-3 w-3 text-red-500" /> : c.status === "warn" ? <AlertTriangle className="h-3 w-3 text-yellow-500" /> : <Info className="h-3 w-3 text-gray-400" />}
-                    <span>{c.labelZh}</span>
-                    <span className="text-muted-foreground ml-auto">{c.detail}</span>
+              <div className="mt-3 space-y-1.5">
+                {preflightMut.data.checks.map((c: any) => (
+                  <div key={c.id} className={`flex items-center gap-2 text-xs p-1.5 rounded ${c.status === "fail" ? "bg-red-50" : c.status === "warn" ? "bg-yellow-50" : ""}`}>
+                    {c.status === "pass" ? <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : c.status === "fail" ? <XCircle className="h-3.5 w-3.5 text-red-500" /> : c.status === "warn" ? <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" /> : <Info className="h-3.5 w-3.5 text-gray-400" />}
+                    <span className="font-medium">{c.labelZh}</span>
+                    <span className="text-muted-foreground">{c.detail}</span>
+                    {c.remediation && c.status !== "pass" && (
+                      <span className="ml-auto text-blue-600 font-medium">{c.remediation}</span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -180,7 +395,156 @@ function ReadinessTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Gap Analysis — 差距分析 */}
+      <GapAnalysisCard />
     </div>
+  );
+}
+
+// ── Gap Analysis Card ────────────────────────────────────
+
+function GapAnalysisCard() {
+  const gapAnalysis = trpc.goLive.readiness.getReadinessGapAnalysis.useQuery(undefined, { retry: 1 });
+  const boostMut = trpc.goLive.readiness.boostCategory.useMutation({
+    onSuccess: () => { gapAnalysis.refetch(); },
+  });
+  const [boostingCat, setBoostingCat] = useState<string | null>(null);
+
+  if (gapAnalysis.isLoading) return <Card><CardContent className="pt-6 text-sm text-muted-foreground">加载差距分析...</CardContent></Card>;
+  if (gapAnalysis.isError) return null; // silently skip if endpoint not available
+
+  const data = gapAnalysis.data;
+  if (!data) return null;
+
+  const statusIcon = (s: string) => {
+    if (s === "ok") return <CheckCircle className="h-3.5 w-3.5 text-green-500" />;
+    if (s === "partial") return <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" />;
+    if (s === "error") return <XCircle className="h-3.5 w-3.5 text-red-500" />;
+    return <XCircle className="h-3.5 w-3.5 text-gray-400" />;
+  };
+
+  const statusColor = (s: string) =>
+    s === "ok" ? "text-green-600" : s === "partial" ? "text-yellow-600" : s === "error" ? "text-red-600" : "text-gray-500";
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-base flex items-center gap-2">
+          <BarChart3 className="h-4 w-4 text-blue-500" />
+          差距分析 Gap Analysis
+          <Badge className="bg-blue-100 text-blue-700 text-xs">预测满分: {data.projectedScore}%</Badge>
+        </CardTitle>
+        <Button size="sm" variant="outline" onClick={() => gapAnalysis.refetch()}>
+          <RefreshCw className="h-3.5 w-3.5 mr-1" /> 刷新
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Action Plan — Top 10 fixes */}
+        {data.actionPlan.length > 0 && (
+          <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-lg p-3">
+            <p className="text-sm font-semibold text-orange-800 mb-2 flex items-center gap-1">
+              <Zap className="h-4 w-4" /> 优先修复清单 ({data.actionPlan.length} 项)
+            </p>
+            <div className="space-y-1">
+              {data.actionPlan.map((a, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="w-5 h-5 rounded-full bg-orange-200 text-orange-800 flex items-center justify-center font-bold text-[10px]">{i + 1}</span>
+                  <span className="font-medium text-orange-900">[{a.category}] {a.label}</span>
+                  <span className="text-orange-600 flex-1 truncate">{a.action}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Per-Category Gaps */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {data.categoryGaps.map((cat) => (
+            <div key={cat.id} className={`rounded-lg border p-3 ${
+              cat.completionPct === 100 ? "border-green-200 bg-green-50/50" :
+              cat.completionPct >= 50 ? "border-yellow-200 bg-yellow-50/50" :
+              "border-red-200 bg-red-50/50"
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                    cat.completionPct === 100 ? "bg-green-100 text-green-700" :
+                    cat.completionPct >= 50 ? "bg-yellow-100 text-yellow-700" :
+                    "bg-red-100 text-red-700"
+                  }`}>{cat.completionPct}%</div>
+                  <div>
+                    <p className="text-sm font-medium">{cat.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{cat.okCount}/{cat.totalCount} 满分项</p>
+                  </div>
+                </div>
+                {cat.completionPct < 100 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs border-orange-300 text-orange-700 hover:bg-orange-50"
+                    onClick={() => {
+                      setBoostingCat(cat.id);
+                      boostMut.mutate({ categoryId: cat.id, force: true }, {
+                        onSettled: () => setBoostingCat(null),
+                      });
+                    }}
+                    disabled={boostMut.isPending}
+                  >
+                    {boostingCat === cat.id ? (
+                      <><RefreshCw className="h-3 w-3 animate-spin mr-1" /> 补数中</>
+                    ) : (
+                      <><Plus className="h-3 w-3 mr-1" /> 补数</>
+                    )}
+                  </Button>
+                )}
+              </div>
+              {cat.errorCount > 0 && (
+                <p className="text-[10px] text-red-600 font-medium mb-1">⚠ {cat.errorCount} 个表查询失败 (可能需要运行migration)</p>
+              )}
+              <div className="space-y-0.5">
+                {cat.items.map((item) => (
+                  <div key={item.key} className="flex items-center gap-1.5 text-[11px]">
+                    {statusIcon(item.status)}
+                    <span className={`${statusColor(item.status)} font-medium`}>{item.label}</span>
+                    <span className="text-muted-foreground ml-auto font-mono">
+                      {item.current === -1 ? "ERR" : item.current}/{item.needed}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Boost result */}
+        {boostMut.data && (
+          <div className={`p-3 rounded border ${boostMut.data.errors.length > 0 ? "bg-yellow-50 border-yellow-200" : "bg-green-50 border-green-200"}`}>
+            <div className="flex items-center gap-2 text-sm">
+              {boostMut.data.errors.length > 0
+                ? <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                : <CheckCircle className="h-4 w-4 text-green-600" />
+              }
+              <span className="font-medium">
+                [{boostMut.data.categoryId}] 补数完成: {boostMut.data.totalSeeded} 条数据
+              </span>
+            </div>
+            {boostMut.data.errors.length > 0 && (
+              <div className="mt-1 text-xs text-yellow-700">
+                {boostMut.data.errors.map((e, i) => <p key={i} className="font-mono">{e}</p>)}
+              </div>
+            )}
+            {boostMut.data.totalSeeded > 0 && Object.entries(boostMut.data.seeded).length > 0 && (
+              <div className="mt-1 flex gap-2 flex-wrap text-xs text-green-700">
+                {Object.entries(boostMut.data.seeded).map(([k, v]) => (
+                  <span key={k} className="font-mono bg-green-100 px-1.5 rounded">{k}:{String(v)}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -264,6 +628,7 @@ function SalaryImportTab() {
 
   const [jsonInput, setJsonInput] = useState("");
   const [parseError, setParseError] = useState("");
+  const [showFormulas, setShowFormulas] = useState(false);
 
   const handlePreview = () => {
     setParseError("");
@@ -289,8 +654,48 @@ function SalaryImportTab() {
     }
   };
 
+  const fmt = (n: number) => n.toLocaleString();
+  const fmtW = (n: number) => `${(n / 10000).toFixed(1)}万`;
+
+  const gradeColors: Record<string, string> = { S: "bg-purple-100 text-purple-700", A: "bg-blue-100 text-blue-700", B: "bg-green-100 text-green-700", C: "bg-yellow-100 text-yellow-700", D: "bg-red-100 text-red-700" };
+
   return (
     <div className="space-y-4">
+      {/* Formula reference card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-orange-500" />
+              薪资计算公式引擎
+            </CardTitle>
+            <Button size="sm" variant="ghost" onClick={() => setShowFormulas(f => !f)}>
+              {showFormulas ? "收起" : "展开公式"}
+            </Button>
+          </div>
+        </CardHeader>
+        {showFormulas && template.data?.formulas && (
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {template.data.formulas.formulaDescription.map((f: string, i: number) => (
+                <div key={i} className="flex items-start gap-2 p-2 rounded border bg-gray-50 text-xs">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                  <span className="text-gray-700">{f}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 grid grid-cols-5 gap-2">
+              {Object.entries(template.data.formulas.gradeCoefficient as Record<string, number>).map(([g, c]) => (
+                <div key={g} className={`text-center p-2 rounded ${gradeColors[g] || "bg-gray-100"}`}>
+                  <span className="text-lg font-bold">{g}</span>
+                  <span className="block text-xs">×{c}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
       {/* Step 1: Gemini prompt */}
       <Card>
         <CardHeader><CardTitle className="text-base">Step 1: 复制Gemini提示词</CardTitle></CardHeader>
@@ -311,14 +716,14 @@ function SalaryImportTab() {
         <CardContent>
           <textarea
             className="w-full h-32 p-3 border rounded text-sm font-mono resize-y"
-            placeholder='[{"employeeId": 1, "department": "技术部", "baseSalary": 15000, "performanceGrade": "A"}]'
+            placeholder='[{"employeeId": 1, "employeeName": "张三", "department": "技术部", "baseSalary": 15000, "performanceGrade": "A", "projectBonus": 5000, "overtimeHours": 16}]'
             value={jsonInput}
             onChange={(e) => setJsonInput(e.target.value)}
           />
           {parseError && <p className="text-xs text-red-500 mt-1">{parseError}</p>}
           <div className="flex gap-2 mt-2">
             <Button size="sm" onClick={handlePreview} disabled={!jsonInput || previewMut.isPending}>
-              <RefreshCw className="h-3.5 w-3.5 mr-1" /> 预览计算
+              <RefreshCw className="h-3.5 w-3.5 mr-1" /> {previewMut.isPending ? "计算中..." : "预览计算"}
             </Button>
             {previewMut.data && (
               <Button size="sm" variant="default" onClick={handleImport} disabled={importMut.isPending}>
@@ -331,59 +736,147 @@ function SalaryImportTab() {
 
       {/* Preview results */}
       {previewMut.data && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">预览结果</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-              <div className="bg-blue-50 p-3 rounded text-center">
-                <p className="text-xs text-muted-foreground">人数</p>
-                <p className="text-lg font-bold">{previewMut.data.summary.totalRecords}</p>
+        <>
+          {/* Summary cards — 2 rows */}
+          <Card>
+            <CardHeader><CardTitle className="text-base">薪资计算汇总</CardTitle></CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                <div className="bg-blue-50 p-3 rounded text-center">
+                  <p className="text-[10px] text-muted-foreground">人数</p>
+                  <p className="text-lg font-bold">{previewMut.data.summary.totalRecords}</p>
+                </div>
+                <div className="bg-green-50 p-3 rounded text-center">
+                  <p className="text-[10px] text-muted-foreground">应发总额/月</p>
+                  <p className="text-lg font-bold text-green-700">{fmtW(previewMut.data.summary.totalMonthlyPayroll)}</p>
+                </div>
+                <div className="bg-emerald-50 p-3 rounded text-center">
+                  <p className="text-[10px] text-muted-foreground">实发总额/月</p>
+                  <p className="text-lg font-bold text-emerald-700">{fmtW(previewMut.data.summary.totalNetPay)}</p>
+                </div>
+                <div className="bg-orange-50 p-3 rounded text-center">
+                  <p className="text-[10px] text-muted-foreground">人均应发</p>
+                  <p className="text-lg font-bold text-orange-700">{fmt(previewMut.data.summary.averageMonthly)}</p>
+                </div>
+                <div className="bg-purple-50 p-3 rounded text-center">
+                  <p className="text-[10px] text-muted-foreground">年度应发</p>
+                  <p className="text-lg font-bold text-purple-700">{fmtW(previewMut.data.summary.totalAnnualPayroll)}</p>
+                </div>
               </div>
-              <div className="bg-green-50 p-3 rounded text-center">
-                <p className="text-xs text-muted-foreground">月薪总额</p>
-                <p className="text-lg font-bold">{(previewMut.data.summary.totalMonthlyPayroll / 10000).toFixed(1)}万</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="border p-2 rounded text-center">
+                  <p className="text-[10px] text-muted-foreground">个税总额</p>
+                  <p className="text-sm font-bold text-red-600">{fmt(previewMut.data.summary.totalTax)}</p>
+                </div>
+                <div className="border p-2 rounded text-center">
+                  <p className="text-[10px] text-muted-foreground">社保个人</p>
+                  <p className="text-sm font-bold">{fmt(previewMut.data.summary.totalSocialInsurance)}</p>
+                </div>
+                <div className="border p-2 rounded text-center">
+                  <p className="text-[10px] text-muted-foreground">公积金个人</p>
+                  <p className="text-sm font-bold">{fmt(previewMut.data.summary.totalHousingFund)}</p>
+                </div>
+                <div className="bg-red-50 border border-red-200 p-2 rounded text-center">
+                  <p className="text-[10px] text-muted-foreground">企业用人总成本/月</p>
+                  <p className="text-sm font-bold text-red-700">{fmtW(previewMut.data.summary.totalLaborCost)}</p>
+                </div>
               </div>
-              <div className="bg-purple-50 p-3 rounded text-center">
-                <p className="text-xs text-muted-foreground">年薪总额</p>
-                <p className="text-lg font-bold">{(previewMut.data.summary.totalAnnualPayroll / 10000).toFixed(1)}万</p>
-              </div>
-              <div className="bg-orange-50 p-3 rounded text-center">
-                <p className="text-xs text-muted-foreground">人均月薪</p>
-                <p className="text-lg font-bold">{previewMut.data.summary.averageMonthly.toLocaleString()}</p>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-1">ID</th>
-                    <th className="text-left p-1">部门</th>
-                    <th className="text-right p-1">基本工资</th>
-                    <th className="text-center p-1">绩效</th>
-                    <th className="text-right p-1">绩效工资</th>
-                    <th className="text-right p-1">奖金</th>
-                    <th className="text-right p-1">福利</th>
-                    <th className="text-right p-1 font-bold">月薪合计</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {previewMut.data.records.map((r, i) => (
-                    <tr key={i} className="border-b">
-                      <td className="p-1">{r.employeeId}</td>
-                      <td className="p-1">{r.department}</td>
-                      <td className="p-1 text-right">{r.baseSalary.toLocaleString()}</td>
-                      <td className="p-1 text-center">{r.performanceGrade}</td>
-                      <td className="p-1 text-right">{r.performanceSalary.toLocaleString()}</td>
-                      <td className="p-1 text-right">{r.bonus.toLocaleString()}</td>
-                      <td className="p-1 text-right">{r.benefits.toLocaleString()}</td>
-                      <td className="p-1 text-right font-bold">{r.monthlyTotal.toLocaleString()}</td>
-                    </tr>
+            </CardContent>
+          </Card>
+
+          {/* Department breakdown + Grade distribution */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader><CardTitle className="text-sm">部门薪资分布</CardTitle></CardHeader>
+              <CardContent>
+                <table className="w-full text-xs">
+                  <thead><tr className="border-b"><th className="text-left p-1">部门</th><th className="text-right p-1">人数</th><th className="text-right p-1">应发合计</th><th className="text-right p-1">实发合计</th><th className="text-right p-1">人均应发</th></tr></thead>
+                  <tbody>
+                    {(previewMut.data.deptBreakdown ?? []).map((d: any, i: number) => (
+                      <tr key={i} className="border-b">
+                        <td className="p-1 font-medium">{d.department}</td>
+                        <td className="p-1 text-right">{d.count}</td>
+                        <td className="p-1 text-right">{fmt(d.totalGross)}</td>
+                        <td className="p-1 text-right">{fmt(d.totalNet)}</td>
+                        <td className="p-1 text-right font-bold">{fmt(d.avgGross)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-sm">绩效等级分布</CardTitle></CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-3">
+                  {Object.entries(previewMut.data.gradeDistribution ?? {}).map(([grade, count]) => (
+                    <div key={grade} className={`flex-1 min-w-[60px] text-center p-3 rounded ${gradeColors[grade] || "bg-gray-100"}`}>
+                      <span className="text-2xl font-black">{grade}</span>
+                      <span className="block text-xs mt-1">{count as number}人</span>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  系数: S=×1.5 · A=×1.2 · B=×1.0 · C=×0.8 · D=×0.6
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Detail table with full breakdown */}
+          <Card>
+            <CardHeader><CardTitle className="text-base">薪资明细表</CardTitle></CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left p-1.5">ID</th>
+                      <th className="text-left p-1.5">姓名</th>
+                      <th className="text-left p-1.5">部门</th>
+                      <th className="text-right p-1.5">基本工资</th>
+                      <th className="text-center p-1.5">绩效</th>
+                      <th className="text-right p-1.5">绩效工资</th>
+                      <th className="text-right p-1.5">奖金</th>
+                      <th className="text-right p-1.5">加班费</th>
+                      <th className="text-right p-1.5">福利</th>
+                      <th className="text-right p-1.5 font-bold bg-green-50">应发</th>
+                      <th className="text-right p-1.5">社保</th>
+                      <th className="text-right p-1.5">公积金</th>
+                      <th className="text-right p-1.5">个税</th>
+                      <th className="text-right p-1.5 font-bold bg-blue-50">实发</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewMut.data.records.map((r: any, i: number) => (
+                      <tr key={i} className="border-b hover:bg-gray-50">
+                        <td className="p-1.5">{r.employeeId}</td>
+                        <td className="p-1.5">{r.employeeName}</td>
+                        <td className="p-1.5">{r.department}</td>
+                        <td className="p-1.5 text-right">{fmt(r.adjustedBase ?? r.baseSalary)}</td>
+                        <td className="p-1.5 text-center">
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${gradeColors[r.performanceGrade?.toUpperCase()] || ""}`}>
+                            {r.performanceGrade} ×{r.coefficient}
+                          </span>
+                        </td>
+                        <td className="p-1.5 text-right">{fmt(r.performanceSalary)}</td>
+                        <td className="p-1.5 text-right">{fmt(r.bonus)}</td>
+                        <td className="p-1.5 text-right">{fmt(r.overtimePay ?? 0)}</td>
+                        <td className="p-1.5 text-right">{fmt(r.benefits)}</td>
+                        <td className="p-1.5 text-right font-bold bg-green-50">{fmt(r.grossPay ?? r.monthlyTotal)}</td>
+                        <td className="p-1.5 text-right text-red-500">{fmt(r.socialInsurance ?? 0)}</td>
+                        <td className="p-1.5 text-right text-red-500">{fmt(r.housingFund ?? 0)}</td>
+                        <td className="p-1.5 text-right text-red-600">{fmt(r.personalTax ?? 0)}</td>
+                        <td className="p-1.5 text-right font-bold bg-blue-50">{fmt(r.netPay ?? r.monthlyTotal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
       )}
 
       {/* Import result */}

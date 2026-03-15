@@ -78,6 +78,61 @@ vi.mock("../../drizzle/schema", () => ({
   salaryCalculations: { id: "id", calculationCode: "calculationCode", employeeId: "employeeId" },
   importHistory: { id: "id", importType: "importType", fileName: "fileName", totalRows: "totalRows", successCount: "successCount", failedCount: "failedCount", status: "status", importedData: "importedData", errorLog: "errorLog", createdById: "createdById", createdAt: "createdAt" },
   fmeaDocuments: { id: "id", status: "status" },
+  projects: { id: "id", projectCode: "projectCode" },
+  projectsV2: { id: "id", projectCode: "projectCode" },
+  workLogs: { id: "id", logCode: "logCode", taskId: "taskId", workerId: "workerId" },
+  employeeAiAssistants: { id: "id", employeeId: "employeeId", assistantCode: "assistantCode", assistantName: "assistantName" },
+  crmLeads: { id: "id", leadCode: "leadCode" },
+  crmCustomersV2: { id: "id", customerCode: "customerCode" },
+  crmOpportunitiesV2: { id: "id", opportunityCode: "opportunityCode" },
+  historicalQuotations: { id: "id", quotationId: "quotationId" },
+  aiTasks: { id: "id", status: "status" },
+  controlPlans: { id: "id", planCode: "planCode" },
+  hrmTrainingPlans: { id: "id" },
+  designPackages: { id: "id" },
+}));
+
+vi.mock("../../drizzle/hr-competence-schema", () => ({
+  employeeCompetenceAssessments: { id: "id", employeeId: "employeeId", employeeName: "employeeName", department: "department", tScore: "tScore", sScore: "sScore", dScore: "dScore", cScore: "cScore", kScore: "kScore", lScore: "lScore" },
+}));
+
+vi.mock("../../drizzle/procurement-schema", () => ({
+  suppliers: { id: "id", supplierCode: "supplierCode" },
+  purchaseOrders: { id: "id" },
+}));
+
+vi.mock("../../drizzle/attendance-clock-schema", () => ({
+  attendanceClockRecords: { id: "id", employeeId: "employeeId" },
+}));
+
+vi.mock("../../drizzle/approval-engine-schema", () => ({
+  approvalTemplates: { id: "id", templateCode: "templateCode" },
+  approvalInstances: { id: "id" },
+}));
+
+vi.mock("../../drizzle/okr-schema", () => ({
+  okrObjectives: { id: "id", title: "title" },
+}));
+
+vi.mock("../../drizzle/plm-schema", () => ({
+  plmDocuments: { id: "id", docNumber: "docNumber" },
+}));
+
+vi.mock("../../drizzle/material-schema", () => ({
+  materials: { id: "id", materialCode: "materialCode" },
+}));
+
+vi.mock("../../drizzle/bom-schema", () => ({
+  bomMasters: { id: "id", productCode: "productCode" },
+}));
+
+vi.mock("../../drizzle/rnd-npi-schema", () => ({
+  rndSandboxBoms: { id: "id", bomCode: "bomCode" },
+  rndProjects: { id: "id", projectCode: "projectCode" },
+}));
+
+vi.mock("../../drizzle/digital-thread-schema", () => ({
+  engineeringChangeOrders: { id: "id", ecoNumber: "ecoNumber" },
 }));
 
 vi.mock("../../drizzle/oee-schema", () => ({
@@ -205,39 +260,62 @@ beforeEach(() => {
 describe("readiness.getReadinessScorecard", () => {
   const proc = goLiveRouter.readiness.getReadinessScorecard;
 
-  it("returns scorecard with 6 categories", async () => {
-    // DB queries: employees, permissions, employees(encoding), salary, oee
-    selectResultsQueue.push([{ value: 50 }]); // employees
-    selectResultsQueue.push([{ value: 250 }]); // permissions
-    selectResultsQueue.push([{ value: 50 }]); // encoding employees proxy
-    selectResultsQueue.push([{ value: 10 }]); // salary
-    // getLegionOverview is mocked
-    selectResultsQueue.push([{ value: 5 }]); // oee
+  it("returns scorecard with 14 categories and sub-items", async () => {
+    // Provide enough mock results for all 14 categories (50+ DB queries)
+    for (let i = 0; i < 60; i++) {
+      selectResultsQueue.push([{ value: 20 }]);
+    }
+    // Override some with array results for groupBy queries
+    // (grades, departments etc. — the mock chain returns count results)
 
     const result = await proc({ input: undefined, ...makeCtx() });
-    expect(result.categories).toHaveLength(6);
+    expect(result.categories).toHaveLength(14);
     expect(result.totalScore).toBeGreaterThan(0);
     expect(result.grade).toBeTruthy();
     expect(["A", "B", "C", "D", "F"]).toContain(result.grade);
+    // Each category should have sub-items with score/max
+    for (const cat of result.categories) {
+      expect(cat.items).toBeDefined();
+      expect(Array.isArray(cat.items)).toBe(true);
+      expect(cat.items.length).toBeGreaterThan(0);
+      for (const item of cat.items) {
+        expect(item).toHaveProperty("score");
+        expect(item).toHaveProperty("max");
+        expect(item).toHaveProperty("detail");
+      }
+    }
+    // Verify all 14 category IDs
+    const ids = result.categories.map((c: any) => c.id);
+    expect(ids).toContain("infrastructure");
+    expect(ids).toContain("rbac");
+    expect(ids).toContain("encoding");
+    expect(ids).toContain("salary");
+    expect(ids).toContain("legion");
+    expect(ids).toContain("manufacturing");
+    expect(ids).toContain("project");
+    expect(ids).toContain("crm");
+    expect(ids).toContain("hr");
+    expect(ids).toContain("supply_chain");
+    expect(ids).toContain("quality");
+    expect(ids).toContain("rnd");
+    expect(ids).toContain("oa");
+    expect(ids).toContain("ai");
   });
 
   it("handles DB failures gracefully", async () => {
-    // All queries fail → use fallbacks
     mockQueryResult = [];
-    // Force rejections by making select throw
     mockDb.select.mockImplementationOnce(() => { throw new Error("DB error"); });
 
     const result = await proc({ input: undefined, ...makeCtx() });
-    expect(result.categories).toHaveLength(6);
+    expect(result.categories).toHaveLength(14);
     expect(result.totalScore).toBeGreaterThanOrEqual(0);
   });
 
-  it("calculates grade correctly for high score", async () => {
-    selectResultsQueue.push([{ value: 100 }]); // employees → 90
-    selectResultsQueue.push([{ value: 300 }]); // permissions → 95
-    selectResultsQueue.push([{ value: 100 }]); // encoding → 75
-    selectResultsQueue.push([{ value: 50 }]); // salary → 80
-    selectResultsQueue.push([{ value: 10 }]); // oee → 80
+  it("calculates high scores when all data is present", async () => {
+    // Provide rich mock data for all categories
+    for (let i = 0; i < 60; i++) {
+      selectResultsQueue.push([{ value: 50 }]);
+    }
 
     const result = await proc({ input: undefined, ...makeCtx() });
     expect(result.totalScore).toBeGreaterThan(50);
@@ -275,20 +353,20 @@ describe("readiness.getReadinessTimeline", () => {
 describe("readiness.runPreflightChecks", () => {
   const proc = goLiveRouter.readiness.runPreflightChecks;
 
-  it("returns 10 preflight checks", async () => {
-    // 10 DB queries for 10 checks
-    for (let i = 0; i < 10; i++) {
+  it("returns 14 preflight checks", async () => {
+    // 14 DB queries for 14 checks
+    for (let i = 0; i < 14; i++) {
       selectResultsQueue.push([{ value: 10 }]);
     }
 
     const result = await proc({ input: undefined, ...makeCtx() });
-    expect(result.checks).toHaveLength(10);
-    expect(result.summary.total).toBe(10);
+    expect(result.checks).toHaveLength(14);
+    expect(result.summary.total).toBe(14);
     expect(result.categories.length).toBeGreaterThan(0);
   });
 
   it("marks DB connectivity as pass when query succeeds", async () => {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 14; i++) {
       selectResultsQueue.push([{ value: 100 }]);
     }
 
@@ -349,6 +427,90 @@ describe("readiness.getPhaseProgress", () => {
 });
 
 // ======================================================================
+// ── readiness.getReadinessGapAnalysis ────────────────────────────────
+// ======================================================================
+describe("readiness.getReadinessGapAnalysis", () => {
+  const proc = goLiveRouter.readiness.getReadinessGapAnalysis;
+
+  it("returns gap analysis with category priorities", async () => {
+    // Queue enough results for all 31 table checks
+    for (let i = 0; i < 31; i++) {
+      selectResultsQueue.push([{ value: 50 }]);
+    }
+    const result = await proc({ input: undefined, ...makeCtx() });
+    expect(result.results.length).toBeGreaterThan(0);
+    expect(result.categoryGaps.length).toBeGreaterThan(0);
+    expect(result.projectedScore).toBeGreaterThanOrEqual(0);
+    expect(result.actionPlan).toBeDefined();
+    expect(result.timestamp).toBeDefined();
+  });
+
+  it("identifies gaps when tables have low counts", async () => {
+    for (let i = 0; i < 31; i++) {
+      selectResultsQueue.push([{ value: 0 }]);
+    }
+    const result = await proc({ input: undefined, ...makeCtx() });
+    const missing = result.results.filter(r => r.status === "missing");
+    expect(missing.length).toBeGreaterThan(0);
+    expect(result.actionPlan.length).toBeGreaterThan(0);
+  });
+
+  it("returns ok status when all thresholds met", async () => {
+    for (let i = 0; i < 31; i++) {
+      selectResultsQueue.push([{ value: 999 }]);
+    }
+    const result = await proc({ input: undefined, ...makeCtx() });
+    const okItems = result.results.filter(r => r.status === "ok");
+    expect(okItems.length).toBe(result.results.length);
+    expect(result.projectedScore).toBe(100);
+  });
+});
+
+// ======================================================================
+// ── readiness.boostCategory ─────────────────────────────────────────
+// ======================================================================
+describe("readiness.boostCategory", () => {
+  const proc = goLiveRouter.readiness.boostCategory;
+
+  it("returns result for infrastructure category", async () => {
+    selectResultsQueue.push([{ value: 0 }]); // empCount check
+    const result = await proc({ input: { categoryId: "infrastructure" }, ...makeCtx() });
+    expect(result.categoryId).toBe("infrastructure");
+    expect(result.success).toBeDefined();
+  });
+
+  it("returns result for rbac category", async () => {
+    selectResultsQueue.push([{ value: 250 }]); // permCount check — already ok
+    const result = await proc({ input: { categoryId: "rbac" }, ...makeCtx() });
+    expect(result.categoryId).toBe("rbac");
+  });
+
+  it("returns error for unknown category", async () => {
+    const result = await proc({ input: { categoryId: "nonexistent" }, ...makeCtx() });
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it("respects force flag", async () => {
+    selectResultsQueue.push([{ value: 0 }]); // empCount check
+    const result = await proc({ input: { categoryId: "infrastructure", force: true }, ...makeCtx() });
+    expect(result.categoryId).toBe("infrastructure");
+  });
+});
+
+// ======================================================================
+// ── readiness.boostAll ──────────────────────────────────────────────
+// ======================================================================
+describe("readiness.boostAll", () => {
+  const proc = goLiveRouter.readiness.boostAll;
+
+  it("returns category list", async () => {
+    const result = await proc({ input: undefined, ...makeCtx() });
+    expect(result.categories.length).toBe(14);
+    expect(result.message).toContain("智能补数");
+  });
+});
+
+// ======================================================================
 // ── salaryImport.getSalaryTemplate ──────────────────────────────────
 // ======================================================================
 describe("salaryImport.getSalaryTemplate", () => {
@@ -356,9 +518,12 @@ describe("salaryImport.getSalaryTemplate", () => {
 
   it("returns template with columns and gemini prompt", async () => {
     const result = await proc({ input: undefined, ...makeCtx() });
-    expect(result.columns).toHaveLength(5);
+    expect(result.columns.length).toBeGreaterThanOrEqual(5);
     expect(result.geminiPrompt).toContain("employeeId");
     expect(result.sampleData).toHaveLength(2);
+    expect(result.formulas).toBeDefined();
+    expect(result.formulas.gradeCoefficient).toBeDefined();
+    expect(result.formulas.formulaDescription.length).toBeGreaterThan(0);
   });
 
   it("prompt includes JSON format instructions", async () => {
@@ -374,7 +539,7 @@ describe("salaryImport.getSalaryTemplate", () => {
 describe("salaryImport.previewSalaryImport", () => {
   const proc = goLiveRouter.salaryImport.previewSalaryImport;
 
-  it("calculates salary preview correctly", async () => {
+  it("calculates salary preview with full breakdown", async () => {
     const result = await proc({
       input: {
         employees: [
@@ -388,6 +553,21 @@ describe("salaryImport.previewSalaryImport", () => {
     expect(result.records).toHaveLength(2);
     expect(result.summary.totalRecords).toBe(2);
     expect(result.summary.totalMonthlyPayroll).toBeGreaterThan(0);
+    // Enhanced fields
+    expect(result.summary.totalNetPay).toBeDefined();
+    expect(result.summary.totalTax).toBeDefined();
+    expect(result.summary.totalSocialInsurance).toBeDefined();
+    expect(result.summary.totalHousingFund).toBeDefined();
+    expect(result.summary.totalLaborCost).toBeGreaterThan(result.summary.totalMonthlyPayroll);
+    expect(result.deptBreakdown).toHaveLength(2);
+    expect(result.gradeDistribution).toBeDefined();
+    expect(result.formulasUsed).toBeDefined();
+    // Each record has full breakdown
+    const r = result.records[0];
+    expect(r.grossPay).toBeGreaterThan(0);
+    expect(r.socialInsurance).toBeGreaterThan(0);
+    expect(r.housingFund).toBeGreaterThan(0);
+    expect(r.netPay).toBeLessThan(r.grossPay);
   });
 
   it("applies performance grade coefficients", async () => {
@@ -402,6 +582,7 @@ describe("salaryImport.previewSalaryImport", () => {
 
     // S grade = 1.5 coefficient → performanceSalary = 10000 * 0.3 * 1.5 = 4500
     expect(result.records[0].performanceSalary).toBe(4500);
+    expect(result.records[0].coefficient).toBe(1.5);
   });
 
   it("handles default coefficient for unknown grade", async () => {
@@ -416,6 +597,39 @@ describe("salaryImport.previewSalaryImport", () => {
 
     // Unknown grade defaults to 1.0 → performanceSalary = 10000 * 0.3 * 1.0 = 3000
     expect(result.records[0].performanceSalary).toBe(3000);
+    expect(result.records[0].coefficient).toBe(1.0);
+  });
+
+  it("calculates overtime pay correctly", async () => {
+    const result = await proc({
+      input: {
+        employees: [
+          { employeeId: 1, department: "R&D", baseSalary: 10000, performanceGrade: "B", overtimeHours: 8 },
+        ],
+      },
+      ...makeCtx(),
+    });
+
+    // Hourly = 10000/21.75/8 ≈ 57.47, overtime = 57.47 * 8 * 1.5 ≈ 690
+    const r = result.records[0];
+    expect(r.overtimePay).toBeGreaterThan(0);
+    expect(r.overtimePay).toBeLessThan(1000); // sanity
+  });
+
+  it("adjusts base salary by attendance ratio", async () => {
+    const result = await proc({
+      input: {
+        employees: [
+          { employeeId: 1, department: "R&D", baseSalary: 10000, performanceGrade: "B", attendanceDays: 11 },
+        ],
+      },
+      ...makeCtx(),
+    });
+
+    // 11/22 = 50% attendance
+    const r = result.records[0];
+    expect(r.adjustedBase).toBe(5000);
+    expect(r.attendanceRatio).toBeCloseTo(0.5, 2);
   });
 });
 
@@ -528,6 +742,49 @@ describe("encoding.validateCode", () => {
     expect(result.valid).toBe(true);
     expect(result.codeType).toBe("eco");
   });
+
+  // Enhanced validation tests
+  it("rejects drawing with invalid type code", async () => {
+    const result = await proc({ input: { code: "GRT-RC-XX-001" }, ...makeCtx() });
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("not recognized");
+  });
+
+  it("accepts drawing with valid type ME", async () => {
+    const result = await proc({ input: { code: "GRT-RC-ME-001" }, ...makeCtx() });
+    expect(result.valid).toBe(true);
+  });
+
+  it("accepts drawing revision R0 and R99", async () => {
+    const r0 = await proc({ input: { code: "GRT-RC-ME-001-R0" }, ...makeCtx() });
+    expect(r0.valid).toBe(true);
+    const r99 = await proc({ input: { code: "GRT-RC-EL-042-R99" }, ...makeCtx() });
+    expect(r99.valid).toBe(true);
+  });
+
+  it("rejects ECR with year 2019 (out of range)", async () => {
+    const result = await proc({ input: { code: "ECR-2019-RC300-001" }, ...makeCtx() });
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("out of range");
+  });
+
+  it("accepts ECR with year 2026", async () => {
+    const result = await proc({ input: { code: "ECR-2026-RC300-001" }, ...makeCtx() });
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects ECO with year 2031 (out of range)", async () => {
+    const result = await proc({ input: { code: "ECO-2031-SC200-005" }, ...makeCtx() });
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("out of range");
+  });
+
+  it("rejects material with only 1 middle segment", async () => {
+    // The regex requires at least one middle segment, but our enhanced check requires >=2
+    // "UC-PMP-0001" has only 1 middle segment (PMP), should fail our new check
+    const result = await proc({ input: { code: "UC-PMP-0001" }, ...makeCtx() });
+    expect(result.valid).toBe(false);
+  });
 });
 
 // ======================================================================
@@ -536,12 +793,53 @@ describe("encoding.validateCode", () => {
 describe("encoding.getEncodingCompliance", () => {
   const proc = goLiveRouter.encoding.getEncodingCompliance;
 
-  it("returns compliance report", async () => {
-    selectResultsQueue.push([]); // employees query
+  it("returns compliance report with real DB data", async () => {
+    // 7 queries: plmDocs, materials, projects, projectsV2, bomMasters, rndSandboxBoms, engineeringChangeOrders
+    selectResultsQueue.push([{ code: "DOC-MECH-001" }]); // plmDocuments
+    selectResultsQueue.push([{ code: "STL-BEAR-SKF-0001" }]); // materials
+    selectResultsQueue.push([{ code: "GRT001" }]); // projects
+    selectResultsQueue.push([{ code: "T002" }]); // projectsV2
+    selectResultsQueue.push([{ code: "BOM-PUMP-001" }]); // bomMasters (productCode)
+    selectResultsQueue.push([{ code: "BOM-CLN-001" }]); // rndSandboxBoms
+    selectResultsQueue.push([{ code: "ECO-2026-RC300-001" }]); // engineeringChangeOrders
 
     const result = await proc({ input: undefined, ...makeCtx() });
     expect(result.compliancePercent).toBeDefined();
-    expect(result.totalCodes).toBeDefined();
+    expect(result.totalCodes).toBeGreaterThan(0);
+  });
+
+  it("compliance report has expected structure", async () => {
+    // Second call uses cache, so just verify structure
+    const result = await proc({ input: undefined, ...makeCtx() });
+    expect(result.compliancePercent).toBeGreaterThanOrEqual(0);
+    expect(result.compliancePercent).toBeLessThanOrEqual(100);
+    expect(result.byType).toBeDefined();
+    expect(result.byType.drawing).toBeDefined();
+    expect(result.byType.material).toBeDefined();
+  });
+});
+
+describe("encoding.getEncodingStats", () => {
+  const proc = goLiveRouter.encoding.getEncodingStats;
+
+  it("returns real counts from DB", async () => {
+    // 7 queries: plmDocs, materials, projects, bomMasters, rndSandboxBoms, ECR, ECO
+    selectResultsQueue.push([{ count: 12 }]); // plmDocuments
+    selectResultsQueue.push([{ count: 45 }]); // materials
+    selectResultsQueue.push([{ count: 8 }]); // projects
+    selectResultsQueue.push([{ count: 15 }]); // bomMasters
+    selectResultsQueue.push([{ count: 3 }]); // rndSandboxBoms
+    selectResultsQueue.push([{ count: 4 }]); // ECR (engineeringChangeOrders LIKE 'ECR-%')
+    selectResultsQueue.push([{ count: 7 }]); // ECO (engineeringChangeOrders LIKE 'ECO-%')
+
+    const result = await proc({ input: undefined, ...makeCtx() });
+    expect(result.totalCodeTypes).toBe(6);
+    expect(result.types.find((t: any) => t.type === "drawing")?.count).toBe(12);
+    expect(result.types.find((t: any) => t.type === "material")?.count).toBe(45);
+    expect(result.types.find((t: any) => t.type === "project")?.count).toBe(8);
+    expect(result.types.find((t: any) => t.type === "bom")?.count).toBe(18); // 15 + 3
+    expect(result.types.find((t: any) => t.type === "ecr")?.count).toBe(4);
+    expect(result.types.find((t: any) => t.type === "eco")?.count).toBe(7);
   });
 });
 

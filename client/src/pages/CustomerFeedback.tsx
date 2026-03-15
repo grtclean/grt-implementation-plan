@@ -44,6 +44,9 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ReportActionBar from "@/components/ReportActionBar";
+import ShareContextMenu from "@/components/ShareContextMenu";
+import ImageAttachmentZone, { type AttachedImage } from "@/components/ImageAttachmentZone";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -54,6 +57,8 @@ export default function CustomerFeedback() {
   const [search, setSearch] = useState("");
   const [commTypeFilter, setCommTypeFilter] = useState("all");
   const [createOpen, setCreateOpen] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [feedbackImages, setFeedbackImages] = useState<AttachedImage[]>([]);
 
   // ---------------------------------------------------------------------------
   // Labels (inside component so t() is available)
@@ -111,11 +116,15 @@ export default function CustomerFeedback() {
     actionItems: "", nextFollowUpDate: "",
   });
 
-  const resetForm = () => setForm({
-    customerName: "", commType: "email", subject: "", content: "",
-    commDate: new Date().toISOString().slice(0, 16), duration: "",
-    actionItems: "", nextFollowUpDate: "",
-  });
+  const resetForm = () => {
+    setForm({
+      customerName: "", commType: "email", subject: "", content: "",
+      commDate: new Date().toISOString().slice(0, 16), duration: "",
+      actionItems: "", nextFollowUpDate: "",
+    });
+    setFeedbackImages([]);
+    setSubmitted(false);
+  };
 
   const commRecords = commQuery.data?.items ?? [];
   const allTickets = ratedQuery.data?.items ?? [];
@@ -240,6 +249,11 @@ export default function CustomerFeedback() {
 
           {/* ========== Tab 2: Satisfaction Ratings ========== */}
           <TabsContent value="satisfaction" className="mt-4">
+            <ShareContextMenu
+              title="客户满意度数据"
+              textContent={`平均评分: ${avgRating}\n反馈总数: ${totalFeedback}\n满意率: ${satisfiedRate}%\n待跟进: ${pendingFollowUp}`}
+              jsonData={{ avgRating, totalFeedback, satisfiedRate, pendingFollowUp, ratedTickets: ratedTickets.length } as Record<string, unknown>}
+            >
             <Card>
               <CardHeader><CardTitle>{t("crm.feedback.satisfactionTitle")}</CardTitle></CardHeader>
               <CardContent>
@@ -279,6 +293,13 @@ export default function CustomerFeedback() {
                 </div>
               </CardContent>
             </Card>
+            </ShareContextMenu>
+            <ReportActionBar
+              className="mt-4"
+              title="客户满意度报告"
+              textContent={`平均评分: ${avgRating}\n反馈总数: ${totalFeedback}\n满意率: ${satisfiedRate}%\n待跟进: ${pendingFollowUp}`}
+              jsonData={{ avgRating, totalFeedback, satisfiedRate, pendingFollowUp } as Record<string, unknown>}
+            />
           </TabsContent>
         </Tabs>
 
@@ -290,7 +311,8 @@ export default function CustomerFeedback() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>{t("crm.feedback.customerNameLabel")} *</Label>
-                  <Input value={form.customerName} onChange={e => setForm(f => ({ ...f, customerName: e.target.value }))} />
+                  <Input className={submitted && !form.customerName ? "border-red-500" : ""} value={form.customerName} onChange={e => setForm(f => ({ ...f, customerName: e.target.value }))} />
+                  {submitted && !form.customerName && <span className="text-xs text-red-500">必填项</span>}
                 </div>
                 <div className="space-y-1">
                   <Label>{t("crm.feedback.commType")}</Label>
@@ -306,12 +328,19 @@ export default function CustomerFeedback() {
               </div>
               <div className="space-y-1">
                 <Label>{t("crm.feedback.subject")} *</Label>
-                <Input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder={t("crm.feedback.subjectPlaceholder")} />
+                <Input className={submitted && !form.subject ? "border-red-500" : ""} value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder={t("crm.feedback.subjectPlaceholder")} />
+                {submitted && !form.subject && <span className="text-xs text-red-500">必填项</span>}
               </div>
               <div className="space-y-1">
                 <Label>{t("crm.feedback.content")}</Label>
                 <Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={3} />
               </div>
+              <ImageAttachmentZone
+                images={feedbackImages}
+                onChange={setFeedbackImages}
+                label="沟通附件/现场照片"
+                maxImages={5}
+              />
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>{t("crm.feedback.commTime")} *</Label>
@@ -334,8 +363,10 @@ export default function CustomerFeedback() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setCreateOpen(false)}>{t("crm.feedback.cancel")}</Button>
               <Button
-                disabled={!form.customerName || !form.subject || !form.commDate || createMutation.isPending}
+                disabled={createMutation.isPending}
                 onClick={() => {
+                  if (!form.customerName || !form.subject || !form.commDate) { setSubmitted(true); return; }
+                  setSubmitted(false);
                   createMutation.mutate({
                     customerName: form.customerName,
                     commType: form.commType,

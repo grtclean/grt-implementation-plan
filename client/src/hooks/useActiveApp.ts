@@ -26,15 +26,34 @@ export function useActiveApp() {
         for (const item of group.items) {
           map.set(item.path, app.id);
         }
+        if (group.subgroups) {
+          for (const sub of group.subgroups) {
+            for (const item of sub.items) {
+              map.set(item.path, app.id);
+            }
+          }
+        }
       }
     }
     return map;
   }, []);
 
-  // Resolve active app: URL match → manual → default
+  // Resolve active app: exact URL match → prefix match → manual → default
   const activeAppId = useMemo(() => {
+    // 1. Exact path match
     const fromUrl = pathToAppId.get(location);
     if (fromUrl) return fromUrl;
+    // 2. Prefix match — find longest matching path prefix (e.g. /sandbox → admin)
+    let bestMatch = "";
+    let bestAppId = "";
+    for (const [path, appId] of pathToAppId) {
+      if (location.startsWith(path) && path.length > bestMatch.length) {
+        bestMatch = path;
+        bestAppId = appId;
+      }
+    }
+    if (bestAppId) return bestAppId;
+    // 3. Manual selection fallback
     if (manualAppId && WAFFLE_APPS.some((a) => a.id === manualAppId))
       return manualAppId;
     return DEFAULT_APP_ID;

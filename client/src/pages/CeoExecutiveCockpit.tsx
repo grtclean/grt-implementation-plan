@@ -20,6 +20,7 @@
 import React, { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useUserProfile } from "@/contexts/UserProfileContext";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -48,8 +49,6 @@ interface ModuleHealth {
 // ─── Mock Data (mirrors server engine) ───────────────────────────────
 
 const HEALTH: ModuleHealth = { production: 82, quality: 74, cost: 79, supplyChain: 64, esg: 86, people: 76, schedule: 67 };
-const OVERALL = Math.round(HEALTH.production * 0.25 + HEALTH.quality * 0.20 + HEALTH.cost * 0.15 + HEALTH.supplyChain * 0.15 + HEALTH.esg * 0.10 + HEALTH.people * 0.10 + HEALTH.schedule * 0.05);
-const GRADE = OVERALL >= 90 ? "A" : OVERALL >= 75 ? "B" : OVERALL >= 60 ? "C" : OVERALL >= 40 ? "D" : "F";
 
 const KPI = {
   projectsOnTrack: "8/12", oee: "82.5%", costVariance: "+4.2%", open8Ds: 2,
@@ -101,36 +100,111 @@ const moduleIcon = (m: SourceModule) => {
 
 const healthRingColor = (score: number) => score >= 80 ? "#22c55e" : score >= 60 ? "#f59e0b" : "#ef4444";
 
+function getCurrentPeriod(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
 // ─── Component ───────────────────────────────────────────────────────
 
 export default function CeoExecutiveCockpit() {
   const { t, language } = useLanguage();
   const lang = language === "zh" ? "zh" : "en";
+  const { level } = useUserProfile();
+  const isExecutive = level >= 7;
+
+  // ─── Permission gate ───
+  if (!isExecutive) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0a0e1a", color: "#e2e8f0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: "12px", padding: "40px", textAlign: "center" }}>
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔒</div>
+          <div style={{ fontSize: "14px", color: "#64748b" }}>此驾驶舱仅对CTO/总监开放</div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Live backend queries ───
 
   // Real backend data — overlay onto mock KPIs where available
   const okrQuery = trpc.okr.dashboard.useQuery(undefined, { retry: false });
   const perfQuery = trpc.aiPerformance.dashboard.useQuery(undefined, { retry: false });
 
-  // Override KPIs with real data when available
-  const okr = okrQuery.data;
-  if (okr && okr.totalObjectives > 0) {
-    KPI.projectsOnTrack = `${okr.onTrack}/${okr.totalObjectives}`;
-  }
-  const perf = perfQuery.data;
-  if (perf && perf.employeesEvaluated > 0) {
-    KPI.supplierScore = perf.avgMeetingScore;
-  }
+  // Live events from sandbox_event_log
+  const eventsQuery = (trpc as any).strategyGoals?.getRecentEvents?.useQuery?.(
+    { limit: 20 },
+    { retry: false, refetchOnWindowFocus: false }
+  ) ?? { data: null };
+
+  // BU performance stats for health radar
+  const perfStatsQuery = (trpc as any).buMapping?.getPerformanceStats?.useQuery?.(
+    { period: getCurrentPeriod(), periodType: 'monthly' },
+    { retry: false }
+  ) ?? { data: null };
+
+  // ─── Computed data with live overrides ───
+
+  const { health, overall, grade, kpiData, burnData } = useMemo(() => {
+    const h = { ...HEALTH };
+
+    // Override with real BU stats if available
+    const stats = perfStatsQuery.data?.stats;
+    if (stats && stats.length > 0) {
+      const avgUtil = stats.reduce((s: number, x: any) => s + x.utilizationRate, 0) / stats.length;
+      const avgDelivery = stats.reduce((s: number, x: any) => s + x.onTimeDeliveryRate, 0) / stats.length;
+      const avgSat = stats.reduce((s: number, x: any) => s + x.customerSatisfaction, 0) / stats.length;
+      h.production = Math.round(avgUtil);
+      h.quality = Math.round(avgSat * 20);
+      h.schedule = Math.round(avgDelivery);
+    }
+
+    const o = Math.round(h.production * 0.25 + h.quality * 0.20 + h.cost * 0.15 + h.supplyChain * 0.15 + h.esg * 0.10 + h.people * 0.10 + h.schedule * 0.05);
+    const g = o >= 90 ? "A" : o >= 75 ? "B" : o >= 60 ? "C" : o >= 40 ? "D" : "F";
+
+    const k = { ...KPI };
+
+    // Override KPIs with real OKR data when available
+    const okr = okrQuery.data;
+    if (okr && okr.totalObjectives > 0) {
+      k.projectsOnTrack = `${okr.onTrack}/${okr.totalObjectives}`;
+    }
+    // Override KPIs with real perf data when available
+    const perf = perfQuery.data;
+    if (perf && perf.employeesEvaluated > 0) {
+      k.supplierScore = perf.avgMeetingScore;
+    }
+
+    return { health: h, overall: o, grade: g, kpiData: k, burnData: { ...BURN } };
+  }, [perfStatsQuery.data, okrQuery.data, perfQuery.data]);
+
+  // ─── Live events with fallback ───
+
+  const displayEvents: ThreadEvent[] = useMemo(() => {
+    const liveData = eventsQuery.data;
+    if (liveData && Array.isArray(liveData) && liveData.length > 0) {
+      return liveData.map((evt: any, i: number) => ({
+        eventId: evt.id ?? `LIVE-${i}`,
+        timestamp: evt.timestamp ?? evt.createdAt ?? new Date().toISOString(),
+        sourceModule: (evt.sourceModule ?? evt.module ?? "SOP") as SourceModule,
+        severity: (evt.severity ?? "INFO") as Severity,
+        summaryZh: evt.summaryZh ?? evt.summary ?? evt.description ?? "",
+        summaryEn: evt.summaryEn ?? evt.summary ?? evt.description ?? "",
+      }));
+    }
+    return EVENTS;
+  }, [eventsQuery.data]);
 
   // SVG Radar chart coordinates
   const radarAxes = useMemo(() => {
     const labels = [
-      { key: "production", label: t("admin.ceo.production"), value: HEALTH.production },
-      { key: "quality", label: t("admin.ceo.quality"), value: HEALTH.quality },
-      { key: "cost", label: t("admin.ceo.cost"), value: HEALTH.cost },
-      { key: "supplyChain", label: t("admin.ceo.supplyChain"), value: HEALTH.supplyChain },
-      { key: "esg", label: "ESG", value: HEALTH.esg },
-      { key: "people", label: t("admin.ceo.people"), value: HEALTH.people },
-      { key: "schedule", label: t("admin.ceo.schedule"), value: HEALTH.schedule },
+      { key: "production", label: t("admin.ceo.production"), value: health.production },
+      { key: "quality", label: t("admin.ceo.quality"), value: health.quality },
+      { key: "cost", label: t("admin.ceo.cost"), value: health.cost },
+      { key: "supplyChain", label: t("admin.ceo.supplyChain"), value: health.supplyChain },
+      { key: "esg", label: "ESG", value: health.esg },
+      { key: "people", label: t("admin.ceo.people"), value: health.people },
+      { key: "schedule", label: t("admin.ceo.schedule"), value: health.schedule },
     ];
     const cx = 150, cy = 150, r = 110;
     return labels.map((l, i) => {
@@ -143,7 +217,7 @@ export default function CeoExecutiveCockpit() {
       const ly = cy + (r + 25) * Math.sin(angle);
       return { ...l, px, py, vx, vy, lx, ly };
     });
-  }, [language, t]);
+  }, [language, t, health]);
 
   const radarPath = radarAxes.map((a, i) => `${i === 0 ? "M" : "L"} ${a.vx} ${a.vy}`).join(" ") + " Z";
 
@@ -156,12 +230,12 @@ export default function CeoExecutiveCockpit() {
           <div style={{ position: "relative", width: "80px", height: "80px" }}>
             <svg width="80" height="80" viewBox="0 0 80 80">
               <circle cx="40" cy="40" r="32" fill="none" stroke="#1e293b" strokeWidth="6" />
-              <circle cx="40" cy="40" r="32" fill="none" stroke={healthRingColor(OVERALL)} strokeWidth="6"
-                strokeDasharray={`${OVERALL * 2.01} 201`} strokeDashoffset="50" strokeLinecap="round"
+              <circle cx="40" cy="40" r="32" fill="none" stroke={healthRingColor(overall)} strokeWidth="6"
+                strokeDasharray={`${overall * 2.01} 201`} strokeDashoffset="50" strokeLinecap="round"
                 style={{ transition: "stroke-dasharray 1s ease" }} />
             </svg>
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontSize: "22px", fontWeight: 900, color: healthRingColor(OVERALL) }}>{OVERALL}</span>
+              <span style={{ fontSize: "22px", fontWeight: 900, color: healthRingColor(overall) }}>{overall}</span>
             </div>
           </div>
           <div>
@@ -170,10 +244,10 @@ export default function CeoExecutiveCockpit() {
           </div>
           <span style={{
             padding: "4px 16px", borderRadius: "4px", fontWeight: 900, fontSize: "18px",
-            background: GRADE === "A" ? "#166534" : GRADE === "B" ? "#1e40af" : GRADE === "C" ? "#92400e" : "#991b1b",
+            background: grade === "A" ? "#166534" : grade === "B" ? "#1e40af" : grade === "C" ? "#92400e" : "#991b1b",
             color: "#fff",
           }}>
-            {GRADE}
+            {grade}
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
@@ -181,15 +255,23 @@ export default function CeoExecutiveCockpit() {
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase" }}>Burn Rate</div>
             <div style={{ fontSize: "18px", fontWeight: 700 }}>
-              <span style={{ color: "#f59e0b" }}>¥{(BURN.spent / 10000).toFixed(0)}万</span>
-              <span style={{ color: "#475569" }}> / ¥{(BURN.budget / 10000).toFixed(0)}万</span>
+              <span style={{ color: "#f59e0b" }}>¥{(burnData.spent / 10000).toFixed(0)}万</span>
+              <span style={{ color: "#475569" }}> / ¥{(burnData.budget / 10000).toFixed(0)}万</span>
             </div>
             <div style={{ width: "120px", height: "4px", background: "#1e293b", borderRadius: "2px", marginTop: "4px" }}>
-              <div style={{ height: "100%", width: `${BURN.percent}%`, background: BURN.percent > 80 ? "#ef4444" : "#f59e0b", borderRadius: "2px" }} />
+              <div style={{ height: "100%", width: `${burnData.percent}%`, background: burnData.percent > 80 ? "#ef4444" : "#f59e0b", borderRadius: "2px" }} />
             </div>
           </div>
           <div style={{ fontSize: "12px", color: "#64748b" }}>
-            <div>2026-02-25 22:00 CST</div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>{new Date().toISOString().slice(0, 16).replace('T', ' ')} CST</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: perfStatsQuery.data ? "#22c55e" : "#f59e0b" }} />
+                <span style={{ fontSize: "10px", color: "#475569" }}>
+                  {perfStatsQuery.data ? "LIVE" : "DEMO"}
+                </span>
+              </div>
+            </div>
             <div style={{ color: "#94a3b8" }}>{t("admin.ceo.ceoDashboard")}</div>
           </div>
         </div>
@@ -198,14 +280,14 @@ export default function CeoExecutiveCockpit() {
       {/* ═══ ROW 1: KPI CARDS ═══ */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: "12px", marginBottom: "24px" }}>
         {[
-          { label: t("admin.ceo.projects"), value: KPI.projectsOnTrack, sub: "on track", color: "#22c55e" },
-          { label: "OEE", value: KPI.oee, sub: "fleet avg", color: "#3b82f6" },
-          { label: t("admin.ceo.costVar"), value: KPI.costVariance, sub: "over budget", color: "#f59e0b" },
-          { label: t("admin.ceo.open8Ds"), value: KPI.open8Ds, sub: "open", color: KPI.open8Ds > 0 ? "#ef4444" : "#22c55e" },
-          { label: t("admin.ceo.suppliers"), value: KPI.supplierScore, sub: "avg score", color: "#8b5cf6" },
-          { label: "CBAM", value: KPI.cbamStatus, sub: "products", color: "#22c55e" },
-          { label: t("admin.ceo.blocks"), value: KPI.operatorBlocks, sub: "active", color: KPI.operatorBlocks > 0 ? "#f59e0b" : "#22c55e" },
-          { label: t("admin.ceo.critical"), value: KPI.criticalMachines, sub: "machines", color: KPI.criticalMachines > 0 ? "#ef4444" : "#22c55e" },
+          { label: t("admin.ceo.projects"), value: kpiData.projectsOnTrack, sub: "on track", color: "#22c55e" },
+          { label: "OEE", value: kpiData.oee, sub: "fleet avg", color: "#3b82f6" },
+          { label: t("admin.ceo.costVar"), value: kpiData.costVariance, sub: "over budget", color: "#f59e0b" },
+          { label: t("admin.ceo.open8Ds"), value: kpiData.open8Ds, sub: "open", color: kpiData.open8Ds > 0 ? "#ef4444" : "#22c55e" },
+          { label: t("admin.ceo.suppliers"), value: kpiData.supplierScore, sub: "avg score", color: "#8b5cf6" },
+          { label: "CBAM", value: kpiData.cbamStatus, sub: "products", color: "#22c55e" },
+          { label: t("admin.ceo.blocks"), value: kpiData.operatorBlocks, sub: "active", color: kpiData.operatorBlocks > 0 ? "#f59e0b" : "#22c55e" },
+          { label: t("admin.ceo.critical"), value: kpiData.criticalMachines, sub: "machines", color: kpiData.criticalMachines > 0 ? "#ef4444" : "#22c55e" },
         ].map((kpi, i) => (
           <div key={i} style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: "8px", padding: "12px", borderLeft: `3px solid ${kpi.color}` }}>
             <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", marginBottom: "4px" }}>{kpi.label}</div>
@@ -221,7 +303,7 @@ export default function CeoExecutiveCockpit() {
           ◆ Digital Thread — Live Event Stream
         </div>
         <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "8px" }}>
-          {EVENTS.map(evt => (
+          {displayEvents.map(evt => (
             <div key={evt.eventId} style={{
               minWidth: "220px", background: "#111827", border: `1px solid ${severityColor(evt.severity)}33`,
               borderRadius: "8px", padding: "12px", borderTop: `2px solid ${severityColor(evt.severity)}`,
@@ -284,7 +366,7 @@ export default function CeoExecutiveCockpit() {
             <div style={{ fontSize: "11px", color: "#3b82f6", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", fontWeight: 700 }}>
               ⚙️ {t("admin.ceo.mfgDelivery")}
             </div>
-            <div style={{ fontSize: "28px", fontWeight: 900, color: "#3b82f6", marginBottom: "8px" }}>OEE {KPI.oee}</div>
+            <div style={{ fontSize: "28px", fontWeight: 900, color: "#3b82f6", marginBottom: "8px" }}>OEE {kpiData.oee}</div>
             <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "8px" }}>
               {t("admin.ceo.autoRescheduled")}: <span style={{ color: "#f59e0b", fontWeight: 700 }}>3 jobs</span>
             </div>
@@ -307,7 +389,7 @@ export default function CeoExecutiveCockpit() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "12px" }}>
               <div style={{ background: "#1e293b", borderRadius: "8px", padding: "10px", textAlign: "center" }}>
-                <div style={{ fontSize: "24px", fontWeight: 900, color: "#ef4444" }}>{KPI.open8Ds}</div>
+                <div style={{ fontSize: "24px", fontWeight: 900, color: "#ef4444" }}>{kpiData.open8Ds}</div>
                 <div style={{ fontSize: "10px", color: "#64748b" }}>Open 8Ds</div>
               </div>
               <div style={{ background: "#1e293b", borderRadius: "8px", padding: "10px", textAlign: "center" }}>
@@ -348,7 +430,7 @@ export default function CeoExecutiveCockpit() {
               👤 {t("admin.ceo.teamReadiness")}
             </div>
             <div style={{ fontSize: "14px", color: "#e2e8f0", marginBottom: "8px" }}>
-              {t("admin.ceo.aiBlocks")}: <span style={{ color: KPI.operatorBlocks > 0 ? "#f59e0b" : "#22c55e", fontWeight: 700 }}>{KPI.operatorBlocks}</span>
+              {t("admin.ceo.aiBlocks")}: <span style={{ color: kpiData.operatorBlocks > 0 ? "#f59e0b" : "#22c55e", fontWeight: 700 }}>{kpiData.operatorBlocks}</span>
             </div>
             <div style={{ fontSize: "14px", color: "#e2e8f0", marginBottom: "8px" }}>
               {t("admin.ceo.avgCombatPower")}: <span style={{ color: "#3b82f6", fontWeight: 700 }}>76</span>
@@ -427,7 +509,7 @@ export default function CeoExecutiveCockpit() {
           <div style={{ fontFamily: "system-ui", lineHeight: "1.6", fontSize: "13px" }}>
             <div style={{ marginBottom: "12px" }}>
               <div style={{ color: "#3b82f6", fontWeight: 700, marginBottom: "4px" }}>Headlines</div>
-              <div style={{ color: "#e2e8f0" }}>• Company Health: {OVERALL}/100 (Grade {GRADE})</div>
+              <div style={{ color: "#e2e8f0" }}>• Company Health: {overall}/100 (Grade {grade})</div>
               <div style={{ color: "#e2e8f0" }}>• CNC-001 auto-rescheduled — 3 jobs moved, zero production delay</div>
               <div style={{ color: "#e2e8f0" }}>• ¥185,000 potential cash release from inventory optimization</div>
             </div>
@@ -445,7 +527,7 @@ export default function CeoExecutiveCockpit() {
             </div>
             <div style={{ background: "#1e293b", borderRadius: "8px", padding: "12px", borderLeft: "3px solid #f59e0b" }}>
               <div style={{ color: "#f59e0b", fontWeight: 700, fontSize: "11px", marginBottom: "4px" }}>TOP PRIORITY</div>
-              <div style={{ color: "#e2e8f0" }}>Improve Supply Chain health (64/100) — weakest link in digital thread. Address restricted suppliers and S7-1500 lead time risk.</div>
+              <div style={{ color: "#e2e8f0" }}>Improve Supply Chain health ({health.supplyChain}/100) — weakest link in digital thread. Address restricted suppliers and S7-1500 lead time risk.</div>
             </div>
           </div>
         </div>

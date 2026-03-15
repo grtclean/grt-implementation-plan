@@ -4,6 +4,9 @@
  */
 
 import { useState } from "react";
+import { useSandboxPageEnhancements } from "@/components/Sandbox/useSandboxPageEnhancements";
+import ShortcutOverlay from "@/components/Sandbox/ShortcutOverlay";
+import SandboxFileImport from "@/components/Sandbox/SandboxFileImport";
 import { PageHeader } from "@/components/grt/PageHeader";
 import { StatCard } from "@/components/grt/StatCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +48,17 @@ const phaseLabels: Record<string, { label: string; days: string }> = {
 export default function HRLifecycle() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("dashboard");
+
+  // ── Sandbox enhancements ──
+  const { shortcutOverlayOpen, setShortcutOverlayOpen, shortcuts, lastSaved, isSaving } = useSandboxPageEnhancements({
+    sandboxShortcuts: [
+      { key: "ctrl+n", label: "新建流程", labelEn: "New workflow", action: () => { setActiveTab("recruitment"); toast.info("切换到招聘管理 Switched to recruitment"); } },
+    ],
+    autoSave: {
+      data: { activeTab },
+      onSave: async (d) => { localStorage.setItem("grt-sb-hr", JSON.stringify(d)); },
+    },
+  });
   
   // 获取统计数据
   const { data: stats, isLoading: statsLoading } = (trpc.hrLifecycle as any).getHRDashboardStats.useQuery();
@@ -73,18 +87,26 @@ export default function HRLifecycle() {
 
   return (
       <div className="space-y-6">
+        <ShortcutOverlay open={shortcutOverlayOpen} onClose={() => setShortcutOverlayOpen(false)} commonShortcuts={shortcuts.commonShortcuts} sandboxShortcuts={shortcuts.sandboxShortcuts} sandboxTitle="HR生命周期" />
         <PageHeader
           icon={Users}
           title={t("hr.lifecycle.title")}
           description={t("hr.lifecycle.description")}
           actions={
-            <Button
-              onClick={() => initProfileMutation.mutate()}
-              disabled={initProfileMutation.isPending}
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              {t("hr.lifecycle.initProfile")}
-            </Button>
+            <div className="flex items-center gap-2">
+              <SandboxFileImport
+                accept=".csv"
+                label="导入花名册"
+                onImport={(rows, fileName) => { toast.success(`已导入 ${rows.length} 行员工数据 (${fileName})`); }}
+              />
+              <Button
+                onClick={() => initProfileMutation.mutate()}
+                disabled={initProfileMutation.isPending}
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                {t("hr.lifecycle.initProfile")}
+              </Button>
+            </div>
           }
         />
 

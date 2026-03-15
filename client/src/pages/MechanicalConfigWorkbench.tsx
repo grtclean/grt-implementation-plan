@@ -5,6 +5,9 @@
  * 7 tabs: 标准库 / 客户配置 / 配置清单 / 知识图谱 / 报价合规 / 阶段评审 / 验收追踪
  */
 import { useState, useMemo } from "react";
+import { useSandboxPageEnhancements } from "@/components/Sandbox/useSandboxPageEnhancements";
+import ShortcutOverlay from "@/components/Sandbox/ShortcutOverlay";
+import SandboxFileImport from "@/components/Sandbox/SandboxFileImport";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -15,10 +18,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { trpc } from "@/lib/trpc";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import {
   Wrench, Building2, ListChecks, Network, FileCheck2, ClipboardCheck, ThumbsUp,
   Search, Plus, Lock, Unlock, ArrowRight, CheckCircle2, XCircle, AlertTriangle,
-  ChevronDown, ExternalLink, Filter,
+  ChevronDown, ExternalLink, Filter, Trash2,
 } from "lucide-react";
 
 const ORIGIN_LABELS: Record<string, string> = {
@@ -58,8 +64,19 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
 
 export default function MechanicalConfigWorkbench() {
   const [activeTab, setActiveTab] = useState("standards");
+  const { shortcutOverlayOpen, setShortcutOverlayOpen, shortcuts, lastSaved, isSaving } = useSandboxPageEnhancements({
+    sandboxShortcuts: [
+      { key: "ctrl+v", label: "验证配置", action: () => { /* handled by config validation */ } },
+    ],
+    autoSave: {
+      data: { activeTab },
+      onSave: async (d) => { localStorage.setItem("grt-sb-mechanical", JSON.stringify(d)); },
+    },
+  });
 
   return (
+    <>
+    <ShortcutOverlay open={shortcutOverlayOpen} onClose={() => setShortcutOverlayOpen(false)} commonShortcuts={shortcuts.commonShortcuts} sandboxShortcuts={shortcuts.sandboxShortcuts} sandboxTitle="机械配置" />
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center gap-3">
         <Wrench className="h-7 w-7 text-blue-600" />
@@ -70,6 +87,14 @@ export default function MechanicalConfigWorkbench() {
       </div>
 
       <DashboardKPIs />
+
+      <div className="flex items-center gap-2">
+        <SandboxFileImport
+          accept=".csv"
+          label="导入配置库"
+          onImport={(rows, fileName) => { /* toast handled by parent */ }}
+        />
+      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto gap-1">
@@ -91,6 +116,7 @@ export default function MechanicalConfigWorkbench() {
         <TabsContent value="acceptance"><AcceptanceTrackingTab /></TabsContent>
       </Tabs>
     </div>
+    </>
   );
 }
 
@@ -321,11 +347,51 @@ function CustomerConfigsTab() {
 
 function ConfigLineItemsTab() {
   const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newItem, setNewItem] = useState({
+    itemCode: "", itemName: "", category: "structural_frame" as string,
+    specification: "", brand: "", isMandatory: true,
+  });
   const { data: configs = [] } = trpc.mechanicalConfig.customerConfig.list.useQuery();
   const { data: lineItems = [] } = trpc.mechanicalConfig.lineItem.listByConfig.useQuery(
     { configId: selectedConfigId! },
     { enabled: !!selectedConfigId }
   );
+  const utils = trpc.useUtils();
+
+  const createMut = trpc.mechanicalConfig.lineItem.create.useMutation({
+    onSuccess: () => {
+      toast.success("配置项已添加");
+      setIsAddOpen(false);
+      setNewItem({ itemCode: "", itemName: "", category: "structural_frame", specification: "", brand: "", isMandatory: true });
+      utils.mechanicalConfig.lineItem.listByConfig.invalidate({ configId: selectedConfigId! });
+    },
+    onError: (e) => toast.error(`添加失败: ${e.message}`),
+  });
+
+  const removeMut = trpc.mechanicalConfig.lineItem.remove.useMutation({
+    onSuccess: () => {
+      toast.success("配置项已删除");
+      utils.mechanicalConfig.lineItem.listByConfig.invalidate({ configId: selectedConfigId! });
+    },
+    onError: (e) => toast.error(`删除失败: ${e.message}`),
+  });
+
+  const handleAddItem = () => {
+    if (!newItem.itemCode.trim() || !newItem.itemName.trim()) {
+      toast.error("编码和名称为必填项");
+      return;
+    }
+    createMut.mutate({
+      configId: selectedConfigId!,
+      itemCode: newItem.itemCode,
+      itemName: newItem.itemName,
+      category: newItem.category as any,
+      specification: newItem.specification || undefined,
+      brand: newItem.brand || undefined,
+      isMandatory: newItem.isMandatory,
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -337,6 +403,42 @@ function ConfigLineItemsTab() {
           </SelectContent>
         </Select>
         {lineItems.length > 0 && <Badge>{lineItems.length} 项配置</Badge>}
+        {selectedConfigId && (
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1"><Plus className="h-4 w-4" />添加配置项</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>添加配置项</DialogTitle></DialogHeader>
+              <div className="grid gap-3 py-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>编码 *</Label><Input value={newItem.itemCode} onChange={(e) => setNewItem({ ...newItem, itemCode: e.target.value })} placeholder="MC-001" /></div>
+                  <div><Label>类别</Label>
+                    <Select value={newItem.category} onValueChange={(v) => setNewItem({ ...newItem, category: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(CATEGORY_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div><Label>名称 *</Label><Input value={newItem.itemName} onChange={(e) => setNewItem({ ...newItem, itemName: e.target.value })} placeholder="配置项名称" /></div>
+                <div><Label>规格要求</Label><Input value={newItem.specification} onChange={(e) => setNewItem({ ...newItem, specification: e.target.value })} /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>品牌</Label><Input value={newItem.brand} onChange={(e) => setNewItem({ ...newItem, brand: e.target.value })} /></div>
+                  <div className="flex items-end gap-2 pb-1">
+                    <input type="checkbox" checked={newItem.isMandatory} onChange={(e) => setNewItem({ ...newItem, isMandatory: e.target.checked })} />
+                    <Label>必选项</Label>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsAddOpen(false)}>取消</Button>
+                <Button onClick={handleAddItem} disabled={createMut.isPending}>添加</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {selectedConfigId && lineItems.length > 0 && (
@@ -350,6 +452,7 @@ function ConfigLineItemsTab() {
               <TableHead>规格要求</TableHead>
               <TableHead className="w-[100px]">品牌</TableHead>
               <TableHead className="w-[60px]">必选</TableHead>
+              <TableHead className="w-[60px]">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -362,6 +465,11 @@ function ConfigLineItemsTab() {
                 <TableCell className="text-xs">{item.specification}</TableCell>
                 <TableCell className="text-xs">{item.brand || "—"}</TableCell>
                 <TableCell className="text-center">{item.isMandatory ? <CheckCircle2 className="h-4 w-4 text-green-600 mx-auto" /> : "—"}</TableCell>
+                <TableCell>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-500 hover:text-red-700" onClick={() => removeMut.mutate({ id: item.id })}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -369,7 +477,7 @@ function ConfigLineItemsTab() {
       )}
 
       {selectedConfigId && lineItems.length === 0 && (
-        <div className="text-center text-muted-foreground py-12">该客户暂无配置清单项</div>
+        <div className="text-center text-muted-foreground py-12">该客户暂无配置清单项，点击"添加配置项"创建</div>
       )}
     </div>
   );
@@ -443,12 +551,28 @@ function KnowledgeGraphTab() {
   );
 }
 
+// ── Project Code Selector (shared) ────────────────────────────
+
+function ProjectCodeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { data: projects = [] } = trpc.project.list.useQuery();
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="w-[280px]"><SelectValue placeholder="选择项目..." /></SelectTrigger>
+      <SelectContent>
+        {projects.map((p: any) => (
+          <SelectItem key={p.id} value={p.projectCode}>{p.projectCode} — {p.name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 // ── Tab 5: Quotation Compliance ────────────────────────────────
 
 function QuotationComplianceTab() {
-  const [projectCode, setProjectCode] = useState("GRT-312");
-  const { data: checks = [] } = trpc.mechanicalConfig.quotation.listByProject.useQuery({ projectCode });
-  const { data: summary = [] } = trpc.mechanicalConfig.quotation.summary.useQuery({ projectCode });
+  const [projectCode, setProjectCode] = useState("");
+  const { data: checks = [] } = trpc.mechanicalConfig.quotation.listByProject.useQuery({ projectCode }, { enabled: !!projectCode });
+  const { data: summary = [] } = trpc.mechanicalConfig.quotation.summary.useQuery({ projectCode }, { enabled: !!projectCode });
 
   const totalChecks = summary.reduce((s: number, r: any) => s + r.count, 0);
   const passCount = summary.find((r: any) => r.status === "PASS")?.count ?? 0;
@@ -457,7 +581,7 @@ function QuotationComplianceTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <Input value={projectCode} onChange={(e) => setProjectCode(e.target.value)} placeholder="项目编号" className="w-[200px]" />
+        <ProjectCodeSelect value={projectCode} onChange={setProjectCode} />
         {totalChecks > 0 && (
           <div className="flex items-center gap-2">
             <Progress value={complianceRate} className="w-32 h-3" />
@@ -509,9 +633,9 @@ function QuotationComplianceTab() {
 // ── Tab 6: Phase Checklists ────────────────────────────────────
 
 function PhaseChecklistTab() {
-  const [projectCode, setProjectCode] = useState("GRT-312");
+  const [projectCode, setProjectCode] = useState("");
   const { data: reviewRules = [] } = trpc.mechanicalConfig.reviewRule.list.useQuery();
-  const { data: checklists = [] } = trpc.mechanicalConfig.phaseChecklist.getByProjectPhase.useQuery({ projectCode });
+  const { data: checklists = [] } = trpc.mechanicalConfig.phaseChecklist.getByProjectPhase.useQuery({ projectCode }, { enabled: !!projectCode });
 
   const phaseGroups = useMemo(() => {
     const groups: Record<string, any[]> = {};
@@ -526,7 +650,7 @@ function PhaseChecklistTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <Input value={projectCode} onChange={(e) => setProjectCode(e.target.value)} placeholder="项目编号" className="w-[200px]" />
+        <ProjectCodeSelect value={projectCode} onChange={setProjectCode} />
         <Badge variant="outline">{reviewRules.length} 条评审规则</Badge>
         {checklists.length > 0 && <Badge>{checklists.length} 项检查</Badge>}
       </div>
@@ -575,14 +699,14 @@ function PhaseChecklistTab() {
 // ── Tab 7: Acceptance Tracking ─────────────────────────────────
 
 function AcceptanceTrackingTab() {
-  const [projectCode, setProjectCode] = useState("GRT-312");
-  const { data: records = [] } = trpc.mechanicalConfig.acceptance.listByProject.useQuery({ projectCode });
-  const { data: satisfaction } = trpc.mechanicalConfig.acceptance.satisfactionSummary.useQuery({ projectCode });
+  const [projectCode, setProjectCode] = useState("");
+  const { data: records = [] } = trpc.mechanicalConfig.acceptance.listByProject.useQuery({ projectCode }, { enabled: !!projectCode });
+  const { data: satisfaction } = trpc.mechanicalConfig.acceptance.satisfactionSummary.useQuery({ projectCode }, { enabled: !!projectCode });
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <Input value={projectCode} onChange={(e) => setProjectCode(e.target.value)} placeholder="项目编号" className="w-[200px]" />
+        <ProjectCodeSelect value={projectCode} onChange={setProjectCode} />
         {satisfaction && (
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">

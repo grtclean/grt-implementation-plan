@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ReportActionBar from "@/components/ReportActionBar";
+import ShareContextMenu from "@/components/ShareContextMenu";
 import {
   Stethoscope, Loader2, Sparkles, AlertTriangle, CheckCircle, Wrench, Shield,
 } from "lucide-react";
@@ -42,6 +44,7 @@ export default function AIFaultDiagnosis() {
   const [equipmentAge, setEquipmentAge] = useState("");
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [taskId, setTaskId] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const mutation = trpc.rdServiceIntelligence.diagnoseFault.useMutation({
     onSuccess: (data) => setTaskId(data.taskId),
@@ -70,7 +73,9 @@ export default function AIFaultDiagnosis() {
   }, [taskQuery.data]);
 
   const handleSubmit = () => {
-    if (!symptomDescription.trim() || mutation.isPending || !!taskId) return;
+    if (!symptomDescription.trim()) { setSubmitted(true); return; }
+    if (mutation.isPending || !!taskId) return;
+    setSubmitted(false);
     mutation.mutate({
       equipmentModel,
       symptomDescription,
@@ -143,8 +148,9 @@ export default function AIFaultDiagnosis() {
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">{t("ai.faultDiag.symptomDescription")}</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder="如: 设备运行时真空度无法达到设定值，真空泵运行声音异常，偶尔伴有高温报警" value={symptomDescription} onChange={(e) => setSymptomDescription(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("ai.faultDiag.symptomDescription")} <span className="text-red-500">*</span></label>
+              <textarea className={`w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px] ${submitted && !symptomDescription.trim() ? "border-red-500" : ""}`} placeholder="如: 设备运行时真空度无法达到设定值，真空泵运行声音异常，偶尔伴有高温报警" value={symptomDescription} onChange={(e) => setSymptomDescription(e.target.value)} />
+              {submitted && !symptomDescription.trim() && <span className="text-xs text-red-500">必填项</span>}
             </div>
             <div className="space-y-1">
               <label className="text-sm text-muted-foreground">{t("ai.faultDiag.operatingConditions")}</label>
@@ -171,7 +177,12 @@ export default function AIFaultDiagnosis() {
 
         {/* Results */}
         {result && (
-          <>
+          <ShareContextMenu
+            title="AI故障诊断报告"
+            textContent={`诊断结论: ${result.diagnosis}\n紧急程度: ${result.urgency}\n置信度: ${result.confidence}%\n\n根因分析:\n${result.rootCauses.map(rc => `- ${rc.cause} (${rc.probability}%): ${rc.description}`).join("\n")}\n\n维修步骤:\n${result.repairSteps.map(s => `${s.step}. ${s.description} (${s.estimatedTime})`).join("\n")}\n\n预防措施:\n${result.preventiveMeasures.map(m => `- ${m}`).join("\n")}`}
+            jsonData={result as unknown as Record<string, unknown>}
+          >
+          <div className="space-y-6">
             {/* Diagnosis + Confidence + Urgency */}
             <Card>
               <CardContent className="pt-6">
@@ -304,7 +315,14 @@ export default function AIFaultDiagnosis() {
                 </CardContent>
               </Card>
             )}
-          </>
+
+            <ReportActionBar
+              title="AI故障诊断报告"
+              textContent={`诊断结论: ${result.diagnosis}\n紧急程度: ${result.urgency}\n置信度: ${result.confidence}%\n\n根因分析:\n${result.rootCauses.map(rc => `- ${rc.cause} (${rc.probability}%): ${rc.description}`).join("\n")}\n\n维修步骤:\n${result.repairSteps.map(s => `${s.step}. ${s.description} (${s.estimatedTime})`).join("\n")}\n\n预防措施:\n${result.preventiveMeasures.map(m => `- ${m}`).join("\n")}`}
+              jsonData={result as unknown as Record<string, unknown>}
+            />
+          </div>
+          </ShareContextMenu>
         )}
       </div>
   );

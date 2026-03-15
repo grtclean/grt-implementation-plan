@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ReportActionBar from "@/components/ReportActionBar";
+import ShareContextMenu from "@/components/ShareContextMenu";
 import {
   UserCheck, Loader2, Sparkles, AlertTriangle, Shield, Heart,
 } from "lucide-react";
@@ -45,6 +47,7 @@ export default function AICustomerChurn() {
   const [competitorActivity, setCompetitorActivity] = useState("");
   const [result, setResult] = useState<ChurnResult | null>(null);
   const [taskId, setTaskId] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const mutation = trpc.salesFinanceIntelligence.predictChurn.useMutation({
     onSuccess: (data) => setTaskId(data.taskId),
@@ -73,7 +76,9 @@ export default function AICustomerChurn() {
   }, [taskQuery.data]);
 
   const handleSubmit = () => {
-    if (!customerName.trim() || !contractValue || !lastOrderDate || mutation.isPending || !!taskId) return;
+    if (!customerName.trim() || !contractValue || !lastOrderDate) { setSubmitted(true); return; }
+    if (mutation.isPending || !!taskId) return;
+    setSubmitted(false);
     mutation.mutate({
       customerName,
       industry,
@@ -147,7 +152,8 @@ export default function AICustomerChurn() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.churn.customerName")}</label>
-                <Input placeholder="如: 上海大众汽车有限公司" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                <Input className={submitted && !customerName.trim() ? "border-red-500" : ""} placeholder="如: 上海大众汽车有限公司" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                {submitted && !customerName.trim() && <span className="text-xs text-red-500">必填项</span>}
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.churn.industry")}</label>
@@ -164,11 +170,13 @@ export default function AICustomerChurn() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.churn.contractValue")}</label>
-                <Input type="number" placeholder="如: 200" value={contractValue} onChange={(e) => setContractValue(e.target.value)} />
+                <Input className={submitted && !contractValue ? "border-red-500" : ""} type="number" placeholder="如: 200" value={contractValue} onChange={(e) => setContractValue(e.target.value)} />
+                {submitted && !contractValue && <span className="text-xs text-red-500">必填项</span>}
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.churn.lastOrderDate")}</label>
-                <Input type="date" value={lastOrderDate} onChange={(e) => setLastOrderDate(e.target.value)} />
+                <Input className={submitted && !lastOrderDate ? "border-red-500" : ""} type="date" value={lastOrderDate} onChange={(e) => setLastOrderDate(e.target.value)} />
+                {submitted && !lastOrderDate && <span className="text-xs text-red-500">必填项</span>}
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.churn.orderFrequency")}</label>
@@ -207,7 +215,12 @@ export default function AICustomerChurn() {
 
         {/* Results */}
         {result && (
-          <>
+          <ShareContextMenu
+            title="AI客户流失预测报告"
+            textContent={Object.entries(result).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n')}
+            jsonData={result as unknown as Record<string, unknown>}
+          >
+          <div className="space-y-6">
             {/* Churn Probability + Health Score */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
@@ -331,7 +344,14 @@ export default function AICustomerChurn() {
                 </CardContent>
               </Card>
             )}
-          </>
+
+            <ReportActionBar
+              title="AI客户流失预测报告"
+              textContent={Object.entries(result).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n')}
+              jsonData={result as unknown as Record<string, unknown>}
+            />
+          </div>
+          </ShareContextMenu>
         )}
       </div>
   );

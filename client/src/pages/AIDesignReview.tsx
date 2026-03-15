@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ReportActionBar from "@/components/ReportActionBar";
+import ShareContextMenu from "@/components/ShareContextMenu";
 import {
   Shield, Loader2, Sparkles, AlertTriangle, CheckCircle, FileText,
 } from "lucide-react";
@@ -42,6 +44,7 @@ export default function AIDesignReview() {
   const [standardsRequired, setStandardsRequired] = useState("");
   const [result, setResult] = useState<ReviewResult | null>(null);
   const [taskId, setTaskId] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const mutation = trpc.rdServiceIntelligence.reviewDesign.useMutation({
     onSuccess: (data) => setTaskId(data.taskId),
@@ -70,7 +73,9 @@ export default function AIDesignReview() {
   }, [taskQuery.data]);
 
   const handleSubmit = () => {
-    if (!projectName.trim() || !designDescription.trim() || !keyParameters.trim() || mutation.isPending || !!taskId) return;
+    if (!projectName.trim() || !designDescription.trim() || !keyParameters.trim()) { setSubmitted(true); return; }
+    if (mutation.isPending || !!taskId) return;
+    setSubmitted(false);
     mutation.mutate({
       projectName,
       designPhase,
@@ -150,8 +155,9 @@ export default function AIDesignReview() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">{t("ai.designReview.projectName")}</label>
-                <Input placeholder="如: XX超声波清洗机项目" value={projectName} onChange={(e) => setProjectName(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("ai.designReview.projectName")} <span className="text-red-500">*</span></label>
+                <Input placeholder="如: XX超声波清洗机项目" value={projectName} onChange={(e) => setProjectName(e.target.value)} className={submitted && !projectName.trim() ? "border-red-500" : ""} />
+                {submitted && !projectName.trim() && <span className="text-xs text-red-500">必填项</span>}
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">{t("ai.designReview.designPhase")}</label>
@@ -166,12 +172,14 @@ export default function AIDesignReview() {
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">{t("ai.designReview.designDescription")}</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px]" placeholder="如: 三槽超声波清洗机，含清洗、漂洗、干燥功能，PLC自动控制" value={designDescription} onChange={(e) => setDesignDescription(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("ai.designReview.designDescription")} <span className="text-red-500">*</span></label>
+              <textarea className={`w-full bg-background border rounded px-3 py-2 text-sm min-h-[80px] ${submitted && !designDescription.trim() ? "border-red-500" : ""}`} placeholder="如: 三槽超声波清洗机，含清洗、漂洗、干燥功能，PLC自动控制" value={designDescription} onChange={(e) => setDesignDescription(e.target.value)} />
+              {submitted && !designDescription.trim() && <span className="text-xs text-red-500">必填项</span>}
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">{t("ai.designReview.keyParameters")}</label>
-              <textarea className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px]" placeholder="如: 清洗槽尺寸800×600×500mm，超声频率28/40kHz，功率3000W，温度范围20-80℃" value={keyParameters} onChange={(e) => setKeyParameters(e.target.value)} />
+              <label className="text-sm text-muted-foreground">{t("ai.designReview.keyParameters")} <span className="text-red-500">*</span></label>
+              <textarea className={`w-full bg-background border rounded px-3 py-2 text-sm min-h-[60px] ${submitted && !keyParameters.trim() ? "border-red-500" : ""}`} placeholder="如: 清洗槽尺寸800×600×500mm，超声频率28/40kHz，功率3000W，温度范围20-80℃" value={keyParameters} onChange={(e) => setKeyParameters(e.target.value)} />
+              {submitted && !keyParameters.trim() && <span className="text-xs text-red-500">必填项</span>}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
@@ -198,7 +206,12 @@ export default function AIDesignReview() {
 
         {/* Results */}
         {result && (
-          <>
+          <ShareContextMenu
+            title="AI设计审查报告"
+            textContent={`设计评分: ${result.overallScore} (${result.grade}级)\n材料兼容性: ${result.materialCompatibility}\n\n问题列表:\n${result.issues.map(i => `- [${i.severity}] ${i.issue} (${i.category}): ${i.suggestion}`).join("\n")}\n\n合规检查:\n${result.complianceCheck.map(c => `- ${c.standard}: ${c.status} — ${c.notes}`).join("\n")}\n\n建议:\n${result.recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}`}
+            jsonData={result as unknown as Record<string, unknown>}
+          >
+          <div className="space-y-6">
             {/* Score + Grade */}
             <Card>
               <CardContent className="pt-6">
@@ -310,7 +323,14 @@ export default function AIDesignReview() {
                 </CardContent>
               </Card>
             )}
-          </>
+
+            <ReportActionBar
+              title="AI设计审查报告"
+              textContent={`设计评分: ${result.overallScore} (${result.grade}级)\n材料兼容性: ${result.materialCompatibility}\n\n问题列表:\n${result.issues.map(i => `- [${i.severity}] ${i.issue} (${i.category}): ${i.suggestion}`).join("\n")}\n\n合规检查:\n${result.complianceCheck.map(c => `- ${c.standard}: ${c.status} — ${c.notes}`).join("\n")}\n\n建议:\n${result.recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}`}
+              jsonData={result as unknown as Record<string, unknown>}
+            />
+          </div>
+          </ShareContextMenu>
         )}
       </div>
   );

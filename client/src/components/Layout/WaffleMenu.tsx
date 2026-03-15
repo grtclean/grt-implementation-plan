@@ -1,4 +1,6 @@
 import { useEffect, useRef, useMemo } from "react";
+import { useLocation } from "wouter";
+import { FlaskConical } from "lucide-react";
 import { WAFFLE_APPS, type WaffleApp, type MenuGroup } from "@/config/menuConfig";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +21,7 @@ export default function WaffleMenu({
   language,
   filteredMenuConfig,
 }: WaffleMenuProps) {
+  const [, navigate] = useLocation();
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -97,6 +100,19 @@ export default function WaffleMenu({
             </button>
           );
         })}
+      </div>
+      {/* Sandbox Center quick entry */}
+      <div className="border-t border-[#edebe9] mt-2 pt-2">
+        <button
+          onClick={() => { navigate("/sandbox"); onClose(); }}
+          className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm text-[#323130] hover:bg-[#f3f2f1] transition-colors"
+        >
+          <FlaskConical className="w-4 h-4 text-[#0078d4]" />
+          <span className="font-medium">
+            {language === "zh" ? "沙盘中心" : language === "de" ? "Sandbox-Center" : language === "fr" ? "Centre Sandbox" : "Sandbox Center"}
+          </span>
+          <span className="ml-auto text-xs text-[#a19f9d]">&rarr;</span>
+        </button>
       </div>
     </div>
   );

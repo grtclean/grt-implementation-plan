@@ -40,6 +40,18 @@ const SubsystemHelp = React.lazy(() => import("./pages/SubsystemHelp"));
 import PublicHome from "./pages/PublicHome";
 const Capabilities = React.lazy(() => import("./pages/Capabilities"));
 const CustomerPortal = React.lazy(() => import("./pages/CustomerPortal"));
+const SiteDeliverySandbox = React.lazy(() => import("./pages/SiteDeliverySandbox"));
+const VipStrategicDashboard = React.lazy(() => import("./pages/VipStrategicDashboard"));
+const SmartEsopTvKiosk = React.lazy(() => import("./pages/SmartEsopTvKiosk"));
+const VerticalSlicingDataLoop = React.lazy(() => import("./pages/VerticalSlicingDataLoop"));
+const GlobalEventOrchestrator = React.lazy(() => import("./pages/GlobalEventOrchestrator"));
+const GlobalEventOrchestratorV2 = React.lazy(() => import("./pages/GlobalEventOrchestratorV2"));
+const MicroFrontendShell = React.lazy(() => import("./pages/MicroFrontendShell"));
+const MetadataDrivenEngine = React.lazy(() => import("./pages/MetadataDrivenEngine"));
+const QuotingBomSandbox = React.lazy(() => import("./pages/QuotingBomSandbox"));
+const DynamicRolePortal = React.lazy(() => import("./pages/DynamicRolePortal"));
+const WorkflowOrchestrator = React.lazy(() => import("./pages/WorkflowOrchestrator"));
+const GlobalDeliverySandbox = React.lazy(() => import("./pages/GlobalDeliverySandbox"));
 const CustomerAuthorizationManager = React.lazy(() => import("./pages/CustomerAuthorizationManager"));
 const SmartProductionScheduling = React.lazy(() => import("./pages/SmartProductionScheduling"));
 const EngineBlock3DMonitor = React.lazy(() => import("./pages/EngineBlock3DMonitor"));
@@ -181,6 +193,7 @@ const BUPerformanceDashboard = React.lazy(() => import("./pages/BUPerformanceDas
 const BuManagerCockpit = React.lazy(() => import("./pages/BuManagerCockpit"));
 const EmployeeManagement = React.lazy(() => import("./pages/EmployeeManagement"));
 const EmployeeOffboarding = React.lazy(() => import("./pages/EmployeeOffboarding"));
+const EmployeeDirectory = React.lazy(() => import("./pages/EmployeeDirectory"));
 const EmployeeIntelligentPerformance = React.lazy(() => import("./pages/EmployeeIntelligentPerformance"));
 const PerfCalibrationDashboard = React.lazy(() => import("./pages/PerfCalibrationDashboard"));
 const Feedback360 = React.lazy(() => import("./pages/Feedback360"));
@@ -361,6 +374,7 @@ const CustomerDigitalTwinPortal = React.lazy(() => import("./pages/CustomerDigit
 
 // Cleaning Machine Project Wizard (M0→M2 + T1-T15)
 const NewProjectWizard = React.lazy(() => import("./pages/NewProjectWizard"));
+const RealOrderCommandCenter = React.lazy(() => import("./pages/RealOrderCommandCenter"));
 
 // ======== V2.0 Five Core Engines ========
 const MeEngine = React.lazy(() => import("./pages/engines/MeEngine"));
@@ -532,14 +546,23 @@ const CtoTechnicalDashboard = React.lazy(() => import("./pages/CtoTechnicalDashb
 const DocumentOptimizationCenter = React.lazy(() => import("./pages/DocumentOptimizationCenter"));
 const GrtInitWizard = React.lazy(() => import("./pages/GrtInitWizard"));
 const GoLiveCommand = React.lazy(() => import("./pages/GoLiveCommand"));
+const AgentControlTower = React.lazy(() => import("./pages/AgentControlTower"));
 const RemoteGovernanceDashboard = React.lazy(() => import("./pages/RemoteGovernanceDashboard"));
 const ElectricalStandardsWorkbench = React.lazy(() => import("./pages/ElectricalStandardsWorkbench"));
 const MechanicalConfigWorkbench = React.lazy(() => import("./pages/MechanicalConfigWorkbench"));
 const PayrollApprovalGate = React.lazy(() => import("./pages/Executive/PayrollApprovalGate"));
+const PayrollSandbox = React.lazy(() => import("./pages/PayrollSandbox"));
+const PayrollAgent = React.lazy(() => import("./pages/PayrollAgent"));
 const TheArena = React.lazy(() => import("./pages/Executive/TheArena"));
 const BiReportDashboard = React.lazy(() => import("./pages/BiReportDashboard"));
+const BiSandbox = React.lazy(() => import("./pages/BiSandbox"));
+const SystemTopologyMap = React.lazy(() => import("./pages/SystemTopologyMap"));
 const OemDeveloperPortal = React.lazy(() => import("./pages/OemDeveloperPortal"));
 const DeptProceduresWorkbench = React.lazy(() => import("./pages/DeptProceduresWorkbench"));
+// GlobalAppShell — 全局智能母座 (has its own TopBar/LeftNav/RightCopilot)
+const GlobalAppShell = React.lazy(() => import("./pages/GlobalAppShell"));
+// Sandbox infrastructure — SandboxShell provides the three-column layout with route outlet
+const SandboxShell = React.lazy(() => import("./components/Sandbox/SandboxShell"));
 
 // Protected route wrapper component — ErrorBoundary auto-resets on navigation
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -565,8 +588,8 @@ function LazyFallback() {
 }
 
 // Standalone routes that should NOT have sidebar layout
-const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/403', '/404', '/oa-test', '/morning-meeting', '/shop-floor/machine-login'];
-const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/', '/report-center/', '/vision/', '/shop-floor/', '/showcase/', '/showroom', '/guest/', '/excellence-showcase'];
+const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/403', '/404', '/oa-test', '/morning-meeting', '/shop-floor/machine-login', '/customer-portal', '/app-shell', '/demo/micro-frontend', '/demo/metadata-engine', '/sandbox/quoting-bom', '/portal/dynamic', '/demo/workflow-orchestrator'];
+const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/', '/report-center/', '/vision/', '/shop-floor/', '/showcase/', '/showroom', '/guest/', '/excellence-showcase', '/customer-portal/'];
 
 function Router() {
   const [location] = useLocation();
@@ -664,6 +687,9 @@ function Router() {
       <Route path={"/operations/new-project"}>
         <ProtectedRoute component={NewProjectWizard} />
       </Route>
+      <Route path={"/operations/real-order-flow"}>
+        <ProtectedRoute component={RealOrderCommandCenter} />
+      </Route>
       <Route path={"/operations"}>
         <ProtectedRoute component={OperationsEngine} />
       </Route>
@@ -680,6 +706,18 @@ function Router() {
       <Route path={"/workspace"}><ProtectedRoute component={UniversalWorkspace} /></Route>
       <Route path={"/data-migration"} component={DataMigrationHub} />
       <Route path={"/customer-digital-twin"} component={CustomerDigitalTwinPortal} />
+      <Route path={"/kiosk/esop-tv"} component={SmartEsopTvKiosk} />
+      <Route path={"/demo/vertical-slicing"}><ProtectedRoute component={VerticalSlicingDataLoop} /></Route>
+      <Route path={"/demo/event-orchestrator"}><ProtectedRoute component={GlobalEventOrchestrator} /></Route>
+      <Route path={"/demo/event-orchestrator-v2"}><ProtectedRoute component={GlobalEventOrchestratorV2} /></Route>
+      <Route path={"/demo/micro-frontend"}><ProtectedRoute component={MicroFrontendShell} /></Route>
+      <Route path={"/demo/metadata-engine"}><ProtectedRoute component={MetadataDrivenEngine} /></Route>
+      <Route path={"/sandbox/quoting-bom"}><ProtectedRoute component={QuotingBomSandbox} /></Route>
+      <Route path={"/portal/dynamic"}><ProtectedRoute component={DynamicRolePortal} /></Route>
+      <Route path={"/demo/workflow-orchestrator"}><ProtectedRoute component={WorkflowOrchestrator} /></Route>
+      <Route path={"/customer-portal/vip-dashboard"} component={VipStrategicDashboard} />
+      <Route path={"/customer-portal/site-delivery"} component={SiteDeliverySandbox} />
+      <Route path={"/customer-portal/global-delivery"} component={GlobalDeliverySandbox} />
       <Route path={"/customer-portal"} component={CustomerPortal} />
       <Route path={"/customer-authorization"}><ProtectedRoute component={CustomerAuthorizationManager} /></Route>
       <Route path={"/login"} component={LocalLogin} />
@@ -1217,6 +1255,10 @@ function Router() {
       {/* v1.3.92 员工管理 */}
       <Route path="/employee-management">
         <ProtectedRoute component={EmployeeManagement} />
+      </Route>
+      {/* 员工目录册 — TSDCKL技能评估 + 人物画像 */}
+      <Route path="/employee-directory">
+        <ProtectedRoute component={EmployeeDirectory} />
       </Route>
       {/* v1.5.0 员工离职数据管理 */}
       <Route path="/offboarding">
@@ -1933,6 +1975,9 @@ function Router() {
       <Route path="/go-live-command">
         <ProtectedRoute component={GoLiveCommand} />
       </Route>
+      <Route path="/admin/agent-management">
+        <ProtectedRoute component={AgentControlTower} />
+      </Route>
       <Route path="/remote-governance">
         <ProtectedRoute component={RemoteGovernanceDashboard} />
       </Route>
@@ -1945,11 +1990,23 @@ function Router() {
       <Route path="/payroll-approval">
         <ProtectedRoute component={PayrollApprovalGate} />
       </Route>
+      <Route path="/payroll-sandbox">
+        <ProtectedRoute component={PayrollSandbox} />
+      </Route>
+      <Route path="/payroll-agent">
+        <ProtectedRoute component={PayrollAgent} />
+      </Route>
       <Route path="/the-arena">
         <ProtectedRoute component={TheArena} />
       </Route>
       <Route path="/bi-report">
         <ProtectedRoute component={BiReportDashboard} />
+      </Route>
+      <Route path="/bi-sandbox">
+        <ProtectedRoute component={BiSandbox} />
+      </Route>
+      <Route path="/system-topology">
+        <ProtectedRoute component={SystemTopologyMap} />
       </Route>
       <Route path="/oem-developer-portal">
         <ProtectedRoute component={OemDeveloperPortal} />
@@ -1963,6 +2020,18 @@ function Router() {
         <ProtectedRoute component={DeptProceduresWorkbench} />
       </Route>
 
+      {/* GlobalAppShell — 全局智能母座 (standalone layout) */}
+      <Route path="/app-shell">
+        <ProtectedRoute component={GlobalAppShell} />
+      </Route>
+
+      {/* ── 沙盘系统 — SandboxShell provides three-column layout with route outlet ── */}
+      <Route path="/sandbox/:rest*">
+        <ProtectedRoute component={SandboxShell} />
+      </Route>
+      <Route path="/sandbox">
+        <ProtectedRoute component={SandboxShell} />
+      </Route>
       <Route path={"/403"} component={ForbiddenPage} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

@@ -13,190 +13,32 @@
  * 9. CEO政策 (Policy) — signed policy document
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
+import { useSandboxPageEnhancements } from "@/components/Sandbox/useSandboxPageEnhancements";
+import ShortcutOverlay from "@/components/Sandbox/ShortcutOverlay";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   Star, Trophy, Gift, AlertTriangle, TrendingUp, TrendingDown,
   CheckCircle, XCircle, Clock, Award, Plane, FileText, ShieldAlert,
-  Crown, Target, Users, Calendar, Lightbulb, Send, MessageSquare
+  Crown, Target, Users, Calendar, Lightbulb, Send, MessageSquare, Loader2
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trpc } from "@/lib/trpc";
+import { useToast } from "@/hooks/use-toast";
 
-// ── Mock Data (will be replaced by tRPC calls) ──
+// ── Loading Spinner ──
+function LoadingBlock({ label = "加载中..." }: { label?: string }) {
+  return (
+    <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+      <Loader2 className="w-5 h-5 animate-spin" />
+      <span className="text-sm">{label}</span>
+    </div>
+  );
+}
 
-const MOCK_BALANCE = {
-  currentBalance: 486,
-  totalEarned: 720,
-  totalSpent: 100,
-  totalPenalties: 134,
-  ytdPoints: 486,
-  isOnObservation: false,
-  isExcellenceSuspended: true,
-  excellenceSuspendedUntil: "2026-09-13",
-};
-
-const MOCK_COMPLIANCE = {
-  morningPlan: { passed: true, completedAt: "2026-03-13T08:12:00Z", pointsApplied: 3 },
-  eveningSummary: null,
-  nextDayPlan: null,
-};
-
-const MOCK_RULES = [
-  { code: "morning_plan_ontime", name: "按时提交晨间工作计划", category: "daily_compliance", points: 3, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "morning_plan_missing", name: "未提交晨间工作计划", category: "penalty", points: -5, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "evening_summary_done", name: "按时提交工作总结", category: "daily_compliance", points: 3, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "next_day_plan_done", name: "完成次日工作计划", category: "daily_compliance", points: 2, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "report_quality_excellent", name: "工作报告质量优秀", category: "daily_compliance", points: 5, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "report_quality_poor", name: "工作报告质量低下", category: "penalty", points: -5, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "task_complete_p0", name: "完成P0任务", category: "task_completion", points: 10, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "task_complete_p1", name: "完成P1任务", category: "task_completion", points: 5, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "task_overdue", name: "任务逾期", category: "penalty", points: -3, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "quality_zero_defect", name: "月度零缺陷", category: "quality", points: 20, roleMultipliers: null },
-  { code: "timesheet_complete", name: "按时填报工时", category: "daily_compliance", points: 2, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "timesheet_missing", name: "未填报工时", category: "penalty", points: -5, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "timesheet_incomplete", name: "工时填报不完整", category: "penalty", points: -3, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "timesheet_falsified", name: "工时虚报", category: "penalty", points: -20, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "unapproved_late", name: "未申请批准的迟到", category: "penalty", points: -8, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "unapproved_early_leave", name: "未申请批准的早退", category: "penalty", points: -8, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "late_penalty", name: "迟到扣分", category: "penalty", points: -3, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "unauthorized_excursion", name: "非休息时段离岗", category: "penalty", points: -5, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "perfect_attendance_month", name: "月度全勤", category: "attendance", points: 20, roleMultipliers: null },
-  { code: "patent_filed", name: "专利申请", category: "innovation", points: 50, roleMultipliers: null },
-  { code: "mentor_session", name: "指导同事", category: "collaboration", points: 5, roleMultipliers: null },
-  { code: "referral_hired_junior", name: "推荐候选人入职(工程师以下)", category: "collaboration", points: 300, roleMultipliers: null },
-  { code: "referral_hired_senior", name: "推荐候选人入职(工程师以上)", category: "collaboration", points: 500, roleMultipliers: null },
-  { code: "training_cert_earned", name: "获得认证", category: "training", points: 20, roleMultipliers: null },
-  { code: "bu_weekly_report_missing", name: "事业部周报未提交", category: "penalty", points: -20, roleMultipliers: { bu_gm: 100, director: 100 } },
-  // 红黑榜处罚 (from existing violation_events system)
-  { code: "violation_minor", name: "一般违规(MINOR)", category: "penalty", points: -10, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "violation_major", name: "重大违规(MAJOR)", category: "penalty", points: -50, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "violation_critical", name: "严重违规(CRITICAL)", category: "penalty", points: -100, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "violation_quality_defect", name: "质量缺陷违规", category: "penalty", points: -15, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "violation_safety_incident", name: "安全事故违规", category: "penalty", points: -30, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "violation_customer_complaint", name: "客户投诉违规", category: "penalty", points: -20, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  // 红榜奖励
-  { code: "honor_top_performer", name: "红榜月度标兵", category: "quality", points: 30, roleMultipliers: null },
-  { code: "honor_zero_defect_streak", name: "红榜连续零缺陷", category: "quality", points: 50, roleMultipliers: null },
-  { code: "honor_customer_praise", name: "红榜客户表扬", category: "quality", points: 25, roleMultipliers: null },
-  { code: "honor_innovation_award", name: "红榜创新之星", category: "innovation", points: 100, roleMultipliers: null },
-  // 绩效积分联动
-  { code: "perf_kpi_above_85", name: "KPI达到85分以上", category: "performance", points: 200, roleMultipliers: null },
-  { code: "perf_kpi_below_60", name: "KPI低于60分", category: "performance", points: -50, roleMultipliers: null },
-  { code: "perf_3month_improvement", name: "连续3月绩效提升20%", category: "performance", points: 50, roleMultipliers: null },
-  { code: "perf_3month_decline", name: "连续3月绩效下降20%", category: "performance", points: -100, roleMultipliers: null },
-  // 合理化建议
-  { code: "suggestion_effective", name: "有效建议", category: "innovation", points: 50, roleMultipliers: null },
-  { code: "suggestion_outstanding", name: "突出价值建议", category: "innovation", points: 500, roleMultipliers: null },
-  { code: "suggestion_major", name: "重大价值建议", category: "innovation", points: 5000, roleMultipliers: null },
-  // 销售工程师KPI
-  { code: "sales_first_order_3m", name: "新销售工程师首单≥300万", category: "quality", points: 1000, roleMultipliers: null },
-  { code: "sales_no_order_6month", name: "连续6个月无订单", category: "penalty", points: -1000, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "sales_no_order_ongoing", name: "无订单持续处罚(每月递增)", category: "penalty", points: -1000, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  // 销售M2漏斗
-  { code: "sales_m2_shortfall_initial", name: "连续2月新客户未达M2(≥3个)", category: "penalty", points: -500, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "sales_m2_shortfall_escalate", name: "新客户M2不达标持续翻倍处罚", category: "penalty", points: -1000, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  // 各岗位KPI不达标 (连续2月首罚-500，后续翻倍)
-  { code: "rnd_milestone_miss_initial", name: "研发连续2月里程碑未达成", category: "penalty", points: -500, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "qa_complaint_rate_initial", name: "质量连续2月投诉率超标", category: "penalty", points: -500, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "mfg_oee_miss_initial", name: "生产连续2月OEE不达标", category: "penalty", points: -500, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "pm_delay_rate_initial", name: "PM连续2月项目延期率超标", category: "penalty", points: -500, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "cs_closure_rate_initial", name: "售后连续2月工单关闭率不达标", category: "penalty", points: -500, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "proc_delivery_miss_initial", name: "采购连续2月供应商交付不达标", category: "penalty", points: -500, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "bu_gm_profit_miss_initial", name: "BU经理连续2月利润率不达标", category: "penalty", points: -500, roleMultipliers: { bu_gm: 100 } },
-  { code: "hr_vacancy_miss_initial", name: "HR连续2月关键岗位空缺超标", category: "penalty", points: -500, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  // 团队高绩效奖励
-  { code: "team_quarterly_top", name: "季度最佳团队", category: "quality", points: 100, roleMultipliers: null },
-  { code: "team_project_delivery", name: "项目按时交付团队奖", category: "quality", points: 80, roleMultipliers: null },
-  { code: "team_zero_defect_quarter", name: "团队季度零缺陷", category: "quality", points: 150, roleMultipliers: null },
-  { code: "team_customer_satisfaction", name: "团队客户满意度≥95%", category: "quality", points: 100, roleMultipliers: null },
-  { code: "team_innovation_award", name: "团队创新突破奖", category: "innovation", points: 200, roleMultipliers: null },
-  { code: "team_cost_saving", name: "团队降本增效奖(节省≥50万)", category: "quality", points: 300, roleMultipliers: null },
-  // 团队低作风处罚
-  { code: "team_conduct_poor_collab", name: "团队协作不力", category: "penalty", points: -50, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "team_conduct_meeting_waste", name: "团队会议效率低下", category: "penalty", points: -30, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "team_conduct_blame_culture", name: "团队推卸责任", category: "penalty", points: -80, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "team_conduct_info_silo", name: "团队信息孤岛", category: "penalty", points: -60, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "team_conduct_deadline_miss", name: "团队集体延期", category: "penalty", points: -100, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  // 项目高绩效奖励
-  { code: "project_ahead_of_schedule", name: "项目提前交付", category: "quality", points: 100, roleMultipliers: null },
-  { code: "project_budget_under", name: "项目低于预算交付", category: "quality", points: 120, roleMultipliers: null },
-  { code: "project_customer_praise", name: "项目获客户表彰", category: "quality", points: 150, roleMultipliers: null },
-  { code: "project_best_practice", name: "项目最佳实践沉淀", category: "innovation", points: 80, roleMultipliers: null },
-  // 项目低作风处罚
-  { code: "project_conduct_no_report", name: "项目周报连续缺失", category: "penalty", points: -50, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "project_conduct_risk_hide", name: "项目风险隐瞒", category: "penalty", points: -200, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "project_conduct_scope_creep", name: "项目需求镀金", category: "penalty", points: -80, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "project_conduct_quality_cut", name: "项目质量偷工减料", category: "penalty", points: -150, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "project_conduct_handover_fail", name: "项目交接不清", category: "penalty", points: -60, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  // 个人表现 vs 作风
-  { code: "individual_high_output_low_teamwork", name: "高产出低团队意识", category: "penalty", points: -30, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "individual_technical_arrogance", name: "技术傲慢", category: "penalty", points: -40, roleMultipliers: { employee: 1, engineer: 10, manager: 100 } },
-  { code: "individual_mentor_excellence", name: "优秀导师", category: "collaboration", points: 100, roleMultipliers: null },
-  { code: "individual_cross_dept_collab", name: "跨部门协作之星", category: "collaboration", points: 80, roleMultipliers: null },
-  { code: "individual_knowledge_sharing", name: "知识分享达人", category: "collaboration", points: 60, roleMultipliers: null },
-  // 职场行为规范
-  { code: "conduct_disrupt_others", name: "吵架等行为影响他人工作", category: "penalty", points: -1000, roleMultipliers: { employee: 1, engineer: 10, manager: 100, bu_gm: 100 } },
-  { code: "conduct_damage_culture", name: "损害公司文化形象", category: "penalty", points: -2000, roleMultipliers: { employee: 1, engineer: 10, manager: 100, bu_gm: 100 } },
-  // 见义勇为/吹哨人
-  { code: "courage_act", name: "见义勇为", category: "quality", points: 2000, roleMultipliers: null },
-  { code: "crisis_handling", name: "重大险情处置得当", category: "quality", points: 2000, roleMultipliers: null },
-  { code: "whistleblower_prevent", name: "吹哨人阻止/降低不当行为影响", category: "quality", points: 2000, roleMultipliers: null },
-  // 重大成就与重大失误 ±1000
-  { code: "project_exceptional", name: "项目高表现(重大成就)", category: "quality", points: 1000, roleMultipliers: null },
-  { code: "project_major_failure", name: "项目重大失误", category: "penalty", points: -1000, roleMultipliers: { employee: 1, engineer: 10, manager: 100, bu_gm: 100 } },
-  { code: "customer_high_praise", name: "客户高评价(重大表彰)", category: "quality", points: 1000, roleMultipliers: null },
-  { code: "customer_major_complaint", name: "客户重大投诉/流失", category: "penalty", points: -1000, roleMultipliers: { employee: 1, engineer: 10, manager: 100, bu_gm: 100 } },
-  { code: "major_mistake_prevented", name: "重大失误避免", category: "quality", points: 1000, roleMultipliers: null },
-  { code: "major_mistake_caused", name: "造成重大失误", category: "penalty", points: -1000, roleMultipliers: { employee: 1, engineer: 10, manager: 100, bu_gm: 100 } },
-  { code: "assembly_debug_innovation", name: "装配调试重大创新", category: "innovation", points: 1000, roleMultipliers: null },
-  { code: "assembly_debug_negligence", name: "装配调试重大失误", category: "penalty", points: -1000, roleMultipliers: { employee: 1, engineer: 10, manager: 100, bu_gm: 100 } },
-];
-
-const MOCK_CATALOG = [
-  { code: "leave_half_day", name: "半天带薪休假", pointsCost: 200, category: "leave", description: "积分兑换半天带薪休假" },
-  { code: "leave_full_day", name: "一天带薪休假", pointsCost: 400, category: "leave", description: "积分兑换一天带薪休假" },
-  { code: "leave_3days", name: "三天带薪休假", pointsCost: 1000, category: "leave", description: "积分兑换三天带薪休假" },
-  { code: "travel_eu_2wk", name: "GRT欧洲公司工作2周", pointsCost: 3000, category: "travel", description: "前往GRT欧洲公司工作交流2周，含机票住宿" },
-  { code: "travel_eu_4wk", name: "GRT欧洲公司工作4周", pointsCost: 5000, category: "travel", description: "前往GRT欧洲公司工作交流4周，含机票住宿" },
-  { code: "travel_us_2wk", name: "GRT美国公司工作2周", pointsCost: 3500, category: "travel", description: "前往GRT美国公司工作交流2周，含机票住宿" },
-  { code: "travel_us_4wk", name: "GRT美国公司工作4周", pointsCost: 6000, category: "travel", description: "前往GRT美国公司工作交流4周，含机票住宿" },
-  { code: "gift_card_200", name: "200元购物卡", pointsCost: 100, category: "gift", description: "200元电商平台购物卡" },
-  { code: "gift_card_500", name: "500元购物卡", pointsCost: 250, category: "gift", description: "500元电商平台购物卡" },
-  { code: "training_budget", name: "培训经费3000元", pointsCost: 500, category: "training", description: "可用于外部培训课程报名" },
-  { code: "parking_month", name: "一个月免费停车位", pointsCost: 150, category: "benefit", description: "公司停车场免费使用一个月" },
-];
-
-const MOCK_LEADERBOARD = [
-  { rank: 1, employeeName: "曹庆伟", department: "研发部", ytdPoints: 1250, isOnObservation: false },
-  { rank: 2, employeeName: "殷小勇", department: "生产部", ytdPoints: 1100, isOnObservation: false },
-  { rank: 3, employeeName: "马林山", department: "质量部", ytdPoints: 980, isOnObservation: false },
-  { rank: 4, employeeName: "吴卫成", department: "销售部", ytdPoints: 870, isOnObservation: false },
-  { rank: 5, employeeName: "张超", department: "事业一部", ytdPoints: 760, isOnObservation: false },
-  { rank: 6, employeeName: "戴晓燕", department: "人事部", ytdPoints: 650, isOnObservation: false },
-  { rank: 7, employeeName: "杨勇", department: "事业三部", ytdPoints: 520, isOnObservation: false },
-  { rank: 8, employeeName: "黄晓兰", department: "财务部", ytdPoints: 480, isOnObservation: false, isExcellenceSuspended: true },
-];
-
-const MOCK_HISTORY = [
-  { id: 1, ruleCode: "morning_plan_ontime", type: "award", points: 3, balanceAfter: 486, description: "按时提交晨间工作计划", transactionDate: "2026-03-13" },
-  { id: 2, ruleCode: "evening_summary_done", type: "award", points: 3, balanceAfter: 483, description: "按时提交工作总结", transactionDate: "2026-03-12" },
-  { id: 3, ruleCode: "next_day_plan_done", type: "award", points: 2, balanceAfter: 480, description: "完成次日工作计划", transactionDate: "2026-03-12" },
-  { id: 4, ruleCode: "task_complete_p1", type: "award", points: 5, balanceAfter: 478, description: "完成P1任务", transactionDate: "2026-03-12" },
-  { id: 5, ruleCode: "morning_plan_late", type: "penalty", points: -2, balanceAfter: 473, description: "晨间工作计划迟交", transactionDate: "2026-03-11" },
-  { id: 6, ruleCode: "unapproved_late", type: "penalty", points: -8, balanceAfter: 475, description: "未申请批准的迟到", transactionDate: "2026-03-10" },
-];
-
-const MOCK_SUGGESTIONS = [
-  { id: 1, title: "优化清洗机喷嘴压力检测流程", category: "quality", status: "effective", pointsAwarded: 50, employeeName: "曹庆伟", department: "研发部", submittedAt: "2026-03-10", evaluatorNotes: "流程改善可减少10%不良率" },
-  { id: 2, title: "引入自动化BOM对比工具减少手动核对", category: "process", status: "outstanding", pointsAwarded: 500, employeeName: "殷小勇", department: "生产部", submittedAt: "2026-03-05", evaluatorNotes: "每月节省约40工时，突出价值" },
-  { id: 3, title: "车间安全通道标识升级方案", category: "safety", status: "submitted", pointsAwarded: 0, employeeName: "马林山", department: "质量部", submittedAt: "2026-03-12", evaluatorNotes: null },
-  { id: 4, title: "客户投诉响应SLA从48h缩短至24h", category: "process", status: "under_review", pointsAwarded: 0, employeeName: "张良", department: "售后部", submittedAt: "2026-03-08", evaluatorNotes: "评审为突出价值建议，待CEO审批" },
-  { id: 5, title: "统一五个事业部供应商评估体系", category: "cost", status: "major", pointsAwarded: 5000, employeeName: "杨勇", department: "采购部", submittedAt: "2026-02-20", evaluatorNotes: "预计年节省采购成本200万+，重大价值建议" },
-];
 
 const SUGGESTION_STATUS_MAP: Record<string, { label: string; color: string }> = {
   draft: { label: "草稿", color: "bg-gray-100 text-gray-700" },
@@ -215,14 +57,6 @@ const SUGGESTION_TIER_POINTS: Record<string, number> = {
   major: 5000,
 };
 
-const MOCK_COMMUNITY_POSTS = [
-  { id: 1, type: "announcement", title: "【荣誉通报】刘坤同事积分突破20,000分", content: "采购部刘坤同事凭借出色的供应商管理和重大价值建议，积分累计突破20,000分，特此通报表彰！", date: "2026-03-13", pinned: true, requiresAck: true, acked: false, views: 234, likes: 56, acks: 72, totalRecipients: 97 }, // demo
-  { id: 2, type: "announcement", title: "【合理化建议特别公告】统一五个事业部供应商评估体系", content: "采购部刘坤同事提交的重大价值建议已被采纳，预计年节省采购成本200万+，奖励积分+5,000", date: "2026-03-12", pinned: true, requiresAck: true, acked: true, views: 189, likes: 43, acks: 85, totalRecipients: 97 },
-  { id: 3, type: "achievement", title: "2026年Q1优秀员工表彰", content: "恭喜以下同事获得2026年第一季度优秀员工称号：徐家乐(研发部)、韩保程(生产部)、赵雪(质量部)", date: "2026-03-11", pinned: false, requiresAck: false, acked: false, views: 156, likes: 38, acks: 0, totalRecipients: 0 },
-  { id: 4, type: "notice", title: "关于3月安全生产检查的通知", content: "各部门请于3月15日前完成安全隐患自查，检查结果提交至质量部。重点检查消防通道、电气设备、化学品存储。", date: "2026-03-10", pinned: false, requiresAck: true, acked: true, views: 145, likes: 12, acks: 89, totalRecipients: 97 },
-  { id: 5, type: "knowledge", title: "IATF 16949内审经验分享", content: "质量部赵雪分享了最近一次IATF 16949体系内审的经验和发现的共性问题，包括文件控制、过程审核要点等。", date: "2026-03-09", pinned: false, requiresAck: false, acked: false, views: 98, likes: 25, acks: 0, totalRecipients: 0 },
-  { id: 6, type: "discussion", title: "新产线调试心得与建议", content: "生产部韩保程：上周完成半导体清洗新产线调试，分享几点心得供大家参考...", date: "2026-03-08", pinned: false, requiresAck: false, acked: false, views: 67, likes: 18, acks: 0, totalRecipients: 0 },
-];
 
 // ── Category Config ──
 const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -250,12 +84,79 @@ const CATALOG_ICONS: Record<string, React.ReactNode> = {
 
 export default function EmployeePointsCenter() {
   const { t } = useLanguage();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("dashboard");
-  const balance = MOCK_BALANCE;
-  const compliance = MOCK_COMPLIANCE;
+
+  // ── Sandbox enhancements ──
+  const { shortcutOverlayOpen, setShortcutOverlayOpen, shortcuts, lastSaved, isSaving } = useSandboxPageEnhancements({
+    sandboxShortcuts: [
+      { key: "ctrl+e", label: "添加证据", labelEn: "Add evidence", action: () => toast({ title: "添加证据" }) },
+    ],
+    autoSave: {
+      data: { activeTab },
+      onSave: async (d) => { localStorage.setItem("grt-sb-perf-points", JSON.stringify(d)); },
+    },
+  });
+
+  // ── tRPC Queries ──
+  const ep = trpc.employeePoints as any;
+  const balanceQ = ep.balance.getMine.useQuery();
+  const complianceQ = ep.compliance.getStatus.useQuery();
+  const rulesQ = ep.rules.list.useQuery();
+  const catalogQ = ep.catalog.list.useQuery();
+  const leaderboardQ = ep.balance.leaderboard.useQuery({ limit: 50 });
+  const historyQ = ep.history.list.useQuery({ limit: 100 });
+  const suggestionsQ = ep.suggestion.list.useQuery();
+  const communityQ = ep.community.listPosts.useQuery({ limit: 50 });
+  const communityStatsQ = ep.community.stats.useQuery();
+  const suggestionStatsQ = ep.suggestion.stats.useQuery();
+  const observationQ = ep.admin.observationList.useQuery();
+
+  // ── tRPC Mutations ──
+  const completeMorningPlan = ep.compliance.completeMorningPlan.useMutation({
+    onSuccess: () => { complianceQ.refetch(); balanceQ.refetch(); toast({ title: "晨间工作计划已完成" }); },
+    onError: (e: any) => toast({ title: "操作失败", description: e.message, variant: "destructive" }),
+  });
+  const completeEveningSummary = ep.compliance.completeEveningSummary.useMutation({
+    onSuccess: () => { complianceQ.refetch(); balanceQ.refetch(); toast({ title: "工作总结已完成" }); },
+    onError: (e: any) => toast({ title: "操作失败", description: e.message, variant: "destructive" }),
+  });
+  const completeNextDayPlan = ep.compliance.completeNextDayPlan.useMutation({
+    onSuccess: () => { complianceQ.refetch(); balanceQ.refetch(); toast({ title: "次日工作计划已完成" }); },
+    onError: (e: any) => toast({ title: "操作失败", description: e.message, variant: "destructive" }),
+  });
+  const redeemMut = ep.catalog.redeem.useMutation({
+    onSuccess: () => { balanceQ.refetch(); toast({ title: "兑换申请已提交" }); },
+    onError: (e: any) => toast({ title: "兑换失败", description: e.message, variant: "destructive" }),
+  });
+  const submitSuggestionMut = ep.suggestion.submit.useMutation({
+    onSuccess: () => { suggestionsQ.refetch(); suggestionStatsQ.refetch(); toast({ title: "建议已提交" }); },
+    onError: (e: any) => toast({ title: "提交失败", description: e.message, variant: "destructive" }),
+  });
+  const likeMut = ep.community.like.useMutation({
+    onSuccess: () => { communityQ.refetch(); },
+    onError: (e: any) => toast({ title: "操作失败", description: e.message, variant: "destructive" }),
+  });
+  const ackMut = ep.community.acknowledge.useMutation({
+    onSuccess: () => { communityQ.refetch(); toast({ title: "已确认" }); },
+    onError: (e: any) => toast({ title: "操作失败", description: e.message, variant: "destructive" }),
+  });
+
+  // ── Derived data with defaults ──
+  const balance = balanceQ.data ?? { currentBalance: 0, totalEarned: 0, totalSpent: 0, totalPenalties: 0, ytdPoints: 0, isOnObservation: false, isExcellenceSuspended: false, excellenceSuspendedUntil: null };
+  const compliance = complianceQ.data ?? { morningPlan: null, eveningSummary: null, nextDayPlan: null };
+  const rules: any[] = rulesQ.data ?? [];
+  const catalog: any[] = catalogQ.data ?? [];
+  const leaderboard: any[] = leaderboardQ.data ?? [];
+  const history: any[] = historyQ.data ?? [];
+  const suggestions: any[] = suggestionsQ.data ?? [];
+  const communityPosts: any[] = communityQ.data ?? [];
+  const communityStats = communityStatsQ.data as any;
+  const observationList: any[] = observationQ.data ?? [];
 
   return (
     <div className="p-4 md:p-6 space-y-4">
+      <ShortcutOverlay open={shortcutOverlayOpen} onClose={() => setShortcutOverlayOpen(false)} commonShortcuts={shortcuts.commonShortcuts} sandboxShortcuts={shortcuts.sandboxShortcuts} sandboxTitle="绩效积分" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">GRT员工积分中心</h1>
@@ -263,7 +164,7 @@ export default function EmployeePointsCenter() {
         </div>
         <Badge variant="outline" className="text-lg px-4 py-1">
           <Star className="w-4 h-4 mr-1 text-amber-500" />
-          {balance.currentBalance} 分
+          {balanceQ.isLoading ? "..." : balance.currentBalance} 分
         </Badge>
       </div>
 
@@ -394,7 +295,8 @@ export default function EmployeePointsCenter() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {MOCK_HISTORY.slice(0, 5).map(tx => (
+                {historyQ.isLoading && <LoadingBlock />}
+                {history.slice(0, 5).map((tx: any) => (
                   <div key={tx.id} className="flex items-center justify-between py-1.5 border-b last:border-0">
                     <div className="flex items-center gap-2">
                       {tx.points > 0 ? <TrendingUp className="w-4 h-4 text-green-500" /> : <TrendingDown className="w-4 h-4 text-red-500" />}
@@ -426,8 +328,9 @@ export default function EmployeePointsCenter() {
           </Card>
 
           {/* Group rules by category */}
+          {rulesQ.isLoading && <LoadingBlock />}
           {Object.entries(CATEGORY_CONFIG).map(([catKey, catCfg]) => {
-            const catRules = MOCK_RULES.filter(r => r.category === catKey);
+            const catRules = rules.filter((r: any) => r.category === catKey);
             if (catRules.length === 0) return null;
             return (
               <Card key={catKey}>
@@ -493,7 +396,8 @@ export default function EmployeePointsCenter() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {MOCK_LEADERBOARD.map(entry => (
+                {leaderboardQ.isLoading && <LoadingBlock />}
+                {leaderboard.map((entry: any) => (
                   <div key={entry.rank} className={`flex items-center justify-between p-3 rounded-lg border ${entry.rank <= 3 ? "bg-amber-50 border-amber-200" : ""}`}>
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
@@ -524,7 +428,8 @@ export default function EmployeePointsCenter() {
         {/* Tab 4: Redemption Catalog */}
         <TabsContent value="catalog" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {MOCK_CATALOG.map(item => {
+            {catalogQ.isLoading && <LoadingBlock />}
+            {catalog.map((item: any) => {
               const canAfford = balance.currentBalance >= item.pointsCost;
               return (
                 <Card key={item.code} className={!canAfford ? "opacity-60" : ""}>
@@ -541,8 +446,13 @@ export default function EmployeePointsCenter() {
                             <Star className="w-3 h-3 mr-1 text-amber-500" />
                             {item.pointsCost} 分
                           </Badge>
-                          <Button size="sm" disabled={!canAfford} variant={canAfford ? "default" : "secondary"}>
-                            {canAfford ? "兑换" : "积分不足"}
+                          <Button
+                            size="sm"
+                            disabled={!canAfford || redeemMut.isPending}
+                            variant={canAfford ? "default" : "secondary"}
+                            onClick={() => redeemMut.mutate({ catalogCode: item.code })}
+                          >
+                            {redeemMut.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : canAfford ? "兑换" : "积分不足"}
                           </Button>
                         </div>
                       </div>
@@ -573,7 +483,8 @@ export default function EmployeePointsCenter() {
                     </tr>
                   </thead>
                   <tbody>
-                    {MOCK_HISTORY.map(tx => (
+                    {historyQ.isLoading && <tr><td colSpan={5}><LoadingBlock /></td></tr>}
+                    {history.map((tx: any) => (
                       <tr key={tx.id} className="border-b">
                         <td className="p-2 text-muted-foreground">{tx.transactionDate}</td>
                         <td className="p-2">{tx.description}</td>
@@ -602,28 +513,28 @@ export default function EmployeePointsCenter() {
             <Card>
               <CardContent className="p-4 text-center">
                 <Lightbulb className="w-6 h-6 mx-auto mb-1 text-amber-500" />
-                <div className="text-2xl font-bold">{MOCK_SUGGESTIONS.length}</div>
+                <div className="text-2xl font-bold">{suggestionStatsQ.isLoading ? "..." : (suggestionStatsQ.data as any)?.total ?? suggestions.length}</div>
                 <div className="text-xs text-muted-foreground">总建议数</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <CheckCircle className="w-6 h-6 mx-auto mb-1 text-green-500" />
-                <div className="text-2xl font-bold">{MOCK_SUGGESTIONS.filter(s => ["effective", "outstanding", "major", "implemented"].includes(s.status)).length}</div>
+                <div className="text-2xl font-bold">{suggestionStatsQ.isLoading ? "..." : (suggestionStatsQ.data as any)?.adopted ?? suggestions.filter((s: any) => ["effective", "outstanding", "major", "implemented"].includes(s.status)).length}</div>
                 <div className="text-xs text-muted-foreground">已采纳</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <Star className="w-6 h-6 mx-auto mb-1 text-purple-500" />
-                <div className="text-2xl font-bold">{MOCK_SUGGESTIONS.reduce((s, r) => s + r.pointsAwarded, 0)}</div>
+                <div className="text-2xl font-bold">{suggestionStatsQ.isLoading ? "..." : (suggestionStatsQ.data as any)?.totalPointsAwarded ?? suggestions.reduce((s: number, r: any) => s + (r.pointsAwarded ?? 0), 0)}</div>
                 <div className="text-xs text-muted-foreground">累计奖励积分</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <Clock className="w-6 h-6 mx-auto mb-1 text-blue-500" />
-                <div className="text-2xl font-bold">{MOCK_SUGGESTIONS.filter(s => ["submitted", "under_review"].includes(s.status)).length}</div>
+                <div className="text-2xl font-bold">{suggestionStatsQ.isLoading ? "..." : (suggestionStatsQ.data as any)?.pending ?? suggestions.filter((s: any) => ["submitted", "under_review"].includes(s.status)).length}</div>
                 <div className="text-xs text-muted-foreground">待评审</div>
               </CardContent>
             </Card>
@@ -641,8 +552,18 @@ export default function EmployeePointsCenter() {
                   <div className="text-xs text-muted-foreground">有效建议50分 | 突出价值建议500分 | 重大价值建议5000分</div>
                 </div>
               </div>
-              <Button size="sm">
-                <Send className="w-4 h-4 mr-1" />
+              <Button
+                size="sm"
+                disabled={submitSuggestionMut.isPending}
+                onClick={() => {
+                  const title = prompt("建议标题:");
+                  if (!title) return;
+                  const description = prompt("建议详细描述 (至少10个字):");
+                  if (!description || description.length < 10) { toast({ title: "描述至少10个字", variant: "destructive" }); return; }
+                  submitSuggestionMut.mutate({ title, description });
+                }}
+              >
+                {submitSuggestionMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Send className="w-4 h-4 mr-1" />}
                 提交建议
               </Button>
             </CardContent>
@@ -685,7 +606,8 @@ export default function EmployeePointsCenter() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {MOCK_SUGGESTIONS.map(s => {
+                {suggestionsQ.isLoading && <LoadingBlock />}
+                {suggestions.map((s: any) => {
                   const statusInfo = SUGGESTION_STATUS_MAP[s.status] ?? { label: s.status, color: "bg-gray-100" };
                   return (
                     <div key={s.id} className="p-3 rounded-lg border hover:border-amber-300 transition-colors">
@@ -720,10 +642,10 @@ export default function EmployeePointsCenter() {
         <TabsContent value="community" className="space-y-4">
           <div className="grid grid-cols-4 gap-4 mb-4">
             {[
-              { label: "公告通知", count: 12, icon: <FileText className="w-4 h-4" />, color: "text-blue-600" },
-              { label: "员工讨论", count: 28, icon: <MessageSquare className="w-4 h-4" />, color: "text-green-600" },
-              { label: "荣誉成就", count: 8, icon: <Trophy className="w-4 h-4" />, color: "text-yellow-600" },
-              { label: "知识分享", count: 15, icon: <Lightbulb className="w-4 h-4" />, color: "text-purple-600" },
+              { label: "公告通知", count: communityStats?.announcements ?? 0, icon: <FileText className="w-4 h-4" />, color: "text-blue-600" },
+              { label: "员工讨论", count: communityStats?.discussions ?? 0, icon: <MessageSquare className="w-4 h-4" />, color: "text-green-600" },
+              { label: "荣誉成就", count: communityStats?.achievements ?? 0, icon: <Trophy className="w-4 h-4" />, color: "text-yellow-600" },
+              { label: "知识分享", count: communityStats?.knowledge ?? 0, icon: <Lightbulb className="w-4 h-4" />, color: "text-purple-600" },
             ].map(s => (
               <Card key={s.label}>
                 <CardContent className="p-4 flex items-center gap-3">
@@ -747,7 +669,8 @@ export default function EmployeePointsCenter() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {MOCK_COMMUNITY_POSTS.map(post => (
+                {communityQ.isLoading && <LoadingBlock />}
+                {communityPosts.map((post: any) => (
                   <div key={post.id} className="border rounded-lg p-4 hover:bg-muted/30 transition-colors">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -769,9 +692,9 @@ export default function EmployeePointsCenter() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 mt-2">
-                      <Button variant="ghost" size="sm" className="h-7 text-xs">👍 点赞</Button>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" disabled={likeMut.isPending} onClick={() => likeMut.mutate({ postId: post.id })}>👍 点赞</Button>
                       {post.requiresAck && !post.acked && (
-                        <Button variant="outline" size="sm" className="h-7 text-xs border-orange-400 text-orange-600">确认已读</Button>
+                        <Button variant="outline" size="sm" className="h-7 text-xs border-orange-400 text-orange-600" disabled={ackMut.isPending} onClick={() => ackMut.mutate({ postId: post.id })}>确认已读</Button>
                       )}
                       {post.requiresAck && post.acked && (
                         <span className="text-xs text-green-600 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> 已确认</span>
@@ -810,11 +733,30 @@ export default function EmployeePointsCenter() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <ShieldAlert className="w-12 h-12 mx-auto mb-2 text-muted-foreground/30" />
-                <p>当前无员工处于观察名录中</p>
-                <p className="text-xs mt-1">系统会自动监控积分阈值并执行对应措施</p>
-              </div>
+              {observationQ.isLoading && <LoadingBlock />}
+              {!observationQ.isLoading && observationList.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ShieldAlert className="w-12 h-12 mx-auto mb-2 text-muted-foreground/30" />
+                  <p>当前无员工处于观察名录中</p>
+                  <p className="text-xs mt-1">系统会自动监控积分阈值并执行对应措施</p>
+                </div>
+              )}
+              {observationList.length > 0 && (
+                <div className="space-y-2">
+                  {observationList.map((emp: any, i: number) => (
+                    <div key={emp.id ?? i} className="flex items-center justify-between p-3 rounded-lg border border-red-200 bg-red-50/50">
+                      <div>
+                        <div className="font-medium">{emp.employeeName ?? emp.name}</div>
+                        <div className="text-xs text-muted-foreground">{emp.department}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-red-600">{emp.currentBalance ?? emp.points} 分</div>
+                        <Badge variant="destructive" className="text-[10px]">{emp.status === "observation" ? "观察名录" : "评优暂停"}</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -471,3 +471,37 @@ aside nav.sidebar-scroll {
   overflow-y: auto !important;
   overflow-x: hidden;
 }
+
+/* ── Sandbox Shell dark theme overrides ── */
+.dark-sop-stepper {
+  --background: #0d1321;
+  --foreground: #e2e8f0;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --primary: #22d3ee;
+  --primary-foreground: #0a0f18;
+  --border: #1e293b;
+  color: #e2e8f0;
+}
+.dark-sop-stepper button { color: inherit; }
+.dark-sop-stepper .border-t { border-color: #1e293b; }
+
+.dark-agent-panel {
+  --background: #0d1321;
+  --foreground: #e2e8f0;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --primary: #22d3ee;
+  --primary-foreground: #0a0f18;
+  --border: #1e293b;
+  --ring: #22d3ee;
+  color: #e2e8f0;
+}
+.dark-agent-panel .border-b,
+.dark-agent-panel .border-t { border-color: #1e293b; }
+.dark-agent-panel textarea {
+  background: #0a0f18;
+  border-color: #1e293b;
+  color: #e2e8f0;
+}
+.dark-agent-panel textarea::placeholder { color: #475569; }

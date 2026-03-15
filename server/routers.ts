@@ -317,6 +317,7 @@ import { semiconductorCleaningRouter } from "./routers/semiconductor-cleaning.ro
 import { targetedShowcaseRouter } from "./routers/targeted-showcase.router";
 import { marketingPlatformRouter } from "./routers/marketing-platform.router";
 import { customerAuthorizationRouter } from "./routers/customer-authorization.router";
+import { customerConfigSandboxRouter } from "./routers/customer-config-sandbox.router";
 import { smartProductionSchedulingRouter } from "./routers/smart-production-scheduling.router";
 import { rndNpiRouter } from "./routers/rnd-npi.router";
 import { pdmRouter } from "./routers/pdm.router";
@@ -324,6 +325,7 @@ import { orgDocumentRouter } from "./routers/org-document.router";
 import { crossDeptSlaRouter } from "./routers/cross-dept-sla.router";
 import { devEnvRouter } from "./routers/dev-env.router";
 import { goLiveRouter } from "./routers/go-live.router";
+import { realOrderFlowRouter } from "./routers/real-order-flow.router";
 import { payrollRouter } from "./routers/payroll.router";
 import { attendanceClockRouter } from "./routers/attendance-clock.router";
 import { perfCalibrationRouter } from "./routers/perf-calibration.router";
@@ -340,6 +342,9 @@ import { deptProcedureRouter } from "./routers/dept-procedure.router";
 import { remoteGovernanceRouter } from "./routers/remote-governance.router";
 import { electricalStandardsRouter } from "./routers/electrical-standards.router";
 import { mechanicalConfigRouter } from "./routers/mechanical-config.router";
+import { payrollSandboxRouter } from "./routers/payroll-sandbox.router";
+import { payrollAgentRouter } from "./routers/payroll-agent.router";
+import { scenarioInitRouter } from "./routers/scenario-init.router";
 
 /**
  * This is the primary router for the tRPC API.
@@ -858,6 +863,8 @@ export const appRouter = router({
 
   // Customer Authorization — 客户授权与文档版本有效控制
   customerAuthorization: customerAuthorizationRouter,
+  // Customer Config Sandbox — 客户商业档案契约 (⑨)
+  customerConfigSandbox: customerConfigSandboxRouter,
 
   // 智慧排程工作台 — BOM工时分解+约束排程+里程碑追踪+智能排程
   smartProductionScheduling: smartProductionSchedulingRouter,
@@ -889,6 +896,7 @@ export const appRouter = router({
 
   // Go-Live Command Center — 上线指挥中心 (readiness, salary import, encoding, simulation)
   goLive: goLiveRouter,
+  realOrderFlow: realOrderFlowRouter,
 
   // Smart Payroll Engine — 薪资计算与审批 (structures, attendance, performance, ledger, awards)
   payroll: payrollRouter,
@@ -937,6 +945,15 @@ export const appRouter = router({
 
   // Mechanical Config Standards — 机械配置标准治理平台 (GRT/OEM/ISO, knowledge graph, quotation compliance, acceptance)
   mechanicalConfig: mechanicalConfigRouter,
+
+  // Payroll Sandbox — 薪资沙盘试算 (input import, calc engine, result comparison, adjustment, payout)
+  payrollSandbox: payrollSandboxRouter,
+
+  // Payroll Agent — 薪酬智能代理 (calc pipeline + AI performance summary + email notification + goals)
+  payrollAgent: payrollAgentRouter,
+
+  // Scenario Init — 沙盘场景数据注入 (13 init procedures + 3 batch launchers)
+  scenarioInit: scenarioInitRouter,
 
   // Health check endpoint
   health: publicProcedure.query(async () => {

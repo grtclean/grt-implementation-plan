@@ -1,11 +1,12 @@
 /**
  * 智慧排程工作台 — tRPC Router
  *
- * 4 sub-routers, ~26 procedures:
+ * 5 sub-routers, ~31 procedures:
  *   A: BOM工时 (8 procedures)
  *   B: 前置与物料 (6 procedures)
  *   C: 里程碑 (6 procedures)
  *   D: 智能排程 (6 procedures)
+ *   E: 任务报工 (5 procedures)
  */
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
@@ -16,9 +17,11 @@ import {
   schedulingHistoricalBenchmarks,
   schedulingMilestoneCheckpoints,
 } from "../../drizzle/smart-scheduling-schema";
-import { eq, desc, and, sql, count, type SQL } from "drizzle-orm";
+import { workLogs, laborCosts } from "../../drizzle/schema";
+import { eq, desc, and, sql, count, sum, type SQL } from "drizzle-orm";
 import { createChildLogger } from "../lib/logger";
 import * as svc from "../services/smart-production-scheduling.service";
+import * as bmSvc from "../services/work-hours-benchmark.service";
 
 const log = createChildLogger("smart-production-scheduling-router");
 
@@ -668,6 +671,266 @@ const schedulingRouter = router({
 });
 
 // ═══════════════════════════════════════════════════════════════
+// Sub-Router E: 任务报工 (Labor Reporting)
+// ═══════════════════════════════════════════════════════════════
+
+const LABOR_CATEGORIES = [
+  "laser_cutting",          // 5.2 激光切割
+  "machining",              // 5.3 机加工
+  "shearing_bending",       // 5.4 剪板折弯
+  "sub_assembly",           // 5.5 部件制作
+  "mechanical_assembly",    // 5.6 机械装配
+  "electrical_assembly",    // 5.7 电气装配
+  "point_check_manual",     // 6.1 对点及手动运行
+  "system_integration",     // 6.2 设备联调及跑合
+  "internal_acceptance",    // 6.3 内部验收
+  "pre_acceptance_rework",  // 6.4 预验收及整改
+  "packaging_shipping",     // 6.5 打包发货
+  "site_installation",      // 7.1 客户现场安装
+  "site_commissioning",     // 7.2 客户现场调试
+  "mechanical_design",      // 机械设计 (office)
+  "electrical_design",      // 电气设计 (office)
+  "project_management",     // 项目管理
+  "other",
+] as const;
+
+const laborReportRouter = router({
+  /** 提交报工 */
+  submit: requirePermission("manufacturing:schedule:manage")
+    .input(z.object({
+      taskId: z.number(),
+      projectId: z.number().optional(),
+      duration: z.number().min(0.1).max(24),
+      laborCategory: z.enum(LABOR_CATEGORIES).default("other"),
+      logType: z.string().default("manual"),
+      notes: z.string().max(500).optional(),
+      location: z.string().max(200).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await requireDb();
+      const logCode = `WL-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+
+      const [inserted] = await db.insert(workLogs).values({
+        logCode,
+        taskId: input.taskId,
+        workerId: ctx.user.id,
+        workerName: ctx.user.name ?? `User-${ctx.user.id}`,
+        logType: input.logType,
+        logTime: new Date(),
+        duration: String(input.duration),
+        laborCategory: input.laborCategory,
+        projectId: input.projectId ?? null,
+        approvalStatus: "pending",
+        notes: input.notes ?? null,
+        location: input.location ?? null,
+      }).returning({ id: workLogs.id, logCode: workLogs.logCode });
+
+      log.info({ logCode, userId: ctx.user.id, projectId: input.projectId }, "Labor report submitted");
+      return inserted;
+    }),
+
+  /** 审批报工 */
+  approve: requirePermission("manufacturing:schedule:manage")
+    .input(z.object({
+      logId: z.number(),
+      action: z.enum(["approved", "rejected"]),
+      reason: z.string().max(500).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await requireDb();
+      const [updated] = await db.update(workLogs)
+        .set({
+          approvalStatus: input.action,
+          approvedBy: ctx.user.id,
+        })
+        .where(eq(workLogs.id, input.logId))
+        .returning({ id: workLogs.id, approvalStatus: workLogs.approvalStatus });
+
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Work log not found" });
+      log.info({ logId: input.logId, action: input.action, userId: ctx.user.id }, "Labor report reviewed");
+      return updated;
+    }),
+
+  /** 按项目查报工 */
+  listByProject: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      limit: z.number().min(1).max(500).default(100),
+      offset: z.number().min(0).default(0),
+    }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const rows = await db.select()
+        .from(workLogs)
+        .where(eq(workLogs.projectId, input.projectId))
+        .orderBy(desc(workLogs.logTime))
+        .limit(input.limit)
+        .offset(input.offset);
+      return rows;
+    }),
+
+  /** 按工时类型统计 */
+  statsByCategory: protectedProcedure
+    .input(z.object({ projectId: z.number().optional() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const conditions: SQL[] = [eq(workLogs.approvalStatus, "approved")];
+      if (input.projectId) conditions.push(eq(workLogs.projectId, input.projectId));
+
+      const rows = await db.select({
+        category: workLogs.laborCategory,
+        totalHours: sum(workLogs.duration),
+        logCount: count(),
+      })
+        .from(workLogs)
+        .where(and(...conditions))
+        .groupBy(workLogs.laborCategory)
+        .limit(20);
+
+      return rows.map(r => ({
+        category: r.category ?? "other",
+        totalHours: Number(r.totalHours ?? 0),
+        logCount: Number(r.logCount),
+      }));
+    }),
+
+  /** 项目成本汇总 (labor + material + overhead) */
+  projectCostRollup: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+
+      // Labor costs from labor_costs table
+      const [laborResult] = await db.select({
+        totalLaborCost: sum(laborCosts.totalCost),
+        totalLaborHours: sum(laborCosts.hours),
+      })
+        .from(laborCosts)
+        .where(eq(laborCosts.projectId, input.projectId));
+
+      // Work log hours (approved only)
+      const [workLogResult] = await db.select({
+        reportedHours: sum(workLogs.duration),
+        reportCount: count(),
+      })
+        .from(workLogs)
+        .where(and(
+          eq(workLogs.projectId, input.projectId),
+          eq(workLogs.approvalStatus, "approved"),
+        ));
+
+      return {
+        projectId: input.projectId,
+        laborCost: Number(laborResult?.totalLaborCost ?? 0),
+        laborHours: Number(laborResult?.totalLaborHours ?? 0),
+        reportedHours: Number(workLogResult?.reportedHours ?? 0),
+        reportCount: Number(workLogResult?.reportCount ?? 0),
+        // Material and overhead would come from other modules
+        materialCost: 0,
+        overheadCost: 0,
+        totalCost: Number(laborResult?.totalLaborCost ?? 0),
+      };
+    }),
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Sub-Router F: 工序基准与学习迭代 (Benchmark & Learning)
+// ═══════════════════════════════════════════════════════════════
+
+const benchmarkLearningRouter = router({
+  /** 获取 Excel↔T 工序编码映射 */
+  getProcessMapping: protectedProcedure.query(() => {
+    return {
+      excelToT: bmSvc.EXCEL_TO_T_MAPPING,
+      tToExcel: bmSvc.T_TO_EXCEL_MAPPING,
+      registry: bmSvc.PROCESS_REGISTRY,
+    };
+  }),
+
+  /** 获取 36 项目真实消耗率基准 */
+  getRealBenchmarks: protectedProcedure.query(() => {
+    return {
+      benchmarks: bmSvc.REAL_BENCHMARKS,
+      projectCount: bmSvc.ALL_PROJECT_CODES.length,
+      projectCodes: bmSvc.ALL_PROJECT_CODES,
+    };
+  }),
+
+  /** 单工序消耗率分析 (含学习曲线) */
+  getConsumptionAnalysis: protectedProcedure
+    .input(z.object({ excelCode: z.string() }))
+    .query(({ input }) => {
+      return bmSvc.analyzeProcessLearning(input.excelCode as bmSvc.ExcelProcessCode);
+    }),
+
+  /** 全工序消耗率分析总览 */
+  getFullConsumptionAnalysis: protectedProcedure.query(() => {
+    return bmSvc.getFullConsumptionAnalysis();
+  }),
+
+  /** 校正新项目工时估算 */
+  calibrateEstimate: protectedProcedure
+    .input(z.object({
+      processCode: z.string(),
+      plannedHours: z.number().min(0),
+    }))
+    .query(({ input }) => {
+      return bmSvc.calibrateEstimate(
+        input.processCode as bmSvc.ExcelProcessCode,
+        input.plannedHours,
+      );
+    }),
+
+  /** 获取 GRT-414 部件工时分解 (示例数据) */
+  getComponentBreakdown: protectedProcedure
+    .input(z.object({ projectCode: z.string().default("GRT-414") }))
+    .query(({ input }) => {
+      if (input.projectCode === "GRT-414") {
+        return { components: bmSvc.GRT414_COMPONENTS };
+      }
+      return { components: [] };
+    }),
+
+  /** 获取逐项目工序消耗数据 */
+  getProjectProcessData: protectedProcedure
+    .input(z.object({
+      projectCode: z.string().optional(),
+      processName: z.string().optional(),
+    }).optional())
+    .query(({ input }) => {
+      let data = bmSvc.PROJECT_PROCESS_DATA;
+      if (input?.projectCode) {
+        data = data.filter((d) => d.projectCode === input.projectCode);
+      }
+      if (input?.processName) {
+        data = data.filter((d) => d.processName.includes(input.processName!));
+      }
+      return { data, total: data.length };
+    }),
+
+  /** 将真实基准数据写入 DB */
+  seedBenchmarks: requirePermission("mfg:scheduling:run")
+    .mutation(async () => {
+      return bmSvc.seedBenchmarksFromExcel();
+    }),
+
+  /** 重新校准 benchmark (含增量更新) */
+  recalibrate: requirePermission("mfg:scheduling:run")
+    .input(z.object({
+      newData: z.array(z.object({
+        projectCode: z.string(),
+        processName: z.string(),
+        plannedHours: z.number(),
+        actualHours: z.number(),
+        consumptionRate: z.number(),
+      })).optional(),
+    }).optional())
+    .mutation(async ({ input }) => {
+      return bmSvc.recalibrateBenchmarks(input?.newData);
+    }),
+});
+
+// ═══════════════════════════════════════════════════════════════
 // Main Router Export
 // ═══════════════════════════════════════════════════════════════
 
@@ -676,4 +939,6 @@ export const smartProductionSchedulingRouter = router({
   resourceMaterial: resourceMaterialRouter,
   milestone: milestoneRouter,
   scheduling: schedulingRouter,
+  laborReport: laborReportRouter,
+  benchmarkLearning: benchmarkLearningRouter,
 });

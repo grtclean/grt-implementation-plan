@@ -6,7 +6,7 @@ type UseAuthReturn = {
   loading: boolean;
   error: Error | null;
   isAuthenticated: boolean;
-  refresh: () => void;
+  refresh: () => Promise<boolean>;
   logout: () => Promise<void>;
 };
 
@@ -118,12 +118,12 @@ export const authReady: Promise<void> = new Promise((resolve) => {
 export function useAuth(): UseAuthReturn {
   const state = useSyncExternalStore(subscribe, getSnapshot);
 
-  const refresh = useCallback(() => {
-    if (!isLocalAuth) return;
+  const refresh = useCallback((): Promise<boolean> => {
+    if (!isLocalAuth) return Promise.resolve(false);
 
     // Don't set loading=true during refresh to avoid flickering.
     // The UI stays showing current content while we re-validate.
-    fetch("/api/auth/me", { credentials: "include" })
+    return fetch("/api/auth/me", { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error(`Auth failed: ${res.status}`);
         return res.json();
@@ -131,12 +131,15 @@ export function useAuth(): UseAuthReturn {
       .then((data) => {
         if (data && (data.openId || data.name || data.email)) {
           setAuthState({ user: data, error: null, loading: false });
+          return true;
         } else {
           setAuthState({ user: null, error: null, loading: false });
+          return false;
         }
       })
       .catch((err) => {
         setAuthState({ user: null, error: err as Error, loading: false });
+        return false;
       });
   }, []);
 

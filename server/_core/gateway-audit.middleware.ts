@@ -52,6 +52,11 @@ export const PUBLIC_ALLOWLIST = new Set([
 
   // Targeted showcase — token-gated guest access (validated inside procedure)
   "targetedShowcase.guest.getShowcaseByToken.query",
+
+  // Customer portal — public login + post-login profile/reading (credential-gated inside procedure)
+  "customerConfigSandbox.portalUser.verifyCredentials.mutation",
+  "customerConfigSandbox.portalUser.portalGetProfile.query",
+  "customerConfigSandbox.portalUser.portalGetReadingChannels.query",
 ]);
 
 /**

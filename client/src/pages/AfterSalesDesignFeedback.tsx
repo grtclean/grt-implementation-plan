@@ -10,6 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import ReportActionBar from "@/components/ReportActionBar";
+import ShareContextMenu from "@/components/ShareContextMenu";
+import ImageAttachmentZone, { type AttachedImage } from "@/components/ImageAttachmentZone";
 import {
   GitBranch, Loader2, Sparkles, CheckCircle, AlertTriangle, Wrench,
   Hash, BarChart3,
@@ -39,6 +42,8 @@ export default function AfterSalesDesignFeedback() {
   const [equipmentModels, setEquipmentModels] = useState("");
   const [recurringThreshold, setRecurringThreshold] = useState("");
   const [result, setResult] = useState<DesignFeedbackResult | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [faultImages, setFaultImages] = useState<AttachedImage[]>([]);
 
   const mutation = trpc.serviceSalesAdvanced.analyzeFieldFeedback.useMutation({
     onSuccess: (data) => setResult(data as DesignFeedbackResult),
@@ -46,7 +51,9 @@ export default function AfterSalesDesignFeedback() {
   });
 
   const handleSubmit = () => {
-    if (!period.trim() || !faultRecords.trim() || !equipmentModels.trim() || mutation.isPending) return;
+    if (!period.trim() || !faultRecords.trim() || !equipmentModels.trim()) { setSubmitted(true); return; }
+    if (mutation.isPending) return;
+    setSubmitted(false);
     mutation.mutate({
       period,
       faultRecords,
@@ -95,29 +102,40 @@ export default function AfterSalesDesignFeedback() {
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">分析周期 *</label>
                 <Input
+                  className={submitted && !period.trim() ? "border-red-500" : ""}
                   placeholder="如: 2025年全年"
                   value={period}
                   onChange={(e) => setPeriod(e.target.value)}
                 />
+                {submitted && !period.trim() && <span className="text-xs text-red-500">必填项</span>}
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">涉及设备型号 *</label>
                 <Input
+                  className={submitted && !equipmentModels.trim() ? "border-red-500" : ""}
                   placeholder="涉及设备型号"
                   value={equipmentModels}
                   onChange={(e) => setEquipmentModels(e.target.value)}
                 />
+                {submitted && !equipmentModels.trim() && <span className="text-xs text-red-500">必填项</span>}
               </div>
             </div>
             <div className="space-y-1">
               <label className="text-sm text-muted-foreground">售后故障记录汇总 *</label>
               <textarea
-                className="w-full bg-background border rounded px-3 py-2 text-sm min-h-[100px]"
+                className={`w-full bg-background border rounded px-3 py-2 text-sm min-h-[100px] ${submitted && !faultRecords.trim() ? "border-red-500" : ""}`}
                 placeholder="售后故障记录汇总"
                 value={faultRecords}
                 onChange={(e) => setFaultRecords(e.target.value)}
               />
+              {submitted && !faultRecords.trim() && <span className="text-xs text-red-500">必填项</span>}
             </div>
+            <ImageAttachmentZone
+              images={faultImages}
+              onChange={setFaultImages}
+              label="故障现场照片"
+              maxImages={6}
+            />
             <div className="space-y-1">
               <label className="text-sm text-muted-foreground">重复故障阈值（次，可选）</label>
               <Input
@@ -138,7 +156,12 @@ export default function AfterSalesDesignFeedback() {
 
         {/* Results */}
         {result && (
-          <>
+          <ShareContextMenu
+            title="售后设计反馈分析报告"
+            textContent={Object.entries(result).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n')}
+            jsonData={result as unknown as Record<string, unknown>}
+          >
+          <div className="space-y-6">
             {/* Pattern Overview */}
             <Card>
               <CardContent className="pt-6">
@@ -243,7 +266,14 @@ export default function AfterSalesDesignFeedback() {
                 </CardContent>
               </Card>
             )}
-          </>
+
+            <ReportActionBar
+              title="售后设计反馈分析报告"
+              textContent={Object.entries(result).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n')}
+              jsonData={result as unknown as Record<string, unknown>}
+            />
+          </div>
+          </ShareContextMenu>
         )}
       </div>
   );

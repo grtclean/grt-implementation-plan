@@ -5626,12 +5626,19 @@ export const workLogs = pgTable("work_logs", {
   duration: decimal("duration", { precision: 8, scale: 2 }), // 时长(小时)
   isManualEntry: smallint("is_manual_entry").default(0), // 是否手动录入
   approvedBy: integer("approved_by"), // 手动录入审批人
+  // ── 沙盘⑪扩展列 ──
+  laborCategory: varchar("labor_category", { length: 30 }).default("other"), // mechanical_design/electrical_design/debugging/commissioning/customer_site_service/project_management/other
+  projectId: integer("project_id"), // FK → projects (项目级汇总)
+  approvalStatus: varchar("approval_status", { length: 20 }).default("pending"), // pending/approved/rejected
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_work_log_code").on(table.logCode),
   index("idx_work_log_task").on(table.taskId),
   index("idx_work_log_worker").on(table.workerId),
   index("idx_work_log_time").on(table.logTime),
+  index("idx_work_log_project").on(table.projectId),
+  index("idx_work_log_category").on(table.laborCategory),
+  index("idx_work_log_approval").on(table.approvalStatus),
 ]);
 
 // ==================== v2.5.25 生产看板与质检集成 ====================

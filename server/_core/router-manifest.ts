@@ -188,6 +188,7 @@ export const ROUTER_MANIFEST: RouterManifest[] = [
   { name: "customerRepair", file: "customer-repair/customerRepair.router.ts", domain: "service", authLevel: "public", buScoped: true, owner: "cs_engineer", status: "production", procedureCount: 8 },
   { name: "customerTicket", file: "customer-ticket/customerTicket.router.ts", domain: "service", authLevel: "public", buScoped: true, owner: "cs_engineer", status: "production", procedureCount: 8 },
   { name: "customerComm", file: "customer-ticket/customerComm.router.ts", domain: "service", authLevel: "public", buScoped: true, owner: "cs_engineer", status: "production", procedureCount: 5 },
+  { name: "customerConfigSandbox", file: "routers/customer-config-sandbox.router.ts", domain: "sales", authLevel: "protected", buScoped: false, owner: "bu_sales", status: "production", procedureCount: 34 },
   { name: "fieldService", file: "services/field-service.router.ts", domain: "service", authLevel: "public", buScoped: true, owner: "cs_engineer", status: "beta", procedureCount: 6 },
   { name: "fatSat", file: "services/fat-sat.router.ts", domain: "service", authLevel: "public", buScoped: true, owner: "cs_engineer", status: "beta", procedureCount: 6 },
   { name: "serviceDashboard", file: "routers/service-dashboard.router.ts", domain: "service", authLevel: "public", buScoped: false, owner: "cs_engineer", status: "beta", procedureCount: 10 },
@@ -295,7 +296,7 @@ export const ROUTER_MANIFEST: RouterManifest[] = [
   { name: "robotFleet", file: "routers/robot-fleet.router.ts", domain: "manufacturing", authLevel: "permission", buScoped: false, owner: "quality_eng", status: "production", procedureCount: 40 },
   { name: "semiconductorCleaning", file: "routers/semiconductor-cleaning.router.ts", domain: "manufacturing", authLevel: "permission", buScoped: false, owner: "quality_eng", status: "production", procedureCount: 32 },
   { name: "targetedShowcase", file: "routers/targeted-showcase.router.ts", domain: "sales", authLevel: "permission", buScoped: false, owner: "bu_sales", status: "production", procedureCount: 10 },
-  { name: "smartProductionScheduling", file: "routers/smart-production-scheduling.router.ts", domain: "manufacturing", authLevel: "permission", buScoped: false, owner: "bu_pm", status: "production", procedureCount: 26 },
+  { name: "smartProductionScheduling", file: "routers/smart-production-scheduling.router.ts", domain: "manufacturing", authLevel: "permission", buScoped: false, owner: "bu_pm", status: "production", procedureCount: 31 },
   { name: "rndNpi", file: "routers/rnd-npi.router.ts", domain: "pm", authLevel: "permission", buScoped: true, owner: "engineer", status: "production", procedureCount: 38 },
   { name: "devEnv", file: "routers/dev-env.router.ts", domain: "core", authLevel: "permission", buScoped: false, owner: "admin", status: "production", procedureCount: 4 },
 
@@ -363,6 +364,12 @@ export const ROUTER_MANIFEST: RouterManifest[] = [
 
   // ===== Smart Payroll Engine — 薪资计算与审批 =====
   { name: "payroll", file: "routers/payroll.router.ts", domain: "hr", authLevel: "permission", buScoped: false, owner: "finance_manager", status: "production", procedureCount: 31 },
+
+  // ===== Payroll Sandbox — 薪资沙盘试算 =====
+  { name: "payrollSandbox", file: "routers/payroll-sandbox.router.ts", domain: "hr", authLevel: "permission", buScoped: false, owner: "finance_manager", status: "production", procedureCount: 85 },
+
+  // ===== Payroll Agent — 薪酬智能代理 (calc pipeline + AI perf summary + email + goals) =====
+  { name: "payrollAgent", file: "routers/payroll-agent.router.ts", domain: "hr", authLevel: "permission", buScoped: false, owner: "finance_manager", status: "production", procedureCount: 11 },
 
   // ===== Attendance Clock — GPS考勤打卡 + 离岗追踪 + 考勤确认 =====
   { name: "attendanceClock", file: "routers/attendance-clock.router.ts", domain: "hr", authLevel: "permission", buScoped: false, owner: "hr_manager", status: "production", procedureCount: 14 },

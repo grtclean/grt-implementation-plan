@@ -8,6 +8,9 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useSandboxPageEnhancements } from "@/components/Sandbox/useSandboxPageEnhancements";
+import ShortcutOverlay from "@/components/Sandbox/ShortcutOverlay";
+import SandboxFileImport from "@/components/Sandbox/SandboxFileImport";
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
 } from "@/components/ui/card";
@@ -432,10 +435,19 @@ function ComplaintsTab() {
 // ── Main Page ──────────────────────────────────────────────────
 
 export default function ElectricalStandardsWorkbench() {
+  const { shortcutOverlayOpen, setShortcutOverlayOpen, shortcuts, lastSaved, isSaving } = useSandboxPageEnhancements({
+    sandboxShortcuts: [],
+    autoSave: {
+      data: { tab: "standards" },
+      onSave: async (d) => { localStorage.setItem("grt-sb-electrical", JSON.stringify(d)); },
+    },
+  });
   const overviewQ = trpc.electricalStandards.dashboard.overview.useQuery();
   const ov = overviewQ.data;
 
   return (
+    <>
+    <ShortcutOverlay open={shortcutOverlayOpen} onClose={() => setShortcutOverlayOpen(false)} commonShortcuts={shortcuts.commonShortcuts} sandboxShortcuts={shortcuts.sandboxShortcuts} sandboxTitle="电气规范" />
     <div className="space-y-6 pb-10">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -446,6 +458,14 @@ export default function ElectricalStandardsWorkbench() {
           <h1 className="text-2xl font-bold tracking-tight">电气规范治理平台</h1>
           <p className="text-muted-foreground">Electrical Standards Governance — CE / UL / GB / SEMI / OEM Customer Profiles</p>
         </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <SandboxFileImport
+          accept=".csv"
+          label="导入IO点表"
+          onImport={(rows, fileName) => { /* placeholder import handler */ }}
+        />
       </div>
 
       {/* KPI Cards */}
@@ -499,5 +519,6 @@ export default function ElectricalStandardsWorkbench() {
         <TabsContent value="complaints"><ComplaintsTab /></TabsContent>
       </Tabs>
     </div>
+    </>
   );
 }

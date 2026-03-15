@@ -1,3 +1,5 @@
+import { useSandboxPageEnhancements } from "@/components/Sandbox/useSandboxPageEnhancements";
+import ShortcutOverlay from "@/components/Sandbox/ShortcutOverlay";
 import AISuggestionPanelWithMode from "@/components/AISuggestionPanelWithMode";
 import ProcessNotebook from "@/components/ProcessNotebook";
 import FeatureGuide from "@/components/FeatureGuide";
@@ -12,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
+import SandboxFileImport from "@/components/Sandbox/SandboxFileImport";
 import {
   Plus, FolderKanban, Users, FileText,
   CheckCircle2, Clock, Pause, XCircle,
@@ -55,6 +58,17 @@ const priorityColors = createStatusColorMap({
 export default function ProjectManagement() {
   const { t } = useLanguage();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+  // ── Sandbox enhancements ──
+  const { shortcutOverlayOpen, setShortcutOverlayOpen, shortcuts, lastSaved, isSaving } = useSandboxPageEnhancements({
+    sandboxShortcuts: [
+      { key: "ctrl+g", label: "过门评审", labelEn: "Pass gate", action: () => { if (selectedProject) toast.info("过门评审已触发 Gate review initiated"); else toast.warning("请先选择项目 Select a project first"); } },
+    ],
+    autoSave: {
+      data: { isCreateDialogOpen },
+      onSave: async (d) => { localStorage.setItem("grt-sb-project", JSON.stringify(d)); },
+    },
+  });
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
   
   // Form state
@@ -108,6 +122,7 @@ export default function ProjectManagement() {
 
   return (
       <>
+      <ShortcutOverlay open={shortcutOverlayOpen} onClose={() => setShortcutOverlayOpen(false)} commonShortcuts={shortcuts.commonShortcuts} sandboxShortcuts={shortcuts.sandboxShortcuts} sandboxTitle="项目管理" />
       <FeatureGuide
         featureId="project-management"
         title={t("projects.guide.title")}
@@ -128,6 +143,12 @@ export default function ProjectManagement() {
           title={t("projects.title")}
           description={t("projects.desc")}
           actions={
+            <div className="flex items-center gap-2">
+              <SandboxFileImport
+                accept=".csv,.xlsx"
+                label="导入项目计划"
+                onImport={(rows, fileName) => { toast.success(`已导入 ${rows.length} 行项目数据 (${fileName})`); refetchProjects(); }}
+              />
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-primary hover:bg-primary/90">
@@ -229,6 +250,7 @@ export default function ProjectManagement() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           }
         />
 

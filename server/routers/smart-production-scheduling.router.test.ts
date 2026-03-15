@@ -1,11 +1,13 @@
 /**
  * Smart Production Scheduling Router — Unit Tests
  *
- * Covers all 4 sub-routers (~26 procedures):
+ * Covers all 6 sub-routers (~39 procedures):
  *   A: BOM工时 (8)
  *   B: 前置与物料 (6)
  *   C: 里程碑 (6)
  *   D: 智能排程 (6)
+ *   E: 任务报工 (5)
+ *   F: 工序基准与学习迭代 (8)
  *
  * Run: pnpm test -- server/routers/smart-production-scheduling.router.test.ts
  */
@@ -599,6 +601,106 @@ describe("smartProductionScheduling.scheduling", () => {
       optimizationLevel: "optimal",
     });
     expect(result).toHaveProperty("result");
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════
+// Sub-Router F: 工序基准与学习迭代
+// ═════════════════════════════════════════════════════════════════════
+describe("benchmarkLearning sub-router", () => {
+  it("getProcessMapping returns Excel↔T mapping", async () => {
+    const caller = createAuthenticatedCaller();
+    const result = await caller.smartProductionScheduling.benchmarkLearning.getProcessMapping();
+    expect(result).toHaveProperty("excelToT");
+    expect(result).toHaveProperty("tToExcel");
+    expect(result).toHaveProperty("registry");
+    expect(result.excelToT["5.3"]).toEqual(["T1"]);
+    expect(result.excelToT["5.6"]).toEqual(["T4", "T5"]);
+    expect(result.registry.length).toBe(13);
+  });
+
+  it("getRealBenchmarks returns 13 process types from 36 projects", async () => {
+    const caller = createAuthenticatedCaller();
+    const result = await caller.smartProductionScheduling.benchmarkLearning.getRealBenchmarks();
+    expect(result.benchmarks.length).toBe(13);
+    expect(result.projectCount).toBe(36);
+    // Verify 机械装配 is flagged red
+    const mechAsm = result.benchmarks.find((b: any) => b.excelCode === "5.6");
+    expect(mechAsm).toBeDefined();
+    expect(mechAsm!.alertLevel).toBe("red");
+    expect(mechAsm!.avgConsumptionRate).toBeGreaterThan(2.0);
+  });
+
+  it("getConsumptionAnalysis returns learning curve for 5.3机加工", async () => {
+    const caller = createAuthenticatedCaller();
+    const result = await caller.smartProductionScheduling.benchmarkLearning.getConsumptionAnalysis({
+      excelCode: "5.3",
+    });
+    expect(result).toHaveProperty("benchmark");
+    expect(result).toHaveProperty("learningCurve");
+    expect(result).toHaveProperty("calibrationFactor");
+    expect(result).toHaveProperty("trendLabel");
+    expect(result.benchmark.nameZh).toBe("机加工");
+  });
+
+  it("getFullConsumptionAnalysis returns all 13 analyses", async () => {
+    const caller = createAuthenticatedCaller();
+    const result = await caller.smartProductionScheduling.benchmarkLearning.getFullConsumptionAnalysis();
+    expect(result.length).toBe(13);
+    // Check 设备联调跑合 has highest avgRate
+    const runIn = result.find((a: any) => a.excelCode === "6.2");
+    expect(runIn).toBeDefined();
+    expect(runIn!.benchmark.avgConsumptionRate).toBeGreaterThan(5);
+  });
+
+  it("calibrateEstimate adjusts planned hours by p50 factor", async () => {
+    const caller = createAuthenticatedCaller();
+    const result = await caller.smartProductionScheduling.benchmarkLearning.calibrateEstimate({
+      processCode: "5.6",
+      plannedHours: 100,
+    });
+    // 5.6 p50Rate = 2.045, so calibrated should be ~204.5
+    expect(result.calibratedHours).toBeGreaterThan(200);
+    expect(result.factor).toBeGreaterThan(2.0);
+    expect(result.confidence).toBe("high"); // 34 samples
+  });
+
+  it("getComponentBreakdown returns GRT-414 BOM data", async () => {
+    const caller = createAuthenticatedCaller();
+    const result = await caller.smartProductionScheduling.benchmarkLearning.getComponentBreakdown({
+      projectCode: "GRT-414",
+    });
+    expect(result.components.length).toBe(12);
+    const frame = result.components.find((c: any) => c.partNumber === "01");
+    expect(frame).toBeDefined();
+    expect(frame!.partName).toBe("机架");
+    expect(frame!.totalHours).toBe(115);
+  });
+
+  it("getProjectProcessData filters by projectCode", async () => {
+    const caller = createAuthenticatedCaller();
+    const result = await caller.smartProductionScheduling.benchmarkLearning.getProjectProcessData({
+      projectCode: "GRT-413",
+    });
+    expect(result.data.length).toBeGreaterThan(0);
+    expect(result.data.every((d: any) => d.projectCode === "GRT-413")).toBe(true);
+  });
+
+  it("seedBenchmarks writes to DB", async () => {
+    selectResultsQueue.push([]); // no existing
+    mockReturningResult = [{ id: 1 }];
+    const caller = createAdminCaller();
+    const result = await caller.smartProductionScheduling.benchmarkLearning.seedBenchmarks();
+    expect(result).toHaveProperty("inserted");
+    expect(result).toHaveProperty("updated");
+  });
+
+  it("recalibrate updates benchmarks", async () => {
+    selectResultsQueue.push([]); // no existing
+    mockReturningResult = [{ id: 1 }];
+    const caller = createAdminCaller();
+    const result = await caller.smartProductionScheduling.benchmarkLearning.recalibrate();
+    expect(result).toHaveProperty("recalibrated");
   });
 });
 

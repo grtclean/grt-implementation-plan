@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import ReportActionBar from "@/components/ReportActionBar";
+import ShareContextMenu from "@/components/ShareContextMenu";
 import {
   TrendingUp, Loader2, Sparkles, AlertTriangle, ArrowUpRight, ArrowDownRight,
   BarChart3, Target,
@@ -48,6 +50,7 @@ export default function AISalesForecast() {
   const [timeHorizon, setTimeHorizon] = useState("__none__");
   const [result, setResult] = useState<ForecastResult | null>(null);
   const [taskId, setTaskId] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const mutation = trpc.salesFinanceIntelligence.forecastSales.useMutation({
     onSuccess: (data) => setTaskId(data.taskId),
@@ -76,7 +79,9 @@ export default function AISalesForecast() {
   }, [taskQuery.data]);
 
   const handleSubmit = () => {
-    if (!historicalRevenue || !currentPipeline || mutation.isPending || !!taskId) return;
+    if (!historicalRevenue || !currentPipeline) { setSubmitted(true); return; }
+    if (mutation.isPending || !!taskId) return;
+    setSubmitted(false);
     mutation.mutate({
       businessUnit,
       productLine,
@@ -151,11 +156,13 @@ export default function AISalesForecast() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">历史营收 (万元)</label>
-                <Input type="number" placeholder="如: 5000" value={historicalRevenue} onChange={(e) => setHistoricalRevenue(e.target.value)} />
+                <Input className={submitted && !historicalRevenue ? "border-red-500" : ""} type="number" placeholder="如: 5000" value={historicalRevenue} onChange={(e) => setHistoricalRevenue(e.target.value)} />
+                {submitted && !historicalRevenue && <span className="text-xs text-red-500">必填项</span>}
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">当前在谈商机 (万元)</label>
-                <Input type="number" placeholder="如: 3000" value={currentPipeline} onChange={(e) => setCurrentPipeline(e.target.value)} />
+                <Input className={submitted && !currentPipeline ? "border-red-500" : ""} type="number" placeholder="如: 3000" value={currentPipeline} onChange={(e) => setCurrentPipeline(e.target.value)} />
+                {submitted && !currentPipeline && <span className="text-xs text-red-500">必填项</span>}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -207,7 +214,12 @@ export default function AISalesForecast() {
 
         {/* Results */}
         {result && (
-          <>
+          <ShareContextMenu
+            title="AI销售预测报告"
+            textContent={Object.entries(result).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n')}
+            jsonData={result as unknown as Record<string, unknown>}
+          >
+          <div className="space-y-6">
             {/* Forecast Revenue + Confidence */}
             <Card>
               <CardContent className="pt-6">
@@ -345,7 +357,14 @@ export default function AISalesForecast() {
                 </CardContent>
               </Card>
             )}
-          </>
+
+            <ReportActionBar
+              title="AI销售预测报告"
+              textContent={Object.entries(result).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n')}
+              jsonData={result as unknown as Record<string, unknown>}
+            />
+          </div>
+          </ShareContextMenu>
         )}
       </div>
   );

@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ReportActionBar from "@/components/ReportActionBar";
+import ShareContextMenu from "@/components/ShareContextMenu";
 import {
   Wallet, Loader2, Sparkles, AlertTriangle, TrendingUp, BarChart3,
 } from "lucide-react";
@@ -39,6 +41,7 @@ export default function AIBudgetAnalysis() {
   const [comparisonPeriod, setComparisonPeriod] = useState("");
   const [result, setResult] = useState<BudgetResult | null>(null);
   const [taskId, setTaskId] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const mutation = trpc.salesFinanceIntelligence.analyzeBudget.useMutation({
     onSuccess: (data) => setTaskId(data.taskId),
@@ -67,7 +70,9 @@ export default function AIBudgetAnalysis() {
   }, [taskQuery.data]);
 
   const handleSubmit = () => {
-    if (!allocatedBudget || !actualSpend || !categories.trim() || mutation.isPending || !!taskId) return;
+    if (!allocatedBudget || !actualSpend || !categories.trim()) { setSubmitted(true); return; }
+    if (mutation.isPending || !!taskId) return;
+    setSubmitted(false);
     mutation.mutate({
       department,
       budgetPeriod,
@@ -150,17 +155,20 @@ export default function AIBudgetAnalysis() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">{t("ai.budget.allocatedBudget")}</label>
-                <Input type="number" placeholder="如: 500" value={allocatedBudget} onChange={(e) => setAllocatedBudget(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("ai.budget.allocatedBudget")} <span className="text-red-500">*</span></label>
+                <Input type="number" placeholder="如: 500" value={allocatedBudget} onChange={(e) => setAllocatedBudget(e.target.value)} className={submitted && !allocatedBudget ? "border-red-500" : ""} />
+                {submitted && !allocatedBudget && <span className="text-xs text-red-500">必填项</span>}
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">{t("ai.budget.actualSpend")}</label>
-                <Input type="number" placeholder="如: 580" value={actualSpend} onChange={(e) => setActualSpend(e.target.value)} />
+                <label className="text-sm text-muted-foreground">{t("ai.budget.actualSpend")} <span className="text-red-500">*</span></label>
+                <Input type="number" placeholder="如: 580" value={actualSpend} onChange={(e) => setActualSpend(e.target.value)} className={submitted && !actualSpend ? "border-red-500" : ""} />
+                {submitted && !actualSpend && <span className="text-xs text-red-500">必填项</span>}
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">{t("ai.budget.costDetails")}</label>
-              <Textarea placeholder="如: 人力500万, 物料300万, 差旅80万, 设备50万" value={categories} onChange={(e) => setCategories(e.target.value)} rows={2} />
+              <label className="text-sm text-muted-foreground">{t("ai.budget.costDetails")} <span className="text-red-500">*</span></label>
+              <Textarea placeholder="如: 人力500万, 物料300万, 差旅80万, 设备50万" value={categories} onChange={(e) => setCategories(e.target.value)} rows={2} className={submitted && !categories.trim() ? "border-red-500" : ""} />
+              {submitted && !categories.trim() && <span className="text-xs text-red-500">必填项</span>}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
@@ -183,7 +191,12 @@ export default function AIBudgetAnalysis() {
 
         {/* Results */}
         {result && (
-          <>
+          <ShareContextMenu
+            title="AI预算分析报告"
+            textContent={`预算偏差: ${result.variancePercent > 0 ? "+" : ""}${result.variancePercent.toFixed(1)}%\n异常评分: ${result.anomalyScore}\n年底预测: ${result.forecastToYearEnd}万元\n\n趋势分析:\n${result.trendAnalysis}\n\n异常明细:\n${result.anomalies.map(a => `- ${a.category}: 预算${a.allocated}万 / 实际${a.actual}万 (${a.variance > 0 ? "+" : ""}${a.variance.toFixed(1)}%) [${a.severity}] ${a.explanation}`).join("\n")}\n\n建议:\n${result.recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}`}
+            jsonData={result as unknown as Record<string, unknown>}
+          >
+          <div className="space-y-6">
             {/* Variance + Anomaly Score */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
@@ -292,7 +305,14 @@ export default function AIBudgetAnalysis() {
                 </CardContent>
               </Card>
             )}
-          </>
+
+            <ReportActionBar
+              title="AI预算分析报告"
+              textContent={`预算偏差: ${result.variancePercent > 0 ? "+" : ""}${result.variancePercent.toFixed(1)}%\n异常评分: ${result.anomalyScore}\n年底预测: ${result.forecastToYearEnd}万元\n\n趋势分析:\n${result.trendAnalysis}\n\n异常明细:\n${result.anomalies.map(a => `- ${a.category}: 预算${a.allocated}万 / 实际${a.actual}万 (${a.variance > 0 ? "+" : ""}${a.variance.toFixed(1)}%) [${a.severity}] ${a.explanation}`).join("\n")}\n\n建议:\n${result.recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}`}
+              jsonData={result as unknown as Record<string, unknown>}
+            />
+          </div>
+          </ShareContextMenu>
         )}
       </div>
   );

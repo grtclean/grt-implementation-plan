@@ -2,10 +2,13 @@ import { z } from "zod";
 import {protectedProcedure, router, requirePermission} from "../_core/trpc";
 import { buScopeCondition } from "../_core/gateway-bu-context.middleware";
 import { requireDb } from "../db";
-import { eq, and, count, sql } from "drizzle-orm";
+import { eq, and, count, sql, ne, gte, isNotNull } from "drizzle-orm";
 import { companyGoals, divisionKpis } from "../../drizzle/strategy-goals-schema";
-import { buSalesPlans, buSalesPlanDetails } from "../../drizzle/schema";
+import { buSalesPlans, buSalesPlanDetails, projects, productionWorkOrders, workLogs } from "../../drizzle/schema";
+import { mechAcceptanceRecords } from "../../drizzle/mechanical-config-schema";
+import { okrObjectives, okrKeyResults } from "../../drizzle/okr-schema";
 import { createChildLogger } from "../lib/logger";
+import { eventBus, SANDBOX_EVENTS } from "../events/event-bus";
 
 const log = createChildLogger("strategy-goals");
 
@@ -180,6 +183,102 @@ export const strategyGoalsRouter = router({
       await seedIfEmpty();
       const db = await requireDb();
       return db.select().from(companyGoals).where(eq(companyGoals.year, input.year)).limit(1000);
+    }),
+
+  // ── Create company goal
+  createCompanyGoal: requirePermission('strategy:okr:manage')
+    .input(z.object({
+      year: z.number().default(2026),
+      metricName: z.string().min(1),
+      metricNameEn: z.string().optional(),
+      targetValue: z.number(),
+      currentValue: z.number().default(0),
+      unit: z.string().min(1),
+      weight: z.number().min(0).max(1),
+      category: z.enum(["revenue", "quality", "delivery", "cost", "team"]),
+    }))
+    .mutation(async ({ input }) => {
+      await ensureTables();
+      const db = await requireDb();
+      const [goal] = await db.insert(companyGoals).values(input).returning();
+      log.info({ id: goal.id, metric: input.metricName }, "Company goal created");
+      return { success: true, id: goal.id };
+    }),
+
+  // ── Update company goal
+  updateCompanyGoal: requirePermission('strategy:okr:manage')
+    .input(z.object({
+      id: z.number(),
+      metricName: z.string().optional(),
+      metricNameEn: z.string().optional(),
+      targetValue: z.number().optional(),
+      currentValue: z.number().optional(),
+      unit: z.string().optional(),
+      weight: z.number().min(0).max(1).optional(),
+      category: z.enum(["revenue", "quality", "delivery", "cost", "team"]).optional(),
+      status: z.enum(["active", "paused", "completed"]).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      await ensureTables();
+      const db = await requireDb();
+      const { id, ...rest } = input;
+      const updates: Record<string, unknown> = { updatedAt: new Date() };
+      for (const [k, v] of Object.entries(rest)) {
+        if (v !== undefined) updates[k] = v;
+      }
+      await db.update(companyGoals).set(updates).where(eq(companyGoals.id, id));
+      log.info({ id }, "Company goal updated");
+      return { success: true };
+    }),
+
+  // ── Delete company goal
+  deleteCompanyGoal: requirePermission('strategy:okr:manage')
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await ensureTables();
+      const db = await requireDb();
+      // Also delete linked division KPIs
+      await db.delete(divisionKpis).where(eq(divisionKpis.companyGoalId, input.id));
+      await db.delete(companyGoals).where(eq(companyGoals.id, input.id));
+      log.info({ id: input.id }, "Company goal + linked KPIs deleted");
+      return { success: true };
+    }),
+
+  // ── Create division KPI
+  createDivisionKpi: requirePermission('strategy:okr:manage')
+    .input(z.object({
+      companyGoalId: z.number(),
+      divisionName: z.string().min(1),
+      divisionCode: z.string().min(1),
+      managerName: z.string().min(1),
+      metricName: z.string().min(1),
+      metricNameEn: z.string().optional(),
+      targetValue: z.number(),
+      currentValue: z.number().default(0),
+      unit: z.string().min(1),
+      weight: z.number().min(0).max(1),
+      evaluationCriteria: z.string().optional(),
+      ragStatus: z.enum(["R", "A", "G"]).default("G"),
+      completionPct: z.number().default(0),
+      year: z.number().default(2026),
+    }))
+    .mutation(async ({ input }) => {
+      await ensureTables();
+      const db = await requireDb();
+      const [kpi] = await db.insert(divisionKpis).values(input).returning();
+      log.info({ id: kpi.id, division: input.divisionCode }, "Division KPI created");
+      return { success: true, id: kpi.id };
+    }),
+
+  // ── Delete division KPI
+  deleteDivisionKpi: requirePermission('strategy:okr:manage')
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await ensureTables();
+      const db = await requireDb();
+      await db.delete(divisionKpis).where(eq(divisionKpis.id, input.id));
+      log.info({ id: input.id }, "Division KPI deleted");
+      return { success: true };
     }),
 
   // ── Get division KPIs with optional filter (BU-scoped)
@@ -396,4 +495,323 @@ export const strategyGoalsRouter = router({
     await seedIfEmpty();
     return { success: true, message: "Seeded 6 company goals + 30 division KPIs" };
   }),
+
+  // ═══════════════════════════════════════════════════════════════
+  //  联动 (Linkage) — Live operational metrics from real modules
+  // ═══════════════════════════════════════════════════════════════
+
+  /** Aggregate LIVE operational metrics from projects, work orders, quality, work logs */
+  getLiveMetrics: protectedProcedure
+    .input(z.object({ buCode: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const buFilter = input?.buCode;
+
+      // ── 1. Project Pipeline ──
+      const allProjects = buFilter
+        ? await db.select().from(projects).where(eq(projects.buCode, buFilter)).limit(1000)
+        : await db.select().from(projects).limit(1000);
+
+      const activeProjects = allProjects.filter(p => p.status === "active");
+      const completedProjects = allProjects.filter(p => p.status === "completed");
+      const totalBudget = allProjects.reduce((s, p) => s + (p.budget ?? 0), 0);
+      const totalContractAmount = allProjects.reduce((s, p) => s + (p.contractAmount ?? 0), 0);
+      const avgCompletion = activeProjects.length > 0
+        ? Math.round(activeProjects.reduce((s, p) => s + (p.completionPercent ?? 0), 0) / activeProjects.length)
+        : 0;
+
+      // Project health distribution
+      const healthCounts = { green: 0, yellow: 0, red: 0 };
+      for (const p of activeProjects) {
+        const h = p.healthStatus ?? "green";
+        if (h in healthCounts) healthCounts[h as keyof typeof healthCounts]++;
+      }
+
+      // ── 2. Production OTD (On-Time Delivery) ──
+      const allWOs = await db.select().from(productionWorkOrders).limit(1000);
+      const completedWOs = allWOs.filter(w => w.status === "completed" || w.status === "Completed");
+      const overdueWOs = completedWOs.filter(w => {
+        if (!w.plannedEndDate || !w.actualEndDate) return false;
+        return new Date(w.actualEndDate) > new Date(w.plannedEndDate);
+      });
+      const otdRate = completedWOs.length > 0
+        ? Math.round(((completedWOs.length - overdueWOs.length) / completedWOs.length) * 1000) / 10
+        : 0;
+
+      // ── 3. Quality Metrics (from acceptance records) ──
+      const acceptanceRows = await db.select().from(mechAcceptanceRecords).limit(1000);
+      const totalAccepted = acceptanceRows.filter(r => r.result === "ACCEPTED").length;
+      const totalInspected = acceptanceRows.length;
+      const fatPassRate = totalInspected > 0
+        ? Math.round((totalAccepted / totalInspected) * 1000) / 10
+        : 0;
+      const avgQualityScore = totalInspected > 0
+        ? Math.round(acceptanceRows.reduce((s, r) => s + (r.score ?? 0), 0) / totalInspected * 10) / 10
+        : 0;
+
+      // ── 4. Work Hours / Team Utilization ──
+      const logStats = await db.select({
+        totalLogs: count(),
+        approvedLogs: sql<number>`count(*) filter (where ${workLogs.approvalStatus} = 'approved')`,
+        totalHours: sql<number>`coalesce(sum(${workLogs.duration}), 0)`,
+        uniqueWorkers: sql<number>`count(distinct ${workLogs.workerId})`,
+      }).from(workLogs);
+
+      // ── 5. OKR Progress ──
+      const okrStats = await db.select({
+        totalObjectives: count(),
+        avgProgress: sql<number>`coalesce(avg(${okrObjectives.progress}), 0)`,
+        activeCount: sql<number>`count(*) filter (where ${okrObjectives.status} = 'active')`,
+        completedCount: sql<number>`count(*) filter (where ${okrObjectives.status} = 'completed')`,
+      }).from(okrObjectives);
+
+      // ── 6. BU Breakdown ──
+      const buBreakdown: Record<string, { projects: number; revenue: number; wos: number; completion: number }> = {};
+      for (const p of allProjects) {
+        const bu = p.buCode ?? "UNKNOWN";
+        if (!buBreakdown[bu]) buBreakdown[bu] = { projects: 0, revenue: 0, wos: 0, completion: 0 };
+        buBreakdown[bu].projects++;
+        buBreakdown[bu].revenue += p.contractAmount ?? p.budget ?? 0;
+        buBreakdown[bu].completion += p.completionPercent ?? 0;
+      }
+      for (const wo of allWOs) {
+        // find project BU
+        const proj = allProjects.find(p => p.id === wo.projectId);
+        const bu = proj?.buCode ?? "UNKNOWN";
+        if (!buBreakdown[bu]) buBreakdown[bu] = { projects: 0, revenue: 0, wos: 0, completion: 0 };
+        buBreakdown[bu].wos++;
+      }
+      // avg completion per BU
+      for (const bu of Object.keys(buBreakdown)) {
+        if (buBreakdown[bu].projects > 0) {
+          buBreakdown[bu].completion = Math.round(buBreakdown[bu].completion / buBreakdown[bu].projects);
+        }
+      }
+
+      return {
+        timestamp: new Date().toISOString(),
+        projectPipeline: {
+          total: allProjects.length,
+          active: activeProjects.length,
+          completed: completedProjects.length,
+          totalBudget,
+          totalContractAmount,
+          avgCompletion,
+          healthCounts,
+        },
+        production: {
+          totalWorkOrders: allWOs.length,
+          completedWorkOrders: completedWOs.length,
+          overdueWorkOrders: overdueWOs.length,
+          otdRate,
+        },
+        quality: {
+          totalInspected,
+          totalAccepted,
+          fatPassRate,
+          avgQualityScore,
+        },
+        workforce: {
+          totalLogs: Number(logStats[0]?.totalLogs ?? 0),
+          approvedLogs: Number(logStats[0]?.approvedLogs ?? 0),
+          totalHours: Number(logStats[0]?.totalHours ?? 0),
+          uniqueWorkers: Number(logStats[0]?.uniqueWorkers ?? 0),
+        },
+        okr: {
+          totalObjectives: Number(okrStats[0]?.totalObjectives ?? 0),
+          avgProgress: Math.round(Number(okrStats[0]?.avgProgress ?? 0) * 10) / 10,
+          activeCount: Number(okrStats[0]?.activeCount ?? 0),
+          completedCount: Number(okrStats[0]?.completedCount ?? 0),
+        },
+        buBreakdown,
+      };
+    }),
+
+  /** Sync live operational metrics → division KPIs (auto-update RAG & completion) */
+  syncLiveToKpis: requirePermission('strategy:okr:manage')
+    .input(z.object({ year: z.number().default(2026) }))
+    .mutation(async ({ input, ctx }) => {
+      await ensureTables();
+      const db = await requireDb();
+
+      // Get live metrics for each BU
+      const allProjects2 = await db.select().from(projects).limit(1000);
+      const allWOs2 = await db.select().from(productionWorkOrders).limit(1000);
+      const acceptanceRows2 = await db.select().from(mechAcceptanceRecords).limit(1000);
+
+      // BU revenue from project budgets/contracts
+      const buRevenue: Record<string, number> = {};
+      for (const p of allProjects2) {
+        const bu = p.buCode ?? "UNKNOWN";
+        buRevenue[bu] = (buRevenue[bu] ?? 0) + (p.contractAmount ?? p.budget ?? 0);
+      }
+
+      // BU delivery (OTD) from work orders
+      const buOtd: Record<string, { completed: number; onTime: number }> = {};
+      for (const wo of allWOs2) {
+        const proj = allProjects2.find(p => p.id === wo.projectId);
+        const bu = proj?.buCode ?? "UNKNOWN";
+        if (!buOtd[bu]) buOtd[bu] = { completed: 0, onTime: 0 };
+        if (wo.status === "completed" || wo.status === "Completed") {
+          buOtd[bu].completed++;
+          if (wo.plannedEndDate && wo.actualEndDate && new Date(wo.actualEndDate) <= new Date(wo.plannedEndDate)) {
+            buOtd[bu].onTime++;
+          } else if (!wo.actualEndDate) {
+            buOtd[bu].onTime++; // no actual end = still on time
+          }
+        }
+      }
+
+      // BU quality (FAT pass rate) from acceptance records
+      const buQuality: Record<string, { total: number; accepted: number; scores: number[] }> = {};
+      for (const ar of acceptanceRows2) {
+        // We don't have BU directly on acceptance, derive from project
+        const bu = "ALL"; // acceptance is cross-BU for now
+        if (!buQuality[bu]) buQuality[bu] = { total: 0, accepted: 0, scores: [] };
+        buQuality[bu].total++;
+        if (ar.result === "ACCEPTED") buQuality[bu].accepted++;
+        if (ar.score) buQuality[bu].scores.push(ar.score);
+      }
+
+      // Now update division KPIs
+      const allKpis = await db.select().from(divisionKpis).where(eq(divisionKpis.year, input.year)).limit(1000);
+      let updatedCount = 0;
+
+      for (const kpi of allKpis) {
+        let newCurrentValue: number | null = null;
+        let newCompletionPct: number | null = null;
+        let newRag: string | null = null;
+
+        // Revenue KPI — update from project pipeline
+        if (kpi.metricName.includes("营收")) {
+          const rev = buRevenue[kpi.divisionCode] ?? 0;
+          newCurrentValue = rev;
+          newCompletionPct = kpi.targetValue > 0 ? Math.min(100, Math.round((rev / kpi.targetValue) * 1000) / 10) : 0;
+        }
+
+        // OTD KPI
+        if (kpi.metricName.includes("交付") || kpi.metricName.includes("OTD")) {
+          const otd = buOtd[kpi.divisionCode];
+          if (otd && otd.completed > 0) {
+            const rate = Math.round((otd.onTime / otd.completed) * 1000) / 10;
+            newCurrentValue = rate;
+            newCompletionPct = kpi.targetValue > 0 ? Math.min(100, Math.round((rate / kpi.targetValue) * 1000) / 10) : 0;
+          }
+        }
+
+        // FAT pass rate KPI
+        if (kpi.metricName.includes("FAT") || kpi.metricName.includes("通过率")) {
+          const q = buQuality["ALL"];
+          if (q && q.total > 0) {
+            const rate = Math.round((q.accepted / q.total) * 1000) / 10;
+            newCurrentValue = rate;
+            newCompletionPct = kpi.targetValue > 0 ? Math.min(100, Math.round((rate / kpi.targetValue) * 1000) / 10) : 0;
+          }
+        }
+
+        // Auto-compute RAG if we have new completion
+        if (newCompletionPct !== null) {
+          newRag = newCompletionPct >= 90 ? "G" : newCompletionPct >= 70 ? "A" : "R";
+        }
+
+        // Apply updates
+        if (newCurrentValue !== null || newCompletionPct !== null) {
+          const updates: Record<string, unknown> = { updatedAt: new Date() };
+          if (newCurrentValue !== null) updates.currentValue = newCurrentValue;
+          if (newCompletionPct !== null) updates.completionPct = newCompletionPct;
+          if (newRag !== null) updates.ragStatus = newRag;
+
+          await db.update(divisionKpis).set(updates).where(eq(divisionKpis.id, kpi.id));
+          updatedCount++;
+        }
+      }
+
+      // Publish sync event
+      try {
+        await eventBus.publish({
+          type: "strategy.kpi.live_sync",
+          sourceModule: "strategy-goals",
+          targetModules: ["ceo-dashboard", "okr", "annual-planning"],
+          payload: { year: input.year, updatedKpis: updatedCount, timestamp: new Date().toISOString() },
+          userId: ctx.user?.id ?? 0,
+          timestamp: new Date(),
+        });
+      } catch { /* best-effort */ }
+
+      log.info({ year: input.year, updatedCount }, "Live metrics synced to division KPIs");
+      return { success: true, updatedCount, message: `已同步 ${updatedCount} 个KPI指标（来自实时运营数据）` };
+    }),
+
+  /** Strategy ↔ Module linkage map — shows which operational modules feed which KPIs */
+  getLinkageMap: protectedProcedure.query(async () => {
+    return {
+      linkages: [
+        { kpiCategory: "revenue", sources: ["project.create", "project.update", "quotation.saveDraft"], modules: ["项目管理", "报价管理"], icon: "TrendingUp", description: "项目合同额 + 报价订单 → 营收目标" },
+        { kpiCategory: "quality", sources: ["mechanicalConfig.acceptance.create", "m7m9.gateCheck.executeAIGateCheck"], modules: ["机械配置验收", "Gate检查"], icon: "Target", description: "FAT通过率 + 验收评分 → 质量目标" },
+        { kpiCategory: "delivery", sources: ["productionDashboard.updateStatus", "m7m9.delivery.create"], modules: ["生产管理", "交付管理"], icon: "Truck", description: "工单完成率 + OTD → 交付目标" },
+        { kpiCategory: "cost", sources: ["smartProductionScheduling.laborReport.submit"], modules: ["工时管理", "生产排程"], icon: "DollarSign", description: "制造工时 + 材料成本 → 成本目标" },
+        { kpiCategory: "team", sources: ["attendanceClock.clock.clockIn", "performanceCalibration.submit"], modules: ["考勤打卡", "绩效管理"], icon: "Users", description: "出勤率 + 培训完成 + 绩效评分 → 团队目标" },
+      ],
+      events: [
+        { event: "strategy.kpi.live_sync", direction: "strategy → modules", description: "KPI实时同步到运营模块" },
+        { event: "PROJECT_MILESTONE_HIT", direction: "modules → strategy", description: "项目里程碑达成 → 更新战略进度" },
+        { event: "SCHEDULING_PLAN_PUBLISHED", direction: "modules → strategy", description: "生产计划发布 → 更新交付预测" },
+        { event: "PROJECT_PROCESS_COMPLETED", direction: "modules → strategy", description: "工序完成 → 更新成本/工时" },
+      ],
+    };
+  }),
+
+  /** OKR cascade view — company goals → OKR objectives → project KPIs */
+  getOkrCascade: protectedProcedure
+    .input(z.object({ year: z.number().default(2026) }))
+    .query(async ({ input }) => {
+      await ensureTables();
+      const db = await requireDb();
+
+      const goals = await db.select().from(companyGoals).where(eq(companyGoals.year, input.year)).limit(100);
+      const objectives = await db.select().from(okrObjectives).limit(200);
+      const krs = await db.select().from(okrKeyResults).limit(500);
+
+      // Build cascade tree
+      const cascade = goals.map(goal => {
+        // Match OKR objectives to goals by category keyword
+        const matchingOkrs = objectives.filter(o => {
+          const titleLower = (o.title ?? "").toLowerCase();
+          if (goal.category === "revenue") return titleLower.includes("营收") || titleLower.includes("revenue") || titleLower.includes("销售");
+          if (goal.category === "quality") return titleLower.includes("质量") || titleLower.includes("quality") || titleLower.includes("FAT");
+          if (goal.category === "delivery") return titleLower.includes("交付") || titleLower.includes("delivery") || titleLower.includes("OTD");
+          if (goal.category === "cost") return titleLower.includes("成本") || titleLower.includes("cost");
+          if (goal.category === "team") return titleLower.includes("团队") || titleLower.includes("team") || titleLower.includes("培训");
+          return false;
+        });
+
+        return {
+          goal: { id: goal.id, metricName: goal.metricName, category: goal.category, targetValue: goal.targetValue, currentValue: goal.currentValue, unit: goal.unit, weight: goal.weight },
+          okrObjectives: matchingOkrs.map(o => ({
+            id: o.id, title: o.title, level: o.level, progress: o.progress, status: o.status, period: o.period,
+            keyResults: krs.filter(kr => kr.objectiveId === o.id).map(kr => ({
+              id: kr.id, title: kr.title, targetValue: kr.targetValue, currentValue: kr.currentValue, unit: kr.unit, status: kr.status,
+            })),
+          })),
+          linkedOkrCount: matchingOkrs.length,
+        };
+      });
+
+      return { year: input.year, cascade, totalGoals: goals.length, totalOkrs: objectives.length };
+    }),
+
+  /** Get recent strategy-related events from event bus */
+  getRecentEvents: protectedProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(50).default(15) }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      try {
+        const { sandboxEventLog } = await import("../../drizzle/sandbox-event-schema");
+        return db.select().from(sandboxEventLog)
+          .orderBy(sql`${sandboxEventLog.createdAt} DESC`)
+          .limit(input.limit);
+      } catch {
+        return [];
+      }
+    }),
 });

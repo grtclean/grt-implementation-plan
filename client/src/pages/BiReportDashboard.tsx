@@ -9,8 +9,9 @@
  * Dark executive theme: bg-[#0c111b] / border-[#1e293b]
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+import { useUserProfile } from "@/contexts/UserProfileContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,7 @@ import {
   Settings,
   Crown,
   Calendar,
+  Loader2,
 } from "lucide-react";
 
 // ── Theme ──────────────────────────────────────────
@@ -100,6 +102,16 @@ const DEMO_EXECUTIVE_SUMMARY = `【2026年3月 · 集团BI综合报告 · AI高�
 2. 吴卫成欧洲区经验全集团推广，安排3场内部分享会
 3. 乘用车CAPEX录入列为本周P0任务
 4. 末位2人（杨会龙、周辉）启动PIP绩效改进程序`;
+
+// ── Demo Access Rules ──
+const DEMO_RULES = [
+  { id: 1, periodType: null, departmentCode: null, grantedToRole: "admin", grantedToUserId: null, accessLevel: "manage", isActive: true },
+  { id: 2, periodType: null, departmentCode: null, grantedToRole: "director", grantedToUserId: null, accessLevel: "view_individual", isActive: true },
+  { id: 3, periodType: "monthly", departmentCode: null, grantedToRole: "bu_gm", grantedToUserId: null, accessLevel: "view_detail", isActive: true },
+  { id: 4, periodType: "monthly", departmentCode: "BU_OS", grantedToRole: "bu_sales", grantedToUserId: null, accessLevel: "view_summary", isActive: true },
+  { id: 5, periodType: "quarterly", departmentCode: null, grantedToRole: "dept_manager", grantedToUserId: null, accessLevel: "view_summary", isActive: true },
+  { id: 6, periodType: null, departmentCode: "PROCUREMENT", grantedToRole: null, grantedToUserId: 301, accessLevel: "view_detail", isActive: true },
+];
 
 // ── Stat Card ──────────────────────────────────────
 
@@ -267,10 +279,12 @@ function PersonCard({ person }: { person: any }) {
 
 // ── Department Detail Dialog ───────────────────────
 
-function DeptDetailDialog({ dept, open, onOpenChange }: {
-  dept: any; open: boolean; onOpenChange: (v: boolean) => void;
+function DeptDetailDialog({ dept, open, onOpenChange, liveMembers }: {
+  dept: any; open: boolean; onOpenChange: (v: boolean) => void; liveMembers?: any[];
 }) {
-  const members = DEMO_INDIVIDUALS.filter(p => p.departmentCode === dept?.departmentCode);
+  const members = liveMembers && liveMembers.length > 0
+    ? liveMembers
+    : DEMO_INDIVIDUALS.filter(p => p.departmentCode === dept?.departmentCode);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -295,7 +309,7 @@ function DeptDetailDialog({ dept, open, onOpenChange }: {
         {/* Members */}
         <div className="space-y-2 mt-2">
           <p className={`text-xs font-semibold ${BI_MUTED}`}>部门成员 ({members.length}人)</p>
-          {members.map(p => (
+          {members.map((p: any) => (
             <PersonCard key={p.userId} person={p} />
           ))}
           {members.length === 0 && (
@@ -309,15 +323,29 @@ function DeptDetailDialog({ dept, open, onOpenChange }: {
 
 // ── Access Rule Management ─────────────────────────
 
-function AccessManagement() {
-  const DEMO_RULES = [
-    { id: 1, periodType: null, departmentCode: null, grantedToRole: "admin", accessLevel: "manage", isActive: true },
-    { id: 2, periodType: null, departmentCode: null, grantedToRole: "director", accessLevel: "view_individual", isActive: true },
-    { id: 3, periodType: "monthly", departmentCode: null, grantedToRole: "bu_gm", accessLevel: "view_detail", isActive: true },
-    { id: 4, periodType: "monthly", departmentCode: "BU_OS", grantedToRole: "bu_sales", accessLevel: "view_summary", isActive: true },
-    { id: 5, periodType: "quarterly", departmentCode: null, grantedToRole: "dept_manager", accessLevel: "view_summary", isActive: true },
-    { id: 6, periodType: null, departmentCode: "PROCUREMENT", grantedToRole: null, grantedToUserId: 301, accessLevel: "view_detail", isActive: true },
-  ];
+function AccessManagement({ canManage }: { canManage: boolean }) {
+  const rulesQuery = (trpc.biReport as any).access.listRules.useQuery(
+    { activeOnly: true },
+    { refetchOnWindowFocus: false }
+  );
+  const rules = rulesQuery.data?.length > 0 ? rulesQuery.data : DEMO_RULES;
+  const isLiveRules = rulesQuery.data?.length > 0;
+
+  const grantMutation = (trpc.biReport as any).access.grant.useMutation({
+    onSuccess: () => {
+      toast.success("授权规则已添加");
+      rulesQuery.refetch();
+    },
+    onError: (err: any) => toast.error(`授权失败: ${err.message}`),
+  });
+
+  const revokeMutation = (trpc.biReport as any).access.revoke.useMutation({
+    onSuccess: () => {
+      toast.success("授权规则已撤销");
+      rulesQuery.refetch();
+    },
+    onError: (err: any) => toast.error(`撤销失败: ${err.message}`),
+  });
 
   const levelLabels: Record<string, string> = {
     view_summary: "查看摘要",
@@ -333,20 +361,33 @@ function AccessManagement() {
     manage: "border-red-700 text-red-400",
   };
 
+  const handleRevoke = (ruleId: number) => {
+    if (!canManage) return;
+    revokeMutation.mutate({ id: ruleId });
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="h-4 w-4 text-violet-400" />
           <h3 className={`text-sm font-bold ${BI_TEXT}`}>报告授权规则</h3>
+          {isLiveRules ? (
+            <Badge className="bg-green-900/30 text-green-400 border-green-700 text-[10px]">实时</Badge>
+          ) : (
+            <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-700 text-[10px]">示例</Badge>
+          )}
         </div>
-        <Badge variant="outline" className="text-[10px] border-[#1e293b] text-[#64748b]">
-          {DEMO_RULES.length} 条规则
-        </Badge>
+        <div className="flex items-center gap-2">
+          {rulesQuery.isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-400" />}
+          <Badge variant="outline" className="text-[10px] border-[#1e293b] text-[#64748b]">
+            {rules.length} 条规则
+          </Badge>
+        </div>
       </div>
 
       <div className="space-y-2">
-        {DEMO_RULES.map(rule => (
+        {rules.map((rule: any) => (
           <div key={rule.id} className={`flex items-center gap-3 p-2.5 rounded-lg border ${BI_CARD}`}>
             <Lock className={`h-3.5 w-3.5 ${BI_MUTED} shrink-0`} />
             <div className="flex-1 min-w-0">
@@ -357,9 +398,20 @@ function AccessManagement() {
                 {rule.periodType ?? "所有周期"} · {rule.departmentCode ?? "所有部门"}
               </p>
             </div>
-            <Badge variant="outline" className={`text-[10px] ${levelColors[rule.accessLevel]}`}>
-              {levelLabels[rule.accessLevel]}
+            <Badge variant="outline" className={`text-[10px] ${levelColors[rule.accessLevel] ?? ""}`}>
+              {levelLabels[rule.accessLevel] ?? rule.accessLevel}
             </Badge>
+            {canManage && isLiveRules && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-950/30"
+                onClick={() => handleRevoke(rule.id)}
+                disabled={revokeMutation.isPending}
+              >
+                {revokeMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "撤销"}
+              </Button>
+            )}
           </div>
         ))}
       </div>
@@ -372,35 +424,98 @@ function AccessManagement() {
 // ══════════════════════════════════════════════════════
 
 export default function BiReportDashboard() {
+  const { level } = useUserProfile();
+  const canManage = level >= 7; // admin/CTO
+  const canView = level >= 5;   // director+
+
   const [periodType, setPeriodType] = useState("monthly");
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedDept, setSelectedDept] = useState<any>(null);
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
+  const [selectedPeriodId, setSelectedPeriodId] = useState<number | null>(null);
 
-  // Aggregate stats from demo
+  // ── Access gate ──
+  if (!canView) {
+    return (
+      <div className={`min-h-screen ${BI_BG} p-4 flex items-center justify-center`}>
+        <Card className={BI_CARD}>
+          <CardContent className="p-8 text-center">
+            <Lock className="h-8 w-8 mx-auto mb-3 text-[#64748b]" />
+            <p className={`text-sm ${BI_MUTED}`}>总监及以上角色可查看BI报告</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ── Backend Queries ──
+
+  // Periods
+  const periodsQuery = (trpc.biReport as any).period.list.useQuery(
+    { periodType: periodType as any, limit: 20 },
+    { refetchOnWindowFocus: false }
+  );
+  const periods = periodsQuery.data ?? [];
+
+  // Auto-select first period when list loads
+  useEffect(() => {
+    if (periods.length > 0 && selectedPeriodId === null) {
+      setSelectedPeriodId(periods[0].id);
+    }
+  }, [periods, selectedPeriodId]);
+
+  // Reset period selection when periodType changes
+  useEffect(() => {
+    setSelectedPeriodId(null);
+  }, [periodType]);
+
+  // Department data (横向对比)
+  const deptsQuery = (trpc.biReport as any).department.getHorizontalComparison.useQuery(
+    { reportPeriodId: selectedPeriodId! },
+    { enabled: !!selectedPeriodId, refetchOnWindowFocus: false }
+  );
+  const departments = deptsQuery.data?.length > 0 ? deptsQuery.data : DEMO_DEPARTMENTS;
+  const isLiveData = deptsQuery.data?.length > 0;
+
+  // Individual rankings
+  const individualsQuery = (trpc.biReport as any).individual.getRankings.useQuery(
+    { reportPeriodId: selectedPeriodId!, limit: 50 },
+    { enabled: !!selectedPeriodId, refetchOnWindowFocus: false }
+  );
+  const individuals = individualsQuery.data?.length > 0 ? individualsQuery.data : DEMO_INDIVIDUALS;
+
+  // Department members for dialog (纵向分析)
+  const deptMembersQuery = (trpc.biReport as any).individual.getByDept.useQuery(
+    { reportPeriodId: selectedPeriodId!, departmentCode: selectedDept?.departmentCode },
+    { enabled: !!selectedPeriodId && !!selectedDept?.departmentCode, refetchOnWindowFocus: false }
+  );
+
+  // ── Aggregate stats ──
   const stats = useMemo(() => {
-    const bus = DEMO_DEPARTMENTS.filter(d => d.departmentType === "事业部");
-    const totalTarget = bus.reduce((s, d) => s + parseFloat(d.targetRevenue ?? "0"), 0);
-    const totalActual = bus.reduce((s, d) => s + parseFloat(d.actualRevenue ?? "0"), 0);
+    const bus = departments.filter((d: any) => d.departmentType === "事业部");
+    const totalTarget = bus.reduce((s: number, d: any) => s + parseFloat(d.targetRevenue ?? "0"), 0);
+    const totalActual = bus.reduce((s: number, d: any) => s + parseFloat(d.actualRevenue ?? "0"), 0);
     const avgRate = totalTarget > 0 ? (totalActual / totalTarget) * 100 : 0;
 
-    const allDepts = DEMO_DEPARTMENTS;
-    const totalRewards = allDepts.reduce((s, d) => s + d.rewardCount, 0);
-    const totalPenalties = allDepts.reduce((s, d) => s + d.penaltyCount, 0);
+    const allDepts = departments;
+    const totalRewards = allDepts.reduce((s: number, d: any) => s + (d.rewardCount ?? 0), 0);
+    const totalPenalties = allDepts.reduce((s: number, d: any) => s + (d.penaltyCount ?? 0), 0);
 
-    const totalPlan = allDepts.reduce((s, d) => s + d.planTotal, 0);
-    const completedPlan = allDepts.reduce((s, d) => s + d.planCompleted, 0);
+    const totalPlan = allDepts.reduce((s: number, d: any) => s + (d.planTotal ?? 0), 0);
+    const completedPlan = allDepts.reduce((s: number, d: any) => s + (d.planCompleted ?? 0), 0);
     const planRate = totalPlan > 0 ? (completedPlan / totalPlan) * 100 : 0;
 
-    const avgTraining = allDepts.reduce((s, d) => s + parseFloat(d.trainingQualityScore ?? "0"), 0) / allDepts.length;
+    const avgTraining = allDepts.reduce((s: number, d: any) => s + parseFloat(d.trainingQualityScore ?? "0"), 0) / allDepts.length;
 
     return { avgRate, totalRewards, totalPenalties, planRate, avgTraining, totalTarget, totalActual };
-  }, []);
+  }, [departments]);
 
   const handleSelectDept = (dept: any) => {
     setSelectedDept(dept);
     setDeptDialogOpen(true);
   };
+
+  const isLoading = deptsQuery.isLoading || individualsQuery.isLoading;
 
   return (
     <div className={`min-h-screen ${BI_BG} p-4 space-y-4`}>
@@ -414,9 +529,16 @@ export default function BiReportDashboard() {
               横向跨部门对比 · 纵向个体分析 · AI协调评价 · 授权管理
             </p>
           </div>
+          {/* Data source badge */}
+          {isLiveData ? (
+            <Badge className="bg-green-900/30 text-green-400 border-green-700">实时数据</Badge>
+          ) : (
+            <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-700">示例数据</Badge>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Period type selector */}
           <Select value={periodType} onValueChange={setPeriodType}>
             <SelectTrigger className={`w-28 h-8 text-xs bg-[#131a2b] border-[#1e293b] ${BI_TEXT}`}>
               <SelectValue />
@@ -428,42 +550,83 @@ export default function BiReportDashboard() {
               <SelectItem value="yearly">年报</SelectItem>
             </SelectContent>
           </Select>
-          <Badge variant="outline" className="border-cyan-700 text-cyan-400 text-xs font-mono">
-            <Calendar className="h-3 w-3 mr-1" />
-            2026-03
-          </Badge>
+
+          {/* Specific period selector */}
+          {periodsQuery.isLoading ? (
+            <div className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-[#1e293b] bg-[#131a2b]">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-400" />
+              <span className={`text-xs ${BI_MUTED}`}>加载中...</span>
+            </div>
+          ) : periods.length > 0 ? (
+            <Select
+              value={selectedPeriodId?.toString() ?? ""}
+              onValueChange={(v) => setSelectedPeriodId(Number(v))}
+            >
+              <SelectTrigger className={`w-36 h-8 text-xs bg-[#131a2b] border-[#1e293b] ${BI_TEXT}`}>
+                <SelectValue placeholder="选择报告周期" />
+              </SelectTrigger>
+              <SelectContent>
+                {periods.map((p: any) => (
+                  <SelectItem key={p.id} value={p.id.toString()}>
+                    {p.periodLabel}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Badge variant="outline" className="border-cyan-700 text-cyan-400 text-xs font-mono">
+              <Calendar className="h-3 w-3 mr-1" />
+              2026-03
+            </Badge>
+          )}
         </div>
       </div>
 
       {/* Top Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <StatCard
-          label="事业部平均达成率" value={`${stats.avgRate.toFixed(1)}%`}
-          sub={`目标 ¥${(stats.totalTarget / 10000).toFixed(0)}万`}
-          icon={Target} color="text-cyan-400"
-          alert={stats.avgRate < 75}
-        />
-        <StatCard
-          label="奖励/处罚" value={`+${stats.totalRewards} / -${stats.totalPenalties}`}
-          sub={`奖惩比 ${(stats.totalRewards / Math.max(stats.totalPenalties, 1)).toFixed(1)}:1`}
-          icon={Award} color="text-emerald-400"
-        />
-        <StatCard
-          label="计划完成率" value={`${stats.planRate.toFixed(1)}%`}
-          sub="全集团汇总"
-          icon={TrendingUp} color="text-blue-400"
-        />
-        <StatCard
-          label="培训质量均分" value={stats.avgTraining.toFixed(1)}
-          sub="满分5.0"
-          icon={BookOpen} color="text-violet-400"
-          alert={stats.avgTraining < 3.5}
-        />
-        <StatCard
-          label="参评部门/人数" value={`${DEMO_DEPARTMENTS.length}部 / ${DEMO_INDIVIDUALS.length}人`}
-          icon={Users} color="text-amber-400"
-        />
-      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          {[...Array(5)].map((_, i) => (
+            <Card key={i} className={BI_CARD}>
+              <CardContent className="p-3 flex items-center gap-3">
+                <Skeleton className="h-9 w-9 rounded-lg bg-[#1e293b]" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3 w-20 bg-[#1e293b]" />
+                  <Skeleton className="h-5 w-16 bg-[#1e293b]" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <StatCard
+            label="事业部平均达成率" value={`${stats.avgRate.toFixed(1)}%`}
+            sub={`目标 ¥${(stats.totalTarget / 10000).toFixed(0)}万`}
+            icon={Target} color="text-cyan-400"
+            alert={stats.avgRate < 75}
+          />
+          <StatCard
+            label="奖励/处罚" value={`+${stats.totalRewards} / -${stats.totalPenalties}`}
+            sub={`奖惩比 ${(stats.totalRewards / Math.max(stats.totalPenalties, 1)).toFixed(1)}:1`}
+            icon={Award} color="text-emerald-400"
+          />
+          <StatCard
+            label="计划完成率" value={`${stats.planRate.toFixed(1)}%`}
+            sub="全集团汇总"
+            icon={TrendingUp} color="text-blue-400"
+          />
+          <StatCard
+            label="培训质量均分" value={stats.avgTraining.toFixed(1)}
+            sub="满分5.0"
+            icon={BookOpen} color="text-violet-400"
+            alert={stats.avgTraining < 3.5}
+          />
+          <StatCard
+            label="参评部门/人数" value={`${departments.length}部 / ${individuals.length}人`}
+            icon={Users} color="text-amber-400"
+          />
+        </div>
+      )}
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -489,16 +652,25 @@ export default function BiReportDashboard() {
               <CardTitle className={`text-sm font-bold ${BI_TEXT} flex items-center gap-2`}>
                 <ArrowUpDown className="h-4 w-4 text-cyan-400" />
                 部门横向对比 — {periodType === "weekly" ? "周" : periodType === "monthly" ? "月" : periodType === "quarterly" ? "季" : "年"}度
+                {deptsQuery.isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-400" />}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {DEMO_DEPARTMENTS.map(dept => (
-                <DeptRow
-                  key={dept.departmentCode}
-                  dept={dept}
-                  onSelect={() => handleSelectDept(dept)}
-                />
-              ))}
+              {deptsQuery.isLoading ? (
+                [...Array(5)].map((_, i) => (
+                  <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border ${BI_CARD}`}>
+                    <Skeleton className="h-8 flex-1 bg-[#1e293b]" />
+                  </div>
+                ))
+              ) : (
+                departments.map((dept: any) => (
+                  <DeptRow
+                    key={dept.departmentCode}
+                    dept={dept}
+                    onSelect={() => handleSelectDept(dept)}
+                  />
+                ))
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -510,14 +682,29 @@ export default function BiReportDashboard() {
               <CardTitle className={`text-sm font-bold ${BI_TEXT} flex items-center gap-2`}>
                 <Users className="h-4 w-4 text-amber-400" />
                 个人绩效排名 & AI协调评价
+                {individualsQuery.isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-400" />}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {DEMO_INDIVIDUALS.sort((a, b) => a.rankOverall - b.rankOverall).map(person => (
-                  <PersonCard key={person.userId} person={person} />
-                ))}
-              </div>
+              {individualsQuery.isLoading ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {[...Array(6)].map((_, i) => (
+                    <Card key={i} className={BI_CARD}>
+                      <CardContent className="p-3 space-y-2">
+                        <Skeleton className="h-4 w-32 bg-[#1e293b]" />
+                        <Skeleton className="h-3 w-24 bg-[#1e293b]" />
+                        <Skeleton className="h-8 w-full bg-[#1e293b]" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {[...individuals].sort((a: any, b: any) => (a.rankOverall ?? 999) - (b.rankOverall ?? 999)).map((person: any) => (
+                    <PersonCard key={person.userId} person={person} />
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -551,7 +738,7 @@ export default function BiReportDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <AccessManagement />
+              <AccessManagement canManage={canManage} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -562,6 +749,7 @@ export default function BiReportDashboard() {
         dept={selectedDept}
         open={deptDialogOpen}
         onOpenChange={setDeptDialogOpen}
+        liveMembers={deptMembersQuery.data}
       />
     </div>
   );

@@ -59,6 +59,18 @@ export const projectRouter = router({
       currentPhase: "M0",
       buCode: ctx.bu?.buCode ?? null,
     }).returning();
+    // Publish event for sandbox sync
+    try {
+      const { eventBus, SANDBOX_EVENTS } = await import("../events/event-bus");
+      await eventBus.publish({
+        type: SANDBOX_EVENTS.PROJECT_MILESTONE_HIT,
+        sourceModule: "project",
+        targetModules: ["production-scheduling", "mechanical-config", "quoting-bom"],
+        payload: { projectId: project.id, projectCode, name: input.name },
+        userId: ctx.user?.id ?? 0,
+        timestamp: new Date(),
+      });
+    } catch { /* event bus best-effort */ }
     return { success: true, message: "项目创建成功", id: project.id, projectCode };
   }),
 

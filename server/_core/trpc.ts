@@ -124,7 +124,7 @@ const commitmentGateway = t.middleware(async ({ ctx, next, path }) => {
   // Skip in test environment — compliance checking shouldn't block unit tests
   if (process.env.VITEST) return next({ ctx });
 
-  // Exempt paths: security commitment routes, auth, health
+  // Exempt paths: security commitment routes, auth, health, bootstrap
   const exemptPrefixes = [
     "securityCompliance.checkMonthlyCommitment",
     "securityCompliance.signCommitment",
@@ -132,6 +132,9 @@ const commitmentGateway = t.middleware(async ({ ctx, next, path }) => {
     "auth.",
     "health",
     "echo",
+    "goLive.readiness.seedFoundationData",
+    "goLive.readiness.getReadinessScorecard",
+    "goLive.readiness.getBlockers",
   ];
   if (exemptPrefixes.some(p => path.startsWith(p))) {
     return next({ ctx });

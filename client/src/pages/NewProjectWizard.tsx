@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -94,7 +95,6 @@ export default function NewProjectWizard() {
   const { language } = useLanguage();
   const isZh = language === "zh";
   const [step, setStep] = useState(0);
-  const [creating, setCreating] = useState(false);
 
   const [form, setForm] = useState<FormData>({
     projectName: "",
@@ -104,18 +104,34 @@ export default function NewProjectWizard() {
     description: "",
   });
 
+  const createProjectMut = trpc.project.create.useMutation({
+    onSuccess: (data) => {
+      toast.success(isZh ? `项目已创建！编号: ${data.projectCode}` : `Project created! Code: ${data.projectCode}`);
+      setLocation("/projects");
+    },
+    onError: (error) => {
+      toast.error(isZh ? `创建失败: ${error.message}` : `Creation failed: ${error.message}`);
+    },
+  });
+
   const suggestion = step >= 1 ? mockSuggestion(form) : null;
   const quotation = step >= 1 ? mockQuotation(form) : null;
 
   const canProceedStep0 = form.projectName.trim().length > 0;
 
   const handleCreate = () => {
-    setCreating(true);
-    setTimeout(() => {
-      setCreating(false);
-      toast.success(isZh ? "项目已创建！" : "Project created!");
-      setLocation("/projects");
-    }, 1200);
+    createProjectMut.mutate({
+      name: form.projectName,
+      type: "standard",
+      priority: "medium",
+      budget: quotation ? quotation.total : undefined,
+      description: [
+        form.description,
+        `清洗类型: ${form.cleaningType}`,
+        `自动化: ${form.automation}`,
+        form.volume ? `年产量: ${form.volume}` : "",
+      ].filter(Boolean).join("\n"),
+    });
   };
 
   return (
@@ -313,8 +329,8 @@ export default function NewProjectWizard() {
                 <Button variant="outline" onClick={() => setStep(1)} className="gap-1.5">
                   <ArrowLeft className="w-4 h-4" /> {isZh ? "上一步" : "Back"}
                 </Button>
-                <Button onClick={handleCreate} disabled={creating} className="gap-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700">
-                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                <Button onClick={handleCreate} disabled={createProjectMut.isPending} className="gap-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700">
+                  {createProjectMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                   {isZh ? "创建项目" : "Create Project"}
                 </Button>
               </div>

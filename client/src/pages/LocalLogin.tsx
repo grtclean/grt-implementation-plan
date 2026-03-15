@@ -103,11 +103,15 @@ export default function LocalLogin() {
       // Show success
       setSuccessMsg(mode === "login" ? t("auth.loginRedirect") : (data.message || t("auth.registerRedirect")));
 
-      // Refresh auth state, then navigate
-      if (refresh) refresh();
-      setTimeout(() => {
+      // Refresh auth state (fetches /api/auth/me with the new cookie),
+      // then navigate via client-side routing (no full page reload).
+      const ok = await refresh();
+      if (ok) {
+        navigate("/", { replace: true });
+      } else {
+        // Fallback: full page reload if refresh somehow fails
         window.location.href = "/";
-      }, 600);
+      }
     } catch (err: any) {
       // Show the actual error for diagnostics instead of a generic "network error"
       const detail = err?.message || String(err);
@@ -312,7 +316,7 @@ export default function LocalLogin() {
 
         {/* Footer Info */}
         <p className="text-xs text-muted-foreground text-center">
-          {t("auth.firstUserAdmin")}
+          GRT System v2.0
         </p>
       </div>
     </div>

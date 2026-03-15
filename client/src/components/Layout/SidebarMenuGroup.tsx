@@ -1,7 +1,9 @@
 import { memo, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, LayoutGrid } from "lucide-react";
 import type { MenuGroup, MenuSubgroup, MenuItem } from "@/config/menuConfig";
+import { getModuleConfig } from "@/config/menuModuleConfig";
+import MenuModuleCockpit from "./MenuModuleCockpit";
 
 export interface SidebarMenuGroupProps {
   group: MenuGroup;
@@ -25,6 +27,34 @@ function resolveLabel(item: { name: string; nameEn: string; nameDe?: string; nam
   }
 }
 
+/** Mini 3×3 strip for group header — shows key counts */
+function ModuleMiniStrip({ groupName }: { groupName: string }) {
+  const config = getModuleConfig(groupName);
+  if (!config) return null;
+  const cells = [
+    { label: "因果", value: "3", color: "#EF4444" },
+    { label: "继承", value: `${config.inheritance.parents.length + config.inheritance.children.length}`, color: "#8B5CF6" },
+    { label: "输入", value: `${config.inputs.length}`, color: "#3B82F6" },
+    { label: "输出", value: `${config.outputs.length}`, color: "#10B981" },
+    { label: "可选", value: `${config.optional.length}`, color: "#F59E0B" },
+    { label: "整合", value: `${config.integrations.length}`, color: "#0078D4" },
+  ];
+  return (
+    <div className="flex items-center gap-[3px] ml-1">
+      {cells.map((c, i) => (
+        <span
+          key={i}
+          className="inline-flex items-center justify-center w-4 h-4 rounded text-[7px] font-bold font-mono leading-none"
+          style={{ backgroundColor: `${c.color}12`, color: c.color }}
+          title={`${c.label}: ${c.value}`}
+        >
+          {c.value}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /** Render a single menu item */
 function MenuItemRow({
   item,
@@ -46,27 +76,36 @@ function MenuItemRow({
   const itemName = resolveLabel(item, language);
   const ItemIcon = item.icon;
   const isCompliancePage = item.path === "/compliance-dashboard";
+  const isDisabled = item.disabled ?? false;
 
   return (
     <div
       className="relative group/item"
       data-menu-path={item.path}
       data-menu-active={isActive ? "true" : "false"}
+      title={isDisabled ? item.disabledReason : undefined}
     >
-      <a href={item.path} onClick={(e) => { e.preventDefault(); onNavigate(item.path); }}>
+      <a href={item.path} onClick={(e) => { e.preventDefault(); if (!isDisabled) onNavigate(item.path); }}>
         <div
           className={cn(
-            "flex items-center gap-3 px-4 py-2 rounded-md transition-colors duration-150 cursor-pointer border border-transparent relative touch-feedback",
+            "flex items-center gap-3 px-4 py-2 rounded-md transition-colors duration-150 border border-transparent relative touch-feedback",
             indent && "pl-7",
-            isActive
+            isDisabled
+              ? "opacity-50 cursor-not-allowed"
+              : "cursor-pointer",
+            !isDisabled && (isActive
               ? "bg-[#eff6fc] text-[#0078d4]"
-              : "text-[#605e5c] hover:bg-[#f3f2f1] hover:text-[#323130]"
+              : "text-[#605e5c] hover:bg-[#f3f2f1] hover:text-[#323130]"),
+            isDisabled && "text-[#a19f9d]"
           )}
         >
-          {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full bg-[#0078d4]" />}
-          <ItemIcon className={cn("w-4 h-4", isActive ? "text-[#0078d4]" : "text-[#605e5c] group-hover/item:text-[#323130]")} />
+          {isActive && !isDisabled && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full bg-[#0078d4]" />}
+          <ItemIcon className={cn("w-4 h-4", isDisabled ? "text-[#a19f9d]" : isActive ? "text-[#0078d4]" : "text-[#605e5c] group-hover/item:text-[#323130]")} />
           <span className="text-sm flex-1">{itemName}</span>
-          {item.isNew && (
+          {item.isSandbox && (
+            <span className="px-1 py-0.5 text-[9px] font-bold text-purple-600 bg-purple-100 rounded leading-none">SB</span>
+          )}
+          {item.isNew && !item.isSandbox && (
             <span className="px-1 py-0.5 text-[9px] font-bold text-[#0078d4] bg-[#deecf9] rounded leading-none">NEW</span>
           )}
           {item.requiresBU && !currentBU && (
@@ -158,38 +197,70 @@ function SidebarMenuGroupImpl({
   const groupName = resolveLabel(group, language);
   const GroupIcon = group.icon;
   const hasSubgroups = group.subgroups && group.subgroups.length > 0;
+  const [showCockpit, setShowCockpit] = useState(false);
+  const hasModuleConfig = !!getModuleConfig(group.name);
 
   return (
     <div data-menu-group={group.name}>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          const scrollContainer = document.querySelector('nav.overflow-y-auto');
-          const scrollTop = scrollContainer?.scrollTop || 0;
-          (e.currentTarget as HTMLButtonElement).blur();
-          onToggle(group.name);
-          requestAnimationFrame(() => {
-            if (scrollContainer) {
-              scrollContainer.scrollTop = scrollTop;
-            }
-          });
-        }}
-        className={cn(
-          "flex items-center gap-3 w-full px-4 py-2.5 rounded-md transition-colors duration-150 group cursor-pointer border border-transparent touch-feedback focus:outline-none",
-          hasActiveItem
-            ? "bg-[#f3f2f1] text-[#323130]"
-            : "text-[#605e5c] hover:bg-[#f3f2f1] hover:text-[#323130]"
+      {/* Group header */}
+      <div className="flex items-center gap-0">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            const scrollContainer = document.querySelector('nav.overflow-y-auto');
+            const scrollTop = scrollContainer?.scrollTop || 0;
+            (e.currentTarget as HTMLButtonElement).blur();
+            onToggle(group.name);
+            requestAnimationFrame(() => {
+              if (scrollContainer) {
+                scrollContainer.scrollTop = scrollTop;
+              }
+            });
+          }}
+          className={cn(
+            "flex items-center gap-3 flex-1 px-4 py-2.5 rounded-md transition-colors duration-150 group cursor-pointer border border-transparent touch-feedback focus:outline-none",
+            hasActiveItem
+              ? "bg-[#f3f2f1] text-[#323130]"
+              : "text-[#605e5c] hover:bg-[#f3f2f1] hover:text-[#323130]"
+          )}
+        >
+          <GroupIcon className={cn("w-5 h-5", hasActiveItem ? "text-[#0078d4]" : "text-[#605e5c] group-hover:text-[#323130]")} />
+          <span className="font-medium tracking-wide flex-1 text-left text-sm">{groupName}</span>
+          {/* Mini strip — only show when collapsed */}
+          {!isExpanded && hasModuleConfig && <ModuleMiniStrip groupName={group.name} />}
+          {isExpanded ? (
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          )}
+        </button>
+        {/* Cockpit toggle button */}
+        {hasModuleConfig && isExpanded && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowCockpit(v => !v); }}
+            className={cn(
+              "p-1.5 rounded-md transition-colors mr-1 shrink-0",
+              showCockpit
+                ? "bg-[#0078d4]/10 text-[#0078d4]"
+                : "text-[#a19f9d] hover:text-[#605e5c] hover:bg-[#f3f2f1]",
+            )}
+            title={showCockpit ? "关闭九宫格 Close cockpit" : "九宫格驾驶舱 Module cockpit"}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+          </button>
         )}
-      >
-        <GroupIcon className={cn("w-5 h-5", hasActiveItem ? "text-[#0078d4]" : "text-[#605e5c] group-hover:text-[#323130]")} />
-        <span className="font-medium tracking-wide flex-1 text-left text-sm">{groupName}</span>
-        {isExpanded ? (
-          <ChevronDown className="w-4 h-4 text-muted-foreground" />
-        ) : (
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        )}
-      </button>
+      </div>
+
+      {/* Cockpit panel — expanded 9-grid */}
+      {isExpanded && showCockpit && hasModuleConfig && (
+        <div className="mx-2 mb-2 rounded-lg border border-[#edebe9] bg-[#faf9f8] p-1">
+          <MenuModuleCockpit groupName={group.name} />
+        </div>
+      )}
+
+      {/* Menu items */}
       {isExpanded && (
         <div className="pl-4 space-y-0.5 mt-1">
           {/* Render 3-level subgroups first */}

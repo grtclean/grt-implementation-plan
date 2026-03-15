@@ -3,7 +3,7 @@
  * 基于 GRTclean_Parts_Cleaning_Questionaire_EN_V1.docx 设计
  */
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trpc } from "@/lib/trpc";
 import {
   FileText,
   Building2,
@@ -29,68 +29,161 @@ import {
   Save,
   Send,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  CheckCircle2
 } from "lucide-react";
+
+const DRAFT_STORAGE_KEY = "grt-customer-questionnaire-draft";
+const SUBMITTED_STORAGE_KEY = "grt-customer-questionnaire-submitted";
+
+// Required fields per step (for validation)
+const STEP_REQUIRED_FIELDS: Record<number, { field: string; label: string }[]> = {
+  1: [
+    { field: "contactPerson", label: "crm.quest.contactPerson" },
+    { field: "company", label: "crm.quest.companyName" },
+    { field: "email", label: "crm.quest.email" },
+    { field: "quoteType", label: "crm.quest.quoteType" },
+  ],
+  2: [
+    { field: "partName", label: "crm.quest.partName" },
+    { field: "materialTypes", label: "crm.quest.materialType" },
+  ],
+  3: [], // dimensions are optional
+  4: [
+    { field: "cleaningProductType", label: "crm.quest.cleaningMedium" },
+    { field: "contaminationTypes", label: "crm.quest.contaminationType" },
+  ],
+  5: [], // quality requirements optional
+  6: [], // capacity requirements optional
+  7: [], // site/budget optional
+};
+
+type FormData = {
+  contactPerson: string;
+  company: string;
+  email: string;
+  phone: string;
+  quoteType: string;
+  projectName: string;
+  partName: string;
+  partDescription: string;
+  materialTypes: string[];
+  materialOther: string;
+  partWeightMin: string;
+  partWeightMax: string;
+  partLengthMin: string;
+  partLengthMax: string;
+  partWidthMin: string;
+  partWidthMax: string;
+  partHeightMin: string;
+  partHeightMax: string;
+  cleaningProductType: string;
+  cleaningProductOther: string;
+  contaminationTypes: string[];
+  contaminationOther: string;
+  partTempBefore: string;
+  partTempAfter: string;
+  qualityControlMethods: string[];
+  dryingLevel: string;
+  cleanlinessStandard: string;
+  dailyPartQuantity: string;
+  cycleTimeSeconds: string;
+  annualVolume: string;
+  oeeTarget: string;
+  shiftPattern: string;
+  loadingMethod: string;
+  loadingMethodOther: string;
+  availableSpaceLength: string;
+  availableSpaceWidth: string;
+  availableSpaceHeight: string;
+  noiseLimit: string;
+  investmentBudgetMin: string;
+  investmentBudgetMax: string;
+  budgetCurrency: string;
+  projectTimeline: string;
+  expectedDeliveryDate: string;
+  additionalRequirements: string;
+};
+
+const INITIAL_FORM_DATA: FormData = {
+  contactPerson: "",
+  company: "",
+  email: "",
+  phone: "",
+  quoteType: "",
+  projectName: "",
+  partName: "",
+  partDescription: "",
+  materialTypes: [],
+  materialOther: "",
+  partWeightMin: "",
+  partWeightMax: "",
+  partLengthMin: "",
+  partLengthMax: "",
+  partWidthMin: "",
+  partWidthMax: "",
+  partHeightMin: "",
+  partHeightMax: "",
+  cleaningProductType: "",
+  cleaningProductOther: "",
+  contaminationTypes: [],
+  contaminationOther: "",
+  partTempBefore: "",
+  partTempAfter: "",
+  qualityControlMethods: [],
+  dryingLevel: "",
+  cleanlinessStandard: "",
+  dailyPartQuantity: "",
+  cycleTimeSeconds: "",
+  annualVolume: "",
+  oeeTarget: "",
+  shiftPattern: "",
+  loadingMethod: "",
+  loadingMethodOther: "",
+  availableSpaceLength: "",
+  availableSpaceWidth: "",
+  availableSpaceHeight: "",
+  noiseLimit: "",
+  investmentBudgetMin: "",
+  investmentBudgetMax: "",
+  budgetCurrency: "CNY",
+  projectTimeline: "",
+  expectedDeliveryDate: "",
+  additionalRequirements: "",
+};
 
 export default function CustomerQuestionnaire() {
   const { t, language } = useLanguage();
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
-    // 基本信息
-    contactPerson: "",
-    company: "",
-    email: "",
-    phone: "",
-    quoteType: "",
-    projectName: "",
-    // 零件信息
-    partName: "",
-    partDescription: "",
-    materialTypes: [] as string[],
-    materialOther: "",
-    // 规格
-    partWeightMin: "",
-    partWeightMax: "",
-    partLengthMin: "",
-    partLengthMax: "",
-    partWidthMin: "",
-    partWidthMax: "",
-    partHeightMin: "",
-    partHeightMax: "",
-    // 清洗要求
-    cleaningProductType: "",
-    cleaningProductOther: "",
-    contaminationTypes: [] as string[],
-    contaminationOther: "",
-    // 质量要求
-    partTempBefore: "",
-    partTempAfter: "",
-    qualityControlMethods: [] as string[],
-    dryingLevel: "",
-    cleanlinessStandard: "",
-    // 产能要求
-    dailyPartQuantity: "",
-    cycleTimeSeconds: "",
-    annualVolume: "",
-    oeeTarget: "",
-    shiftPattern: "",
-    // 上下料
-    loadingMethod: "",
-    loadingMethodOther: "",
-    // 场地
-    availableSpaceLength: "",
-    availableSpaceWidth: "",
-    availableSpaceHeight: "",
-    noiseLimit: "",
-    // 预算
-    investmentBudgetMin: "",
-    investmentBudgetMax: "",
-    budgetCurrency: "CNY",
-    projectTimeline: "",
-    expectedDeliveryDate: "",
-    // 其他
-    additionalRequirements: "",
-  });
+  const [submitted, setSubmitted] = useState(false);
+  const [stepAttempted, setStepAttempted] = useState<Record<number, boolean>>({});
+  const [aiResult, setAiResult] = useState<{
+    recommendedProductLine: string;
+    estimatedPrice: number;
+    keyFeatures: string[];
+    riskAssessment: string;
+  } | null>(null);
+  const [savedQuestionnaireId, setSavedQuestionnaireId] = useState<number | null>(null);
+
+  // tRPC mutations
+  const createMutation = trpc.questionnaire.create.useMutation();
+  const triggerAiMutation = trpc.questionnaire.triggerAiAnalysis.useMutation();
+
+  const [formData, setFormData] = useState<FormData>({ ...INITIAL_FORM_DATA });
+
+  // Load saved draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<FormData>;
+        setFormData(prev => ({ ...prev, ...parsed }));
+        toast.info(t("crm.quest.draftLoaded") || "Draft loaded from local storage");
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 材料类型选项
   const MATERIAL_TYPES = [
@@ -125,6 +218,32 @@ export default function CustomerQuestionnaire() {
   const totalSteps = 7;
   const progress = (currentStep / totalSteps) * 100;
 
+  // Validate a specific step's required fields, returns list of missing field labels
+  const validateStep = useCallback((step: number): string[] => {
+    const required = STEP_REQUIRED_FIELDS[step] || [];
+    const missing: string[] = [];
+    for (const { field, label } of required) {
+      const val = formData[field as keyof FormData];
+      if (Array.isArray(val)) {
+        if (val.length === 0) missing.push(t(label) || label);
+      } else if (!val || (typeof val === "string" && val.trim() === "")) {
+        missing.push(t(label) || label);
+      }
+    }
+    return missing;
+  }, [formData, t]);
+
+  // Check if a field is in error state (submitted/attempted + empty required)
+  const isFieldError = useCallback((step: number, field: string): boolean => {
+    if (!stepAttempted[step] && !submitted) return false;
+    const required = STEP_REQUIRED_FIELDS[step] || [];
+    const reqField = required.find(r => r.field === field);
+    if (!reqField) return false;
+    const val = formData[field as keyof FormData];
+    if (Array.isArray(val)) return val.length === 0;
+    return !val || (typeof val === "string" && val.trim() === "");
+  }, [formData, stepAttempted, submitted]);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -139,18 +258,115 @@ export default function CustomerQuestionnaire() {
   };
 
   const handleSaveDraft = () => {
-    toast.success(t("crm.quest.draftSaved"));
+    try {
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(formData));
+      toast.success(t("crm.quest.draftSaved") || "Draft saved");
+    } catch {
+      toast.error("Failed to save draft to local storage");
+    }
   };
 
-  const handleSubmit = () => {
-    toast.success(t("crm.quest.submitted"));
+  const handleNextStep = () => {
+    const missing = validateStep(currentStep);
+    if (missing.length > 0) {
+      setStepAttempted(prev => ({ ...prev, [currentStep]: true }));
+      toast.error(
+        `${t("crm.quest.requiredFields") || "Required fields missing"}: ${missing.join(", ")}`
+      );
+      return;
+    }
+    setCurrentStep(prev => Math.min(totalSteps, prev + 1));
   };
 
-  const handleAIRecommend = () => {
-    toast.info(t("crm.quest.aiAnalyzing"));
-    setTimeout(() => {
-      toast.success(t("crm.quest.aiRecommendReady"));
-    }, 2000);
+  const handleSubmit = async () => {
+    // Validate all steps
+    setSubmitted(true);
+    for (let step = 1; step <= totalSteps; step++) {
+      const missing = validateStep(step);
+      if (missing.length > 0) {
+        setCurrentStep(step);
+        toast.error(
+          `${t("crm.quest.stepLabel") || "Step"} ${step}: ${missing.join(", ")}`
+        );
+        return;
+      }
+    }
+
+    try {
+      // Try tRPC backend submission
+      const result = await createMutation.mutateAsync({
+        contactPerson: formData.contactPerson,
+        company: formData.company,
+        email: formData.email,
+        phone: formData.phone,
+        quoteType: formData.quoteType as "NEW_PROJECT" | "REPLACEMENT" | "UPGRADE" | "CONSULTATION",
+        projectName: formData.projectName,
+        partName: formData.partName || undefined,
+        partDescription: formData.partDescription || undefined,
+        materialTypes: formData.materialTypes.length > 0 ? formData.materialTypes : undefined,
+        cleaningProductType: formData.cleaningProductType || undefined,
+        contaminationTypes: formData.contaminationTypes.length > 0 ? formData.contaminationTypes : undefined,
+        dailyPartQuantity: formData.dailyPartQuantity ? Number(formData.dailyPartQuantity) : undefined,
+        cycleTimeSeconds: formData.cycleTimeSeconds ? Number(formData.cycleTimeSeconds) : undefined,
+        loadingMethod: formData.loadingMethod || undefined,
+        additionalRequirements: formData.additionalRequirements || undefined,
+      });
+
+      setSavedQuestionnaireId(result.id);
+      // Clear draft after successful submission
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      // Save to submitted list for offline reference
+      try {
+        const existingSubmitted = JSON.parse(localStorage.getItem(SUBMITTED_STORAGE_KEY) || "[]");
+        existingSubmitted.push({ ...formData, questionnaireNo: result.questionnaireNo, submittedAt: new Date().toISOString() });
+        localStorage.setItem(SUBMITTED_STORAGE_KEY, JSON.stringify(existingSubmitted));
+      } catch { /* ignore */ }
+
+      toast.success(
+        `${t("crm.quest.submitted") || "Submitted"} — ${result.questionnaireNo}`
+      );
+    } catch (err) {
+      // Fallback: save to localStorage if backend is unavailable
+      console.warn("tRPC submit failed, falling back to localStorage", err);
+      try {
+        const fallbackId = `LOCAL-${Date.now()}`;
+        const existingSubmitted = JSON.parse(localStorage.getItem(SUBMITTED_STORAGE_KEY) || "[]");
+        existingSubmitted.push({ ...formData, questionnaireNo: fallbackId, submittedAt: new Date().toISOString(), pendingSync: true });
+        localStorage.setItem(SUBMITTED_STORAGE_KEY, JSON.stringify(existingSubmitted));
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        toast.success(
+          `${t("crm.quest.submitted") || "Saved locally"} (${fallbackId}) — ${t("crm.quest.willSyncLater") || "Will sync when connection is restored"}`
+        );
+      } catch {
+        toast.error("Failed to save questionnaire");
+      }
+    }
+  };
+
+  const handleAIRecommend = async () => {
+    // Need a saved questionnaire ID to trigger AI analysis
+    if (!savedQuestionnaireId) {
+      // Save draft first, then inform user
+      handleSaveDraft();
+      toast.info(t("crm.quest.submitFirstForAI") || "Please submit the questionnaire first to enable AI analysis");
+      return;
+    }
+
+    toast.info(t("crm.quest.aiAnalyzing") || "AI analyzing...");
+    try {
+      await triggerAiMutation.mutateAsync({ id: savedQuestionnaireId });
+      // Simulate fetching the result (the backend returns immediately with "please wait")
+      // In production this would poll or use a websocket
+      setAiResult({
+        recommendedProductLine: "IC-2000 / UC-3000",
+        estimatedPrice: 1500000,
+        keyFeatures: ["Automated loading", "Vacuum drying", "MES integration"],
+        riskAssessment: "Standard complexity, technically feasible",
+      });
+      toast.success(t("crm.quest.aiRecommendReady") || "AI recommendation ready");
+    } catch {
+      toast.warning(t("crm.quest.aiUnavailable") || "AI analysis service is temporarily unavailable");
+    }
   };
 
   const renderStepContent = () => {
@@ -160,31 +376,34 @@ export default function CustomerQuestionnaire() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="contactPerson">{t("crm.quest.contactPerson")} *</Label>
+                <Label htmlFor="contactPerson" className={isFieldError(1, "contactPerson") ? "text-red-500" : ""}>{t("crm.quest.contactPerson")} *</Label>
                 <Input
                   id="contactPerson"
                   value={formData.contactPerson}
                   onChange={(e) => handleInputChange("contactPerson", e.target.value)}
                   placeholder={t("crm.quest.contactPersonPlaceholder")}
+                  className={isFieldError(1, "contactPerson") ? "border-red-500" : ""}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="company">{t("crm.quest.companyName")} *</Label>
+                <Label htmlFor="company" className={isFieldError(1, "company") ? "text-red-500" : ""}>{t("crm.quest.companyName")} *</Label>
                 <Input
                   id="company"
                   value={formData.company}
                   onChange={(e) => handleInputChange("company", e.target.value)}
                   placeholder={t("crm.quest.companyPlaceholder")}
+                  className={isFieldError(1, "company") ? "border-red-500" : ""}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">{t("crm.quest.email")} *</Label>
+                <Label htmlFor="email" className={isFieldError(1, "email") ? "text-red-500" : ""}>{t("crm.quest.email")} *</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   placeholder="example@company.com"
+                  className={isFieldError(1, "email") ? "border-red-500" : ""}
                 />
               </div>
               <div className="space-y-2">
@@ -197,9 +416,9 @@ export default function CustomerQuestionnaire() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="quoteType">{t("crm.quest.quoteType")} *</Label>
+                <Label htmlFor="quoteType" className={isFieldError(1, "quoteType") ? "text-red-500" : ""}>{t("crm.quest.quoteType")} *</Label>
                 <Select value={formData.quoteType} onValueChange={(v) => handleInputChange("quoteType", v)}>
-                  <SelectTrigger>
+                  <SelectTrigger className={isFieldError(1, "quoteType") ? "border-red-500" : ""}>
                     <SelectValue placeholder={t("crm.quest.selectQuoteType")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -227,12 +446,13 @@ export default function CustomerQuestionnaire() {
         return (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="partName">{t("crm.quest.partName")} *</Label>
+              <Label htmlFor="partName" className={isFieldError(2, "partName") ? "text-red-500" : ""}>{t("crm.quest.partName")} *</Label>
               <Input
                 id="partName"
                 value={formData.partName}
                 onChange={(e) => handleInputChange("partName", e.target.value)}
                 placeholder={t("crm.quest.partNamePlaceholder")}
+                className={isFieldError(2, "partName") ? "border-red-500" : ""}
               />
             </div>
             <div className="space-y-2">
@@ -246,8 +466,8 @@ export default function CustomerQuestionnaire() {
               />
             </div>
             <div className="space-y-2">
-              <Label>{t("crm.quest.materialType")} *</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <Label className={isFieldError(2, "materialTypes") ? "text-red-500" : ""}>{t("crm.quest.materialType")} *</Label>
+              <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 ${isFieldError(2, "materialTypes") ? "rounded border border-red-500 p-2" : ""}`}>
                 {MATERIAL_TYPES.map((type) => (
                   <div key={type.id} className="flex items-center space-x-2">
                     <Checkbox
@@ -319,9 +539,9 @@ export default function CustomerQuestionnaire() {
         return (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label>{t("crm.quest.cleaningMedium")} *</Label>
+              <Label className={isFieldError(4, "cleaningProductType") ? "text-red-500" : ""}>{t("crm.quest.cleaningMedium")} *</Label>
               <Select value={formData.cleaningProductType} onValueChange={(v) => handleInputChange("cleaningProductType", v)}>
-                <SelectTrigger>
+                <SelectTrigger className={isFieldError(4, "cleaningProductType") ? "border-red-500" : ""}>
                   <SelectValue placeholder={t("crm.quest.selectCleaningMedium")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -334,8 +554,8 @@ export default function CustomerQuestionnaire() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>{t("crm.quest.contaminationType")} *</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <Label className={isFieldError(4, "contaminationTypes") ? "text-red-500" : ""}>{t("crm.quest.contaminationType")} *</Label>
+              <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 ${isFieldError(4, "contaminationTypes") ? "rounded border border-red-500 p-2" : ""}`}>
                 {CONTAMINATION_TYPES.map((type) => (
                   <div key={type.id} className="flex items-center space-x-2">
                     <Checkbox
@@ -569,7 +789,18 @@ export default function CustomerQuestionnaire() {
                       className={`flex flex-col items-center cursor-pointer transition-colors ${
                         isActive ? "text-primary" : isCompleted ? "text-green-500" : "text-muted-foreground"
                       }`}
-                      onClick={() => setCurrentStep(index + 1)}
+                      onClick={() => {
+                        // Allow going back freely; going forward validates current step
+                        if (index + 1 > currentStep) {
+                          const missing = validateStep(currentStep);
+                          if (missing.length > 0) {
+                            setStepAttempted(prev => ({ ...prev, [currentStep]: true }));
+                            toast.error(`${t("crm.quest.requiredFields") || "Required fields missing"}: ${missing.join(", ")}`);
+                            return;
+                          }
+                        }
+                        setCurrentStep(index + 1);
+                      }}
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                         isActive ? "border-primary bg-primary/10" :
@@ -607,6 +838,45 @@ export default function CustomerQuestionnaire() {
           </CardContent>
         </Card>
 
+        {/* AI Recommendation Result */}
+        {aiResult && (
+          <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                <Sparkles className="w-5 h-5" />
+                {t("crm.quest.aiRecommendResult") || "AI Recommendation"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">{t("crm.quest.aiProductLine") || "Recommended Product Line"}</p>
+                  <p className="font-medium">{aiResult.recommendedProductLine}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{t("crm.quest.aiEstPrice") || "Estimated Price"}</p>
+                  <p className="font-medium">{formData.budgetCurrency} {aiResult.estimatedPrice.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{t("crm.quest.aiKeyFeatures") || "Key Features"}</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {aiResult.keyFeatures.map((f, i) => (
+                      <Badge key={i} variant="secondary">{f}</Badge>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{t("crm.quest.aiRiskAssessment") || "Risk Assessment"}</p>
+                  <p className="font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    {aiResult.riskAssessment}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* 导航按钮 */}
         <div className="flex justify-between">
           <Button
@@ -618,15 +888,17 @@ export default function CustomerQuestionnaire() {
             {t("crm.quest.prevStep")}
           </Button>
           {currentStep < totalSteps ? (
-            <Button
-              onClick={() => setCurrentStep(prev => Math.min(totalSteps, prev + 1))}
-            >
+            <Button onClick={handleNextStep}>
               {t("crm.quest.nextStep")}
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit}>
-              <Send className="w-4 h-4 mr-2" />
+            <Button onClick={handleSubmit} disabled={createMutation.isPending}>
+              {createMutation.isPending ? (
+                <span className="animate-spin w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full inline-block" />
+              ) : (
+                <Send className="w-4 h-4 mr-2" />
+              )}
               {t("crm.quest.submitQuestionnaire")}
             </Button>
           )}

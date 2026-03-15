@@ -5,6 +5,10 @@
 
 import React, { useState } from 'react';
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useSandboxPageEnhancements } from "@/components/Sandbox/useSandboxPageEnhancements";
+import ShortcutOverlay from "@/components/Sandbox/ShortcutOverlay";
+import SandboxEventFlowPanel from "@/components/Sandbox/SandboxEventFlowPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,8 +46,17 @@ interface InterpretationState {
 
 export default function AnnualPlanningSystem() {
   const { t } = useLanguage();
+  const { level } = useUserProfile();
+  const canManage = level >= 5;
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const { shortcutOverlayOpen, setShortcutOverlayOpen, shortcuts, lastSaved, isSaving } = useSandboxPageEnhancements({
+    sandboxShortcuts: [],
+    autoSave: {
+      data: { activeTab, selectedYear },
+      onSave: async (d) => { localStorage.setItem("grt-sb-annual", JSON.stringify(d)); },
+    },
+  });
   const [planningBatch, setPlanningBatch] = useState<PlanningBatch | null>(null);
   const [interpretation, setInterpretation] = useState<InterpretationState>({
     isLoading: false,
@@ -57,25 +70,27 @@ export default function AnnualPlanningSystem() {
   );
 
   const handleGenerateInterpretation = async (content: string, documentType: string) => {
-    setInterpretation({ isLoading: true, data: null });
-    try {
-      // This would call the backend API
-      // const result = await trpc.annualPlanning.generateInterpretation.mutate({
-      //   content,
-      //   documentType
-      // });
-      // setInterpretation({ isLoading: false, data: result });
-    } catch (error) {
-      setInterpretation({
-        isLoading: false,
-        data: null,
-        error: 'Failed to generate interpretation'
-      });
+    if (documentType === 'KPI_ANALYSIS') {
+      // content is already the JSON analysis result from analyzeKPIs
+      try {
+        const parsed = JSON.parse(content);
+        setInterpretation({ isLoading: false, data: parsed });
+        setActiveTab('interpretation');
+      } catch {
+        setInterpretation({ isLoading: false, data: content });
+        setActiveTab('interpretation');
+      }
+    } else {
+      // Other document types — store as-is
+      setInterpretation({ isLoading: false, data: content });
+      setActiveTab('interpretation');
     }
   };
 
   return (
       <div className="space-y-6">
+        <ShortcutOverlay open={shortcutOverlayOpen} onClose={() => setShortcutOverlayOpen(false)} commonShortcuts={shortcuts.commonShortcuts} sandboxShortcuts={shortcuts.sandboxShortcuts} sandboxTitle="年度规划" />
+        <SandboxEventFlowPanel sandboxId="annual-planning" className="mb-2" />
         {/* Header */}
         <PageHeader
           icon={BarChart3}
@@ -147,8 +162,8 @@ export default function AnnualPlanningSystem() {
             <TabsTrigger value="overview">{t("admin.planning.overview")}</TabsTrigger>
             <TabsTrigger value="input">{t("admin.planning.dataInput")}</TabsTrigger>
             <TabsTrigger value="interpretation">{t("admin.planning.aiAnalysis")}</TabsTrigger>
-            <TabsTrigger value="confirmation">{t("admin.planning.confirmation")}</TabsTrigger>
-            <TabsTrigger value="execution">{t("admin.planning.execution")}</TabsTrigger>
+            <TabsTrigger value="confirmation" disabled={!canManage}>{t("admin.planning.confirmation")}</TabsTrigger>
+            <TabsTrigger value="execution" disabled={!canManage}>{t("admin.planning.execution")}</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}

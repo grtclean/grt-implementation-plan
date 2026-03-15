@@ -13,9 +13,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
+import { toast } from 'sonner';
 import {
   Factory,
   ClipboardList,
@@ -59,6 +63,12 @@ export default function ProductionWorkOrderManager() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newOrder, setNewOrder] = useState({
+    productName: '', productModel: '', quantity: 1,
+    priority: 'normal' as 'low' | 'normal' | 'high' | 'urgent',
+    plannedEndDate: '', assignedTeam: '', notes: '',
+  });
 
   // ─── tRPC Query (server-side filter) ───
   const listQuery = trpc.productionDashboard.list.useQuery({
@@ -69,6 +79,25 @@ export default function ProductionWorkOrderManager() {
   });
 
   const dashboardQuery = trpc.productionDashboard.getDashboardStats.useQuery();
+
+  const createMut = trpc.productionDashboard.create.useMutation({
+    onSuccess: () => {
+      toast.success(t("manufacturing.workOrder.createWorkOrder") + " ✓");
+      setIsCreateOpen(false);
+      setNewOrder({ productName: '', productModel: '', quantity: 1, priority: 'normal', plannedEndDate: '', assignedTeam: '', notes: '' });
+      listQuery.refetch();
+      dashboardQuery.refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateStatusMut = trpc.productionDashboard.updateStatus.useMutation({
+    onSuccess: () => {
+      listQuery.refetch();
+      dashboardQuery.refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   const orders = (listQuery.data?.items ?? []) as any[];
   const isLoading = listQuery.isLoading;
@@ -133,7 +162,7 @@ export default function ProductionWorkOrderManager() {
               {listQuery.isFetching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
               {t("manufacturing.common.refresh")}
             </Button>
-            <Button size="sm">
+            <Button size="sm" onClick={() => setIsCreateOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               {t("manufacturing.workOrder.createWorkOrder")}
             </Button>
@@ -225,6 +254,14 @@ export default function ProductionWorkOrderManager() {
                         {sCfg.icon}
                         <span className="ml-1">{t(sCfg.labelKey)}</span>
                       </Badge>
+                      <Select value={order.status} onValueChange={(v) => updateStatusMut.mutate({ id: order.id, status: v as any })}>
+                        <SelectTrigger className="w-[100px] h-7 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(statusConfigKeys).map(([k, v]) => (
+                            <SelectItem key={k} value={k}>{t(v.labelKey)}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Badge variant="outline" className={pCfg.color}>
                         {t(pCfg.labelKey)}
                       </Badge>
@@ -294,6 +331,77 @@ export default function ProductionWorkOrderManager() {
           </Card>
         )}
       </div>
+
+      {/* Create Work Order Dialog */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{t("manufacturing.workOrder.createWorkOrder")}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label>产品名称 *</Label>
+              <Input value={newOrder.productName} onChange={(e) => setNewOrder({ ...newOrder, productName: e.target.value })} placeholder="例: RW2000机器人清洗机" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>产品型号</Label>
+                <Input value={newOrder.productModel} onChange={(e) => setNewOrder({ ...newOrder, productModel: e.target.value })} placeholder="RW2000" />
+              </div>
+              <div className="grid gap-2">
+                <Label>数量 *</Label>
+                <Input type="number" min={1} value={newOrder.quantity} onChange={(e) => setNewOrder({ ...newOrder, quantity: parseInt(e.target.value) || 1 })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>优先级</Label>
+                <Select value={newOrder.priority} onValueChange={(v: any) => setNewOrder({ ...newOrder, priority: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">{t("manufacturing.workOrder.priorityLow")}</SelectItem>
+                    <SelectItem value="normal">{t("manufacturing.workOrder.priorityNormal")}</SelectItem>
+                    <SelectItem value="high">{t("manufacturing.workOrder.priorityHigh")}</SelectItem>
+                    <SelectItem value="urgent">{t("manufacturing.workOrder.priorityTopUrgent")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>计划完成日期</Label>
+                <Input type="date" value={newOrder.plannedEndDate} onChange={(e) => setNewOrder({ ...newOrder, plannedEndDate: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>分配班组</Label>
+              <Input value={newOrder.assignedTeam} onChange={(e) => setNewOrder({ ...newOrder, assignedTeam: e.target.value })} placeholder="例: A班组" />
+            </div>
+            <div className="grid gap-2">
+              <Label>备注</Label>
+              <Textarea value={newOrder.notes} onChange={(e) => setNewOrder({ ...newOrder, notes: e.target.value })} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>取消</Button>
+            <Button
+              onClick={() => {
+                if (!newOrder.productName.trim()) { toast.error("产品名称为必填项"); return; }
+                createMut.mutate({
+                  productName: newOrder.productName,
+                  productModel: newOrder.productModel || undefined,
+                  quantity: newOrder.quantity,
+                  priority: newOrder.priority,
+                  plannedEndDate: newOrder.plannedEndDate || undefined,
+                  assignedTeam: newOrder.assignedTeam || undefined,
+                  notes: newOrder.notes || undefined,
+                });
+              }}
+              disabled={createMut.isPending}
+            >
+              {t("manufacturing.workOrder.createWorkOrder")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

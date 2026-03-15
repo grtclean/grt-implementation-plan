@@ -241,7 +241,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   }, [setActiveApp, setLocation]);
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="h-screen bg-background flex flex-col overflow-hidden relative">
       {/* O365-style unified header */}
       <TopHeader
         language={language}

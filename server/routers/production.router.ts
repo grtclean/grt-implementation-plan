@@ -209,6 +209,18 @@ export const productionRouter = router({
         notes: input.notes ?? null,
         createdBy: ctx.user?.id ?? null,
       }).returning();
+      // Publish event for sandbox sync
+      try {
+        const { eventBus, SANDBOX_EVENTS } = await import("../events/event-bus");
+        await eventBus.publish({
+          type: SANDBOX_EVENTS.SCHEDULING_PLAN_PUBLISHED,
+          sourceModule: "production",
+          targetModules: ["production-scheduling", "acceptance"],
+          payload: { workOrderId: result[0].id, productName: input.productName, quantity: input.quantity },
+          userId: ctx.user?.id ?? 0,
+          timestamp: new Date(),
+        });
+      } catch { /* best-effort */ }
       return mapWorkOrder(result[0]);
     }),
 
@@ -255,6 +267,18 @@ export const productionRouter = router({
       if (input.notes !== undefined) u.notes = input.notes;
 
       const result = await db.update(productionWorkOrders).set(u).where(eq(productionWorkOrders.id, input.id)).returning();
+      // Publish event for sandbox sync
+      try {
+        const { eventBus, SANDBOX_EVENTS } = await import("../events/event-bus");
+        await eventBus.publish({
+          type: SANDBOX_EVENTS.PROJECT_PROCESS_COMPLETED,
+          sourceModule: "production",
+          targetModules: ["production-scheduling", "performance"],
+          payload: { workOrderId: input.id, newStatus: input.status, productName: wo.productName },
+          userId: 0,
+          timestamp: new Date(),
+        });
+      } catch { /* best-effort */ }
       return mapWorkOrder(result[0]);
     }),
 

@@ -1,5 +1,5 @@
 /**
- * CEO Payroll Approval Gate v2 -- 薪资终审仪表板 (Executive Dark Theme)
+ * CEO Payroll Approval Gate v3 -- 薪资终审仪表板 (Executive Dark Theme)
  *
  * Strict confidentiality: only 3 authorized personnel may access.
  *   - 倪亚东 / CEO
@@ -7,27 +7,26 @@
  *   - 倪微薇 / AI部门经理
  *
  * 6 tabs:
- *   1. 薪资总览 (Overview) — Monthly total, dept breakdown, YoY comparison
- *   2. 绩效工资调整 (Performance Wage Override) — 绩效1/2/3 with inline override
+ *   1. 薪资总览 (Overview) — Monthly total, dept breakdown
+ *   2. 绩效工资调整 (Performance Wage Read-only) — 绩效1/2/3 display
  *   3. 员工薪资明细 (Employee Detail) — Searchable table with all salary components
- *   4. 审批中心 (Approval Center) — State machine buttons, batch approve
- *   5. 异常检测 (Anomaly Detection) — MoM > 10%, missing data flags
- *   6. 差值调控 (Adjustment Control) — Manual gap reconciliation
+ *   4. 审批中心 (Approval Center) — Stage pipeline, approve/reject/lock/payout
+ *   5. 异常检测 (Anomaly Detection) — Backend anomaly list + stats
+ *   6. 差值调控 (Adjustment Control) — Backend adjustments CRUD
+ *
+ * All data from trpc.payrollSandbox.* — zero mock data.
  */
 
-import React, { useState, useMemo, useCallback } from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import React, { useState, useMemo } from "react";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { trpc } from "@/lib/trpc";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
-  Shield, Lock, DollarSign, TrendingUp, AlertTriangle,
-  Check, X, Edit, Eye, Search, Download, ChevronRight,
-  ArrowUpDown, Save, RotateCcw, FileWarning, Users,
-  BarChart3, PieChart, Loader2, ShieldAlert, Ban,
+  Shield, Lock, DollarSign, AlertTriangle,
+  Check, X, Edit, Eye, Search,
+  ArrowUpDown, FileWarning, Users,
+  BarChart3, PieChart, Loader2, Ban, ChevronRight,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
@@ -39,158 +38,52 @@ const AUTHORIZED_USERS = [
   { name: "刘奥运", title: "董秘" },
   { name: "倪微薇", title: "AI部门经理" },
 ];
-const AUTHORIZED_NAMES = AUTHORIZED_USERS.map((u) => u.name);
-
-// ═══════════════════════════════════════════════════════════════
-// Mock/Demo Data (prototype — will connect to trpc.payroll.* in production)
-// ═══════════════════════════════════════════════════════════════
-
-const DEPARTMENTS = ["研发部", "生产部", "销售部", "人力资源部", "财务部", "AI部", "质量部", "采购部"];
-
-interface MockEmployee {
-  id: number;
-  name: string;
-  department: string;
-  position: string;
-  baseSalary: number;
-  positionWage: number;
-  skillSubsidy: number;
-  saturdayShiftPremium: number;
-  comprehensiveSalary: number;
-  isLumpSum: boolean;
-  perfScore: number;
-  perfWage1Calc: number;
-  perfWage1Override: number | null;
-  perfWage1Reason: string;
-  perfWage2Calc: number;
-  perfWage2Override: number | null;
-  perfWage2Reason: string;
-  perfWage3Calc: number;
-  perfWage3Override: number | null;
-  perfWage3Reason: string;
-  personalLeaveHours: number;
-  personalLeaveDeduction: number;
-  sickLeaveHours: number;
-  sickLeaveDeduction: number;
-  perfectAttendanceBonus: number;
-  cashSubsidy: number;
-  travelCarSubsidy: number;
-  socialInsurance: number;
-  housingFund: number;
-  incomeTax: number;
-  grossPay: number;
-  netPay: number;
-  status: string;
-  lastMonthNet: number;
-}
-
-function generateMockEmployees(): MockEmployee[] {
-  const names = [
-    "吴卫成", "戴晓燕", "王强", "赵敏", "刘坤", "周丽", "吴磊", "孙芳", // demo
-    "朱明", "胡洁", "林浩", "何雪", "马超", "罗婷", "刘宇", "黄晨",
-    "徐萍", "高翔", "郑琳", "唐波", "韩冰", "邓辉", "冯雅", "蒋鑫",
-  ];
-  const positions = ["高级工程师", "工程师", "经理", "主管", "技术员", "分析师", "专员", "总监"];
-
-  return names.map((name, i) => {
-    const dept = DEPARTMENTS[i % DEPARTMENTS.length];
-    const base = 8000 + Math.floor(Math.random() * 22000);
-    const posWage = Math.round(base * 0.2);
-    const skillSub = Math.round(base * 0.08);
-    const satPremium = i % 3 === 0 ? Math.round(base * 0.12) : 0;
-    const isLump = i < 2; // first 2 are lump-sum (CEO/CFO)
-    const comp = isLump ? base : base + posWage + skillSub + satPremium;
-    const score = 60 + Math.floor(Math.random() * 40);
-    const w1 = Math.round(comp * (score / 100) * 0.15);
-    const w2 = Math.round(comp * (score / 100) * 0.10);
-    const w3 = Math.round(comp * (score / 100) * 0.05);
-    const plHours = Math.random() < 0.3 ? Math.round(Math.random() * 16) : 0;
-    const slHours = Math.random() < 0.1 ? Math.round(Math.random() * 8) : 0;
-    const plDeduct = Math.round(plHours * (base / 116));
-    const slDeduct = Math.round(slHours * (comp / 22 / 8) * 0.1962);
-    const attendBonus = plHours === 0 && slHours === 0 && dept === "生产部" ? 300 : 0;
-    const cashSub = Math.random() < 0.5 ? Math.round(500 + Math.random() * 1500) : 0;
-    const travelSub = Math.random() < 0.3 ? Math.round(200 + Math.random() * 800) : 0;
-    const gross = comp + w1 + w2 + w3 - plDeduct - slDeduct + attendBonus;
-    const si = Math.round(gross * 0.105);
-    const hf = Math.round(gross * 0.07);
-    const taxable = gross - si - hf - 5000;
-    const tax = taxable > 0 ? Math.round(taxable * 0.1) : 0;
-    const net = gross - si - hf - tax;
-    const lastNet = net + Math.round((Math.random() - 0.5) * net * 0.15);
-
-    return {
-      id: 1001 + i,
-      name,
-      department: dept,
-      position: positions[i % positions.length],
-      baseSalary: base,
-      positionWage: isLump ? 0 : posWage,
-      skillSubsidy: isLump ? 0 : skillSub,
-      saturdayShiftPremium: isLump ? 0 : satPremium,
-      comprehensiveSalary: comp,
-      isLumpSum: isLump,
-      perfScore: score,
-      perfWage1Calc: w1,
-      perfWage1Override: null,
-      perfWage1Reason: "",
-      perfWage2Calc: w2,
-      perfWage2Override: null,
-      perfWage2Reason: "",
-      perfWage3Calc: w3,
-      perfWage3Override: null,
-      perfWage3Reason: "",
-      personalLeaveHours: plHours,
-      personalLeaveDeduction: plDeduct,
-      sickLeaveHours: slHours,
-      sickLeaveDeduction: slDeduct,
-      perfectAttendanceBonus: attendBonus,
-      cashSubsidy: cashSub,
-      travelCarSubsidy: travelSub,
-      socialInsurance: si,
-      housingFund: hf,
-      incomeTax: tax,
-      grossPay: gross,
-      netPay: net,
-      status: ["DRAFT", "HR_VERIFIED", "FINANCE_APPROVED", "CEO_APPROVED", "PAID"][Math.floor(Math.random() * 5)],
-      lastMonthNet: lastNet,
-    };
-  });
-}
-
-const MOCK_EMPLOYEES = generateMockEmployees();
-
-const STATUS_FLOW = ["DRAFT", "HR_VERIFIED", "FINANCE_APPROVED", "CEO_APPROVED", "PAID"] as const;
-type PayrollStatus = (typeof STATUS_FLOW)[number];
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; darkBg: string }> = {
-  DRAFT:             { label: "草稿",     color: "text-slate-400",  darkBg: "bg-slate-800" },
-  HR_VERIFIED:       { label: "HR已审",   color: "text-blue-400",   darkBg: "bg-blue-950" },
-  FINANCE_APPROVED:  { label: "财务已批", color: "text-purple-400", darkBg: "bg-purple-950" },
-  CEO_APPROVED:      { label: "CEO已批",  color: "text-amber-400",  darkBg: "bg-amber-950" },
-  PAID:              { label: "已发放",   color: "text-emerald-400", darkBg: "bg-emerald-950" },
-};
 
 // ═══════════════════════════════════════════════════════════════
 // Helpers
 // ═══════════════════════════════════════════════════════════════
 
-function fmt(val: number): string {
-  return `¥${val.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+function fmt(val: number | string | null | undefined): string {
+  const n = Number(val ?? 0);
+  return `¥${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 }
 
-function fmtWan(val: number): string {
-  return `¥${(val / 10000).toFixed(2)}万`;
-}
-
-function pctChange(current: number, previous: number): number {
-  if (previous === 0) return 0;
-  return ((current - previous) / previous) * 100;
+function fmtWan(val: number | string | null | undefined): string {
+  const n = Number(val ?? 0);
+  return `¥${(n / 10000).toFixed(2)}万`;
 }
 
 function getCurrentPeriod(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Convert "2026-03" → "202603" for cycle.period matching */
+function monthToPeriod(month: string): string {
+  return month.replace("-", "");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Loading / Empty state
+// ═══════════════════════════════════════════════════════════════
+
+function LoadingState({ label }: { label?: string }) {
+  return (
+    <div className="flex items-center justify-center py-16 gap-3">
+      <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
+      <span className="text-sm text-slate-500">{label ?? "加载中..."}</span>
+    </div>
+  );
+}
+
+function NoCycleState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-3">
+      <FileWarning className="h-10 w-10 text-slate-700" />
+      <p className="text-sm text-slate-500">该月无薪资周期</p>
+      <p className="text-xs text-slate-600">请在薪资沙盘中创建该月周期后刷新</p>
+    </div>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -222,32 +115,38 @@ function DarkKpiCard({ label, value, sub, icon: Icon, accent }: {
 // Tab 1: 薪资总览 (Overview)
 // ═══════════════════════════════════════════════════════════════
 
-function OverviewTab({ employees, period }: { employees: MockEmployee[]; period: string }) {
-  const totalGross = employees.reduce((s, e) => s + e.grossPay, 0);
-  const totalNet = employees.reduce((s, e) => s + e.netPay, 0);
-  const totalTax = employees.reduce((s, e) => s + e.incomeTax, 0);
-  const totalSI = employees.reduce((s, e) => s + e.socialInsurance + e.housingFund, 0);
-  const totalCashSub = employees.reduce((s, e) => s + e.cashSubsidy, 0);
-  const totalTravelSub = employees.reduce((s, e) => s + e.travelCarSubsidy, 0);
-  const totalLeaveDeduct = employees.reduce((s, e) => s + e.personalLeaveDeduction + e.sickLeaveDeduction, 0);
-  const headcount = employees.length;
-  const lastMonthTotal = employees.reduce((s, e) => s + e.lastMonthNet, 0);
-  const yoyChange = pctChange(totalNet, lastMonthTotal);
+function OverviewTab({ cycleId }: { cycleId: number }) {
+  const overview = trpc.payrollSandbox.dashboard.overview.useQuery(
+    { cycleId },
+    { enabled: !!cycleId },
+  );
+  const deptBreakdown = trpc.payrollSandbox.dashboard.deptBreakdown.useQuery(
+    { cycleId },
+    { enabled: !!cycleId },
+  );
 
-  // Department breakdown
-  const deptMap = new Map<string, { count: number; gross: number; net: number }>();
-  employees.forEach((e) => {
-    const d = deptMap.get(e.department) || { count: 0, gross: 0, net: 0 };
-    d.count++;
-    d.gross += e.grossPay;
-    d.net += e.netPay;
-    deptMap.set(e.department, d);
-  });
-  const deptData = Array.from(deptMap.entries())
-    .map(([dept, d]) => ({ dept, ...d }))
+  if (overview.isLoading) return <LoadingState />;
+  const data = overview.data;
+  if (!data) return <div className="text-center py-8 text-slate-600">无数据</div>;
+
+  const stats = data.calcStats;
+  const totalGross = Number(stats?.totalGross ?? 0);
+  const totalNet = Number(stats?.totalNet ?? 0);
+  const totalTax = Number(stats?.totalTax ?? 0);
+  const totalSocial = Number(stats?.totalSocial ?? 0) + Number(stats?.totalHousing ?? 0);
+  const headcount = Number(stats?.count ?? 0);
+
+  const depts = (deptBreakdown.data ?? [])
+    .map((d) => ({
+      dept: d.department ?? "未知",
+      count: Number(d.count ?? 0),
+      gross: Number(d.totalGross ?? 0),
+      net: Number(d.totalNet ?? 0),
+      avgGross: Number(d.avgGross ?? 0),
+    }))
     .sort((a, b) => b.gross - a.gross);
 
-  const maxGross = Math.max(...deptData.map((d) => d.gross), 1);
+  const maxGross = Math.max(...depts.map((d) => d.gross), 1);
 
   return (
     <div className="space-y-6">
@@ -255,20 +154,19 @@ function OverviewTab({ employees, period }: { employees: MockEmployee[]; period:
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <DarkKpiCard label="应发总额" value={fmtWan(totalGross)} icon={DollarSign} accent="bg-blue-900/50 text-blue-400" />
         <DarkKpiCard label="实发总额" value={fmtWan(totalNet)} icon={DollarSign} accent="bg-emerald-900/50 text-emerald-400" />
-        <DarkKpiCard label="个税+社保" value={fmtWan(totalTax + totalSI)} icon={Shield} accent="bg-purple-900/50 text-purple-400" />
-        <DarkKpiCard
-          label="环比变动"
-          value={`${yoyChange > 0 ? "+" : ""}${yoyChange.toFixed(1)}%`}
-          sub={`上月实发 ${fmtWan(lastMonthTotal)}`}
-          icon={TrendingUp}
-          accent={yoyChange > 5 ? "bg-red-900/50 text-red-400" : "bg-slate-800 text-slate-400"}
-        />
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <DarkKpiCard label="个税+社保" value={fmtWan(totalTax + totalSocial)} icon={Shield} accent="bg-purple-900/50 text-purple-400" />
         <DarkKpiCard label="在册人数" value={`${headcount}人`} icon={Users} accent="bg-amber-900/50 text-amber-400" />
-        <DarkKpiCard label="现金补贴" value={fmtWan(totalCashSub)} sub="月度固定" icon={DollarSign} accent="bg-cyan-900/50 text-cyan-400" />
-        <DarkKpiCard label="出差车补" value={fmtWan(totalTravelSub)} sub="实报实销" icon={DollarSign} accent="bg-cyan-900/50 text-cyan-400" />
-        <DarkKpiCard label="请假扣款" value={fmtWan(totalLeaveDeduct)} sub="事假+病假" icon={AlertTriangle} accent="bg-red-900/50 text-red-400" />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <DarkKpiCard label="待处理调整" value={`${data.pendingAdjustments}`} icon={Edit} accent="bg-cyan-900/50 text-cyan-400" />
+        <DarkKpiCard label="未解决异常" value={`${data.unresolvedAnomalies}`} icon={AlertTriangle} accent="bg-red-900/50 text-red-400" />
+        <DarkKpiCard
+          label="周期状态"
+          value={data.cycle?.status ?? "--"}
+          sub={data.cycle?.name ?? ""}
+          icon={Shield}
+          accent="bg-slate-800 text-slate-400"
+        />
       </div>
 
       {/* Department Breakdown */}
@@ -276,33 +174,37 @@ function OverviewTab({ employees, period }: { employees: MockEmployee[]; period:
         <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
           <PieChart className="h-4 w-4 text-slate-500" /> 部门薪资分布
         </h3>
-        <div className="space-y-3">
-          {deptData.map((d) => {
-            const pct = (d.gross / totalGross * 100);
-            const barWidth = (d.gross / maxGross * 100);
-            return (
-              <div key={d.dept} className="flex items-center gap-3">
-                <span className="text-xs text-slate-400 w-20 shrink-0 text-right">{d.dept}</span>
-                <div className="flex-1 h-6 bg-slate-800 rounded-full overflow-hidden relative">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all"
-                    style={{ width: `${barWidth}%` }}
-                  />
-                  <span className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-slate-200">
-                    {fmtWan(d.gross)} ({pct.toFixed(1)}%)
-                  </span>
+        {depts.length === 0 ? (
+          <p className="text-sm text-slate-600 text-center py-4">暂无部门数据</p>
+        ) : (
+          <div className="space-y-3">
+            {depts.map((d) => {
+              const pct = totalGross > 0 ? (d.gross / totalGross * 100) : 0;
+              const barWidth = (d.gross / maxGross * 100);
+              return (
+                <div key={d.dept} className="flex items-center gap-3">
+                  <span className="text-xs text-slate-400 w-24 shrink-0 text-right truncate">{d.dept}</span>
+                  <div className="flex-1 h-6 bg-slate-800 rounded-full overflow-hidden relative">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all"
+                      style={{ width: `${barWidth}%` }}
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-slate-200">
+                      {fmtWan(d.gross)} ({pct.toFixed(1)}%)
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-500 w-14 shrink-0">{d.count}人</span>
                 </div>
-                <span className="text-xs text-slate-500 w-14 shrink-0">{d.count}人</span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* YoY Table */}
+      {/* Dept Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
         <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-slate-500" /> 部门环比对比
+          <BarChart3 className="h-4 w-4 text-slate-500" /> 部门明细
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -310,19 +212,19 @@ function OverviewTab({ employees, period }: { employees: MockEmployee[]; period:
               <tr className="border-b border-slate-800">
                 <th className="text-left py-2 px-3 text-slate-500 font-medium">部门</th>
                 <th className="text-right py-2 px-3 text-slate-500 font-medium">人数</th>
-                <th className="text-right py-2 px-3 text-slate-500 font-medium">本月应发</th>
-                <th className="text-right py-2 px-3 text-slate-500 font-medium">本月实发</th>
-                <th className="text-right py-2 px-3 text-slate-500 font-medium">人均</th>
+                <th className="text-right py-2 px-3 text-slate-500 font-medium">应发合计</th>
+                <th className="text-right py-2 px-3 text-slate-500 font-medium">实发合计</th>
+                <th className="text-right py-2 px-3 text-slate-500 font-medium">人均应发</th>
               </tr>
             </thead>
             <tbody>
-              {deptData.map((d) => (
+              {depts.map((d) => (
                 <tr key={d.dept} className="border-b border-slate-800/50 hover:bg-slate-800/30">
                   <td className="py-2.5 px-3 text-slate-300 font-medium">{d.dept}</td>
                   <td className="py-2.5 px-3 text-right text-slate-400">{d.count}</td>
                   <td className="py-2.5 px-3 text-right text-slate-300">{fmt(d.gross)}</td>
                   <td className="py-2.5 px-3 text-right text-slate-200 font-semibold">{fmt(d.net)}</td>
-                  <td className="py-2.5 px-3 text-right text-slate-400">{fmt(d.net / d.count)}</td>
+                  <td className="py-2.5 px-3 text-right text-slate-400">{d.count > 0 ? fmt(d.avgGross) : "--"}</td>
                 </tr>
               ))}
             </tbody>
@@ -334,102 +236,48 @@ function OverviewTab({ employees, period }: { employees: MockEmployee[]; period:
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Tab 2: 绩效工资调整 (Performance Wage Override)
+// Tab 2: 绩效工资调整 (Performance Wage Read-only)
 // ═══════════════════════════════════════════════════════════════
 
-function PerfWageOverrideTab({ employees, setEmployees }: {
-  employees: MockEmployee[];
-  setEmployees: React.Dispatch<React.SetStateAction<MockEmployee[]>>;
-}) {
+function PerfWageTab({ cycleId }: { cycleId: number }) {
   const [search, setSearch] = useState("");
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [overrides, setOverrides] = useState<{
-    w1: string; w1r: string;
-    w2: string; w2r: string;
-    w3: string; w3r: string;
-  }>({ w1: "", w1r: "", w2: "", w2r: "", w3: "", w3r: "" });
+  const perfQ = trpc.payrollSandbox.dashboard.perfWageAnalysis.useQuery(
+    { cycleId },
+    { enabled: !!cycleId },
+  );
+
+  const rows = perfQ.data ?? [];
 
   const filtered = useMemo(() => {
-    if (!search) return employees;
+    if (!search) return rows;
     const q = search.toLowerCase();
-    return employees.filter((e) =>
-      e.name.includes(q) || e.department.includes(q) || String(e.id).includes(q)
+    return rows.filter((r) =>
+      (r.employeeName ?? "").toLowerCase().includes(q) ||
+      (r.department ?? "").toLowerCase().includes(q)
     );
-  }, [employees, search]);
+  }, [rows, search]);
 
-  const startEdit = (emp: MockEmployee) => {
-    setEditingId(emp.id);
-    setOverrides({
-      w1: emp.perfWage1Override !== null ? String(emp.perfWage1Override) : "",
-      w1r: emp.perfWage1Reason,
-      w2: emp.perfWage2Override !== null ? String(emp.perfWage2Override) : "",
-      w2r: emp.perfWage2Reason,
-      w3: emp.perfWage3Override !== null ? String(emp.perfWage3Override) : "",
-      w3r: emp.perfWage3Reason,
-    });
-  };
-
-  const saveOverride = (empId: number) => {
-    setEmployees((prev) =>
-      prev.map((e) => {
-        if (e.id !== empId) return e;
-        const w1o = overrides.w1 ? Number(overrides.w1) : null;
-        const w2o = overrides.w2 ? Number(overrides.w2) : null;
-        const w3o = overrides.w3 ? Number(overrides.w3) : null;
-        const w1 = w1o ?? e.perfWage1Calc;
-        const w2 = w2o ?? e.perfWage2Calc;
-        const w3 = w3o ?? e.perfWage3Calc;
-        const gross = e.baseSalary + w1 + w2 + w3;
-        const si = Math.round(gross * 0.105);
-        const hf = Math.round(gross * 0.07);
-        const taxable = gross - si - hf - 5000;
-        const tax = taxable > 0 ? Math.round(taxable * 0.1) : 0;
-        return {
-          ...e,
-          perfWage1Override: w1o,
-          perfWage1Reason: overrides.w1r,
-          perfWage2Override: w2o,
-          perfWage2Reason: overrides.w2r,
-          perfWage3Override: w3o,
-          perfWage3Reason: overrides.w3r,
-          grossPay: gross,
-          socialInsurance: si,
-          housingFund: hf,
-          incomeTax: tax,
-          netPay: gross - si - hf - tax,
-        };
-      })
-    );
-    setEditingId(null);
-  };
-
-  const totalAdjustment = employees.reduce((sum, e) => {
-    const d1 = (e.perfWage1Override ?? e.perfWage1Calc) - e.perfWage1Calc;
-    const d2 = (e.perfWage2Override ?? e.perfWage2Calc) - e.perfWage2Calc;
-    const d3 = (e.perfWage3Override ?? e.perfWage3Calc) - e.perfWage3Calc;
-    return sum + d1 + d2 + d3;
+  const totalPerf = rows.reduce((s, r) => {
+    return s + Number(r.perfWage1 ?? 0) + Number(r.perfWage2 ?? 0) + Number(r.perfWage3 ?? 0);
   }, 0);
+
+  if (perfQ.isLoading) return <LoadingState />;
 
   return (
     <div className="space-y-4">
-      {/* Header row */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-            <input
-              className="bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 w-64 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="搜索员工姓名 / 部门 / 工号..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <input
+            className="bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 w-64 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="搜索员工姓名 / 部门..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-500">
-            总调整额: <span className={`font-bold ${totalAdjustment > 0 ? "text-red-400" : totalAdjustment < 0 ? "text-emerald-400" : "text-slate-400"}`}>
-              {totalAdjustment > 0 ? "+" : ""}{fmt(totalAdjustment)}
-            </span>
+            绩效工资总额: <span className="font-bold text-blue-400">{fmtWan(totalPerf)}</span>
           </span>
           <Badge variant="outline" className="border-slate-700 text-slate-400">
             {filtered.length} 名员工
@@ -437,173 +285,49 @@ function PerfWageOverrideTab({ employees, setEmployees }: {
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-800/60">
-                <th className="text-left py-3 px-3 text-slate-500 font-medium text-xs">工号</th>
                 <th className="text-left py-3 px-3 text-slate-500 font-medium text-xs">姓名</th>
                 <th className="text-left py-3 px-3 text-slate-500 font-medium text-xs">部门</th>
-                <th className="text-right py-3 px-3 text-slate-500 font-medium text-xs">绩效分</th>
+                <th className="text-right py-3 px-3 text-slate-500 font-medium text-xs">系数1</th>
                 <th className="text-right py-3 px-3 text-slate-500 font-medium text-xs">绩效工资1</th>
+                <th className="text-right py-3 px-3 text-slate-500 font-medium text-xs">系数2</th>
                 <th className="text-right py-3 px-3 text-slate-500 font-medium text-xs">绩效工资2</th>
+                <th className="text-right py-3 px-3 text-slate-500 font-medium text-xs">系数3</th>
                 <th className="text-right py-3 px-3 text-slate-500 font-medium text-xs">绩效工资3</th>
-                <th className="text-right py-3 px-3 text-slate-500 font-medium text-xs">调整合计</th>
-                <th className="text-center py-3 px-3 text-slate-500 font-medium text-xs">操作</th>
+                <th className="text-right py-3 px-3 text-slate-500 font-medium text-xs">扣减1</th>
+                <th className="text-right py-3 px-3 text-slate-500 font-medium text-xs">扣减2</th>
+                <th className="text-right py-3 px-3 text-slate-500 font-medium text-xs">扣减3</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((emp) => {
-                const isEditing = editingId === emp.id;
-                const d1 = (emp.perfWage1Override ?? emp.perfWage1Calc) - emp.perfWage1Calc;
-                const d2 = (emp.perfWage2Override ?? emp.perfWage2Calc) - emp.perfWage2Calc;
-                const d3 = (emp.perfWage3Override ?? emp.perfWage3Calc) - emp.perfWage3Calc;
-                const totalDelta = d1 + d2 + d3;
-                const hasOverride = emp.perfWage1Override !== null || emp.perfWage2Override !== null || emp.perfWage3Override !== null;
-
+              {filtered.map((r, i) => {
+                const w1 = Number(r.perfWage1 ?? 0);
+                const w2 = Number(r.perfWage2 ?? 0);
+                const w3 = Number(r.perfWage3 ?? 0);
                 return (
-                  <React.Fragment key={emp.id}>
-                    <tr className={`border-b border-slate-800/50 transition-colors ${
-                      isEditing ? "bg-slate-800/40" : hasOverride ? "bg-amber-950/20" : "hover:bg-slate-800/20"
-                    }`}>
-                      <td className="py-2.5 px-3 text-slate-500 font-mono text-xs">{emp.id}</td>
-                      <td className="py-2.5 px-3 text-slate-200 font-medium">{emp.name}</td>
-                      <td className="py-2.5 px-3 text-slate-400">{emp.department}</td>
-                      <td className="py-2.5 px-3 text-right">
-                        <span className={`font-semibold ${emp.perfScore >= 90 ? "text-emerald-400" : emp.perfScore >= 70 ? "text-blue-400" : "text-amber-400"}`}>
-                          {emp.perfScore}
-                        </span>
-                      </td>
-                      {/* Perf Wage 1 */}
-                      <td className="py-2.5 px-3 text-right">
-                        <div className="flex flex-col items-end">
-                          <span className="text-slate-400 text-xs">算: {fmt(emp.perfWage1Calc)}</span>
-                          {emp.perfWage1Override !== null && (
-                            <span className="text-amber-400 font-semibold text-xs">调: {fmt(emp.perfWage1Override)}</span>
-                          )}
-                        </div>
-                      </td>
-                      {/* Perf Wage 2 */}
-                      <td className="py-2.5 px-3 text-right">
-                        <div className="flex flex-col items-end">
-                          <span className="text-slate-400 text-xs">算: {fmt(emp.perfWage2Calc)}</span>
-                          {emp.perfWage2Override !== null && (
-                            <span className="text-amber-400 font-semibold text-xs">调: {fmt(emp.perfWage2Override)}</span>
-                          )}
-                        </div>
-                      </td>
-                      {/* Perf Wage 3 */}
-                      <td className="py-2.5 px-3 text-right">
-                        <div className="flex flex-col items-end">
-                          <span className="text-slate-400 text-xs">算: {fmt(emp.perfWage3Calc)}</span>
-                          {emp.perfWage3Override !== null && (
-                            <span className="text-amber-400 font-semibold text-xs">调: {fmt(emp.perfWage3Override)}</span>
-                          )}
-                        </div>
-                      </td>
-                      {/* Total delta */}
-                      <td className="py-2.5 px-3 text-right">
-                        {totalDelta !== 0 ? (
-                          <span className={`font-bold text-xs ${totalDelta > 0 ? "text-red-400" : "text-emerald-400"}`}>
-                            {totalDelta > 0 ? "+" : ""}{fmt(totalDelta)}
-                          </span>
-                        ) : (
-                          <span className="text-slate-600 text-xs">--</span>
-                        )}
-                      </td>
-                      {/* Actions */}
-                      <td className="py-2.5 px-3 text-center">
-                        {isEditing ? (
-                          <div className="flex gap-1 justify-center">
-                            <button
-                              onClick={() => saveOverride(emp.id)}
-                              className="p-1 rounded bg-emerald-900/50 text-emerald-400 hover:bg-emerald-900"
-                              title="保存"
-                            >
-                              <Save className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="p-1 rounded bg-slate-700/50 text-slate-400 hover:bg-slate-700"
-                              title="取消"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => startEdit(emp)}
-                            className="p-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200"
-                            title="调整绩效工资"
-                          >
-                            <Edit className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                    {/* Inline override form */}
-                    {isEditing && (
-                      <tr className="bg-slate-800/30">
-                        <td colSpan={9} className="px-6 py-3">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* Perf Wage 1 */}
-                            <div className="space-y-1.5">
-                              <label className="text-xs text-slate-500 font-medium">绩效工资1 (计算值: {fmt(emp.perfWage1Calc)})</label>
-                              <input
-                                type="number"
-                                value={overrides.w1}
-                                onChange={(e) => setOverrides((p) => ({ ...p, w1: e.target.value }))}
-                                placeholder="覆盖金额"
-                                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                              />
-                              <input
-                                value={overrides.w1r}
-                                onChange={(e) => setOverrides((p) => ({ ...p, w1r: e.target.value }))}
-                                placeholder="调整原因"
-                                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                              />
-                            </div>
-                            {/* Perf Wage 2 */}
-                            <div className="space-y-1.5">
-                              <label className="text-xs text-slate-500 font-medium">绩效工资2 (计算值: {fmt(emp.perfWage2Calc)})</label>
-                              <input
-                                type="number"
-                                value={overrides.w2}
-                                onChange={(e) => setOverrides((p) => ({ ...p, w2: e.target.value }))}
-                                placeholder="覆盖金额"
-                                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                              />
-                              <input
-                                value={overrides.w2r}
-                                onChange={(e) => setOverrides((p) => ({ ...p, w2r: e.target.value }))}
-                                placeholder="调整原因"
-                                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                              />
-                            </div>
-                            {/* Perf Wage 3 */}
-                            <div className="space-y-1.5">
-                              <label className="text-xs text-slate-500 font-medium">绩效工资3 (计算值: {fmt(emp.perfWage3Calc)})</label>
-                              <input
-                                type="number"
-                                value={overrides.w3}
-                                onChange={(e) => setOverrides((p) => ({ ...p, w3: e.target.value }))}
-                                placeholder="覆盖金额"
-                                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                              />
-                              <input
-                                value={overrides.w3r}
-                                onChange={(e) => setOverrides((p) => ({ ...p, w3r: e.target.value }))}
-                                placeholder="调整原因"
-                                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                              />
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
+                  <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/20">
+                    <td className="py-2.5 px-3 text-slate-200 font-medium">{r.employeeName}</td>
+                    <td className="py-2.5 px-3 text-slate-400">{r.department}</td>
+                    <td className="py-2.5 px-3 text-right text-slate-400">{r.perfCoeff1 ?? "--"}</td>
+                    <td className="py-2.5 px-3 text-right text-slate-300">{w1 > 0 ? fmt(w1) : <span className="text-slate-600">--</span>}</td>
+                    <td className="py-2.5 px-3 text-right text-slate-400">{r.perfCoeff2 ?? "--"}</td>
+                    <td className="py-2.5 px-3 text-right text-slate-300">{w2 > 0 ? fmt(w2) : <span className="text-slate-600">--</span>}</td>
+                    <td className="py-2.5 px-3 text-right text-slate-400">{r.perfCoeff3 ?? "--"}</td>
+                    <td className="py-2.5 px-3 text-right text-slate-300">{w3 > 0 ? fmt(w3) : <span className="text-slate-600">--</span>}</td>
+                    <td className="py-2.5 px-3 text-right">
+                      {Number(r.perfDeduction1 ?? 0) > 0 ? <span className="text-red-400">-{fmt(r.perfDeduction1)}</span> : <span className="text-slate-600">--</span>}
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      {Number(r.perfDeduction2 ?? 0) > 0 ? <span className="text-red-400">-{fmt(r.perfDeduction2)}</span> : <span className="text-slate-600">--</span>}
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      {Number(r.perfDeduction3 ?? 0) > 0 ? <span className="text-red-400">-{fmt(r.perfDeduction3)}</span> : <span className="text-slate-600">--</span>}
+                    </td>
+                  </tr>
                 );
               })}
             </tbody>
@@ -621,36 +345,46 @@ function PerfWageOverrideTab({ employees, setEmployees }: {
 // Tab 3: 员工薪资明细 (Employee Detail)
 // ═══════════════════════════════════════════════════════════════
 
-function EmployeeDetailTab({ employees }: { employees: MockEmployee[] }) {
+function EmployeeDetailTab({ cycleId }: { cycleId: number }) {
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<"netPay" | "grossPay" | "name">("netPay");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
+  const calcQ = trpc.payrollSandbox.calc.listResults.useQuery(
+    { cycleId },
+    { enabled: !!cycleId },
+  );
+
+  const rows = calcQ.data ?? [];
+
   const filtered = useMemo(() => {
-    let list = employees;
+    let list = rows;
     if (search) {
       const q = search.toLowerCase();
-      list = list.filter((e) => e.name.includes(q) || e.department.includes(q) || String(e.id).includes(q));
+      list = list.filter((e) =>
+        (e.employeeName ?? "").toLowerCase().includes(q) ||
+        (e.department ?? "").toLowerCase().includes(q)
+      );
     }
     list = [...list].sort((a, b) => {
-      const va = sortField === "name" ? a.name : a[sortField];
-      const vb = sortField === "name" ? b.name : b[sortField];
-      if (typeof va === "string" && typeof vb === "string") {
-        return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+      if (sortField === "name") {
+        return sortDir === "asc"
+          ? (a.employeeName ?? "").localeCompare(b.employeeName ?? "")
+          : (b.employeeName ?? "").localeCompare(a.employeeName ?? "");
       }
-      return sortDir === "asc" ? (va as number) - (vb as number) : (vb as number) - (va as number);
+      const va = Number(sortField === "grossPay" ? a.grossPay : a.netPay) || 0;
+      const vb = Number(sortField === "grossPay" ? b.grossPay : b.netPay) || 0;
+      return sortDir === "asc" ? va - vb : vb - va;
     });
     return list;
-  }, [employees, search, sortField, sortDir]);
+  }, [rows, search, sortField, sortDir]);
 
   const toggleSort = (field: typeof sortField) => {
-    if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDir("desc");
-    }
+    if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(field); setSortDir("desc"); }
   };
+
+  if (calcQ.isLoading) return <LoadingState />;
 
   return (
     <div className="space-y-4">
@@ -659,13 +393,13 @@ function EmployeeDetailTab({ employees }: { employees: MockEmployee[] }) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
           <input
             className="bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 w-72 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="搜索员工 / 部门 / 工号..."
+            placeholder="搜索员工 / 部门..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <Badge variant="outline" className="border-slate-700 text-slate-400">
-          {filtered.length} / {employees.length}
+          {filtered.length} / {rows.length}
         </Badge>
       </div>
 
@@ -674,7 +408,6 @@ function EmployeeDetailTab({ employees }: { employees: MockEmployee[] }) {
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-slate-800/60 text-slate-500">
-                <th className="text-left py-2.5 px-2 font-medium">工号</th>
                 <th className="text-left py-2.5 px-2 font-medium cursor-pointer" onClick={() => toggleSort("name")}>
                   <span className="flex items-center gap-1">姓名 <ArrowUpDown className="h-3 w-3" /></span>
                 </th>
@@ -700,61 +433,58 @@ function EmployeeDetailTab({ employees }: { employees: MockEmployee[] }) {
                 <th className="text-right py-2.5 px-2 font-medium cursor-pointer" onClick={() => toggleSort("netPay")}>
                   <span className="flex items-center gap-1 justify-end">实发 <ArrowUpDown className="h-3 w-3" /></span>
                 </th>
-                <th className="text-center py-2.5 px-2 font-medium">状态</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((e) => (
-                <tr key={e.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
-                  <td className="py-2 px-2 text-slate-500 font-mono">{e.id}</td>
-                  <td className="py-2 px-2 text-slate-200 font-medium">{e.name}</td>
-                  <td className="py-2 px-2 text-slate-400">{e.department}</td>
-                  <td className="py-2 px-2 text-right text-slate-300">{fmt(e.baseSalary)}</td>
-                  <td className="py-2 px-2 text-right text-slate-400">{e.isLumpSum ? <span className="text-slate-600">--</span> : fmt(e.positionWage)}</td>
-                  <td className="py-2 px-2 text-right text-slate-400">{e.isLumpSum ? <span className="text-slate-600">--</span> : fmt(e.skillSubsidy)}</td>
-                  <td className="py-2 px-2 text-right text-blue-300 font-semibold">
-                    {fmt(e.comprehensiveSalary)}
-                    {e.isLumpSum && <span className="ml-1 text-[9px] text-amber-500">包干</span>}
-                  </td>
-                  <td className="py-2 px-2 text-right text-slate-300">{fmt(e.perfWage1Override ?? e.perfWage1Calc)}</td>
-                  <td className="py-2 px-2 text-right text-slate-300">{fmt(e.perfWage2Override ?? e.perfWage2Calc)}</td>
-                  <td className="py-2 px-2 text-right text-slate-300">{fmt(e.perfWage3Override ?? e.perfWage3Calc)}</td>
-                  <td className="py-2 px-2 text-right">
-                    {e.personalLeaveDeduction > 0 ? (
-                      <span className="text-red-400" title={`事假 ${e.personalLeaveHours}h`}>-{fmt(e.personalLeaveDeduction)}</span>
-                    ) : <span className="text-slate-600">--</span>}
-                  </td>
-                  <td className="py-2 px-2 text-right">
-                    {e.sickLeaveDeduction > 0 ? (
-                      <span className="text-orange-400" title={`病假 ${e.sickLeaveHours}h`}>-{fmt(e.sickLeaveDeduction)}</span>
-                    ) : <span className="text-slate-600">--</span>}
-                  </td>
-                  <td className="py-2 px-2 text-right">
-                    {e.perfectAttendanceBonus > 0 ? (
-                      <span className="text-emerald-400">+{fmt(e.perfectAttendanceBonus)}</span>
-                    ) : <span className="text-slate-600">--</span>}
-                  </td>
-                  <td className="py-2 px-2 text-right text-slate-100 font-semibold">{fmt(e.grossPay)}</td>
-                  <td className="py-2 px-2 text-right">
-                    {e.cashSubsidy > 0 ? <span className="text-cyan-400">{fmt(e.cashSubsidy)}</span> : <span className="text-slate-600">--</span>}
-                  </td>
-                  <td className="py-2 px-2 text-right">
-                    {e.travelCarSubsidy > 0 ? <span className="text-cyan-400">{fmt(e.travelCarSubsidy)}</span> : <span className="text-slate-600">--</span>}
-                  </td>
-                  <td className="py-2 px-2 text-right text-slate-400">{fmt(e.socialInsurance)}</td>
-                  <td className="py-2 px-2 text-right text-slate-400">{fmt(e.housingFund)}</td>
-                  <td className="py-2 px-2 text-right text-slate-400">{fmt(e.incomeTax)}</td>
-                  <td className="py-2 px-2 text-right text-emerald-400 font-bold">{fmt(e.netPay)}</td>
-                  <td className="py-2 px-2 text-center">
-                    <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_CONFIG[e.status]?.darkBg ?? "bg-slate-800"} ${STATUS_CONFIG[e.status]?.color ?? "text-slate-400"}`}>
-                      {STATUS_CONFIG[e.status]?.label ?? e.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((e) => {
+                const plDed = Number(e.personalLeaveDeduction ?? 0);
+                const slDed = Number(e.sickLeaveDeduction ?? 0);
+                const attend = Number(e.perfectAttendanceBonus ?? 0);
+                const cash = Number(e.cashSubsidy ?? 0);
+                const travel = Number(e.travelCarSubsidy ?? 0);
+                return (
+                  <tr key={e.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
+                    <td className="py-2 px-2 text-slate-200 font-medium">{e.employeeName}</td>
+                    <td className="py-2 px-2 text-slate-400">{e.department}</td>
+                    <td className="py-2 px-2 text-right text-slate-300">{fmt(e.baseSalary)}</td>
+                    <td className="py-2 px-2 text-right text-slate-400">{Number(e.positionWage ?? 0) > 0 ? fmt(e.positionWage) : <span className="text-slate-600">--</span>}</td>
+                    <td className="py-2 px-2 text-right text-slate-400">{Number(e.skillSubsidy ?? 0) > 0 ? fmt(e.skillSubsidy) : <span className="text-slate-600">--</span>}</td>
+                    <td className="py-2 px-2 text-right text-blue-300 font-semibold">
+                      {fmt(e.comprehensiveSalary)}
+                      {e.isLumpSum && <span className="ml-1 text-[9px] text-amber-500">包干</span>}
+                    </td>
+                    <td className="py-2 px-2 text-right text-slate-300">{fmt(e.perfWage1)}</td>
+                    <td className="py-2 px-2 text-right text-slate-300">{fmt(e.perfWage2)}</td>
+                    <td className="py-2 px-2 text-right text-slate-300">{fmt(e.perfWage3)}</td>
+                    <td className="py-2 px-2 text-right">
+                      {plDed > 0 ? <span className="text-red-400">-{fmt(plDed)}</span> : <span className="text-slate-600">--</span>}
+                    </td>
+                    <td className="py-2 px-2 text-right">
+                      {slDed > 0 ? <span className="text-orange-400">-{fmt(slDed)}</span> : <span className="text-slate-600">--</span>}
+                    </td>
+                    <td className="py-2 px-2 text-right">
+                      {attend > 0 ? <span className="text-emerald-400">+{fmt(attend)}</span> : <span className="text-slate-600">--</span>}
+                    </td>
+                    <td className="py-2 px-2 text-right text-slate-100 font-semibold">{fmt(e.grossPay)}</td>
+                    <td className="py-2 px-2 text-right">
+                      {cash > 0 ? <span className="text-cyan-400">{fmt(cash)}</span> : <span className="text-slate-600">--</span>}
+                    </td>
+                    <td className="py-2 px-2 text-right">
+                      {travel > 0 ? <span className="text-cyan-400">{fmt(travel)}</span> : <span className="text-slate-600">--</span>}
+                    </td>
+                    <td className="py-2 px-2 text-right text-slate-400">{fmt(e.socialInsurance)}</td>
+                    <td className="py-2 px-2 text-right text-slate-400">{fmt(e.housingFund)}</td>
+                    <td className="py-2 px-2 text-right text-slate-400">{fmt(e.incomeTax)}</td>
+                    <td className="py-2 px-2 text-right text-emerald-400 font-bold">{fmt(e.netPay)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+        {filtered.length === 0 && (
+          <div className="text-center py-8 text-slate-600">无匹配数据</div>
+        )}
       </div>
     </div>
   );
@@ -764,29 +494,51 @@ function EmployeeDetailTab({ employees }: { employees: MockEmployee[] }) {
 // Tab 4: 审批中心 (Approval Center)
 // ═══════════════════════════════════════════════════════════════
 
-function ApprovalCenterTab({ employees, setEmployees }: {
-  employees: MockEmployee[];
-  setEmployees: React.Dispatch<React.SetStateAction<MockEmployee[]>>;
-}) {
+const STAGE_CONFIG: Record<string, { label: string; color: string; darkBg: string }> = {
+  hr_initial:           { label: "HR初审",     color: "text-blue-400",    darkBg: "bg-blue-950" },
+  finance_review:       { label: "财务复核",   color: "text-purple-400",  darkBg: "bg-purple-950" },
+  dept_manager_confirm: { label: "部门确认",   color: "text-amber-400",   darkBg: "bg-amber-950" },
+  exec_approve:         { label: "总经办批准", color: "text-emerald-400", darkBg: "bg-emerald-950" },
+};
+
+const ACTION_CONFIG: Record<string, { label: string; color: string }> = {
+  pending:  { label: "待审",   color: "text-slate-400" },
+  approved: { label: "已批准", color: "text-emerald-400" },
+  rejected: { label: "已驳回", color: "text-red-400" },
+};
+
+function ApprovalCenterTab({ cycleId }: { cycleId: number }) {
   const [confirmCode, setConfirmCode] = useState("");
   const [showPayoutConfirm, setShowPayoutConfirm] = useState(false);
+  const [comment, setComment] = useState("");
 
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    STATUS_FLOW.forEach((s) => { counts[s] = 0; });
-    employees.forEach((e) => { counts[e.status] = (counts[e.status] || 0) + 1; });
-    return counts;
-  }, [employees]);
+  const utils = trpc.useUtils();
+  const approvalList = trpc.payrollSandbox.approval.list.useQuery({ cycleId }, { enabled: !!cycleId });
+  const currentStage = trpc.payrollSandbox.approval.currentStage.useQuery({ cycleId }, { enabled: !!cycleId });
+  const fullyApproved = trpc.payrollSandbox.approval.isFullyApproved.useQuery({ cycleId }, { enabled: !!cycleId });
 
-  const batchAdvance = (fromStatus: string, toStatus: string) => {
-    setEmployees((prev) =>
-      prev.map((e) => (e.status === fromStatus ? { ...e, status: toStatus } : e))
-    );
-  };
+  const initFlow = trpc.payrollSandbox.approval.initFlow.useMutation({
+    onSuccess: () => { utils.payrollSandbox.approval.invalidate(); },
+  });
+  const approveMut = trpc.payrollSandbox.approval.approve.useMutation({
+    onSuccess: () => { utils.payrollSandbox.approval.invalidate(); setComment(""); },
+  });
+  const rejectMut = trpc.payrollSandbox.approval.reject.useMutation({
+    onSuccess: () => { utils.payrollSandbox.approval.invalidate(); setComment(""); },
+  });
+  const fullLock = trpc.payrollSandbox.lock.lock.useMutation({
+    onSuccess: () => { utils.payrollSandbox.approval.invalidate(); },
+  });
 
-  const executePayout = () => {
+  const stages = approvalList.data ?? [];
+  const current = currentStage.data;
+  const isFullyDone = fullyApproved.data?.fullyApproved ?? false;
+
+  if (approvalList.isLoading) return <LoadingState />;
+
+  const handlePayout = () => {
     if (confirmCode.length < 4) return;
-    batchAdvance("CEO_APPROVED", "PAID");
+    fullLock.mutate({ cycleId, lockType: "full", reason: "薪资发放确认锁定" });
     setShowPayoutConfirm(false);
     setConfirmCode("");
   };
@@ -796,160 +548,178 @@ function ApprovalCenterTab({ employees, setEmployees }: {
       {/* Pipeline Visualization */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
         <h3 className="text-sm font-semibold text-slate-300 mb-5">审批流水线</h3>
-        <div className="flex items-center gap-0 overflow-x-auto pb-2">
-          {STATUS_FLOW.map((status, i) => {
-            const cfg = STATUS_CONFIG[status];
-            const count = statusCounts[status];
-            return (
-              <React.Fragment key={status}>
-                <div className={`flex flex-col items-center p-4 rounded-xl min-w-[120px] border transition-all ${
-                  count > 0 ? `${cfg.darkBg} border-slate-700` : "bg-slate-900 border-slate-800 opacity-40"
-                }`}>
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${cfg.color} bg-slate-800`}>
-                    {count}
+        {stages.length === 0 ? (
+          <div className="text-center py-6">
+            <p className="text-sm text-slate-500 mb-3">审批流程尚未初始化</p>
+            <Button
+              onClick={() => initFlow.mutate({ cycleId })}
+              disabled={initFlow.isPending}
+              className="bg-blue-700 hover:bg-blue-600 text-white"
+            >
+              {initFlow.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              初始化审批流程
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-0 overflow-x-auto pb-2">
+            {stages.map((stage, i) => {
+              const cfg = STAGE_CONFIG[stage.stage] ?? { label: stage.stage, color: "text-slate-400", darkBg: "bg-slate-800" };
+              const aCfg = ACTION_CONFIG[stage.action ?? "pending"] ?? ACTION_CONFIG.pending;
+              const isCurrent = current?.id === stage.id;
+              return (
+                <React.Fragment key={stage.id}>
+                  <div className={`flex flex-col items-center p-4 rounded-xl min-w-[130px] border transition-all ${
+                    isCurrent ? `${cfg.darkBg} border-slate-600 ring-1 ring-amber-500/50` :
+                    stage.action === "approved" ? `${cfg.darkBg} border-slate-700` :
+                    "bg-slate-900 border-slate-800 opacity-50"
+                  }`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${
+                      stage.action === "approved" ? "text-emerald-400 bg-emerald-950" :
+                      stage.action === "rejected" ? "text-red-400 bg-red-950" :
+                      `${cfg.color} bg-slate-800`
+                    }`}>
+                      {stage.action === "approved" ? <Check className="h-6 w-6" /> :
+                       stage.action === "rejected" ? <X className="h-6 w-6" /> :
+                       stage.stageOrder}
+                    </div>
+                    <span className={`text-xs font-medium mt-2 ${cfg.color}`}>{cfg.label}</span>
+                    <span className={`text-[10px] mt-0.5 ${aCfg.color}`}>{aCfg.label}</span>
+                    {stage.reviewerName && (
+                      <span className="text-[10px] text-slate-600 mt-0.5">{stage.reviewerName}</span>
+                    )}
                   </div>
-                  <span className={`text-xs font-medium mt-2 ${cfg.color}`}>{cfg.label}</span>
-                </div>
-                {i < STATUS_FLOW.length - 1 && (
-                  <ChevronRight className="h-5 w-5 text-slate-700 mx-1 flex-shrink-0" />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="bg-slate-900 border border-amber-900/50 rounded-xl p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-amber-400 flex items-center gap-2">
-          <Shield className="h-4 w-4" /> 审批操作
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* HR Verify */}
-          <button
-            onClick={() => batchAdvance("DRAFT", "HR_VERIFIED")}
-            disabled={statusCounts["DRAFT"] === 0}
-            className="flex items-center gap-3 p-4 rounded-lg bg-slate-800 border border-slate-700 hover:border-blue-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-left"
-          >
-            <div className="p-2 rounded-lg bg-blue-950 text-blue-400">
-              <Check className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-200">HR 审核</p>
-              <p className="text-xs text-slate-500">{statusCounts["DRAFT"]} 条待审核</p>
-            </div>
-          </button>
-
-          {/* Finance Approve */}
-          <button
-            onClick={() => batchAdvance("HR_VERIFIED", "FINANCE_APPROVED")}
-            disabled={statusCounts["HR_VERIFIED"] === 0}
-            className="flex items-center gap-3 p-4 rounded-lg bg-slate-800 border border-slate-700 hover:border-purple-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-left"
-          >
-            <div className="p-2 rounded-lg bg-purple-950 text-purple-400">
-              <Check className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-200">财务 审批</p>
-              <p className="text-xs text-slate-500">{statusCounts["HR_VERIFIED"]} 条待审批</p>
-            </div>
-          </button>
-
-          {/* CEO Approve */}
-          <button
-            onClick={() => batchAdvance("FINANCE_APPROVED", "CEO_APPROVED")}
-            disabled={statusCounts["FINANCE_APPROVED"] === 0}
-            className="flex items-center gap-3 p-4 rounded-lg bg-slate-800 border border-slate-700 hover:border-amber-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-left"
-          >
-            <div className="p-2 rounded-lg bg-amber-950 text-amber-400">
-              <Shield className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-200">CEO 终审</p>
-              <p className="text-xs text-slate-500">{statusCounts["FINANCE_APPROVED"]} 条待终审</p>
-            </div>
-          </button>
-        </div>
-
-        {/* Payout */}
-        {statusCounts["CEO_APPROVED"] > 0 && !showPayoutConfirm && (
-          <button
-            onClick={() => setShowPayoutConfirm(true)}
-            className="w-full p-4 rounded-lg bg-emerald-950 border border-emerald-800 hover:border-emerald-600 transition-all flex items-center justify-center gap-2"
-          >
-            <Lock className="h-5 w-5 text-emerald-400" />
-            <span className="text-sm font-semibold text-emerald-300">确认发放 ({statusCounts["CEO_APPROVED"]} 条)</span>
-          </button>
-        )}
-
-        {/* Payout Confirmation */}
-        {showPayoutConfirm && (
-          <div className="p-4 rounded-lg bg-red-950/30 border border-red-900">
-            <div className="flex items-center gap-2 mb-3">
-              <Lock className="h-5 w-5 text-red-400" />
-              <h4 className="text-sm font-semibold text-red-300">二次验证 -- 确认发放</h4>
-            </div>
-            <p className="text-xs text-red-400/80 mb-3">
-              即将发放 {statusCounts["CEO_APPROVED"]} 条薪资记录，此操作不可撤销。请输入确认码。
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="password"
-                className="flex-1 bg-slate-900 border border-red-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-red-500"
-                placeholder="请输入4位以上确认码"
-                value={confirmCode}
-                onChange={(e) => setConfirmCode(e.target.value)}
-                autoFocus
-              />
-              <Button
-                onClick={executePayout}
-                disabled={confirmCode.length < 4}
-                className="bg-red-800 hover:bg-red-700 text-white"
-              >
-                确认发放
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => { setShowPayoutConfirm(false); setConfirmCode(""); }}
-                className="border-slate-700 text-slate-400 hover:bg-slate-800"
-              >
-                取消
-              </Button>
-            </div>
+                  {i < stages.length - 1 && (
+                    <ChevronRight className="h-5 w-5 text-slate-700 mx-1 flex-shrink-0" />
+                  )}
+                </React.Fragment>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Per-status employee lists */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-slate-300 mb-4">各状态员工分布</h3>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {STATUS_FLOW.map((status) => {
-            const cfg = STATUS_CONFIG[status];
-            const emps = employees.filter((e) => e.status === status);
-            return (
-              <div key={status} className={`rounded-lg border border-slate-800 p-3 ${cfg.darkBg}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-xs font-medium ${cfg.color}`}>{cfg.label}</span>
-                  <span className={`text-lg font-bold ${cfg.color}`}>{emps.length}</span>
-                </div>
-                <div className="space-y-1 max-h-32 overflow-y-auto scrollbar-hide">
-                  {emps.slice(0, 8).map((e) => (
-                    <div key={e.id} className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400 truncate">{e.name}</span>
-                      <span className="text-slate-500">{fmt(e.netPay)}</span>
-                    </div>
-                  ))}
-                  {emps.length > 8 && (
-                    <p className="text-[10px] text-slate-600 text-center">+{emps.length - 8} more</p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+      {/* Action Area */}
+      {current && (
+        <div className="bg-slate-900 border border-amber-900/50 rounded-xl p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-amber-400 flex items-center gap-2">
+            <Shield className="h-4 w-4" /> 当前阶段: {STAGE_CONFIG[current.stage]?.label ?? current.stage}
+          </h3>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <label className="text-xs text-slate-500 block mb-1">审批意见</label>
+              <input
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="输入审批意见（驳回时必填）..."
+                className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              />
+            </div>
+            <Button
+              onClick={() => approveMut.mutate({ flowId: current.id, comment: comment || undefined })}
+              disabled={approveMut.isPending}
+              className="bg-emerald-700 hover:bg-emerald-600 text-white"
+            >
+              {approveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Check className="h-4 w-4 mr-1" />}
+              批准
+            </Button>
+            <Button
+              onClick={() => {
+                if (!comment) { alert("驳回需要填写意见"); return; }
+                rejectMut.mutate({ flowId: current.id, comment });
+              }}
+              disabled={rejectMut.isPending || !comment}
+              variant="outline"
+              className="border-red-800 text-red-400 hover:bg-red-950"
+            >
+              {rejectMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <X className="h-4 w-4 mr-1" />}
+              驳回
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Lock & Payout */}
+      {isFullyDone && !showPayoutConfirm && (
+        <button
+          onClick={() => setShowPayoutConfirm(true)}
+          className="w-full p-4 rounded-lg bg-emerald-950 border border-emerald-800 hover:border-emerald-600 transition-all flex items-center justify-center gap-2"
+        >
+          <Lock className="h-5 w-5 text-emerald-400" />
+          <span className="text-sm font-semibold text-emerald-300">全审批通过 -- 确认锁定发放</span>
+        </button>
+      )}
+
+      {showPayoutConfirm && (
+        <div className="p-4 rounded-lg bg-red-950/30 border border-red-900">
+          <div className="flex items-center gap-2 mb-3">
+            <Lock className="h-5 w-5 text-red-400" />
+            <h4 className="text-sm font-semibold text-red-300">二次验证 -- 确认锁定发放</h4>
+          </div>
+          <p className="text-xs text-red-400/80 mb-3">
+            即将锁定本周期全部薪资数据，此操作不可撤销。请输入确认码。
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              className="flex-1 bg-slate-900 border border-red-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-red-500"
+              placeholder="请输入4位以上确认码"
+              value={confirmCode}
+              onChange={(e) => setConfirmCode(e.target.value)}
+              autoFocus
+            />
+            <Button
+              onClick={handlePayout}
+              disabled={confirmCode.length < 4 || fullLock.isPending}
+              className="bg-red-800 hover:bg-red-700 text-white"
+            >
+              {fullLock.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              确认锁定
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => { setShowPayoutConfirm(false); setConfirmCode(""); }}
+              className="border-slate-700 text-slate-400 hover:bg-slate-800"
+            >
+              取消
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Approval History */}
+      {stages.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <h3 className="text-sm font-semibold text-slate-300 mb-4">审批记录</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-500">
+                  <th className="text-left py-2 px-3 font-medium text-xs">阶段</th>
+                  <th className="text-left py-2 px-3 font-medium text-xs">状态</th>
+                  <th className="text-left py-2 px-3 font-medium text-xs">审批人</th>
+                  <th className="text-left py-2 px-3 font-medium text-xs">意见</th>
+                  <th className="text-left py-2 px-3 font-medium text-xs">时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stages.map((s) => {
+                  const cfg = STAGE_CONFIG[s.stage] ?? { label: s.stage, color: "text-slate-400" };
+                  const aCfg = ACTION_CONFIG[s.action ?? "pending"] ?? ACTION_CONFIG.pending;
+                  return (
+                    <tr key={s.id} className="border-b border-slate-800/50">
+                      <td className={`py-2 px-3 font-medium text-xs ${cfg.color}`}>{cfg.label}</td>
+                      <td className={`py-2 px-3 text-xs ${aCfg.color}`}>{aCfg.label}</td>
+                      <td className="py-2 px-3 text-xs text-slate-400">{s.reviewerName ?? "--"}</td>
+                      <td className="py-2 px-3 text-xs text-slate-500">{s.comment ?? "--"}</td>
+                      <td className="py-2 px-3 text-xs text-slate-600">{s.actionAt ? new Date(s.actionAt).toLocaleString("zh-CN") : "--"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -958,51 +728,68 @@ function ApprovalCenterTab({ employees, setEmployees }: {
 // Tab 5: 异常检测 (Anomaly Detection)
 // ═══════════════════════════════════════════════════════════════
 
-function AnomalyDetectionTab({ employees }: { employees: MockEmployee[] }) {
-  const anomalies = useMemo(() => {
-    return employees
-      .map((e) => {
-        const change = pctChange(e.netPay, e.lastMonthNet);
-        const flags: string[] = [];
-        if (Math.abs(change) > 10) flags.push(`环比变动 ${change.toFixed(1)}%`);
-        if (e.baseSalary === 0) flags.push("基本工资为零");
-        if (e.grossPay > 50000) flags.push("应发超过5万");
-        if (e.perfScore < 60 && (e.perfWage1Override ?? e.perfWage1Calc) > e.perfWage1Calc) {
-          flags.push("低绩效但绩效工资上调");
-        }
-        if (e.netPay < 0) flags.push("实发为负数");
-        return { ...e, change, flags };
-      })
-      .filter((e) => e.flags.length > 0)
-      .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
-  }, [employees]);
+const CATEGORY_LABELS: Record<string, string> = {
+  evidence_insufficient: "举证不足",
+  perf_quality_conflict: "绩效质量冲突",
+  allowance_no_basis: "补贴无依据",
+  social_fund_mismatch: "社保不匹配",
+  tax_bracket_anomaly: "个税档次异常",
+  net_pay_volatility: "实发波动异常",
+};
 
-  const severeCount = anomalies.filter((a) => Math.abs(a.change) > 20).length;
-  const warningCount = anomalies.filter((a) => Math.abs(a.change) > 10 && Math.abs(a.change) <= 20).length;
+const SEVERITY_STYLES: Record<string, { bg: string; text: string }> = {
+  info: { bg: "bg-blue-900/50", text: "text-blue-300" },
+  warning: { bg: "bg-amber-900/50", text: "text-amber-300" },
+  critical: { bg: "bg-red-900/50", text: "text-red-300" },
+};
+
+function AnomalyDetectionTab({ cycleId }: { cycleId: number }) {
+  const anomalyList = trpc.payrollSandbox.anomaly.list.useQuery(
+    { cycleId },
+    { enabled: !!cycleId },
+  );
+  const anomalyStats = trpc.payrollSandbox.anomaly.stats.useQuery(
+    { cycleId },
+    { enabled: !!cycleId },
+  );
+
+  if (anomalyList.isLoading) return <LoadingState />;
+
+  const anomalies = anomalyList.data ?? [];
+  const stats = anomalyStats.data ?? [];
+
+  const totalCount = anomalies.length;
+  const criticalCount = anomalies.filter((a) => a.severity === "critical").length;
+  const warningCount = anomalies.filter((a) => a.severity === "warning").length;
+
+  // Group stats by category
+  const catCounts = new Map<string, number>();
+  for (const s of stats) {
+    const prev = catCounts.get(s.category ?? "") ?? 0;
+    catCounts.set(s.category ?? "", prev + Number(s.count ?? 0));
+  }
 
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <DarkKpiCard
-          label="异常总数"
-          value={`${anomalies.length}`}
-          icon={AlertTriangle}
-          accent="bg-amber-900/50 text-amber-400"
-        />
-        <DarkKpiCard
-          label="严重异常 (>20%)"
-          value={`${severeCount}`}
-          icon={FileWarning}
-          accent="bg-red-900/50 text-red-400"
-        />
-        <DarkKpiCard
-          label="警告 (10-20%)"
-          value={`${warningCount}`}
-          icon={AlertTriangle}
-          accent="bg-yellow-900/50 text-yellow-400"
-        />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <DarkKpiCard label="异常总数" value={`${totalCount}`} icon={AlertTriangle} accent="bg-amber-900/50 text-amber-400" />
+        <DarkKpiCard label="严重" value={`${criticalCount}`} icon={FileWarning} accent="bg-red-900/50 text-red-400" />
+        <DarkKpiCard label="警告" value={`${warningCount}`} icon={AlertTriangle} accent="bg-yellow-900/50 text-yellow-400" />
+        <DarkKpiCard label="分类数" value={`${catCounts.size}`} icon={BarChart3} accent="bg-blue-900/50 text-blue-400" />
       </div>
+
+      {/* Category Breakdown */}
+      {catCounts.size > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {Array.from(catCounts.entries()).map(([cat, cnt]) => (
+            <div key={cat} className="bg-slate-900 border border-slate-800 rounded-lg p-3 flex justify-between items-center">
+              <span className="text-xs text-slate-400">{CATEGORY_LABELS[cat] ?? cat}</span>
+              <span className="text-sm font-bold text-slate-200">{cnt}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Anomaly List */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
@@ -1010,42 +797,40 @@ function AnomalyDetectionTab({ employees }: { employees: MockEmployee[] }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-800/60 text-slate-500">
-                <th className="text-left py-2.5 px-3 font-medium text-xs">工号</th>
-                <th className="text-left py-2.5 px-3 font-medium text-xs">姓名</th>
-                <th className="text-left py-2.5 px-3 font-medium text-xs">部门</th>
-                <th className="text-right py-2.5 px-3 font-medium text-xs">上月实发</th>
-                <th className="text-right py-2.5 px-3 font-medium text-xs">本月实发</th>
-                <th className="text-right py-2.5 px-3 font-medium text-xs">变动</th>
-                <th className="text-left py-2.5 px-3 font-medium text-xs">异常标记</th>
+                <th className="text-left py-2.5 px-3 font-medium text-xs">员工</th>
+                <th className="text-left py-2.5 px-3 font-medium text-xs">分类</th>
+                <th className="text-left py-2.5 px-3 font-medium text-xs">严重度</th>
+                <th className="text-left py-2.5 px-3 font-medium text-xs">标题</th>
+                <th className="text-left py-2.5 px-3 font-medium text-xs">说明</th>
+                <th className="text-left py-2.5 px-3 font-medium text-xs">字段</th>
+                <th className="text-center py-2.5 px-3 font-medium text-xs">已解决</th>
               </tr>
             </thead>
             <tbody>
               {anomalies.map((a) => {
-                const isSevere = Math.abs(a.change) > 20;
+                const sev = SEVERITY_STYLES[a.severity ?? "info"] ?? SEVERITY_STYLES.info;
                 return (
                   <tr key={a.id} className={`border-b border-slate-800/50 transition-colors ${
-                    isSevere ? "bg-red-950/20" : "bg-amber-950/10 hover:bg-slate-800/20"
+                    a.severity === "critical" ? "bg-red-950/20" : "hover:bg-slate-800/20"
                   }`}>
-                    <td className="py-2.5 px-3 text-slate-500 font-mono text-xs">{a.id}</td>
-                    <td className="py-2.5 px-3 text-slate-200 font-medium">{a.name}</td>
-                    <td className="py-2.5 px-3 text-slate-400">{a.department}</td>
-                    <td className="py-2.5 px-3 text-right text-slate-400">{fmt(a.lastMonthNet)}</td>
-                    <td className="py-2.5 px-3 text-right text-slate-200">{fmt(a.netPay)}</td>
-                    <td className="py-2.5 px-3 text-right">
-                      <span className={`font-bold ${a.change > 0 ? "text-red-400" : "text-emerald-400"}`}>
-                        {a.change > 0 ? "+" : ""}{a.change.toFixed(1)}%
-                      </span>
+                    <td className="py-2.5 px-3 text-slate-200 font-medium">{a.employeeName}</td>
+                    <td className="py-2.5 px-3">
+                      <span className="text-xs text-slate-400">{CATEGORY_LABELS[a.category ?? ""] ?? a.category}</span>
                     </td>
                     <td className="py-2.5 px-3">
-                      <div className="flex flex-wrap gap-1">
-                        {a.flags.map((flag, fi) => (
-                          <span key={fi} className={`inline-flex text-[10px] px-1.5 py-0.5 rounded ${
-                            isSevere ? "bg-red-900/50 text-red-300" : "bg-amber-900/50 text-amber-300"
-                          }`}>
-                            {flag}
-                          </span>
-                        ))}
-                      </div>
+                      <span className={`inline-flex text-[10px] px-1.5 py-0.5 rounded ${sev.bg} ${sev.text}`}>
+                        {a.severity}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-slate-300 text-xs">{a.title}</td>
+                    <td className="py-2.5 px-3 text-slate-500 text-xs max-w-[200px] truncate">{a.description}</td>
+                    <td className="py-2.5 px-3 text-slate-500 text-xs font-mono">{a.fieldName ?? "--"}</td>
+                    <td className="py-2.5 px-3 text-center">
+                      {a.isResolved ? (
+                        <Check className="h-4 w-4 text-emerald-500 mx-auto" />
+                      ) : (
+                        <span className="text-xs text-slate-600">--</span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -1067,44 +852,55 @@ function AnomalyDetectionTab({ employees }: { employees: MockEmployee[] }) {
 // Tab 6: 差值调控 (Adjustment Control)
 // ═══════════════════════════════════════════════════════════════
 
-interface AdjustmentEntry {
-  employeeId: number;
-  employeeName: string;
-  department: string;
-  adjustType: string;
-  amount: number;
-  reason: string;
-  createdAt: string;
-}
+const ADJUST_TYPES = [
+  { value: "bonus_addition", label: "补发/奖金" },
+  { value: "deduction_correction", label: "扣减" },
+  { value: "perf_wage_override", label: "绩效调整" },
+  { value: "attendance_correction", label: "考勤修正" },
+  { value: "retroactive", label: "追溯调整" },
+  { value: "other", label: "其他" },
+] as const;
 
-function AdjustmentControlTab({ employees }: { employees: MockEmployee[] }) {
-  const [adjustments, setAdjustments] = useState<AdjustmentEntry[]>([]);
-  const [newAdj, setNewAdj] = useState({ employeeId: "", type: "补发", amount: "", reason: "" });
+function AdjustmentControlTab({ cycleId }: { cycleId: number }) {
+  const [newAdj, setNewAdj] = useState({
+    employeeName: "",
+    adjustType: "bonus_addition" as string,
+    adjustedValue: "",
+    adjustAmount: "",
+    reason: "",
+  });
 
-  const addAdjustment = () => {
-    const empId = Number(newAdj.employeeId);
-    const emp = employees.find((e) => e.id === empId);
-    if (!emp || !newAdj.amount || !newAdj.reason) return;
-    setAdjustments((prev) => [
-      ...prev,
-      {
-        employeeId: empId,
-        employeeName: emp.name,
-        department: emp.department,
-        adjustType: newAdj.type,
-        amount: Number(newAdj.amount),
-        reason: newAdj.reason,
-        createdAt: new Date().toISOString().slice(0, 16),
-      },
-    ]);
-    setNewAdj({ employeeId: "", type: "补发", amount: "", reason: "" });
+  const utils = trpc.useUtils();
+
+  const adjList = trpc.payrollSandbox.result.listAdjustments.useQuery(
+    { cycleId },
+    { enabled: !!cycleId },
+  );
+
+  const createAdj = trpc.payrollSandbox.result.createAdjustment.useMutation({
+    onSuccess: () => {
+      utils.payrollSandbox.result.listAdjustments.invalidate({ cycleId });
+      setNewAdj({ employeeName: "", adjustType: "bonus_addition", adjustedValue: "", adjustAmount: "", reason: "" });
+    },
+  });
+
+  const adjustments = adjList.data ?? [];
+
+  const totalAdj = adjustments.reduce((s, a) => s + Number(a.adjustAmount ?? 0), 0);
+
+  const handleCreate = () => {
+    if (!newAdj.employeeName || !newAdj.adjustAmount || !newAdj.reason) return;
+    createAdj.mutate({
+      cycleId,
+      employeeName: newAdj.employeeName,
+      adjustType: newAdj.adjustType as any,
+      adjustedValue: Number(newAdj.adjustedValue) || 0,
+      adjustAmount: Number(newAdj.adjustAmount),
+      reason: newAdj.reason,
+    });
   };
 
-  const removeAdj = (idx: number) => {
-    setAdjustments((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const totalAdj = adjustments.reduce((s, a) => s + (a.adjustType === "扣减" ? -a.amount : a.amount), 0);
+  if (adjList.isLoading) return <LoadingState />;
 
   return (
     <div className="space-y-6">
@@ -1115,35 +911,33 @@ function AdjustmentControlTab({ employees }: { employees: MockEmployee[] }) {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
           <div className="space-y-1">
-            <label className="text-xs text-slate-500">员工工号</label>
+            <label className="text-xs text-slate-500">员工姓名</label>
             <input
-              type="number"
-              value={newAdj.employeeId}
-              onChange={(e) => setNewAdj((p) => ({ ...p, employeeId: e.target.value }))}
-              placeholder="如: 1001"
+              value={newAdj.employeeName}
+              onChange={(e) => setNewAdj((p) => ({ ...p, employeeName: e.target.value }))}
+              placeholder="如: 吴卫成"
               className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-slate-500">类型</label>
             <select
-              value={newAdj.type}
-              onChange={(e) => setNewAdj((p) => ({ ...p, type: e.target.value }))}
+              value={newAdj.adjustType}
+              onChange={(e) => setNewAdj((p) => ({ ...p, adjustType: e.target.value }))}
               className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none"
             >
-              <option value="补发">补发</option>
-              <option value="扣减">扣减</option>
-              <option value="奖金">奖金</option>
-              <option value="特殊调整">特殊调整</option>
+              {ADJUST_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-slate-500">金额 (元)</label>
+            <label className="text-xs text-slate-500">调整金额 (元)</label>
             <input
               type="number"
-              value={newAdj.amount}
-              onChange={(e) => setNewAdj((p) => ({ ...p, amount: e.target.value }))}
-              placeholder="金额"
+              value={newAdj.adjustAmount}
+              onChange={(e) => setNewAdj((p) => ({ ...p, adjustAmount: e.target.value }))}
+              placeholder="正=加 负=减"
               className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -1157,10 +951,11 @@ function AdjustmentControlTab({ employees }: { employees: MockEmployee[] }) {
             />
           </div>
           <Button
-            onClick={addAdjustment}
-            disabled={!newAdj.employeeId || !newAdj.amount || !newAdj.reason}
+            onClick={handleCreate}
+            disabled={!newAdj.employeeName || !newAdj.adjustAmount || !newAdj.reason || createAdj.isPending}
             className="bg-blue-700 hover:bg-blue-600 text-white"
           >
+            {createAdj.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
             添加
           </Button>
         </div>
@@ -1188,49 +983,49 @@ function AdjustmentControlTab({ employees }: { employees: MockEmployee[] }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-800/60 text-slate-500">
-                <th className="text-left py-2.5 px-3 font-medium text-xs">工号</th>
-                <th className="text-left py-2.5 px-3 font-medium text-xs">姓名</th>
-                <th className="text-left py-2.5 px-3 font-medium text-xs">部门</th>
+                <th className="text-left py-2.5 px-3 font-medium text-xs">员工</th>
                 <th className="text-left py-2.5 px-3 font-medium text-xs">类型</th>
-                <th className="text-right py-2.5 px-3 font-medium text-xs">金额</th>
+                <th className="text-right py-2.5 px-3 font-medium text-xs">调整额</th>
                 <th className="text-left py-2.5 px-3 font-medium text-xs">原因</th>
+                <th className="text-left py-2.5 px-3 font-medium text-xs">状态</th>
                 <th className="text-left py-2.5 px-3 font-medium text-xs">时间</th>
-                <th className="text-center py-2.5 px-3 font-medium text-xs">操作</th>
               </tr>
             </thead>
             <tbody>
-              {adjustments.map((a, i) => (
-                <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/20">
-                  <td className="py-2.5 px-3 text-slate-500 font-mono text-xs">{a.employeeId}</td>
-                  <td className="py-2.5 px-3 text-slate-200">{a.employeeName}</td>
-                  <td className="py-2.5 px-3 text-slate-400">{a.department}</td>
-                  <td className="py-2.5 px-3">
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${
-                      a.adjustType === "扣减" ? "bg-red-900/50 text-red-300" :
-                      a.adjustType === "奖金" ? "bg-emerald-900/50 text-emerald-300" :
-                      "bg-blue-900/50 text-blue-300"
-                    }`}>
-                      {a.adjustType}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-right">
-                    <span className={`font-semibold ${a.adjustType === "扣减" ? "text-red-400" : "text-emerald-400"}`}>
-                      {a.adjustType === "扣减" ? "-" : "+"}{fmt(a.amount)}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-slate-400 text-xs">{a.reason}</td>
-                  <td className="py-2.5 px-3 text-slate-500 text-xs">{a.createdAt}</td>
-                  <td className="py-2.5 px-3 text-center">
-                    <button
-                      onClick={() => removeAdj(i)}
-                      className="p-1 rounded bg-slate-800 text-red-400 hover:bg-red-900/50"
-                      title="删除"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {adjustments.map((a) => {
+                const amt = Number(a.adjustAmount ?? 0);
+                const typeLabel = ADJUST_TYPES.find((t) => t.value === a.adjustType)?.label ?? a.adjustType;
+                return (
+                  <tr key={a.id} className="border-b border-slate-800/50 hover:bg-slate-800/20">
+                    <td className="py-2.5 px-3 text-slate-200">{a.employeeName}</td>
+                    <td className="py-2.5 px-3">
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${
+                        a.adjustType === "deduction_correction" ? "bg-red-900/50 text-red-300" :
+                        a.adjustType === "bonus_addition" ? "bg-emerald-900/50 text-emerald-300" :
+                        "bg-blue-900/50 text-blue-300"
+                      }`}>
+                        {typeLabel}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      <span className={`font-semibold ${amt < 0 ? "text-red-400" : "text-emerald-400"}`}>
+                        {amt >= 0 ? "+" : ""}{fmt(amt)}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-slate-400 text-xs">{a.reason}</td>
+                    <td className="py-2.5 px-3">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                        a.status === "approved" ? "bg-emerald-900/50 text-emerald-300" :
+                        a.status === "rejected" ? "bg-red-900/50 text-red-300" :
+                        "bg-slate-800 text-slate-400"
+                      }`}>
+                        {a.status === "approved" ? "已批准" : a.status === "rejected" ? "已驳回" : "待审"}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-slate-500 text-xs">{a.createdAt ? new Date(a.createdAt).toLocaleString("zh-CN") : "--"}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -1280,12 +1075,12 @@ function AccessDeniedScreen() {
 // ═══════════════════════════════════════════════════════════════
 
 const TABS = [
-  { key: "overview",   label: "薪资总览",   icon: BarChart3 },
+  { key: "overview",   label: "薪资总览",     icon: BarChart3 },
   { key: "perfWage",   label: "绩效工资调整", icon: Edit },
   { key: "detail",     label: "员工薪资明细", icon: Eye },
-  { key: "approval",   label: "审批中心",   icon: Shield },
-  { key: "anomaly",    label: "异常检测",   icon: AlertTriangle },
-  { key: "adjustment", label: "差值调控",   icon: DollarSign },
+  { key: "approval",   label: "审批中心",     icon: Shield },
+  { key: "anomaly",    label: "异常检测",     icon: AlertTriangle },
+  { key: "adjustment", label: "差值调控",     icon: DollarSign },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -1295,18 +1090,13 @@ type TabKey = (typeof TABS)[number]["key"];
 // ═══════════════════════════════════════════════════════════════
 
 export default function PayrollApprovalGate() {
-  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [period, setPeriod] = useState(getCurrentPeriod());
-  const [employees, setEmployees] = useState<MockEmployee[]>(MOCK_EMPLOYEES);
 
   // ── Confidentiality Check ──────────────────────────────────
-  // In production, this checks against useAuth().user.name
-  // For now, we also check the role via useUserProfile
   let isAuthorized = false;
   try {
     const { currentUserRole } = useUserProfile();
-    // In dev/demo mode, allow admin and director roles
     if (currentUserRole === "admin" || currentUserRole === "director") {
       isAuthorized = true;
     }
@@ -1314,20 +1104,20 @@ export default function PayrollApprovalGate() {
     // UserProfileContext might not be available in test
   }
 
-  // Try to get user name from auth (real production check)
-  try {
-    // useAuth hook check would go here in production
-    // For prototype, we also authorize via role check above
-  } catch {
-    // Ignore
-  }
-
-  // In production: uncomment the following for strict name-based check
-  // const { user } = useAuth();
-  // isAuthorized = isAuthorized || AUTHORIZED_NAMES.includes(user?.name);
-
   // For demo purposes: always allow (remove this line in production)
   isAuthorized = true;
+
+  // ── Cycle selection ────────────────────────────────────────
+  const cyclesQ = trpc.payrollSandbox.cycle.list.useQuery(undefined, {
+    enabled: isAuthorized,
+  });
+
+  const selectedCycle = useMemo(() => {
+    const targetPeriod = monthToPeriod(period);
+    return (cyclesQ.data ?? []).find((c) => c.period === targetPeriod) ?? null;
+  }, [cyclesQ.data, period]);
+
+  const selectedCycleId = selectedCycle?.id ?? null;
 
   if (!isAuthorized) {
     return <AccessDeniedScreen />;
@@ -1354,6 +1144,13 @@ export default function PayrollApprovalGate() {
               <Shield className="h-3.5 w-3.5 text-amber-500" />
               <span className="text-xs text-amber-400">Level 5 Clearance</span>
             </div>
+            {selectedCycle && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                <span className="text-xs text-slate-400">
+                  {selectedCycle.name} ({selectedCycle.status})
+                </span>
+              </div>
+            )}
             <input
               type="month"
               value={period}
@@ -1387,20 +1184,28 @@ export default function PayrollApprovalGate() {
 
         {/* Tab Content */}
         <div className="min-h-[500px]">
-          {activeTab === "overview" && <OverviewTab employees={employees} period={period} />}
-          {activeTab === "perfWage" && <PerfWageOverrideTab employees={employees} setEmployees={setEmployees} />}
-          {activeTab === "detail" && <EmployeeDetailTab employees={employees} />}
-          {activeTab === "approval" && <ApprovalCenterTab employees={employees} setEmployees={setEmployees} />}
-          {activeTab === "anomaly" && <AnomalyDetectionTab employees={employees} />}
-          {activeTab === "adjustment" && <AdjustmentControlTab employees={employees} />}
+          {cyclesQ.isLoading ? (
+            <LoadingState label="加载薪资周期..." />
+          ) : !selectedCycleId ? (
+            <NoCycleState />
+          ) : (
+            <>
+              {activeTab === "overview" && <OverviewTab cycleId={selectedCycleId} />}
+              {activeTab === "perfWage" && <PerfWageTab cycleId={selectedCycleId} />}
+              {activeTab === "detail" && <EmployeeDetailTab cycleId={selectedCycleId} />}
+              {activeTab === "approval" && <ApprovalCenterTab cycleId={selectedCycleId} />}
+              {activeTab === "anomaly" && <AnomalyDetectionTab cycleId={selectedCycleId} />}
+              {activeTab === "adjustment" && <AdjustmentControlTab cycleId={selectedCycleId} />}
+            </>
+          )}
         </div>
 
         {/* Footer */}
         <div className="border-t border-slate-800 pt-4 flex items-center justify-between text-xs text-slate-600">
-          <span>Period: {period} | Generated: {new Date().toLocaleString("zh-CN")}</span>
+          <span>Period: {period} | Cycle: {selectedCycle?.name ?? "N/A"} | Generated: {new Date().toLocaleString("zh-CN")}</span>
           <span className="flex items-center gap-1.5">
             <Lock className="h-3 w-3" />
-            CLASSIFIED -- GRT Payroll System v2.0
+            CLASSIFIED -- GRT Payroll System v3.0
           </span>
         </div>
       </div>

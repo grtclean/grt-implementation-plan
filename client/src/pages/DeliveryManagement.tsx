@@ -73,6 +73,83 @@ const severityColorMap = createStatusColorMap({
   Critical: "red",
 });
 
+const GATE_CHECK_ITEMS = {
+  docs: ["BOM清单完整", "电气图纸完整", "操作手册已生成", "维护SOP已生成", "报警列表已确认"],
+  design: ["URS已冻结", "机械BOM已冻结", "电气IO已确认", "风险评估已完成"],
+  production: ["物料齐套", "生产工单已创建", "质检标准已确认"],
+  customer: ["客户签字确认", "交付地址已确认", "现场联系人已确认"],
+};
+const ALL_GATE_ITEMS = [...GATE_CHECK_ITEMS.docs, ...GATE_CHECK_ITEMS.design, ...GATE_CHECK_ITEMS.production, ...GATE_CHECK_ITEMS.customer];
+
+function GateChecklistContent() {
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+
+  const aiGateCheckMutation = trpc.m7m9.gateCheck.executeAIGateCheck.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Gate检查完成: ${data.decision}`);
+    },
+    onError: (error) => {
+      toast.error(`检查失败: ${error.message}`);
+    },
+  });
+
+  const toggleItem = (item: string) => {
+    setCheckedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(item)) next.delete(item);
+      else next.add(item);
+      return next;
+    });
+  };
+
+  const renderSection = (title: string, icon: React.ReactNode, items: string[]) => (
+    <div>
+      <h4 className="font-semibold mb-3 flex items-center gap-2">{icon}{title}</h4>
+      <div className="grid gap-2 pl-6">
+        {items.map((item) => (
+          <div key={item} className="flex items-center gap-2">
+            <input type="checkbox" className="rounded" checked={checkedItems.has(item)} onChange={() => toggleItem(item)} />
+            <span className="text-sm">{item}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <CardContent>
+      <div className="grid gap-6">
+        {renderSection("文档完整性", <FileCheck className="w-4 h-4 text-blue-400" />, GATE_CHECK_ITEMS.docs)}
+        {renderSection("设计评审", <Target className="w-4 h-4 text-purple-400" />, GATE_CHECK_ITEMS.design)}
+        {renderSection("生产准备", <Package className="w-4 h-4 text-orange-400" />, GATE_CHECK_ITEMS.production)}
+        {renderSection("客户确认", <User className="w-4 h-4 text-green-400" />, GATE_CHECK_ITEMS.customer)}
+      </div>
+      <div className="flex items-center justify-between mt-6">
+        <span className="text-sm text-muted-foreground">{checkedItems.size}/{ALL_GATE_ITEMS.length} 已勾选</span>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setCheckedItems(new Set())}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            重置
+          </Button>
+          <Button
+            onClick={() => aiGateCheckMutation.mutate({
+              deliveryId: 1,
+              projectNo: "PRJ-2026-001",
+              currentStage: "M7_Pre_Acceptance",
+              openIssueCount: ALL_GATE_ITEMS.length - checkedItems.size,
+              criticalIssueCount: 0,
+            })}
+            disabled={aiGateCheckMutation.isPending}
+          >
+            <CheckCircle2 className="w-4 h-4 mr-2" />
+            提交检查
+          </Button>
+        </div>
+      </div>
+    </CardContent>
+  );
+}
+
 export default function DeliveryManagement() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("deliveries");
@@ -628,84 +705,7 @@ export default function DeliveryManagement() {
                   标准M7预验收检查项目，确保设备发货前满足所有条件
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-6">
-                  {/* Document Completeness */}
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <FileCheck className="w-4 h-4 text-blue-400" />
-                      文档完整性
-                    </h4>
-                    <div className="grid gap-2 pl-6">
-                      {["BOM清单完整", "电气图纸完整", "操作手册已生成", "维护SOP已生成", "报警列表已确认"].map((item, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
-                          <span className="text-sm">{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Design Review */}
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Target className="w-4 h-4 text-purple-400" />
-                      设计评审
-                    </h4>
-                    <div className="grid gap-2 pl-6">
-                      {["URS已冻结", "机械BOM已冻结", "电气IO已确认", "风险评估已完成"].map((item, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
-                          <span className="text-sm">{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Production Readiness */}
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Package className="w-4 h-4 text-orange-400" />
-                      生产准备
-                    </h4>
-                    <div className="grid gap-2 pl-6">
-                      {["物料齐套", "生产工单已创建", "质检标准已确认"].map((item, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
-                          <span className="text-sm">{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Customer Confirmation */}
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <User className="w-4 h-4 text-green-400" />
-                      客户确认
-                    </h4>
-                    <div className="grid gap-2 pl-6">
-                      {["客户签字确认", "交付地址已确认", "现场联系人已确认"].map((item, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
-                          <span className="text-sm">{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex justify-end gap-2 mt-6">
-                  <Button variant="outline" onClick={() => toast.info("功能开发中，敬请期待")}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    重置
-                  </Button>
-                  <Button onClick={() => toast.info("Gate检查提交功能开发中，敬请期待")}>
-                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                    提交检查
-                  </Button>
-                </div>
-              </CardContent>
+              <GateChecklistContent />
             </Card>
           </TabsContent>
 
@@ -747,9 +747,10 @@ export default function DeliveryManagement() {
                   <p className="text-sm text-muted-foreground mb-4">
                     分析现场问题，提供根因分析、解决方案和所需备件清单
                   </p>
-                  <Button className="w-full" variant="outline" onClick={() => toast.info("Site Copilot Agent 开发中，敬请期待")}>
+                  <Button className="w-full" variant="outline" disabled>
                     <AlertTriangle className="w-4 h-4 mr-2" />
                     诊断现场问题
+                    <Badge variant="secondary" className="ml-2 text-[10px]">Phase 2</Badge>
                   </Button>
                 </CardContent>
               </Card>
@@ -768,9 +769,10 @@ export default function DeliveryManagement() {
                   <p className="text-sm text-muted-foreground mb-4">
                     分析URS复杂度、客户等级、历史问题，评估项目风险等级
                   </p>
-                  <Button className="w-full" variant="outline" onClick={() => toast.info("Risk Radar Agent 开发中，敬请期待")}>
+                  <Button className="w-full" variant="outline" disabled>
                     <Target className="w-4 h-4 mr-2" />
                     分析项目风险
+                    <Badge variant="secondary" className="ml-2 text-[10px]">Phase 2</Badge>
                   </Button>
                 </CardContent>
               </Card>
@@ -789,9 +791,10 @@ export default function DeliveryManagement() {
                   <p className="text-sm text-muted-foreground mb-4">
                     根据报警列表生成故障排除指南、维护SOP、操作手册
                   </p>
-                  <Button className="w-full" variant="outline" onClick={() => toast.info("Technical Writer Agent 开发中，敬请期待")}>
+                  <Button className="w-full" variant="outline" disabled>
                     <FileCheck className="w-4 h-4 mr-2" />
                     生成技术文档
+                    <Badge variant="secondary" className="ml-2 text-[10px]">Phase 2</Badge>
                   </Button>
                 </CardContent>
               </Card>

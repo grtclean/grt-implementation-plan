@@ -2,6 +2,11 @@
  * 报价生成页面 - 多步骤报价创建向导
  */
 import { useState } from "react";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import { useSandboxPageEnhancements } from "@/components/Sandbox/useSandboxPageEnhancements";
+import ShortcutOverlay from "@/components/Sandbox/ShortcutOverlay";
+import SandboxFileImport from "@/components/Sandbox/SandboxFileImport";
 import { PageHeader } from "@/components/grt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,17 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
   Calculator, Search, ChevronRight, ChevronLeft, Users, Package,
-  BarChart3, DollarSign, FileText, Sparkles, Download, Plus, Minus,
+  BarChart3, DollarSign, FileText, Sparkles, Download, Plus, Minus, Loader2,
 } from "lucide-react";
-
-const CUSTOMERS = [
-  { id: 1, name: "上海大众汽车", tier: "OEM", industry: "汽车", contact: "张经理" },
-  { id: 2, name: "宝马慕尼黑工厂", tier: "OEM", industry: "汽车", contact: "Herr Mueller" },
-  { id: 3, name: "博世苏州", tier: "Tier1", industry: "汽车零部件", contact: "李总" },
-  { id: 4, name: "采埃孚上海", tier: "Tier1", industry: "传动系统", contact: "王总" },
-  { id: 5, name: "潍柴动力", tier: "Tier2", industry: "发动机", contact: "赵经理" },
-  { id: 6, name: "英飞凌科技", tier: "OEM", industry: "半导体", contact: "陈总" },
-];
 
 const EQUIPMENT = [
   { model: "IC-2000", name: "通过式清洗机", basePrice: 1850000 },
@@ -57,6 +53,13 @@ function tierColor(tier: string) {
   return "bg-orange-500/20 text-orange-400";
 }
 
+/** Map region to a display tier */
+function regionToTier(region: string): string {
+  if (region === "EU" || region === "NA") return "OEM";
+  if (region === "CN") return "Tier1";
+  return "Tier2";
+}
+
 export default function QuotationCreate() {
   const [step, setStep] = useState(0);
   const [search, setSearch] = useState("");
@@ -65,8 +68,49 @@ export default function QuotationCreate() {
   const [selectedOpts, setSelectedOpts] = useState<string[]>([]);
   const [strategy, setStrategy] = useState("cost-plus");
   const [discount, setDiscount] = useState(0);
+  const { shortcutOverlayOpen, setShortcutOverlayOpen, shortcuts, lastSaved, isSaving } = useSandboxPageEnhancements({
+    sandboxShortcuts: [
+      { key: "ctrl+q", label: "生成报价", action: () => { /* handled by step wizard */ } },
+    ],
+    autoSave: {
+      data: { step, selectedCustomer, selectedEquip, strategy, discount },
+      onSave: async (d) => { localStorage.setItem("grt-sb-quoting", JSON.stringify(d)); },
+    },
+  });
 
-  const customer = CUSTOMERS.find(c => c.id === selectedCustomer);
+  // ── Data fetching ──────────────────────────────────────────────
+  const { data: customersRaw = [], isLoading: customersLoading } =
+    trpc.mechanicalConfig.customerConfig.list.useQuery();
+
+  const customers = customersRaw.map((c) => ({
+    id: c.id,
+    name: c.customerName,
+    tier: regionToTier(c.region),
+    industry: c.specialRequirements?.split(",")[0] ?? c.region,
+    contact: c.customerCode ?? "-",
+  }));
+
+  // ── Mutations ─────────────────────────────────────────────────
+  const saveDraftMut = trpc.mechanicalConfig.quotation.saveDraft.useMutation({
+    onSuccess: (result) => {
+      toast.success(`PDF报价单已生成: ${result.quotationNumber}`);
+    },
+    onError: (err) => {
+      toast.error(`生成PDF失败: ${err.message}`);
+    },
+  });
+
+  const submitApprovalMut = trpc.mechanicalConfig.quotation.submitForApproval.useMutation({
+    onSuccess: (result) => {
+      toast.success(`报价单 ${result.quotationNumber} 已提交审批`);
+    },
+    onError: (err) => {
+      toast.error(`提交审批失败: ${err.message}`);
+    },
+  });
+
+  // ── Computed values ───────────────────────────────────────────
+  const customer = customers.find(c => c.id === selectedCustomer);
   const equip = EQUIPMENT.find(e => e.model === selectedEquip);
   const optsCost = OPTIONS.filter(o => selectedOpts.includes(o.id)).reduce((s, o) => s + o.price, 0);
   const baseCost = (equip?.basePrice ?? 0) + optsCost;
@@ -88,14 +132,50 @@ export default function QuotationCreate() {
 
   const fmt = (v: number) => "¥" + v.toLocaleString();
 
+  const buildMutationInput = () => ({
+    customerName: customer?.name ?? "未选择",
+    equipmentModel: equip?.model ?? "未选择",
+    equipmentName: equip?.name ?? "",
+    selectedOptions: selectedOpts,
+    totalCost,
+    marginPct,
+    discount,
+    finalPrice,
+    strategy,
+  });
+
+  const handleSaveDraft = () => {
+    if (!customer || !equip) {
+      toast.warning("请先选择客户和设备");
+      return;
+    }
+    saveDraftMut.mutate(buildMutationInput());
+  };
+
+  const handleSubmitApproval = () => {
+    if (!customer || !equip) {
+      toast.warning("请先选择客户和设备");
+      return;
+    }
+    submitApprovalMut.mutate(buildMutationInput());
+  };
+
   return (
       <div className="space-y-6">
+        <ShortcutOverlay open={shortcutOverlayOpen} onClose={() => setShortcutOverlayOpen(false)} commonShortcuts={shortcuts.commonShortcuts} sandboxShortcuts={shortcuts.sandboxShortcuts} sandboxTitle="报价BOM" />
         <PageHeader
           icon={Calculator}
           title="报价生成"
           description="多步骤智能报价向导"
           actions={
-            <Badge variant="outline" className="gap-1"><Sparkles className="h-3 w-3" />AI辅助定价</Badge>
+            <div className="flex items-center gap-2">
+              <SandboxFileImport
+                accept=".csv"
+                label="导入BOM"
+                onImport={(rows, fileName) => { toast(`已导入 ${rows.length} 行BOM数据 (${fileName})`); }}
+              />
+              <Badge variant="outline" className="gap-1"><Sparkles className="h-3 w-3" />AI辅助定价</Badge>
+            </div>
           }
         />
 
@@ -122,17 +202,25 @@ export default function QuotationCreate() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="搜索客户名称..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
-              <div className="grid gap-3">
-                {CUSTOMERS.filter(c => !search || c.name.includes(search)).map(c => (
-                  <button key={c.id} onClick={() => setSelectedCustomer(c.id)} className={"flex items-center gap-4 p-4 rounded-lg border transition-colors " + (selectedCustomer === c.id ? "border-primary bg-primary/10" : "hover:bg-accent/50")}>
-                    <div className="flex-1 text-left">
-                      <p className="font-medium">{c.name}</p>
-                      <p className="text-sm text-muted-foreground">{c.industry} · {c.contact}</p>
-                    </div>
-                    <Badge className={tierColor(c.tier)}>{c.tier}</Badge>
-                  </button>
-                ))}
-              </div>
+              {customersLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />加载客户数据...
+                </div>
+              ) : customers.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">暂无客户数据，请在机械配置中添加客户</div>
+              ) : (
+                <div className="grid gap-3">
+                  {customers.filter(c => !search || c.name.includes(search)).map(c => (
+                    <button key={c.id} onClick={() => setSelectedCustomer(c.id)} className={"flex items-center gap-4 p-4 rounded-lg border transition-colors " + (selectedCustomer === c.id ? "border-primary bg-primary/10" : "hover:bg-accent/50")}>
+                      <div className="flex-1 text-left">
+                        <p className="font-medium">{c.name}</p>
+                        <p className="text-sm text-muted-foreground">{c.industry} · {c.contact}</p>
+                      </div>
+                      <Badge className={tierColor(c.tier)}>{c.tier}</Badge>
+                    </button>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -271,8 +359,21 @@ export default function QuotationCreate() {
                 <div><p className="text-xs text-muted-foreground">最终报价</p><p className="text-xl font-bold text-primary">{fmt(finalPrice)}</p></div>
               </div>
               <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => alert("PDF报价单已生成（模拟）")}><Download className="h-4 w-4 mr-2" />生成PDF</Button>
-                <Button onClick={() => alert("报价单已提交审批（模拟）")}>提交审批</Button>
+                <Button
+                  variant="outline"
+                  disabled={saveDraftMut.isPending}
+                  onClick={handleSaveDraft}
+                >
+                  {saveDraftMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                  生成PDF
+                </Button>
+                <Button
+                  disabled={submitApprovalMut.isPending}
+                  onClick={handleSubmitApproval}
+                >
+                  {submitApprovalMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  提交审批
+                </Button>
               </div>
             </CardContent>
           </Card>

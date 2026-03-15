@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ReportActionBar from "@/components/ReportActionBar";
+import ShareContextMenu from "@/components/ShareContextMenu";
 import {
   Wrench, Loader2, Sparkles, AlertTriangle, CheckCircle, Package, Calendar,
 } from "lucide-react";
@@ -55,6 +57,7 @@ export default function AIMaintenancePlan() {
   const [usageIntensity, setUsageIntensity] = useState("正常");
   const [result, setResult] = useState<MaintenanceResult | null>(null);
   const [taskId, setTaskId] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const mutation = trpc.rdServiceIntelligence.planMaintenance.useMutation({
     onSuccess: (data) => setTaskId(data.taskId),
@@ -83,7 +86,9 @@ export default function AIMaintenancePlan() {
   }, [taskQuery.data]);
 
   const handleSubmit = () => {
-    if (!installDate || !operatingHours || !lastMaintenanceDate || mutation.isPending || !!taskId) return;
+    if (!installDate || !operatingHours || !lastMaintenanceDate) { setSubmitted(true); return; }
+    if (mutation.isPending || !!taskId) return;
+    setSubmitted(false);
     mutation.mutate({
       equipmentModel,
       installDate,
@@ -189,16 +194,19 @@ export default function AIMaintenancePlan() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">安装日期</label>
-                <Input type="date" value={installDate} onChange={(e) => setInstallDate(e.target.value)} />
+                <label className="text-sm text-muted-foreground">安装日期 <span className="text-red-500">*</span></label>
+                <Input type="date" value={installDate} onChange={(e) => setInstallDate(e.target.value)} className={submitted && !installDate ? "border-red-500" : ""} />
+                {submitted && !installDate && <span className="text-xs text-red-500">必填项</span>}
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">运行工时（小时）</label>
-                <Input type="number" placeholder="如: 5000" value={operatingHours} onChange={(e) => setOperatingHours(e.target.value)} />
+                <label className="text-sm text-muted-foreground">运行工时（小时） <span className="text-red-500">*</span></label>
+                <Input type="number" placeholder="如: 5000" value={operatingHours} onChange={(e) => setOperatingHours(e.target.value)} className={submitted && !operatingHours ? "border-red-500" : ""} />
+                {submitted && !operatingHours && <span className="text-xs text-red-500">必填项</span>}
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">上次维护日期</label>
-                <Input type="date" value={lastMaintenanceDate} onChange={(e) => setLastMaintenanceDate(e.target.value)} />
+                <label className="text-sm text-muted-foreground">上次维护日期 <span className="text-red-500">*</span></label>
+                <Input type="date" value={lastMaintenanceDate} onChange={(e) => setLastMaintenanceDate(e.target.value)} className={submitted && !lastMaintenanceDate ? "border-red-500" : ""} />
+                {submitted && !lastMaintenanceDate && <span className="text-xs text-red-500">必填项</span>}
               </div>
             </div>
             <div className="space-y-1">
@@ -216,7 +224,12 @@ export default function AIMaintenancePlan() {
 
         {/* Results */}
         {result && (
-          <>
+          <ShareContextMenu
+            title="AI预防性维护报告"
+            textContent={`设备健康度: ${result.healthScore}\n下次维护: ${result.nextMaintenanceDate}\n年度维护预算: ${result.costForecast}万元\n\n维护计划:\n${result.maintenancePlan.map(p => `- ${p.item}: ${p.interval}, 下次${p.nextDue}, 优先级${p.priority}, 预估${p.estimatedCost}万`).join("\n")}\n\n备件需求:\n${result.sparePartsNeeded.map(s => `- ${s.part} x${s.quantity} (${s.leadTime})`).join("\n")}\n\n风险评估:\n${result.riskAssessment}\n\n建议:\n${result.recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}`}
+            jsonData={result as unknown as Record<string, unknown>}
+          >
+          <div className="space-y-6">
             {/* Health Score */}
             <Card>
               <CardContent className="pt-6">
@@ -351,7 +364,14 @@ export default function AIMaintenancePlan() {
                 </CardContent>
               </Card>
             )}
-          </>
+
+            <ReportActionBar
+              title="AI预防性维护报告"
+              textContent={`设备健康度: ${result.healthScore}\n下次维护: ${result.nextMaintenanceDate}\n年度维护预算: ${result.costForecast}万元\n\n维护计划:\n${result.maintenancePlan.map(p => `- ${p.item}: ${p.interval}, 下次${p.nextDue}, 优先级${p.priority}, 预估${p.estimatedCost}万`).join("\n")}\n\n备件需求:\n${result.sparePartsNeeded.map(s => `- ${s.part} x${s.quantity} (${s.leadTime})`).join("\n")}\n\n风险评估:\n${result.riskAssessment}\n\n建议:\n${result.recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}`}
+              jsonData={result as unknown as Record<string, unknown>}
+            />
+          </div>
+          </ShareContextMenu>
         )}
       </div>
   );

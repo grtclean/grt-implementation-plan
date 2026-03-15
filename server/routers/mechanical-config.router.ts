@@ -21,6 +21,7 @@ import {
   mechAcceptanceRecords,
   mechReviewRules,
 } from "../../drizzle/mechanical-config-schema";
+import { historicalQuotations } from "../../drizzle/schema";
 import { createChildLogger } from "../lib/logger";
 
 const log = createChildLogger("mechanical-config");
@@ -400,6 +401,84 @@ const quotationRouter = router({
         .from(mechQuotationChecks)
         .where(eq(mechQuotationChecks.projectCode, input.projectCode))
         .groupBy(mechQuotationChecks.complianceStatus);
+    }),
+
+  /** Save quotation as draft — persists to historicalQuotations */
+  saveDraft: requirePermission("mechanical:quotation:manage")
+    .input(z.object({
+      customerName: z.string().min(1),
+      equipmentModel: z.string().min(1),
+      equipmentName: z.string().min(1),
+      selectedOptions: z.array(z.string()),
+      totalCost: z.number(),
+      marginPct: z.number(),
+      discount: z.number(),
+      finalPrice: z.number(),
+      strategy: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const quotationNumber = `QT-${Date.now().toString(36).toUpperCase()}`;
+      const totalPrice = String(input.totalCost / (1 - input.marginPct / 100));
+      await ctx.db.insert(historicalQuotations).values({
+        quotationId: quotationNumber,
+        customerName: input.customerName,
+        equipmentModel: input.equipmentModel,
+        basePrice: String(input.totalCost),
+        totalCost: String(input.totalCost),
+        totalPrice,
+        discountRate: String(input.discount),
+        finalPrice: String(input.finalPrice),
+        profitMargin: String(input.marginPct),
+        quotationDate: new Date().toISOString().split("T")[0],
+        notes: `${input.equipmentName} | ${input.strategy} | ${input.selectedOptions.join(", ")}`,
+        bidResult: "pending",
+        createdBy: ctx.user!.id,
+      });
+      log.info({ quotationNumber, customer: input.customerName, finalPrice: input.finalPrice, createdBy: ctx.user!.name }, "Quotation draft saved to DB");
+      return {
+        quotationNumber,
+        status: "draft" as const,
+        message: `报价单 ${quotationNumber} 已保存`,
+      };
+    }),
+
+  /** Submit quotation for approval — persists to historicalQuotations */
+  submitForApproval: requirePermission("mechanical:quotation:manage")
+    .input(z.object({
+      customerName: z.string().min(1),
+      equipmentModel: z.string().min(1),
+      equipmentName: z.string().min(1),
+      selectedOptions: z.array(z.string()),
+      totalCost: z.number(),
+      marginPct: z.number(),
+      discount: z.number(),
+      finalPrice: z.number(),
+      strategy: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const quotationNumber = `QT-${Date.now().toString(36).toUpperCase()}`;
+      const totalPrice = String(input.totalCost / (1 - input.marginPct / 100));
+      await ctx.db.insert(historicalQuotations).values({
+        quotationId: quotationNumber,
+        customerName: input.customerName,
+        equipmentModel: input.equipmentModel,
+        basePrice: String(input.totalCost),
+        totalCost: String(input.totalCost),
+        totalPrice,
+        discountRate: String(input.discount),
+        finalPrice: String(input.finalPrice),
+        profitMargin: String(input.marginPct),
+        quotationDate: new Date().toISOString().split("T")[0],
+        notes: `${input.equipmentName} | ${input.strategy} | ${input.selectedOptions.join(", ")}`,
+        bidResult: "pending",
+        createdBy: ctx.user!.id,
+      });
+      log.info({ quotationNumber, customer: input.customerName, finalPrice: input.finalPrice, submittedBy: ctx.user!.name }, "Quotation submitted for approval");
+      return {
+        quotationNumber,
+        status: "pending_approval" as const,
+        message: `报价单 ${quotationNumber} 已提交审批`,
+      };
     }),
 });
 

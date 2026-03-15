@@ -255,6 +255,41 @@ export const okrRouter = router({
       }
     }),
 
+  /** Delete an objective and its KRs + check-ins */
+  deleteObjective: requirePermission('strategy:okr:manage')
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        // Delete check-ins for all KRs of this objective
+        const krs = await db.select({ id: okrKeyResults.id }).from(okrKeyResults).where(eq(okrKeyResults.objectiveId, input.id)).limit(1000);
+        for (const kr of krs) {
+          await db.delete(okrCheckIns).where(eq(okrCheckIns.keyResultId, kr.id));
+        }
+        // Delete KRs
+        await db.delete(okrKeyResults).where(eq(okrKeyResults.objectiveId, input.id));
+        // Delete objective
+        await db.delete(okrObjectives).where(eq(okrObjectives.id, input.id));
+        return { ok: true };
+      } catch (e: any) {
+        return { ok: false, message: e.message };
+      }
+    }),
+
+  /** Delete a key result and its check-ins */
+  deleteKeyResult: requirePermission('strategy:okr:manage')
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      try {
+        const db = await requireDb();
+        await db.delete(okrCheckIns).where(eq(okrCheckIns.keyResultId, input.id));
+        await db.delete(okrKeyResults).where(eq(okrKeyResults.id, input.id));
+        return { ok: true };
+      } catch (e: any) {
+        return { ok: false, message: e.message };
+      }
+    }),
+
   /** Record a check-in for a key result */
   checkIn: requirePermission('strategy:okr:manage')
     .input(z.object({

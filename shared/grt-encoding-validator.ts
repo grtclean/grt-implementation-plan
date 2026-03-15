@@ -45,11 +45,18 @@ export interface EncodingRule {
 // ── Patterns ─────────────────────────────────────────────
 
 const DRAWING_REGEX = /^GRT-[A-Z]{2}-[A-Z]{2}-\d{3}(-R\d{1,2})?$/;
-const MATERIAL_REGEX = /^[A-Z]{2,4}(-[A-Z0-9]{2,5})+-\d{4}$/;
+const MATERIAL_REGEX = /^[A-Z]{2,4}(-[A-Z0-9]{2,5}){2,}-\d{4}$/;
 const PROJECT_REGEX = /^(GRT|T)\d{3}$/;
 const BOM_REGEX = /^BOM-[A-Z0-9]+-\d{3}$/;
 const ECR_REGEX = /^ECR-\d{4}-[A-Z0-9]+-\d{3}$/;
 const ECO_REGEX = /^ECO-\d{4}-[A-Z0-9]+-\d{3}$/;
+
+// ── Enhanced Validation Constants ────────────────────────
+/** Valid drawing type codes: 机械/电气/装配/管路/液压/软件 */
+const VALID_DRAWING_TYPES = new Set(["ME", "EL", "AS", "PB", "HY", "SW"]);
+/** ECR/ECO valid year range */
+const ECR_ECO_MIN_YEAR = 2020;
+const ECR_ECO_MAX_YEAR = 2030;
 
 // ── Validators ───────────────────────────────────────────
 
@@ -67,6 +74,15 @@ export function validateDrawingCode(code: string): ValidationResult {
   }
 
   const parts = trimmed.split("-");
+  const drawingType = parts[2];
+  if (!VALID_DRAWING_TYPES.has(drawingType)) {
+    return {
+      valid: false,
+      codeType: "drawing",
+      code: trimmed,
+      error: `Drawing type "${drawingType}" not recognized. Valid types: ${[...VALID_DRAWING_TYPES].join(", ")} (机械/电气/装配/管路/液压/软件)`,
+    };
+  }
   return {
     valid: true,
     codeType: "drawing",
@@ -74,7 +90,7 @@ export function validateDrawingCode(code: string): ValidationResult {
     segments: {
       prefix: parts[0],
       productLine: parts[1],
-      drawingType: parts[2],
+      drawingType,
       sequence: parts[3],
       revision: parts[4] || "",
     },
@@ -95,6 +111,15 @@ export function validateMaterialCode(code: string): ValidationResult {
   }
 
   const parts = trimmed.split("-");
+  // Must have at least 4 segments: category + 2 middle + sequence
+  if (parts.length < 4) {
+    return {
+      valid: false,
+      codeType: "material",
+      code: trimmed,
+      error: `Material code must have at least 2 middle segments (category-subcategory-spec-NNNN). Got ${parts.length - 2} middle segments.`,
+    };
+  }
   const seq = parts.pop()!;
   return {
     valid: true,
@@ -168,6 +193,15 @@ export function validateEcrCode(code: string): ValidationResult {
   }
 
   const parts = trimmed.split("-");
+  const year = parseInt(parts[1], 10);
+  if (year < ECR_ECO_MIN_YEAR || year > ECR_ECO_MAX_YEAR) {
+    return {
+      valid: false,
+      codeType: "ecr",
+      code: trimmed,
+      error: `ECR year ${year} out of range [${ECR_ECO_MIN_YEAR}-${ECR_ECO_MAX_YEAR}].`,
+    };
+  }
   return {
     valid: true,
     codeType: "ecr",
@@ -190,6 +224,15 @@ export function validateEcoCode(code: string): ValidationResult {
   }
 
   const parts = trimmed.split("-");
+  const year = parseInt(parts[1], 10);
+  if (year < ECR_ECO_MIN_YEAR || year > ECR_ECO_MAX_YEAR) {
+    return {
+      valid: false,
+      codeType: "eco",
+      code: trimmed,
+      error: `ECO year ${year} out of range [${ECR_ECO_MIN_YEAR}-${ECR_ECO_MAX_YEAR}].`,
+    };
+  }
   return {
     valid: true,
     codeType: "eco",
@@ -268,9 +311,9 @@ export function getEncodingRulesReference(): EncodingRule[] {
       type: "drawing",
       pattern: "GRT-XX-YY-ZZZ(-RNN)",
       regex: DRAWING_REGEX,
-      description: "XX=Product Line (2 letters), YY=Drawing Type (ME/EL/AS), ZZZ=Sequence (3 digits), RNN=Revision",
-      descriptionZh: "XX=产品线(2字母), YY=图纸类型(ME机械/EL电气/AS装配), ZZZ=序号(3位), RNN=修订号",
-      examples: ["GRT-RC-ME-001", "GRT-SC-EL-042-R2", "GRT-IU-AS-005"],
+      description: "XX=Product Line (2 letters), YY=Drawing Type (ME/EL/AS/PB/HY/SW), ZZZ=Sequence (3 digits), RNN=Revision",
+      descriptionZh: "XX=产品线(2字母), YY=图纸类型(ME机械/EL电气/AS装配/PB管路/HY液压/SW软件), ZZZ=序号(3位), RNN=修订号",
+      examples: ["GRT-RC-ME-001", "GRT-SC-EL-042-R2", "GRT-IU-AS-005", "GRT-RC-PB-010", "GRT-SC-HY-003"],
     },
     {
       type: "material",

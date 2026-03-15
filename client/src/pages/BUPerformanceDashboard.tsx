@@ -6,6 +6,7 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useUserProfile } from "@/contexts/UserProfileContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -139,10 +140,26 @@ function ProgressBar({ value, max = 100, color = 'primary' }: { value: number; m
 export default function BUPerformanceDashboard() {
   const { t } = useLanguage();
   const { toast } = useToast();
+  const { level } = useUserProfile();
+  const canView = level >= 5;
+  const canManage = level >= 7;
   const [selectedPeriod, setSelectedPeriod] = useState(getCurrentPeriod());
   const [selectedBU, setSelectedBU] = useState<string | null>(null);
-  
+
   const periodOptions = useMemo(() => getPeriodOptions(), []);
+
+  if (!canView) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <Lock className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+            <p className="text-muted-foreground text-sm">总监及以上角色可查看BU绩效看板</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // 获取所有BU信息
   const { data: busData } = trpc.buMapping.getAllBUs.useQuery();
@@ -259,7 +276,7 @@ export default function BUPerformanceDashboard() {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 {t("admin.buPerf.refresh")}
               </Button>
-              {(!statsData?.stats || statsData.stats.length === 0) && (
+              {canManage && (!statsData?.stats || statsData.stats.length === 0) && (
                 <Button
                   onClick={() => initSampleDataMutation.mutate()}
                   disabled={initSampleDataMutation.isPending}

@@ -1,10 +1,12 @@
 /**
  * 我的任务页面
- * 集中展示和管理个人任务
+ * 集中展示和管理个人任务 — real tRPC backend
  */
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useUserProfile } from "@/contexts/UserProfileContext";
+import { trpc } from "@/lib/trpc";
 import FeatureGuide from "@/components/FeatureGuide";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,6 +39,7 @@ import {
   ArrowRight,
   Tag,
   Target,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader, StatCard } from "@/components/grt";
@@ -62,113 +65,40 @@ interface Task {
 }
 
 // ============================================================================
-// 模拟数据
+// Backend → Frontend mapping
 // ============================================================================
 
-const mockTasks: Task[] = [
-  {
-    id: "1",
-    title: "审批李四的离职申请",
-    description: "销售部员工李四提交了离职申请，最后工作日为2024-03-10，需要审核离职原因。",
-    category: "hr",
-    priority: "high",
-    status: "todo",
-    dueDate: "2024-02-13",
-    createdAt: "2024-02-11",
-    tags: ["离职管理", "审批"],
-    isStarred: true,
-    aiSuggestion: "建议与部门主管沟通后审批",
-  },
-  {
-    id: "2",
-    title: "完成张三的90天转正评估",
-    description: "技术部张三的90天试用期评估将在5天后到期，需要完成绩效评估和面谈。",
-    category: "hr",
-    priority: "high",
-    status: "in_progress",
-    dueDate: "2024-02-15",
-    createdAt: "2024-02-10",
-    tags: ["转正评估", "绩效"],
-    isStarred: true,
-    progress: 60,
-  },
-  {
-    id: "3",
-    title: "处理采购订单 PO-2024-048",
-    description: "供应商B的采购订单需要确认交期和价格。",
-    category: "procurement",
-    priority: "medium",
-    status: "todo",
-    dueDate: "2024-02-14",
-    createdAt: "2024-02-11",
-    tags: ["采购", "订单"],
-    isStarred: false,
-    aiSuggestion: "建议对比历史价格后再确认",
-  },
-  {
-    id: "4",
-    title: "准备比亚迪项目M9终验收资料",
-    description: "DEL-2024-003项目即将进入M9终验收，需要准备验收报告和文档。",
-    category: "delivery",
-    priority: "high",
-    status: "in_progress",
-    dueDate: "2024-02-16",
-    createdAt: "2024-02-10",
-    tags: ["交付", "验收"],
-    isStarred: true,
-    progress: 40,
-    aiSuggestion: "AI建议使用自动文档生成功能",
-  },
-  {
-    id: "5",
-    title: "参加项目周会",
-    description: "每周一14:00在会议室A进行项目周会，汇报本周工作进展。",
-    category: "meeting",
-    priority: "medium",
-    status: "todo",
-    dueDate: "2024-02-12",
-    createdAt: "2024-02-11",
-    tags: ["会议", "汇报"],
-    isStarred: false,
-  },
-  {
-    id: "6",
-    title: "查看1月度个人绩效报告",
-    description: "1月度的个人绩效已发布，需要查看详细报告并制定改进计划。",
-    category: "performance",
-    priority: "low",
-    status: "todo",
-    dueDate: "2024-02-15",
-    createdAt: "2024-02-10",
-    tags: ["绩效", "改进"],
-    isStarred: false,
-  },
-  {
-    id: "7",
-    title: "处理超声波换能器库存预警",
-    description: "超声波换能器库存不足，需要及时补货。",
-    category: "procurement",
-    priority: "high",
-    status: "todo",
-    dueDate: "2024-02-12",
-    createdAt: "2024-02-10",
-    tags: ["库存", "补货"],
-    isStarred: false,
-    aiSuggestion: "建议批量采购以获得更好价格",
-  },
-  {
-    id: "8",
-    title: "完成设备维护计划",
-    description: "制定下一季度的设备维护计划，包括维护内容和时间安排。",
-    category: "other",
-    priority: "low",
-    status: "todo",
-    dueDate: "2024-02-20",
-    createdAt: "2024-02-09",
-    tags: ["维护", "计划"],
-    isStarred: false,
-  },
-];
+const validCategories = new Set(["hr", "procurement", "delivery", "meeting", "performance", "other"]);
+
+function mapBackendTask(raw: any): Task {
+  const category = validCategories.has(raw.category) ? raw.category : "other";
+  let tags: string[] = [];
+  if (Array.isArray(raw.tags)) {
+    tags = raw.tags;
+  } else if (typeof raw.tags === "string") {
+    try {
+      const parsed = JSON.parse(raw.tags);
+      tags = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      tags = raw.tags ? raw.tags.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
+    }
+  }
+  return {
+    id: String(raw.id),
+    title: raw.title ?? "",
+    description: raw.description ?? "",
+    category,
+    priority: raw.priority ?? "medium",
+    status: raw.status ?? "todo",
+    dueDate: raw.dueDate ?? raw.createdAt ?? new Date().toISOString(),
+    createdAt: raw.createdAt ?? new Date().toISOString(),
+    assignee: raw.assignee,
+    tags,
+    isStarred: false, // no backend field — local state
+    aiSuggestion: raw.aiSuggestion,
+    progress: raw.progress,
+  };
+}
 
 // ============================================================================
 // 辅助函数和组件
@@ -241,7 +171,7 @@ function TaskCard({ task, onToggleStatus, onToggleStar, onEdit }: {
   onEdit: (task: Task) => void;
 }) {
   const { t } = useLanguage();
-  const CategoryIcon = categoryIcons[task.category];
+  const CategoryIcon = categoryIcons[task.category] ?? ListTodo;
   const daysUntilDue = getDaysUntilDue(task.dueDate);
 
   return (
@@ -360,9 +290,13 @@ function TaskCard({ task, onToggleStatus, onToggleStar, onEdit }: {
 
 export default function MyTasks() {
   const { t } = useLanguage();
+  const { level } = useUserProfile();
+  const canManage = level >= 3;
+
   const [activeTab, setActiveTab] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+  const [starredIds, setStarredIds] = useState<Set<string>>(new Set());
 
   // 表单状态
   const [newTask, setNewTask] = useState({
@@ -374,53 +308,132 @@ export default function MyTasks() {
     tags: "",
   });
 
-  // 根据标签筛选任务
-  const getFilteredTasks = () => {
-    switch (activeTab) {
-      case "todo":
-        return mockTasks.filter(t => t.status === "todo");
-      case "in_progress":
-        return mockTasks.filter(t => t.status === "in_progress");
-      case "completed":
-        return mockTasks.filter(t => t.status === "completed");
-      case "starred":
-        return mockTasks.filter(t => t.isStarred);
-      default:
-        return mockTasks;
+  // ---- tRPC queries ----
+  const statusFilter = activeTab === "all" || activeTab === "starred" ? undefined : activeTab;
+  const tasksQuery = (trpc.taskBoard as any).getMyTasks.useQuery(
+    { status: statusFilter, limit: 100 },
+    { refetchOnWindowFocus: false }
+  );
+
+  const statsQuery = (trpc.taskBoard as any).getStats.useQuery(
+    {},
+    { refetchOnWindowFocus: false }
+  );
+
+  // ---- tRPC mutations ----
+  const createMutation = (trpc.taskBoard as any).create.useMutation({
+    onSuccess: () => {
+      toast.success(t("common.tasks.created"));
+      setIsCreateDialogOpen(false);
+      setNewTask({ title: "", description: "", category: "other", priority: "medium", dueDate: "", tags: "" });
+      tasksQuery.refetch();
+      statsQuery.refetch();
+    },
+    onError: (err: any) => {
+      toast.error(err?.message ?? "创建失败");
+    },
+  });
+
+  const moveStatusMutation = (trpc.taskBoard as any).moveStatus.useMutation({
+    onSuccess: () => {
+      toast.success(t("common.tasks.statusUpdated"));
+      tasksQuery.refetch();
+      statsQuery.refetch();
+    },
+    onError: (err: any) => {
+      toast.error(err?.message ?? "状态更新失败");
+    },
+  });
+
+  const batchUpdateStatusMutation = (trpc.taskBoard as any).batchUpdateStatus.useMutation({
+    onSuccess: () => {
+      toast.success(`已完成 ${selectedTasks.size} 个任务`);
+      setSelectedTasks(new Set());
+      tasksQuery.refetch();
+      statsQuery.refetch();
+    },
+    onError: (err: any) => {
+      toast.error(err?.message ?? "批量更新失败");
+    },
+  });
+
+  const deleteMutation = (trpc.taskBoard as any).delete.useMutation({
+    onSuccess: () => {
+      toast.success("任务已删除");
+      tasksQuery.refetch();
+      statsQuery.refetch();
+    },
+    onError: (err: any) => {
+      toast.error(err?.message ?? "删除失败");
+    },
+  });
+
+  // ---- Map backend data ----
+  const allTasks: Task[] = useMemo(() => {
+    const rawList = tasksQuery.data ?? [];
+    const items = Array.isArray(rawList) ? rawList : (rawList as any).tasks ?? [];
+    return items.map((raw: any) => {
+      const mapped = mapBackendTask(raw);
+      mapped.isStarred = starredIds.has(mapped.id);
+      return mapped;
+    });
+  }, [tasksQuery.data, starredIds]);
+
+  // Filter for starred tab (client-side since starred is local state)
+  const filteredTasks = useMemo(() => {
+    if (activeTab === "starred") {
+      return allTasks.filter((t) => t.isStarred);
     }
-  };
+    return allTasks;
+  }, [allTasks, activeTab]);
 
-  const filteredTasks = getFilteredTasks();
-  const todoCount = mockTasks.filter(t => t.status === "todo").length;
-  const inProgressCount = mockTasks.filter(t => t.status === "in_progress").length;
-  const completedCount = mockTasks.filter(t => t.status === "completed").length;
-  const starredCount = mockTasks.filter(t => t.isStarred).length;
-  const overdueCount = mockTasks.filter(t => getDaysUntilDue(t.dueDate) < 0 && t.status !== "completed").length;
+  // Stats from backend or fallback to client-side counting
+  const stats = statsQuery.data;
+  const todoCount = stats?.todo ?? allTasks.filter((t) => t.status === "todo").length;
+  const inProgressCount = stats?.inProgress ?? stats?.in_progress ?? allTasks.filter((t) => t.status === "in_progress").length;
+  const completedCount = stats?.completed ?? allTasks.filter((t) => t.status === "completed").length;
+  const starredCount = allTasks.filter((t) => t.isStarred).length;
+  const overdueCount = stats?.overdue ?? allTasks.filter((t) => getDaysUntilDue(t.dueDate) < 0 && t.status !== "completed").length;
 
+  // ---- Handlers ----
   const handleCreateTask = () => {
     if (!newTask.title.trim()) {
       toast.error(t("common.tasks.titleRequired"));
       return;
     }
-    toast.success(t("common.tasks.created"));
-    setIsCreateDialogOpen(false);
-    setNewTask({
-      title: "",
-      description: "",
-      category: "other",
-      priority: "medium",
-      dueDate: "",
-      tags: "",
+    const tagsArray = newTask.tags
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    createMutation.mutate({
+      title: newTask.title.trim(),
+      description: newTask.description.trim() || undefined,
+      priority: newTask.priority,
+      category: newTask.category,
+      dueDate: newTask.dueDate || undefined,
+      tags: tagsArray.length > 0 ? tagsArray : undefined,
+      status: "todo",
     });
   };
 
-  const handleToggleStatus = (id: string) => {
-    toast.success(t("common.tasks.statusUpdated"));
-  };
+  const handleToggleStatus = useCallback((id: string) => {
+    const task = allTasks.find((t) => t.id === id);
+    const newStatus = task?.status === "completed" ? "todo" : "completed";
+    moveStatusMutation.mutate({ id: Number(id), status: newStatus });
+  }, [allTasks, moveStatusMutation]);
 
-  const handleToggleStar = (id: string) => {
+  const handleToggleStar = useCallback((id: string) => {
+    setStarredIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
     toast.success(t("common.tasks.starUpdated"));
-  };
+  }, [t]);
 
   const handleEdit = (task: Task) => {
     toast.info(`编辑任务: ${task.title}`);
@@ -430,14 +443,27 @@ export default function MyTasks() {
     if (selectedTasks.size === filteredTasks.length) {
       setSelectedTasks(new Set());
     } else {
-      setSelectedTasks(new Set(filteredTasks.map(t => t.id)));
+      setSelectedTasks(new Set(filteredTasks.map((t) => t.id)));
     }
   };
 
   const handleCompleteSelected = () => {
-    toast.success(`已完成 ${selectedTasks.size} 个任务`);
-    setSelectedTasks(new Set());
+    if (!canManage) {
+      toast.error("权限不足，无法批量操作");
+      return;
+    }
+    const ids = Array.from(selectedTasks).map(Number);
+    batchUpdateStatusMutation.mutate({ ids, status: "completed" });
   };
+
+  // ---- Loading state ----
+  if (tasksQuery.isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
       <>
@@ -571,7 +597,8 @@ export default function MyTasks() {
                     <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                       {t("common.cancel")}
                     </Button>
-                    <Button onClick={handleCreateTask}>
+                    <Button onClick={handleCreateTask} disabled={createMutation.isPending}>
+                      {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                       {t("common.tasks.newTask")}
                     </Button>
                   </DialogFooter>
@@ -628,15 +655,23 @@ export default function MyTasks() {
               <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg mb-4">
                 <Checkbox
                   id="select-all-tasks"
-                  checked={selectedTasks.size === filteredTasks.length}
+                  checked={selectedTasks.size === filteredTasks.length && filteredTasks.length > 0}
                   onCheckedChange={handleSelectAll}
                 />
                 <label htmlFor="select-all-tasks" className="text-sm cursor-pointer">
                   {t("common.tasks.selectAll")} ({filteredTasks.length})
                 </label>
-                {selectedTasks.size > 0 && (
-                  <Button size="sm" onClick={handleCompleteSelected} className="ml-auto">
-                    <CheckCircle2 className="w-4 h-4 mr-1" />
+                {selectedTasks.size > 0 && canManage && (
+                  <Button
+                    size="sm"
+                    onClick={handleCompleteSelected}
+                    className="ml-auto"
+                    disabled={batchUpdateStatusMutation.isPending}
+                  >
+                    {batchUpdateStatusMutation.isPending
+                      ? <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      : <CheckCircle2 className="w-4 h-4 mr-1" />
+                    }
                     {t("common.tasks.completeSelected")} ({selectedTasks.size})
                   </Button>
                 )}
@@ -645,6 +680,11 @@ export default function MyTasks() {
 
             {/* Task List */}
             <div className="space-y-3">
+              {tasksQuery.isFetching && !tasksQuery.isLoading && (
+                <div className="flex justify-center py-2">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
               {filteredTasks.length > 0 ? (
                 filteredTasks.map((task) => (
                   <TaskCard
@@ -707,13 +747,13 @@ export default function MyTasks() {
                   <div className="p-3 bg-purple-500/10 rounded-lg">
                     <div className="text-sm font-medium text-purple-400 mb-1">{t("common.tasks.prioritizeHigh")}</div>
                     <p className="text-xs text-muted-foreground">
-                      您有 {mockTasks.filter(t => t.priority === "high" && t.status !== "completed").length} 个高优先级待办任务
+                      您有 {allTasks.filter((t) => t.priority === "high" && t.status !== "completed").length} 个高优先级待办任务
                     </p>
                   </div>
                   <div className="p-3 bg-blue-500/10 rounded-lg">
                     <div className="text-sm font-medium text-blue-400 mb-1">{t("common.tasks.watchDeadline")}</div>
                     <p className="text-xs text-muted-foreground">
-                      {mockTasks.filter(t => {
+                      {allTasks.filter((t) => {
                         const days = getDaysUntilDue(t.dueDate);
                         return days >= 0 && days <= 3 && t.status !== "completed";
                       }).length} 个任务将在3天内到期
