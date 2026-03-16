@@ -46,7 +46,7 @@ export default function StorageRecommendationCard({
     return (
       <div className="border rounded-lg p-3 bg-blue-50/50 border-blue-200 flex items-center gap-2 text-sm text-blue-700">
         <Loader2 className="w-4 h-4 animate-spin" />
-        <span>分析文件类型.../span>
+        <span>分析文件类型...</span>
       </div>
     );
   }

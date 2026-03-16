@@ -975,7 +975,7 @@ function WebhookForm({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(conditionOperatorLabels) as ConditionOperator[]).map((op) => (
+                    {(Object.keys(conditionOperatorLabelKeys) as ConditionOperator[]).map((op) => (
                       <SelectItem key={op} value={op}>
                         {t(conditionOperatorLabelKeys[op])}
                       </SelectItem>

@@ -117,7 +117,7 @@ export default function KioskLayout({ children, stationId: propStationId, depart
               onClick={() => {
                 // Quality interlock emergency stop — navigates to quality hold
                 if (confirm("确认触发质量紧急拦截？")) {
-                  console.log("[Kiosk] Emergency quality interlock triggered at station", stationId);
+                  console.info("[Kiosk] Emergency quality interlock triggered at station", stationId);
                   alert("质量紧急拦截已触发，请等待质量工程师到场");
                 }
               }}

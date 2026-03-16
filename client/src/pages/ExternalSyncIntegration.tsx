@@ -301,7 +301,7 @@ function SyncTasksTab() {
   const [newTask, setNewTask] = useState({
     taskName: '',
     taskType: 'user' as 'user' | 'department' | 'role' | 'role_members' | 'form_data' | 'full',
-    syncDirection: 'ext_to_grt' as 'ext_to_grt' | 'grt_to_ext' | 'bidirectional',
+    syncDirection: 'external_to_grt' as 'external_to_grt' | 'grt_to_external' | 'bidirectional',
     cronExpression: '0 0 2 * * *',
     isEnabled: true,
   });
@@ -495,8 +495,8 @@ function SyncTasksTab() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ext_to_grt">{t("admin.extSyncInteg.dirExtToGrt")}</SelectItem>
-                    <SelectItem value="grt_to_ext">{t("admin.extSyncInteg.dirGrtToExt")}</SelectItem>
+                    <SelectItem value="external_to_grt">{t("admin.extSyncInteg.dirExtToGrt")}</SelectItem>
+                    <SelectItem value="grt_to_external">{t("admin.extSyncInteg.dirGrtToExt")}</SelectItem>
                     <SelectItem value="bidirectional">{t("admin.extSyncInteg.dirBidirectional")}</SelectItem>
                   </SelectContent>
                 </Select>
@@ -990,7 +990,7 @@ export default function ExternalSyncIntegration() {
         const stats = (result as any).localStats;
         toast.info(`本地模式 — 部门${stats?.departments || 0} / 用户${stats?.users || 0} / 角色${stats?.roles || 0}`);
       } else if (result.success) {
-        toast.success(`${t("admin.extSyncInteg.connectionSuccess")} ${result.apps} ${t("admin.extSyncInteg.appsFound")}`);
+        toast.success(`${t("admin.extSyncInteg.connectionSuccess")} ${(result as any).apps} ${t("admin.extSyncInteg.appsFound")}`);
       } else {
         toast.error(`${t("admin.extSyncInteg.connectionFail")}: ${result.message}`);
       }

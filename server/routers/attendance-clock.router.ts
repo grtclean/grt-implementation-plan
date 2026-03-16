@@ -47,8 +47,7 @@ const breakWindowSchema = z.object({
 
 const clockRouter = router({
   /** GPS clock-in */
-  clockIn: protectedProcedure
-    .use(managePerm)
+  clockIn: managePerm
     .input(z.object({
       lat: z.number(),
       lng: z.number(),
@@ -70,8 +69,7 @@ const clockRouter = router({
     }),
 
   /** GPS clock-out */
-  clockOut: protectedProcedure
-    .use(managePerm)
+  clockOut: managePerm
     .input(z.object({
       lat: z.number(),
       lng: z.number(),
@@ -83,8 +81,7 @@ const clockRouter = router({
     }),
 
   /** Get today's clock record for the current user or a specific employee */
-  getToday: protectedProcedure
-    .use(viewPerm)
+  getToday: viewPerm
     .input(z.object({
       employeeId: z.number().int().positive().optional(),
     }).optional())
@@ -104,8 +101,7 @@ const clockRouter = router({
     }),
 
   /** Get all clock records for a given month */
-  getMonthly: protectedProcedure
-    .use(viewPerm)
+  getMonthly: viewPerm
     .input(z.object({
       employeeId: z.number().int().positive(),
       period: periodSchema,
@@ -131,8 +127,7 @@ const clockRouter = router({
 
 const groupsRouter = router({
   /** List all attendance groups */
-  list: protectedProcedure
-    .use(viewPerm)
+  list: viewPerm
     .query(async () => {
       const db = await requireDb();
       const rows = await db
@@ -144,8 +139,7 @@ const groupsRouter = router({
     }),
 
   /** Assign an employee to an attendance group */
-  assignGroup: protectedProcedure
-    .use(managePerm)
+  assignGroup: managePerm
     .input(z.object({
       employeeId: z.number().int().positive(),
       groupId: z.number().int().positive(),
@@ -161,8 +155,7 @@ const groupsRouter = router({
     }),
 
   /** Update break windows for an attendance group */
-  updateBreakWindows: protectedProcedure
-    .use(managePerm)
+  updateBreakWindows: managePerm
     .input(z.object({
       groupId: z.number().int().positive(),
       breakWindows: z.array(breakWindowSchema).min(0).max(5),
@@ -183,8 +176,7 @@ const groupsRouter = router({
 
 const excursionRouter = router({
   /** Report leaving the geofence area */
-  reportOut: protectedProcedure
-    .use(managePerm)
+  reportOut: managePerm
     .input(z.object({
       lat: z.number(),
       lng: z.number(),
@@ -195,8 +187,7 @@ const excursionRouter = router({
     }),
 
   /** Report returning to the geofence area */
-  reportReturn: protectedProcedure
-    .use(managePerm)
+  reportReturn: managePerm
     .input(z.object({
       lat: z.number(),
       lng: z.number(),
@@ -207,8 +198,7 @@ const excursionRouter = router({
     }),
 
   /** Get excursions for a specific day */
-  getDaily: protectedProcedure
-    .use(viewPerm)
+  getDaily: viewPerm
     .input(z.object({
       employeeId: z.number().int().positive(),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format must be YYYY-MM-DD"),
@@ -226,8 +216,7 @@ const excursionRouter = router({
     }),
 
   /** Get monthly excursion summary for an employee */
-  getMonthly: protectedProcedure
-    .use(viewPerm)
+  getMonthly: viewPerm
     .input(z.object({
       employeeId: z.number().int().positive(),
       period: periodSchema,
@@ -266,8 +255,7 @@ const excursionRouter = router({
 
 const rollupRouter = router({
   /** Roll up daily clock records into monthly attendance summary */
-  rollupMonth: protectedProcedure
-    .use(managePerm)
+  rollupMonth: managePerm
     .input(z.object({ period: periodSchema }))
     .mutation(async ({ input }) => {
       log.info({ period: input.period }, "Monthly rollup triggered");
@@ -276,8 +264,7 @@ const rollupRouter = router({
     }),
 
   /** Send attendance confirmation email to 倪微薇 (CC: 倪亚东) */
-  sendConfirmationEmail: protectedProcedure
-    .use(managePerm)
+  sendConfirmationEmail: managePerm
     .input(z.object({
       period: periodSchema,
       reviewerEmail: z.string().email().optional(),
@@ -300,8 +287,7 @@ const rollupRouter = router({
 
 const reportRouter = router({
   /** Preview the attendance report data without sending email */
-  preview: protectedProcedure
-    .use(viewPerm)
+  preview: viewPerm
     .input(z.object({ period: periodSchema }))
     .query(async ({ input }) => {
       const rows = await buildAttendanceReport(input.period);

@@ -85,7 +85,7 @@ export const aiTaskRouter = router({
       const db = await requireDb();
       const filters = [];
       if (input?.taskType) filters.push(eq(aiTasks.taskType, input.taskType));
-      if (input?.status) filters.push(eq(aiTasks.status, input.status));
+      if (input?.status) filters.push(eq(aiTasks.status, input.status as any));
 
       const rows = await db.select().from(aiTasks)
         .where(filters.length > 0 ? and(...filters) : undefined)

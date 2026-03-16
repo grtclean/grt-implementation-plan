@@ -10,6 +10,10 @@ export type UserRole =
   // 系统级角色
   | "admin"              // 系统管理员 (level 10)
   | "director"           // 总监 (level 5)
+  // C-Level 角色
+  | "ceo"                // CEO (level 10)
+  | "cto"                // CTO (level 10)
+  | "cfo"                // CFO (level 10)
   // 事业部角色
   | "bu_gm"              // BU事业部总经理 (level 6)
   | "bu_pm"              // BU项目经理 (level 3)
@@ -18,9 +22,11 @@ export type UserRole =
   | "bu_elec"            // BU电气设计工程师 (level 2)
   | "procurement_eng"    // 采购工程师 (level 2)
   | "cs_engineer"        // 客服/现场服务工程师 (level 2)
+  | "quality_eng"        // 质量工程师 (level 2)
   // 部门管理角色
   | "dept_manager"       // 部门经理 (level 3)
   | "team_lead"          // 组长/主管 (level 2)
+  | "hr_director"        // HR总监 (level 5)
   // 职能角色
   | "hr_manager"         // HR经理 (level 4)
   | "hr_specialist"      // HR专员 (level 3)
@@ -45,6 +51,7 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   bu_elec: 2,
   procurement_eng: 2,
   cs_engineer: 2,
+  quality_eng: 2,
   dept_manager: 3,
   bu_pm: 3,
   hr_specialist: 3,
@@ -52,8 +59,12 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   hr_manager: 4,
   finance_manager: 4,
   director: 5,
+  hr_director: 5,
   bu_gm: 6,
   admin: 10,
+  ceo: 10,
+  cto: 10,
+  cfo: 10,
 };
 
 // 向后兼容：将旧角色映射到新角色
@@ -257,6 +268,51 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     level: 0,
     category: "basic",
   },
+  ceo: {
+    label: "CEO",
+    labelEn: "CEO",
+    description: "首席执行官，全面战略决策",
+    color: "bg-red-700",
+    icon: "Crown",
+    level: 10,
+    category: "system",
+  },
+  cto: {
+    label: "CTO",
+    labelEn: "CTO",
+    description: "首席技术官，技术战略与研发管理",
+    color: "bg-blue-700",
+    icon: "Cpu",
+    level: 10,
+    category: "system",
+  },
+  cfo: {
+    label: "CFO",
+    labelEn: "CFO",
+    description: "首席财务官，财务战略与风控",
+    color: "bg-yellow-700",
+    icon: "Landmark",
+    level: 10,
+    category: "system",
+  },
+  quality_eng: {
+    label: "质量工程师",
+    labelEn: "Quality Engineer",
+    description: "负责质量管理体系和检验流程",
+    color: "bg-green-600",
+    icon: "ShieldCheck",
+    level: 2,
+    category: "bu",
+  },
+  hr_director: {
+    label: "HR总监",
+    labelEn: "HR Director",
+    description: "人力资源总监，全面负责HR战略",
+    color: "bg-pink-700",
+    icon: "Users",
+    level: 5,
+    category: "system",
+  },
 };
 
 // 权限定义 - 扩展为细粒度权限
@@ -376,6 +432,7 @@ interface UserProfileContextState {
   roleConfig: RoleConfig;
   dataScope: DataScope;
   isRoleSwitching: boolean;
+  level: number;                   // 角色权限级别 (from ROLE_HIERARCHY)
 }
 
 // Context 方法接口
@@ -401,10 +458,10 @@ const DEPT_STORAGE_KEY = "grt_user_current_dept";
 
 // 合法角色列表
 const VALID_ROLES: UserRole[] = [
-  "admin", "director", "bu_gm", "bu_pm", "bu_sales", "bu_mech", "bu_elec",
-  "procurement_eng", "cs_engineer", "dept_manager", "team_lead",
-  "hr_manager", "hr_specialist", "finance_manager", "finance_specialist",
-  "employee", "production_worker", "guest",
+  "admin", "director", "ceo", "cto", "cfo", "bu_gm", "bu_pm", "bu_sales", "bu_mech", "bu_elec",
+  "procurement_eng", "cs_engineer", "quality_eng", "dept_manager", "team_lead",
+  "hr_director", "hr_manager", "hr_specialist", "finance_manager", "finance_specialist",
+  "employee", "production_worker", "customer", "guest",
 ];
 
 // Provider Props
@@ -593,6 +650,8 @@ export function UserProfileProvider({ children, defaultRole = "employee" }: User
     }
   }, [currentUserRole]);
 
+  const level = ROLE_HIERARCHY[currentUserRole] ?? 0;
+
   const value = useMemo<UserProfileContextType>(() => ({
     currentUserRole,
     currentBU,
@@ -602,6 +661,7 @@ export function UserProfileProvider({ children, defaultRole = "employee" }: User
     roleConfig,
     dataScope,
     isRoleSwitching,
+    level,
     switchRole,
     switchBU,
     setViewMode,
@@ -610,7 +670,7 @@ export function UserProfileProvider({ children, defaultRole = "employee" }: User
     isRoleAtLeast,
   }), [
     currentUserRole, currentBU, currentDepartment, viewMode,
-    permissions, roleConfig, dataScope, isRoleSwitching,
+    permissions, roleConfig, dataScope, isRoleSwitching, level,
     switchRole, switchBU, setViewMode, hasPermission, canAccessRoute, isRoleAtLeast,
   ]);
 

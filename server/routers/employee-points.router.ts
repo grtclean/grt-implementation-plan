@@ -33,8 +33,7 @@ const balanceRouter = router({
     }),
 
   /** Get point balance for any employee (HR/manager view) */
-  getDetail: protectedProcedure
-    .use(viewPerm)
+  getDetail: viewPerm
     .input(z.object({ employeeId: z.number().int().positive() }))
     .query(async ({ input }) => {
       return svc.getBalanceDetail(input.employeeId);
@@ -58,8 +57,7 @@ const rulesRouter = router({
     }),
 
   /** Update a rule's points, multipliers, or active status (admin) */
-  update: protectedProcedure
-    .use(managePerm)
+  update: managePerm
     .input(z.object({
       code: z.string().min(1).max(80),
       points: z.number().int().optional(),
@@ -77,8 +75,7 @@ const rulesRouter = router({
 
 const awardRouter = router({
   /** Auto-award points by rule code (system use) */
-  award: protectedProcedure
-    .use(managePerm)
+  award: managePerm
     .input(z.object({
       employeeId: z.number().int().positive(),
       ruleCode: z.string().min(1).max(80),
@@ -91,8 +88,7 @@ const awardRouter = router({
     }),
 
   /** Manager/CEO manual award with custom points (legacy, no approval flow) */
-  managerAward: protectedProcedure
-    .use(managePerm)
+  managerAward: managePerm
     .input(z.object({
       employeeId: z.number().int().positive(),
       ruleCode: z.enum(["manager_award", "ceo_special_award"]),
@@ -127,15 +123,13 @@ const awardRouter = router({
     }),
 
   /** List pending approvals (for superiors to review) */
-  pendingApprovals: protectedProcedure
-    .use(managePerm)
+  pendingApprovals: managePerm
     .query(async () => {
       return svc.listPendingApprovals();
     }),
 
   /** Approve a point request */
-  approveRequest: protectedProcedure
-    .use(managePerm)
+  approveRequest: managePerm
     .input(z.object({
       requestId: z.number().int().positive(),
       notes: z.string().max(500).optional(),
@@ -145,8 +139,7 @@ const awardRouter = router({
     }),
 
   /** Reject a point request */
-  rejectRequest: protectedProcedure
-    .use(managePerm)
+  rejectRequest: managePerm
     .input(z.object({
       requestId: z.number().int().positive(),
       notes: z.string().max(500).optional(),
@@ -252,15 +245,13 @@ const catalogRouter = router({
 
 const adminRouter = router({
   /** List pending redemption requests */
-  pendingRedemptions: protectedProcedure
-    .use(managePerm)
+  pendingRedemptions: managePerm
     .query(async () => {
       return svc.getPendingRedemptions();
     }),
 
   /** Approve a redemption */
-  approve: protectedProcedure
-    .use(managePerm)
+  approve: managePerm
     .input(z.object({
       redemptionId: z.number().int().positive(),
       notes: z.string().max(500).optional(),
@@ -270,8 +261,7 @@ const adminRouter = router({
     }),
 
   /** Reject a redemption */
-  reject: protectedProcedure
-    .use(managePerm)
+  reject: managePerm
     .input(z.object({
       redemptionId: z.number().int().positive(),
       notes: z.string().max(500).optional(),
@@ -281,22 +271,19 @@ const adminRouter = router({
     }),
 
   /** View observation & suspended list */
-  observationList: protectedProcedure
-    .use(viewPerm)
+  observationList: viewPerm
     .query(async () => {
       return svc.getObservationList();
     }),
 
   /** Manually run end-of-day penalties (normally by scheduler) */
-  runPenalties: protectedProcedure
-    .use(managePerm)
+  runPenalties: managePerm
     .mutation(async () => {
       return svc.runEndOfDayPenalties();
     }),
 
   /** Evaluate monthly performance → auto-award/deduct points (KPI≥85 +200, 3-month trend ±) */
-  evaluatePerformance: protectedProcedure
-    .use(managePerm)
+  evaluatePerformance: managePerm
     .input(z.object({
       period: periodSchema,
     }))
@@ -305,8 +292,7 @@ const adminRouter = router({
     }),
 
   /** Evaluate sales M2 pipeline — penalize sales with <3 new M2 customers */
-  evaluateSalesM2: protectedProcedure
-    .use(managePerm)
+  evaluateSalesM2: managePerm
     .input(z.object({
       period: periodSchema,
     }))
@@ -354,8 +340,7 @@ const suggestionRouter = router({
     }),
 
   /** Evaluate a suggestion (department manager) */
-  evaluate: protectedProcedure
-    .use(managePerm)
+  evaluate: managePerm
     .input(z.object({
       id: z.number().int().positive(),
       valueTier: z.enum(["effective", "outstanding", "major", "rejected"]),
@@ -366,8 +351,7 @@ const suggestionRouter = router({
     }),
 
   /** CEO approve outstanding/major suggestion */
-  approve: protectedProcedure
-    .use(managePerm)
+  approve: managePerm
     .input(z.object({
       id: z.number().int().positive(),
       approvalNotes: z.string().max(1000).optional(),
@@ -435,15 +419,13 @@ const communityRouter = router({
     }),
 
   /** List sensitive words (admin) */
-  listSensitiveWords: protectedProcedure
-    .use(managePerm)
+  listSensitiveWords: managePerm
     .query(async () => {
       return svc.listSensitiveWords();
     }),
 
   /** Add sensitive word (admin) */
-  addSensitiveWord: protectedProcedure
-    .use(managePerm)
+  addSensitiveWord: managePerm
     .input(z.object({
       word: z.string().min(1).max(100),
       category: z.string().max(50).optional(),
@@ -455,8 +437,7 @@ const communityRouter = router({
     }),
 
   /** Remove sensitive word (admin) */
-  removeSensitiveWord: protectedProcedure
-    .use(managePerm)
+  removeSensitiveWord: managePerm
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input }) => {
       return svc.removeSensitiveWord(input.id);
@@ -483,8 +464,7 @@ const eliteBenefitRouter = router({
     }),
 
   /** Approve an application (HR/Director) */
-  approve: protectedProcedure
-    .use(managePerm)
+  approve: managePerm
     .input(z.object({
       applicationId: z.number().int().positive(),
       notes: z.string().max(500).optional(),
@@ -494,8 +474,7 @@ const eliteBenefitRouter = router({
     }),
 
   /** Reject an application (HR/Director) */
-  reject: protectedProcedure
-    .use(managePerm)
+  reject: managePerm
     .input(z.object({
       applicationId: z.number().int().positive(),
       reason: z.string().max(500).optional(),
@@ -516,8 +495,7 @@ const eliteBenefitRouter = router({
     }),
 
   /** Run monthly review — dynamic evaluation cycle (admin/scheduler) */
-  runMonthlyReview: protectedProcedure
-    .use(managePerm)
+  runMonthlyReview: managePerm
     .input(z.object({ period: periodSchema }))
     .mutation(async ({ input }) => {
       return svc.runMonthlyEliteReview(input.period);

@@ -57,7 +57,7 @@ const TIER_CONFIG: Record<string, { label: string; color: string; bgClass: strin
   V4_Dormant: { label: "V4 休眠", color: "#605E5C", bgClass: "bg-gray-600/10 text-gray-500 border-gray-600/30" },
 };
 
-const TIMELINE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
+const TIMELINE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }>; color: string }> = {
   past: { label: "历史", icon: Clock, color: "text-gray-400" },
   present: { label: "当下", icon: Zap, color: "text-cyan-400" },
   future: { label: "前瞻", icon: TrendingUp, color: "text-purple-400" },
@@ -886,7 +886,7 @@ export default function CustomerConfigSandbox() {
 
 // ── Sub-components ────────────────────────────────────────
 
-function StatCard({ label, value, icon: Icon, color, loading }: { label: string; value: number; icon: React.ElementType; color: string; loading?: boolean }) {
+function StatCard({ label, value, icon: Icon, color, loading }: { label: string; value: number; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }>; color: string; loading?: boolean }) {
   return (
     <div className="rounded-lg border border-gray-800 bg-[#0d1321] p-3 flex items-center gap-3">
       <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: color + "20" }}>
@@ -925,7 +925,7 @@ function ConfidenceBar({ score }: { score: number }) {
   );
 }
 
-function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message: string }) {
+function EmptyState({ icon: Icon, message }: { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }>; message: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-8 text-gray-600">
       <Icon className="h-8 w-8 mb-2 opacity-30" />

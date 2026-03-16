@@ -30,7 +30,7 @@ const TRIGGER_TYPE_LABELS: Record<string, { zh: string; en: string; color: strin
   manual: { zh: "手动触发", en: "Manual", color: "bg-gray-100 text-gray-800" },
 };
 
-const ENFORCEMENT_LABELS: Record<string, { zh: string; icon: React.ElementType }> = {
+const ENFORCEMENT_LABELS: Record<string, { zh: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }> }> = {
   revert_six_day_week: { zh: "恢复六天制", icon: Clock },
   revert_skill_level: { zh: "恢复原技能等级", icon: TrendingDown },
   position_penalty: { zh: "原岗处罚", icon: Gavel },

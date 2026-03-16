@@ -48,7 +48,11 @@ import { useLanguage } from "@/contexts/LanguageContext";
 // 角色图标映射 - 扩展版
 const RoleIcon: Record<UserRole, React.ComponentType<{ className?: string }>> = {
   admin: Shield,
+  ceo: Crown,
+  cto: Crown,
+  cfo: Crown,
   director: Crown,
+  hr_director: Crown,
   bu_gm: Building2,
   bu_pm: FolderKanban,
   bu_sales: TrendingUp,
@@ -56,6 +60,7 @@ const RoleIcon: Record<UserRole, React.ComponentType<{ className?: string }>> = 
   bu_elec: Zap,
   procurement_eng: ShoppingCart,
   cs_engineer: Headphones,
+  quality_eng: Cog,
   dept_manager: Users,
   team_lead: UserCheck,
   hr_manager: UserCog,
@@ -64,6 +69,7 @@ const RoleIcon: Record<UserRole, React.ComponentType<{ className?: string }>> = 
   finance_specialist: Calculator,
   employee: User,
   production_worker: HardHat,
+  customer: Users,
   guest: Eye,
 };
 

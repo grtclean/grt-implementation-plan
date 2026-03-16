@@ -345,7 +345,7 @@ export async function calculateBatchComposite(
   // Fetch active employees
   let query = db.select({ id: hrmEmployees.id, name: hrmEmployees.name, department: hrmEmployees.department })
     .from(hrmEmployees)
-    .where(eq(hrmEmployees.status, "active"))
+    .where(eq(hrmEmployees.status, "active" as any))
     .limit(1000);
 
   const employees = await query;

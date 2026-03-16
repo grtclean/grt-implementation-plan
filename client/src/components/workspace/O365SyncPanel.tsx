@@ -20,10 +20,10 @@ import { trpc } from "@/lib/trpc";
 const QUERY_OPTS = { retry: false, refetchOnWindowFocus: false } as const;
 
 const priorityLabels: Record<number, { label: string; color: string }> = {
-  0: { label: 紧急", color: "bg-red-500 },
-  1: { label: 重要", color: "bg-orange-500 },
-  5: { label: 中等", color: "bg-blue-500 },
-  9: { label: 低", color: "bg-gray-400 },
+  0: { label: "紧急", color: "bg-red-500" },
+  1: { label: "重要", color: "bg-orange-500" },
+  5: { label: "中等", color: "bg-blue-500" },
+  9: { label: "低", color: "bg-gray-400" },
 };
 
 export default function O365SyncPanel() {

@@ -35,20 +35,88 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-radix': [
-            '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs',
-            '@radix-ui/react-popover', '@radix-ui/react-select', '@radix-ui/react-scroll-area',
-            '@radix-ui/react-checkbox', '@radix-ui/react-label', '@radix-ui/react-separator',
-            '@radix-ui/react-tooltip', '@radix-ui/react-switch', '@radix-ui/react-accordion',
-            '@radix-ui/react-avatar', '@radix-ui/react-collapsible', '@radix-ui/react-slider',
-            '@radix-ui/react-progress',
-          ],
-          'vendor-trpc': ['@trpc/client', '@trpc/react-query', '@tanstack/react-query'],
-          'vendor-charts': ['recharts'],
-          'vendor-icons': ['lucide-react'],
-          'vendor-form': ['react-hook-form', '@hookform/resolvers'],
+        manualChunks(id) {
+          // Vendor: React core
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
+            return 'vendor-react';
+          }
+          // Vendor: Radix UI primitives
+          if (id.includes('@radix-ui/')) {
+            return 'vendor-radix';
+          }
+          // Vendor: tRPC + React Query
+          if (id.includes('@trpc/') || id.includes('@tanstack/react-query')) {
+            return 'vendor-trpc';
+          }
+          // Vendor: Charts (recharts + d3 deps)
+          if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-')) {
+            return 'vendor-charts';
+          }
+          // Vendor: 3D (Three.js + React Three Fiber)
+          if (id.includes('three') || id.includes('@react-three/')) {
+            return 'vendor-3d';
+          }
+          // Vendor: Monaco editor
+          if (id.includes('monaco-editor') || id.includes('@monaco-editor/')) {
+            return 'vendor-monaco';
+          }
+          // Vendor: Mermaid diagrams
+          if (id.includes('mermaid') || id.includes('dagre') || id.includes('cytoscape') || id.includes('elkjs')) {
+            return 'vendor-diagrams';
+          }
+          // Vendor: Icons
+          if (id.includes('lucide-react')) {
+            return 'vendor-icons';
+          }
+          // Vendor: Form handling
+          if (id.includes('react-hook-form') || id.includes('@hookform/')) {
+            return 'vendor-form';
+          }
+          // Vendor: Other large deps
+          if (id.includes('superjson') || id.includes('zod') || id.includes('date-fns') || id.includes('wouter')) {
+            return 'vendor-utils';
+          }
+          // Vendor: PDF/Excel processing
+          if (id.includes('pdfjs') || id.includes('xlsx') || id.includes('exceljs') || id.includes('jspdf')) {
+            return 'vendor-office';
+          }
+          // Vendor: KaTeX math rendering
+          if (id.includes('katex')) {
+            return 'vendor-katex';
+          }
+          // Vendor: Markdown/prose rendering
+          if (id.includes('marked') || id.includes('highlight.js') || id.includes('prismjs') || id.includes('shiki')) {
+            return 'vendor-highlight';
+          }
+          // Vendor: DnD / sorting
+          if (id.includes('@dnd-kit/') || id.includes('react-dnd') || id.includes('react-beautiful-dnd')) {
+            return 'vendor-dnd';
+          }
+          // Vendor: Animation
+          if (id.includes('framer-motion') || id.includes('motion')) {
+            return 'vendor-motion';
+          }
+          // Vendor: Date utilities
+          if (id.includes('date-fns') || id.includes('dayjs') || id.includes('moment')) {
+            return 'vendor-date';
+          }
+          // App: i18n translations — split by domain for lazy loading
+          if (id.includes('client/src/lib/i18n/auto-pages')) {
+            return 'app-i18n-auto';
+          }
+          if (id.includes('client/src/lib/i18n/')) {
+            return 'app-i18n';
+          }
+          // App: Shared UI components (shadcn)
+          if (id.includes('client/src/components/ui/')) {
+            return 'app-ui';
+          }
+          // NOTE: Do NOT chunk client/src/pages/ — React.lazy() handles code-splitting
+          // NOTE: Do NOT chunk client/src/components/ — let shared deps be deduplicated naturally
+          // Catch remaining node_modules
+          if (id.includes('node_modules')) {
+            return 'vendor-misc';
+          }
         },
       },
     },

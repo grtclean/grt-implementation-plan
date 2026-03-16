@@ -10,6 +10,7 @@ import { z } from "zod";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { createChildLogger } from "../lib/logger";
+import { requireDb } from "../db";
 import { eventBus, SANDBOX_EVENTS } from "../events/event-bus";
 
 const log = createChildLogger("real-order-flow");
@@ -98,20 +99,21 @@ const projectLifecycleRouter = router({
   getStatus: protectedProcedure
     .input(z.object({ projectCode: z.string() }))
     .query(async ({ ctx, input }) => {
+      const db = await requireDb();
       const { projects, productionWorkOrders, workLogs } = await import("../../drizzle/schema");
       const { mechProjectSelections, mechAcceptanceRecords } = await import("../../drizzle/mechanical-config-schema");
 
-      const [project] = await ctx.db.select().from(projects)
+      const [project] = await db.select().from(projects)
         .where(eq(projects.projectCode, input.projectCode)).limit(1);
-      const [mechConfig] = await ctx.db.select().from(mechProjectSelections)
+      const [mechConfig] = await db.select().from(mechProjectSelections)
         .where(eq(mechProjectSelections.projectCode, input.projectCode)).limit(1);
-      const workOrders = await ctx.db.select().from(productionWorkOrders)
+      const workOrders = await db.select().from(productionWorkOrders)
         .where(eq(productionWorkOrders.projectId, project?.id ?? -1)).limit(5);
       const logs = project?.id
-        ? await ctx.db.select({ count: sql<number>`count(*)::int` }).from(workLogs)
+        ? await db.select({ count: sql<number>`count(*)::int` }).from(workLogs)
             .where(eq(workLogs.projectId, project.id))
         : [{ count: 0 }];
-      const acceptanceRecords = await ctx.db.select({ count: sql<number>`count(*)::int` })
+      const acceptanceRecords = await db.select({ count: sql<number>`count(*)::int` })
         .from(mechAcceptanceRecords)
         .where(eq(mechAcceptanceRecords.projectCode, input.projectCode));
 
@@ -135,6 +137,7 @@ const workHoursPerfLoopRouter = router({
   getStatus: protectedProcedure
     .input(z.object({ employeeId: z.number().optional(), projectCode: z.string().optional() }))
     .query(async ({ ctx, input }) => {
+      const db = await requireDb();
       const { workLogs } = await import("../../drizzle/schema");
       const { attendanceClockRecords } = await import("../../drizzle/attendance-clock-schema");
 
@@ -142,11 +145,11 @@ const workHoursPerfLoopRouter = router({
       const empId = input.employeeId ?? ctx.user?.id ?? 0;
 
       // Check attendance today
-      const [clockRecord] = await ctx.db.select().from(attendanceClockRecords)
+      const [clockRecord] = await db.select().from(attendanceClockRecords)
         .where(and(eq(attendanceClockRecords.employeeId, empId), eq(attendanceClockRecords.clockDate, today))).limit(1);
 
       // Check work logs
-      const logStats = await ctx.db.select({ total: sql<number>`count(*)::int`, approved: sql<number>`count(*) filter (where approval_status = 'approved')::int` })
+      const logStats = await db.select({ total: sql<number>`count(*)::int`, approved: sql<number>`count(*) filter (where approval_status = 'approved')::int` })
         .from(workLogs).where(eq(workLogs.workerId, empId));
 
       const steps: StepStatus[] = [
@@ -168,9 +171,10 @@ const qualityDeliveryRouter = router({
   getStatus: protectedProcedure
     .input(z.object({ projectCode: z.string() }))
     .query(async ({ ctx, input }) => {
+      const db = await requireDb();
       const { mechAcceptanceRecords } = await import("../../drizzle/mechanical-config-schema");
 
-      const acceptanceRecords = await ctx.db.select({ count: sql<number>`count(*)::int` })
+      const acceptanceRecords = await db.select({ count: sql<number>`count(*)::int` })
         .from(mechAcceptanceRecords).where(eq(mechAcceptanceRecords.projectCode, input.projectCode));
 
       const steps: StepStatus[] = [
@@ -215,8 +219,9 @@ const eventRouter = router({
   getRecentEvents: protectedProcedure
     .input(z.object({ limit: z.number().int().min(1).max(50).default(20) }))
     .query(async ({ ctx, input }) => {
+      const db = await requireDb();
       const { sandboxEventLog } = await import("../../drizzle/sandbox-event-schema");
-      return ctx.db.select().from(sandboxEventLog)
+      return db.select().from(sandboxEventLog)
         .where(eq(sandboxEventLog.sourceModule, "real-order-flow"))
         .orderBy(desc(sandboxEventLog.createdAt))
         .limit(input.limit);
@@ -229,12 +234,13 @@ const scenarioRouter = router({
   /** Initialize 苏州明志 RW2000 scenario — creates project + customer config + work order */
   initSuzhouMingzhi: requirePermission("project:create")
     .mutation(async ({ ctx }) => {
+      const db = await requireDb();
       const { projects, productionWorkOrders } = await import("../../drizzle/schema");
       const { mechCustomerConfigs, mechProjectSelections } = await import("../../drizzle/mechanical-config-schema");
 
       // 1. Create project
       const projectCode = `PRJ-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-      const [project] = await ctx.db.insert(projects).values({
+      const [project] = await db.insert(projects).values({
         projectCode,
         name: "苏州明志RW2000机器人清洗机",
         shortName: "RW2000",
@@ -248,7 +254,7 @@ const scenarioRouter = router({
       }).returning();
 
       // 2. Create customer config
-      const [custConfig] = await ctx.db.insert(mechCustomerConfigs).values({
+      const [custConfig] = await db.insert(mechCustomerConfigs).values({
         customerName: "苏州明志科技股份有限公司",
         customerCode: "SZMZ",
         region: "华东",
@@ -268,7 +274,7 @@ const scenarioRouter = router({
       }).returning();
 
       // 3. Create mechanical project selection
-      await ctx.db.insert(mechProjectSelections).values({
+      await db.insert(mechProjectSelections).values({
         projectCode,
         projectName: "苏州明志RW2000机器人清洗机",
         customerConfigId: custConfig.id,
@@ -288,7 +294,7 @@ const scenarioRouter = router({
       });
 
       // 4. Create production work order
-      const [wo] = await ctx.db.insert(productionWorkOrders).values({
+      const [wo] = await db.insert(productionWorkOrders).values({
         workOrderCode: `WO-${projectCode.slice(4)}`,
         projectId: project.id,
         productName: "RW2000机器人清洗机",
@@ -323,12 +329,13 @@ const scenarioRouter = router({
   /** Initialize 双环嘉兴通过式清洗机 scenario — with DA team assignments */
   initShuanghuanJiaxing: requirePermission("project:create")
     .mutation(async ({ ctx }) => {
+      const db = await requireDb();
       const { projects, productionWorkOrders } = await import("../../drizzle/schema");
       const { mechCustomerConfigs, mechProjectSelections } = await import("../../drizzle/mechanical-config-schema");
 
       // 1. Create project
       const projectCode = `PRJ-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-      const [project] = await ctx.db.insert(projects).values({
+      const [project] = await db.insert(projects).values({
         projectCode,
         name: "双环嘉兴通过式清洗机",
         shortName: "SH-PT",
@@ -342,7 +349,7 @@ const scenarioRouter = router({
       }).returning();
 
       // 2. Create customer config
-      const [custConfig] = await ctx.db.insert(mechCustomerConfigs).values({
+      const [custConfig] = await db.insert(mechCustomerConfigs).values({
         customerName: "双环传动（嘉兴）精密制造有限公司",
         customerCode: "SHJX",
         region: "华东",
@@ -362,7 +369,8 @@ const scenarioRouter = router({
       }).returning();
 
       // 3. Create mechanical project selection
-      await ctx.db.insert(mechProjectSelections).values({
+      // @ts-expect-error seed data type compat
+      await db.insert(mechProjectSelections).values({
         projectCode,
         projectName: "双环嘉兴通过式清洗机",
         customerConfigId: custConfig.id,
@@ -384,7 +392,7 @@ const scenarioRouter = router({
       });
 
       // 4. Create production work order
-      const [wo] = await ctx.db.insert(productionWorkOrders).values({
+      const [wo] = await db.insert(productionWorkOrders).values({
         workOrderCode: `WO-${projectCode.slice(4)}`,
         projectId: project.id,
         productName: "通过式清洗机",

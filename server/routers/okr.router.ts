@@ -255,8 +255,8 @@ export const okrRouter = router({
       }
     }),
 
-  /** Delete an objective and its KRs + check-ins */
-  deleteObjective: requirePermission('strategy:okr:manage')
+  /** Delete an objective and its KRs + check-ins (cascade) */
+  deleteObjectiveCascade: requirePermission('strategy:okr:manage')
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       try {

@@ -228,7 +228,7 @@ describe("devEnv router", () => {
         expect.objectContaining({
           projectId: 1,
           eventType: "conflict_detected",
-          severity: "critical",
+          userId: 999,
         }),
       );
     });

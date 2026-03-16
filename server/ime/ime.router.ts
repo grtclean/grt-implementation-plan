@@ -8,7 +8,7 @@ import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql, SQL } from "drizzle-orm";
 import { jsonValue } from "@shared/validators";
-import * as imeService from "./ime.service";
+import * as imeService from "./index";
 
 export const imeRouter = router({
   // Dashboard overview — aggregated stats + top contributors + effectiveness trend

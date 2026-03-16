@@ -439,7 +439,7 @@ describe("lifecycleEcosystem.dashboard", () => {
     selectResultsQueue.push([{ id: 1, currentStage: "G5" }]); // journey
     selectResultsQueue.push([{ status: "completed" }, { status: "active" }]); // milestones
     selectResultsQueue.push([{ id: 1, title: "Activity" }]); // activities
-    selectResultsQueue.push([{ studyMinutes: 120 }, { studyMinutes: 60 }]); // learning
+    selectResultsQueue.push([{ totalStudyMinutes: 120 }, { totalStudyMinutes: 60 }]); // learning
     const result = await caller.lifecycleEcosystem.dashboard.getMySummary();
     expect(result.journey).toBeTruthy();
     expect(result.milestones).toHaveLength(2);

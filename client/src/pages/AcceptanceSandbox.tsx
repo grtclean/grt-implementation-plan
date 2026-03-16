@@ -196,7 +196,7 @@ const TIER_BADGE: Record<string, { label: string; cls: string }> = {
   V2_Standard: { label: "V2 标准", cls: "bg-green-500/10 text-green-400 border-green-500/30" },
 };
 
-const EVIDENCE_ICON: Record<string, React.ElementType> = {
+const EVIDENCE_ICON: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }>> = {
   image: Camera,
   chart: BarChart3,
   document: FileText,
@@ -746,7 +746,7 @@ export default function AcceptanceSandbox() {
 
 // ── Sub-components ────────────────────────────────────────
 
-function MiniStat({ label, value, icon: Icon, color }: { label: string; value: string | number; icon: React.ElementType; color: string }) {
+function MiniStat({ label, value, icon: Icon, color }: { label: string; value: string | number; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }>; color: string }) {
   return (
     <div className="rounded-lg border border-gray-800 bg-[#0d1321] p-3 flex items-center gap-3">
       <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: color + "20" }}>

@@ -399,7 +399,7 @@ export default function AgentUnitManagement() {
                         <CardDescription>{selectedUnit.equipmentModel || t("hr.agentUnit.unspecifiedModel")}</CardDescription>
                       </div>
                       <StatusBadge color={statusColors[selectedUnit.status as keyof typeof statusColors] || "gray"}>
-                        {STATUS_CONFIG[selectedUnit.status as keyof typeof STATUS_CONFIG]?.label}
+                        {(STATUS_CONFIG[selectedUnit.status as keyof typeof STATUS_CONFIG] as any)?.label ?? (STATUS_CONFIG[selectedUnit.status as keyof typeof STATUS_CONFIG] as any)?.labelKey}
                       </StatusBadge>
                     </div>
                   </CardHeader>

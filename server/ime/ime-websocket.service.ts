@@ -10,7 +10,7 @@
 
 import { WebSocketServer, WebSocket } from "ws";
 import { IncomingMessage } from "http";
-import * as imeService from "./ime.service";
+import * as imeService from "./index";
 import { createChildLogger } from "../lib/logger";
 
 const log = createChildLogger("ime-ws");

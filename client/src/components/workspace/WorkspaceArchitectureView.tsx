@@ -35,7 +35,7 @@ function Section({ title, icon: Icon, children, defaultOpen = true }: {
 // ── Storage architecture diagram ──
 function StorageDiagram({ isEn }: { isEn: boolean }) {
   const layers = [
-    { label: isEn ? "TiDB / MySQL" : "TiDB / MySQL", sub: isEn ? "Structured data (projects, BOM, HR, quality)" : 结构化数据 (项目/BOM/HR/质量)", icon: Database, color: "#0078d4 },
+    { label: isEn ? "TiDB / MySQL" : "TiDB / MySQL", sub: isEn ? "Structured data (projects, BOM, HR, quality)" : "结构化数据 (项目/BOM/HR/质量)", icon: Database, color: "#0078d4" },
     { label: isEn ? "Object Store" : "对象存储", sub: isEn ? "Binary files (CAD, PDF, images, robot programs)" : "二进制文件 (CAD/PDF/图片/机器人程序)", icon: HardDrive, color: "#107c10" },
     { label: "SharePoint / OneDrive", sub: isEn ? "O365 collaboration (dual-sync with GRT)" : "O365协作 (与GRT双向同步)", icon: Cloud, color: "#d83b01" },
   ];
@@ -170,18 +170,18 @@ function FolderMappingTable({ isEn }: { isEn: boolean }) {
 
 // ── Role access matrix ──
 function RoleAccessMatrix({ isEn }: { isEn: boolean }) {
-  const folders = [{机械设计", "电气设计", "机器人系统", "项目文件", "客户资料", "质量管理", "运营管理", "数字展厅", "会议纪要", "模板库}];
+  const folders = ["机械设计", "电气设计", "机器人系统", "项目文件", "客户资料", "质量管理", "运营管理", "数字展厅", "会议纪要", "模板库"];
   const roles: Array<{ id: string; label: string; primary: string[]; secondary: string[] }> = [
-    { id: "bu_mech",  label: isEn ? "Mechanical Eng" : 机械工程师",   primary: ["机械设计"], secondary: ["项目文件", "模板库] },
-    { id: "bu_elec",  label: isEn ? "Electrical Eng" : 电气工程师",   primary: ["电气设计"], secondary: ["项目文件", "模板库] },
-    { id: "bu_pm",    label: isEn ? "Project Manager" : 项目经理",    primary: ["项目文件", "客户资料"], secondary: ["机械设计", "电气设计", "机器人系统", "质量管理", "会议纪要] },
-    { id: "bu_sales", label: isEn ? "Sales Engineer" : 销售工程师",   primary: ["客户资料"], secondary: ["数字展厅", "项目文件] },
-    { id: "quality_eng", label: isEn ? "Quality Eng" : 质量工程师",   primary: ["质量管理"], secondary: ["项目文件] },
-    { id: "procurement_eng", label: isEn ? "Procurement" : 采购工程师", primary: ["质量管理"], secondary: ["项目文件] },
-    { id: "cs_engineer", label: isEn ? "Service Eng" : 客服工程师",   primary: ["客户资料"], secondary: ["质量管理] },
+    { id: "bu_mech",  label: isEn ? "Mechanical Eng" : "机械工程师",   primary: ["机械设计"], secondary: ["项目文件", "模板库"] },
+    { id: "bu_elec",  label: isEn ? "Electrical Eng" : "电气工程师",   primary: ["电气设计"], secondary: ["项目文件", "模板库"] },
+    { id: "bu_pm",    label: isEn ? "Project Manager" : "项目经理",    primary: ["项目文件", "客户资料"], secondary: ["机械设计", "电气设计", "机器人系统", "质量管理", "会议纪要"] },
+    { id: "bu_sales", label: isEn ? "Sales Engineer" : "销售工程师",   primary: ["客户资料"], secondary: ["数字展厅", "项目文件"] },
+    { id: "quality_eng", label: isEn ? "Quality Eng" : "质量工程师",   primary: ["质量管理"], secondary: ["项目文件"] },
+    { id: "procurement_eng", label: isEn ? "Procurement" : "采购工程师", primary: ["质量管理"], secondary: ["项目文件"] },
+    { id: "cs_engineer", label: isEn ? "Service Eng" : "客服工程师",   primary: ["客户资料"], secondary: ["质量管理"] },
     { id: "bu_gm",   label: isEn ? "BU GM" : "BU总经理",              primary: folders, secondary: [] },
     { id: "director", label: isEn ? "Director" : "总监",               primary: folders, secondary: [] },
-    { id: "employee", label: isEn ? "Employee" : 普通员工",           primary: ["会议纪要", "模板库"], secondary: ["运营管理] },
+    { id: "employee", label: isEn ? "Employee" : "普通员工",           primary: ["会议纪要", "模板库"], secondary: ["运营管理"] },
   ];
 
   const { currentUserRole } = useUserProfile();
@@ -262,18 +262,18 @@ function RoleAccessMatrix({ isEn }: { isEn: boolean }) {
 // ── File type support matrix ──
 function FileTypeMatrix({ isEn }: { isEn: boolean }) {
   const types = [
-    { category: "CAD-ME", icon: Box, color: "#00b7c3", exts: ".sldprt .sldasm .slddrw .step .dxf .dwg .iges", viewer: isEn ? "3D CAD viewer" : "3D CAD查看器", edit: isEn ? "Download" : 下载编辑", tool: "SolidWorks },
-    { category: "CAD-EE", icon: Box, color: "#8764b8", exts: ".elc .zw1 .epl", viewer: isEn ? "CAD viewer" : "CAD查看器", edit: isEn ? "Download" : 下载编辑", tool: "EPLAN },
-    { category: "FANUC", icon: FileCode, color: "#e3008c", exts: ".tp .ls", viewer: "Monaco", edit: isEn ? "Online edit" : 在线编辑", tool: "FANUC TP/Karel },
-    { category: "KUKA", icon: FileCode, color: "#ff8c00", exts: ".src .dat .krl", viewer: "Monaco", edit: isEn ? "Online edit" : 在线编辑", tool: "KUKA KRL },
-    { category: "ABB", icon: FileCode, color: "#d13438", exts: ".mod .prg", viewer: "Monaco", edit: isEn ? "Online edit" : 在线编辑", tool: "ABB RAPID },
+    { category: "CAD-ME", icon: Box, color: "#00b7c3", exts: ".sldprt .sldasm .slddrw .step .dxf .dwg .iges", viewer: isEn ? "3D CAD viewer" : "3D CAD查看器", edit: isEn ? "Download" : "下载编辑", tool: "SolidWorks" },
+    { category: "CAD-EE", icon: Box, color: "#8764b8", exts: ".elc .zw1 .epl", viewer: isEn ? "CAD viewer" : "CAD查看器", edit: isEn ? "Download" : "下载编辑", tool: "EPLAN" },
+    { category: "FANUC", icon: FileCode, color: "#e3008c", exts: ".tp .ls", viewer: "Monaco", edit: isEn ? "Online edit" : "在线编辑", tool: "FANUC TP/Karel" },
+    { category: "KUKA", icon: FileCode, color: "#ff8c00", exts: ".src .dat .krl", viewer: "Monaco", edit: isEn ? "Online edit" : "在线编辑", tool: "KUKA KRL" },
+    { category: "ABB", icon: FileCode, color: "#d13438", exts: ".mod .prg", viewer: "Monaco", edit: isEn ? "Online edit" : "在线编辑", tool: "ABB RAPID" },
     { category: isEn ? "Vision" : "视觉", icon: Box, color: "#498205", exts: ".vpp .job", viewer: isEn ? "CAD viewer" : "CAD查看器", edit: isEn ? "Download" : "下载编辑", tool: "Cognex/Keyence" },
-    { category: "G-code", icon: FileCode, color: "#767676", exts: ".nc .gcode .tap .ngc", viewer: "Monaco", edit: isEn ? "Online edit" : 在线编辑", tool: "CNC },
-    { category: "Excel", icon: FileSpreadsheet, color: "#107c10", exts: ".xlsx .xls .csv", viewer: isEn ? "Inline table" : 内联表格", edit: isEn ? "Online edit" : "在线编辑", tool: "Office 365 },
-    { category: "Word", icon: FileText, color: "#185abd", exts: ".docx .doc", viewer: isEn ? "Rich text" : 富文本", edit: isEn ? "Online edit" : "在线编辑", tool: "Office 365 },
-    { category: "PPT", icon: FileType, color: "#d04423", exts: ".pptx .ppt", viewer: isEn ? "Preview" : 预览", edit: isEn ? "Download" : "下载编辑", tool: "Office 365 },
-    { category: "PDF", icon: FileText, color: "#d13438", exts: ".pdf", viewer: "iframe", edit: isEn ? "View only" : 仅查看", tool: "- },
-    { category: "Markdown", icon: FileText, color: "#0078d4", exts: ".md", viewer: isEn ? "Formatted" : 格式化", edit: isEn ? "Online edit" : "在线编辑", tool: "- },
+    { category: "G-code", icon: FileCode, color: "#767676", exts: ".nc .gcode .tap .ngc", viewer: "Monaco", edit: isEn ? "Online edit" : "在线编辑", tool: "CNC" },
+    { category: "Excel", icon: FileSpreadsheet, color: "#107c10", exts: ".xlsx .xls .csv", viewer: isEn ? "Inline table" : "内联表格", edit: isEn ? "Online edit" : "在线编辑", tool: "Office 365" },
+    { category: "Word", icon: FileText, color: "#185abd", exts: ".docx .doc", viewer: isEn ? "Rich text" : "富文本", edit: isEn ? "Online edit" : "在线编辑", tool: "Office 365" },
+    { category: "PPT", icon: FileType, color: "#d04423", exts: ".pptx .ppt", viewer: isEn ? "Preview" : "预览", edit: isEn ? "Download" : "下载编辑", tool: "Office 365" },
+    { category: "PDF", icon: FileText, color: "#d13438", exts: ".pdf", viewer: "iframe", edit: isEn ? "View only" : "仅查看", tool: "-" },
+    { category: "Markdown", icon: FileText, color: "#0078d4", exts: ".md", viewer: isEn ? "Formatted" : "格式化", edit: isEn ? "Online edit" : "在线编辑", tool: "-" },
     { category: isEn ? "Images" : "图片", icon: Image, color: "#c239b3", exts: ".png .jpg .svg .bmp .webp", viewer: isEn ? "Image viewer" : "图片查看器", edit: isEn ? "View only" : "仅查看", tool: "-" },
   ];
 
@@ -303,11 +303,11 @@ function FileTypeMatrix({ isEn }: { isEn: boolean }) {
 // ── BU data isolation ──
 function BUDataIsolation({ isEn }: { isEn: boolean }) {
   const bus = [
-    { code: "overseas", name: isEn ? "Overseas" : 海外事业部", clients: "Mercedes-Benz, Stellantis, GM", color: "#0078d4 },
-    { code: "commercial", name: isEn ? "Commercial Vehicle" : 商用车事业部", clients: isEn ? "CNHTC, Shaanqi" : "中国重汽, 陕汽", color: "#107c10 },
-    { code: "passenger", name: isEn ? "Passenger Vehicle" : 乘用车事业部", clients: isEn ? "BYD, Geely" : "比亚迪, 吉利", color: "#8764b8 },
-    { code: "semiconductor", name: isEn ? "Semiconductor" : 半导体事业部", clients: isEn ? "SMIC" : "中芯国际", color: "#d83b01 },
-    { code: "industrial", name: isEn ? "General Industrial" : 工业通用事业部", clients: isEn ? "Various industries" : "各行业客户", color: "#005a9e },
+    { code: "overseas", name: isEn ? "Overseas" : "海外事业部", clients: "Mercedes-Benz, Stellantis, GM", color: "#0078d4" },
+    { code: "commercial", name: isEn ? "Commercial Vehicle" : "商用车事业部", clients: isEn ? "CNHTC, Shaanqi" : "中国重汽, 陕汽", color: "#107c10" },
+    { code: "passenger", name: isEn ? "Passenger Vehicle" : "乘用车事业部", clients: isEn ? "BYD, Geely" : "比亚迪, 吉利", color: "#8764b8" },
+    { code: "semiconductor", name: isEn ? "Semiconductor" : "半导体事业部", clients: isEn ? "SMIC" : "中芯国际", color: "#d83b01" },
+    { code: "industrial", name: isEn ? "General Industrial" : "工业通用事业部", clients: isEn ? "Various industries" : "各行业客户", color: "#005a9e" },
   ];
 
   return (
@@ -351,9 +351,9 @@ function CapacityPlanning({ isEn }: { isEn: boolean }) {
   const rows = [
     { type: "SolidWorks", perUnit: "~200 files, ~500MB", annual100: "50 GB", year5: "250 GB" },
     { type: "EPLAN", perUnit: "~5 projects, ~100MB", annual100: "10 GB", year5: "50 GB" },
-    { type: isEn ? "Robot programs" : 机器人程序", perUnit: "~50 files, ~5MB", annual100: "500 MB", year5: "2.5 GB },
+    { type: isEn ? "Robot programs" : "机器人程序", perUnit: "~50 files, ~5MB", annual100: "500 MB", year5: "2.5 GB" },
     { type: "Office", perUnit: "~100 files, ~50MB", annual100: "5 GB", year5: "25 GB" },
-    { type: isEn ? "Inspection PDFs" : 检验报告PDF", perUnit: "~50 files, ~20MB", annual100: "2 GB", year5: "10 GB },
+    { type: isEn ? "Inspection PDFs" : "检验报告PDF", perUnit: "~50 files, ~20MB", annual100: "2 GB", year5: "10 GB" },
     { type: isEn ? "DB structured" : "DB结构化数据", perUnit: "~5000 rows", annual100: "500K rows", year5: "2.5M rows" },
   ];
 
@@ -592,10 +592,10 @@ function SyncStatusDashboard({ isEn }: { isEn: boolean }) {
 
 // ── 4-Cluster SharePoint Site Map ──
 const CLUSTER_META: Record<string, { label: string; labelEn: string; color: string; icon: typeof Database }> = {
-  A: { label: 公司级",     labelEn: "Company Wide",      color: "#0078d4, icon: Building2 },
-  B: { label: 支持职能",   labelEn: "Support Functions",  color: "#8764b8, icon: Shield },
-  C: { label: 核心业务",   labelEn: "Core Business",      color: "#107c10, icon: Factory },
-  D: { label: 个人/外部",  labelEn: "Personal/External",  color: "#d83b01, icon: Globe },
+  A: { label: "公司级",     labelEn: "Company Wide",      color: "#0078d4", icon: Building2 },
+  B: { label: "支持职能",   labelEn: "Support Functions",  color: "#8764b8", icon: Shield },
+  C: { label: "核心业务",   labelEn: "Core Business",      color: "#107c10", icon: Factory },
+  D: { label: "个人/外部",  labelEn: "Personal/External",  color: "#d83b01", icon: Globe },
 };
 
 function ClusterSiteMap({ isEn }: { isEn: boolean }) {
@@ -767,11 +767,11 @@ function AutoConfigPanel({ isEn }: { isEn: boolean }) {
       // Step 3: Report BU isolation rules
       addLog(isEn ? "Verifying BU data isolation rules..." : "验证事业部数据隔离规则...");
       const buRules = [
-        { code: "BU1", name: 海外事业部", cluster: "C", isolation: "bu_scoped },
-        { code: "BU2", name: 商用车事业部", cluster: "C", isolation: "bu_scoped },
-        { code: "BU3", name: 乘用车事业部", cluster: "C", isolation: "bu_scoped },
-        { code: "BU4", name: 半导体事业部", cluster: "C", isolation: "bu_scoped },
-        { code: "BU5", name: 工业通用事业部", cluster: "C", isolation: "bu_scoped },
+        { code: "BU1", name: "海外事业部", cluster: "C", isolation: "bu_scoped" },
+        { code: "BU2", name: "商用车事业部", cluster: "C", isolation: "bu_scoped" },
+        { code: "BU3", name: "乘用车事业部", cluster: "C", isolation: "bu_scoped" },
+        { code: "BU4", name: "半导体事业部", cluster: "C", isolation: "bu_scoped" },
+        { code: "BU5", name: "工业通用事业部", cluster: "C", isolation: "bu_scoped" },
       ];
       for (const bu of buRules) {
         addLog(`  ${bu.code} (${bu.name}): cluster=${bu.cluster}, scope=${bu.isolation}`);

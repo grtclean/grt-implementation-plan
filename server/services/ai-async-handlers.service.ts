@@ -33,7 +33,7 @@ import { sysMeetings, meetingActionItems, customerInteractionFeedback } from "..
 import { aiSolutionProposals } from "../../drizzle/solution-engine-schema";
 import { employeeDailyLogs } from "../../drizzle/empowerment-schema";
 import { clientAnnualBudgets, projectBiddingStrategies } from "../../drizzle/sales-coach-schema";
-import { eq, asc, desc, sql } from "drizzle-orm";
+import { eq, and, asc, desc, sql } from "drizzle-orm";
 import { searchDocuments, incrementRelevance } from "../modules/knowledge-base.service";
 import { buildOwnerContext } from "./ai-assistant-provisioning.service";
 
@@ -766,7 +766,7 @@ registerTaskHandler("SALES_COACH_FEEDBACK", async (_taskId, input) => {
     // 5. Parse response
     let feedback: { tacticalGuidance: string; pipelineRisks: string[]; suggestedActions: string[] };
     try {
-      const cleaned = (aiResult as string).replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const cleaned = (aiResult as unknown as string).replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       feedback = JSON.parse(cleaned);
     } catch {
       feedback = {
@@ -900,7 +900,7 @@ registerTaskHandler("BATTLE_PREP_REPORT", async (_taskId, input) => {
 
     let parsed: { summary: string; suggestions: string[] };
     try {
-      const cleaned = (aiSummary as string).replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const cleaned = (aiSummary as unknown as string).replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       parsed = JSON.parse(cleaned);
     } catch {
       parsed = { summary: String(aiSummary), suggestions: [] };

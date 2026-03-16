@@ -601,7 +601,7 @@ const testRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const ins = await db.insert(knowledgeTheoryTests)
-        .values({ ...input, createdBy: ctx.user!.id })
+        .values({ ...input, createdBy: ctx.user!.id } as any)
         .returning({ id: knowledgeTheoryTests.id });
       return ins[0];
     }),

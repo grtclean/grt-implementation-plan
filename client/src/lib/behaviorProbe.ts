@@ -173,8 +173,6 @@ class BehaviorProbe {
         flushEvents();
       }
     });
-    
-    console.log('[BehaviorProbe] Initialized');
   }
 
   // 设置用户信息

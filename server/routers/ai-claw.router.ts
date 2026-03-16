@@ -305,7 +305,7 @@ const executionRouter = router({
         .limit(1);
 
       if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
-      if (task.status !== "pending_approval") {
+      if ((task.status as string) !== "pending_approval") {
         throw new TRPCError({ code: "BAD_REQUEST", message: `Task status is '${task.status}', expected 'pending_approval'` });
       }
 
@@ -348,7 +348,7 @@ const executionRouter = router({
         .limit(1);
 
       if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
-      if (task.status !== "pending_approval") {
+      if ((task.status as string) !== "pending_approval") {
         throw new TRPCError({ code: "BAD_REQUEST", message: `Task status is '${task.status}', expected 'pending_approval'` });
       }
 

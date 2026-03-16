@@ -140,11 +140,9 @@ export function ThemeProvider({
         {
           onSuccess: () => {
             setIsSynced(true);
-            console.log('Theme preference synced to server:', newTheme);
           },
-          onError: (error) => {
+          onError: () => {
             setIsSynced(false);
-            console.log('Theme preference sync skipped (user may not be logged in):', error.message);
           }
         }
       );

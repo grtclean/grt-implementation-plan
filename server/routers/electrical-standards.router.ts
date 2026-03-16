@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { eq, desc, and, sql, ilike } from "drizzle-orm";
 import { router, protectedProcedure, requirePermission } from "../_core/trpc";
+import { requireDb } from "../db";
 import {
   electricalStandards,
   customerStandardProfiles,
@@ -31,7 +32,7 @@ const standardsRouter = router({
       search: z.string().optional(),
     }).optional())
     .query(async ({ ctx, input }) => {
-      const db = ctx.db;
+      const db = await requireDb();
       const conditions = [];
       if (input?.framework) conditions.push(eq(electricalStandards.framework, input.framework as any));
       if (input?.category) conditions.push(eq(electricalStandards.category, input.category as any));
@@ -43,7 +44,7 @@ const standardsRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      const [row] = await ctx.db.select().from(electricalStandards).where(eq(electricalStandards.id, input.id)).limit(1);
+      const [row] = await (await requireDb()).select().from(electricalStandards).where(eq(electricalStandards.id, input.id)).limit(1);
       return row ?? null;
     }),
 
@@ -64,7 +65,7 @@ const standardsRouter = router({
       testMethods: z.array(z.string()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const [row] = await ctx.db.insert(electricalStandards).values({ ...input, createdBy: ctx.user!.id }).returning();
+      const [row] = await (await requireDb()).insert(electricalStandards).values({ ...input, createdBy: ctx.user!.id }).returning();
       log.info({ id: row.id, code: input.code }, "Electrical standard created");
       return row;
     }),
@@ -80,13 +81,13 @@ const standardsRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const [updated] = await ctx.db.update(electricalStandards).set({ ...data, updatedAt: new Date() }).where(eq(electricalStandards.id, id)).returning();
+      const [updated] = await (await requireDb()).update(electricalStandards).set({ ...data, updatedAt: new Date() }).where(eq(electricalStandards.id, id)).returning();
       return updated;
     }),
 
   /** Aggregate stats by framework */
   statsByFramework: protectedProcedure.query(async ({ ctx }) => {
-    const rows = await ctx.db
+    const rows = await (await requireDb())
       .select({ framework: electricalStandards.framework, count: sql<number>`count(*)::int` })
       .from(electricalStandards)
       .where(eq(electricalStandards.status, "active"))
@@ -104,13 +105,13 @@ const customerProfileRouter = router({
       const conditions = [eq(customerStandardProfiles.isActive, true)];
       if (input?.region) conditions.push(eq(customerStandardProfiles.region, input.region));
       if (input?.buCode) conditions.push(eq(customerStandardProfiles.buCode, input.buCode));
-      return ctx.db.select().from(customerStandardProfiles).where(and(...conditions)).orderBy(customerStandardProfiles.customerName).limit(200);
+      return (await requireDb()).select().from(customerStandardProfiles).where(and(...conditions)).orderBy(customerStandardProfiles.customerName).limit(200);
     }),
 
   getById: protectedProcedure
     .input(z.object({ id: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      const [row] = await ctx.db.select().from(customerStandardProfiles).where(eq(customerStandardProfiles.id, input.id)).limit(1);
+      const [row] = await (await requireDb()).select().from(customerStandardProfiles).where(eq(customerStandardProfiles.id, input.id)).limit(1);
       return row ?? null;
     }),
 
@@ -133,7 +134,7 @@ const customerProfileRouter = router({
       buCode: z.string().max(20).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const [row] = await ctx.db.insert(customerStandardProfiles).values({ ...input, createdBy: ctx.user!.id }).returning();
+      const [row] = await (await requireDb()).insert(customerStandardProfiles).values({ ...input, createdBy: ctx.user!.id }).returning();
       log.info({ id: row.id, customer: input.customerName }, "Customer standard profile created");
       return row;
     }),
@@ -150,7 +151,7 @@ const customerProfileRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const [updated] = await ctx.db.update(customerStandardProfiles).set({ ...data, updatedAt: new Date() }).where(eq(customerStandardProfiles.id, id)).returning();
+      const [updated] = await (await requireDb()).update(customerStandardProfiles).set({ ...data, updatedAt: new Date() }).where(eq(customerStandardProfiles.id, id)).returning();
       return updated;
     }),
 });
@@ -162,7 +163,7 @@ const projectSelectionRouter = router({
   getByProject: protectedProcedure
     .input(z.object({ projectCode: z.string() }))
     .query(async ({ ctx, input }) => {
-      const [row] = await ctx.db.select().from(projectStandardSelections).where(eq(projectStandardSelections.projectCode, input.projectCode)).limit(1);
+      const [row] = await (await requireDb()).select().from(projectStandardSelections).where(eq(projectStandardSelections.projectCode, input.projectCode)).limit(1);
       return row ?? null;
     }),
 
@@ -188,7 +189,7 @@ const projectSelectionRouter = router({
       buCode: z.string().max(20).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = ctx.db;
+      const db = await requireDb();
       const existing = await db.select().from(projectStandardSelections).where(eq(projectStandardSelections.projectCode, input.projectCode)).limit(1);
 
       if (existing.length > 0) {
@@ -205,7 +206,7 @@ const projectSelectionRouter = router({
   lock: requirePermission("electrical:project:lock")
     .input(z.object({ projectCode: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const [updated] = await ctx.db.update(projectStandardSelections).set({
+      const [updated] = await (await requireDb()).update(projectStandardSelections).set({
         lockedAt: new Date(),
         lockedBy: ctx.user!.id,
         updatedAt: new Date(),
@@ -218,7 +219,7 @@ const projectSelectionRouter = router({
 
   /** List all project selections */
   list: protectedProcedure.query(async ({ ctx }) => {
-    return ctx.db.select().from(projectStandardSelections).orderBy(desc(projectStandardSelections.createdAt)).limit(200);
+    return (await requireDb()).select().from(projectStandardSelections).orderBy(desc(projectStandardSelections.createdAt)).limit(200);
   }),
 });
 
@@ -231,14 +232,14 @@ const checklistRouter = router({
     .query(async ({ ctx, input }) => {
       const conditions = [eq(complianceChecklistItems.projectCode, input.projectCode)];
       if (input.phase) conditions.push(eq(complianceChecklistItems.checkPhase, input.phase));
-      return ctx.db.select().from(complianceChecklistItems).where(and(...conditions)).orderBy(complianceChecklistItems.checkPhase, complianceChecklistItems.id).limit(500);
+      return (await requireDb()).select().from(complianceChecklistItems).where(and(...conditions)).orderBy(complianceChecklistItems.checkPhase, complianceChecklistItems.id).limit(500);
     }),
 
   /** Auto-generate checklist from review rules + selected standards */
   generate: requirePermission("electrical:checklist:manage")
     .input(z.object({ projectCode: z.string(), phase: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const db = ctx.db;
+      const db = await requireDb();
       // Get project selection to find applicable framework
       const [selection] = await db.select().from(projectStandardSelections).where(eq(projectStandardSelections.projectCode, input.projectCode)).limit(1);
 
@@ -280,7 +281,7 @@ const checklistRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const [updated] = await ctx.db.update(complianceChecklistItems).set({
+      const [updated] = await (await requireDb()).update(complianceChecklistItems).set({
         ...data,
         checkedBy: ctx.user!.id,
         checkedAt: new Date(),
@@ -293,7 +294,7 @@ const checklistRouter = router({
   summary: protectedProcedure
     .input(z.object({ projectCode: z.string() }))
     .query(async ({ ctx, input }) => {
-      const rows = await ctx.db
+      const rows = await (await requireDb())
         .select({
           phase: complianceChecklistItems.checkPhase,
           status: complianceChecklistItems.status,
@@ -321,13 +322,13 @@ const complaintRouter = router({
       if (input?.severity) conditions.push(eq(electricalComplaints.severity, input.severity as any));
       if (input?.category) conditions.push(eq(electricalComplaints.category, input.category as any));
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      return ctx.db.select().from(electricalComplaints).where(where).orderBy(desc(electricalComplaints.createdAt)).limit(200);
+      return (await requireDb()).select().from(electricalComplaints).where(where).orderBy(desc(electricalComplaints.createdAt)).limit(200);
     }),
 
   getById: protectedProcedure
     .input(z.object({ id: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      const [row] = await ctx.db.select().from(electricalComplaints).where(eq(electricalComplaints.id, input.id)).limit(1);
+      const [row] = await (await requireDb()).select().from(electricalComplaints).where(eq(electricalComplaints.id, input.id)).limit(1);
       return row ?? null;
     }),
 
@@ -345,7 +346,7 @@ const complaintRouter = router({
       buCode: z.string().max(20).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const [row] = await ctx.db.insert(electricalComplaints).values(input).returning();
+      const [row] = await (await requireDb()).insert(electricalComplaints).values(input).returning();
       log.info({ id: row.id, number: input.complaintNumber, severity: input.severity }, "Electrical complaint created");
       return row;
     }),
@@ -362,19 +363,19 @@ const complaintRouter = router({
       const { id, ...data } = input;
       const setData: any = { ...data, updatedAt: new Date() };
       if (data.status === "resolved") setData.resolvedAt = new Date();
-      const [updated] = await ctx.db.update(electricalComplaints).set(setData).where(eq(electricalComplaints.id, id)).returning();
+      const [updated] = await (await requireDb()).update(electricalComplaints).set(setData).where(eq(electricalComplaints.id, id)).returning();
       return updated;
     }),
 
   /** Stats by severity and category */
   stats: protectedProcedure.query(async ({ ctx }) => {
-    const bySeverity = await ctx.db
+    const bySeverity = await (await requireDb())
       .select({ severity: electricalComplaints.severity, count: sql<number>`count(*)::int` })
       .from(electricalComplaints).groupBy(electricalComplaints.severity);
-    const byCategory = await ctx.db
+    const byCategory = await (await requireDb())
       .select({ category: electricalComplaints.category, count: sql<number>`count(*)::int` })
       .from(electricalComplaints).groupBy(electricalComplaints.category);
-    const byStatus = await ctx.db
+    const byStatus = await (await requireDb())
       .select({ status: electricalComplaints.status, count: sql<number>`count(*)::int` })
       .from(electricalComplaints).groupBy(electricalComplaints.status);
     return { bySeverity, byCategory, byStatus };
@@ -390,7 +391,7 @@ const reviewRuleRouter = router({
       const conditions = [eq(electricalReviewRules.isActive, true)];
       if (input?.phase) conditions.push(eq(electricalReviewRules.phase, input.phase));
       if (input?.framework) conditions.push(eq(electricalReviewRules.framework, input.framework as any));
-      return ctx.db.select().from(electricalReviewRules).where(and(...conditions)).orderBy(electricalReviewRules.phase, electricalReviewRules.ruleCode).limit(200);
+      return (await requireDb()).select().from(electricalReviewRules).where(and(...conditions)).orderBy(electricalReviewRules.phase, electricalReviewRules.ruleCode).limit(200);
     }),
 
   create: requirePermission("electrical:rules:manage")
@@ -405,7 +406,7 @@ const reviewRuleRouter = router({
       isBlocking: z.boolean().default(true),
     }))
     .mutation(async ({ ctx, input }) => {
-      const [row] = await ctx.db.insert(electricalReviewRules).values(input).returning();
+      const [row] = await (await requireDb()).insert(electricalReviewRules).values(input).returning();
       log.info({ id: row.id, phase: input.phase, code: input.ruleCode }, "Electrical review rule created");
       return row;
     }),
@@ -420,7 +421,7 @@ const reviewRuleRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const [updated] = await ctx.db.update(electricalReviewRules).set({ ...data, updatedAt: new Date() }).where(eq(electricalReviewRules.id, id)).returning();
+      const [updated] = await (await requireDb()).update(electricalReviewRules).set({ ...data, updatedAt: new Date() }).where(eq(electricalReviewRules.id, id)).returning();
       return updated;
     }),
 });
@@ -429,7 +430,7 @@ const reviewRuleRouter = router({
 
 const dashboardRouter = router({
   overview: protectedProcedure.query(async ({ ctx }) => {
-    const db = ctx.db;
+    const db = await requireDb();
     const [stdCount] = await db.select({ count: sql<number>`count(*)::int` }).from(electricalStandards).where(eq(electricalStandards.status, "active"));
     const [custCount] = await db.select({ count: sql<number>`count(*)::int` }).from(customerStandardProfiles).where(eq(customerStandardProfiles.isActive, true));
     const [projCount] = await db.select({ count: sql<number>`count(*)::int` }).from(projectStandardSelections);

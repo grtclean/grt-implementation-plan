@@ -38,7 +38,7 @@ const DEFAULT_THRESHOLDS: Record<string, number> = {
 // ══════════════════════════════════════════════════════════
 
 export async function listPositionProfiles(opts?: { department?: string; activeOnly?: boolean }) {
-  const db = requireDb();
+  const db = await requireDb();
   let query = db.select().from(skillPositionProfiles);
   if (opts?.department) {
     query = query.where(eq(skillPositionProfiles.department, opts.department)) as typeof query;
@@ -50,7 +50,7 @@ export async function listPositionProfiles(opts?: { department?: string; activeO
 }
 
 export async function getPositionProfile(positionKey: string) {
-  const db = requireDb();
+  const db = await requireDb();
   const rows = await db
     .select()
     .from(skillPositionProfiles)
@@ -71,7 +71,7 @@ export async function upsertPositionProfile(profile: {
   questionCount?: Record<string, number>;
   createdBy?: number;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   const existing = await db
     .select({ id: skillPositionProfiles.id })
     .from(skillPositionProfiles)
@@ -105,7 +105,7 @@ export async function listQuestions(opts: {
   manualOnly?: boolean;
   limit?: number;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   const limit = Math.min(opts.limit ?? 200, 500);
   const conditions: ReturnType<typeof eq>[] = [
     eq(skillQuestionBank.positionKey, opts.positionKey),
@@ -124,7 +124,7 @@ export async function listQuestions(opts: {
 }
 
 export async function getQuestion(id: number) {
-  const db = requireDb();
+  const db = await requireDb();
   const rows = await db
     .select()
     .from(skillQuestionBank)
@@ -150,7 +150,7 @@ export async function createQuestion(input: {
   createdBy: number;
   createdByName?: string;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   const rows = await db.insert(skillQuestionBank).values({
     ...input,
     questionType: input.questionType as any,
@@ -174,7 +174,7 @@ export async function updateQuestion(id: number, updates: {
   reference?: string;
   isActive?: boolean;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   await db.update(skillQuestionBank)
     .set({ ...updates, difficulty: updates.difficulty as any, updatedAt: new Date() })
     .where(eq(skillQuestionBank.id, id));
@@ -182,7 +182,7 @@ export async function updateQuestion(id: number, updates: {
 }
 
 export async function deleteQuestion(id: number) {
-  const db = requireDb();
+  const db = await requireDb();
   await db.update(skillQuestionBank)
     .set({ isActive: false, updatedAt: new Date() })
     .where(eq(skillQuestionBank.id, id));
@@ -204,7 +204,7 @@ export async function batchImportQuestions(questions: Array<{
   createdBy: number;
   createdByName?: string;
 }>) {
-  const db = requireDb();
+  const db = await requireDb();
   let created = 0;
   for (const q of questions) {
     await db.insert(skillQuestionBank).values({
@@ -222,7 +222,7 @@ export async function batchImportQuestions(questions: Array<{
 
 /** Get question bank stats per position */
 export async function getQuestionStats(positionKey: string) {
-  const db = requireDb();
+  const db = await requireDb();
   const rows = await db
     .select({
       difficulty: skillQuestionBank.difficulty,
@@ -268,7 +268,7 @@ export async function getQuestionStats(positionKey: string) {
 // ══════════════════════════════════════════════════════════
 
 export async function listPapers(opts?: { positionKey?: string; targetLevel?: string; publishedOnly?: boolean }) {
-  const db = requireDb();
+  const db = await requireDb();
   let query = db.select().from(skillAssessmentPapers);
   if (opts?.positionKey) query = query.where(eq(skillAssessmentPapers.positionKey, opts.positionKey)) as typeof query;
   if (opts?.targetLevel) query = query.where(eq(skillAssessmentPapers.targetLevel, opts.targetLevel as any)) as typeof query;
@@ -288,7 +288,7 @@ export async function createPaper(input: {
   domainWeights?: Record<string, number>;
   createdBy?: number;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   const rows = await db.insert(skillAssessmentPapers).values({
     ...input,
     targetLevel: input.targetLevel as any,
@@ -299,7 +299,7 @@ export async function createPaper(input: {
 }
 
 export async function publishPaper(id: number) {
-  const db = requireDb();
+  const db = await requireDb();
   await db.update(skillAssessmentPapers)
     .set({ isPublished: true, updatedAt: new Date() })
     .where(eq(skillAssessmentPapers.id, id));
@@ -312,7 +312,7 @@ export async function publishPaper(id: number) {
 
 /** Start an assessment for an employee */
 export async function startSession(employeeId: number, paperId: number) {
-  const db = requireDb();
+  const db = await requireDb();
 
   // Get paper details
   const papers = await db
@@ -357,7 +357,7 @@ export async function submitAnswer(sessionId: number, questionId: number, answer
   answer?: string;
   selectedOptions?: string[];
 }) {
-  const db = requireDb();
+  const db = await requireDb();
 
   // Get the question for auto-grading
   const questions = await db
@@ -418,7 +418,7 @@ export async function submitAnswer(sessionId: number, questionId: number, answer
 
 /** Submit entire session (finalize all answers) */
 export async function submitSession(sessionId: number) {
-  const db = requireDb();
+  const db = await requireDb();
 
   // Calculate auto-graded score
   const answers = await db
@@ -483,7 +483,7 @@ export async function gradeAnswer(answerId: number, grading: {
   manualFeedback?: string;
   gradedBy: number;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   await db.update(skillAssessmentAnswers)
     .set({
       manualScore: grading.manualScore,
@@ -497,7 +497,7 @@ export async function gradeAnswer(answerId: number, grading: {
 
 /** Complete grading for a session (after all subjective Qs graded) */
 export async function completeGrading(sessionId: number, gradedBy: number) {
-  const db = requireDb();
+  const db = await requireDb();
 
   const answers = await db
     .select()
@@ -570,7 +570,7 @@ export async function completeGrading(sessionId: number, gradedBy: number) {
 
 /** Get session details with answers */
 export async function getSessionDetail(sessionId: number) {
-  const db = requireDb();
+  const db = await requireDb();
   const sessions = await db
     .select()
     .from(skillAssessmentSessions)
@@ -590,26 +590,32 @@ export async function getSessionDetail(sessionId: number) {
 
 /** List sessions for an employee */
 export async function listMySessions(employeeId: number, opts?: { positionKey?: string; limit?: number }) {
-  const db = requireDb();
+  const db = await requireDb();
   const limit = Math.min(opts?.limit ?? 50, 200);
-  let query = db.select().from(skillAssessmentSessions)
-    .where(eq(skillAssessmentSessions.employeeId, employeeId));
+  const conditions: ReturnType<typeof eq>[] = [
+    eq(skillAssessmentSessions.employeeId, employeeId),
+  ];
   if (opts?.positionKey) {
-    query = query.where(eq(skillAssessmentSessions.positionKey, opts.positionKey)) as typeof query;
+    conditions.push(eq(skillAssessmentSessions.positionKey, opts.positionKey));
   }
-  return query.orderBy(desc(skillAssessmentSessions.createdAt)).limit(limit);
+  return db.select().from(skillAssessmentSessions)
+    .where(and(...conditions))
+    .orderBy(desc(skillAssessmentSessions.createdAt)).limit(limit);
 }
 
 /** List sessions pending grading (for managers) */
 export async function listPendingGrading(opts?: { positionKey?: string; limit?: number }) {
-  const db = requireDb();
+  const db = await requireDb();
   const limit = Math.min(opts?.limit ?? 50, 200);
-  let query = db.select().from(skillAssessmentSessions)
-    .where(eq(skillAssessmentSessions.status, "grading" as any));
+  const conditions: ReturnType<typeof eq>[] = [
+    eq(skillAssessmentSessions.status, "grading" as any),
+  ];
   if (opts?.positionKey) {
-    query = query.where(eq(skillAssessmentSessions.positionKey, opts.positionKey)) as typeof query;
+    conditions.push(eq(skillAssessmentSessions.positionKey, opts.positionKey));
   }
-  return query.orderBy(skillAssessmentSessions.createdAt).limit(limit);
+  return db.select().from(skillAssessmentSessions)
+    .where(and(...conditions))
+    .orderBy(skillAssessmentSessions.createdAt).limit(limit);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -623,7 +629,7 @@ async function issueCertificate(
   sessionId: number,
   score: number,
 ) {
-  const db = requireDb();
+  const db = await requireDb();
 
   // Supersede existing active cert for same position
   await db.update(skillLevelCerts)
@@ -651,7 +657,7 @@ async function issueCertificate(
 }
 
 export async function getMyCerts(employeeId: number) {
-  const db = requireDb();
+  const db = await requireDb();
   return db
     .select()
     .from(skillLevelCerts)
@@ -661,7 +667,7 @@ export async function getMyCerts(employeeId: number) {
 }
 
 export async function getCertsByPosition(positionKey: string) {
-  const db = requireDb();
+  const db = await requireDb();
   return db
     .select()
     .from(skillLevelCerts)
@@ -674,7 +680,7 @@ export async function getCertsByPosition(positionKey: string) {
 }
 
 export async function revokeCert(certId: number, reason: string) {
-  const db = requireDb();
+  const db = await requireDb();
   await db.update(skillLevelCerts)
     .set({ status: "revoked" as any, revokedReason: reason })
     .where(eq(skillLevelCerts.id, certId));
@@ -686,7 +692,7 @@ export async function revokeCert(certId: number, reason: string) {
 // ══════════════════════════════════════════════════════════
 
 export async function getDashboardStats() {
-  const db = requireDb();
+  const db = await requireDb();
 
   const profileCount = await db
     .select({ count: sql<number>`count(*)::int` })

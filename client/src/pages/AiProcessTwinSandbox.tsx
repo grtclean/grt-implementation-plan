@@ -228,7 +228,7 @@ const STATUS_STYLES: Record<string, { cls: string; label: string }> = {
   capa_initiated: { cls: "text-purple-400 bg-purple-500/10", label: "CAPA" },
 };
 
-const FB_TYPE_STYLES: Record<string, { cls: string; label: string; icon: React.ElementType }> = {
+const FB_TYPE_STYLES: Record<string, { cls: string; label: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }> }> = {
   defect: { cls: "text-red-400 bg-red-500/10 border-red-500/30", label: "缺陷", icon: AlertCircle },
   improvement: { cls: "text-blue-400 bg-blue-500/10 border-blue-500/30", label: "改善", icon: TrendingUp },
   observation: { cls: "text-yellow-400 bg-yellow-500/10 border-yellow-500/30", label: "观察", icon: Eye },

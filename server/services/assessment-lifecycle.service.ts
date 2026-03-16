@@ -32,7 +32,7 @@ const log = createChildLogger("assessment-lifecycle");
 // ══════════════════════════════════════════════════════════
 
 export async function listTriggerRules(opts?: { triggerType?: string; activeOnly?: boolean }) {
-  const db = requireDb();
+  const db = await requireDb();
   let query = db.select().from(assessmentTriggerRules);
   if (opts?.triggerType) {
     query = query.where(eq(assessmentTriggerRules.triggerType, opts.triggerType as any)) as typeof query;
@@ -44,7 +44,7 @@ export async function listTriggerRules(opts?: { triggerType?: string; activeOnly
 }
 
 export async function getTriggerRule(ruleCode: string) {
-  const db = requireDb();
+  const db = await requireDb();
   const rows = await db.select().from(assessmentTriggerRules)
     .where(eq(assessmentTriggerRules.ruleCode, ruleCode)).limit(1);
   return rows[0] ?? null;
@@ -67,7 +67,7 @@ export async function upsertTriggerRule(data: {
   priority?: number;
   createdBy?: number;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   const existing = await db.select({ id: assessmentTriggerRules.id })
     .from(assessmentTriggerRules)
     .where(eq(assessmentTriggerRules.ruleCode, data.ruleCode)).limit(1);
@@ -86,7 +86,7 @@ export async function upsertTriggerRule(data: {
 }
 
 export async function toggleTriggerRule(ruleCode: string, isActive: boolean) {
-  const db = requireDb();
+  const db = await requireDb();
   await db.update(assessmentTriggerRules)
     .set({ isActive, updatedAt: new Date() })
     .where(eq(assessmentTriggerRules.ruleCode, ruleCode));
@@ -109,7 +109,7 @@ export async function evaluateTrigger(params: {
   lifecycleStage?: string;
   triggerData: Record<string, unknown>;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   const { employeeId, triggerType, positionKey, currentLevel, lifecycleStage, triggerData } = params;
 
   // Find matching active rules
@@ -262,7 +262,7 @@ export async function createUpgradeWorkflow(params: {
   lifecycleStage?: string;
   deadline?: string;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
 
   // Default 3-round structure
   const totalRounds = 3;
@@ -338,7 +338,7 @@ export async function listWorkflows(opts?: {
   purpose?: string;
   limit?: number;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   let query = db.select().from(assessmentWorkflows);
   if (opts?.employeeId) {
     query = query.where(eq(assessmentWorkflows.employeeId, opts.employeeId)) as typeof query;
@@ -356,7 +356,7 @@ export async function listWorkflows(opts?: {
 }
 
 export async function getWorkflowDetail(workflowId: number) {
-  const db = requireDb();
+  const db = await requireDb();
   const [workflow] = await db.select().from(assessmentWorkflows)
     .where(eq(assessmentWorkflows.id, workflowId)).limit(1);
   if (!workflow) return null;
@@ -381,7 +381,7 @@ export async function updateRound(roundId: number, updates: {
   paperId?: number;
   notes?: string;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   const updateData: Record<string, unknown> = {};
   if (updates.status) updateData.status = updates.status;
   if (updates.score !== undefined) updateData.score = updates.score;
@@ -419,7 +419,7 @@ export async function completeRound(workflowId: number, roundNumber: number, res
   notes?: string;
   decidedBy?: number;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
 
   // Update round
   const [round] = await db.select().from(assessmentWorkflowRounds)
@@ -541,7 +541,7 @@ function calculateOverallScore(rounds: any[], weights: Record<string, number>): 
  * Reads failure_consequences from trigger rule.
  */
 async function applyWorkflowConsequences(workflowId: number) {
-  const db = requireDb();
+  const db = await requireDb();
 
   const [workflow] = await db.select().from(assessmentWorkflows)
     .where(eq(assessmentWorkflows.id, workflowId)).limit(1);
@@ -601,7 +601,7 @@ export async function listEnforcements(opts?: {
   enforcementType?: string;
   limit?: number;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   let query = db.select().from(skillEnforcementActions);
   if (opts?.employeeId) {
     query = query.where(eq(skillEnforcementActions.employeeId, opts.employeeId)) as typeof query;
@@ -621,7 +621,7 @@ export async function liftEnforcement(enforcementId: number, params: {
   reassessmentPassed?: boolean;
   reassessmentSessionId?: number;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   await db.update(skillEnforcementActions)
     .set({
       status: "lifted",
@@ -639,7 +639,7 @@ export async function liftEnforcement(enforcementId: number, params: {
 }
 
 export async function getMyEnforcements(employeeId: number) {
-  const db = requireDb();
+  const db = await requireDb();
   return db.select().from(skillEnforcementActions)
     .where(and(
       eq(skillEnforcementActions.employeeId, employeeId),
@@ -659,7 +659,7 @@ export async function listTriggerLogs(opts?: {
   outcome?: string;
   limit?: number;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   let query = db.select().from(assessmentTriggerLog);
   if (opts?.employeeId) {
     query = query.where(eq(assessmentTriggerLog.employeeId, opts.employeeId)) as typeof query;
@@ -674,7 +674,7 @@ export async function listTriggerLogs(opts?: {
 }
 
 export async function updateTriggerLogOutcome(logId: number, outcome: string) {
-  const db = requireDb();
+  const db = await requireDb();
   await db.update(assessmentTriggerLog)
     .set({ outcome, outcomeAt: new Date() } as any)
     .where(eq(assessmentTriggerLog.id, logId));
@@ -686,7 +686,7 @@ export async function updateTriggerLogOutcome(logId: number, outcome: string) {
 // ══════════════════════════════════════════════════════════
 
 export async function listBenchmarks(opts?: { positionKey?: string; period?: string }) {
-  const db = requireDb();
+  const db = await requireDb();
   let query = db.select().from(positionBenchmarkScores);
   if (opts?.positionKey) {
     query = query.where(eq(positionBenchmarkScores.positionKey, opts.positionKey)) as typeof query;
@@ -707,7 +707,7 @@ export async function upsertBenchmark(data: {
   employeeCount?: number;
   isManualOverride?: boolean;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   const existing = await db.select({ id: positionBenchmarkScores.id })
     .from(positionBenchmarkScores)
     .where(and(
@@ -731,7 +731,7 @@ export async function upsertBenchmark(data: {
 // ══════════════════════════════════════════════════════════
 
 export async function getDashboardStats() {
-  const db = requireDb();
+  const db = await requireDb();
 
   const [ruleCount] = await db.select({ count: sql<number>`count(*)` })
     .from(assessmentTriggerRules)

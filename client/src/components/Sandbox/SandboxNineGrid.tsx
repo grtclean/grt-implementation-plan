@@ -23,7 +23,7 @@ import { getSandboxIOConfig, M365_SERVICE_LABELS, type M365Service, type Sandbox
 import SandboxFileImport from "./SandboxFileImport";
 
 // ── M365 icon map ──
-const M365_ICONS: Record<M365Service, React.ElementType> = {
+const M365_ICONS: Record<M365Service, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   outlook: Mail,
   teams: MessageSquare,
   planner: KanbanSquare,
@@ -37,7 +37,7 @@ interface GridCell {
   key: string;
   label: string;
   labelEn: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   color: string;       // hex
   bgClass: string;     // tailwind bg
   borderClass: string; // tailwind border
@@ -414,7 +414,7 @@ export default function SandboxNineGrid({
                 isActive && "ring-2 ring-offset-1 ring-offset-background",
                 cell.key === "cockpit" && "row-span-1",
               )}
-              style={isActive ? { ringColor: cell.color } : undefined}
+              style={isActive ? { ["--tw-ring-color" as string]: cell.color } as React.CSSProperties : undefined}
               onClick={() => {
                 if (cell.key === "cockpit" && onEnterWorkbench) {
                   onEnterWorkbench();

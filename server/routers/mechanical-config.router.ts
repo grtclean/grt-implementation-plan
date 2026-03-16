@@ -10,6 +10,7 @@
 import { z } from "zod";
 import { eq, desc, and, sql, ilike } from "drizzle-orm";
 import { router, protectedProcedure, requirePermission } from "../_core/trpc";
+import { requireDb } from "../db";
 import {
   mechanicalStandards,
   mechCustomerConfigs,
@@ -44,13 +45,13 @@ const standardsRouter = router({
       if (input?.category) conditions.push(eq(mechanicalStandards.category, input.category as any));
       if (input?.search) conditions.push(ilike(mechanicalStandards.title, `%${input.search}%`));
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      return ctx.db.select().from(mechanicalStandards).where(where).orderBy(mechanicalStandards.origin, mechanicalStandards.category).limit(500);
+      return (await requireDb()).select().from(mechanicalStandards).where(where).orderBy(mechanicalStandards.origin, mechanicalStandards.category).limit(500);
     }),
 
   getById: protectedProcedure
     .input(z.object({ id: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      const [row] = await ctx.db.select().from(mechanicalStandards).where(eq(mechanicalStandards.id, input.id)).limit(1);
+      const [row] = await (await requireDb()).select().from(mechanicalStandards).where(eq(mechanicalStandards.id, input.id)).limit(1);
       return row ?? null;
     }),
 
@@ -72,7 +73,7 @@ const standardsRouter = router({
       tags: z.array(z.string()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const [row] = await ctx.db.insert(mechanicalStandards).values({ ...input, createdBy: ctx.user!.id }).returning();
+      const [row] = await (await requireDb()).insert(mechanicalStandards).values({ ...input, createdBy: ctx.user!.id }).returning();
       log.info({ id: row.id, code: input.code }, "Mechanical standard created");
       return row;
     }),
@@ -88,12 +89,12 @@ const standardsRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const [updated] = await ctx.db.update(mechanicalStandards).set({ ...data, updatedAt: new Date() }).where(eq(mechanicalStandards.id, id)).returning();
+      const [updated] = await (await requireDb()).update(mechanicalStandards).set({ ...data, updatedAt: new Date() }).where(eq(mechanicalStandards.id, id)).returning();
       return updated;
     }),
 
   statsByOrigin: protectedProcedure.query(async ({ ctx }) => {
-    return ctx.db
+    return (await requireDb())
       .select({ origin: mechanicalStandards.origin, count: sql<number>`count(*)::int` })
       .from(mechanicalStandards)
       .where(eq(mechanicalStandards.status, "active"))
@@ -101,7 +102,7 @@ const standardsRouter = router({
   }),
 
   statsByCategory: protectedProcedure.query(async ({ ctx }) => {
-    return ctx.db
+    return (await requireDb())
       .select({ category: mechanicalStandards.category, count: sql<number>`count(*)::int` })
       .from(mechanicalStandards)
       .where(eq(mechanicalStandards.status, "active"))
@@ -118,13 +119,13 @@ const customerConfigRouter = router({
       const conditions = [eq(mechCustomerConfigs.isActive, true)];
       if (input?.region) conditions.push(eq(mechCustomerConfigs.region, input.region));
       if (input?.buCode) conditions.push(eq(mechCustomerConfigs.buCode, input.buCode));
-      return ctx.db.select().from(mechCustomerConfigs).where(and(...conditions)).orderBy(mechCustomerConfigs.customerName).limit(200);
+      return (await requireDb()).select().from(mechCustomerConfigs).where(and(...conditions)).orderBy(mechCustomerConfigs.customerName).limit(200);
     }),
 
   getById: protectedProcedure
     .input(z.object({ id: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      const [row] = await ctx.db.select().from(mechCustomerConfigs).where(eq(mechCustomerConfigs.id, input.id)).limit(1);
+      const [row] = await (await requireDb()).select().from(mechCustomerConfigs).where(eq(mechCustomerConfigs.id, input.id)).limit(1);
       return row ?? null;
     }),
 
@@ -153,7 +154,7 @@ const customerConfigRouter = router({
       buCode: z.string().max(20).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const [row] = await ctx.db.insert(mechCustomerConfigs).values({ ...input, createdBy: ctx.user!.id }).returning();
+      const [row] = await (await requireDb()).insert(mechCustomerConfigs).values({ ...input, createdBy: ctx.user!.id }).returning();
       log.info({ id: row.id, customer: input.customerName }, "Mechanical customer config created");
       return row;
     }),
@@ -169,7 +170,7 @@ const customerConfigRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const [updated] = await ctx.db.update(mechCustomerConfigs).set({ ...data, updatedAt: new Date() }).where(eq(mechCustomerConfigs.id, id)).returning();
+      const [updated] = await (await requireDb()).update(mechCustomerConfigs).set({ ...data, updatedAt: new Date() }).where(eq(mechCustomerConfigs.id, id)).returning();
       return updated;
     }),
 });
@@ -180,7 +181,7 @@ const lineItemRouter = router({
   listByConfig: protectedProcedure
     .input(z.object({ configId: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      return ctx.db.select().from(mechConfigLineItems)
+      return (await requireDb()).select().from(mechConfigLineItems)
         .where(eq(mechConfigLineItems.configId, input.configId))
         .orderBy(mechConfigLineItems.sortOrder).limit(200);
     }),
@@ -200,7 +201,7 @@ const lineItemRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const [row] = await ctx.db.insert(mechConfigLineItems).values(input).returning();
+      const [row] = await (await requireDb()).insert(mechConfigLineItems).values(input).returning();
       return row;
     }),
 
@@ -214,14 +215,14 @@ const lineItemRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const [updated] = await ctx.db.update(mechConfigLineItems).set({ ...data, updatedAt: new Date() }).where(eq(mechConfigLineItems.id, id)).returning();
+      const [updated] = await (await requireDb()).update(mechConfigLineItems).set({ ...data, updatedAt: new Date() }).where(eq(mechConfigLineItems.id, id)).returning();
       return updated;
     }),
 
   remove: requirePermission("mechanical:config:manage")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.delete(mechConfigLineItems).where(eq(mechConfigLineItems.id, input.id));
+      await (await requireDb()).delete(mechConfigLineItems).where(eq(mechConfigLineItems.id, input.id));
       return { deleted: true };
     }),
 });
@@ -233,17 +234,17 @@ const knowledgeGraphRouter = router({
   getLinks: protectedProcedure
     .input(z.object({ standardId: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      const outgoing = await ctx.db.select().from(mechStandardLinks)
+      const outgoing = await (await requireDb()).select().from(mechStandardLinks)
         .where(eq(mechStandardLinks.sourceId, input.standardId)).limit(100);
-      const incoming = await ctx.db.select().from(mechStandardLinks)
+      const incoming = await (await requireDb()).select().from(mechStandardLinks)
         .where(eq(mechStandardLinks.targetId, input.standardId)).limit(100);
       return { outgoing, incoming };
     }),
 
   /** Get full graph (all edges) for visualization */
   getFullGraph: protectedProcedure.query(async ({ ctx }) => {
-    const links = await ctx.db.select().from(mechStandardLinks).limit(500);
-    const standards = await ctx.db.select({
+    const links = await (await requireDb()).select().from(mechStandardLinks).limit(500);
+    const standards = await (await requireDb()).select({
       id: mechanicalStandards.id,
       code: mechanicalStandards.code,
       title: mechanicalStandards.title,
@@ -262,7 +263,7 @@ const knowledgeGraphRouter = router({
       strength: z.number().int().min(0).max(100).default(50),
     }))
     .mutation(async ({ ctx, input }) => {
-      const [row] = await ctx.db.insert(mechStandardLinks).values({ ...input, createdBy: ctx.user!.id }).returning();
+      const [row] = await (await requireDb()).insert(mechStandardLinks).values({ ...input, createdBy: ctx.user!.id }).returning();
       log.info({ sourceId: input.sourceId, targetId: input.targetId, type: input.linkType }, "Knowledge graph link created");
       return row;
     }),
@@ -270,7 +271,7 @@ const knowledgeGraphRouter = router({
   removeLink: requirePermission("mechanical:knowledge:manage")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.delete(mechStandardLinks).where(eq(mechStandardLinks.id, input.id));
+      await (await requireDb()).delete(mechStandardLinks).where(eq(mechStandardLinks.id, input.id));
       return { deleted: true };
     }),
 });
@@ -281,13 +282,13 @@ const projectSelectionRouter = router({
   getByProject: protectedProcedure
     .input(z.object({ projectCode: z.string() }))
     .query(async ({ ctx, input }) => {
-      const [row] = await ctx.db.select().from(mechProjectSelections)
+      const [row] = await (await requireDb()).select().from(mechProjectSelections)
         .where(eq(mechProjectSelections.projectCode, input.projectCode)).limit(1);
       return row ?? null;
     }),
 
   list: protectedProcedure.query(async ({ ctx }) => {
-    return ctx.db.select().from(mechProjectSelections).orderBy(desc(mechProjectSelections.createdAt)).limit(200);
+    return (await requireDb()).select().from(mechProjectSelections).orderBy(desc(mechProjectSelections.createdAt)).limit(200);
   }),
 
   upsert: requirePermission("mechanical:project:manage")
@@ -311,23 +312,23 @@ const projectSelectionRouter = router({
       buCode: z.string().max(20).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const existing = await ctx.db.select().from(mechProjectSelections)
+      const existing = await (await requireDb()).select().from(mechProjectSelections)
         .where(eq(mechProjectSelections.projectCode, input.projectCode)).limit(1);
 
       if (existing.length > 0) {
         if (existing[0].lockedAt) throw new Error("Mechanical standard selection is locked (M3 approved). Cannot modify.");
-        const [updated] = await ctx.db.update(mechProjectSelections).set({ ...input, updatedAt: new Date() })
+        const [updated] = await (await requireDb()).update(mechProjectSelections).set({ ...input, updatedAt: new Date() })
           .where(eq(mechProjectSelections.projectCode, input.projectCode)).returning();
         return updated;
       }
-      const [row] = await ctx.db.insert(mechProjectSelections).values({ ...input, createdBy: ctx.user!.id }).returning();
+      const [row] = await (await requireDb()).insert(mechProjectSelections).values({ ...input, createdBy: ctx.user!.id }).returning();
       return row;
     }),
 
   lock: requirePermission("mechanical:project:lock")
     .input(z.object({ projectCode: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const [updated] = await ctx.db.update(mechProjectSelections).set({
+      const [updated] = await (await requireDb()).update(mechProjectSelections).set({
         lockedAt: new Date(), lockedBy: ctx.user!.id, updatedAt: new Date(),
       }).where(eq(mechProjectSelections.projectCode, input.projectCode)).returning();
       if (!updated) throw new Error("Mechanical project selection not found");
@@ -344,7 +345,7 @@ const quotationRouter = router({
     .query(async ({ ctx, input }) => {
       const conditions = [eq(mechQuotationChecks.projectCode, input.projectCode)];
       if (input.quotationNumber) conditions.push(eq(mechQuotationChecks.quotationNumber, input.quotationNumber));
-      return ctx.db.select().from(mechQuotationChecks).where(and(...conditions))
+      return (await requireDb()).select().from(mechQuotationChecks).where(and(...conditions))
         .orderBy(mechQuotationChecks.category).limit(200);
     }),
 
@@ -356,7 +357,7 @@ const quotationRouter = router({
       customerConfigId: z.number().int(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const lineItems = await ctx.db.select().from(mechConfigLineItems)
+      const lineItems = await (await requireDb()).select().from(mechConfigLineItems)
         .where(eq(mechConfigLineItems.configId, input.customerConfigId))
         .orderBy(mechConfigLineItems.sortOrder).limit(200);
 
@@ -372,7 +373,7 @@ const quotationRouter = router({
         customerRequirement: item.specification ?? "",
       }));
 
-      await ctx.db.insert(mechQuotationChecks).values(checks);
+      await (await requireDb()).insert(mechQuotationChecks).values(checks);
       log.info({ projectCode: input.projectCode, count: checks.length }, "Quotation compliance checks generated");
       return { generated: checks.length };
     }),
@@ -387,7 +388,7 @@ const quotationRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const [updated] = await ctx.db.update(mechQuotationChecks).set({
+      const [updated] = await (await requireDb()).update(mechQuotationChecks).set({
         ...data, checkedBy: ctx.user!.id, checkedAt: new Date(), updatedAt: new Date(),
       }).where(eq(mechQuotationChecks.id, id)).returning();
       return updated;
@@ -396,7 +397,7 @@ const quotationRouter = router({
   summary: protectedProcedure
     .input(z.object({ projectCode: z.string() }))
     .query(async ({ ctx, input }) => {
-      return ctx.db
+      return (await requireDb())
         .select({ status: mechQuotationChecks.complianceStatus, count: sql<number>`count(*)::int` })
         .from(mechQuotationChecks)
         .where(eq(mechQuotationChecks.projectCode, input.projectCode))
@@ -419,7 +420,7 @@ const quotationRouter = router({
     .mutation(async ({ ctx, input }) => {
       const quotationNumber = `QT-${Date.now().toString(36).toUpperCase()}`;
       const totalPrice = String(input.totalCost / (1 - input.marginPct / 100));
-      await ctx.db.insert(historicalQuotations).values({
+      await (await requireDb()).insert(historicalQuotations).values({
         quotationId: quotationNumber,
         customerName: input.customerName,
         equipmentModel: input.equipmentModel,
@@ -458,7 +459,7 @@ const quotationRouter = router({
     .mutation(async ({ ctx, input }) => {
       const quotationNumber = `QT-${Date.now().toString(36).toUpperCase()}`;
       const totalPrice = String(input.totalCost / (1 - input.marginPct / 100));
-      await ctx.db.insert(historicalQuotations).values({
+      await (await requireDb()).insert(historicalQuotations).values({
         quotationId: quotationNumber,
         customerName: input.customerName,
         equipmentModel: input.equipmentModel,
@@ -490,14 +491,14 @@ const phaseChecklistRouter = router({
     .query(async ({ ctx, input }) => {
       const conditions = [eq(mechPhaseChecklists.projectCode, input.projectCode)];
       if (input.phase) conditions.push(eq(mechPhaseChecklists.phase, input.phase));
-      return ctx.db.select().from(mechPhaseChecklists).where(and(...conditions))
+      return (await requireDb()).select().from(mechPhaseChecklists).where(and(...conditions))
         .orderBy(mechPhaseChecklists.phase, mechPhaseChecklists.id).limit(500);
     }),
 
   generate: requirePermission("mechanical:checklist:manage")
     .input(z.object({ projectCode: z.string(), phase: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const rules = await ctx.db.select().from(mechReviewRules)
+      const rules = await (await requireDb()).select().from(mechReviewRules)
         .where(and(eq(mechReviewRules.phase, input.phase), eq(mechReviewRules.isActive, true))).limit(50);
 
       const items: any[] = [];
@@ -514,7 +515,7 @@ const phaseChecklistRouter = router({
         }
       }
       if (items.length === 0) return { generated: 0 };
-      await ctx.db.insert(mechPhaseChecklists).values(items);
+      await (await requireDb()).insert(mechPhaseChecklists).values(items);
       log.info({ projectCode: input.projectCode, phase: input.phase, count: items.length }, "Mechanical phase checklist generated");
       return { generated: items.length };
     }),
@@ -528,7 +529,7 @@ const phaseChecklistRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const [updated] = await ctx.db.update(mechPhaseChecklists).set({
+      const [updated] = await (await requireDb()).update(mechPhaseChecklists).set({
         ...data, checkedBy: ctx.user!.id, checkedAt: new Date(), updatedAt: new Date(),
       }).where(eq(mechPhaseChecklists.id, id)).returning();
       return updated;
@@ -537,7 +538,7 @@ const phaseChecklistRouter = router({
   summary: protectedProcedure
     .input(z.object({ projectCode: z.string() }))
     .query(async ({ ctx, input }) => {
-      return ctx.db
+      return (await requireDb())
         .select({ phase: mechPhaseChecklists.phase, status: mechPhaseChecklists.status, count: sql<number>`count(*)::int` })
         .from(mechPhaseChecklists)
         .where(eq(mechPhaseChecklists.projectCode, input.projectCode))
@@ -553,7 +554,7 @@ const acceptanceRouter = router({
     .query(async ({ ctx, input }) => {
       const conditions = [eq(mechAcceptanceRecords.projectCode, input.projectCode)];
       if (input.phase) conditions.push(eq(mechAcceptanceRecords.acceptancePhase, input.phase));
-      return ctx.db.select().from(mechAcceptanceRecords).where(and(...conditions))
+      return (await requireDb()).select().from(mechAcceptanceRecords).where(and(...conditions))
         .orderBy(mechAcceptanceRecords.category).limit(200);
     }),
 
@@ -571,7 +572,7 @@ const acceptanceRouter = router({
       inspectorName: z.string().max(100).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const [row] = await ctx.db.insert(mechAcceptanceRecords).values(input).returning();
+      const [row] = await (await requireDb()).insert(mechAcceptanceRecords).values(input).returning();
       log.info({ id: row.id, projectCode: input.projectCode, phase: input.acceptancePhase }, "Acceptance record created");
       return row;
     }),
@@ -588,7 +589,7 @@ const acceptanceRouter = router({
       const { id, ...data } = input;
       const setData: any = { ...data, updatedAt: new Date() };
       if (data.result === "ACCEPTED" || data.result === "CONDITIONAL") setData.inspectedAt = new Date();
-      const [updated] = await ctx.db.update(mechAcceptanceRecords).set(setData)
+      const [updated] = await (await requireDb()).update(mechAcceptanceRecords).set(setData)
         .where(eq(mechAcceptanceRecords.id, id)).returning();
       return updated;
     }),
@@ -597,13 +598,13 @@ const acceptanceRouter = router({
   satisfactionSummary: protectedProcedure
     .input(z.object({ projectCode: z.string() }))
     .query(async ({ ctx, input }) => {
-      const byResult = await ctx.db
+      const byResult = await (await requireDb())
         .select({ result: mechAcceptanceRecords.result, count: sql<number>`count(*)::int` })
         .from(mechAcceptanceRecords)
         .where(eq(mechAcceptanceRecords.projectCode, input.projectCode))
         .groupBy(mechAcceptanceRecords.result);
 
-      const [avgScore] = await ctx.db
+      const [avgScore] = await (await requireDb())
         .select({ avg: sql<number>`COALESCE(AVG(score), 0)::real` })
         .from(mechAcceptanceRecords)
         .where(and(
@@ -624,7 +625,7 @@ const reviewRuleRouter = router({
       const conditions = [eq(mechReviewRules.isActive, true)];
       if (input?.phase) conditions.push(eq(mechReviewRules.phase, input.phase));
       if (input?.origin) conditions.push(eq(mechReviewRules.origin, input.origin as any));
-      return ctx.db.select().from(mechReviewRules).where(and(...conditions))
+      return (await requireDb()).select().from(mechReviewRules).where(and(...conditions))
         .orderBy(mechReviewRules.phase, mechReviewRules.ruleCode).limit(200);
     }),
 
@@ -640,7 +641,7 @@ const reviewRuleRouter = router({
       isBlocking: z.boolean().default(true),
     }))
     .mutation(async ({ ctx, input }) => {
-      const [row] = await ctx.db.insert(mechReviewRules).values(input).returning();
+      const [row] = await (await requireDb()).insert(mechReviewRules).values(input).returning();
       log.info({ id: row.id, phase: input.phase, code: input.ruleCode }, "Mechanical review rule created");
       return row;
     }),
@@ -655,7 +656,7 @@ const reviewRuleRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const [updated] = await ctx.db.update(mechReviewRules).set({ ...data, updatedAt: new Date() })
+      const [updated] = await (await requireDb()).update(mechReviewRules).set({ ...data, updatedAt: new Date() })
         .where(eq(mechReviewRules.id, id)).returning();
       return updated;
     }),
@@ -665,7 +666,7 @@ const reviewRuleRouter = router({
 
 const dashboardRouter = router({
   overview: protectedProcedure.query(async ({ ctx }) => {
-    const db = ctx.db;
+    const db = await requireDb();
     const [stdCount] = await db.select({ count: sql<number>`count(*)::int` }).from(mechanicalStandards).where(eq(mechanicalStandards.status, "active"));
     const [custCount] = await db.select({ count: sql<number>`count(*)::int` }).from(mechCustomerConfigs).where(eq(mechCustomerConfigs.isActive, true));
     const [projCount] = await db.select({ count: sql<number>`count(*)::int` }).from(mechProjectSelections);

@@ -57,16 +57,14 @@ export const workstationPresetRouter = router({
     }),
 
   /** Get preset by employee code (admin) */
-  getByCode: protectedProcedure
-    .use(adminPerm)
+  getByCode: adminPerm
     .input(z.object({ code: z.string() }))
     .query(async ({ input }) => {
       return svc.getPresetByCode(input.code);
     }),
 
   /** List presets with optional filters (admin) */
-  list: protectedProcedure
-    .use(adminPerm)
+  list: adminPerm
     .input(z.object({
       role: z.string().optional(),
       buCode: z.string().optional(),
@@ -77,16 +75,14 @@ export const workstationPresetRouter = router({
     }),
 
   /** Upsert a single preset (admin) */
-  upsert: protectedProcedure
-    .use(adminPerm)
+  upsert: adminPerm
     .input(presetInputSchema)
     .mutation(async ({ input }) => {
       return svc.upsertPreset(input);
     }),
 
   /** Bulk seed all presets from generated data (admin) */
-  seedAll: protectedProcedure
-    .use(adminPerm)
+  seedAll: adminPerm
     .input(z.object({ presets: z.array(presetInputSchema) }))
     .mutation(async ({ input }) => {
       return svc.seedAllPresets(input.presets);
@@ -104,8 +100,7 @@ export const workstationPresetRouter = router({
     }),
 
   /** Preset summary statistics (admin) */
-  stats: protectedProcedure
-    .use(adminPerm)
+  stats: adminPerm
     .query(async () => {
       return svc.getPresetStats();
     }),

@@ -117,7 +117,7 @@ const PARTY_STYLES: Record<IPartyRole, {
 };
 
 const STATUS_STYLES: Record<ITaskStatus, {
-  label: string; labelZh: string; cls: string; icon: React.ElementType;
+  label: string; labelZh: string; cls: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }>;
 }> = {
   completed:       { label: "Completed",       labelZh: "\u5DF2\u5B8C\u6210", cls: "bg-green-500/10 text-green-400 border-green-500/30", icon: CheckCircle2 },
   in_progress:     { label: "In Progress",     labelZh: "\u8FDB\u884C\u4E2D", cls: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30", icon: Activity },

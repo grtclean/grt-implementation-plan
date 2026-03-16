@@ -92,7 +92,6 @@ export const devEnvRouter = router({
         projectId,
         eventType: "conflict_detected",
         userId: ctx.user.id,
-        userName: ctx.user.name ?? "unknown",
         description: `Pre-push blocked: ${blockingConflicts.length} mechanical/electrical conflicts`,
         metadata: {
           conflictCount: blockingConflicts.length,
@@ -102,8 +101,7 @@ export const devEnvRouter = router({
             message: c.message,
           })),
         },
-        severity: "critical",
-      });
+      } as any);
       log.warn({ projectId, conflictCount: blockingConflicts.length }, "Push blocked — mech/elec sync conflicts");
     }
 

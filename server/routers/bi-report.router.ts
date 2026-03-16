@@ -35,8 +35,7 @@ const periodTypeSchema = z.enum(["weekly", "monthly", "quarterly", "yearly"]);
 
 const periodRouter = router({
   /** Create a new report period */
-  create: protectedProcedure
-    .use(manageBI)
+  create: manageBI
     .input(z.object({
       periodType: periodTypeSchema,
       periodLabel: z.string().min(1).max(20),
@@ -57,8 +56,7 @@ const periodRouter = router({
     }),
 
   /** List report periods */
-  list: protectedProcedure
-    .use(viewBI)
+  list: viewBI
     .input(z.object({
       periodType: periodTypeSchema.optional(),
       limit: z.number().int().min(1).max(100).optional(),
@@ -76,8 +74,7 @@ const periodRouter = router({
     }),
 
   /** Get single period with stats */
-  get: protectedProcedure
-    .use(viewBI)
+  get: viewBI
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -87,29 +84,27 @@ const periodRouter = router({
     }),
 
   /** Publish report — triggers AI summary generation */
-  publish: protectedProcedure
-    .use(manageBI)
+  publish: manageBI
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       // Trigger AI executive summary generation
-      const taskId = await submitTask("BI_EXECUTIVE_SUMMARY", {
+      const result = await submitTask("BI_EXECUTIVE_SUMMARY", {
         reportPeriodId: input.id,
-      });
+      }, String(ctx.user.id));
 
       const [row] = await db.update(biReportPeriods)
-        .set({ status: "generating", generationTaskId: taskId, updatedAt: new Date().toISOString() })
+        .set({ status: "generating", generationTaskId: result.taskId, updatedAt: new Date().toISOString() })
         .where(eq(biReportPeriods.id, input.id))
         .returning();
 
-      log.info({ reportPeriodId: input.id, taskId }, "BI report publishing triggered");
-      return { ...row, taskId };
+      log.info({ reportPeriodId: input.id, taskId: result.taskId }, "BI report publishing triggered");
+      return { ...row, taskId: result.taskId };
     }),
 
   /** Archive old report */
-  archive: protectedProcedure
-    .use(manageBI)
+  archive: manageBI
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -127,8 +122,7 @@ const periodRouter = router({
 
 const departmentRouter = router({
   /** Upsert department metrics */
-  upsert: protectedProcedure
-    .use(manageBI)
+  upsert: manageBI
     .input(z.object({
       reportPeriodId: z.number(),
       departmentCode: z.string().min(1),
@@ -196,8 +190,7 @@ const departmentRouter = router({
     }),
 
   /** Get all department metrics for a period — 横向对比 */
-  getByPeriod: protectedProcedure
-    .use(viewBI)
+  getByPeriod: viewBI
     .input(z.object({
       reportPeriodId: z.number(),
       buCode: z.string().optional(),
@@ -215,8 +208,7 @@ const departmentRouter = router({
     }),
 
   /** Horizontal comparison — cross-department ranked by metric */
-  getHorizontalComparison: protectedProcedure
-    .use(viewBI)
+  getHorizontalComparison: viewBI
     .input(z.object({
       reportPeriodId: z.number(),
       sortBy: z.enum(["achievement_rate", "plan_achievement_rate", "training_quality_score"]).optional(),
@@ -237,8 +229,7 @@ const departmentRouter = router({
     }),
 
   /** Get single department detail */
-  getByDept: protectedProcedure
-    .use(viewBI)
+  getByDept: viewBI
     .input(z.object({
       reportPeriodId: z.number(),
       departmentCode: z.string(),
@@ -255,19 +246,18 @@ const departmentRouter = router({
     }),
 
   /** Generate AI evaluation for a department */
-  generateAiEval: protectedProcedure
-    .use(manageBI)
+  generateAiEval: manageBI
     .input(z.object({
       reportPeriodId: z.number(),
       departmentCode: z.string(),
     }))
-    .mutation(async ({ input }) => {
-      const taskId = await submitTask("BI_DEPT_AI_EVAL", {
+    .mutation(async ({ input, ctx }) => {
+      const result = await submitTask("BI_DEPT_AI_EVAL", {
         reportPeriodId: input.reportPeriodId,
         departmentCode: input.departmentCode,
-      });
-      log.info({ ...input, taskId }, "BI department AI evaluation triggered");
-      return { taskId, status: "generating" };
+      }, String(ctx.user.id));
+      log.info({ ...input, taskId: result.taskId }, "BI department AI evaluation triggered");
+      return { taskId: result.taskId, status: "generating" };
     }),
 });
 
@@ -277,8 +267,7 @@ const departmentRouter = router({
 
 const individualRouter = router({
   /** Upsert individual metrics */
-  upsert: protectedProcedure
-    .use(manageBI)
+  upsert: manageBI
     .input(z.object({
       reportPeriodId: z.number(),
       userId: z.number(),
@@ -343,8 +332,7 @@ const individualRouter = router({
     }),
 
   /** Get all individuals for a period */
-  getByPeriod: protectedProcedure
-    .use(viewBI)
+  getByPeriod: viewBI
     .input(z.object({
       reportPeriodId: z.number(),
       departmentCode: z.string().optional(),
@@ -382,8 +370,7 @@ const individualRouter = router({
     }),
 
   /** Get department member list — 纵向分析 */
-  getByDept: protectedProcedure
-    .use(viewBI)
+  getByDept: viewBI
     .input(z.object({
       reportPeriodId: z.number(),
       departmentCode: z.string(),
@@ -401,8 +388,7 @@ const individualRouter = router({
     }),
 
   /** Get overall rankings */
-  getRankings: protectedProcedure
-    .use(viewBI)
+  getRankings: viewBI
     .input(z.object({
       reportPeriodId: z.number(),
       sortBy: z.enum(["kpi_score", "achievement_rate", "plan_achievement_rate"]).optional(),
@@ -424,19 +410,18 @@ const individualRouter = router({
     }),
 
   /** Generate AI coordinated evaluation for a user */
-  generateAiEval: protectedProcedure
-    .use(manageBI)
+  generateAiEval: manageBI
     .input(z.object({
       reportPeriodId: z.number(),
       userId: z.number(),
     }))
-    .mutation(async ({ input }) => {
-      const taskId = await submitTask("BI_INDIVIDUAL_AI_EVAL", {
+    .mutation(async ({ input, ctx }) => {
+      const result = await submitTask("BI_INDIVIDUAL_AI_EVAL", {
         reportPeriodId: input.reportPeriodId,
         userId: input.userId,
-      });
-      log.info({ ...input, taskId }, "BI individual AI evaluation triggered");
-      return { taskId, status: "generating" };
+      }, String(ctx.user.id));
+      log.info({ ...input, taskId: result.taskId }, "BI individual AI evaluation triggered");
+      return { taskId: result.taskId, status: "generating" };
     }),
 });
 
@@ -446,8 +431,7 @@ const individualRouter = router({
 
 const accessRouter = router({
   /** Grant access to a role or user */
-  grant: protectedProcedure
-    .use(manageBI)
+  grant: manageBI
     .input(z.object({
       periodType: periodTypeSchema.optional(),
       departmentCode: z.string().optional(),
@@ -472,8 +456,7 @@ const accessRouter = router({
     }),
 
   /** Revoke access rule */
-  revoke: protectedProcedure
-    .use(manageBI)
+  revoke: manageBI
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -485,8 +468,7 @@ const accessRouter = router({
     }),
 
   /** List all access rules */
-  listRules: protectedProcedure
-    .use(manageBI)
+  listRules: manageBI
     .input(z.object({
       activeOnly: z.boolean().optional(),
     }))

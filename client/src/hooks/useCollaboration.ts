@@ -105,7 +105,6 @@ export function useCollaboration(options: UseCollaborationOptions) {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('[Collaboration] WebSocket connected');
         setIsConnected(true);
         setConnectionError(null);
 
@@ -144,14 +143,12 @@ export function useCollaboration(options: UseCollaborationOptions) {
       };
 
       ws.onclose = (event) => {
-        console.log('[Collaboration] WebSocket closed:', event.code, event.reason);
         setIsConnected(false);
         cleanup();
 
         // 自动重连（非正常关闭时，且非主动断开）
         if (event.code !== 1000 && event.code !== 4001 && !isDisconnectingRef.current) {
           reconnectTimeoutRef.current = setTimeout(() => {
-            console.log('[Collaboration] Attempting to reconnect...');
             connect();
           }, 3000);
         }

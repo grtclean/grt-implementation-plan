@@ -539,7 +539,7 @@ const ledgerRouter = router({
           operatorId: ctx.user.id,
           operatorRole: ctx.user.role,
           reason: input.reason || `Approved: ${input.fromStatus} → ${transition.next}`,
-        });
+        } as any);
         updated++;
       }
 

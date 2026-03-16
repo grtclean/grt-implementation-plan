@@ -108,11 +108,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         {
           onSuccess: () => {
             setIsSynced(true);
-            console.log('Language preference synced to server:', lang);
           },
-          onError: (error) => {
+          onError: () => {
             setIsSynced(false);
-            console.log('Language preference sync skipped (user may not be logged in):', error.message);
           }
         }
       );

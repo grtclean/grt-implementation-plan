@@ -73,6 +73,10 @@ vi.mock("drizzle-orm", () => ({
   }),
 }));
 
+vi.mock("../db", () => ({
+  requireDb: vi.fn(async () => mockDb),
+}));
+
 vi.mock("../lib/logger", () => ({
   createChildLogger: vi.fn(() => ({
     info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(),

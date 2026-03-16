@@ -424,9 +424,8 @@ export default function ExportEmailNotificationManager() {
     setIsConfigDialogOpen(false);
   };
 
-  const handleResendNotification = (taskId: string) => {
-    console.log('重新发送通知:', taskId);
-    // 实际实现中调用API
+  const handleResendNotification = (_taskId: string) => {
+    // TODO: call API to resend notification
   };
 
   const filteredTasks = tasks.filter(task => 

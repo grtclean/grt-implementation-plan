@@ -47,8 +47,7 @@ const positionsRouter = router({
     .input(z.object({ positionKey: z.string() }))
     .query(({ input }) => svc.getPositionProfile(input.positionKey)),
 
-  upsert: protectedProcedure
-    .use(managePerm)
+  upsert: managePerm
     .input(z.object({
       positionKey: z.string().max(80),
       positionName: z.string().max(200),
@@ -83,8 +82,7 @@ const questionsRouter = router({
     .query(({ input }) => svc.getQuestion(input.id)),
 
   /** 人为输入题目 — Manager manually creates a question */
-  create: protectedProcedure
-    .use(hrViewPerm)
+  create: hrViewPerm
     .input(z.object({
       positionKey: z.string().max(80),
       domainKey: z.string().max(80),
@@ -105,8 +103,7 @@ const questionsRouter = router({
       createdByName: ctx.user.name ?? undefined,
     })),
 
-  update: protectedProcedure
-    .use(hrViewPerm)
+  update: hrViewPerm
     .input(z.object({
       id: z.number().int().positive(),
       content: z.string().optional(),
@@ -125,14 +122,12 @@ const questionsRouter = router({
       return svc.updateQuestion(id, updates);
     }),
 
-  delete: protectedProcedure
-    .use(managePerm)
+  delete: managePerm
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(({ input }) => svc.deleteQuestion(input.id)),
 
   /** 批量导入题目 */
-  batchImport: protectedProcedure
-    .use(managePerm)
+  batchImport: managePerm
     .input(z.object({
       questions: z.array(z.object({
         positionKey: z.string(),
@@ -167,8 +162,7 @@ const papersRouter = router({
     }).optional())
     .query(({ input }) => svc.listPapers(input ?? undefined)),
 
-  create: protectedProcedure
-    .use(managePerm)
+  create: managePerm
     .input(z.object({
       title: z.string().max(300),
       titleEn: z.string().max(300).optional(),
@@ -186,8 +180,7 @@ const papersRouter = router({
     }))
     .mutation(({ input, ctx }) => svc.createPaper({ ...input, createdBy: ctx.user.id })),
 
-  publish: protectedProcedure
-    .use(managePerm)
+  publish: managePerm
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(({ input }) => svc.publishPaper(input.id)),
 });
@@ -232,8 +225,7 @@ const sessionsRouter = router({
     .query(({ input, ctx }) => svc.listMySessions(ctx.user.id, input ?? undefined)),
 
   /** Sessions pending manual grading (for managers) */
-  pendingGrading: protectedProcedure
-    .use(hrViewPerm)
+  pendingGrading: hrViewPerm
     .input(z.object({
       positionKey: z.string().optional(),
       limit: z.number().int().min(1).max(200).optional(),
@@ -241,8 +233,7 @@ const sessionsRouter = router({
     .query(({ input }) => svc.listPendingGrading(input ?? undefined)),
 
   /** Complete grading for all subjective questions in a session */
-  completeGrading: protectedProcedure
-    .use(hrViewPerm)
+  completeGrading: hrViewPerm
     .input(z.object({ sessionId: z.number().int().positive() }))
     .mutation(({ input, ctx }) => svc.completeGrading(input.sessionId, ctx.user.id)),
 });
@@ -251,8 +242,7 @@ const sessionsRouter = router({
 
 const gradingRouter = router({
   /** Grade a single subjective answer */
-  gradeAnswer: protectedProcedure
-    .use(hrViewPerm)
+  gradeAnswer: hrViewPerm
     .input(z.object({
       answerId: z.number().int().positive(),
       manualScore: z.number().int().min(0),
@@ -271,13 +261,11 @@ const certsRouter = router({
   myCerts: protectedProcedure
     .query(({ ctx }) => svc.getMyCerts(ctx.user.id)),
 
-  byPosition: protectedProcedure
-    .use(hrViewPerm)
+  byPosition: hrViewPerm
     .input(z.object({ positionKey: z.string() }))
     .query(({ input }) => svc.getCertsByPosition(input.positionKey)),
 
-  revoke: protectedProcedure
-    .use(managePerm)
+  revoke: managePerm
     .input(z.object({ certId: z.number().int().positive(), reason: z.string() }))
     .mutation(({ input }) => svc.revokeCert(input.certId, input.reason)),
 

@@ -888,7 +888,7 @@ export default function PayrollSandbox() {
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-3">
                   <Button
-                    onClick={() => selectedCycleId && aiSuggestMut.mutate({ cycleId: selectedCycleId })}
+                    onClick={() => selectedCycleId && (aiSuggestMut as any).mutate({ cycleId: selectedCycleId })}
                     disabled={!selectedCycleId || aiSuggestMut.isPending}
                   >
                     {aiSuggestMut.isPending ? (
@@ -958,8 +958,9 @@ export default function PayrollSandbox() {
                               <Button
                                 size="sm" variant="outline"
                                 disabled={row.status === "frozen" || freezeMut.isPending}
-                                onClick={() => freezeMut.mutate({
+                                onClick={() => (freezeMut as any).mutate({
                                   cycleId: selectedCycleId!,
+                                  reviewId: row.id,
                                   employeeId: row.employeeId ?? row.id,
                                 })}
                               >
@@ -1020,11 +1021,12 @@ export default function PayrollSandbox() {
               disabled={!supervisorScore || supervisorConfirmMut.isPending}
               onClick={() => {
                 if (!selectedCycleId || !confirmDialog.employeeId) return;
-                supervisorConfirmMut.mutate({
+                (supervisorConfirmMut as any).mutate({
                   cycleId: selectedCycleId,
-                  employeeId: confirmDialog.employeeId,
-                  score: Number(supervisorScore),
-                  comment: supervisorComment || undefined,
+                  reviewId: confirmDialog.employeeId,
+                  supervisorScore: Number(supervisorScore),
+                  supervisorName: "supervisor",
+                  supervisorComment: supervisorComment || undefined,
                 });
               }}
             >
@@ -1095,7 +1097,7 @@ export default function PayrollSandbox() {
                       </TableRow>
                     )}
                     {attendanceQuery.data?.map((att: any) => {
-                      const calc = calcResultsQuery.data?.find(
+                      const calc: any = calcResultsQuery.data?.find(
                         (c: any) => c.employeeId === att.employeeId || c.employeeName === att.employeeName
                       );
                       return (
@@ -1156,7 +1158,7 @@ export default function PayrollSandbox() {
                       </TableRow>
                     )}
                     {calcResultsQuery.data?.map((row: any) => {
-                      const perf = performanceQuery.data?.find(
+                      const perf: any = performanceQuery.data?.find(
                         (p: any) => p.employeeId === row.employeeId || p.employeeName === row.employeeName
                       );
                       const coeffColor = (c: number | string | null | undefined) => {
@@ -1469,7 +1471,7 @@ export default function PayrollSandbox() {
                           <Button
                             size="sm" variant="outline"
                             disabled={resolveAnomalyMut.isPending}
-                            onClick={() => resolveAnomalyMut.mutate({ id: row.id })}
+                            onClick={() => resolveAnomalyMut.mutate({ id: row.id, resolution: "手动标记已解决" })}
                           >
                             <CheckCircle className="h-3 w-3 mr-1" />标记已解决
                           </Button>
@@ -1509,7 +1511,7 @@ export default function PayrollSandbox() {
                       ? (approvalQuery.data as any[]).find((a: any) => a.stage === stage)
                       : null;
                     const stageStatus = stageData?.status ?? "pending";
-                    const isCurrent = currentStageQuery.data?.currentStage === stage;
+                    const isCurrent = (currentStageQuery.data as any)?.stage === stage;
 
                     return (
                       <div key={stage} className="flex items-center">
@@ -1558,13 +1560,14 @@ export default function PayrollSandbox() {
                       {initFlowMut.isPending ? "发起中..." : "发起审批流"}
                     </Button>
                   )}
-                  {currentStageQuery.data?.currentStage && (
+                  {(currentStageQuery.data as any)?.stage && (
                     <>
                       <Button
                         className="bg-green-600 hover:bg-green-700"
-                        onClick={() => selectedCycleId && approveMut.mutate({
+                        onClick={() => selectedCycleId && (approveMut as any).mutate({
+                          flowId: (currentStageQuery.data as any)?.id,
                           cycleId: selectedCycleId,
-                          stage: currentStageQuery.data!.currentStage,
+                          stage: (currentStageQuery.data as any)?.stage,
                         })}
                         disabled={approveMut.isPending}
                       >
@@ -1573,9 +1576,11 @@ export default function PayrollSandbox() {
                       </Button>
                       <Button
                         variant="destructive"
-                        onClick={() => selectedCycleId && rejectMut.mutate({
+                        onClick={() => selectedCycleId && (rejectMut as any).mutate({
+                          flowId: (currentStageQuery.data as any)?.id,
+                          comment: "驳回",
                           cycleId: selectedCycleId,
-                          stage: currentStageQuery.data!.currentStage,
+                          stage: (currentStageQuery.data as any)?.stage,
                         })}
                         disabled={rejectMut.isPending}
                       >
@@ -1652,7 +1657,8 @@ export default function PayrollSandbox() {
                               <Button
                                 size="sm" variant="outline" className="w-full"
                                 disabled={unlockMut.isPending}
-                                onClick={() => selectedCycleId && unlockMut.mutate({
+                                onClick={() => selectedCycleId && (unlockMut as any).mutate({
+                                  lockId: lockData?.id,
                                   cycleId: selectedCycleId,
                                   lockType,
                                 })}

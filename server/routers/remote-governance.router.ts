@@ -12,6 +12,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { requirePermission } from "../_core/trpc";
 import { remoteAccessRequests, remoteAccessAuditLogs } from "../../drizzle/remote-governance-schema";
 import { createChildLogger } from "../lib/logger";
+import { requireDb } from "../db";
 import crypto from "crypto";
 
 const log = createChildLogger("remote-governance");
@@ -63,7 +64,7 @@ const requestRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const db = ctx.db;
+      const db = await requireDb();
       const user = ctx.user!;
       const [row] = await db
         .insert(remoteAccessRequests)
@@ -84,7 +85,7 @@ const requestRouter = router({
   /** List own requests */
   listMine: requirePermission("remote:access:request")
     .query(async ({ ctx }) => {
-      const db = ctx.db;
+      const db = await requireDb();
       return db
         .select()
         .from(remoteAccessRequests)
@@ -99,7 +100,8 @@ const approvalRouter = router({
   /** List all pending requests */
   listPending: requirePermission("remote:access:approve")
     .query(async ({ ctx }) => {
-      return ctx.db
+      const db = await requireDb();
+      return db
         .select()
         .from(remoteAccessRequests)
         .where(eq(remoteAccessRequests.status, "PENDING"))
@@ -111,7 +113,7 @@ const approvalRouter = router({
   approve: requirePermission("remote:access:approve")
     .input(z.object({ requestId: z.number().int() }))
     .mutation(async ({ ctx, input }) => {
-      const db = ctx.db;
+      const db = await requireDb();
       const user = ctx.user!;
 
       // Fetch the request
@@ -156,7 +158,7 @@ const approvalRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const db = ctx.db;
+      const db = await requireDb();
       const user = ctx.user!;
 
       const [updated] = await db
@@ -190,7 +192,8 @@ const tunnelRouter = router({
   /** List all currently active tunnels */
   listActive: requirePermission("remote:tunnel:view")
     .query(async ({ ctx }) => {
-      return ctx.db
+      const db = await requireDb();
+      return db
         .select()
         .from(remoteAccessRequests)
         .where(
@@ -212,7 +215,7 @@ const tunnelRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const db = ctx.db;
+      const db = await requireDb();
       const user = ctx.user!;
 
       const [updated] = await db
@@ -243,7 +246,7 @@ const tunnelRouter = router({
   /** Expire check — mark stale active tokens as expired (called by scheduler or on-demand) */
   expireStale: requirePermission("remote:tunnel:kill")
     .mutation(async ({ ctx }) => {
-      const db = ctx.db;
+      const db = await requireDb();
       const now = new Date();
       const result = await db
         .update(remoteAccessRequests)
@@ -269,7 +272,8 @@ const auditRouter = router({
   byRequest: requirePermission("remote:audit:view")
     .input(z.object({ requestId: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      return ctx.db
+      const db = await requireDb();
+      return db
         .select()
         .from(remoteAccessAuditLogs)
         .where(eq(remoteAccessAuditLogs.requestId, input.requestId))
@@ -280,7 +284,8 @@ const auditRouter = router({
   /** Recent audit actions across all requests */
   recent: requirePermission("remote:audit:view")
     .query(async ({ ctx }) => {
-      return ctx.db
+      const db = await requireDb();
+      return db
         .select()
         .from(remoteAccessAuditLogs)
         .orderBy(desc(remoteAccessAuditLogs.createdAt))
@@ -292,7 +297,7 @@ const auditRouter = router({
 const dashboardRouter = router({
   /** Summary stats for the command center */
   stats: protectedProcedure.query(async ({ ctx }) => {
-    const db = ctx.db;
+    const db = await requireDb();
     const [pending] = await db.select({ count: sql<number>`count(*)::int` }).from(remoteAccessRequests).where(eq(remoteAccessRequests.status, "PENDING"));
     const [active] = await db.select({ count: sql<number>`count(*)::int` }).from(remoteAccessRequests).where(and(eq(remoteAccessRequests.status, "ACTIVE"), gt(remoteAccessRequests.expiresAt, new Date())));
     const [todayTotal] = await db.select({ count: sql<number>`count(*)::int` }).from(remoteAccessRequests).where(sql`${remoteAccessRequests.createdAt} >= CURRENT_DATE`);
@@ -310,7 +315,8 @@ const dashboardRouter = router({
   history: protectedProcedure
     .input(z.object({ limit: z.number().int().min(1).max(200).default(50), offset: z.number().int().min(0).default(0) }))
     .query(async ({ ctx, input }) => {
-      return ctx.db
+      const db = await requireDb();
+      return db
         .select()
         .from(remoteAccessRequests)
         .orderBy(desc(remoteAccessRequests.createdAt))

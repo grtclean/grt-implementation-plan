@@ -509,7 +509,7 @@ export async function calculateEmployeePayroll(
       const lateCount = Number(attendance.lateDays ?? 0);
       if (plHours === 0 && slHours === 0 && lateCount === 0) {
         perfectAttendanceBonusCents = yuanToCents(
-          (structure as Record<string, unknown>).perfectAttendanceAmount ?? "300",
+          String((structure as Record<string, unknown>).perfectAttendanceAmount ?? "300"),
         );
       }
     }
@@ -529,7 +529,7 @@ export async function calculateEmployeePayroll(
           ))
           .limit(1);
         if (calibrated && (calibrated.status === "finalized" || calibrated.status === "locked") && calibrated.finalGrade) {
-          effectiveGrade = calibrated.finalGrade;
+          effectiveGrade = calibrated.finalGrade as any;
           log.info({ employeeId, period, rawGrade: perfEval.evaluationGrade, calibratedGrade: calibrated.finalGrade }, "Using calibrated grade");
         }
       } catch {

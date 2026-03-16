@@ -222,7 +222,7 @@ export default function RealOrderCommandCenter() {
                 status={getStepStatus(step.route, step.id)}
                 expanded={expandedStep === `a-${step.id}`}
                 onToggle={() => setExpandedStep(expandedStep === `a-${step.id}` ? null : `a-${step.id}`)}
-                daAssignees={scenario === "shuanghuanJiaxing" ? stepAttribution.data?.[step.id] : undefined}>
+                daAssignees={scenario === "shuanghuanJiaxing" ? (stepAttribution.data as any)?.[step.id] : undefined}>
                 <RouteAStepForm stepId={step.id} projectCode={projectCode} scenario={scenario} onComplete={() => { publishStep("lifecycle", step.id); refetchAll(); }} />
               </StepCard>
             ))}
@@ -234,7 +234,7 @@ export default function RealOrderCommandCenter() {
                 status={getStepStatus(step.route, step.id)}
                 expanded={expandedStep === `b-${step.id}`}
                 onToggle={() => setExpandedStep(expandedStep === `b-${step.id}` ? null : `b-${step.id}`)}
-                daAssignees={scenario === "shuanghuanJiaxing" ? stepAttribution.data?.[step.id] : undefined}>
+                daAssignees={scenario === "shuanghuanJiaxing" ? (stepAttribution.data as any)?.[step.id] : undefined}>
                 <RouteBStepForm stepId={step.id} projectCode={projectCode} onComplete={() => { publishStep("workHoursPerf", step.id); refetchAll(); }} />
               </StepCard>
             ))}
@@ -246,7 +246,7 @@ export default function RealOrderCommandCenter() {
                 status={getStepStatus(step.route, step.id)}
                 expanded={expandedStep === `c-${step.id}`}
                 onToggle={() => setExpandedStep(expandedStep === `c-${step.id}` ? null : `c-${step.id}`)}
-                daAssignees={scenario === "shuanghuanJiaxing" ? stepAttribution.data?.[step.id] : undefined}>
+                daAssignees={scenario === "shuanghuanJiaxing" ? (stepAttribution.data as any)?.[step.id] : undefined}>
                 <RouteCStepForm stepId={step.id} projectCode={projectCode} onComplete={() => { publishStep("qualityDelivery", step.id); refetchAll(); }} />
               </StepCard>
             ))}

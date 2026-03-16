@@ -275,11 +275,11 @@ function RequirementList({ onSelect }: { onSelect: (id: number) => void }) {
   }
 
   const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-    DRAFT: { label: "草稿', variant: 'secondary" },
-    PENDING_REVIEW: { label: "待评审', variant: 'outline" },
-    APPROVED: { label: "已批准', variant: 'default" },
-    PROPOSAL_READY: { label: "方案已生成', variant: 'default" },
-    REJECTED: { label: "已驳回', variant: 'destructive" },
+    DRAFT: { label: "草稿", variant: "secondary" },
+    PENDING_REVIEW: { label: "待评审", variant: "outline" },
+    APPROVED: { label: "已批准", variant: "default" },
+    PROPOSAL_READY: { label: "方案已生成", variant: "default" },
+    REJECTED: { label: "已驳回", variant: "destructive" },
   };
 
   return (

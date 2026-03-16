@@ -35,7 +35,7 @@ export interface QualityRequirement {
   clause: string;
   description: string;
   descriptionEn: string;
-  checkFrequency: "per_task" | "daily" | "weekly" | "per_gate";
+  checkFrequency: "per_task" | "daily" | "weekly" | "per_gate" | "per_project";
 }
 
 export interface WorkRequirement {

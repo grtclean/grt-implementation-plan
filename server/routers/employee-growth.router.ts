@@ -53,7 +53,7 @@ const materialRouter = router({
       pageSize: z.number().default(20),
     }).optional())
     .query(async ({ input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const { category, difficulty, status, search, page = 1, pageSize = 20 } = input ?? {};
       const conditions = [];
       if (category) conditions.push(eq(trainingMaterials.category, category));
@@ -78,7 +78,7 @@ const materialRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [row] = await db.select().from(trainingMaterials).where(eq(trainingMaterials.id, input.id)).limit(1);
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Material not found" });
       return row;
@@ -101,7 +101,7 @@ const materialRouter = router({
       isPublic: z.boolean().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [row] = await db.insert(trainingMaterials).values({
         ...input,
         createdBy: ctx.user.id,
@@ -127,7 +127,7 @@ const materialRouter = router({
       isPublic: z.boolean().optional(),
     }))
     .mutation(async ({ input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const { id, ...data } = input;
       const [row] = await db.update(trainingMaterials)
         .set({ ...data, updatedAt: new Date() })
@@ -138,7 +138,7 @@ const materialRouter = router({
   archive: requirePermission("hr:training:manage")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       await db.update(trainingMaterials)
         .set({ status: "archived", updatedAt: new Date() })
         .where(eq(trainingMaterials.id, input.id));
@@ -148,7 +148,7 @@ const materialRouter = router({
   search: protectedProcedure
     .input(z.object({ query: z.string().min(1), limit: z.number().default(20) }))
     .query(async ({ input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       return db.select().from(trainingMaterials)
         .where(and(
           eq(trainingMaterials.status, "active"),
@@ -164,7 +164,7 @@ const materialRouter = router({
 
   stats: requirePermission("hr:training:manage")
     .query(async () => {
-      const db = requireDb();
+      const db = await requireDb();
       const rows = await db.select({
         category: trainingMaterials.category,
         count: count(),
@@ -185,7 +185,7 @@ const materialRouter = router({
 const stagePlanRouter = router({
   getMyPlans: protectedProcedure
     .query(async ({ ctx }) => {
-      const db = requireDb();
+      const db = await requireDb();
       return db.select().from(trainingStagePlans)
         .where(eq(trainingStagePlans.userId, ctx.user.id))
         .orderBy(asc(trainingStagePlans.dueDate));
@@ -194,7 +194,7 @@ const stagePlanRouter = router({
   getByEmployee: requirePermission("hr:training:manage")
     .input(z.object({ employeeId: z.number() }))
     .query(async ({ input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       return db.select().from(trainingStagePlans)
         .where(eq(trainingStagePlans.employeeId, input.employeeId))
         .orderBy(asc(trainingStagePlans.dueDate));
@@ -222,7 +222,7 @@ const stagePlanRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [row] = await db.insert(trainingStagePlans).values({
         ...input,
         createdBy: ctx.user.id,
@@ -241,7 +241,7 @@ const stagePlanRouter = router({
       department: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const hire = new Date(input.hireDate);
       const addDays = (d: Date, days: number) => {
         const r = new Date(d);
@@ -308,7 +308,7 @@ const stagePlanRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const updates: Record<string, unknown> = { status: input.status, updatedAt: new Date() };
       if (input.notes) updates.notes = input.notes;
       if (input.status === "completed") updates.completedAt = new Date();
@@ -324,7 +324,7 @@ const stagePlanRouter = router({
       testScore: z.number().min(0).max(100),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [plan] = await db.select().from(trainingStagePlans)
         .where(and(eq(trainingStagePlans.id, input.id), eq(trainingStagePlans.userId, ctx.user.id)))
         .limit(1);
@@ -346,7 +346,7 @@ const stagePlanRouter = router({
   supervisorSignoff: requirePermission("hr:training:manage")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [row] = await db.update(trainingStagePlans).set({
         supervisorSignoff: ctx.user.id,
         supervisorSignoffAt: new Date(),
@@ -360,7 +360,7 @@ const stagePlanRouter = router({
   getUpcoming: requirePermission("hr:training:manage")
     .input(z.object({ daysAhead: z.number().default(30) }).optional())
     .query(async ({ input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const days = input?.daysAhead ?? 30;
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + days);
@@ -375,7 +375,7 @@ const stagePlanRouter = router({
 
   getOverview: protectedProcedure
     .query(async () => {
-      const db = requireDb();
+      const db = await requireDb();
       const rows = await db.select({
         status: trainingStagePlans.status,
         stage: trainingStagePlans.lifecycleStage,
@@ -401,7 +401,7 @@ const rewardPenaltyRouter = router({
       pageSize: z.number().default(20),
     }).optional())
     .query(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const { type, startDate, endDate, page = 1, pageSize = 20 } = input ?? {};
       const targetUserId = input?.userId ?? ctx.user.id;
       const conditions = [eq(employeeRewardsPenalties.userId, targetUserId)];
@@ -435,7 +435,7 @@ const rewardPenaltyRouter = router({
       period: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [row] = await db.insert(employeeRewardsPenalties).values({
         ...input,
         issuedBy: ctx.user.id,
@@ -448,7 +448,7 @@ const rewardPenaltyRouter = router({
   getByEmployee: protectedProcedure
     .input(z.object({ userId: z.number().optional() }))
     .query(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const targetId = input?.userId ?? ctx.user.id;
       return db.select().from(employeeRewardsPenalties)
         .where(eq(employeeRewardsPenalties.userId, targetId))
@@ -459,7 +459,7 @@ const rewardPenaltyRouter = router({
   getSummary: protectedProcedure
     .input(z.object({ userId: z.number().optional(), year: z.string().optional() }))
     .query(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const targetId = input?.userId ?? ctx.user.id;
       const yearPrefix = input?.year ?? new Date().getFullYear().toString();
       const rows = await db.select().from(employeeRewardsPenalties)
@@ -486,7 +486,7 @@ const rewardPenaltyRouter = router({
   appeal: protectedProcedure
     .input(z.object({ id: z.number(), reason: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [row] = await db.select().from(employeeRewardsPenalties)
         .where(and(eq(employeeRewardsPenalties.id, input.id), eq(employeeRewardsPenalties.userId, ctx.user.id)))
         .limit(1);
@@ -504,7 +504,7 @@ const rewardPenaltyRouter = router({
   revoke: requirePermission("hr:performance:manage")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       await db.update(employeeRewardsPenalties).set({
         status: "revoked",
         updatedAt: new Date(),
@@ -515,7 +515,7 @@ const rewardPenaltyRouter = router({
   getMonthly: protectedProcedure
     .input(z.object({ userId: z.number().optional(), period: z.string() }))
     .query(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const targetId = input.userId ?? ctx.user.id;
       return db.select().from(employeeRewardsPenalties)
         .where(and(
@@ -534,7 +534,7 @@ const taskMetricsRouter = router({
   getByEmployee: protectedProcedure
     .input(z.object({ userId: z.number().optional(), limit: z.number().default(12) }))
     .query(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const targetId = input.userId ?? ctx.user.id;
       return db.select().from(employeeTaskMetrics)
         .where(eq(employeeTaskMetrics.userId, targetId))
@@ -545,7 +545,7 @@ const taskMetricsRouter = router({
   getMonthly: requirePermission("hr:performance:manage")
     .input(z.object({ period: z.string(), page: z.number().default(1), pageSize: z.number().default(50) }))
     .query(async ({ input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [items, [total]] = await Promise.all([
         db.select().from(employeeTaskMetrics)
           .where(eq(employeeTaskMetrics.period, input.period))
@@ -581,7 +581,7 @@ const taskMetricsRouter = router({
       })).optional(),
     }))
     .mutation(async ({ input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [existing] = await db.select().from(employeeTaskMetrics)
         .where(and(
           eq(employeeTaskMetrics.userId, input.userId),
@@ -601,7 +601,7 @@ const taskMetricsRouter = router({
   getDashboard: requirePermission("hr:performance:manage")
     .input(z.object({ period: z.string() }))
     .query(async ({ input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const rows = await db.select().from(employeeTaskMetrics)
         .where(eq(employeeTaskMetrics.period, input.period));
 
@@ -619,7 +619,7 @@ const taskMetricsRouter = router({
   getTrend: protectedProcedure
     .input(z.object({ userId: z.number().optional(), months: z.number().default(12) }))
     .query(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const targetId = input.userId ?? ctx.user.id;
       return db.select().from(employeeTaskMetrics)
         .where(eq(employeeTaskMetrics.userId, targetId))
@@ -641,7 +641,7 @@ const cloudHallAccessRouter = router({
       requestReason: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [existing] = await db.select().from(cloudHallAccessGrants)
         .where(and(
           eq(cloudHallAccessGrants.userId, ctx.user.id),
@@ -672,7 +672,7 @@ const cloudHallAccessRouter = router({
 
   listMyGrants: protectedProcedure
     .query(async ({ ctx }) => {
-      const db = requireDb();
+      const db = await requireDb();
       return db.select().from(cloudHallAccessGrants)
         .where(eq(cloudHallAccessGrants.userId, ctx.user.id))
         .orderBy(desc(cloudHallAccessGrants.requestedAt));
@@ -680,7 +680,7 @@ const cloudHallAccessRouter = router({
 
   listPending: requirePermission("hr:training:manage")
     .query(async () => {
-      const db = requireDb();
+      const db = await requireDb();
       return db.select().from(cloudHallAccessGrants)
         .where(eq(cloudHallAccessGrants.grantStatus, "pending"))
         .orderBy(asc(cloudHallAccessGrants.requestedAt))
@@ -693,7 +693,7 @@ const cloudHallAccessRouter = router({
       validDays: z.number().default(365),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const now = new Date();
       const until = new Date(now);
       until.setDate(until.getDate() + input.validDays);
@@ -711,7 +711,7 @@ const cloudHallAccessRouter = router({
   reject: requirePermission("hr:training:manage")
     .input(z.object({ id: z.number(), reason: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [row] = await db.update(cloudHallAccessGrants).set({
         grantStatus: "rejected",
         approvedBy: ctx.user.id,
@@ -724,7 +724,7 @@ const cloudHallAccessRouter = router({
   revoke: requirePermission("hr:training:manage")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       await db.update(cloudHallAccessGrants).set({
         grantStatus: "revoked",
         updatedAt: new Date(),
@@ -734,7 +734,7 @@ const cloudHallAccessRouter = router({
 
   getAccessibleContent: protectedProcedure
     .query(async ({ ctx }) => {
-      const db = requireDb();
+      const db = await requireDb();
       return db.select().from(cloudHallAccessGrants)
         .where(and(
           eq(cloudHallAccessGrants.userId, ctx.user.id),
@@ -746,7 +746,7 @@ const cloudHallAccessRouter = router({
   logAccess: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       await db.update(cloudHallAccessGrants).set({
         viewCount: sql`${cloudHallAccessGrants.viewCount} + 1`,
         lastAccessedAt: new Date(),
@@ -769,7 +769,7 @@ const periodicReportRouter = router({
       period: z.string(),
     }))
     .query(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [existing] = await db.select().from(employeePeriodicReports)
         .where(and(
           eq(employeePeriodicReports.userId, ctx.user.id),
@@ -807,7 +807,7 @@ const periodicReportRouter = router({
       })).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const completed = input.completedItems ?? [];
       const planned = input.plannedItems ?? [];
       const doneCount = completed.filter((c) => c.status === "done").length;
@@ -853,7 +853,7 @@ const periodicReportRouter = router({
       nextPeriodGoals: z.array(z.string()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [existing] = await db.select().from(employeePeriodicReports)
         .where(and(
           eq(employeePeriodicReports.userId, ctx.user.id),
@@ -897,7 +897,7 @@ const periodicReportRouter = router({
       status: z.enum(REPORT_STATUSES).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const { id, ...data } = input;
       const [row] = await db.update(employeePeriodicReports)
         .set({ ...data, updatedAt: new Date() })
@@ -917,7 +917,7 @@ const periodicReportRouter = router({
       pageSize: z.number().default(20),
     }))
     .query(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const targetId = input.userId ?? ctx.user.id;
       const conditions = [
         eq(employeePeriodicReports.userId, targetId),
@@ -943,7 +943,7 @@ const periodicReportRouter = router({
       comments: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const [row] = await db.update(employeePeriodicReports).set({
         reviewedBy: ctx.user.id,
         reviewedAt: new Date(),
@@ -957,7 +957,7 @@ const periodicReportRouter = router({
   getYears: protectedProcedure
     .input(z.object({ userId: z.number().optional() }))
     .query(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const targetId = input?.userId ?? ctx.user.id;
       const rows = await db.selectDistinct({ period: employeePeriodicReports.period })
         .from(employeePeriodicReports)
@@ -973,7 +973,7 @@ const periodicReportRouter = router({
   getEnrichedMonthly: protectedProcedure
     .input(z.object({ period: z.string(), userId: z.number().optional() }))
     .query(async ({ ctx, input }) => {
-      const db = requireDb();
+      const db = await requireDb();
       const targetId = input.userId ?? ctx.user.id;
 
       // Parallel fetch: report + task metrics + rewards/penalties

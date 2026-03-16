@@ -543,6 +543,7 @@ function ViewerDialogContent({
   assetId: number;
   onClose: () => void;
 }) {
+  const { t } = useLanguage();
   const utils = trpc.useUtils();
   const [autoRotate, setAutoRotate] = useState(true);
 

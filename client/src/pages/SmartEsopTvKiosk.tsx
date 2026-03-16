@@ -237,7 +237,7 @@ function EditorOverlay({
   const [bomPasteMode, setBomPasteMode] = useState(false);
   const [pasteText, setPasteText] = useState("");
 
-  const tabs: { key: EditorTab; label: string; icon: React.ElementType }[] = [
+  const tabs: { key: EditorTab; label: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }> }[] = [
     { key: "workorder", label: "派工单", icon: FileText },
     { key: "sop", label: "SOP 工序", icon: List },
     { key: "bom", label: "BOM 物料", icon: Package },

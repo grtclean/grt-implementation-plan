@@ -189,12 +189,12 @@ function SandboxCardUI({
       {(() => {
         const ioConfig = getSandboxIOConfig(card.id);
         if (!ioConfig) return null;
-        const m365Icons: Record<M365Service, React.ElementType> = {
+        const m365Icons: Record<M365Service, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
           outlook: Mail, teams: MessageSquare, planner: KanbanSquare,
           onenote: BookOpen, onedrive: Cloud, sharepoint: Database,
         };
         const uniqueServices = Array.from(new Set(ioConfig.m365.map(m => m.service)));
-        type MiniCell = { icon: React.ElementType; label: string; value: string; color: string };
+        type MiniCell = { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; value: string; color: string };
         const miniCells: MiniCell[] = [
           { icon: Plug, label: "I/O", value: `${ioConfig.io.inputs.length}↓${ioConfig.io.outputs.length}↑`, color: "#3B82F6" },
           { icon: Mail, label: "M365", value: `${uniqueServices.length}`, color: "#0078D4" },

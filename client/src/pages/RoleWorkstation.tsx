@@ -98,7 +98,8 @@ function getLevelBorder(level: number): string {
 // ═══════════════════════════════════════════════
 
 export default function RoleWorkstation() {
-  const { effectiveRole, userName } = useUserProfile();
+  const { currentUserRole: effectiveRole } = useUserProfile();
+  const userName: string | undefined = undefined;
   const { user } = useAuth();
   const { t, language } = useLanguage();
   const isEn = language === "en";

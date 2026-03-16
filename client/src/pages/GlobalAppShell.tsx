@@ -125,7 +125,7 @@ const DEMO_PROJECTS: IProject[] = [
   { id: "PRJ-003", code: "WO-M12-003", name: "华为南京半导体清洗线", customer: "华为技术", phase: "M2-设计", bu: "SPR" },
 ];
 
-const SANDBOX_MENU: { id: string; num: number; label: string; icon: React.ElementType }[] = [
+const SANDBOX_MENU: { id: string; num: number; label: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }> }[] = [
   { id: "annual-planning", num: 1, label: "年度规划", icon: Target },
   { id: "payroll", num: 2, label: "薪酬打卡", icon: Clock },
   { id: "performance", num: 3, label: "绩效积分", icon: Activity },

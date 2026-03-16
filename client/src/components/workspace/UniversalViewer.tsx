@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 // Lazy-load Monaco to avoid bundling it on pages that don't need it
 import Editor from "@monaco-editor/react";
 
-export type ViewerFileType = "excel" | "word" | "ppt" | "code" | "cad" | "pdf" | "image";
+export type ViewerFileType = "excel" | "word" | "ppt" | "code" | "cad" | "pdf" | "image" | "markdown";
 
 /** CAD viewer keyframe animations — defined once to avoid duplicate <style> injections */
 const CAD_STYLES = `
@@ -36,6 +36,7 @@ const FILE_TYPE_ICONS: Record<ViewerFileType, typeof FileText> = {
   cad: Box,
   pdf: FileText,
   image: Image,
+  markdown: FileText,
 };
 
 /** Map file extension to Monaco language */

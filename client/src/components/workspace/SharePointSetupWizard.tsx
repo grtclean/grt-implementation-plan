@@ -27,12 +27,12 @@ interface Props {
 }
 
 const STEPS = [
-  { icon: Cloud,          labelZh: 连接检测",   labelEn: "Connection },
-  { icon: Building2,      labelZh: 部门映射",   labelEn: "Dept Mapping },
-  { icon: Globe,          labelZh: 站点配置",   labelEn: "Site Config },
-  { icon: FolderOpen,     labelZh: 文件夹映射", labelEn: "Folder Mapping },
-  { icon: ArrowRightLeft, labelZh: 策略确认",   labelEn: "Review },
-  { icon: Settings,       labelZh: 执行配置",   labelEn: "Apply },
+  { icon: Cloud,          labelZh: "连接检测",   labelEn: "Connection" },
+  { icon: Building2,      labelZh: "部门映射",   labelEn: "Dept Mapping" },
+  { icon: Globe,          labelZh: "站点配置",   labelEn: "Site Config" },
+  { icon: FolderOpen,     labelZh: "文件夹映射", labelEn: "Folder Mapping" },
+  { icon: ArrowRightLeft, labelZh: "策略确认",   labelEn: "Review" },
+  { icon: Settings,       labelZh: "执行配置",   labelEn: "Apply" },
 ];
 
 type SyncDir = "bidirectional" | "grt_to_sp" | "sp_to_grt";
@@ -47,7 +47,7 @@ interface MappingRow {
 }
 
 const SYNC_DIR_LABELS: Record<SyncDir, { zh: string; en: string }> = {
-  bidirectional: { zh: 双向同步", en: "Bi-directional },
+  bidirectional: { zh: "双向同步", en: "Bi-directional" },
   grt_to_sp:     { zh: "GRT→SP", en: "GRT→SP" },
   sp_to_grt:     { zh: "SP→GRT", en: "SP→GRT" },
 };
@@ -392,7 +392,7 @@ export default function SharePointSetupWizard({ open, onOpenChange }: Props) {
                     })}
                     {(orgNodes as any[]).length === 0 && (
                       <tr><td colSpan={5} className="p-4 text-center text-[#a19f9d]">
-                        {isEn ? "No org nodes. Click 'Seed Defaults' to create." : "暂无组织节点。点击\"填充默认值\创建。}
+                        {isEn ? "No org nodes. Click 'Seed Defaults' to create." : "暂无组织节点。点击\"填充默认值\"创建。"}
                       </td></tr>
                     )}
                   </tbody>
@@ -402,7 +402,7 @@ export default function SharePointSetupWizard({ open, onOpenChange }: Props) {
               <p className="text-[10px] text-[#a19f9d]">
                 {isEn
                   ? "When 'Mirror' is enabled, new GRT folders in this department will auto-create matching SharePoint folders."
-                  : "启用\"镜像\后，该部门新建的GRT文件夹将自动在SharePoint创建对应文件夹。}
+                  : "启用\"镜像\"后，该部门新建的GRT文件夹将自动在SharePoint创建对应文件夹。"}
               </p>
             </div>
           )}
@@ -425,10 +425,10 @@ export default function SharePointSetupWizard({ open, onOpenChange }: Props) {
 
               {(["A", "B", "C", "D"] as const).map(cluster => {
                 const clusterNames: Record<string, { zh: string; en: string }> = {
-                  A: { zh: 公司级", en: "Company Wide },
-                  B: { zh: 支持职能", en: "Support Functions },
-                  C: { zh: 核心业务", en: "Core Business },
-                  D: { zh: 个人/外部", en: "Personal / External },
+                  A: { zh: "公司级", en: "Company Wide" },
+                  B: { zh: "支持职能", en: "Support Functions" },
+                  C: { zh: "核心业务", en: "Core Business" },
+                  D: { zh: "个人/外部", en: "Personal / External" },
                 };
                 const clusterColors: Record<string, string> = { A: "#0078d4", B: "#8764b8", C: "#107c10", D: "#d83b01" };
                 const clusterSites = (sitesList as any[]).filter((s: any) => s.cluster === cluster);
@@ -477,7 +477,7 @@ export default function SharePointSetupWizard({ open, onOpenChange }: Props) {
 
               {(sitesList as any[]).length === 0 && (
                 <div className="text-center py-6 text-sm text-[#a19f9d]">
-                  {isEn ? "No sites configured. Click 'Seed Sites' to populate defaults." : "暂无站点。点击\"填充默认站点\创建。}
+                  {isEn ? "No sites configured. Click 'Seed Sites' to populate defaults." : "暂无站点。点击\"填充默认站点\"创建。"}
                 </div>
               )}
 

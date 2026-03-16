@@ -52,14 +52,13 @@ function computeBonusMultiplier(tier: string): string {
 
 const battleReportRouter = router({
   /** Trigger async AI generation of monthly battle report */
-  generate: protectedProcedure
-    .use(manageArena)
+  generate: manageArena
     .input(z.object({
       userId: z.number(),
       period: z.string().regex(/^\d{4}-\d{2}$/),
       buCode: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       // Check if report already exists
@@ -88,19 +87,19 @@ const battleReportRouter = router({
         .returning();
 
       // Fire async task
-      const taskId = await submitTask("BATTLE_PREP_REPORT", {
+      const result = await submitTask("BATTLE_PREP_REPORT", {
         reportId: report.id,
         userId: input.userId,
         period: input.period,
         buCode: input.buCode ?? null,
-      });
+      }, String(ctx.user.id));
 
       await db.update(monthlyBattleReports)
-        .set({ generationTaskId: taskId })
+        .set({ generationTaskId: result.taskId })
         .where(eq(monthlyBattleReports.id, report.id));
 
-      log.info({ userId: input.userId, period: input.period, taskId }, "Battle report generation triggered");
-      return { reportId: report.id, taskId, status: "generating" };
+      log.info({ userId: input.userId, period: input.period, taskId: result.taskId }, "Battle report generation triggered");
+      return { reportId: report.id, taskId: result.taskId, status: "generating" };
     }),
 
   /** Get my battle report for a period */
@@ -140,8 +139,7 @@ const battleReportRouter = router({
     }),
 
   /** Get any user's report (manager view) */
-  getByUser: protectedProcedure
-    .use(viewArena)
+  getByUser: viewArena
     .input(z.object({
       userId: z.number(),
       period: z.string().regex(/^\d{4}-\d{2}$/),
@@ -160,8 +158,7 @@ const battleReportRouter = router({
     }),
 
   /** List all reports for a period */
-  listByPeriod: protectedProcedure
-    .use(viewArena)
+  listByPeriod: viewArena
     .input(z.object({
       period: z.string().regex(/^\d{4}-\d{2}$/),
       buCode: z.string().optional(),
@@ -181,8 +178,7 @@ const battleReportRouter = router({
     }),
 
   /** Lock report after review */
-  lockReport: protectedProcedure
-    .use(manageArena)
+  lockReport: manageArena
     .input(z.object({ reportId: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -201,26 +197,24 @@ const battleReportRouter = router({
 
 const rankingsRouter = router({
   /** Compute and store rankings for a period (admin action) */
-  computeRankings: protectedProcedure
-    .use(manageArena)
+  computeRankings: manageArena
     .input(z.object({
       period: z.string().regex(/^\d{4}-\d{2}$/),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
 
       // Fire async task for heavy computation
-      const taskId = await submitTask("ARENA_COMPUTE_RANKINGS", {
+      const result = await submitTask("ARENA_COMPUTE_RANKINGS", {
         period: input.period,
-      });
+      }, String(ctx.user.id));
 
-      log.info({ period: input.period, taskId }, "Arena ranking computation triggered");
-      return { taskId, status: "computing" };
+      log.info({ period: input.period, taskId: result.taskId }, "Arena ranking computation triggered");
+      return { taskId: result.taskId, status: "computing" };
     }),
 
   /** Get leaderboard for entity type + period */
-  getLeaderboard: protectedProcedure
-    .use(viewArena)
+  getLeaderboard: viewArena
     .input(z.object({
       period: z.string().regex(/^\d{4}-\d{2}$/),
       entityType: z.enum(["SALES", "ENGINEER", "DIVISION", "MANAGER"]),
@@ -261,8 +255,7 @@ const rankingsRouter = router({
     }),
 
   /** Get bonus gap chart data — top vs bottom disparity */
-  getBonusGapChart: protectedProcedure
-    .use(viewArena)
+  getBonusGapChart: viewArena
     .input(z.object({
       period: z.string().regex(/^\d{4}-\d{2}$/),
       entityType: z.enum(["SALES", "ENGINEER", "DIVISION", "MANAGER"]),
@@ -304,8 +297,7 @@ const rankingsRouter = router({
     }),
 
   /** Get detailed entity ranking with breakdown */
-  getEntityDetail: protectedProcedure
-    .use(viewArena)
+  getEntityDetail: viewArena
     .input(z.object({
       period: z.string().regex(/^\d{4}-\d{2}$/),
       entityType: z.enum(["SALES", "ENGINEER", "DIVISION", "MANAGER"]),
@@ -359,8 +351,7 @@ const rankingsRouter = router({
 
 const arenaRouter = router({
   /** Full war room data for monthly meeting */
-  getWarRoomData: protectedProcedure
-    .use(viewArena)
+  getWarRoomData: viewArena
     .input(z.object({
       period: z.string().regex(/^\d{4}-\d{2}$/),
       buCode: z.string().optional(),
@@ -397,8 +388,7 @@ const arenaRouter = router({
     }),
 
   /** Arena overview stats */
-  getArenaOverview: protectedProcedure
-    .use(viewArena)
+  getArenaOverview: viewArena
     .input(z.object({ period: z.string().regex(/^\d{4}-\d{2}$/) }))
     .query(async ({ input }) => {
       const db = await requireDb();

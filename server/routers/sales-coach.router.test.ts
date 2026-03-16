@@ -110,7 +110,7 @@ vi.mock("../../drizzle/schema", () => ({
 }));
 
 // ── Mock services ────────────────────────────────────────
-const mockSubmitTask = vi.fn(async () => 42);
+const mockSubmitTask = vi.fn(async () => ({ taskId: 42 }));
 vi.mock("../services/task-worker.service", () => ({
   submitTask: (...args: any[]) => mockSubmitTask(...args),
 }));
@@ -346,7 +346,7 @@ describe("sales-coach.router", () => {
   describe("coach", () => {
     it("submitSalesReport — inserts log and submits AI task", async () => {
       returningQueue.push([{ id: 10, userId: 1, logDate: "2026-03-11", status: "submitted" }]);
-      mockSubmitTask.mockResolvedValueOnce(42);
+      mockSubmitTask.mockResolvedValueOnce({ taskId: 42 });
 
       const result = await (salesCoachRouter as any).coach.submitSalesReport({
         input: {
@@ -364,6 +364,7 @@ describe("sales-coach.router", () => {
       expect(mockSubmitTask).toHaveBeenCalledWith(
         "SALES_COACH_FEEDBACK",
         expect.objectContaining({ userId: 1, logId: 10 }),
+        expect.any(String),
       );
     });
 

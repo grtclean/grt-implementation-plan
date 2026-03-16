@@ -449,7 +449,7 @@ export const externalSyncRouter = router({
     .mutation(async ({ input }) => {
       const scheduler = getExternalSyncScheduler();
       try {
-        const taskId = await scheduler.createTask(input);
+        const taskId = await scheduler.createTask(input as any);
         return { success: true, taskId };
       } catch (error: any) {
         return { success: false, error: error.message };

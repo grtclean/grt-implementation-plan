@@ -398,7 +398,7 @@ const STEP_COLORS = {
   completed: { bg: "bg-green-500/10", text: "text-green-300", border: "border-green-500/30", icon: "text-green-400" },
 };
 
-const MSG_STYLES: Record<string, { icon: React.ElementType; cls: string }> = {
+const MSG_STYLES: Record<string, { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }>; cls: string }> = {
   alert: { icon: AlertCircle, cls: "border-red-500/30 bg-red-500/5 text-red-300" },
   safety: { icon: Siren, cls: "border-orange-500/30 bg-orange-500/5 text-orange-300" },
   remind: { icon: Clock, cls: "border-yellow-500/30 bg-yellow-500/5 text-yellow-300" },

@@ -228,8 +228,9 @@ export default function DualAIMatrix() {
   // ── tRPC hooks ──
   // askGeminiPlanner: sends the CEO's prompt to the Gemini stub
   // on the backend (LLM or rule-based fallback)
-  const geminiMutation = trpc.cicd.askGeminiPlanner.useMutation({
-    onSuccess: (data) => {
+  const geminiMutation = trpc.cicd.startGeminiPlanner.useMutation({
+    onSuccess: (rawData) => {
+      const data = rawData as any;
       // Step 1: Add Gemini's reply to the chat window
       const geminiMsg: ChatMessage = {
         id: `gemini-${Date.now()}`,

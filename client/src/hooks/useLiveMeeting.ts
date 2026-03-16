@@ -60,7 +60,6 @@ export function useLiveMeeting() {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("[IME-Live] Connected to session", sessionId);
         setState((s) => ({ ...s, isConnected: true, error: null }));
 
         // 30s heartbeat
@@ -107,14 +106,12 @@ export function useLiveMeeting() {
       };
 
       ws.onclose = (event) => {
-        console.log("[IME-Live] Disconnected:", event.code);
         setState((s) => ({ ...s, isConnected: false }));
         cleanup();
 
         // Auto-reconnect on abnormal close (skip if intentionally disconnecting)
         if (event.code !== 1000 && event.code !== 4001 && sessionIdRef.current && !isDisconnectingRef.current) {
           reconnectTimeoutRef.current = setTimeout(() => {
-            console.log("[IME-Live] Reconnecting...");
             connect(sessionIdRef.current!, userId, userName);
           }, 3000);
         }

@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { getModuleConfig, type MenuModuleConfig, type ModuleIntegration } from "@/config/menuModuleConfig";
 
 // ── Integration type icons ──
-const INTEGRATION_ICONS: Record<string, React.ElementType> = {
+const INTEGRATION_ICONS: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   "Outlook": Mail, "Teams": MessageSquare, "Planner": KanbanSquare,
   "OneNote": BookOpen, "OneDrive": Cloud, "SharePoint": Database,
   "Calendar": Mail, "MS Graph": Plug, "钉钉": MessageSquare,

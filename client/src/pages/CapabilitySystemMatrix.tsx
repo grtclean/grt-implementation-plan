@@ -5,7 +5,7 @@
  * 4 tabs: 团队矩阵 / 员工画像 / 培训计划 / 部门概览
  */
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,7 +59,7 @@ function scoreCell(score: number, target?: number): string {
   return "text-red-600 font-semibold";
 }
 
-function gapBadge(gap: number): JSX.Element {
+function gapBadge(gap: number): React.ReactElement {
   if (gap <= 0) return <Badge className="bg-green-100 text-green-700 text-xs">达标</Badge>;
   if (gap <= 5) return <Badge className="bg-blue-100 text-blue-700 text-xs">接近</Badge>;
   if (gap <= 15) return <Badge className="bg-amber-100 text-amber-700 text-xs">需提升</Badge>;

@@ -173,15 +173,15 @@ function globalReducer(state: IGlobalState, action: GlobalAction): IGlobalState 
         lastEvent: "AI 孪生引擎启动扫描...",
         kpi: {
           ...state.kpi,
-          dataFlowEvents: [
+          dataFlowEvents: ([
             {
               id: `evt-${Date.now()}`,
-              type: "parse",
+              type: "parse" as const,
               message: "图纸解析引擎已激活，正在提取特征...",
               timestamp: now,
             },
             ...state.kpi.dataFlowEvents,
-          ].slice(0, 20),
+          ] as IDataFlowEvent[]).slice(0, 20),
         },
       };
 
@@ -202,15 +202,15 @@ function globalReducer(state: IGlobalState, action: GlobalAction): IGlobalState 
             totalTasks > 0
               ? Math.round((state.kpi.tasksCompletedToday / totalTasks) * 100)
               : 0,
-          dataFlowEvents: [
+          dataFlowEvents: ([
             {
               id: `evt-${Date.now()}`,
-              type: "task_gen",
+              type: "task_gen" as const,
               message: `${action.tasks.length} 项调试任务已生成并下发`,
               timestamp: now,
             },
             ...state.kpi.dataFlowEvents,
-          ].slice(0, 20),
+          ] as IDataFlowEvent[]).slice(0, 20),
         },
       };
     }
@@ -275,21 +275,21 @@ function globalReducer(state: IGlobalState, action: GlobalAction): IGlobalState 
           departmentScores: [deptScore, ...otherDepts].sort(
             (a, b) => b.score - a.score
           ),
-          dataFlowEvents: [
+          dataFlowEvents: ([
             {
               id: `evt-${Date.now()}`,
-              type: "punch",
+              type: "punch" as const,
               message: `${action.workerName} 完成 [${state.taskQueue.find((t) => t.id === action.taskId)?.title ?? "任务"}]`,
               timestamp: now,
             },
             {
               id: `evt-${Date.now()}-kpi`,
-              type: "kpi_update",
+              type: "kpi_update" as const,
               message: `KPI 已刷新：达成率 ${rate}%，绩效 +8`,
               timestamp: now,
             },
             ...state.kpi.dataFlowEvents,
-          ].slice(0, 20),
+          ] as IDataFlowEvent[]).slice(0, 20),
         },
       };
     }

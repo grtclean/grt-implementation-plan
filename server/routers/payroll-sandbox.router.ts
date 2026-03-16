@@ -338,7 +338,7 @@ function createInputRouter<T extends typeof psAttendanceInput | typeof psPerform
       .input(z.object({ cycleId: z.number() }))
       .query(async ({ input }) => {
         const db = await requireDb();
-        return db.select().from(table).where(eq(cycleIdCol, input.cycleId)).limit(500);
+        return db.select().from(table as any).where(eq(cycleIdCol, input.cycleId)).limit(500);
       }),
 
     upsert: manageSandbox
@@ -358,9 +358,9 @@ function createInputRouter<T extends typeof psAttendanceInput | typeof psPerform
       .mutation(async ({ input }) => {
         const db = await requireDb();
         if (input.rows.length === 0) return { inserted: 0 };
-        const rows = await db.insert(table).values(input.rows as any[]).returning();
-        log.info({ table: tableName, count: rows.length }, "Bulk imported payroll sandbox data");
-        return { inserted: rows.length };
+        const rows = await db.insert(table as any).values(input.rows as any[]).returning();
+        log.info({ table: tableName, count: (rows as any[]).length }, "Bulk imported payroll sandbox data");
+        return { inserted: (rows as any[]).length };
       }),
 
     remove: manageSandbox

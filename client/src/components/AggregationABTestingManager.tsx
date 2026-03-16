@@ -330,16 +330,7 @@ const CreateTestDialog = ({
   const [autoSelectWinner, setAutoSelectWinner] = useState(true);
 
   const handleCreate = () => {
-    console.log('创建测试:', {
-      name,
-      description,
-      controlRuleId,
-      treatmentRuleId,
-      trafficSplit: trafficSplit[0],
-      minSampleSize,
-      confidenceLevel,
-      autoSelectWinner
-    });
+    // TODO: call API to create A/B test
     onClose();
   };
 
@@ -560,9 +551,8 @@ export default function AggregationABTestingManager() {
     ));
   };
 
-  const handleApplyWinner = (testId: string) => {
-    console.log('应用获胜规则:', testId);
-    // 实际实现中调用API
+  const handleApplyWinner = (_testId: string) => {
+    // TODO: call API to apply winning rule
   };
 
   const filteredTests = tests.filter(test => 

@@ -103,12 +103,15 @@ function ReadinessTab() {
     },
   });
 
-  const score = scorecard.data?.totalScore ?? 0;
-  const grade = scorecard.data?.grade ?? "-";
+  const scorecardData = scorecard.data as any;
+  const blockersData = blockers.data as any;
+
+  const score = scorecardData?.totalScore ?? 0;
+  const grade = scorecardData?.grade ?? "-";
   const gradeColor = grade === "A" ? "text-green-600" : grade === "B" ? "text-blue-600" : grade === "C" ? "text-yellow-600" : "text-red-600";
 
-  const hasCritical = (blockers.data?.criticalCount ?? 0) > 0;
-  const hasWarning = (blockers.data?.warningCount ?? 0) > 0;
+  const hasCritical = (blockersData?.criticalCount ?? 0) > 0;
+  const hasWarning = (blockersData?.warningCount ?? 0) > 0;
 
   // Detect DB/backend connectivity issues
   const dbOffline = scorecard.isError || blockers.isError;
@@ -288,10 +291,10 @@ function ReadinessTab() {
         </Card>
 
         <Card className="col-span-1 md:col-span-2">
-          <CardHeader><CardTitle className="text-base">类别评分 ({scorecard.data?.categories?.length ?? 0} 维度)</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">类别评分 ({scorecardData?.categories?.length ?? 0} 维度)</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-              {(scorecard.data?.categories ?? []).map((cat: any) => (
+              {(scorecardData?.categories ?? []).map((cat: any) => (
                 <div key={cat.id} className={`p-3 rounded border ${cat.score < 60 ? "border-red-200 bg-red-50" : cat.score < 80 ? "border-yellow-200 bg-yellow-50" : "border-green-200 bg-green-50"}`}>
                   <div className="flex items-center gap-2 mb-2">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${cat.score >= 80 ? "bg-green-100 text-green-700" : cat.score >= 60 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>
@@ -322,7 +325,7 @@ function ReadinessTab() {
       {/* Blockers */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">阻塞项 Blockers ({blockers.data?.criticalCount ?? 0} critical, {blockers.data?.warningCount ?? 0} warning)</CardTitle>
+          <CardTitle className="text-base">阻塞项 Blockers ({blockersData?.criticalCount ?? 0} critical, {blockersData?.warningCount ?? 0} warning)</CardTitle>
           <div className="flex gap-2">
             {hasCritical && (
               <Button size="sm" variant="default" className="bg-orange-600 hover:bg-orange-500" onClick={() => seedMut.mutate({ force: true })} disabled={seedMut.isPending}>
@@ -337,9 +340,9 @@ function ReadinessTab() {
           </div>
         </CardHeader>
         <CardContent>
-          {blockers.data?.blockers.length === 0 && <p className="text-sm text-green-600 flex items-center gap-1"><CheckCircle className="h-4 w-4" /> 无阻塞项 — 系统已就绪</p>}
+          {blockersData?.blockers.length === 0 && <p className="text-sm text-green-600 flex items-center gap-1"><CheckCircle className="h-4 w-4" /> 无阻塞项 — 系统已就绪</p>}
           <div className="space-y-2">
-            {(blockers.data?.blockers ?? []).map((b, i) => (
+            {(blockersData?.blockers ?? []).map((b, i) => (
               <div key={i} className={`flex items-start gap-2 p-3 rounded text-sm ${b.severity === "critical" ? "bg-red-50 border-red-200 border" : b.severity === "warning" ? "bg-yellow-50 border-yellow-200 border" : "bg-blue-50 border-blue-200 border"}`}>
                 {b.severity === "critical" ? <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" /> : b.severity === "warning" ? <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" /> : <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />}
                 <div className="flex-1">
@@ -551,8 +554,10 @@ function GapAnalysisCard() {
 // ── Tab 2: Timeline ──────────────────────────────────────
 
 function TimelineTab() {
-  const timeline = trpc.goLive.readiness.getReadinessTimeline.useQuery();
-  const phaseProgress = trpc.goLive.readiness.getPhaseProgress.useQuery();
+  const timelineQ = trpc.goLive.readiness.getReadinessTimeline.useQuery();
+  const phaseProgressQ = trpc.goLive.readiness.getPhaseProgress.useQuery();
+  const timeline = timelineQ.data as any;
+  const phaseProgress = phaseProgressQ.data as any;
 
   return (
     <div className="space-y-4">
@@ -560,14 +565,14 @@ function TimelineTab() {
         <CardHeader><CardTitle className="text-base">上线六阶段时间轴</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-0">
-            {(timeline.data?.phases ?? []).map((phase, i) => (
+            {(timeline?.phases ?? []).map((phase: any, i: number) => (
               <div key={phase.id} className="flex gap-4">
                 {/* Vertical line + dot */}
                 <div className="flex flex-col items-center">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${phase.status === "completed" ? "bg-green-500 text-white" : phase.status === "active" ? "bg-orange-500 text-white" : "bg-gray-200 text-gray-500"}`}>
                     {phase.status === "completed" ? <CheckCircle className="h-4 w-4" /> : phase.id}
                   </div>
-                  {i < (timeline.data?.phases.length ?? 0) - 1 && <div className={`w-0.5 h-16 ${phase.status === "completed" ? "bg-green-300" : "bg-gray-200"}`} />}
+                  {i < (timeline?.phases?.length ?? 0) - 1 && <div className={`w-0.5 h-16 ${phase.status === "completed" ? "bg-green-300" : "bg-gray-200"}`} />}
                 </div>
 
                 {/* Content */}
@@ -594,22 +599,22 @@ function TimelineTab() {
       </Card>
 
       {/* Phase milestones */}
-      {phaseProgress.data && (
+      {phaseProgress && (
         <Card>
-          <CardHeader><CardTitle className="text-base">当前阶段里程碑 (Phase {phaseProgress.data.currentPhase})</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">当前阶段里程碑 (Phase {phaseProgress.currentPhase})</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {phaseProgress.data.milestones
-                .filter((m) => m.phase === phaseProgress.data!.currentPhase)
-                .map((m, i) => (
+              {(phaseProgress.milestones ?? [])
+                .filter((m: any) => m.phase === phaseProgress.currentPhase)
+                .map((m: any, i: number) => (
                   <div key={i} className="flex items-center gap-2 text-sm">
                     {m.done ? <CheckCircle className="h-4 w-4 text-green-500" /> : <div className="w-4 h-4 rounded-full border-2 border-gray-300" />}
                     <span className={m.done ? "line-through text-muted-foreground" : ""}>{m.item}</span>
                   </div>
                 ))}
             </div>
-            {phaseProgress.data.remainingItems.length > 0 && (
-              <p className="mt-3 text-sm text-muted-foreground">待完成: {phaseProgress.data.remainingItems.join(", ")}</p>
+            {(phaseProgress.remainingItems ?? []).length > 0 && (
+              <p className="mt-3 text-sm text-muted-foreground">待完成: {phaseProgress.remainingItems.join(", ")}</p>
             )}
           </CardContent>
         </Card>
@@ -923,9 +928,11 @@ function SalaryImportTab() {
 // ── Tab 4: Encoding ──────────────────────────────────────
 
 function EncodingTab() {
-  const compliance = trpc.goLive.encoding.getEncodingCompliance.useQuery();
-  const stats = trpc.goLive.encoding.getEncodingStats.useQuery();
+  const complianceQ = trpc.goLive.encoding.getEncodingCompliance.useQuery();
+  const statsQ = trpc.goLive.encoding.getEncodingStats.useQuery();
   const rules = trpc.goLive.encoding.getEncodingRules.useQuery();
+  const compliance = complianceQ.data as any;
+  const stats = statsQ.data as any;
 
   const [testCode, setTestCode] = useState("");
   const validateQ = trpc.goLive.encoding.validateCode.useQuery(
@@ -941,8 +948,8 @@ function EncodingTab() {
           <CardHeader><CardTitle className="text-base">编码合规率</CardTitle></CardHeader>
           <CardContent className="flex items-center justify-center">
             <div className="text-center">
-              <div className="text-5xl font-bold text-green-600">{compliance.data?.compliancePercent ?? 0}%</div>
-              <p className="text-sm text-muted-foreground mt-1">{compliance.data?.validCount ?? 0} / {compliance.data?.totalCodes ?? 0} 合规编码</p>
+              <div className="text-5xl font-bold text-green-600">{compliance?.compliancePercent ?? 0}%</div>
+              <p className="text-sm text-muted-foreground mt-1">{compliance?.validCount ?? 0} / {compliance?.totalCodes ?? 0} 合规编码</p>
             </div>
           </CardContent>
         </Card>
@@ -1004,7 +1011,7 @@ function EncodingTab() {
         <CardHeader><CardTitle className="text-base">编码分布</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {(stats.data?.types ?? []).map((t) => (
+            {(stats?.types ?? []).map((t: any) => (
               <div key={t.type} className="p-3 border rounded text-center">
                 <p className="text-2xl font-bold">{t.count}</p>
                 <p className="text-xs text-muted-foreground">{t.label}</p>
@@ -1022,7 +1029,8 @@ function EncodingTab() {
 function SimulationTab() {
   const runSim = trpc.goLive.simulation.runLegionSimulation.useMutation();
   const results = trpc.goLive.simulation.getSimulationResults.useQuery();
-  const comparison = trpc.goLive.simulation.getScenarioComparison.useQuery();
+  const comparisonQ = trpc.goLive.simulation.getScenarioComparison.useQuery();
+  const comparison = comparisonQ.data as any;
 
   const sim = runSim.data;
 
@@ -1121,7 +1129,7 @@ function SimulationTab() {
       )}
 
       {/* Current vs Target comparison */}
-      {comparison.data && (
+      {comparison && (
         <Card>
           <CardHeader><CardTitle className="text-base">现状 vs 目标</CardTitle></CardHeader>
           <CardContent>
@@ -1139,10 +1147,10 @@ function SimulationTab() {
                   {(["headcount", "aiAssistants", "machineCapacity", "encodingCompliance", "readinessScore"] as const).map((key) => (
                     <tr key={key} className="border-b">
                       <td className="p-2 capitalize">{key.replace(/([A-Z])/g, " $1")}</td>
-                      <td className="p-2 text-right">{comparison.data!.current[key]}</td>
-                      <td className="p-2 text-right">{comparison.data!.target[key]}</td>
-                      <td className={`p-2 text-right font-medium ${comparison.data!.gaps[key] > 0 ? "text-red-600" : "text-green-600"}`}>
-                        {comparison.data!.gaps[key] > 0 ? `-${comparison.data!.gaps[key]}` : "0"}
+                      <td className="p-2 text-right">{comparison.current[key]}</td>
+                      <td className="p-2 text-right">{comparison.target[key]}</td>
+                      <td className={`p-2 text-right font-medium ${comparison.gaps[key] > 0 ? "text-red-600" : "text-green-600"}`}>
+                        {comparison.gaps[key] > 0 ? `-${comparison.gaps[key]}` : "0"}
                       </td>
                     </tr>
                   ))}
@@ -1700,8 +1708,10 @@ function ChangeTasksTab() {
 // ── Tab 6: Architecture Overview ─────────────────────────
 
 function ArchitectureTab() {
-  const ctoHealth = trpc.ctoDashboard.systemHealth.useQuery(undefined, { retry: false });
-  const ceoHealth = trpc.ceoDashboard.getHealthScores.useQuery(undefined, { retry: false });
+  const ctoHealthQ = trpc.ctoDashboard.systemHealth.useQuery(undefined, { retry: false });
+  const ceoHealthQ = trpc.ceoDashboard.getHealthScores.useQuery(undefined, { retry: false });
+  const ctoHealth = ctoHealthQ.data as any;
+  const ceoHealth = ceoHealthQ.data as any;
 
   const systemStats = [
     { label: "Routers", value: "275", icon: Database },
@@ -1766,11 +1776,11 @@ function ArchitectureTab() {
         <Card>
           <CardHeader><CardTitle className="text-base">CEO Health</CardTitle></CardHeader>
           <CardContent>
-            {ceoHealth.data ? (
+            {ceoHealth ? (
               <div className="space-y-1 text-sm">
-                <p>OEE: <span className="font-bold">{ceoHealth.data.avgOee?.toFixed(1) ?? 0}%</span></p>
-                <p>Open FMEA: <span className="font-bold">{ceoHealth.data.openFmeaCount ?? 0}</span></p>
-                <p>Budget Variance: <span className="font-bold">{ceoHealth.data.budgetVariancePercent?.toFixed(1) ?? 0}%</span></p>
+                <p>OEE: <span className="font-bold">{ceoHealth.avgOee?.toFixed(1) ?? 0}%</span></p>
+                <p>Open FMEA: <span className="font-bold">{ceoHealth.openFmeaCount ?? 0}</span></p>
+                <p>Budget Variance: <span className="font-bold">{ceoHealth.budgetVariancePercent?.toFixed(1) ?? 0}%</span></p>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">Loading...</p>
@@ -1780,11 +1790,11 @@ function ArchitectureTab() {
         <Card>
           <CardHeader><CardTitle className="text-base">CTO Health</CardTitle></CardHeader>
           <CardContent>
-            {ctoHealth.data ? (
+            {ctoHealth ? (
               <div className="space-y-1 text-sm">
-                <p>CPU: <span className="font-bold">{ctoHealth.data.cpu?.toFixed(0) ?? 0}%</span></p>
-                <p>Memory: <span className="font-bold">{ctoHealth.data.memory?.toFixed(0) ?? 0}%</span></p>
-                <p>Uptime: <span className="font-bold">{ctoHealth.data.uptime ?? "N/A"}</span></p>
+                <p>CPU: <span className="font-bold">{ctoHealth.cpu?.toFixed(0) ?? 0}%</span></p>
+                <p>Memory: <span className="font-bold">{ctoHealth.memory?.toFixed(0) ?? 0}%</span></p>
+                <p>Uptime: <span className="font-bold">{ctoHealth.uptime ?? "N/A"}</span></p>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">Loading...</p>

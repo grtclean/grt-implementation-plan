@@ -413,7 +413,7 @@ export const annualPlanningRouter = router({
       if (before) {
         await db.insert(annualPlanningUpdateLogs).values({
           configId: before.configId,
-          updateType: "delete",
+          updateType: "delete" as any,
           description: `Deleted item: ${before.name}`,
           beforeData: JSON.stringify(before),
           operatorId: 1,

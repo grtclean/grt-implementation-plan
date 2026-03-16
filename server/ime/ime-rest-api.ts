@@ -4,7 +4,7 @@
  */
 
 import { Router, Request, Response, NextFunction } from "express";
-import * as imeService from "./ime.service";
+import * as imeService from "./index";
 import { requireDb } from "../db";
 import { sql } from "drizzle-orm";
 

@@ -485,7 +485,7 @@ function EmployeeTab({ period }: { period: string }) {
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-lg font-bold">{profile.data.user?.name ?? "—"}</h3>
-                        <p className="text-xs text-muted-foreground">{profile.data.user?.employeeId} · {profile.data.user?.department} · {profile.data.user?.position}</p>
+                        <p className="text-xs text-muted-foreground">{(profile.data.user as any)?.employeeId} · {(profile.data.user as any)?.department} · {(profile.data.user as any)?.position}</p>
                       </div>
                       {profile.data.arenaRank && (
                         <div className="text-center">
@@ -885,7 +885,7 @@ function ReviewTab({ period, periodType }: { period: string; periodType: string 
 // ══════════════════════════════════════════════════════════════════
 // Shared Components
 // ══════════════════════════════════════════════════════════════════
-function MetricCard({ icon, label, value, sub, color }: { icon: React.ReactNode; label: string; value: string; sub?: string; color?: string }) {
+function MetricCard({ icon, label, value, sub, color }: { icon: React.ReactNode; label: string; value: string | number; sub?: string; color?: string }) {
   const colorCls = color === "green" ? "text-green-600" : color === "red" ? "text-red-600" : color === "orange" ? "text-orange-500" : color === "blue" ? "text-blue-600" : "";
   return (
     <Card>

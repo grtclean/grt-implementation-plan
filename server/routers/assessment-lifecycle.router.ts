@@ -34,8 +34,7 @@ const rulesRouter = router({
     .input(z.object({ ruleCode: z.string() }))
     .query(({ input }) => svc.getTriggerRule(input.ruleCode)),
 
-  upsert: protectedProcedure
-    .use(managePerm)
+  upsert: managePerm
     .input(z.object({
       ruleCode: z.string().max(80),
       ruleName: z.string().max(200),
@@ -59,8 +58,7 @@ const rulesRouter = router({
     }))
     .mutation(({ input, ctx }) => svc.upsertTriggerRule({ ...input, createdBy: ctx.user.id })),
 
-  toggle: protectedProcedure
-    .use(managePerm)
+  toggle: managePerm
     .input(z.object({
       ruleCode: z.string(),
       isActive: z.boolean(),
@@ -72,8 +70,7 @@ const rulesRouter = router({
 
 const triggersRouter = router({
   /** Evaluate if an employee should be assessed (used by lifecycle events) */
-  evaluate: protectedProcedure
-    .use(hrPerm)
+  evaluate: hrPerm
     .input(z.object({
       employeeId: z.number().int().positive(),
       triggerType: z.string(),
@@ -112,8 +109,7 @@ const workflowsRouter = router({
     .input(z.object({ workflowId: z.number().int().positive() }))
     .query(({ input }) => svc.getWorkflowDetail(input.workflowId)),
 
-  updateRound: protectedProcedure
-    .use(hrPerm)
+  updateRound: hrPerm
     .input(z.object({
       roundId: z.number().int().positive(),
       status: z.string().optional(),
@@ -143,8 +139,7 @@ const workflowsRouter = router({
       return svc.updateRound(roundId, updates);
     }),
 
-  completeRound: protectedProcedure
-    .use(hrPerm)
+  completeRound: hrPerm
     .input(z.object({
       workflowId: z.number().int().positive(),
       roundNumber: z.number().int().positive(),
@@ -163,8 +158,7 @@ const workflowsRouter = router({
 // ── Enforcement Actions ──────────────────────────────────
 
 const enforcementsRouter = router({
-  list: protectedProcedure
-    .use(hrPerm)
+  list: hrPerm
     .input(z.object({
       employeeId: z.number().int().positive().optional(),
       status: z.string().optional(),
@@ -176,8 +170,7 @@ const enforcementsRouter = router({
   myActive: protectedProcedure
     .query(({ ctx }) => svc.getMyEnforcements(ctx.user.id)),
 
-  lift: protectedProcedure
-    .use(managePerm)
+  lift: managePerm
     .input(z.object({
       enforcementId: z.number().int().positive(),
       reason: z.string().min(1),
@@ -206,8 +199,7 @@ const benchmarksRouter = router({
     }).optional())
     .query(({ input }) => svc.listBenchmarks(input ?? undefined)),
 
-  upsert: protectedProcedure
-    .use(managePerm)
+  upsert: managePerm
     .input(z.object({
       positionKey: z.string().max(80),
       period: z.string().max(7),
@@ -232,8 +224,7 @@ const dashboardRouter = router({
 
 const lifecycleRouter = router({
   /** Trigger onboarding assessment (called when employee enters G2) */
-  onboard: protectedProcedure
-    .use(hrPerm)
+  onboard: hrPerm
     .input(z.object({
       employeeId: z.number().int().positive(),
       positionKey: z.string(),
@@ -246,8 +237,7 @@ const lifecycleRouter = router({
     })),
 
   /** Trigger regularization assessment (called at G7) */
-  regularize: protectedProcedure
-    .use(hrPerm)
+  regularize: hrPerm
     .input(z.object({
       employeeId: z.number().int().positive(),
       positionKey: z.string(),
@@ -263,8 +253,7 @@ const lifecycleRouter = router({
     })),
 
   /** Trigger position transfer assessment */
-  transferPosition: protectedProcedure
-    .use(hrPerm)
+  transferPosition: hrPerm
     .input(z.object({
       employeeId: z.number().int().positive(),
       newPositionKey: z.string(),

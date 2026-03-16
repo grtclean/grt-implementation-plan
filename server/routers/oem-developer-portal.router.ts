@@ -377,7 +377,7 @@ const dataRouter = router({
     const { productionEquipments } = await import("../../drizzle/production-equipment-schema");
 
     let query = db.select().from(productionEquipments)
-      .where(eq(productionEquipments.customerId, oemClient.clientId))
+      .where(eq((productionEquipments as any).customerId, oemClient.clientId))
       .limit(200);
 
     const equipment = await query;

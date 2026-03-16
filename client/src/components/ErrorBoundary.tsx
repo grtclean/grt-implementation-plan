@@ -44,7 +44,7 @@ export function clearErrorLogs() {
 
 export function logErrorToServer(errorLog: typeof errorLogs[0]) {
   // 可以在这里添加发送到服务器的逻辑
-  console.log("[ErrorLog]", errorLog);
+  console.info("[ErrorLog]", errorLog);
   
   // 如果需要发送到服务器，可以调用API
   // fetch('/api/logs/error', { method: 'POST', body: JSON.stringify(errorLog) })

@@ -18,7 +18,7 @@ const log = createChildLogger("workstation-preset");
 // ── Get preset for current employee ──────────────────────
 
 export async function getMyPreset(employeeId: number) {
-  const db = requireDb();
+  const db = await requireDb();
   const rows = await db
     .select()
     .from(workstationPresets)
@@ -30,7 +30,7 @@ export async function getMyPreset(employeeId: number) {
 // ── Get preset by employee code ──────────────────────────
 
 export async function getPresetByCode(code: string) {
-  const db = requireDb();
+  const db = await requireDb();
   const rows = await db
     .select()
     .from(workstationPresets)
@@ -42,7 +42,7 @@ export async function getPresetByCode(code: string) {
 // ── List all presets (admin) ─────────────────────────────
 
 export async function listPresets(opts?: { role?: string; buCode?: string; limit?: number }) {
-  const db = requireDb();
+  const db = await requireDb();
   const limit = Math.min(opts?.limit ?? 200, 500);
   const conditions: ReturnType<typeof eq>[] = [];
   if (opts?.role) conditions.push(eq(workstationPresets.systemRole, opts.role));
@@ -81,7 +81,7 @@ export async function upsertPreset(preset: {
   salaryGrade?: string | null;
   isCustomized?: boolean;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
 
   // Check if preset already exists
   const existing = await db
@@ -132,7 +132,7 @@ export async function seedAllPresets(presets: Array<{
   kpiScore?: string | null;
   salaryGrade?: string | null;
 }>) {
-  const db = requireDb();
+  const db = await requireDb();
   let created = 0;
   let updated = 0;
 
@@ -168,7 +168,7 @@ export async function updateMyPreset(employeeId: number, updates: {
   defaultLandingPage?: string;
   widgetConfig?: Array<{ id: string; title: string; size: string; position: number }>;
 }) {
-  const db = requireDb();
+  const db = await requireDb();
   await db
     .update(workstationPresets)
     .set({
@@ -184,7 +184,7 @@ export async function updateMyPreset(employeeId: number, updates: {
 // ── Get summary stats (admin) ────────────────────────────
 
 export async function getPresetStats() {
-  const db = requireDb();
+  const db = await requireDb();
   const rows = await db
     .select({
       systemRole: workstationPresets.systemRole,

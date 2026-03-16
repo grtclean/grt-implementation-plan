@@ -65,8 +65,7 @@ const budgetRouter = router({
     }),
 
   /** Create/update budget (ON CONFLICT client_id+year) */
-  upsert: protectedProcedure
-    .use(writeBudget)
+  upsert: writeBudget
     .input(z.object({
       clientId: z.number(),
       year: z.number().int(),
@@ -129,8 +128,7 @@ const budgetRouter = router({
     }),
 
   /** Delete budget record */
-  delete: protectedProcedure
-    .use(writeBudget)
+  delete: writeBudget
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -237,8 +235,7 @@ const budgetRouter = router({
     }),
 
   /** Batch-update pending→overdue past deadline */
-  markOverdue: protectedProcedure
-    .use(writeBudget)
+  markOverdue: writeBudget
     .mutation(async () => {
       const db = await requireDb();
       const result = await db.execute(sql`
@@ -259,8 +256,7 @@ const budgetRouter = router({
 
 const tacticalRouter = router({
   /** Create bidding strategy for project */
-  create: protectedProcedure
-    .use(writeStrategy)
+  create: writeStrategy
     .input(z.object({
       projectId: z.number(),
       opportunityId: z.number().optional(),
@@ -299,8 +295,7 @@ const tacticalRouter = router({
     }),
 
   /** Update strategy fields */
-  update: protectedProcedure
-    .use(writeStrategy)
+  update: writeStrategy
     .input(z.object({
       id: z.number(),
       projectBackground: z.string().optional(),
@@ -412,8 +407,7 @@ const tacticalRouter = router({
     }),
 
   /** Delete strategy */
-  delete: protectedProcedure
-    .use(writeStrategy)
+  delete: writeStrategy
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -478,13 +472,14 @@ const coachRouter = router({
       // Fire async AI coaching task
       let taskId: number | null = null;
       try {
-        taskId = await submitTask("SALES_COACH_FEEDBACK", {
+        const result = await submitTask("SALES_COACH_FEEDBACK", {
           userId,
           logId: logRow.id,
           logDate: input.logDate,
-          buCode: ctx.bu?.code ?? null,
+          buCode: ctx.bu?.buCode ?? null,
           clientsVisited: input.clientsVisited ?? 0,
-        });
+        }, String(ctx.user.id));
+        taskId = result.taskId;
         log.info({ userId, logId: logRow.id, taskId }, "Sales coach task submitted");
       } catch (err) {
         log.error({ err }, "Failed to submit sales coach task");

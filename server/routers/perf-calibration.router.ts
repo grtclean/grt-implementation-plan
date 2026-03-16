@@ -933,7 +933,7 @@ const incentiveRouter = router({
         justification: input.justification,
         awardedBy: ctx.user.id,
         awardedByName: ctx.user.name ?? "System",
-      }).returning();
+      } as any).returning();
 
       log.info({ awardId: award.id, employee: input.employeeId, type: catalog.code, amount: input.amount }, "Incentive awarded");
       return { awardId: award.id, catalogItem: catalog.name };

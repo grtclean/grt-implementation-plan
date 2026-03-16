@@ -514,6 +514,7 @@ function ContentBlockCard({ block }: { block: any }) {
 }
 
 function AssessmentCard({ assessment }: { assessment: any }) {
+  const { t } = useLanguage();
   return (
     <Card className="bg-background/30">
       <CardContent className="p-3">

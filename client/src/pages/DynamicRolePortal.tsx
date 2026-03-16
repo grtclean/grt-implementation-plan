@@ -583,10 +583,10 @@ function PeWorkbench({ user }: { user: IUserContext }) {
 
 function WorkerTerminal({ user }: { user: IUserContext }) {
   // 报工表单状态
-  const [workLogs, setWorkLogs] = useState([
-    { id: 1, task: "WO-M12-001 泵组总装 第 1 台", step: "T1 上料定位", plannedMin: 8, actualMin: 0, status: "active" as const, pokaYoke: "" },
-    { id: 2, task: "WO-M12-001 泵组总装 第 1 台", step: "T2 预浸泡清洗", plannedMin: 5, actualMin: 0, status: "queued" as const, pokaYoke: "" },
-    { id: 3, task: "WO-M12-001 泵组总装 第 1 台", step: "T4 柱塞泵装配", plannedMin: 20, actualMin: 0, status: "queued" as const, pokaYoke: "密封胶涂覆防呆：必须通过红外检测后方可流转" },
+  const [workLogs, setWorkLogs] = useState<{ id: number; task: string; step: string; plannedMin: number; actualMin: number; status: string; pokaYoke: string }[]>([
+    { id: 1, task: "WO-M12-001 泵组总装 第 1 台", step: "T1 上料定位", plannedMin: 8, actualMin: 0, status: "active", pokaYoke: "" },
+    { id: 2, task: "WO-M12-001 泵组总装 第 1 台", step: "T2 预浸泡清洗", plannedMin: 5, actualMin: 0, status: "queued", pokaYoke: "" },
+    { id: 3, task: "WO-M12-001 泵组总装 第 1 台", step: "T4 柱塞泵装配", plannedMin: 20, actualMin: 0, status: "queued", pokaYoke: "密封胶涂覆防呆：必须通过红外检测后方可流转" },
   ]);
 
   const [timerRunning, setTimerRunning] = useState(false);
@@ -802,7 +802,7 @@ function WorkerTerminal({ user }: { user: IUserContext }) {
 // ═══════════════════════════════════════════════════════════════════
 
 function CfoControlCenter({ user }: { user: IUserContext }) {
-  const [approvals, setApprovals] = useState([
+  const [approvals, setApprovals] = useState<{ id: string; title: string; docNo: string; amount: number; category: string; project: string; requester: string; status: string; note: string }[]>([
     {
       id: "ap1",
       title: "美利信 M12 海外现场厂务确认单",

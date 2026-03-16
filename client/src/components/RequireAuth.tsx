@@ -148,15 +148,6 @@ export default function RequireAuth({ children }: RequireAuthProps) {
   const { isAuthenticated, loading, refresh } = useAuth();
   const [inIframe] = useState(() => isInIframe());
 
-  // Debug: log route guard state on every render
-  if (!isPublicPage) {
-    console.log("🧭 [GRT Route Guard]", {
-      path: currentPath,
-      isAuthenticated,
-      loading,
-      inIframe,
-    });
-  }
   const [checkCount, setCheckCount] = useState(0);
   const [loginSuccessReceived, setLoginSuccessReceived] = useState(false);
 
@@ -172,7 +163,7 @@ export default function RequireAuth({ children }: RequireAuthProps) {
     if (isLocalAuth || isPublicPage) return;
     const handleMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === "LOGIN_SUCCESS") {
-        console.log("[RequireAuth] Received LOGIN_SUCCESS message", event.data);
+        console.info("[RequireAuth] Received LOGIN_SUCCESS message", event.data);
         if (event.data.token) {
           try {
             localStorage.setItem(SESSION_STORAGE_KEY, event.data.token);

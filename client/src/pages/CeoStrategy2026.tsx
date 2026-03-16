@@ -134,7 +134,7 @@ function computeGoalPct(goal: any): number {
 
 export default function CeoStrategy2026() {
   const { t } = useLanguage();
-  const { role, level } = useUserProfile();
+  const { currentUserRole: role, level } = useUserProfile();
   const canManage = level >= 5; // director+ can manage strategy
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");

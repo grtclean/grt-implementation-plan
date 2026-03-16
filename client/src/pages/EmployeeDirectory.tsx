@@ -637,7 +637,7 @@ export default function EmployeeDirectory() {
   const [viewMode, setViewMode] = useState<"dept" | "category">("dept");
 
   // Role-based editing
-  const { level, role } = useUserProfile();
+  const { level, currentUserRole: role } = useUserProfile();
   const canEdit = level >= 5 || role === "hr_manager";
 
   // Backend data fetch — merge with static TSDCKL reference data

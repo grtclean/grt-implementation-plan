@@ -97,7 +97,7 @@ vi.mock("../../drizzle/schema", () => ({
   users: { id: "id" },
 }));
 
-const mockSubmitTask = vi.fn(async () => 42);
+const mockSubmitTask = vi.fn(async () => ({ taskId: 42 }));
 vi.mock("../services/task-worker.service", () => ({
   submitTask: (...args: any[]) => mockSubmitTask(...args),
 }));

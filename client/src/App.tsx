@@ -597,6 +597,7 @@ function Router() {
     || STANDALONE_PREFIXES.some(p => location.startsWith(p));
 
   const routes = (
+    <ErrorBoundary level="page" resetKeys={[location]}>
     <Suspense fallback={<LazyFallback />}>
     <Switch>
       {/* GRT Cloud Showcase Portal (全球数字云展厅) */}
@@ -2038,6 +2039,7 @@ function Router() {
       <Route component={NotFound} />
     </Switch>
     </Suspense>
+    </ErrorBoundary>
   );
 
   // Standalone pages render without sidebar; all others get persistent Layout

@@ -276,7 +276,7 @@ const milestoneRouter = router({
         ...rest,
         completedAt: completedAt ? new Date(completedAt) : undefined,
         updatedAt: new Date(),
-      }).where(eq(lifecycleMilestones.id, id));
+      } as any).where(eq(lifecycleMilestones.id, id));
       return { success: true };
     }),
 
@@ -447,9 +447,9 @@ const integrationRouter = router({
       return db.select().from(knowledgeRoleRequirements)
         .where(and(
           eq(knowledgeRoleRequirements.role, input.role),
-          lte(knowledgeRoleRequirements.skillLevel, level),
+          lte((knowledgeRoleRequirements as any).skillLevel, level),
         ))
-        .orderBy(asc(knowledgeRoleRequirements.skillLevel))
+        .orderBy(asc((knowledgeRoleRequirements as any).skillLevel))
         .limit(100);
     }),
 
@@ -492,7 +492,7 @@ const dashboardRouter = router({
       db.select().from(knowledgeLearningProgress).where(eq(knowledgeLearningProgress.userId, userId)).limit(50),
     ]);
     const completedMilestones = milestones.filter(m => m.status === "completed").length;
-    const totalLearningMinutes = learningProgress.reduce((acc, p) => acc + (p.studyMinutes ?? 0), 0);
+    const totalLearningMinutes = learningProgress.reduce((acc, p) => acc + (p.totalStudyMinutes ?? 0), 0);
     return {
       journey: journey[0] ?? null,
       milestones,

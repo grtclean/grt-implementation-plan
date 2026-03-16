@@ -551,7 +551,8 @@ function SalaryField({ label, value, highlight }: { label: string; value: string
 
 export default function PersonalDashboard() {
   const { t } = useLanguage();
-  const { profile } = useUserProfile();
+  const { roleConfig, currentUserRole } = useUserProfile();
+  const profile = { name: roleConfig.label, role: currentUserRole };
   const greeting = getGreeting(t);
   const GreetingIcon = greeting.icon;
 

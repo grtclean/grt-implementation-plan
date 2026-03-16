@@ -25,7 +25,11 @@ export type RouterDomain =
   | "ai"
   | "platform"
   | "meeting"
-  | "service";
+  | "service"
+  | "management"
+  | "rnd"
+  | "analytics"
+  | "security";
 
 export type RouterAuthLevel = "public" | "protected" | "permission" | "admin";
 export type RouterStatus = "production" | "beta" | "stub";

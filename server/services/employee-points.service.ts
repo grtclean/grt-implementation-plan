@@ -1243,15 +1243,15 @@ async function publishMilestoneAnnouncement(
   // Also post to company community feed
   try {
     await postToCommunity({
-      postType: tpl.priority === "critical" || tpl.priority === "high" ? "announcement" : "notice",
+      postType: (tpl.priority as string) === "critical" || tpl.priority === "high" ? "announcement" : "notice",
       title: tpl.title,
       content: tpl.message,
       scope: tpl.scope,
       priority: tpl.priority,
       sourceType: "milestone_announcement",
       sourceId: `emp_${employeeId}_threshold_${threshold}`,
-      isPinned: tpl.priority === "critical",
-      requiresAck: tpl.priority === "critical" || tpl.priority === "high",
+      isPinned: (tpl.priority as string) === "critical",
+      requiresAck: (tpl.priority as string) === "critical" || tpl.priority === "high",
     });
   } catch (e) {
     log.warn({ employeeId, scenario, error: e }, "Failed to post milestone to community (non-fatal)");
@@ -2076,10 +2076,11 @@ export async function checkEliteEligibility(employeeId: number) {
   // 3. Skill level
   let skillLevel: string | null = null;
   try {
-    const [emp] = await db.execute(sql.raw(`
+    const result = await db.execute(sql.raw(`
       SELECT skill_level FROM employees WHERE id = ${employeeId} LIMIT 1
     `));
-    skillLevel = (emp as any)?.skill_level ?? null;
+    const emp = (result as any).rows?.[0] ?? (result as any)[0];
+    skillLevel = emp?.skill_level ?? null;
   } catch { /* ignore */ }
   const skillOk = isSkillLevelEligible(skillLevel);
 
@@ -2361,10 +2362,11 @@ export async function runMonthlyEliteReview(period: string) {
     // Get current skill level
     let skillLevel: string | null = null;
     try {
-      const [emp] = await db.execute(sql.raw(
+      const result = await db.execute(sql.raw(
         `SELECT skill_level FROM employees WHERE id = ${holder.employeeId} LIMIT 1`
       ));
-      skillLevel = (emp as any)?.skill_level ?? null;
+      const emp = (result as any).rows?.[0] ?? (result as any)[0];
+      skillLevel = emp?.skill_level ?? null;
     } catch { /* ignore */ }
 
     // Get previous review for consecutive tracking

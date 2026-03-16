@@ -1234,8 +1234,7 @@ export const manufacturingTranslations: TranslationModule = {
     "manufacturing.inventory.actionRushOrder": "加急采购",
     "manufacturing.inventory.actionHold": "持有",
     "manufacturing.inventory.actionMove": "调拨",
-    // === Equipment Compliance ===
-    "manufacturing.equipCompliance.title": "设备合规追踪",
+    // === Equipment Compliance (extra) ===
     "manufacturing.equipCompliance.comingSoon": "即将上线",
     // === CCD Integration ===
     "manufacturing.ccd.title": "CCD视觉检测集成",
@@ -2556,8 +2555,7 @@ export const manufacturingTranslations: TranslationModule = {
     "manufacturing.inventory.actionRushOrder": "RUSH ORDER",
     "manufacturing.inventory.actionHold": "HOLD",
     "manufacturing.inventory.actionMove": "MOVE",
-    // === Equipment Compliance ===
-    "manufacturing.equipCompliance.title": "Equipment Compliance Tracker",
+    // === Equipment Compliance (extra) ===
     "manufacturing.equipCompliance.comingSoon": "Coming soon",
     // === CCD Integration ===
     "manufacturing.ccd.title": "CCD Vision Inspection Integration",
@@ -3906,8 +3904,7 @@ export const manufacturingTranslations: TranslationModule = {
     "manufacturing.inventory.actionRushOrder": "EILBESTELLUNG",
     "manufacturing.inventory.actionHold": "HALTEN",
     "manufacturing.inventory.actionMove": "UMLAGERN",
-    // === Equipment Compliance ===
-    "manufacturing.equipCompliance.title": "Geraete-Compliance-Tracker",
+    // === Equipment Compliance (extra) ===
     "manufacturing.equipCompliance.comingSoon": "Demnachst verfuegbar",
     // === CCD Integration ===
     "manufacturing.ccd.title": "CCD-Sichtpruefungsintegration",
@@ -5256,8 +5253,7 @@ export const manufacturingTranslations: TranslationModule = {
     "manufacturing.inventory.actionRushOrder": "COMMANDE URGENTE",
     "manufacturing.inventory.actionHold": "CONSERVER",
     "manufacturing.inventory.actionMove": "TRANSFERER",
-    // === Equipment Compliance ===
-    "manufacturing.equipCompliance.title": "Suivi de conformite des equipements",
+    // === Equipment Compliance (extra) ===
     "manufacturing.equipCompliance.comingSoon": "Bientot disponible",
     // === CCD Integration ===
     "manufacturing.ccd.title": "Integration inspection visuelle CCD",

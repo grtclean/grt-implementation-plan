@@ -387,7 +387,7 @@ function MaterialsTab() {
                     <p className="text-[11px] text-muted-foreground font-mono mt-0.5">{m.code}</p>
                   </div>
                 </div>
-                {!m.isPublic && <Lock className="h-4 w-4 text-amber-500 shrink-0" title="需要授权" />}
+                {!m.isPublic && <Lock className="h-4 w-4 text-amber-500 shrink-0" aria-label="需要授权" />}
               </div>
               <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{m.description}</p>
               <div className="flex items-center gap-1.5 mt-3 flex-wrap">

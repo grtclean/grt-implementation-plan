@@ -15,7 +15,7 @@ import { getSandboxIOConfig, M365_SERVICE_LABELS, type SandboxEnhancedConfig, ty
 import SandboxFileImport from "./SandboxFileImport";
 
 // ── M365 icon map ──
-const M365_ICONS: Record<M365Service, React.ElementType> = {
+const M365_ICONS: Record<M365Service, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   outlook: Mail,
   teams: MessageSquare,
   planner: KanbanSquare,
@@ -26,7 +26,7 @@ const M365_ICONS: Record<M365Service, React.ElementType> = {
 
 // ── Section Toggle ──
 function SectionToggle({ label, icon: Icon, open, onToggle, count, color }: {
-  label: string; icon: React.ElementType; open: boolean; onToggle: () => void; count: number; color?: string;
+  label: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; open: boolean; onToggle: () => void; count: number; color?: string;
 }) {
   return (
     <button

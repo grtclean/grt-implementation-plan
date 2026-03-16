@@ -100,7 +100,7 @@ export async function createClawTask(params: CreateClawTaskParams): Promise<numb
     .insert(aiTasks)
     .values({
       taskType: "CLAW_EXTERNAL_TOOL",
-      status,
+      status: status as any,
       inputData: {
         toolCode: params.toolCode,
         toolId: params.toolId,

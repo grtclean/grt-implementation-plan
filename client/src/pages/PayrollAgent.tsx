@@ -327,7 +327,7 @@ export default function PayrollAgent() {
                       </Button>
                     </div>
 
-                    {preview && !preview.error && (
+                    {preview && !(preview as any).error && (
                       <div className="space-y-4">
                         {preview.subject && (
                           <div className="text-sm">
@@ -390,9 +390,9 @@ export default function PayrollAgent() {
                       </div>
                     )}
 
-                    {preview?.error && (
+                    {(preview as any)?.error && (
                       <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                        {preview.error}
+                        {(preview as any).error}
                       </div>
                     )}
                   </TabsContent>
@@ -531,7 +531,7 @@ function NotificationResult({ data, dryRun }: { data: any; dryRun: boolean }) {
 
 /* ---- Status Card Sub-Component ---- */
 function StatusCard({ icon: Icon, label, value, accent, bgAccent }: {
-  icon: React.ElementType; label: string; value: number | string; accent?: string; bgAccent?: string;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }>; label: string; value: number | string; accent?: string; bgAccent?: string;
 }) {
   return (
     <Card className={bgAccent}>

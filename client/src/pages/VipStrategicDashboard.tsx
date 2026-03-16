@@ -210,7 +210,7 @@ function StatCard({
   editMode,
   color = "cyan",
 }: {
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }>;
   value: string;
   label: string;
   editMode: boolean;
@@ -724,7 +724,7 @@ function SectionHeader({
   title,
   color,
 }: {
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }>;
   title: string;
   color: "amber" | "cyan" | "purple" | "emerald";
 }) {

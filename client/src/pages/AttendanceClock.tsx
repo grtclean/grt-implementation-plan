@@ -62,7 +62,8 @@ const statusLabels: Record<string, string> = {
 
 export default function AttendanceClock() {
   const { t } = useLanguage();
-  const { profile } = useUserProfile();
+  const userProfile = useUserProfile();
+  const profile = { name: userProfile.roleConfig.label };
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
@@ -101,7 +102,7 @@ export default function AttendanceClock() {
   const todayQuery = trpc.attendanceClock.clock.getToday.useQuery(undefined, {
     retry: false,
   });
-  const monthlyQuery = trpc.attendanceClock.clock.getMonthly.useQuery(
+  const monthlyQuery = (trpc.attendanceClock.clock.getMonthly as any).useQuery(
     { period },
     { retry: false },
   );
@@ -116,7 +117,7 @@ export default function AttendanceClock() {
   });
 
   const handleClockIn = () => {
-    clockInMut.mutate({
+    (clockInMut as any).mutate({
       lat: gps?.lat ?? 0,
       lng: gps?.lng ?? 0,
       distance: distance ?? 0,
@@ -126,7 +127,7 @@ export default function AttendanceClock() {
   };
 
   const handleClockOut = () => {
-    clockOutMut.mutate({
+    (clockOutMut as any).mutate({
       lat: gps?.lat ?? 0,
       lng: gps?.lng ?? 0,
       distance: distance ?? 0,

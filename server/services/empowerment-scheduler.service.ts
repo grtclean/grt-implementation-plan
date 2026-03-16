@@ -82,9 +82,9 @@ export async function processEmpowermentDailyBriefings(): Promise<number> {
 
     // Get all active employees
     const employees = await db
-      .select({ id: hrmEmployees.id, name: hrmEmployees.name, role: hrmEmployees.role })
+      .select({ id: hrmEmployees.id, name: hrmEmployees.name, position: hrmEmployees.position })
       .from(hrmEmployees)
-      .where(eq(hrmEmployees.status, "active"))
+      .where(eq(hrmEmployees.status, "active" as any))
       .limit(5000);
 
     let generated = 0;
@@ -187,7 +187,7 @@ export async function processEmpowermentMonthlyReckoning(): Promise<number> {
     const employees = await db
       .select({ id: hrmEmployees.id, name: hrmEmployees.name })
       .from(hrmEmployees)
-      .where(eq(hrmEmployees.status, "active"))
+      .where(eq(hrmEmployees.status, "active" as any))
       .limit(5000);
 
     let generated = 0;

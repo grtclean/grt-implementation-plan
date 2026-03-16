@@ -179,7 +179,7 @@ const departmentRouter = router({
         .from(hrmMonthlyPerformanceReviews)
         .innerJoin(users, eq(users.id, hrmMonthlyPerformanceReviews.userId))
         .where(and(
-          eq(users.department, input.department),
+          eq((users as any).department, input.department),
           eq(hrmMonthlyPerformanceReviews.monthDate, input.period),
         ))
         .orderBy(desc(hrmMonthlyPerformanceReviews.overallKpiScore))
@@ -208,7 +208,7 @@ const departmentRouter = router({
         .from(employeeTaskMetrics)
         .innerJoin(users, eq(users.id, employeeTaskMetrics.userId))
         .where(and(
-          eq(users.department, input.department),
+          eq((users as any).department, input.department),
           eq(employeeTaskMetrics.period, input.period),
         ))
         .orderBy(desc(employeeTaskMetrics.avgQualityScore))
@@ -234,7 +234,7 @@ const departmentRouter = router({
         .from(employeeRewardsPenalties)
         .innerJoin(users, eq(users.id, employeeRewardsPenalties.userId))
         .where(and(
-          eq(users.department, input.department),
+          eq((users as any).department, input.department),
           eq(employeeRewardsPenalties.period, input.period),
         ))
         .orderBy(desc(employeeRewardsPenalties.issuedAt))
@@ -260,13 +260,13 @@ const employeeRouter = router({
           .where(and(eq(employeeTaskMetrics.userId, input.userId), eq(employeeTaskMetrics.period, input.period)))
           .limit(1),
         db.select().from(perfCompositeScores)
-          .where(and(eq(perfCompositeScores.employeeId, String(input.userId)), eq(perfCompositeScores.period, input.period)))
+          .where(and(eq(perfCompositeScores.employeeId, input.userId), eq(perfCompositeScores.period, input.period)))
           .limit(1),
         db.select().from(employeeRewardsPenalties)
           .where(and(eq(employeeRewardsPenalties.userId, input.userId), eq(employeeRewardsPenalties.period, input.period)))
           .limit(100),
         db.select().from(globalArenaRankings)
-          .where(and(eq(globalArenaRankings.entityId, String(input.userId)), eq(globalArenaRankings.period, input.period)))
+          .where(and(eq(globalArenaRankings.entityId, input.userId), eq(globalArenaRankings.period, input.period)))
           .limit(1),
       ]);
       return {
@@ -331,7 +331,7 @@ const employeeRouter = router({
     .input(z.object({ userId: z.number(), period: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       assertExecutiveRole(ctx.user?.role);
-      const conditions = [eq(perf360Feedback.targetEmployeeId, String(input.userId))];
+      const conditions = [eq(perf360Feedback.targetEmployeeId, input.userId)];
       if (input.period) conditions.push(eq(perf360Feedback.period, input.period));
       return db
         .select({
@@ -359,13 +359,13 @@ const employeeRouter = router({
         .select({
           id: users.id,
           name: users.name,
-          employeeId: users.employeeId,
-          department: users.department,
-          position: users.position,
+          employeeId: (users as any).employeeId,
+          department: (users as any).department,
+          position: (users as any).position,
           role: users.role,
         })
         .from(users)
-        .where(sql`(${users.name} ILIKE ${'%' + input.query + '%'} OR ${users.employeeId} ILIKE ${'%' + input.query + '%'} OR ${users.department} ILIKE ${'%' + input.query + '%'})`)
+        .where(sql`(${users.name} ILIKE ${'%' + input.query + '%'} OR ${(users as any).employeeId} ILIKE ${'%' + input.query + '%'} OR ${(users as any).department} ILIKE ${'%' + input.query + '%'})`)
         .limit(input.limit);
     }),
 });
@@ -395,15 +395,15 @@ const projectRouter = router({
     .query(async ({ ctx, input }) => {
       assertExecutiveRole(ctx.user?.role);
       const conditions = [];
-      if (input.year) conditions.push(eq(okrObjectives.year, input.year));
-      if (input.quarter) conditions.push(eq(okrObjectives.quarter, input.quarter));
-      if (input.department) conditions.push(eq(okrObjectives.ownerDepartment, input.department));
+      if (input.year) conditions.push(eq((okrObjectives as any).year, input.year));
+      if (input.quarter) conditions.push(eq((okrObjectives as any).quarter, input.quarter));
+      if (input.department) conditions.push(eq((okrObjectives as any).ownerDepartment, input.department));
 
       const objectives = await db
         .select()
         .from(okrObjectives)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(okrObjectives.year))
+        .orderBy(desc((okrObjectives as any).year))
         .limit(50);
 
       // Fetch key results for each objective
