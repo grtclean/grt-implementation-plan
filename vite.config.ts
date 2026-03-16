@@ -114,11 +114,8 @@ export default defineConfig({
             return 'app-ui';
           }
           // NOTE: Do NOT chunk client/src/pages/ — React.lazy() handles code-splitting
-          // NOTE: Do NOT chunk client/src/components/ — let shared deps be deduplicated naturally
-          // Catch remaining node_modules
-          if (id.includes('node_modules')) {
-            return 'vendor-misc';
-          }
+          // NOTE: Do NOT catch-all remaining node_modules — let Vite split naturally
+          // based on which lazy routes import them (enables proper Shiki lazy-loading)
         },
       },
     },
