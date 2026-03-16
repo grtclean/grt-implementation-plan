@@ -7,6 +7,7 @@ import { requireDb } from "./connection";
 import {
   annualPlanningItems, annualPlanningDependencies,
 } from "../../drizzle/schema";
+import { getItemDependencies } from "./planning-deps";
 
 // ============================================
 // v1.3.11 - Critical Path Calculation

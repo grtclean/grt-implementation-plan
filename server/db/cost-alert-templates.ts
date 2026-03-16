@@ -7,6 +7,7 @@ import { requireDb } from "./connection";
 import {
   costAlertRules, costAlertRuleTemplates, CostAlertRuleTemplate, InsertCostAlertRuleTemplate,
 } from "../../drizzle/schema";
+import { getCostAlertRuleById } from "./agenda";
 
 // ============================================
 // v1.3.11 - Cost Alert Rule Templates

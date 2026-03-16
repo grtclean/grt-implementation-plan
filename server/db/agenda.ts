@@ -5,6 +5,10 @@
 import { eq, desc, or, and } from "drizzle-orm";
 import { requireDb } from "./connection";
 import { createChildLogger } from '../lib/logger';
+import { saveRuleVersion } from "./cost-alert-versions";
+import { getProjectCostSummary } from "./cost";
+import { getProjectById } from "./projects";
+import { getEnabledWebhooksByEvent, logWebhookDelivery } from "./webhooks";
 
 const log = createChildLogger("db");
 import {
@@ -892,7 +896,7 @@ export async function checkProjectCostAlerts(projectId: number, sendWebhook: boo
       try {
         const enabledWebhooks = await getEnabledWebhooksByEvent("cost_alert");
         if (enabledWebhooks.length > 0) {
-          const webhookModule = await import('./webhook');
+          const webhookModule = await import('../webhook');
           const sendFn = (webhookModule as any).sendCostAlertWebhook || (webhookModule as any).broadcastWebhookMessage;
           if (sendFn) await sendFn(
             enabledWebhooks.map((c: WebhookConfig) => ({
@@ -1072,7 +1076,7 @@ export async function processMeetingReminders() {
       if (reminder.reminderType === 'system' || reminder.reminderType === 'both') {
         // Use the built-in notification system
         try {
-          const { notifyOwner } = await import('./_core/notification');
+          const { notifyOwner } = await import('../_core/notification');
           await notifyOwner({
             title: notificationTitle,
             content: notificationContent
@@ -1088,7 +1092,7 @@ export async function processMeetingReminders() {
       try {
         const webhookConfigs = await getEnabledWebhooksByEvent('meeting_reminder');
         if (webhookConfigs.length > 0) {
-          const { broadcastWebhookMessage } = await import('./webhook');
+          const { broadcastWebhookMessage } = await import('../webhook');
           const webhookResult = await broadcastWebhookMessage(
             webhookConfigs.map(c => ({
               type: c.type as 'wecom' | 'dingtalk' | 'feishu' | 'custom',
