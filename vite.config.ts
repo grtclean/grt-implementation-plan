@@ -48,22 +48,8 @@ export default defineConfig({
           if (id.includes('@trpc/') || id.includes('@tanstack/react-query')) {
             return 'vendor-trpc';
           }
-          // Vendor: Charts (recharts + d3 deps)
-          if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-')) {
-            return 'vendor-charts';
-          }
-          // Vendor: 3D (Three.js + React Three Fiber)
-          if (id.includes('three') || id.includes('@react-three/')) {
-            return 'vendor-3d';
-          }
-          // Vendor: Monaco editor
-          if (id.includes('monaco-editor') || id.includes('@monaco-editor/')) {
-            return 'vendor-monaco';
-          }
-          // Vendor: Mermaid diagrams
-          if (id.includes('mermaid') || id.includes('dagre') || id.includes('cytoscape') || id.includes('elkjs')) {
-            return 'vendor-diagrams';
-          }
+          // Vendor: Charts, 3D, Monaco, Mermaid — DO NOT force into named chunks
+          // Let Vite split naturally so they only load with the pages that use them
           // Vendor: Icons
           if (id.includes('lucide-react')) {
             return 'vendor-icons';
@@ -102,13 +88,8 @@ export default defineConfig({
           if (id.includes('date-fns') || id.includes('dayjs') || id.includes('moment')) {
             return 'vendor-date';
           }
-          // App: i18n translations — split by domain for lazy loading
-          if (id.includes('client/src/lib/i18n/auto-pages')) {
-            return 'app-i18n-auto';
-          }
-          if (id.includes('client/src/lib/i18n/')) {
-            return 'app-i18n';
-          }
+          // App: i18n — DO NOT force into named chunks; lazy imports handle splitting
+          // Core modules (common, nav, etc.) stay in index; domain modules are dynamic imports
           // App: Shared UI components (shadcn)
           if (id.includes('client/src/components/ui/')) {
             return 'app-ui';

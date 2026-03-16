@@ -1,6 +1,6 @@
-import { translations, type Language, languageNames, languageFlags } from "@/lib/i18n";
+import { translations, onTranslationsUpdated, type Language, languageNames, languageFlags } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useReducer } from "react";
 
 // Static constant — never changes, safe to hoist outside component
 const AVAILABLE_LANGUAGES: Language[] = ['zh', 'en', 'de', 'fr'];
@@ -39,6 +39,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>(getInitialLanguage);
   const [isChanging, setIsChanging] = useState(false);
   const [isSynced, setIsSynced] = useState(false);
+
+  // Re-render when lazy i18n modules finish loading and merge new translations
+  const [, forceUpdate] = useReducer(c => c + 1, 0);
+  useEffect(() => onTranslationsUpdated(forceUpdate), []);
 
   // Skip server sync on public pages where user is not authenticated
   const isPublicPage = typeof window !== 'undefined' &&
