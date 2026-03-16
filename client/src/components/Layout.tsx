@@ -2,13 +2,14 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { menuConfig, type MenuGroup, type MenuItem } from "@/config/menuConfig";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
-import AIConversationPanel, { AIFloatingButton } from "@/components/AIConversationPanel";
-import HelpOverlay from "@/components/HelpOverlay";
-import HelpColumn from "@/components/HelpColumn";
-import CopilotBar from "@/components/CopilotBar";
-import AiCanvas from "@/components/AiCanvas";
-import RoleBasedAIAgent from "@/components/RoleBasedAIAgent";
-import GuidedWalkthrough from "@/components/GuidedWalkthrough";
+const AIConversationPanel = React.lazy(() => import("@/components/AIConversationPanel"));
+const AIFloatingButton = React.lazy(() => import("@/components/AIConversationPanel").then(m => ({ default: m.AIFloatingButton })));
+const HelpOverlay = React.lazy(() => import("@/components/HelpOverlay"));
+const HelpColumn = React.lazy(() => import("@/components/HelpColumn"));
+const CopilotBar = React.lazy(() => import("@/components/CopilotBar"));
+const AiCanvas = React.lazy(() => import("@/components/AiCanvas"));
+const RoleBasedAIAgent = React.lazy(() => import("@/components/RoleBasedAIAgent"));
+const GuidedWalkthrough = React.lazy(() => import("@/components/GuidedWalkthrough"));
 import { GlobalMenuSearch } from "@/components/GlobalMenuSearch";
 import { useMenuFavorites } from "@/hooks/useMenuFavorites";
 import { useActiveApp } from "@/hooks/useActiveApp";
@@ -21,7 +22,7 @@ import MobileSidebarDrawer from "@/components/Layout/MobileSidebarDrawer";
 import IdleTimeoutOverlay from "@/components/IdleTimeoutOverlay";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, Suspense } from "react";
 import { useLocation } from "wouter";
 
 // Context to prevent double-rendering of Layout (e.g., Suspense fallback + lazy page)
@@ -330,29 +331,31 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Right-side panels — preserved exactly as before */}
       <GlobalMenuSearch />
-      <HelpColumn
-        isOpen={helpPanelOpen}
-        onClose={() => setHelpPanelOpen(false)}
-        onOpenAI={() => setAiPanelOpen(true)}
-      />
-      <HelpOverlay />
-      <CopilotBar />
-      {panelMode === "agent" ? (
-        <RoleBasedAIAgent
-          isOpen={aiCanvasOpen}
-          onClose={() => setAiCanvasOpen(false)}
-          onSwitchToCanvas={() => setPanelMode("canvas")}
+      <Suspense fallback={null}>
+        <HelpColumn
+          isOpen={helpPanelOpen}
+          onClose={() => setHelpPanelOpen(false)}
+          onOpenAI={() => setAiPanelOpen(true)}
         />
-      ) : (
-        <AiCanvas
-          isOpen={aiCanvasOpen}
-          onClose={() => setAiCanvasOpen(false)}
-          onSwitchToAgent={() => setPanelMode("agent")}
-        />
-      )}
-      <GuidedWalkthrough />
-      <AIFloatingButton onClick={() => setAiPanelOpen(true)} isOpen={aiPanelOpen} />
-      <AIConversationPanel isOpen={aiPanelOpen} onClose={() => setAiPanelOpen(false)} />
+        <HelpOverlay />
+        <CopilotBar />
+        {panelMode === "agent" ? (
+          <RoleBasedAIAgent
+            isOpen={aiCanvasOpen}
+            onClose={() => setAiCanvasOpen(false)}
+            onSwitchToCanvas={() => setPanelMode("canvas")}
+          />
+        ) : (
+          <AiCanvas
+            isOpen={aiCanvasOpen}
+            onClose={() => setAiCanvasOpen(false)}
+            onSwitchToAgent={() => setPanelMode("agent")}
+          />
+        )}
+        <GuidedWalkthrough />
+        <AIFloatingButton onClick={() => setAiPanelOpen(true)} isOpen={aiPanelOpen} />
+        {aiPanelOpen && <AIConversationPanel isOpen={aiPanelOpen} onClose={() => setAiPanelOpen(false)} />}
+      </Suspense>
 
       {/* Idle timeout — warning banner or full lock screen */}
       {(isLocked || showWarning) && (

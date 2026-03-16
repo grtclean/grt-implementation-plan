@@ -84,9 +84,11 @@ export default defineConfig({
           if (id.includes('katex')) {
             return 'vendor-katex';
           }
-          // Vendor: Markdown/prose rendering
-          if (id.includes('marked') || id.includes('highlight.js') || id.includes('prismjs') || id.includes('shiki')) {
-            return 'vendor-highlight';
+          // Vendor: Shiki/Streamdown — DO NOT chunk together; let lazy-loading split naturally
+          // These are only used by AI chat components which are React.lazy() loaded
+          // Vendor: Markdown (lightweight)
+          if (id.includes('marked') && !id.includes('shiki')) {
+            return 'vendor-markdown';
           }
           // Vendor: DnD / sorting
           if (id.includes('@dnd-kit/') || id.includes('react-dnd') || id.includes('react-beautiful-dnd')) {

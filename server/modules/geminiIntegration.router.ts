@@ -913,13 +913,25 @@ export const erpConnectionRouter = router({
         authConfig: jsonValue,
         syncConfig: jsonValue.optional()
       }))
-      .mutation(async ({ input }) => {
+      /*.mutation(async ({ input }) => {
         await (await requireDb()).execute(sql`
           INSERT INTO grt_erp_connections (name, erp_type, connection_url, auth_config, sync_config)
           VALUES (${input.name}, ${input.erpType}, ${input.connectionUrl}, ${JSON.stringify(input.authConfig)}, ${JSON.stringify(input.syncConfig || {})})
         `);
         return { success: true };
-      }),
+      }),*/
+      .mutation(async ({ input }) => {
+  try {
+    await (await requireDb()).execute(sql`
+      INSERT INTO grt_erp_connections (name, erp_type, connection_url, auth_config, sync_config)
+      VALUES (${input.name}, ${input.erpType}, ${input.connectionUrl}, ${JSON.stringify(input.authConfig)}, ${JSON.stringify(input.syncConfig || {})})
+    `);
+    return { success: true };
+  } catch (error) {
+    console.error("真正的数据库写入错误是：", error); // <--- 加这行打印
+    throw error;
+  }
+}),
 
     update: requirePermission('devops:gemini:view')
       .input(z.object({
