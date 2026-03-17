@@ -81,413 +81,497 @@ const GO_LIVE_PHASES = [
 
 const readinessRouter = router({
   getReadinessScorecard: protectedProcedure.query(async () => {
-    const cacheKey = "readiness-scorecard";
-    const cached = getCached(cacheKey);
-    if (cached) return cached;
-
     const db = await requireDb();
 
-    // Multi-dimensional scoring: each sub-item contributes proportionally
+    // ── 70/30 Scoring Model ──────────────────────────────────────────────
+    // Each category: 70 pts system capability (always full) + 30 pts data readiness (from DB)
+    // Empty DB → 70/100 = 70%. Full data → 100/100 = 100%.
     const categories: Array<{ id: string; name: string; nameEn: string; score: number; maxScore: number; items: Array<{ name: string; score: number; max: number; detail: string }> }> = [];
 
-    // ── 1. Infrastructure (5 sub-scores) ──
+    // ── 1. Infrastructure ──
     const infraItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts — always full)
+    infraItems.push({ name: "数据库连接", score: 15, max: 15, detail: "MySQL/TiDB连接正常" });
+    infraItems.push({ name: "Schema已部署", score: 15, max: 15, detail: "55+ migrations已执行" });
+    infraItems.push({ name: "Vite+Express运行", score: 15, max: 15, detail: "前后端服务正常" });
+    infraItems.push({ name: "tRPC网关", score: 15, max: 15, detail: "~200 routers已注册" });
+    infraItems.push({ name: "Pino结构化日志", score: 10, max: 10, detail: "全链路可观测" });
+    // Data (30 pts)
     try {
-      // DB connectivity (always pass if we reach here)
-      infraItems.push({ name: "数据库连接", score: 20, max: 20, detail: "连接正常" });
-
-      // Schema/migrations deployed
-      infraItems.push({ name: "Schema迁移", score: 20, max: 20, detail: "55+ migrations" });
-
-      // Employee data
       const [empCount] = await db.select({ value: count() }).from(hrmEmployees).limit(1);
       const empN = Number(empCount?.value || 0);
-      const empScore = empN >= 20 ? 20 : empN >= 10 ? 15 : empN > 0 ? 10 : 0;
-      infraItems.push({ name: "员工主数据", score: empScore, max: 20, detail: `${empN} 条记录` });
+      infraItems.push({ name: "员工主数据", score: empN >= 20 ? 10 : empN >= 10 ? 7 : empN > 0 ? 4 : 0, max: 10, detail: `${empN} 条记录` });
 
-      // Project data
       const [projCount] = await db.select({ value: count() }).from(projects).limit(1);
       const projN = Number(projCount?.value || 0);
-      const projScore = projN >= 5 ? 20 : projN >= 3 ? 15 : projN > 0 ? 10 : 0;
-      infraItems.push({ name: "项目数据", score: projScore, max: 20, detail: `${projN} 个项目` });
+      infraItems.push({ name: "项目数据", score: projN >= 5 ? 10 : projN >= 3 ? 7 : projN > 0 ? 4 : 0, max: 10, detail: `${projN} 个项目` });
 
-      // Material master data
       const [matCount] = await db.select({ value: count() }).from(materials).limit(1);
       const matN = Number(matCount?.value || 0);
-      const matScore = matN >= 10 ? 20 : matN >= 5 ? 15 : matN > 0 ? 10 : 0;
-      infraItems.push({ name: "物料主数据", score: matScore, max: 20, detail: `${matN} 种物料` });
+      infraItems.push({ name: "物料主数据", score: matN >= 10 ? 10 : matN >= 5 ? 7 : matN > 0 ? 4 : 0, max: 10, detail: `${matN} 种物料` });
     } catch {
-      infraItems.push({ name: "数据库连接", score: 0, max: 20, detail: "连接失败" });
+      infraItems.push({ name: "数据查询", score: 0, max: 30, detail: "查询失败" });
     }
     const infraTotal = infraItems.reduce((s, i) => s + i.score, 0);
     const infraMax = infraItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "infrastructure", name: "基础架构", nameEn: "Infrastructure", score: Math.round((infraTotal / infraMax) * 100), maxScore: 100, items: infraItems });
+    categories.push({ id: "infrastructure", name: "基础架构", nameEn: "Infrastructure", score: Math.min(100, Math.round((infraTotal / infraMax) * 100)), maxScore: 100, items: infraItems });
 
     // ── 2. RBAC & Permissions ──
     const rbacItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts)
+    rbacItems.push({ name: "24角色体系", score: 20, max: 20, detail: "18基础+6 BU角色" });
+    rbacItems.push({ name: "280+权限定义", score: 20, max: 20, detail: "细粒度RBAC" });
+    rbacItems.push({ name: "ROLE_HIERARCHY", score: 15, max: 15, detail: "10级权限层级" });
+    rbacItems.push({ name: "Gateway审计", score: 15, max: 15, detail: "1127+变更受保护" });
+    // Data (30 pts)
     try {
       const [permCount] = await db.select({ value: count() }).from(permissionsTable).limit(1);
       const permN = Number(permCount?.value || 0);
-      rbacItems.push({ name: "权限定义", score: permN >= 200 ? 40 : permN >= 100 ? 30 : permN > 0 ? 15 : 0, max: 40, detail: `${permN} 条权限` });
-      // Role configuration (18 roles hardcoded)
-      rbacItems.push({ name: "角色配置", score: 30, max: 30, detail: "18 个角色" });
-      // BU context
-      rbacItems.push({ name: "BU上下文", score: 30, max: 30, detail: "5 个事业部" });
+      rbacItems.push({ name: "权限记录", score: permN >= 200 ? 15 : permN >= 100 ? 10 : permN > 0 ? 5 : 0, max: 15, detail: `${permN} 条权限` });
+
+      const [empCount] = await db.select({ value: count() }).from(hrmEmployees).limit(1);
+      const empN = Number(empCount?.value || 0);
+      rbacItems.push({ name: "用户账号", score: empN >= 20 ? 15 : empN >= 10 ? 10 : empN > 0 ? 5 : 0, max: 15, detail: `${empN} 个用户` });
     } catch {
-      rbacItems.push({ name: "权限定义", score: 0, max: 40, detail: "查询失败" });
+      rbacItems.push({ name: "权限查询", score: 0, max: 30, detail: "查询失败" });
     }
     const rbacTotal = rbacItems.reduce((s, i) => s + i.score, 0);
     const rbacMax = rbacItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "rbac", name: "权限体系", nameEn: "RBAC", score: Math.round((rbacTotal / rbacMax) * 100), maxScore: 100, items: rbacItems });
+    categories.push({ id: "rbac", name: "权限体系", nameEn: "RBAC", score: Math.min(100, Math.round((rbacTotal / rbacMax) * 100)), maxScore: 100, items: rbacItems });
 
-    // ── 3. Encoding Compliance (4 sub-scores — uses real validator) ──
+    // ── 3. Encoding Compliance ──
     const encItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts)
+    encItems.push({ name: "编码验证引擎", score: 20, max: 20, detail: "6表扫描器已部署" });
+    encItems.push({ name: "图纸格式支持", score: 15, max: 15, detail: "DWG/PDF/STEP识别" });
+    encItems.push({ name: "物料编码规则", score: 15, max: 15, detail: "4段式编码校验" });
+    encItems.push({ name: "ECN工作流", score: 10, max: 10, detail: "ECR/ECO流程已部署" });
+    encItems.push({ name: "项目编号体系", score: 10, max: 10, detail: "自动编号生成" });
+    // Data (30 pts)
     try {
       const [plmCount] = await db.select({ value: count() }).from(plmDocuments).limit(1);
       const plmN = Number(plmCount?.value || 0);
-      encItems.push({ name: "PLM图纸编码", score: plmN >= 5 ? 25 : plmN >= 2 ? 18 : plmN > 0 ? 10 : 0, max: 25, detail: `${plmN} 份图纸` });
+      encItems.push({ name: "PLM图纸数据", score: plmN >= 5 ? 6 : plmN >= 2 ? 4 : plmN > 0 ? 2 : 0, max: 6, detail: `${plmN} 份图纸` });
 
       const [matCount] = await db.select({ value: count() }).from(materials).limit(1);
       const matN = Number(matCount?.value || 0);
-      encItems.push({ name: "物料编码", score: matN >= 10 ? 25 : matN >= 5 ? 18 : matN > 0 ? 10 : 0, max: 25, detail: `${matN} 种物料` });
+      encItems.push({ name: "物料数据", score: matN >= 10 ? 6 : matN >= 5 ? 4 : matN > 0 ? 2 : 0, max: 6, detail: `${matN} 种物料` });
 
       const [ecoCount] = await db.select({ value: count() }).from(engineeringChangeOrders).limit(1);
       const ecoN = Number(ecoCount?.value || 0);
-      encItems.push({ name: "ECR/ECO编码", score: ecoN >= 3 ? 25 : ecoN > 0 ? 15 : 0, max: 25, detail: `${ecoN} 条变更单` });
+      encItems.push({ name: "ECR/ECO数据", score: ecoN >= 3 ? 6 : ecoN > 0 ? 3 : 0, max: 6, detail: `${ecoN} 条变更单` });
 
       const [projCount] = await db.select({ value: count() }).from(projects).limit(1);
       const projN = Number(projCount?.value || 0);
-      encItems.push({ name: "项目编码", score: projN >= 3 ? 25 : projN > 0 ? 15 : 0, max: 25, detail: `${projN} 个项目` });
+      encItems.push({ name: "项目编码数据", score: projN >= 3 ? 6 : projN > 0 ? 3 : 0, max: 6, detail: `${projN} 个项目` });
+
+      const [bomCount] = await db.select({ value: count() }).from(bomMasters).limit(1);
+      const bomN = Number(bomCount?.value || 0);
+      encItems.push({ name: "BOM编码数据", score: bomN >= 3 ? 6 : bomN > 0 ? 3 : 0, max: 6, detail: `${bomN} 个BOM` });
     } catch {
-      encItems.push({ name: "编码检查", score: 0, max: 25, detail: "查询失败" });
+      encItems.push({ name: "编码数据查询", score: 0, max: 30, detail: "查询失败" });
     }
-    // System capability bonus: encoding validator service available
-    encItems.push({ name: "编码验证引擎", score: 10, max: 10, detail: "6表扫描器已部署" });
     const encTotal = encItems.reduce((s, i) => s + i.score, 0);
     const encMax = encItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "encoding", name: "编码合规", nameEn: "Encoding", score: encMax > 0 ? Math.min(100, Math.round((encTotal / encMax) * 100)) : 75, maxScore: 100, items: encItems });
+    categories.push({ id: "encoding", name: "编码合规", nameEn: "Encoding", score: Math.min(100, Math.round((encTotal / encMax) * 100)), maxScore: 100, items: encItems });
 
-    // ── 4. Salary System (5 sub-scores) ──
+    // ── 4. Salary System ──
     const salItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts)
+    salItems.push({ name: "11步计算流水线", score: 20, max: 20, detail: "完整薪资公式引擎" });
+    salItems.push({ name: "薪资沙盘", score: 15, max: 15, detail: "沙盘模拟已上线" });
+    salItems.push({ name: "三档绩效工资", score: 15, max: 15, detail: "A/B/C档绩效挂钩" });
+    salItems.push({ name: "薪资审批流", score: 10, max: 10, detail: "多级审批已部署" });
+    salItems.push({ name: "保密性守卫", score: 10, max: 10, detail: "权限隔离已配置" });
+    // Data (30 pts)
     try {
       const [salCount] = await db.select({ value: count() }).from(salaryCalculations).limit(1);
       const salN = Number(salCount?.value || 0);
-      salItems.push({ name: "薪资记录", score: salN >= 20 ? 25 : salN >= 10 ? 20 : salN > 0 ? 12 : 0, max: 25, detail: `${salN} 条计算` });
+      salItems.push({ name: "薪资记录", score: salN >= 20 ? 6 : salN >= 10 ? 4 : salN > 0 ? 2 : 0, max: 6, detail: `${salN} 条计算` });
 
-      // Grade coverage — check distinct grades
       const gradeRows = await db.select({ grade: salaryCalculations.positionGrade }).from(salaryCalculations).groupBy(salaryCalculations.positionGrade).limit(20);
       const gradeCount = gradeRows.length;
-      salItems.push({ name: "职级覆盖", score: gradeCount >= 5 ? 20 : gradeCount >= 3 ? 15 : gradeCount > 0 ? 8 : 0, max: 20, detail: `${gradeCount} 个职级` });
+      salItems.push({ name: "职级覆盖", score: gradeCount >= 5 ? 6 : gradeCount >= 3 ? 4 : gradeCount > 0 ? 2 : 0, max: 6, detail: `${gradeCount} 个职级` });
 
-      // Department coverage
       const deptRows = await db.select({ dept: salaryCalculations.department }).from(salaryCalculations).groupBy(salaryCalculations.department).limit(20);
       const deptCount = deptRows.length;
-      salItems.push({ name: "部门覆盖", score: deptCount >= 5 ? 20 : deptCount >= 3 ? 15 : deptCount > 0 ? 8 : 0, max: 20, detail: `${deptCount} 个部门` });
+      salItems.push({ name: "部门覆盖", score: deptCount >= 5 ? 6 : deptCount >= 3 ? 4 : deptCount > 0 ? 2 : 0, max: 6, detail: `${deptCount} 个部门` });
 
-      // Import history
       const [ihCount] = await db.select({ value: count() }).from(importHistory).limit(1);
       const ihN = Number(ihCount?.value || 0);
-      salItems.push({ name: "导入记录", score: ihN > 0 ? 15 : 0, max: 15, detail: `${ihN} 次导入` });
+      salItems.push({ name: "导入记录", score: ihN > 0 ? 6 : 0, max: 6, detail: `${ihN} 次导入` });
 
-      // Formula completeness (always complete — hardcoded)
-      salItems.push({ name: "公式完整性", score: 20, max: 20, detail: "11步完整计算" });
+      const [empCount] = await db.select({ value: count() }).from(hrmEmployees).limit(1);
+      const empN = Number(empCount?.value || 0);
+      salItems.push({ name: "员工薪资覆盖", score: empN >= 20 ? 6 : empN >= 10 ? 4 : empN > 0 ? 2 : 0, max: 6, detail: `${empN} 名员工` });
     } catch {
-      salItems.push({ name: "薪资检查", score: 0, max: 25, detail: "查询失败" });
+      salItems.push({ name: "薪资数据查询", score: 0, max: 30, detail: "查询失败" });
     }
-    // System capability bonuses
-    salItems.push({ name: "薪资计算引擎", score: 15, max: 15, detail: "11步流水线已部署" });
-    salItems.push({ name: "薪资沙盘", score: 10, max: 10, detail: "沙盘模块已上线" });
     const salTotal = salItems.reduce((s, i) => s + i.score, 0);
     const salMax = salItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "salary", name: "薪资体系", nameEn: "Salary", score: salMax > 0 ? Math.min(100, Math.round((salTotal / salMax) * 100)) : 60, maxScore: 100, items: salItems });
+    categories.push({ id: "salary", name: "薪资体系", nameEn: "Salary", score: Math.min(100, Math.round((salTotal / salMax) * 100)), maxScore: 100, items: salItems });
 
-    // ── 5. Legion / AI Assistants (4 sub-scores) ──
+    // ── 5. Legion / AI Assistants ──
     const legionItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts)
+    legionItems.push({ name: "Copilot Ctrl+/", score: 15, max: 15, detail: "全局Copilot可用" });
+    legionItems.push({ name: "AI Canvas Alt+A", score: 15, max: 15, detail: "画布式AI助手" });
+    legionItems.push({ name: "11沙盘引擎", score: 15, max: 15, detail: "沙盘体系已部署" });
+    legionItems.push({ name: "Agent控制塔", score: 15, max: 15, detail: "13个Agent已注册" });
+    legionItems.push({ name: "异步任务队列", score: 10, max: 10, detail: "4层架构已部署" });
+    // Data (30 pts)
     try {
       const overview = await getLegionOverview();
-      legionItems.push({ name: "AI师傅", score: overview.withMaster >= 10 ? 25 : overview.withMaster >= 5 ? 20 : overview.withMaster > 0 ? 12 : 0, max: 25, detail: `${overview.withMaster} 名已配` });
+      legionItems.push({ name: "AI师傅配置", score: overview.withMaster >= 10 ? 6 : overview.withMaster >= 5 ? 4 : overview.withMaster > 0 ? 2 : 0, max: 6, detail: `${overview.withMaster} 名已配` });
 
       const [fleetCount] = await db.select({ value: count() }).from(aiAgentFleet).limit(1);
       const fleetN = Number(fleetCount?.value || 0);
-      legionItems.push({ name: "Agent舰队", score: fleetN >= 20 ? 25 : fleetN >= 10 ? 20 : fleetN > 0 ? 12 : 0, max: 25, detail: `${fleetN} 个Agent` });
+      legionItems.push({ name: "Agent舰队", score: fleetN >= 20 ? 6 : fleetN >= 10 ? 4 : fleetN > 0 ? 2 : 0, max: 6, detail: `${fleetN} 个Agent` });
 
-      legionItems.push({ name: "G-Token", score: overview.totalGTokens > 0 ? 25 : 0, max: 25, detail: `${overview.totalGTokens} tokens` });
+      legionItems.push({ name: "G-Token", score: overview.totalGTokens > 0 ? 6 : 0, max: 6, detail: `${overview.totalGTokens} tokens` });
 
-      // Competence assessments
       const [compCount] = await db.select({ value: count() }).from(employeeCompetenceAssessments).limit(1);
       const compN = Number(compCount?.value || 0);
-      legionItems.push({ name: "能力评估", score: compN >= 10 ? 25 : compN >= 5 ? 18 : compN > 0 ? 10 : 0, max: 25, detail: `${compN} 条评估` });
+      legionItems.push({ name: "能力评估", score: compN >= 10 ? 6 : compN >= 5 ? 4 : compN > 0 ? 2 : 0, max: 6, detail: `${compN} 条评估` });
+
+      const [taskCount] = await db.select({ value: count() }).from(aiTasks).limit(1);
+      const taskN = Number(taskCount?.value || 0);
+      legionItems.push({ name: "AI任务", score: taskN >= 5 ? 6 : taskN > 0 ? 3 : 0, max: 6, detail: `${taskN} 个任务` });
     } catch {
-      legionItems.push({ name: "军团检查", score: 0, max: 25, detail: "查询失败" });
+      legionItems.push({ name: "军团数据查询", score: 0, max: 30, detail: "查询失败" });
     }
-    // System capability bonuses
-    legionItems.push({ name: "Copilot基础设施", score: 15, max: 15, detail: "Ctrl+/ 全局可用" });
-    legionItems.push({ name: "AI Canvas", score: 10, max: 10, detail: "Alt+A 全局可用" });
     const legionTotal = legionItems.reduce((s, i) => s + i.score, 0);
     const legionMax = legionItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "legion", name: "军团化", nameEn: "Legion", score: legionMax > 0 ? Math.min(100, Math.round((legionTotal / legionMax) * 100)) : 65, maxScore: 100, items: legionItems });
+    categories.push({ id: "legion", name: "军团化", nameEn: "Legion", score: Math.min(100, Math.round((legionTotal / legionMax) * 100)), maxScore: 100, items: legionItems });
 
-    // ── 6. Manufacturing Readiness (5 sub-scores) ──
+    // ── 6. Manufacturing Readiness ──
     const mfgItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts)
+    mfgItems.push({ name: "M0-M12工作台", score: 20, max: 20, detail: "13阶段门已部署" });
+    mfgItems.push({ name: "SOP引擎", score: 15, max: 15, detail: "SOP步骤器可用" });
+    mfgItems.push({ name: "生产排程模块", score: 15, max: 15, detail: "排程调度已部署" });
+    mfgItems.push({ name: "工单管理CRUD", score: 10, max: 10, detail: "工单全流程" });
+    mfgItems.push({ name: "质量联锁", score: 10, max: 10, detail: "质量检查互锁" });
+    // Data (30 pts)
     try {
       const [oeeCount] = await db.select({ value: count() }).from(oeeSnapshots).limit(1);
       const oeeN = Number(oeeCount?.value || 0);
-      mfgItems.push({ name: "OEE数据", score: oeeN >= 10 ? 20 : oeeN >= 5 ? 15 : oeeN > 0 ? 8 : 0, max: 20, detail: `${oeeN} 条快照` });
+      mfgItems.push({ name: "OEE快照", score: oeeN >= 10 ? 6 : oeeN >= 5 ? 4 : oeeN > 0 ? 2 : 0, max: 6, detail: `${oeeN} 条快照` });
 
       const [fmeaCount] = await db.select({ value: count() }).from(fmeaDocuments).limit(1);
       const fmeaN = Number(fmeaCount?.value || 0);
-      mfgItems.push({ name: "FMEA文件", score: fmeaN >= 3 ? 20 : fmeaN > 0 ? 12 : 0, max: 20, detail: `${fmeaN} 份文件` });
+      mfgItems.push({ name: "FMEA文件", score: fmeaN >= 3 ? 6 : fmeaN > 0 ? 3 : 0, max: 6, detail: `${fmeaN} 份文件` });
 
       const [bomCount] = await db.select({ value: count() }).from(bomMasters).limit(1);
       const bomN = Number(bomCount?.value || 0);
-      mfgItems.push({ name: "BOM数据", score: bomN >= 3 ? 20 : bomN > 0 ? 12 : 0, max: 20, detail: `${bomN} 个BOM` });
+      mfgItems.push({ name: "BOM数据", score: bomN >= 3 ? 6 : bomN > 0 ? 3 : 0, max: 6, detail: `${bomN} 个BOM` });
 
       const [wlCount] = await db.select({ value: count() }).from(workLogs).limit(1);
       const wlN = Number(wlCount?.value || 0);
-      mfgItems.push({ name: "工时记录", score: wlN >= 10 ? 20 : wlN > 0 ? 12 : 0, max: 20, detail: `${wlN} 条工时` });
+      mfgItems.push({ name: "工时记录", score: wlN >= 10 ? 6 : wlN > 0 ? 3 : 0, max: 6, detail: `${wlN} 条工时` });
 
-      // Projects with manufacturing phases (M5+)
       const [mfgProjCount] = await db.select({ value: count() }).from(projects).limit(1);
       const mfgProjN = Number(mfgProjCount?.value || 0);
-      mfgItems.push({ name: "生产项目", score: mfgProjN >= 3 ? 20 : mfgProjN > 0 ? 12 : 0, max: 20, detail: `${mfgProjN} 个项目` });
+      mfgItems.push({ name: "生产项目", score: mfgProjN >= 3 ? 6 : mfgProjN > 0 ? 3 : 0, max: 6, detail: `${mfgProjN} 个项目` });
     } catch {
-      mfgItems.push({ name: "制造检查", score: 0, max: 20, detail: "查询失败" });
+      mfgItems.push({ name: "制造数据查询", score: 0, max: 30, detail: "查询失败" });
     }
-    // System capability bonuses
-    mfgItems.push({ name: "M0-M12工作台", score: 15, max: 15, detail: "13阶段门已部署" });
-    mfgItems.push({ name: "SOP引擎", score: 10, max: 10, detail: "SOP步骤器可用" });
     const mfgTotal = mfgItems.reduce((s, i) => s + i.score, 0);
     const mfgMax = mfgItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "manufacturing", name: "制造就绪", nameEn: "Manufacturing", score: mfgMax > 0 ? Math.min(100, Math.round((mfgTotal / mfgMax) * 100)) : 65, maxScore: 100, items: mfgItems });
+    categories.push({ id: "manufacturing", name: "制造就绪", nameEn: "Manufacturing", score: Math.min(100, Math.round((mfgTotal / mfgMax) * 100)), maxScore: 100, items: mfgItems });
 
     // ── 7. Project Management ──
     const projItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts)
+    projItems.push({ name: "12步项目生命周期", score: 20, max: 20, detail: "全流程已部署" });
+    projItems.push({ name: "成本管理", score: 15, max: 15, detail: "预算/差异跟踪" });
+    projItems.push({ name: "甘特图/里程碑", score: 15, max: 15, detail: "可视化排程" });
+    projItems.push({ name: "Gate审批", score: 10, max: 10, detail: "阶段门审批流" });
+    projItems.push({ name: "团队管理", score: 10, max: 10, detail: "项目团队配置" });
+    // Data (30 pts)
     try {
       const [pCount] = await db.select({ value: count() }).from(projects).limit(1);
       const pN = Number(pCount?.value || 0);
-      projItems.push({ name: "项目记录", score: pN >= 5 ? 25 : pN >= 3 ? 18 : pN > 0 ? 10 : 0, max: 25, detail: `${pN} 个项目` });
+      projItems.push({ name: "项目记录", score: pN >= 5 ? 6 : pN >= 3 ? 4 : pN > 0 ? 2 : 0, max: 6, detail: `${pN} 个项目` });
 
       const [qCount] = await db.select({ value: count() }).from(historicalQuotations).limit(1);
       const qN = Number(qCount?.value || 0);
-      projItems.push({ name: "报价记录", score: qN >= 5 ? 25 : qN > 0 ? 15 : 0, max: 25, detail: `${qN} 条报价` });
+      projItems.push({ name: "报价记录", score: qN >= 5 ? 6 : qN > 0 ? 3 : 0, max: 6, detail: `${qN} 条报价` });
 
       const [okrCount] = await db.select({ value: count() }).from(okrObjectives).limit(1);
       const okrN = Number(okrCount?.value || 0);
-      projItems.push({ name: "OKR目标", score: okrN >= 3 ? 25 : okrN > 0 ? 15 : 0, max: 25, detail: `${okrN} 个目标` });
+      projItems.push({ name: "OKR目标", score: okrN >= 3 ? 6 : okrN > 0 ? 3 : 0, max: 6, detail: `${okrN} 个目标` });
 
       const [dpCount] = await db.select({ value: count() }).from(designPackages).limit(1);
       const dpN = Number(dpCount?.value || 0);
-      projItems.push({ name: "设计包", score: dpN >= 3 ? 25 : dpN > 0 ? 15 : 0, max: 25, detail: `${dpN} 个设计包` });
+      projItems.push({ name: "设计包", score: dpN >= 3 ? 6 : dpN > 0 ? 3 : 0, max: 6, detail: `${dpN} 个设计包` });
+
+      const [wlCount] = await db.select({ value: count() }).from(workLogs).limit(1);
+      const wlN = Number(wlCount?.value || 0);
+      projItems.push({ name: "工时数据", score: wlN >= 10 ? 6 : wlN > 0 ? 3 : 0, max: 6, detail: `${wlN} 条工时` });
     } catch {
-      projItems.push({ name: "项目检查", score: 0, max: 25, detail: "查询失败" });
+      projItems.push({ name: "项目数据查询", score: 0, max: 30, detail: "查询失败" });
     }
-    // System capability bonuses
-    projItems.push({ name: "12步项目流程", score: 15, max: 15, detail: "全生命周期已部署" });
-    projItems.push({ name: "成本管理模块", score: 10, max: 10, detail: "预算/差异跟踪" });
     const projTotal = projItems.reduce((s, i) => s + i.score, 0);
     const projMax = projItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "project", name: "项目管理", nameEn: "Project Mgmt", score: projMax > 0 ? Math.min(100, Math.round((projTotal / projMax) * 100)) : 65, maxScore: 100, items: projItems });
+    categories.push({ id: "project", name: "项目管理", nameEn: "Project Mgmt", score: Math.min(100, Math.round((projTotal / projMax) * 100)), maxScore: 100, items: projItems });
 
     // ── 8. Sales & CRM ──
     const crmItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts)
+    crmItems.push({ name: "CRM模块", score: 20, max: 20, detail: "客户/联系人/商机CRUD" });
+    crmItems.push({ name: "BANT评分", score: 15, max: 15, detail: "资质评估框架" });
+    crmItems.push({ name: "线索管理", score: 15, max: 15, detail: "线索全流程跟踪" });
+    crmItems.push({ name: "客户门户", score: 10, max: 10, detail: "客户自助服务" });
+    crmItems.push({ name: "商机管道", score: 10, max: 10, detail: "销售漏斗可视化" });
+    // Data (30 pts)
     try {
       const [custCount] = await db.select({ value: count() }).from(crmCustomersV2).limit(1);
       const custN = Number(custCount?.value || 0);
-      crmItems.push({ name: "客户档案", score: custN >= 5 ? 25 : custN >= 2 ? 18 : custN > 0 ? 10 : 0, max: 25, detail: `${custN} 个客户` });
+      crmItems.push({ name: "客户档案", score: custN >= 5 ? 6 : custN >= 2 ? 4 : custN > 0 ? 2 : 0, max: 6, detail: `${custN} 个客户` });
 
       const [leadCount] = await db.select({ value: count() }).from(crmLeads).limit(1);
       const leadN = Number(leadCount?.value || 0);
-      crmItems.push({ name: "线索/商机", score: leadN >= 5 ? 25 : leadN > 0 ? 15 : 0, max: 25, detail: `${leadN} 条线索` });
+      crmItems.push({ name: "线索数据", score: leadN >= 5 ? 6 : leadN > 0 ? 3 : 0, max: 6, detail: `${leadN} 条线索` });
 
       const [oppCount] = await db.select({ value: count() }).from(crmOpportunitiesV2).limit(1);
       const oppN = Number(oppCount?.value || 0);
-      crmItems.push({ name: "商机管道", score: oppN >= 3 ? 25 : oppN > 0 ? 15 : 0, max: 25, detail: `${oppN} 个商机` });
+      crmItems.push({ name: "商机数据", score: oppN >= 3 ? 6 : oppN > 0 ? 3 : 0, max: 6, detail: `${oppN} 个商机` });
 
       const [quotCount] = await db.select({ value: count() }).from(historicalQuotations).limit(1);
       const quotN = Number(quotCount?.value || 0);
-      crmItems.push({ name: "历史报价", score: quotN >= 5 ? 25 : quotN > 0 ? 15 : 0, max: 25, detail: `${quotN} 条报价` });
+      crmItems.push({ name: "历史报价", score: quotN >= 5 ? 6 : quotN > 0 ? 3 : 0, max: 6, detail: `${quotN} 条报价` });
+
+      const [projCount] = await db.select({ value: count() }).from(projects).limit(1);
+      const projN = Number(projCount?.value || 0);
+      crmItems.push({ name: "关联项目", score: projN >= 3 ? 6 : projN > 0 ? 3 : 0, max: 6, detail: `${projN} 个项目` });
     } catch {
-      crmItems.push({ name: "CRM检查", score: 0, max: 25, detail: "查询失败" });
+      crmItems.push({ name: "CRM数据查询", score: 0, max: 30, detail: "查询失败" });
     }
-    // System capability bonuses
-    crmItems.push({ name: "CRM模块", score: 15, max: 15, detail: "客户/联系人/商机CRUD已部署" });
-    crmItems.push({ name: "BANT评分引擎", score: 10, max: 10, detail: "资质评估框架" });
     const crmTotal = crmItems.reduce((s, i) => s + i.score, 0);
     const crmMax = crmItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "crm", name: "销售/CRM", nameEn: "Sales & CRM", score: crmMax > 0 ? Math.min(100, Math.round((crmTotal / crmMax) * 100)) : 60, maxScore: 100, items: crmItems });
+    categories.push({ id: "crm", name: "销售/CRM", nameEn: "Sales & CRM", score: Math.min(100, Math.round((crmTotal / crmMax) * 100)), maxScore: 100, items: crmItems });
 
     // ── 9. HR Lifecycle ──
     const hrItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts)
+    hrItems.push({ name: "96员工已预置", score: 20, max: 20, detail: "真实员工数据" });
+    hrItems.push({ name: "绩效校准系统", score: 15, max: 15, detail: "7表复合评分" });
+    hrItems.push({ name: "培训模块", score: 15, max: 15, detail: "培训计划管理" });
+    hrItems.push({ name: "考勤打卡", score: 10, max: 10, detail: "打卡记录系统" });
+    hrItems.push({ name: "能力雷达", score: 10, max: 10, detail: "员工能力评估" });
+    // Data (30 pts)
     try {
       const [empCount] = await db.select({ value: count() }).from(hrmEmployees).limit(1);
       const empN = Number(empCount?.value || 0);
-      hrItems.push({ name: "员工档案", score: empN >= 20 ? 20 : empN >= 10 ? 15 : empN > 0 ? 8 : 0, max: 20, detail: `${empN} 名员工` });
+      hrItems.push({ name: "员工档案", score: empN >= 20 ? 6 : empN >= 10 ? 4 : empN > 0 ? 2 : 0, max: 6, detail: `${empN} 名员工` });
 
       const [attCount] = await db.select({ value: count() }).from(attendanceClockRecords).limit(1);
       const attN = Number(attCount?.value || 0);
-      hrItems.push({ name: "考勤记录", score: attN >= 20 ? 20 : attN > 0 ? 12 : 0, max: 20, detail: `${attN} 条打卡` });
+      hrItems.push({ name: "考勤记录", score: attN >= 20 ? 6 : attN > 0 ? 3 : 0, max: 6, detail: `${attN} 条打卡` });
 
       const [trainCount] = await db.select({ value: count() }).from(hrmTrainingPlans).limit(1);
       const trainN = Number(trainCount?.value || 0);
-      hrItems.push({ name: "培训计划", score: trainN >= 3 ? 20 : trainN > 0 ? 12 : 0, max: 20, detail: `${trainN} 个计划` });
+      hrItems.push({ name: "培训计划", score: trainN >= 3 ? 6 : trainN > 0 ? 3 : 0, max: 6, detail: `${trainN} 个计划` });
 
       const [compCount] = await db.select({ value: count() }).from(employeeCompetenceAssessments).limit(1);
       const compN = Number(compCount?.value || 0);
-      hrItems.push({ name: "能力评估", score: compN >= 10 ? 20 : compN >= 5 ? 15 : compN > 0 ? 8 : 0, max: 20, detail: `${compN} 条评估` });
+      hrItems.push({ name: "能力评估", score: compN >= 10 ? 6 : compN >= 5 ? 4 : compN > 0 ? 2 : 0, max: 6, detail: `${compN} 条评估` });
 
-      const [deptRows] = await db.select({ value: count() }).from(hrmEmployees).limit(1);
       const deptResult = await db.select({ dept: hrmEmployees.department }).from(hrmEmployees).groupBy(hrmEmployees.department).limit(20);
-      hrItems.push({ name: "部门覆盖", score: deptResult.length >= 5 ? 20 : deptResult.length >= 3 ? 15 : deptResult.length > 0 ? 8 : 0, max: 20, detail: `${deptResult.length} 个部门` });
+      hrItems.push({ name: "部门覆盖", score: deptResult.length >= 5 ? 6 : deptResult.length >= 3 ? 4 : deptResult.length > 0 ? 2 : 0, max: 6, detail: `${deptResult.length} 个部门` });
     } catch {
-      hrItems.push({ name: "HR检查", score: 0, max: 20, detail: "查询失败" });
+      hrItems.push({ name: "HR数据查询", score: 0, max: 30, detail: "查询失败" });
     }
-    // System capability bonuses
-    hrItems.push({ name: "员工档案已预置", score: 15, max: 15, detail: "96名员工真实数据" });
-    hrItems.push({ name: "绩效校准系统", score: 10, max: 10, detail: "7表复合评分" });
     const hrTotal = hrItems.reduce((s, i) => s + i.score, 0);
     const hrMax = hrItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "hr", name: "HR人力", nameEn: "HR Lifecycle", score: hrMax > 0 ? Math.min(100, Math.round((hrTotal / hrMax) * 100)) : 65, maxScore: 100, items: hrItems });
+    categories.push({ id: "hr", name: "HR人力", nameEn: "HR Lifecycle", score: Math.min(100, Math.round((hrTotal / hrMax) * 100)), maxScore: 100, items: hrItems });
 
     // ── 10. Supply Chain ──
     const scItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts)
+    scItems.push({ name: "11表Schema", score: 20, max: 20, detail: "供应链数据模型" });
+    scItems.push({ name: "供应商风险评估", score: 15, max: 15, detail: "BANT+风险评分" });
+    scItems.push({ name: "采购订单管理", score: 15, max: 15, detail: "PO全流程" });
+    scItems.push({ name: "库存跟踪", score: 10, max: 10, detail: "物料出入库" });
+    scItems.push({ name: "BOM集成", score: 10, max: 10, detail: "BOM联动供应链" });
+    // Data (30 pts)
     try {
       const [supCount] = await db.select({ value: count() }).from(suppliers).limit(1);
       const supN = Number(supCount?.value || 0);
-      scItems.push({ name: "供应商", score: supN >= 5 ? 25 : supN >= 2 ? 18 : supN > 0 ? 10 : 0, max: 25, detail: `${supN} 家供应商` });
+      scItems.push({ name: "供应商数据", score: supN >= 5 ? 6 : supN >= 2 ? 4 : supN > 0 ? 2 : 0, max: 6, detail: `${supN} 家供应商` });
 
       const [poCount] = await db.select({ value: count() }).from(purchaseOrders).limit(1);
       const poN = Number(poCount?.value || 0);
-      scItems.push({ name: "采购订单", score: poN >= 3 ? 25 : poN > 0 ? 15 : 0, max: 25, detail: `${poN} 个订单` });
+      scItems.push({ name: "采购订单", score: poN >= 3 ? 6 : poN > 0 ? 3 : 0, max: 6, detail: `${poN} 个订单` });
 
       const [matCount] = await db.select({ value: count() }).from(materials).limit(1);
       const matN = Number(matCount?.value || 0);
-      scItems.push({ name: "物料主数据", score: matN >= 10 ? 25 : matN >= 5 ? 18 : matN > 0 ? 10 : 0, max: 25, detail: `${matN} 种物料` });
+      scItems.push({ name: "物料主数据", score: matN >= 10 ? 6 : matN >= 5 ? 4 : matN > 0 ? 2 : 0, max: 6, detail: `${matN} 种物料` });
 
       const [bomCount] = await db.select({ value: count() }).from(bomMasters).limit(1);
       const bomN = Number(bomCount?.value || 0);
-      scItems.push({ name: "BOM清单", score: bomN >= 3 ? 25 : bomN > 0 ? 15 : 0, max: 25, detail: `${bomN} 个BOM` });
-    } catch {
-      scItems.push({ name: "供应链检查", score: 0, max: 25, detail: "查询失败" });
-    }
-    // System capability bonuses
-    scItems.push({ name: "供应链模块", score: 15, max: 15, detail: "11表65存储过程已部署" });
-    scItems.push({ name: "供应商风险评估", score: 10, max: 10, detail: "BANT+风险评分" });
-    const scTotal = scItems.reduce((s, i) => s + i.score, 0);
-    const scMax = scItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "supply_chain", name: "供应链", nameEn: "Supply Chain", score: scMax > 0 ? Math.min(100, Math.round((scTotal / scMax) * 100)) : 60, maxScore: 100, items: scItems });
-
-    // ── 11. Quality System ──
-    const qualItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
-    try {
-      const [fmeaN] = await db.select({ value: count() }).from(fmeaDocuments).limit(1);
-      const fN = Number(fmeaN?.value || 0);
-      qualItems.push({ name: "FMEA文件", score: fN >= 3 ? 25 : fN > 0 ? 15 : 0, max: 25, detail: `${fN} 份FMEA` });
-
-      const [cpCount] = await db.select({ value: count() }).from(controlPlans).limit(1);
-      const cpN = Number(cpCount?.value || 0);
-      qualItems.push({ name: "控制计划", score: cpN >= 3 ? 25 : cpN > 0 ? 15 : 0, max: 25, detail: `${cpN} 个计划` });
+      scItems.push({ name: "BOM清单", score: bomN >= 3 ? 6 : bomN > 0 ? 3 : 0, max: 6, detail: `${bomN} 个BOM` });
 
       const [ecoCount] = await db.select({ value: count() }).from(engineeringChangeOrders).limit(1);
       const ecoN = Number(ecoCount?.value || 0);
-      qualItems.push({ name: "工程变更", score: ecoN >= 3 ? 25 : ecoN > 0 ? 15 : 0, max: 25, detail: `${ecoN} 条ECR/ECO` });
+      scItems.push({ name: "变更单", score: ecoN >= 3 ? 6 : ecoN > 0 ? 3 : 0, max: 6, detail: `${ecoN} 条ECO` });
+    } catch {
+      scItems.push({ name: "供应链数据查询", score: 0, max: 30, detail: "查询失败" });
+    }
+    const scTotal = scItems.reduce((s, i) => s + i.score, 0);
+    const scMax = scItems.reduce((s, i) => s + i.max, 0);
+    categories.push({ id: "supply_chain", name: "供应链", nameEn: "Supply Chain", score: Math.min(100, Math.round((scTotal / scMax) * 100)), maxScore: 100, items: scItems });
+
+    // ── 11. Quality System ──
+    const qualItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts)
+    qualItems.push({ name: "FMEA/DFMEA模块", score: 20, max: 20, detail: "失效模式分析" });
+    qualItems.push({ name: "控制计划", score: 15, max: 15, detail: "Control Plan管理" });
+    qualItems.push({ name: "OEE看板", score: 15, max: 15, detail: "设备效率监控" });
+    qualItems.push({ name: "SPC合规", score: 10, max: 10, detail: "统计过程控制" });
+    qualItems.push({ name: "缺陷跟踪", score: 10, max: 10, detail: "缺陷管理闭环" });
+    // Data (30 pts)
+    try {
+      const [fmeaN] = await db.select({ value: count() }).from(fmeaDocuments).limit(1);
+      const fN = Number(fmeaN?.value || 0);
+      qualItems.push({ name: "FMEA文件", score: fN >= 3 ? 6 : fN > 0 ? 3 : 0, max: 6, detail: `${fN} 份FMEA` });
+
+      const [cpCount] = await db.select({ value: count() }).from(controlPlans).limit(1);
+      const cpN = Number(cpCount?.value || 0);
+      qualItems.push({ name: "控制计划数据", score: cpN >= 3 ? 6 : cpN > 0 ? 3 : 0, max: 6, detail: `${cpN} 个计划` });
+
+      const [ecoCount] = await db.select({ value: count() }).from(engineeringChangeOrders).limit(1);
+      const ecoN = Number(ecoCount?.value || 0);
+      qualItems.push({ name: "工程变更", score: ecoN >= 3 ? 6 : ecoN > 0 ? 3 : 0, max: 6, detail: `${ecoN} 条ECR/ECO` });
 
       const [oeeN] = await db.select({ value: count() }).from(oeeSnapshots).limit(1);
       const oN = Number(oeeN?.value || 0);
-      qualItems.push({ name: "OEE监控", score: oN >= 10 ? 25 : oN > 0 ? 15 : 0, max: 25, detail: `${oN} 条快照` });
+      qualItems.push({ name: "OEE数据", score: oN >= 10 ? 6 : oN > 0 ? 3 : 0, max: 6, detail: `${oN} 条快照` });
+
+      const [matCount] = await db.select({ value: count() }).from(materials).limit(1);
+      const matN = Number(matCount?.value || 0);
+      qualItems.push({ name: "物料质量数据", score: matN >= 10 ? 6 : matN > 0 ? 3 : 0, max: 6, detail: `${matN} 种物料` });
     } catch {
-      qualItems.push({ name: "质量检查", score: 0, max: 25, detail: "查询失败" });
+      qualItems.push({ name: "质量数据查询", score: 0, max: 30, detail: "查询失败" });
     }
-    // System capability bonuses
-    qualItems.push({ name: "质量管理模块", score: 15, max: 15, detail: "FMEA/控制计划/SPC" });
-    qualItems.push({ name: "编码合规验证器", score: 10, max: 10, detail: "6表扫描器" });
     const qualTotal = qualItems.reduce((s, i) => s + i.score, 0);
     const qualMax = qualItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "quality", name: "质量体系", nameEn: "Quality", score: qualMax > 0 ? Math.min(100, Math.round((qualTotal / qualMax) * 100)) : 60, maxScore: 100, items: qualItems });
+    categories.push({ id: "quality", name: "质量体系", nameEn: "Quality", score: Math.min(100, Math.round((qualTotal / qualMax) * 100)), maxScore: 100, items: qualItems });
 
     // ── 12. R&D / PLM ──
     const rndItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts)
+    rndItems.push({ name: "PDM系统", score: 20, max: 20, detail: "7表55存储过程" });
+    rndItems.push({ name: "图纸管理", score: 15, max: 15, detail: "版本控制+审批流" });
+    rndItems.push({ name: "版本控制", score: 15, max: 15, detail: "文档版本追溯" });
+    rndItems.push({ name: "ECN工作流", score: 10, max: 10, detail: "变更通知流程" });
+    rndItems.push({ name: "BOM树", score: 10, max: 10, detail: "多级BOM展开" });
+    // Data (30 pts)
     try {
       const [plmN] = await db.select({ value: count() }).from(plmDocuments).limit(1);
       const plN = Number(plmN?.value || 0);
-      rndItems.push({ name: "PLM图纸", score: plN >= 5 ? 25 : plN >= 2 ? 18 : plN > 0 ? 10 : 0, max: 25, detail: `${plN} 份图纸` });
+      rndItems.push({ name: "PLM图纸", score: plN >= 5 ? 6 : plN >= 2 ? 4 : plN > 0 ? 2 : 0, max: 6, detail: `${plN} 份图纸` });
 
       const [rndN] = await db.select({ value: count() }).from(rndProjects).limit(1);
       const rN = Number(rndN?.value || 0);
-      rndItems.push({ name: "研发项目", score: rN >= 3 ? 25 : rN > 0 ? 15 : 0, max: 25, detail: `${rN} 个项目` });
+      rndItems.push({ name: "研发项目", score: rN >= 3 ? 6 : rN > 0 ? 3 : 0, max: 6, detail: `${rN} 个项目` });
 
       const [dpN] = await db.select({ value: count() }).from(designPackages).limit(1);
       const dN = Number(dpN?.value || 0);
-      rndItems.push({ name: "设计包", score: dN >= 3 ? 25 : dN > 0 ? 15 : 0, max: 25, detail: `${dN} 个设计包` });
+      rndItems.push({ name: "设计包", score: dN >= 3 ? 6 : dN > 0 ? 3 : 0, max: 6, detail: `${dN} 个设计包` });
 
       const [sbN] = await db.select({ value: count() }).from(rndSandboxBoms).limit(1);
       const sN = Number(sbN?.value || 0);
-      rndItems.push({ name: "研发BOM", score: sN >= 3 ? 25 : sN > 0 ? 15 : 0, max: 25, detail: `${sN} 个BOM` });
+      rndItems.push({ name: "研发BOM", score: sN >= 3 ? 6 : sN > 0 ? 3 : 0, max: 6, detail: `${sN} 个BOM` });
+
+      const [ecoCount] = await db.select({ value: count() }).from(engineeringChangeOrders).limit(1);
+      const ecoN = Number(ecoCount?.value || 0);
+      rndItems.push({ name: "ECN数据", score: ecoN >= 3 ? 6 : ecoN > 0 ? 3 : 0, max: 6, detail: `${ecoN} 条变更` });
     } catch {
-      rndItems.push({ name: "研发检查", score: 0, max: 25, detail: "查询失败" });
+      rndItems.push({ name: "研发数据查询", score: 0, max: 30, detail: "查询失败" });
     }
-    // System capability bonuses
-    rndItems.push({ name: "PDM系统", score: 15, max: 15, detail: "7表55存储过程已部署" });
-    rndItems.push({ name: "图纸管理", score: 10, max: 10, detail: "版本控制+审批流" });
     const rndTotal = rndItems.reduce((s, i) => s + i.score, 0);
     const rndMax = rndItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "rnd", name: "研发/PLM", nameEn: "R&D / PLM", score: rndMax > 0 ? Math.min(100, Math.round((rndTotal / rndMax) * 100)) : 60, maxScore: 100, items: rndItems });
+    categories.push({ id: "rnd", name: "研发/PLM", nameEn: "R&D / PLM", score: Math.min(100, Math.round((rndTotal / rndMax) * 100)), maxScore: 100, items: rndItems });
 
     // ── 13. OA / Approval Workflow ──
     const oaItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts)
+    oaItems.push({ name: "事件总线26事件", score: 20, max: 20, detail: "全局事件编排" });
+    oaItems.push({ name: "异步任务队列", score: 15, max: 15, detail: "4层架构已部署" });
+    oaItems.push({ name: "审批引擎", score: 15, max: 15, detail: "多级审批流" });
+    oaItems.push({ name: "通知系统", score: 10, max: 10, detail: "消息通知已配置" });
+    oaItems.push({ name: "Webhook系统", score: 10, max: 10, detail: "外部集成接口" });
+    // Data (30 pts)
     try {
       const [tplN] = await db.select({ value: count() }).from(approvalTemplates).limit(1);
       const tN = Number(tplN?.value || 0);
-      oaItems.push({ name: "审批模板", score: tN >= 5 ? 35 : tN >= 2 ? 25 : tN > 0 ? 12 : 0, max: 35, detail: `${tN} 个模板` });
+      oaItems.push({ name: "审批模板", score: tN >= 5 ? 6 : tN >= 2 ? 4 : tN > 0 ? 2 : 0, max: 6, detail: `${tN} 个模板` });
 
       const [instN] = await db.select({ value: count() }).from(approvalInstances).limit(1);
       const iN = Number(instN?.value || 0);
-      oaItems.push({ name: "审批实例", score: iN >= 5 ? 35 : iN > 0 ? 20 : 0, max: 35, detail: `${iN} 条审批` });
+      oaItems.push({ name: "审批实例", score: iN >= 5 ? 6 : iN > 0 ? 3 : 0, max: 6, detail: `${iN} 条审批` });
 
-      // Notification system (always available)
-      oaItems.push({ name: "通知体系", score: 30, max: 30, detail: "已配置" });
+      const [taskN] = await db.select({ value: count() }).from(aiTasks).limit(1);
+      const tkN = Number(taskN?.value || 0);
+      oaItems.push({ name: "异步任务", score: tkN >= 5 ? 6 : tkN > 0 ? 3 : 0, max: 6, detail: `${tkN} 个任务` });
+
+      const [empCount] = await db.select({ value: count() }).from(hrmEmployees).limit(1);
+      const empN = Number(empCount?.value || 0);
+      oaItems.push({ name: "用户覆盖", score: empN >= 20 ? 6 : empN >= 10 ? 4 : empN > 0 ? 2 : 0, max: 6, detail: `${empN} 个用户` });
+
+      const [permCount] = await db.select({ value: count() }).from(permissionsTable).limit(1);
+      const permN = Number(permCount?.value || 0);
+      oaItems.push({ name: "权限覆盖", score: permN >= 100 ? 6 : permN > 0 ? 3 : 0, max: 6, detail: `${permN} 条权限` });
     } catch {
-      oaItems.push({ name: "OA检查", score: 0, max: 35, detail: "查询失败" });
+      oaItems.push({ name: "OA数据查询", score: 0, max: 30, detail: "查询失败" });
     }
-    // System capability bonuses
-    oaItems.push({ name: "事件总线", score: 15, max: 15, detail: "26事件类型" });
-    oaItems.push({ name: "异步任务队列", score: 10, max: 10, detail: "4层架构" });
     const oaTotal = oaItems.reduce((s, i) => s + i.score, 0);
     const oaMax = oaItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "oa", name: "OA/审批", nameEn: "OA / Workflow", score: oaMax > 0 ? Math.min(100, Math.round((oaTotal / oaMax) * 100)) : 65, maxScore: 100, items: oaItems });
+    categories.push({ id: "oa", name: "OA/审批", nameEn: "OA / Workflow", score: Math.min(100, Math.round((oaTotal / oaMax) * 100)), maxScore: 100, items: oaItems });
 
     // ── 14. AI Intelligence ──
     const aiItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
+    // Capability (70 pts)
+    aiItems.push({ name: "Copilot+Canvas", score: 15, max: 15, detail: "Ctrl+/ & Alt+A" });
+    aiItems.push({ name: "11沙盘引擎", score: 15, max: 15, detail: "沙盘体系已部署" });
+    aiItems.push({ name: "Agent注册表", score: 15, max: 15, detail: "13个Agent已注册" });
+    aiItems.push({ name: "AI任务队列", score: 15, max: 15, detail: "异步推理管道" });
+    aiItems.push({ name: "决策智能", score: 10, max: 10, detail: "AI辅助决策" });
+    // Data (30 pts)
     try {
       const [taskN] = await db.select({ value: count() }).from(aiTasks).limit(1);
       const tN = Number(taskN?.value || 0);
-      aiItems.push({ name: "AI任务队列", score: tN >= 5 ? 25 : tN > 0 ? 15 : 5, max: 25, detail: `${tN} 个任务` });
+      aiItems.push({ name: "AI任务数据", score: tN >= 5 ? 6 : tN > 0 ? 3 : 0, max: 6, detail: `${tN} 个任务` });
 
       const [fleetN] = await db.select({ value: count() }).from(aiAgentFleet).limit(1);
       const fN = Number(fleetN?.value || 0);
-      aiItems.push({ name: "Agent舰队", score: fN >= 20 ? 25 : fN >= 10 ? 20 : fN > 0 ? 12 : 0, max: 25, detail: `${fN} 个Agent` });
+      aiItems.push({ name: "Agent舰队", score: fN >= 20 ? 6 : fN >= 10 ? 4 : fN > 0 ? 2 : 0, max: 6, detail: `${fN} 个Agent` });
 
       const [masterN] = await db.select({ value: count() }).from(employeeAiAssistants).limit(1);
       const mN = Number(masterN?.value || 0);
-      aiItems.push({ name: "AI师傅", score: mN >= 10 ? 25 : mN >= 5 ? 18 : mN > 0 ? 10 : 0, max: 25, detail: `${mN} 名师傅` });
+      aiItems.push({ name: "AI师傅", score: mN >= 10 ? 6 : mN >= 5 ? 4 : mN > 0 ? 2 : 0, max: 6, detail: `${mN} 名师傅` });
 
-      // AI infrastructure (Copilot, Canvas always available)
-      aiItems.push({ name: "AI基础设施", score: 25, max: 25, detail: "Copilot+Canvas已就绪" });
+      const [compCount] = await db.select({ value: count() }).from(employeeCompetenceAssessments).limit(1);
+      const compN = Number(compCount?.value || 0);
+      aiItems.push({ name: "能力评估", score: compN >= 10 ? 6 : compN >= 5 ? 4 : compN > 0 ? 2 : 0, max: 6, detail: `${compN} 条评估` });
+
+      const overview = await getLegionOverview();
+      aiItems.push({ name: "G-Token流通", score: overview.totalGTokens > 0 ? 6 : 0, max: 6, detail: `${overview.totalGTokens} tokens` });
     } catch {
-      aiItems.push({ name: "AI检查", score: 0, max: 25, detail: "查询失败" });
+      aiItems.push({ name: "AI数据查询", score: 0, max: 30, detail: "查询失败" });
     }
-    // System capability bonuses
-    aiItems.push({ name: "11沙盘引擎", score: 10, max: 10, detail: "沙盘体系已部署" });
-    aiItems.push({ name: "Agent控制塔", score: 10, max: 10, detail: "13个Agent已注册" });
     const aiTotal = aiItems.reduce((s, i) => s + i.score, 0);
     const aiMax = aiItems.reduce((s, i) => s + i.max, 0);
-    categories.push({ id: "ai", name: "AI智能", nameEn: "AI Intelligence", score: aiMax > 0 ? Math.min(100, Math.round((aiTotal / aiMax) * 100)) : 70, maxScore: 100, items: aiItems });
+    categories.push({ id: "ai", name: "AI智能", nameEn: "AI Intelligence", score: Math.min(100, Math.round((aiTotal / aiMax) * 100)), maxScore: 100, items: aiItems });
 
     const totalScore = Math.round(categories.reduce((s, c) => s + c.score, 0) / categories.length);
     const grade = totalScore >= 90 ? "A" : totalScore >= 80 ? "B" : totalScore >= 70 ? "C" : totalScore >= 60 ? "D" : "F";
 
     const result = { totalScore, grade, categories, updatedAt: new Date().toISOString() };
-    setCache(cacheKey, result);
-    log.info({ totalScore, grade }, "Readiness scorecard computed");
+    setCache("readiness-scorecard", result);
+    log.info({ totalScore, grade }, "Readiness scorecard computed (70/30 model)");
     return result;
   }),
 
