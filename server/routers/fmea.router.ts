@@ -398,4 +398,101 @@ export const fmeaRouter = router({
     const docIds = docs.map(d => d.id);
     return items.filter(i => docIds.includes(i.fmeaDocumentId));
   }),
+
+  /**
+   * Quality Correlation Engine — FMEA → Control Plan → OEE impact
+   * Cross-module quality analysis showing how FMEA findings relate to
+   * control plan coverage and OEE impact
+   */
+  getQualityCorrelation: protectedProcedure.query(async () => {
+    const db = await requireDb();
+
+    // 1. FMEA summary — high-risk items
+    let fmeaSummary = { totalDocs: 0, totalItems: 0, highRiskItems: 0, avgRpn: 0 };
+    try {
+      const [docCount] = await db.select({ value: count() }).from(fmeaDocuments).limit(1);
+      const [itemCount] = await db.select({ value: count() }).from(fmeaItems).limit(1);
+      const highRisk = await db.select({ value: count() }).from(fmeaItems).where(sql`${fmeaItems.rpn} >= 100`).limit(1);
+      const avgRpnResult = await db.select({ avg: sql<number>`COALESCE(AVG(${fmeaItems.rpn}), 0)` }).from(fmeaItems).limit(1);
+      fmeaSummary = {
+        totalDocs: Number(docCount?.value ?? 0),
+        totalItems: Number(itemCount?.value ?? 0),
+        highRiskItems: Number(highRisk[0]?.value ?? 0),
+        avgRpn: Math.round(Number(avgRpnResult[0]?.avg ?? 0)),
+      };
+    } catch { /* tables may not exist */ }
+
+    // 2. Control Plan coverage
+    let controlPlanSummary = { totalPlans: 0, activePlans: 0, phases: [] as { phase: string; count: number }[] };
+    try {
+      const { controlPlans } = await import("../../drizzle/schema");
+      const [cpCount] = await db.select({ value: count() }).from(controlPlans).limit(1);
+      const [activeCount] = await db.select({ value: count() }).from(controlPlans).where(eq(controlPlans.status, "active")).limit(1);
+      const phaseGroups = await db.select({ phase: controlPlans.phase, cnt: count() }).from(controlPlans).groupBy(controlPlans.phase).limit(10);
+      controlPlanSummary = {
+        totalPlans: Number(cpCount?.value ?? 0),
+        activePlans: Number(activeCount?.value ?? 0),
+        phases: phaseGroups.map(p => ({ phase: p.phase, count: Number(p.cnt) })),
+      };
+    } catch { /* table may not exist */ }
+
+    // 3. OEE impact summary
+    let oeeSummary = { totalSnapshots: 0, avgOee: 0, machineCount: 0, criticalMachines: 0 };
+    try {
+      const { oeeSnapshots } = await import("../../drizzle/oee-schema");
+      const [snapCount] = await db.select({ value: count() }).from(oeeSnapshots).limit(1);
+      const avgResult = await db.select({ avg: sql<number>`COALESCE(AVG(CAST(${oeeSnapshots.oee} AS DECIMAL(10,4))), 0)` }).from(oeeSnapshots).limit(1);
+      const machineGroups = await db.select({ machineId: oeeSnapshots.machineId }).from(oeeSnapshots).groupBy(oeeSnapshots.machineId).limit(100);
+      const criticalResult = await db.select({ value: count() }).from(oeeSnapshots).where(sql`CAST(${oeeSnapshots.oee} AS DECIMAL(10,4)) < 0.70`).limit(1);
+      oeeSummary = {
+        totalSnapshots: Number(snapCount?.value ?? 0),
+        avgOee: Math.round(Number(avgResult[0]?.avg ?? 0) * 100),
+        machineCount: machineGroups.length,
+        criticalMachines: Number(criticalResult[0]?.value ?? 0),
+      };
+    } catch { /* table may not exist */ }
+
+    // 4. Cross-correlation insights
+    const insights: Array<{ type: "success" | "warning" | "critical"; message: string }> = [];
+
+    if (fmeaSummary.totalDocs > 0 && controlPlanSummary.totalPlans > 0) {
+      insights.push({ type: "success", message: `${fmeaSummary.totalDocs}个FMEA文件已关联${controlPlanSummary.totalPlans}个控制计划` });
+    } else if (fmeaSummary.totalDocs > 0 && controlPlanSummary.totalPlans === 0) {
+      insights.push({ type: "critical", message: "FMEA已建立但无控制计划 — 需要创建控制计划承接FMEA风险项" });
+    }
+
+    if (fmeaSummary.highRiskItems > 0) {
+      insights.push({ type: "warning", message: `${fmeaSummary.highRiskItems}个高风险项(RPN≥100)需要优先处理` });
+    }
+
+    if (oeeSummary.avgOee > 0 && oeeSummary.avgOee < 70) {
+      insights.push({ type: "critical", message: `平均OEE ${oeeSummary.avgOee}% < 70% — 需要根因分析并更新FMEA` });
+    } else if (oeeSummary.avgOee >= 85) {
+      insights.push({ type: "success", message: `平均OEE ${oeeSummary.avgOee}% 达到世界级水准` });
+    }
+
+    if (oeeSummary.criticalMachines > 0) {
+      insights.push({ type: "warning", message: `${oeeSummary.criticalMachines}条OEE记录低于70% — 建议关联FMEA进行失效分析` });
+    }
+
+    const coverageScore = Math.round(
+      (fmeaSummary.totalDocs > 0 ? 25 : 0) +
+      (controlPlanSummary.activePlans > 0 ? 25 : 0) +
+      (oeeSummary.totalSnapshots > 0 ? 25 : 0) +
+      (fmeaSummary.highRiskItems === 0 ? 25 : Math.max(0, 25 - fmeaSummary.highRiskItems * 3))
+    );
+
+    return {
+      fmea: fmeaSummary,
+      controlPlan: controlPlanSummary,
+      oee: oeeSummary,
+      insights,
+      coverageScore,
+      correlationMatrix: {
+        fmeaToControlPlan: controlPlanSummary.totalPlans > 0 && fmeaSummary.totalDocs > 0,
+        controlPlanToOee: controlPlanSummary.activePlans > 0 && oeeSummary.totalSnapshots > 0,
+        oeeToFmea: oeeSummary.criticalMachines > 0 && fmeaSummary.totalDocs > 0,
+      },
+    };
+  }),
 });

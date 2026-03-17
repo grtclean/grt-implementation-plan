@@ -260,8 +260,8 @@ beforeEach(() => {
 describe("readiness.getReadinessScorecard", () => {
   const proc = goLiveRouter.readiness.getReadinessScorecard;
 
-  it("returns scorecard with 14 categories and sub-items", async () => {
-    // Provide enough mock results for all 14 categories (50+ DB queries)
+  it("returns scorecard with 16 categories and sub-items", async () => {
+    // Provide enough mock results for all 14 DB-backed categories (50+ DB queries)
     for (let i = 0; i < 60; i++) {
       selectResultsQueue.push([{ value: 20 }]);
     }
@@ -269,7 +269,7 @@ describe("readiness.getReadinessScorecard", () => {
     // (grades, departments etc. — the mock chain returns count results)
 
     const result = await proc({ input: undefined, ...makeCtx() });
-    expect(result.categories).toHaveLength(14);
+    expect(result.categories).toHaveLength(16);
     expect(result.totalScore).toBeGreaterThan(0);
     expect(result.grade).toBeTruthy();
     expect(["A", "B", "C", "D", "F"]).toContain(result.grade);
@@ -284,7 +284,7 @@ describe("readiness.getReadinessScorecard", () => {
         expect(item).toHaveProperty("detail");
       }
     }
-    // Verify all 14 category IDs
+    // Verify all 16 category IDs (14 DB-backed + 2 capability-only)
     const ids = result.categories.map((c: any) => c.id);
     expect(ids).toContain("infrastructure");
     expect(ids).toContain("rbac");
@@ -300,6 +300,14 @@ describe("readiness.getReadinessScorecard", () => {
     expect(ids).toContain("rnd");
     expect(ids).toContain("oa");
     expect(ids).toContain("ai");
+    expect(ids).toContain("code_quality");
+    expect(ids).toContain("platform");
+    // PDCA metadata
+    expect(result.pdcaCycles).toBeDefined();
+    expect(result.pdcaCycles.length).toBeGreaterThanOrEqual(3);
+    expect(result.scoringModel).toBeDefined();
+    expect(result.scoringModel.goLiveThreshold).toBe(85);
+    expect(result.recommendations).toBeDefined();
   });
 
   it("handles DB failures gracefully", async () => {
@@ -307,7 +315,7 @@ describe("readiness.getReadinessScorecard", () => {
     mockDb.select.mockImplementationOnce(() => { throw new Error("DB error"); });
 
     const result = await proc({ input: undefined, ...makeCtx() });
-    expect(result.categories).toHaveLength(14);
+    expect(result.categories).toHaveLength(16);
     expect(result.totalScore).toBeGreaterThanOrEqual(0);
   });
 

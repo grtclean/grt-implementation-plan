@@ -284,6 +284,11 @@ function ReadinessTab() {
               </div>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">上线就绪度</p>
+            {scorecardData?.scoringModel && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {scorecardData.scoringModel.totalCategories}维度加权 | 上线≥{scorecardData.scoringModel.goLiveThreshold}
+              </p>
+            )}
             <Button size="sm" variant="ghost" className="mt-1 text-xs" onClick={() => scorecard.refetch()}>
               <RefreshCw className="h-3 w-3 mr-1" /> 刷新
             </Button>
@@ -321,6 +326,89 @@ function ReadinessTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* PDCA Cycle Tracker */}
+      {scorecardData?.pdcaCycles && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <RotateCcw className="h-4 w-4 text-blue-500" />
+              PDCA 改进周期
+              {scorecardData.scoringModel && (
+                <Badge className="bg-blue-100 text-blue-700 text-xs ml-2">
+                  {scorecardData.scoringModel.name} | 上线阈值: {scorecardData.scoringModel.goLiveThreshold}分
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="relative">
+              {scorecardData.pdcaCycles.map((cycle: any, i: number) => (
+                <div key={i} className="flex gap-3 mb-3 last:mb-0">
+                  <div className="flex flex-col items-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      cycle.scoreAfter === null ? "bg-gray-100 text-gray-500 border-2 border-dashed border-gray-300" :
+                      cycle.scoreAfter >= 85 ? "bg-green-100 text-green-700" :
+                      cycle.scoreAfter >= 70 ? "bg-yellow-100 text-yellow-700" :
+                      "bg-red-100 text-red-700"
+                    }`}>
+                      {cycle.scoreAfter ?? "?"}
+                    </div>
+                    {i < scorecardData.pdcaCycles.length - 1 && <div className="w-0.5 h-full bg-gray-200 mt-1" />}
+                  </div>
+                  <div className="flex-1 pb-1">
+                    <div className="flex items-center gap-2">
+                      <Badge className={`text-[10px] ${
+                        cycle.phase === "Plan" ? "bg-blue-100 text-blue-700" :
+                        cycle.phase === "Do" ? "bg-orange-100 text-orange-700" :
+                        cycle.phase.includes("Check") ? "bg-purple-100 text-purple-700" :
+                        "bg-green-100 text-green-700"
+                      }`}>{cycle.phase}</Badge>
+                      <span className="text-sm font-medium">{cycle.title}</span>
+                      <span className="text-[10px] text-muted-foreground">{cycle.date}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{cycle.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Per-Category Recommendations */}
+      {scorecardData?.recommendations && score < 90 && (
+        <Card className="border-blue-200 bg-blue-50/30">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-blue-500" />
+              提分建议 (当前 {score}分 → 目标 {scorecardData.scoringModel?.goLiveThreshold ?? 85}分)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {(scorecardData?.categories ?? [])
+                .filter((cat: any) => cat.score < 100)
+                .sort((a: any, b: any) => a.score - b.score)
+                .slice(0, 8)
+                .map((cat: any) => (
+                  <div key={cat.id} className="flex items-start gap-2 text-xs p-2 rounded bg-white border">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
+                      cat.score >= 80 ? "bg-green-100 text-green-700" : cat.score >= 60 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"
+                    }`}>{cat.score}</div>
+                    <div>
+                      <span className="font-medium">{cat.name}</span>
+                      <p className="text-muted-foreground mt-0.5">
+                        {(scorecardData.recommendations as Record<string, string>)?.[cat.id] ?? "补充数据以提升分数"}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              }
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Blockers */}
       <Card>

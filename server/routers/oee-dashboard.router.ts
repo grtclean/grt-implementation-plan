@@ -345,7 +345,54 @@ export const oeeDashboardRouter = router({
       return entries.length > 0 ? entries : null;
     });
 
-    return { machines: live ?? MOCK_DASHBOARD, isLive: !!live };
+    if (live) return { machines: live, isLive: true };
+
+    // Fallback: build dashboard from oeeSnapshots when no productionEquipments exist
+    const snapshotFallback = await safeQuery(async () => {
+      const db = await requireDb();
+      // Get latest snapshot per machine
+      const latestSnapshots = await db.execute(sql`
+        SELECT machine_id, oee, availability, performance, quality,
+               total_count, total_defects, total_planned_minutes, total_operating_minutes,
+               snapshot_date
+        FROM oee_snapshots
+        WHERE (machine_id, snapshot_date) IN (
+          SELECT machine_id, MAX(snapshot_date) FROM oee_snapshots GROUP BY machine_id
+        )
+        ORDER BY machine_id
+        LIMIT 50
+      `);
+      const rows = (latestSnapshots as any).rows ?? [];
+      if (rows.length === 0) return null;
+
+      return rows.map((r: any) => ({
+        machineId: Number(r.machine_id),
+        machineCode: `MACHINE-${r.machine_id}`,
+        machineName: `设备 #${r.machine_id}`,
+        location: "车间",
+        status: "running",
+        oee: {
+          availability: Number(r.availability ?? 0),
+          performance: Number(r.performance ?? 0),
+          quality: Number(r.quality ?? 0),
+          oee: Number(r.oee ?? 0),
+          availabilityPct: round(Number(r.availability ?? 0) * 100),
+          performancePct: round(Number(r.performance ?? 0) * 100),
+          qualityPct: round(Number(r.quality ?? 0) * 100),
+          oeePct: round(Number(r.oee ?? 0) * 100),
+          grade: (Number(r.oee ?? 0) * 100 >= 85 ? "world-class" : Number(r.oee ?? 0) * 100 >= 70 ? "acceptable" : "critical") as "world-class" | "acceptable" | "critical",
+        },
+        shiftsToday: 1,
+        lastUpdated: r.snapshot_date ?? new Date().toISOString(),
+      })) as MachineDashboardEntry[];
+    });
+
+    if (snapshotFallback && snapshotFallback.length > 0) {
+      return { machines: snapshotFallback, isLive: true };
+    }
+
+    // Final fallback: static mock data (only when DB has zero OEE data)
+    return { machines: MOCK_DASHBOARD, isLive: false };
   }),
 
   /** Single machine OEE history (last 30 days) */
