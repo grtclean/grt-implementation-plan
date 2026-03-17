@@ -112,8 +112,8 @@ async function checkRegionHealth(region: RegionCode): Promise<RegionHealth> {
         AND status = 'pending'
     `);
     
-    const stats = (statsResult[0] as any[])[0] || {};
-    const conflicts = (conflictResult[0] as any[])[0] || {};
+    const stats = ((statsResult as any)[0] as any[])[0] || {};
+    const conflicts = ((conflictResult as any)[0] as any[])[0] || {};
     
     const totalSyncs = stats.total_syncs || 0;
     const successfulSyncs = stats.successful_syncs || 0;
@@ -359,7 +359,7 @@ export async function getHealthCheckHistory(limit: number = 24): Promise<HealthC
       LIMIT ${limit}
     `);
     
-    return (result[0] as any[]).map(row => ({
+    return ((result as any)[0] as any[]).map(row => ({
       timestamp: row.timestamp,
       overallStatus: row.overall_status as HealthStatus,
       regions: JSON.parse(row.regions_data),
@@ -387,7 +387,7 @@ export async function getRegionHealthTrend(
       ORDER BY timestamp ASC
     `);
     
-    return (result[0] as any[]).map(row => {
+    return ((result as any)[0] as any[]).map(row => {
       const regions = JSON.parse(row.regions_data) as RegionHealth[];
       const regionData = regions.find(r => r.region === region);
       return {

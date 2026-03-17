@@ -183,7 +183,7 @@ const templateRouter = router({
           powerConsumptionKw: input.powerConsumptionKw?.toString(),
           priceRangeMin: input.priceRangeMin?.toString(),
           priceRangeMax: input.priceRangeMax?.toString(),
-          createdBy: ctx.user.id,
+          createdBy: ctx.user!.id,
         })
         .returning();
       log.info({ id: result.id, productType: input.productType }, "Showcase template created");
@@ -292,7 +292,7 @@ const guestLinkRouter = router({
           accessToken,
           expiresAt,
           maxViews: input.maxViews,
-          createdBy: ctx.user.id,
+          createdBy: ctx.user!.id,
         })
         .returning();
 

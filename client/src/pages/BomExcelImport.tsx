@@ -81,7 +81,7 @@ export default function BomExcelImport() {
 
   // 解析Excel
   const parseMutation = (trpc.bomExcelImport as any).parseExcel.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       setExcelHeaders(data.headers);
       setPreviewData(data.previewRows);
       // 自动映射
@@ -94,7 +94,7 @@ export default function BomExcelImport() {
         description: `检测到 ${data.totalRows} 行数据，${data.headers.length} 列`,
       });
     },
-    onError: (err) => {
+    onError: (err: any) => {
       toast({
         title: "解析失败",
         description: err.message,
@@ -105,7 +105,7 @@ export default function BomExcelImport() {
 
   // 验证数据
   const validateMutation = (trpc.bomExcelImport as any).validateData.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       setValidationResult(data);
       if (data.valid) {
         setImportStep("preview");
@@ -122,7 +122,7 @@ export default function BomExcelImport() {
 
   // 执行导入
   const importMutation = (trpc.bomExcelImport as any).importExcel.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       setImportStep("done");
       setImportProgress(100);
       toast({
@@ -131,7 +131,7 @@ export default function BomExcelImport() {
       });
       historyQuery.refetch();
     },
-    onError: (err) => {
+    onError: (err: any) => {
       toast({
         title: "导入失败",
         description: err.message,
@@ -142,7 +142,7 @@ export default function BomExcelImport() {
 
   // 下载模板
   const downloadTemplateMutation = (trpc.bomExcelImport as any).downloadTemplate.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: "模板已生成",
         description: "Excel模板已准备好下载",

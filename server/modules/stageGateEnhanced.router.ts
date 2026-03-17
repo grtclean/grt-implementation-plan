@@ -7,11 +7,59 @@ import { z } from "zod";
 import {router, protectedProcedure, adminProcedure, requirePermission} from "../_core/trpc";
 import { jsonValue } from "@shared/validators";
 import { requireDb } from "../db";
+import { sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import {
   ProjectImportService,
   ERPIntegrationManager,
 } from "../services/stage-gate-enhanced.service";
+import type { ImportResult } from "../services/stage-gate-enhanced.service";
+
+/** Raw row from import_history table */
+interface ImportHistoryRow {
+  id: number;
+  user_id: number | null;
+  import_type: string;
+  total_rows: number;
+  imported: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  status: string;
+  created_at: string;
+  user_name?: string;
+}
+
+/** Raw row from erp_configurations table */
+interface ErpConfigRow {
+  erp_type: string;
+  config: string;
+  updated_at: string;
+}
+
+/** Raw row from erp_sync_history table */
+interface ErpSyncHistoryRow {
+  id: number;
+  erp_type: string;
+  sync_type: string;
+  result: string;
+  user_id: number | null;
+  user_name?: string;
+  created_at: string;
+}
+
+/** ERP sync result shape — matches fullSync return type */
+interface ErpSyncResult {
+  projects?: import("../services/stage-gate-enhanced.service").ERPSyncResult;
+  customers?: import("../services/stage-gate-enhanced.service").ERPSyncResult;
+  orders?: import("../services/stage-gate-enhanced.service").ERPSyncResult;
+}
+
+/** ERP last sync row */
+interface ErpLastSyncRow {
+  erp_type: string;
+  last_sync: string | null;
+}
 
 // 全局ERP管理器实例
 const erpManager = new ERPIntegrationManager();
@@ -46,7 +94,7 @@ export const stageGateEnhancedRouter = router({
     )
     .mutation(async ({ input }) => {
       const { data, mapping } = input;
-      const result = ProjectImportService.validateImportData(data as any, mapping);
+      const result = ProjectImportService.validateImportData(data as Record<string, unknown>[], mapping);
       return result;
     }),
 
@@ -66,27 +114,18 @@ export const stageGateEnhancedRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { data, mapping, options } = input;
-      const result = await ProjectImportService.executeImport(data as any, mapping as any, {
+      const result = await ProjectImportService.executeImport(data as Record<string, unknown>[], mapping as Record<string, string>, {
         ...options,
         userId: ctx.user?.id,
       });
 
       // 记录导入历史
       const db = await requireDb();
-      await (db as any).execute(
-        `INSERT INTO import_history
-         (user_id, import_type, total_rows, imported, updated, skipped, failed, status)
-         VALUES (?, 'project', ?, ?, ?, ?, ?, ?)`,
-        [
-          ctx.user?.id,
-          result.totalProcessed,
-          result.imported,
-          result.updated,
-          result.skipped,
-          result.failed,
-          result.success ? "success" : "partial",
-        ]
-      );
+      await db.execute(sql`
+        INSERT INTO import_history
+        (user_id, import_type, total_rows, imported, updated, skipped, failed, status)
+        VALUES (${ctx.user?.id ?? null}, 'project', ${result.totalProcessed}, ${result.imported}, ${result.updated}, ${result.skipped}, ${result.failed}, ${result.success ? "success" : "partial"})
+      `);
 
       return result;
     }),
@@ -102,18 +141,18 @@ export const stageGateEnhancedRouter = router({
     .query(async ({ ctx, input }) => {
       const db = await requireDb();
       const { page, pageSize } = input;
+      const offset = (page - 1) * pageSize;
 
-      const [rows] = await (db as any).execute(
-        `SELECT ih.*, u.name as user_name
-         FROM import_history ih
-         LEFT JOIN user u ON ih.user_id = u.id
-         ORDER BY ih.created_at DESC
-         LIMIT ? OFFSET ?`,
-        [pageSize, (page - 1) * pageSize]
-      );
+      const result = await db.execute(sql`
+        SELECT ih.*, u.name as user_name
+        FROM import_history ih
+        LEFT JOIN user u ON ih.user_id = u.id
+        ORDER BY ih.created_at DESC
+        LIMIT ${pageSize} OFFSET ${offset}
+      `);
 
       return {
-        items: rows as any[],
+        items: result.rows as unknown as ImportHistoryRow[],
         page,
         pageSize,
       };
@@ -166,12 +205,12 @@ export const stageGateEnhancedRouter = router({
       const { type, config } = input;
 
       // 保存配置到数据库
-      await (db as any).execute(
-        `INSERT INTO erp_configurations (erp_type, config, created_by, updated_at)
-         VALUES (?, ?, ?, NOW())
-         ON DUPLICATE KEY UPDATE config = VALUES(config), updated_at = NOW()`,
-        [type, JSON.stringify(config), ctx.user?.id]
-      );
+      const configJson = JSON.stringify(config);
+      await db.execute(sql`
+        INSERT INTO erp_configurations (erp_type, config, created_by, updated_at)
+        VALUES (${type}, ${configJson}, ${ctx.user?.id ?? null}, NOW())
+        ON DUPLICATE KEY UPDATE config = VALUES(config), updated_at = NOW()
+      `);
 
       // 注册适配器
       erpManager.registerAdapter(type, config);
@@ -191,19 +230,19 @@ export const stageGateEnhancedRouter = router({
 
       // 先加载配置
       const db = await requireDb();
-      const [rows] = await (db as any).execute(
-        `SELECT config FROM erp_configurations WHERE erp_type = ?`,
-        [type]
-      );
+      const result = await db.execute(sql`
+        SELECT config FROM erp_configurations WHERE erp_type = ${type} LIMIT 1
+      `);
+      const rows = result.rows as unknown as ErpConfigRow[];
 
-      if ((rows as any[]).length === 0) {
+      if (rows.length === 0) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: `未找到${type.toUpperCase()} ERP配置`,
         });
       }
 
-      const config = JSON.parse((rows as any[])[0].config);
+      const config = JSON.parse(rows[0].config) as import("../services/stage-gate-enhanced.service").ERPConfig;
       erpManager.registerAdapter(type, config);
 
       const connected = await erpManager.testConnection(type);
@@ -226,22 +265,22 @@ export const stageGateEnhancedRouter = router({
       const { type, syncType } = input;
 
       // 加载配置
-      const [rows] = await (db as any).execute(
-        `SELECT config FROM erp_configurations WHERE erp_type = ?`,
-        [type]
-      );
+      const configResult = await db.execute(sql`
+        SELECT config FROM erp_configurations WHERE erp_type = ${type} LIMIT 1
+      `);
+      const rows = configResult.rows as unknown as ErpConfigRow[];
 
-      if ((rows as any[]).length === 0) {
+      if (rows.length === 0) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: `未找到${type.toUpperCase()} ERP配置`,
         });
       }
 
-      const config = JSON.parse((rows as any[])[0].config);
+      const config = JSON.parse(rows[0].config) as import("../services/stage-gate-enhanced.service").ERPConfig;
       erpManager.registerAdapter(type, config);
 
-      let result: any;
+      let result: ErpSyncResult;
 
       if (syncType === "all") {
         result = await erpManager.fullSync(type);
@@ -265,11 +304,11 @@ export const stageGateEnhancedRouter = router({
       }
 
       // 记录同步历史
-      await (db as any).execute(
-        `INSERT INTO erp_sync_history (erp_type, sync_type, result, user_id)
-         VALUES (?, ?, ?, ?)`,
-        [type, syncType, JSON.stringify(result), ctx.user?.id]
-      );
+      const resultJson = JSON.stringify(result);
+      await db.execute(sql`
+        INSERT INTO erp_sync_history (erp_type, sync_type, result, user_id)
+        VALUES (${type}, ${syncType}, ${resultJson}, ${ctx.user?.id ?? null})
+      `);
 
       return result;
     }),
@@ -286,25 +325,21 @@ export const stageGateEnhancedRouter = router({
       const db = await requireDb();
       const { type, limit } = input;
 
-      let query = `SELECT esh.*, u.name as user_name
-                   FROM erp_sync_history esh
-                   LEFT JOIN user u ON esh.user_id = u.id
-                   WHERE 1=1`;
-      const params: unknown[] = [];
+      const whereClause = type
+        ? sql`WHERE esh.erp_type = ${type}`
+        : sql`WHERE 1=1`;
 
-      if (type) {
-        query += ` AND esh.erp_type = ?`;
-        params.push(type);
-      }
+      const result = await db.execute(sql`
+        SELECT esh.*, u.name as user_name
+        FROM erp_sync_history esh
+        LEFT JOIN user u ON esh.user_id = u.id
+        ${whereClause}
+        ORDER BY esh.created_at DESC LIMIT ${limit}
+      `);
 
-      query += ` ORDER BY esh.created_at DESC LIMIT ?`;
-      params.push(limit);
-
-      const [rows] = await (db as any).execute(query, params);
-
-      return (rows as any[]).map((row) => ({
+      return (result.rows as unknown as ErpSyncHistoryRow[]).map((row) => ({
         ...row,
-        result: JSON.parse(row.result || "{}"),
+        result: JSON.parse(row.result || "{}") as Record<string, unknown>,
       }));
     }),
 
@@ -312,22 +347,25 @@ export const stageGateEnhancedRouter = router({
   getERPStatus: protectedProcedure.query(async () => {
     const db = await requireDb();
 
-    const [configs] = await (db as any).execute(
-      `SELECT erp_type, updated_at FROM erp_configurations`
-    );
+    const configsResult = await db.execute(sql`
+      SELECT erp_type, updated_at FROM erp_configurations LIMIT 100
+    `);
+    const configs = configsResult.rows as unknown as ErpConfigRow[];
 
-    const [lastSync] = await (db as any).execute(
-      `SELECT erp_type, MAX(created_at) as last_sync
-       FROM erp_sync_history
-       GROUP BY erp_type`
-    );
+    const lastSyncResult = await db.execute(sql`
+      SELECT erp_type, MAX(created_at) as last_sync
+      FROM erp_sync_history
+      GROUP BY erp_type
+      LIMIT 100
+    `);
+    const lastSync = lastSyncResult.rows as unknown as ErpLastSyncRow[];
 
     const status: Record<string, unknown> = {};
     const erpTypes = ["sap", "oracle", "kingdee"];
 
     for (const type of erpTypes) {
-      const config = (configs as any[]).find((c) => c.erp_type === type);
-      const sync = (lastSync as any[]).find((s) => s.erp_type === type);
+      const config = configs.find((c) => c.erp_type === type);
+      const sync = lastSync.find((s) => s.erp_type === type);
 
       status[type] = {
         configured: !!config,

@@ -22,6 +22,8 @@ import {
 import { userRoles } from '../../drizzle/permission-schema';
 import { eq, and, or, gte, lte, inArray, isNull, sql } from 'drizzle-orm';
 
+type DbInstance = Awaited<ReturnType<typeof requireDb>>;
+
 /**
  * 权限服务类
  */
@@ -30,7 +32,7 @@ export class PermissionService {
    * 检查用户是否拥有特定权限
    */
   async checkPermission(userId: string, permissionCode: string): Promise<boolean> {
-    const db: any = await requireDb();
+    const db: DbInstance = await requireDb();
 
     // 检查用户是否在黑名单中
     const isBlacklisted = await db
@@ -40,7 +42,7 @@ export class PermissionService {
         and(
           eq(permissionBlacklist.blacklistValue, userId),
           eq(permissionBlacklist.blacklistType, 'user'),
-          eq(permissionBlacklist.isActive, true as any),
+          eq(permissionBlacklist.isActive, true),
           or(
             isNull(permissionBlacklist.endDate),
             gte(permissionBlacklist.endDate, sql`now()`)
@@ -59,8 +61,8 @@ export class PermissionService {
       .from(userRoles)
       .where(
         and(
-          eq(userRoles.userId, userId as any),
-          eq(userRoles.isActive, true as any),
+          eq(userRoles.userId, userId),
+          eq(userRoles.isActive, true),
           lte(userRoles.startDate, sql`now()`),
           or(
             isNull(userRoles.endDate),
@@ -70,7 +72,7 @@ export class PermissionService {
       )
       .limit(1000);
 
-    const roleIds = userRoleRecords.map((r: any) => r.roleId);
+    const roleIds = userRoleRecords.map((r: { roleId: number }) => r.roleId);
 
     if (roleIds.length === 0) {
       return false;
@@ -95,7 +97,7 @@ export class PermissionService {
       .from(rolePermissions)
       .where(
         and(
-          inArray(rolePermissions.roleId, roleIds as any),
+          inArray(rolePermissions.roleId, roleIds),
           eq(rolePermissions.permissionId, permissionId)
         )
       )
@@ -113,7 +115,7 @@ export class PermissionService {
         and(
           eq(temporaryPermissions.userId, userId),
           eq(temporaryPermissions.permissionId, permissionId),
-          eq(temporaryPermissions.status, 'approved' as any),
+          eq(temporaryPermissions.status, 'approved'),
           lte(temporaryPermissions.startDate, sql`now()`),
           gte(temporaryPermissions.endDate, sql`now()`)
         )
@@ -127,7 +129,7 @@ export class PermissionService {
    * 检查用户是否拥有特定角色
    */
   async checkRole(userId: string, roleName: string): Promise<boolean> {
-    const db: any = await requireDb();
+    const db: DbInstance = await requireDb();
 
     const roleRecord = await db
       .select({ id: roles.id })
@@ -146,9 +148,9 @@ export class PermissionService {
       .from(userRoles)
       .where(
         and(
-          eq(userRoles.userId, userId as any),
-          eq(userRoles.roleId, roleId as any),
-          eq(userRoles.isActive, true as any),
+          eq(userRoles.userId, userId),
+          eq(userRoles.roleId, roleId),
+          eq(userRoles.isActive, true),
           lte(userRoles.startDate, sql`now()`),
           or(
             isNull(userRoles.endDate),
@@ -165,7 +167,7 @@ export class PermissionService {
    * 获取用户的所有权限
    */
   async getUserPermissions(userId: string): Promise<string[]> {
-    const db: any = await requireDb();
+    const db: DbInstance = await requireDb();
 
     // 获取用户的所有角色
     const userRoleRecords = await db
@@ -173,8 +175,8 @@ export class PermissionService {
       .from(userRoles)
       .where(
         and(
-          eq(userRoles.userId, userId as any),
-          eq(userRoles.isActive, true as any),
+          eq(userRoles.userId, userId),
+          eq(userRoles.isActive, true),
           lte(userRoles.startDate, sql`now()`),
           or(
             isNull(userRoles.endDate),
@@ -184,7 +186,7 @@ export class PermissionService {
       )
       .limit(1000);
 
-    const roleIds = userRoleRecords.map((r: any) => r.roleId);
+    const roleIds = userRoleRecords.map((r: { roleId: number }) => r.roleId);
 
     if (roleIds.length === 0) {
       return [];
@@ -194,10 +196,10 @@ export class PermissionService {
     const rolePerms = await db
       .select({ permissionId: rolePermissions.permissionId })
       .from(rolePermissions)
-      .where(inArray(rolePermissions.roleId, roleIds as any))
+      .where(inArray(rolePermissions.roleId, roleIds))
       .limit(1000);
 
-    const permissionIds = rolePerms.map((p: any) => p.permissionId);
+    const permissionIds = rolePerms.map((p: { permissionId: number }) => p.permissionId);
 
     if (permissionIds.length === 0) {
       return [];
@@ -207,10 +209,10 @@ export class PermissionService {
     const perms = await db
       .select({ code: permissions.code })
       .from(permissions)
-      .where(inArray(permissions.id, permissionIds as any))
+      .where(inArray(permissions.id, permissionIds))
       .limit(1000);
 
-    return perms.map((p: any) => p.code);
+    return perms.map((p: { code: string }) => p.code);
   }
 
   /**
@@ -223,7 +225,7 @@ export class PermissionService {
     allowedProjects?: string[];
     allowedCustomers?: string[];
   } | null> {
-    const db: any = await requireDb();
+    const db: DbInstance = await requireDb();
 
     const scope = await db
       .select()
@@ -231,7 +233,7 @@ export class PermissionService {
       .where(
         and(
           eq(dataScopes.userId, userId),
-          eq(dataScopes.isActive, true as any)
+          eq(dataScopes.isActive, true)
         )
       )
       .limit(1);
@@ -240,7 +242,7 @@ export class PermissionService {
       return null;
     }
 
-    const s: any = scope[0];
+    const s = scope[0];
     return {
       scopeType: s.scopeType,
       allowedDepartments: s.allowedDepartments as string[] | undefined,
@@ -259,7 +261,7 @@ export class PermissionService {
     operatorId: string,
     reason?: string
   ): Promise<void> {
-    const db: any = await requireDb();
+    const db: DbInstance = await requireDb();
 
     // 获取权限ID
     const permissionRecord = await db
@@ -294,7 +296,7 @@ export class PermissionService {
       operatorId,
       'grant_permission',
       userId,
-      null as any,
+      undefined,
       permissionId,
       'success',
       reason
@@ -310,7 +312,7 @@ export class PermissionService {
     operatorId: string,
     reason?: string
   ): Promise<void> {
-    const db: any = await requireDb();
+    const db: DbInstance = await requireDb();
 
     // 获取权限ID
     const permissionRecord = await db
@@ -331,12 +333,12 @@ export class PermissionService {
     // 撤销临时权限
     await db
       .update(temporaryPermissions)
-      .set({ status: 'revoked' } as any)
+      .set({ status: 'revoked', updatedAt: new Date() })
       .where(
         and(
           eq(temporaryPermissions.userId, userId),
           eq(temporaryPermissions.permissionId, permissionId),
-          eq(temporaryPermissions.status, 'approved' as any)
+          eq(temporaryPermissions.status, 'approved')
         )
       );
 
@@ -345,7 +347,7 @@ export class PermissionService {
       operatorId,
       'revoke_permission',
       userId,
-      null as any,
+      undefined,
       permissionId,
       'success',
       reason
@@ -361,7 +363,7 @@ export class PermissionService {
     operatorId: string,
     endDate?: Date
   ): Promise<void> {
-    const db: any = await requireDb();
+    const db: DbInstance = await requireDb();
 
     // 获取角色ID
     const roleRecord = await db
@@ -385,8 +387,8 @@ export class PermissionService {
       .from(userRoles)
       .where(
         and(
-          eq(userRoles.userId, userId as any),
-          eq(userRoles.roleId, roleId as any)
+          eq(userRoles.userId, userId),
+          eq(userRoles.roleId, roleId)
         )
       )
       .limit(1);
@@ -404,14 +406,14 @@ export class PermissionService {
       roleId,
       endDate,
       isActive: true,
-    } as any);
+    });
 
     // 记录审计日志
     await this.logAuditEvent(
       operatorId,
       'assign_role',
       userId,
-      roleId as any,
+      roleId,
       undefined,
       'success'
     );
@@ -427,7 +429,7 @@ export class PermissionService {
     startDate?: Date,
     endDate?: Date
   ): Promise<void> {
-    const db: any = await requireDb();
+    const db: DbInstance = await requireDb();
 
     // 检查是否已经分配
     const existing = await db
@@ -435,9 +437,9 @@ export class PermissionService {
       .from(userRoles)
       .where(
         and(
-          eq(userRoles.userId, userId as any),
-          eq(userRoles.roleId, roleId as any),
-          eq(userRoles.isActive, true as any)
+          eq(userRoles.userId, userId),
+          eq(userRoles.roleId, roleId),
+          eq(userRoles.isActive, true)
         )
       )
       .limit(1);
@@ -456,14 +458,14 @@ export class PermissionService {
       startDate: startDate || new Date(),
       endDate,
       isActive: true,
-    } as any);
+    });
 
     // 记录审计日志
     await this.logAuditEvent(
       operatorId,
       'assign_role',
       userId,
-      roleId as any,
+      roleId,
       undefined,
       'success'
     );
@@ -477,7 +479,7 @@ export class PermissionService {
     roleName: string,
     operatorId: string
   ): Promise<void> {
-    const db: any = await requireDb();
+    const db: DbInstance = await requireDb();
 
     // 获取角色ID
     const roleRecord = await db
@@ -498,11 +500,11 @@ export class PermissionService {
     // 撤销角色
     await db
       .update(userRoles)
-      .set({ isActive: false } as any)
+      .set({ isActive: false, updatedAt: new Date() })
       .where(
         and(
-          eq(userRoles.userId, userId as any),
-          eq(userRoles.roleId, roleId as any)
+          eq(userRoles.userId, userId),
+          eq(userRoles.roleId, roleId)
         )
       );
 
@@ -511,7 +513,7 @@ export class PermissionService {
       operatorId,
       'revoke_role',
       userId,
-      roleId as any,
+      roleId,
       undefined,
       'success'
     );
@@ -529,9 +531,9 @@ export class PermissionService {
     result: 'success' | 'denied' | 'error' = 'success',
     reason?: string
   ): Promise<void> {
-    const db: any = await requireDb();
+    const db: DbInstance = await requireDb();
 
-    const actionTypeMap: Record<string, unknown> = {
+    const actionTypeMap: Record<string, string> = {
       'grant_permission': 'grant_permission',
       'revoke_permission': 'revoke_permission',
       'create_role': 'create_role',
@@ -552,7 +554,7 @@ export class PermissionService {
       targetPermissionId,
       result,
       reason,
-    } as any);
+    });
   }
 
   /**
@@ -562,7 +564,7 @@ export class PermissionService {
     userId: string,
     certificateCode: string
   ): Promise<boolean> {
-    const db: any = await requireDb();
+    const db: DbInstance = await requireDb();
 
     const cert = await db
       .select()
@@ -594,7 +596,7 @@ export class PermissionService {
       expiryDate?: Date;
     }>
   > {
-    const db: any = await requireDb();
+    const db: DbInstance = await requireDb();
 
     const certs = await db
       .select({
@@ -612,7 +614,7 @@ export class PermissionService {
       )
       .limit(1000);
 
-    return certs as any;
+    return certs as unknown as Array<{ code: string; name: string; level?: string; expiryDate?: Date }>;
   }
 }
 

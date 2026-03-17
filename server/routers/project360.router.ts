@@ -136,7 +136,7 @@ export const project360Router = router({
           const byType: Record<string, number> = {};
           let totalFiles = 0;
           for (const r of fileRows) {
-            byType[r.fileType] = Number(r.cnt);
+            byType[r.fileType as string] = Number(r.cnt);
             totalFiles += Number(r.cnt);
           }
 

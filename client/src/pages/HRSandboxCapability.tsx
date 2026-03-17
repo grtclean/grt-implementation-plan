@@ -999,7 +999,7 @@ function TabDocParse() {
 // ═══════════════════════════════════════════════════════════
 function TabViolations() {
   const violationsQuery = trpc.violationEvent.list.useQuery({ limit: 20 });
-  const statsQuery = trpc.violationEvent.stats.useQuery();
+  const statsQuery = trpc.violationEvent.stats.useQuery({} as any);
   const violations = violationsQuery.data?.items || [];
   const stats = statsQuery.data;
 

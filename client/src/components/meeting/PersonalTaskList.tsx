@@ -82,7 +82,7 @@ export default function PersonalTaskList({ className }: PersonalTaskListProps) {
       toast({ title: '任务已接受', description: '任务已添加到您的工作清单' });
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: '操作失败', description: error.message, variant: 'destructive' });
     }
   });
@@ -93,7 +93,7 @@ export default function PersonalTaskList({ className }: PersonalTaskListProps) {
       toast({ title: '进度已更新' });
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: '更新失败', description: error.message, variant: 'destructive' });
     }
   });
@@ -106,7 +106,7 @@ export default function PersonalTaskList({ className }: PersonalTaskListProps) {
       setSelectedTask(null);
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: '提交失败', description: error.message, variant: 'destructive' });
     }
   });
@@ -119,7 +119,7 @@ export default function PersonalTaskList({ className }: PersonalTaskListProps) {
       setSelectedTask(null);
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: '操作失败', description: error.message, variant: 'destructive' });
     }
   });

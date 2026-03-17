@@ -268,7 +268,7 @@ export class MonitoringService {
       });
     }
 
-    return suggestions;
+    return suggestions as { id: string; title: string; description: string; severity: "high" | "medium" | "low"; impact: string; action: string; }[];
   }
 
   /**

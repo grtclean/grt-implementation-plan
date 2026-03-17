@@ -51,7 +51,7 @@ export default function CalibrationTrendChart({ agentUnitId, serialNumber }: Cal
       return { points: [], minY: 0, maxY: 100, normalRange: [0, 100] as [number, number] };
     }
 
-    const values = trend.dataPoints.map(p => p.value);
+    const values = trend.dataPoints.map((p: any) => p.value);
     const minY = Math.min(...values) * 0.9;
     const maxY = Math.max(...values) * 1.1;
     const normalRange = trend.parameterConfig?.normalRange || [minY, maxY];
@@ -91,7 +91,7 @@ export default function CalibrationTrendChart({ agentUnitId, serialNumber }: Cal
       fluctuating: { label: "波动", variant: "outline" as const },
     };
     
-    const { label, variant } = trendLabels[trend.statistics.trend];
+    const { label, variant } = (trendLabels as any)[trend.statistics.trend];
     return <Badge variant={variant}>{label}</Badge>;
   };
 
@@ -116,7 +116,7 @@ export default function CalibrationTrendChart({ agentUnitId, serialNumber }: Cal
     const yScale = chartHeight / (maxY - minY || 1);
 
     // 生成路径
-    const pathData = points.map((point, i) => {
+    const pathData = points.map((point: any, i: any) => {
       const x = padding + i * xScale;
       const y = height - padding - (point.value - minY) * yScale;
       return `${i === 0 ? "M" : "L"} ${x} ${y}`;
@@ -162,7 +162,7 @@ export default function CalibrationTrendChart({ agentUnitId, serialNumber }: Cal
         />
         
         {/* 数据点 */}
-        {points.map((point, i) => {
+        {points.map((point: any, i: any) => {
           const x = padding + i * xScale;
           const y = height - padding - (point.value - minY) * yScale;
           const pointColor = point.status === "normal" ? config.color : 
@@ -292,7 +292,7 @@ export default function CalibrationTrendChart({ agentUnitId, serialNumber }: Cal
           <TabsContent value="anomalies">
             {trend?.anomalies && trend.anomalies.length > 0 ? (
               <div className="space-y-2">
-                {trend.anomalies.map((anomaly, i) => (
+                {trend.anomalies.map((anomaly: any, i: any) => (
                   <Alert key={i} variant={anomaly.severity === "high" ? "destructive" : "default"}>
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle className="flex items-center gap-2">

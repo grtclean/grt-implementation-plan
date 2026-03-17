@@ -144,7 +144,7 @@ export const costAlertRouter = router({
       if (!id) return { success: true, message: "操作成功" };
       await db.update(costAlertLogs).set({
         status: "acknowledged",
-        handlerId: ctx.user.id,
+        handlerId: ctx.user!.id,
         handleNote: input.handleNote ?? input.note,
         handledAt: new Date().toISOString(),
       } as any).where(eq(costAlertLogs.id, id));

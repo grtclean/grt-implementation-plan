@@ -69,7 +69,7 @@ export const offboardingRouter = router({
     .mutation(async ({ input, ctx }) => {
       return createOffboarding({
         ...input,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       });
     }),
 
@@ -233,8 +233,8 @@ export const offboardingRouter = router({
     .mutation(async ({ input, ctx }) => {
       return confirmPerformanceAttribution(
         input.id,
-        ctx.user.id,
-        ctx.user.name || '未知',
+        ctx.user!.id,
+        ctx.user!.name || '未知',
         input.originalContributionPercent,
         input.successorContributionPercent,
         input.confirmationNotes
@@ -289,7 +289,7 @@ export const offboardingRouter = router({
       return updateAssetHandoverStatus(
         input.itemId,
         input.status,
-        input.completedBy || ctx.user.id,
+        input.completedBy || ctx.user!.id,
         input.verifiedBy
       );
     }),
@@ -347,7 +347,7 @@ export const offboardingRouter = router({
   /** 获取我的待审批列表 */
   myPendingApprovals: protectedProcedure
     .query(async ({ ctx }) => {
-      return getPendingApprovals(ctx.user.id);
+      return getPendingApprovals(ctx.user!.id);
     }),
 
   // ============================================================
@@ -366,7 +366,7 @@ export const offboardingRouter = router({
     .query(async ({ input, ctx }) => {
       return queryOffboardedEmployeeData({
         ...input,
-        queryUserId: ctx.user.id,
+        queryUserId: ctx.user!.id,
       });
     }),
 });

@@ -508,7 +508,7 @@ export const aiInterventionRouter = router({
         interventionId: input.interventionId,
         previousStatus: intervention.status,
         newStatus: "OVERRIDDEN" as const,
-        overriddenBy: ctx.user.name ?? `User#${ctx.user.id}`,
+        overriddenBy: ctx.user!.name ?? `User#${ctx.user!.id}`,
         reason: input.reason,
         timestamp: new Date().toISOString(),
       };

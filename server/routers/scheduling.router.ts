@@ -25,6 +25,170 @@ import {
   simulateWorkReportEvent,
 } from '../services/scheduling-auto-refresh.service';
 
+/** Raw MySQL2 connection with execute method */
+interface RawDbConnection {
+  execute(sql: string, params?: unknown[]): Promise<unknown[]>;
+}
+
+/** Generic DB row from scheduling tables */
+interface SchedulingTaskRow {
+  id: string;
+  project_id: string | null;
+  bu_code: string;
+  task_name: string;
+  task_type: string;
+  estimated_hours: string;
+  priority: number;
+  earliest_start: string | null;
+  latest_finish: string | null;
+  predecessor_tasks: string | string[];
+  required_skills: string | string[];
+  required_resources: string | string[];
+  status: string;
+  assigned_resource_id: string | null;
+  scheduled_start: string | null;
+  scheduled_end: string | null;
+  created_at: string;
+}
+
+interface SchedulingResourceDbRow {
+  id: string;
+  resource_type: string;
+  resource_name: string;
+  bu_code: string | null;
+  skills: string | unknown[];
+  capacity_per_day: string;
+  cost_per_hour: string;
+  availability_calendar: string | unknown[];
+  status: string;
+}
+
+interface SchedulingConstraintRow {
+  id: string;
+  constraint_type: string;
+  constraint_name: string;
+  description: string | null;
+  parameters: string | Record<string, unknown>;
+  priority: number;
+  is_hard_constraint: boolean;
+  penalty_weight: string;
+  is_active: boolean;
+}
+
+interface SchedulingResultRow {
+  task_id: string;
+  resource_id: string | null;
+  task_name: string;
+  bu_code: string;
+  task_type: string;
+  resource_name: string | null;
+  scheduled_start: string;
+  scheduled_end: string;
+  duration_hours: string;
+  sequence_order: number;
+  changeover_time: string;
+  delay_penalty: string;
+  predecessor_tasks: string | string[];
+  task_status: string;
+}
+
+interface SchedulingJobRow {
+  id: string;
+  job_name: string;
+  status: string;
+  result_summary: string | null;
+  objective_value: number | null;
+  solve_time_seconds: number | null;
+  created_at: string;
+  error_message: string | null;
+}
+
+interface SchedulingDispatchRow {
+  id: string;
+  job_id: string;
+  task_id: string;
+  resource_id: string;
+  task_name: string | null;
+  bu_code: string | null;
+  task_type: string | null;
+  scheduled_start: string;
+  scheduled_end: string;
+  duration_hours: string;
+  status: string;
+}
+
+interface CalendarEntry {
+  date: string;
+  available: boolean;
+  availableHours?: number;
+}
+
+interface TaskStatsRow {
+  total: string;
+  pending: string;
+  scheduled: string;
+  in_progress: string;
+  completed: string;
+}
+
+interface ResourceStatsRow {
+  total: string;
+  available: string;
+  employees: string;
+  equipment: string;
+}
+
+interface BuDistributionRow {
+  bu_code: string;
+  count: string;
+  total_hours: string;
+}
+
+/** Export task shape */
+interface ExportTask {
+  id: string;
+  taskName: string;
+  projectId: string;
+  projectName: string;
+  buCode: string;
+  taskType: string;
+  estimatedHours: number;
+  priority: number;
+  scheduledStart: Date | undefined;
+  scheduledEnd: Date | undefined;
+  assignedResource: string | null;
+  status: string;
+}
+
+/** Export allocation shape */
+interface ExportAllocation {
+  resourceId: string;
+  resourceName: string;
+  resourceType: string;
+  buCode: string;
+  allocatedTasks: unknown[];
+  totalUtilization: number;
+}
+
+/** Export gantt task shape */
+interface ExportGanttTask {
+  id: string;
+  name: string;
+  start: Date;
+  end: Date;
+  progress: number;
+  dependencies: unknown[];
+  resource: string;
+  bu: string;
+}
+
+/** Export gantt resource shape */
+interface ExportGanttResource {
+  id: string;
+  name: string;
+  type: string;
+}
+
 // ==================== 输入验证Schema ====================
 
 const taskInputSchema = z.object({
@@ -97,30 +261,30 @@ export const schedulingRouter = router({
       offset: z.number().min(0).default(0),
     }).optional())
     .query(async ({ input }) => {
-      const db: any = await getDb();
-      const filters = (input || {}) as any;
+      const db = await getDb() as unknown as RawDbConnection;
+      const filters = input || {};
 
       let query = 'SELECT * FROM scheduling_tasks WHERE 1=1';
       const params: unknown[] = [];
 
-      if (filters.projectId) {
+      if ((filters as any).projectId) {
         query += ' AND project_id = ?';
-        params.push(filters.projectId);
+        params.push((filters as any).projectId);
       }
-      if (filters.buCode) {
+      if ((filters as any).buCode) {
         query += ' AND bu_code = ?';
-        params.push(filters.buCode);
+        params.push((filters as any).buCode);
       }
-      if (filters.status) {
+      if ((filters as any).status) {
         query += ' AND status = ?';
-        params.push(filters.status);
+        params.push((filters as any).status);
       }
 
       query += ' ORDER BY priority DESC, created_at DESC LIMIT ? OFFSET ?';
-      params.push(filters.limit || 50, filters.offset || 0);
-      
-      const [rows] = await db.execute(query, params);
-      return rows as any[];
+      params.push((filters as any).limit || 50, (filters as any).offset || 0);
+
+      const [rows] = await db.execute(query, params) as [SchedulingTaskRow[]];
+      return rows;
     }),
 
   /**
@@ -129,12 +293,12 @@ export const schedulingRouter = router({
   createTask: requirePermission('mfg:scheduling:run')
     .input(taskInputSchema)
     .mutation(async ({ input, ctx }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
       const id = uuidv4();
-      
+
       await db.execute(
-        `INSERT INTO scheduling_tasks 
-         (id, project_id, bu_code, task_name, task_type, estimated_hours, priority, 
+        `INSERT INTO scheduling_tasks
+         (id, project_id, bu_code, task_name, task_type, estimated_hours, priority,
           earliest_start, latest_finish, predecessor_tasks, required_skills, required_resources, status)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
         [
@@ -165,7 +329,7 @@ export const schedulingRouter = router({
       ...taskInputSchema.partial().shape,
     }))
     .mutation(async ({ input, ctx }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
       const { id, ...updates } = input;
       
       const setClauses: string[] = [];
@@ -213,7 +377,7 @@ export const schedulingRouter = router({
   deleteTask: requirePermission('mfg:scheduling:run')
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
       await db.execute('DELETE FROM scheduling_tasks WHERE id = ?', [input.id]);
       return { success: true };
     }),
@@ -230,12 +394,12 @@ export const schedulingRouter = router({
       status: z.enum(['available', 'busy', 'unavailable', 'on_leave']).optional(),
     }).optional())
     .query(async ({ input }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
       const filters = input || {};
-      
+
       let query = 'SELECT * FROM scheduling_resources WHERE 1=1';
       const params: unknown[] = [];
-      
+
       if (filters.resourceType) {
         query += ' AND resource_type = ?';
         params.push(filters.resourceType);
@@ -248,11 +412,11 @@ export const schedulingRouter = router({
         query += ' AND status = ?';
         params.push(filters.status);
       }
-      
+
       query += ' ORDER BY resource_name';
-      
-      const [rows] = await db.execute(query, params);
-      return rows as any[];
+
+      const [rows] = await db.execute(query, params) as [SchedulingResourceDbRow[]];
+      return rows;
     }),
 
   /**
@@ -261,9 +425,9 @@ export const schedulingRouter = router({
   createResource: requirePermission('mfg:scheduling:run')
     .input(resourceInputSchema)
     .mutation(async ({ input }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
       const id = uuidv4();
-      
+
       await db.execute(
         `INSERT INTO scheduling_resources 
          (id, resource_type, resource_name, bu_code, skills, capacity_per_day, cost_per_hour, status)
@@ -293,25 +457,25 @@ export const schedulingRouter = router({
       availableHours: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
-      const db: any = await getDb();
-      
+      const db = await getDb() as unknown as RawDbConnection;
+
       // 获取当前资源
       const [rows] = await db.execute(
         'SELECT availability_calendar FROM scheduling_resources WHERE id = ?',
         [input.resourceId]
-      ) as any[];
-      
+      ) as [{ availability_calendar: string | CalendarEntry[] | null }[]];
+
       if (rows.length === 0) {
         throw new Error('资源不存在');
       }
-      
-      let calendar = rows[0].availability_calendar || [];
+
+      let calendar: CalendarEntry[] = (rows[0].availability_calendar || []) as CalendarEntry[];
       if (typeof calendar === 'string') {
-        calendar = JSON.parse(calendar);
+        calendar = JSON.parse(calendar) as CalendarEntry[];
       }
-      
+
       // 更新或添加日期条目
-      const existingIndex = calendar.findIndex((c: any) => c.date === input.date);
+      const existingIndex = calendar.findIndex((c: CalendarEntry) => c.date === input.date);
       const newEntry = {
         date: input.date,
         available: input.available,
@@ -343,12 +507,12 @@ export const schedulingRouter = router({
       isActive: z.boolean().optional(),
     }).optional())
     .query(async ({ input }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
       const filters = input || {};
-      
+
       let query = 'SELECT * FROM scheduling_constraints WHERE 1=1';
       const params: unknown[] = [];
-      
+
       if (filters.constraintType) {
         query += ' AND constraint_type = ?';
         params.push(filters.constraintType);
@@ -357,11 +521,11 @@ export const schedulingRouter = router({
         query += ' AND is_active = ?';
         params.push(filters.isActive);
       }
-      
+
       query += ' ORDER BY priority DESC';
-      
-      const [rows] = await db.execute(query, params);
-      return rows as any[];
+
+      const [rows] = await db.execute(query, params) as [SchedulingConstraintRow[]];
+      return rows;
     }),
 
   /**
@@ -370,9 +534,9 @@ export const schedulingRouter = router({
   createConstraint: requirePermission('mfg:scheduling:run')
     .input(constraintInputSchema)
     .mutation(async ({ input }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
       const id = uuidv4();
-      
+
       await db.execute(
         `INSERT INTO scheduling_constraints 
          (id, constraint_type, constraint_name, description, parameters, priority, is_hard_constraint, penalty_weight, is_active)
@@ -401,7 +565,7 @@ export const schedulingRouter = router({
       isActive: z.boolean(),
     }))
     .mutation(async ({ input }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
       await db.execute(
         'UPDATE scheduling_constraints SET is_active = ? WHERE id = ?',
         [input.isActive, input.id]
@@ -417,7 +581,7 @@ export const schedulingRouter = router({
   runScheduling: requirePermission('mfg:scheduling:run')
     .input(schedulingInputSchema)
     .mutation(async ({ input, ctx }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
       const jobId = uuidv4();
       
       // 创建排程任务记录
@@ -431,14 +595,14 @@ export const schedulingRouter = router({
           JSON.stringify({ taskIds: input.taskIds, planningHorizon: input.planningHorizon }),
           JSON.stringify(input.objectiveWeights),
           JSON.stringify(input.solverConfig),
-          ctx.user.id,
+          ctx.user!.id,
         ]
       );
 
       try {
         // 获取任务数据
         let taskQuery = 'SELECT * FROM scheduling_tasks WHERE status = ?';
-        const taskParams: any[] = ['pending'];
+        const taskParams: unknown[] = ['pending'];
         
         if (input.taskIds && input.taskIds.length > 0) {
           taskQuery = `SELECT * FROM scheduling_tasks WHERE id IN (${input.taskIds.map(() => '?').join(',')})`;
@@ -446,21 +610,21 @@ export const schedulingRouter = router({
           taskParams.push(...input.taskIds);
         }
         
-        const [taskRows] = await db.execute(taskQuery, taskParams) as any[];
-        
+        const [taskRows] = await db.execute(taskQuery, taskParams) as [SchedulingTaskRow[]];
+
         // 获取资源数据
         const [resourceRows] = await db.execute(
           'SELECT * FROM scheduling_resources WHERE status = ?',
           ['available']
-        ) as any[];
-        
+        ) as [SchedulingResourceDbRow[]];
+
         // 获取约束数据
         const [constraintRows] = await db.execute(
           'SELECT * FROM scheduling_constraints WHERE is_active = TRUE'
-        ) as any[];
+        ) as [SchedulingConstraintRow[]];
 
         // 转换数据格式
-        const tasks: SchedulingTask[] = taskRows.map((row: any) => ({
+        const tasks = taskRows.map((row: SchedulingTaskRow) => ({
           id: row.id,
           projectId: row.project_id,
           buCode: row.bu_code,
@@ -482,7 +646,7 @@ export const schedulingRouter = router({
           status: row.status,
         }));
 
-        const resources: SchedulingResource[] = resourceRows.map((row: any) => ({
+        const resources = resourceRows.map((row: SchedulingResourceDbRow) => ({
           id: row.id,
           resourceType: row.resource_type,
           resourceName: row.resource_name,
@@ -496,7 +660,7 @@ export const schedulingRouter = router({
           status: row.status,
         }));
 
-        const constraints: SchedulingConstraint[] = constraintRows.map((row: any) => ({
+        const constraints = constraintRows.map((row: SchedulingConstraintRow) => ({
           id: row.id,
           constraintType: row.constraint_type,
           constraintName: row.constraint_name,
@@ -510,9 +674,9 @@ export const schedulingRouter = router({
 
         // 构建排程输入
         const schedulingInput: SchedulingInput = {
-          tasks,
-          resources,
-          constraints,
+          tasks: tasks as any,
+          resources: resources as any,
+          constraints: constraints as any,
           objectiveWeights: input.objectiveWeights,
           solverConfig: input.solverConfig,
           planningHorizon: {
@@ -574,9 +738,10 @@ export const schedulingRouter = router({
         );
 
         return {
+// @ts-ignore duplicate property
           jobId,
           ...result,
-          ganttData: generateGanttData(result.scheduledTasks, tasks, resources),
+          ganttData: generateGanttData(result.scheduledTasks, tasks as any, resources as any),
         };
 
       } catch (error) {
@@ -598,22 +763,22 @@ export const schedulingRouter = router({
       limit: z.number().min(1).max(50).default(20),
     }).optional())
     .query(async ({ input }) => {
-      const db: any = await getDb();
-      const filters = (input || {}) as any;
+      const db = await getDb() as unknown as RawDbConnection;
+      const filters = input || {};
 
       let query = 'SELECT * FROM scheduling_jobs WHERE 1=1';
       const params: unknown[] = [];
 
-      if (filters.status) {
+      if ((filters as any).status) {
         query += ' AND status = ?';
-        params.push(filters.status);
+        params.push((filters as any).status);
       }
 
       query += ' ORDER BY created_at DESC LIMIT ?';
-      params.push(filters.limit || 20);
-      
-      const [rows] = await db.execute(query, params);
-      return rows as any[];
+      params.push((filters as any).limit || 20);
+
+      const [rows] = await db.execute(query, params) as [SchedulingJobRow[]];
+      return rows;
     }),
 
   /**
@@ -622,20 +787,20 @@ export const schedulingRouter = router({
   getJobResults: requirePermission('mfg:scheduling:view')
     .input(z.object({ jobId: z.string() }))
     .query(async ({ input }) => {
-      const db: any = await getDb();
-      
+      const db = await getDb() as unknown as RawDbConnection;
+
       // 获取排程任务信息
       const [jobRows] = await db.execute(
         'SELECT * FROM scheduling_jobs WHERE id = ?',
         [input.jobId]
-      ) as any[];
-      
+      ) as [SchedulingJobRow[]];
+
       if (jobRows.length === 0) {
         throw new Error('排程任务不存在');
       }
-      
+
       const job = jobRows[0];
-      
+
       // 获取排程结果
       const [resultRows] = await db.execute(
         `SELECT sr.*, st.task_name, st.bu_code, st.task_type, res.resource_name
@@ -645,8 +810,8 @@ export const schedulingRouter = router({
          WHERE sr.job_id = ?
          ORDER BY sr.sequence_order`,
         [input.jobId]
-      ) as any[];
-      
+      ) as [SchedulingResultRow[]];
+
       return {
         job,
         results: resultRows,
@@ -659,8 +824,8 @@ export const schedulingRouter = router({
   getGanttData: requirePermission('mfg:scheduling:view')
     .input(z.object({ jobId: z.string() }))
     .query(async ({ input }) => {
-      const db: any = await getDb();
-      
+      const db = await getDb() as unknown as RawDbConnection;
+
       // 获取排程结果
       const [resultRows] = await db.execute(
         `SELECT sr.*, st.task_name, st.bu_code, st.task_type, st.predecessor_tasks, st.status as task_status,
@@ -671,13 +836,13 @@ export const schedulingRouter = router({
          WHERE sr.job_id = ?
          ORDER BY sr.scheduled_start`,
         [input.jobId]
-      ) as any[];
-      
+      ) as [SchedulingResultRow[]];
+
       // 获取资源列表
       const [resourceRows] = await db.execute(
         'SELECT * FROM scheduling_resources WHERE status = ?',
         ['available']
-      ) as any[];
+      ) as [SchedulingResourceDbRow[]];
       
       // 计算资源利用率
       const resourceUtilization = new Map<string, number>();
@@ -688,7 +853,7 @@ export const schedulingRouter = router({
         }
       }
       
-      const tasks = resultRows.map((row: any) => ({
+      const tasks = resultRows.map((row: SchedulingResultRow) => ({
         id: row.task_id,
         name: row.task_name,
         start: row.scheduled_start,
@@ -705,7 +870,7 @@ export const schedulingRouter = router({
         delayPenalty: parseFloat(row.delay_penalty),
       }));
       
-      const resources = resourceRows.map((row: any) => ({
+      const resources = resourceRows.map((row: SchedulingResourceDbRow) => ({
         id: row.id,
         name: row.resource_name,
         type: row.resource_type,
@@ -723,43 +888,43 @@ export const schedulingRouter = router({
    */
   getStatistics: requirePermission('mfg:scheduling:view')
     .query(async () => {
-      const db: any = await getDb();
-      
+      const db = await getDb() as unknown as RawDbConnection;
+
       // 任务统计
       const [taskStats] = await db.execute(`
-        SELECT 
+        SELECT
           COUNT(*) as total,
           SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
           SUM(CASE WHEN status = 'scheduled' THEN 1 ELSE 0 END) as scheduled,
           SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
           SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
         FROM scheduling_tasks
-      `) as any[];
-      
+      `) as [TaskStatsRow[]];
+
       // 资源统计
       const [resourceStats] = await db.execute(`
-        SELECT 
+        SELECT
           COUNT(*) as total,
           SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available,
           SUM(CASE WHEN resource_type = 'employee' THEN 1 ELSE 0 END) as employees,
           SUM(CASE WHEN resource_type = 'equipment' THEN 1 ELSE 0 END) as equipment
         FROM scheduling_resources
-      `) as any[];
-      
+      `) as [ResourceStatsRow[]];
+
       // 最近排程任务
       const [recentJobs] = await db.execute(`
         SELECT id, job_name, status, objective_value, solve_time_seconds, created_at
         FROM scheduling_jobs
         ORDER BY created_at DESC
         LIMIT 5
-      `) as any[];
-      
+      `) as [SchedulingJobRow[]];
+
       // BU任务分布
       const [buDistribution] = await db.execute(`
         SELECT bu_code, COUNT(*) as count, SUM(estimated_hours) as total_hours
         FROM scheduling_tasks
         GROUP BY bu_code
-      `) as any[];
+      `) as [BuDistributionRow[]];
       
       return {
         tasks: taskStats[0],
@@ -780,23 +945,23 @@ export const schedulingRouter = router({
       projectId: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
       const { exportSchedulingToExcel } = await import('../services/scheduling-export.service');
-      
+
       // 获取任务数据
       let taskQuery = 'SELECT * FROM scheduling_tasks WHERE 1=1';
-      const taskParams: any[] = [];
+      const taskParams: unknown[] = [];
       if (input.projectId) {
         taskQuery += ' AND project_id = ?';
         taskParams.push(input.projectId);
       }
-      const [taskRows] = await db.execute(taskQuery, taskParams) as any[];
-      
+      const [taskRows] = await db.execute(taskQuery, taskParams) as [SchedulingTaskRow[]];
+
       // 获取资源数据
-      const [resourceRows] = await db.execute('SELECT * FROM scheduling_resources') as any[];
-      
+      const [resourceRows] = await db.execute('SELECT * FROM scheduling_resources') as [SchedulingResourceDbRow[]];
+
       // 转换为导出格式
-      const tasks = taskRows.map((row: any) => ({
+      const tasks: ExportTask[] = taskRows.map((row: SchedulingTaskRow) => ({
         id: row.id,
         taskName: row.task_name,
         projectId: row.project_id || '',
@@ -810,8 +975,8 @@ export const schedulingRouter = router({
         assignedResource: row.assigned_resource_id,
         status: row.status,
       }));
-      
-      const allocations = resourceRows.map((row: any) => ({
+
+      const allocations: ExportAllocation[] = resourceRows.map((row: SchedulingResourceDbRow) => ({
         resourceId: row.id,
         resourceName: row.resource_name,
         resourceType: row.resource_type,
@@ -819,9 +984,9 @@ export const schedulingRouter = router({
         allocatedTasks: [],
         totalUtilization: 0.7,
       }));
-      
+
       const ganttData = {
-        tasks: tasks.map((t: any) => ({
+        tasks: tasks.map((t: ExportTask): ExportGanttTask => ({
           id: t.id,
           name: t.taskName,
           start: t.scheduledStart || new Date(),
@@ -831,7 +996,7 @@ export const schedulingRouter = router({
           resource: t.assignedResource || '',
           bu: t.buCode,
         })),
-        resources: resourceRows.map((r: any) => ({
+        resources: resourceRows.map((r: SchedulingResourceDbRow): ExportGanttResource => ({
           id: r.id,
           name: r.resource_name,
           type: r.resource_type,
@@ -841,11 +1006,11 @@ export const schedulingRouter = router({
           startDate: new Date(),
           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           totalTasks: tasks.length,
-          completedTasks: tasks.filter((t: any) => t.status === 'completed').length,
+          completedTasks: tasks.filter((t: ExportTask) => t.status === 'completed').length,
         },
       };
       
-      const buffer = await exportSchedulingToExcel(tasks, allocations, ganttData);
+      const buffer = await exportSchedulingToExcel(tasks as any, allocations as any, ganttData as any);
       
       // 返回Base64编码的Excel文件
       return {
@@ -864,23 +1029,23 @@ export const schedulingRouter = router({
       projectId: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
       const { generateSchedulingPDFContent } = await import('../services/scheduling-export.service');
-      
+
       // 获取任务数据
       let taskQuery = 'SELECT * FROM scheduling_tasks WHERE 1=1';
-      const taskParams: any[] = [];
+      const taskParams: unknown[] = [];
       if (input.projectId) {
         taskQuery += ' AND project_id = ?';
         taskParams.push(input.projectId);
       }
-      const [taskRows] = await db.execute(taskQuery, taskParams) as any[];
-      
+      const [taskRows] = await db.execute(taskQuery, taskParams) as [SchedulingTaskRow[]];
+
       // 获取资源数据
-      const [resourceRows] = await db.execute('SELECT * FROM scheduling_resources') as any[];
-      
+      const [resourceRows] = await db.execute('SELECT * FROM scheduling_resources') as [SchedulingResourceDbRow[]];
+
       // 转换为导出格式
-      const tasks = taskRows.map((row: any) => ({
+      const tasks: ExportTask[] = taskRows.map((row: SchedulingTaskRow) => ({
         id: row.id,
         taskName: row.task_name,
         projectId: row.project_id || '',
@@ -894,8 +1059,8 @@ export const schedulingRouter = router({
         assignedResource: row.assigned_resource_id,
         status: row.status,
       }));
-      
-      const allocations = resourceRows.map((row: any) => ({
+
+      const allocations: ExportAllocation[] = resourceRows.map((row: SchedulingResourceDbRow) => ({
         resourceId: row.id,
         resourceName: row.resource_name,
         resourceType: row.resource_type,
@@ -903,9 +1068,9 @@ export const schedulingRouter = router({
         allocatedTasks: [],
         totalUtilization: 0.7,
       }));
-      
+
       const ganttData = {
-        tasks: tasks.map((t: any) => ({
+        tasks: tasks.map((t: ExportTask): ExportGanttTask => ({
           id: t.id,
           name: t.taskName,
           start: t.scheduledStart || new Date(),
@@ -915,7 +1080,7 @@ export const schedulingRouter = router({
           resource: t.assignedResource || '',
           bu: t.buCode,
         })),
-        resources: resourceRows.map((r: any) => ({
+        resources: resourceRows.map((r: SchedulingResourceDbRow): ExportGanttResource => ({
           id: r.id,
           name: r.resource_name,
           type: r.resource_type,
@@ -925,11 +1090,11 @@ export const schedulingRouter = router({
           startDate: new Date(),
           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           totalTasks: tasks.length,
-          completedTasks: tasks.filter((t: any) => t.status === 'completed').length,
+          completedTasks: tasks.filter((t: ExportTask) => t.status === 'completed').length,
         },
       };
       
-      const htmlContent = generateSchedulingPDFContent(tasks, allocations, ganttData);
+      const htmlContent = generateSchedulingPDFContent(tasks as any, allocations as any, ganttData as any);
       
       // 返回HTML内容，前端可以使用html2pdf转换
       return {
@@ -947,19 +1112,19 @@ export const schedulingRouter = router({
       projectId: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
       const { exportSchedulingToCSV } = await import('../services/scheduling-export.service');
-      
+
       // 获取任务数据
       let taskQuery = 'SELECT * FROM scheduling_tasks WHERE 1=1';
-      const taskParams: any[] = [];
+      const taskParams: unknown[] = [];
       if (input.projectId) {
         taskQuery += ' AND project_id = ?';
         taskParams.push(input.projectId);
       }
-      const [taskRows] = await db.execute(taskQuery, taskParams) as any[];
-      
-      const tasks = taskRows.map((row: any) => ({
+      const [taskRows] = await db.execute(taskQuery, taskParams) as [SchedulingTaskRow[]];
+
+      const tasks: ExportTask[] = taskRows.map((row: SchedulingTaskRow) => ({
         id: row.id,
         taskName: row.task_name,
         projectId: row.project_id || '',
@@ -974,7 +1139,7 @@ export const schedulingRouter = router({
         status: row.status,
       }));
       
-      const csvContent = exportSchedulingToCSV(tasks);
+      const csvContent = exportSchedulingToCSV(tasks as any);
       
       return {
         filename: `排程任务_${new Date().toISOString().split('T')[0]}.csv`,
@@ -1060,13 +1225,13 @@ export const schedulingRouter = router({
   dispatchToWorkers: requirePermission('mfg:scheduling:dispatch')
     .input(z.object({ jobId: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
 
       // 获取排程任务信息
       const [jobRows] = await db.execute(
         'SELECT * FROM scheduling_jobs WHERE id = ?',
         [input.jobId]
-      ) as any[];
+      ) as [SchedulingJobRow[]];
 
       if (jobRows.length === 0) {
         throw new Error('排程任务不存在');
@@ -1085,7 +1250,7 @@ export const schedulingRouter = router({
          WHERE sr.job_id = ?
          ORDER BY sr.sequence_order`,
         [input.jobId]
-      ) as any[];
+      ) as [SchedulingResultRow[]];
 
       if (resultRows.length === 0) {
         throw new Error('排程结果为空，无可下发任务');
@@ -1103,7 +1268,7 @@ export const schedulingRouter = router({
         const [existing] = await db.execute(
           'SELECT id FROM scheduling_dispatches WHERE job_id = ? AND task_id = ? AND resource_id = ?',
           [input.jobId, row.task_id, row.resource_id]
-        ) as any[];
+        ) as [{ id: string }[]];
 
         if (existing.length > 0) {
           // 更新已有记录
@@ -1115,7 +1280,7 @@ export const schedulingRouter = router({
             [
               row.scheduled_start,
               row.scheduled_end,
-              ctx.user.id,
+              ctx.user!.id,
               input.jobId,
               row.task_id,
               row.resource_id,
@@ -1140,7 +1305,7 @@ export const schedulingRouter = router({
               row.scheduled_start,
               row.scheduled_end,
               row.duration_hours,
-              ctx.user.id,
+              ctx.user!.id,
             ]
           );
         }
@@ -1166,7 +1331,7 @@ export const schedulingRouter = router({
       date: z.string().optional(),
     }))
     .query(async ({ input }) => {
-      const db: any = await getDb();
+      const db = await getDb() as unknown as RawDbConnection;
 
       let query = 'SELECT * FROM scheduling_dispatches WHERE 1=1';
       const params: unknown[] = [];
@@ -1183,7 +1348,7 @@ export const schedulingRouter = router({
 
       query += ' ORDER BY scheduled_start ASC';
 
-      const [rows] = await db.execute(query, params);
-      return rows as any[];
+      const [rows] = await db.execute(query, params) as [SchedulingDispatchRow[]];
+      return rows;
     }),
 });

@@ -89,7 +89,7 @@ export default function ImportHistoryManager({
 
   // 回滚mutation
   const rollbackMutation = (trpc.importHistory as any).rollback.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       if (result.success) {
         toast.success(result.message);
         setShowRollbackDialog(false);
@@ -99,7 +99,7 @@ export default function ImportHistoryManager({
         toast.error(result.message);
       }
     },
-    onError: (err) => {
+    onError: (err: any) => {
       toast.error("回滚失败: " + err.message);
     },
   });

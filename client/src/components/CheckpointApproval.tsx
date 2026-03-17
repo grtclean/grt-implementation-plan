@@ -74,7 +74,7 @@ export function CheckpointApproval({
       phaseName: checkpoint.phaseName || checkpoint.phaseCode,
       checkpointId: checkpoint.id,
       checkpointName: checkpoint.question,
-      comments: approveComments || undefined,
+      comments: (approveComments || undefined) as any,
     });
   };
 

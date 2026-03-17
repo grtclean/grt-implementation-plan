@@ -327,7 +327,7 @@ export default function MeetingHub() {
   useEffect(() => {
     if (!meeting || meeting.status !== "LIVE") return;
     const start = meeting.actualStart
-      ? new Date(meeting.actualStart as string).getTime()
+      ? new Date(meeting.actualStart as any).getTime()
       : Date.now();
     const interval = setInterval(() => {
       const diff = Date.now() - start;

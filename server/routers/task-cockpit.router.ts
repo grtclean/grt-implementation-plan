@@ -41,7 +41,7 @@ export const taskCockpitRouter = router({
     const db = await requireDb();
     // Close any active session for this user
     const activeSessions = await db.select().from(taskTimeSessions)
-      .where(and(eq(taskTimeSessions.userId, ctx.user.id), eq(taskTimeSessions.isActive, true))).limit(1000);
+      .where(and(eq(taskTimeSessions.userId, ctx.user!.id), eq(taskTimeSessions.isActive, true))).limit(1000);
     for (const session of activeSessions) {
       const now = new Date();
       const started = new Date(session.startedAt);
@@ -54,7 +54,7 @@ export const taskCockpitRouter = router({
     const [newSession] = await db.insert(taskTimeSessions).values({
       taskId: toNum(input.taskId),
       projectId: input.projectId,
-      userId: ctx.user.id,
+      userId: ctx.user!.id,
       phaseCode: input.phaseCode ?? null,
       startedAt: new Date().toISOString(),
       isActive: true,
@@ -98,7 +98,7 @@ export const taskCockpitRouter = router({
   getActiveSession: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
     const [session] = await db.select().from(taskTimeSessions)
-      .where(and(eq(taskTimeSessions.userId, ctx.user.id), eq(taskTimeSessions.isActive, true)))
+      .where(and(eq(taskTimeSessions.userId, ctx.user!.id), eq(taskTimeSessions.isActive, true)))
       .limit(1);
     return session ?? null;
   }),

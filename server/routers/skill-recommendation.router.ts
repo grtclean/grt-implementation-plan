@@ -82,10 +82,10 @@ export const skillRecommendationRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database connection failed" });
 
       const currentSkills = await db.select().from(employeeSkillMaps)
-        .where(eq(employeeSkillMaps.employeeId, ctx.user.id));
+        .where(eq(employeeSkillMaps.employeeId, ctx.user!.id));
 
       const learningRecords = await db.select().from(aiLearningRecords)
-        .where(eq(aiLearningRecords.employeeId, ctx.user.id))
+        .where(eq(aiLearningRecords.employeeId, ctx.user!.id))
         .limit(10);
 
       const prompt = `Based on the user's current skills and learning history, recommend ${input.limit} skills to learn next.
@@ -101,8 +101,8 @@ Return a JSON object with a "recommendations" array containing skill objects wit
       const { taskId } = await submitTask(
         "SKILL_RECOMMEND",
         { prompt },
-        ctx.user.name ?? `user-${ctx.user.id}`,
-        { submittedById: ctx.user.id },
+        ctx.user!.name ?? `user-${ctx.user!.id}`,
+        { submittedById: ctx.user!.id },
       );
       return { taskId };
     }),
@@ -123,8 +123,8 @@ Return a JSON object with a "learningPath" object containing: skillName, targetL
       const { taskId } = await submitTask(
         "SKILL_LEARNING_PATH",
         { prompt },
-        ctx.user.name ?? `user-${ctx.user.id}`,
-        { submittedById: ctx.user.id },
+        ctx.user!.name ?? `user-${ctx.user!.id}`,
+        { submittedById: ctx.user!.id },
       );
       return { taskId };
     }),
@@ -151,7 +151,7 @@ Return a JSON object with a "learningPath" object containing: skillName, targetL
       notes: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      log.info({ userId: ctx.user.id, skillName: input.skillName, helpful: input.helpful }, "user provided feedback on skill recommendation");
+      log.info({ userId: ctx.user!.id, skillName: input.skillName, helpful: input.helpful }, "user provided feedback on skill recommendation");
       return { success: true, message: "Feedback recorded successfully" };
     }),
 
@@ -160,10 +160,10 @@ Return a JSON object with a "learningPath" object containing: skillName, targetL
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database connection failed" });
 
     const skills = await db.select().from(employeeSkillMaps)
-      .where(eq(employeeSkillMaps.employeeId, ctx.user.id));
+      .where(eq(employeeSkillMaps.employeeId, ctx.user!.id));
 
     const averageLevel = skills.length > 0
-      ? Math.round((skills.reduce((sum, s) => sum + s.currentLevel, 0) / skills.length) * 10) / 10
+      ? Math.round((skills.reduce((sum, s) => sum + s.currentLevel!, 0) / skills.length) * 10) / 10
       : 0;
 
     return {
@@ -171,9 +171,9 @@ Return a JSON object with a "learningPath" object containing: skillName, targetL
       stats: {
         totalSkills: skills.length,
         averageLevel,
-        masterSkills: skills.filter(s => s.currentLevel >= 4).length,
-        developingSkills: skills.filter(s => s.currentLevel >= 2 && s.currentLevel < 4).length,
-        beginnerSkills: skills.filter(s => s.currentLevel < 2).length,
+        masterSkills: skills.filter(s => s.currentLevel! >= 4).length,
+        developingSkills: skills.filter(s => s.currentLevel! >= 2 && s.currentLevel! < 4).length,
+        beginnerSkills: skills.filter(s => s.currentLevel! < 2).length,
       },
     };
   }),

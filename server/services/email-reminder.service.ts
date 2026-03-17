@@ -44,7 +44,7 @@ export async function getUsersNeedingReminder(): Promise<TaskReminderEmail[]> {
     AND p.task_reminder_email = TRUE
   `);
   
-  const users = (usersResult[0] as any[]) || [];
+  const users = ((usersResult as any)[0] as any[]) || [];
   const result: TaskReminderEmail[] = [];
   
   for (const user of users) {
@@ -69,8 +69,8 @@ export async function getUsersNeedingReminder(): Promise<TaskReminderEmail[]> {
       ORDER BY due_date ASC
     `);
     
-    const tasks = (tasksResult[0] as any[]) || [];
-    const overdueTasks = (overdueResult[0] as any[]) || [];
+    const tasks = ((tasksResult as any)[0] as any[]) || [];
+    const overdueTasks = ((overdueResult as any)[0] as any[]) || [];
     
     // 只有有任务的用户才需要发送提醒
     if (tasks.length > 0 || overdueTasks.length > 0) {
@@ -269,7 +269,7 @@ export async function getReminderStats(): Promise<{
     FROM task_reminder_logs
   `);
   
-  const stats = (statsResult[0] as any[])[0] || {};
+  const stats = ((statsResult as any)[0] as any[])[0] || {};
   
   return {
     todayReminders: Number(stats.today_sent) || 0,

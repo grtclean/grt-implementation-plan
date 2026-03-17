@@ -81,7 +81,7 @@ export const communityRouter = router({
     // Log as interaction
     await db.insert(interactionLogs).values({
       interactionType: "feedback" as const,
-      memberId: ctx.user.id,
+      memberId: ctx.user!.id,
       messageId: input.messageId,
       originalContent: "like",
     });
@@ -153,7 +153,7 @@ export const communityRouter = router({
       contentType: input.contentType,
       category: input.category,
       tags: input.tags,
-      authorId: ctx.user.id,
+      authorId: ctx.user!.id,
     }).returning();
     return { success: true, message: "内容已创建", data: item };
   }),
@@ -190,7 +190,7 @@ export const communityRouter = router({
     await db.update(contentLibrary)
       .set({
         approvalStatus: approved ? ("approved" as const) : ("rejected" as const),
-        approvedBy: ctx.user.id,
+        approvedBy: ctx.user!.id,
         approvedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -262,7 +262,7 @@ export const communityRouter = router({
     await db.update(communityMessages)
       .set({
         approvalStatus: approved ? ("approved" as const) : ("rejected" as const),
-        approvedBy: ctx.user.id,
+        approvedBy: ctx.user!.id,
         approvedAt: new Date().toISOString(),
         rejectionReason: approved ? undefined : input.reason,
         publishStatus: approved ? ("queued" as const) : ("draft" as const),

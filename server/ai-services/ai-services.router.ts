@@ -158,7 +158,7 @@ export const aiPlanningRouter = router({
     .mutation(async ({ input, ctx }) => {
       const result = await suggestPlan({
         ...input,
-        userId: String(ctx.user.id)
+        userId: String(ctx.user!.id)
       });
       return {
         ...result,
@@ -212,7 +212,7 @@ export const aiKpiRouter = router({
     .mutation(async ({ input, ctx }) => {
       const result = await evaluateKPI({
         ...input,
-        userId: String(ctx.user.id)
+        userId: String(ctx.user!.id)
       });
       return {
         ...result,

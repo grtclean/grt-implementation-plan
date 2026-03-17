@@ -35,7 +35,7 @@ export const qualityInterlockRouter = router({
       reason: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return triggerProcessLock({ ...input, lockedBy: ctx.user.openId });
+      return triggerProcessLock({ ...input, lockedBy: ctx.user!.openId });
     }),
 
   getLocks: protectedProcedure
@@ -64,7 +64,7 @@ export const qualityInterlockRouter = router({
     .mutation(async ({ input, ctx }) => {
       return requestUnlock({
         lockId: input.lockId,
-        requestedBy: ctx.user.name || ctx.user.openId,
+        requestedBy: ctx.user!.name || ctx.user!.openId,
         unlockReason: input.unlockReason,
       });
     }),
@@ -78,7 +78,7 @@ export const qualityInterlockRouter = router({
     .mutation(async ({ input, ctx }) => {
       return approveUnlock({
         lockId: input.lockId,
-        approvedBy: ctx.user.name || ctx.user.openId,
+        approvedBy: ctx.user!.name || ctx.user!.openId,
         approved: input.approved,
         comments: input.comments,
       });
@@ -145,7 +145,7 @@ export const qualityInterlockRouter = router({
     .mutation(async ({ input, ctx }) => {
       return onQualityCheckCompleted({
         ...input,
-        inspectorId: ctx.user.openId,
+        inspectorId: ctx.user!.openId,
       });
     }),
 
@@ -181,11 +181,11 @@ export const qualityInterlockRouter = router({
           ${input.fileType ?? null},
           ${input.fileSize ?? null},
           ${input.description ?? null},
-          ${ctx.user.id}
+          ${ctx.user!.id}
         )
         RETURNING *
       `);
-      return { success: true, attachment: (result[0] as any[])[0] };
+      return { success: true, attachment: ((result as any)[0] as any[])[0] };
     }),
 
   getDefectAttachments: protectedProcedure
@@ -199,7 +199,7 @@ export const qualityInterlockRouter = router({
         WHERE lock_id = ${input.lockId}
         ORDER BY uploaded_at DESC
       `);
-      return (result[0] as any[]) || [];
+      return ((result as any)[0] as any[]) || [];
     }),
 
   deleteDefectAttachment: requirePermission('mfg:interlock:manage')

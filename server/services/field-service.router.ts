@@ -79,8 +79,8 @@ const escalateToFactory = protectedProcedure
         description: input.description,
         affectedProcess: input.affectedProcess ?? null,
         status: "reported",
-        reportedBy: ctx.user.id,
-        reportedByName: ctx.user.name ?? null,
+        reportedBy: ctx.user!.id,
+        reportedByName: ctx.user!.name ?? null,
         createdAt: now,
       })
       .returning();
@@ -99,7 +99,7 @@ const escalateToFactory = protectedProcedure
           processCode: input.affectedProcess,
           severity: input.severity,
           reason: "Field escalation: " + input.description,
-          lockedBy: ctx.user.name ?? String(ctx.user.id),
+          lockedBy: ctx.user!.name ?? String(ctx.user!.id),
         });
 
         if (lockResult.locked && lockResult.lockedProcesses?.[0]?.id) {
@@ -184,7 +184,7 @@ const updateEscalation = requirePermission('service:installation:manage')
     if (input.resolution) updateData.resolution = input.resolution;
 
     if (input.status === "resolved" || input.status === "dismissed") {
-      updateData.resolvedBy = ctx.user.id;
+      updateData.resolvedBy = ctx.user!.id;
       updateData.resolvedAt = now;
     }
 
@@ -240,8 +240,8 @@ const requestPart = protectedProcedure
         quantity: input.quantity,
         urgency: input.urgency,
         status: "requested",
-        requestedBy: ctx.user.id,
-        requestedByName: ctx.user.name ?? null,
+        requestedBy: ctx.user!.id,
+        requestedByName: ctx.user!.name ?? null,
         notes: input.notes ?? null,
         createdAt: now,
         updatedAt: now,
@@ -320,7 +320,7 @@ const updatePartRequest = protectedProcedure
 
     // Handle approval
     if (input.status === "approved") {
-      updateData.approvedBy = input.approvedBy ?? ctx.user.id;
+      updateData.approvedBy = input.approvedBy ?? ctx.user!.id;
       updateData.approvedAt = now;
     }
 

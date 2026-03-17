@@ -83,8 +83,8 @@ export default function ProjectCloudVault({ projectId }: ProjectCloudVaultProps)
   const allFiles = commercialFiles.data?.items ?? [];
 
   // Filter files per tab
-  const commercial = allFiles.filter(f => ["WORD", "PDF", "EMAIL_EML"].includes(f.fileType));
-  const engineering = allFiles.filter(f => ["SOLIDWORKS", "EPLAN"].includes(f.fileType));
+  const commercial = allFiles.filter((f: any) => ["WORD", "PDF", "EMAIL_EML"].includes(f.fileType));
+  const engineering = allFiles.filter((f: any) => ["SOLIDWORKS", "EPLAN"].includes(f.fileType));
   const serviceLogs = allFiles.filter(f => f.fileType === "MEETING_RECORD");
   const ecos = ecoList.data?.items ?? [];
 
@@ -112,7 +112,7 @@ export default function ProjectCloudVault({ projectId }: ProjectCloudVaultProps)
             <TableRow key={file.id}>
               <TableCell className="font-medium">{file.fileName}</TableCell>
               <TableCell>
-                <Badge className={FILE_TYPE_COLORS[file.fileType] ?? ""}>
+                <Badge className={(FILE_TYPE_COLORS as any)[file.fileType!] ?? ""}>
                   {file.fileType}
                 </Badge>
               </TableCell>
@@ -163,8 +163,8 @@ export default function ProjectCloudVault({ projectId }: ProjectCloudVaultProps)
               <TableCell className="max-w-[300px] truncate">{eco.description}</TableCell>
               <TableCell>{eco.requestedBy}</TableCell>
               <TableCell>
-                <Badge className={ECO_STATUS_COLORS[eco.status] ?? ""}>
-                  {eco.status.replace(/_/g, " ")}
+                <Badge className={(ECO_STATUS_COLORS as any)[eco.status!] ?? ""}>
+                  {eco.status!.replace(/_/g, " ")}
                 </Badge>
               </TableCell>
               <TableCell>{(eco.affectedFiles as number[] | null)?.length ?? 0} files</TableCell>

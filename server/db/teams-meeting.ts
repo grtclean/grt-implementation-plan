@@ -51,7 +51,7 @@ export async function createTeamsMeeting(data: InsertTeamsMeetingConfig) {
   const db = await requireDb();
   if (!db) return null;
   const result = await db.insert(teamsMeetingConfigs).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function updateTeamsMeeting(id: number, data: Partial<InsertTeamsMeetingConfig>) {
@@ -115,7 +115,7 @@ export async function createPerformanceReviewEmailLog(data: InsertPerformanceRev
   const db = await requireDb();
   if (!db) return null;
   const result = await db.insert(performanceReviewEmailLogs).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function updatePerformanceReviewEmailLog(id: number, data: Partial<InsertPerformanceReviewEmailLog>) {
@@ -166,7 +166,7 @@ export async function createScheduledTask(data: InsertScheduledTask) {
   const db = await requireDb();
   if (!db) return null;
   const result = await db.insert(scheduledTasks).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function updateScheduledTask(id: number, data: Partial<InsertScheduledTask>) {
@@ -224,7 +224,7 @@ export async function createSalaryCalculation(data: InsertSalaryCalculation) {
   const db = await requireDb();
   if (!db) return null;
   const result = await db.insert(salaryCalculations).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function updateSalaryCalculation(id: number, data: Partial<InsertSalaryCalculation>) {

@@ -119,9 +119,9 @@ export default function PlcUserAccessTab({ projectId, plcProjectId }: PlcUserAcc
                 {Object.keys(policy).length > 0 && (
                   <div className="space-y-0.5">
                     <h4 className="text-xs font-semibold">密码策略</h4>
-                    {policy.minLength && <div className="text-[10px] text-muted-foreground">最小长度: {String(policy.minLength)}</div>}
-                    {policy.maxAttempts && <div className="text-[10px] text-muted-foreground">最大尝试: {String(policy.maxAttempts)}</div>}
-                    {policy.lockoutMinutes && <div className="text-[10px] text-muted-foreground">锁定: {String(policy.lockoutMinutes)}分钟</div>}
+                    {!!policy.minLength && <div className="text-[10px] text-muted-foreground">最小长度: {String(policy.minLength)}</div>}
+                    {!!policy.maxAttempts && <div className="text-[10px] text-muted-foreground">最大尝试: {String(policy.maxAttempts)}</div>}
+                    {!!policy.lockoutMinutes && <div className="text-[10px] text-muted-foreground">锁定: {String(policy.lockoutMinutes)}分钟</div>}
                   </div>
                 )}
               </CardContent>

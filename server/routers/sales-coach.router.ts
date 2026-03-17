@@ -478,7 +478,7 @@ const coachRouter = router({
           logDate: input.logDate,
           buCode: ctx.bu?.buCode ?? null,
           clientsVisited: input.clientsVisited ?? 0,
-        }, String(ctx.user.id));
+        }, String(ctx.user!.id));
         taskId = result.taskId;
         log.info({ userId, logId: logRow.id, taskId }, "Sales coach task submitted");
       } catch (err) {

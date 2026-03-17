@@ -303,7 +303,7 @@ export default function AITriggerSettings() {
   };
 
   const getStatusBadge = (status: string) => {
-    const color = executionStatusColors[status];
+    const color = (executionStatusColors as Record<string, any>)[status];
     if (color) {
       return <StatusBadge color={color}>{executionStatusLabels[status]}</StatusBadge>;
     }

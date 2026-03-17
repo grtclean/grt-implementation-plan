@@ -15,7 +15,7 @@ export const menuRouter = router({
    * 获取用户菜单树
    */
   getUserMenuTree: protectedProcedure.query(async ({ ctx }) => {
-    const menuTree = await menuService.getUserMenuTree(String(ctx.user.id));
+    const menuTree = await menuService.getUserMenuTree(String(ctx.user!.id));
     return { menuTree };
   }),
 
@@ -26,7 +26,7 @@ export const menuRouter = router({
     .input(z.object({ limit: z.number().default(5) }))
     .query(async ({ ctx, input }) => {
       const menus = await menuService.getUserFrequentMenus(
-        String(ctx.user.id),
+        String(ctx.user!.id),
         input.limit
       );
       return { menus };
@@ -38,7 +38,7 @@ export const menuRouter = router({
   searchMenus: protectedProcedure
     .input(z.object({ query: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
-      const results = await menuService.searchMenus(String(ctx.user.id), input.query);
+      const results = await menuService.searchMenus(String(ctx.user!.id), input.query);
       return { results };
     }),
 
@@ -48,7 +48,7 @@ export const menuRouter = router({
   logMenuAccess: requirePermission('system:menu:manage')
     .input(z.object({ menuItemId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      await menuService.logMenuAccess(String(ctx.user.id), input.menuItemId);
+      await menuService.logMenuAccess(String(ctx.user!.id), input.menuItemId);
       return { success: true };
     }),
 
@@ -58,7 +58,7 @@ export const menuRouter = router({
   hideMenuItem: requirePermission('system:menu:manage')
     .input(z.object({ menuItemId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      await menuService.hideMenuItem(String(ctx.user.id), input.menuItemId);
+      await menuService.hideMenuItem(String(ctx.user!.id), input.menuItemId);
       return { success: true };
     }),
 
@@ -68,7 +68,7 @@ export const menuRouter = router({
   showMenuItem: requirePermission('system:menu:manage')
     .input(z.object({ menuItemId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      await menuService.showMenuItem(String(ctx.user.id), input.menuItemId);
+      await menuService.showMenuItem(String(ctx.user!.id), input.menuItemId);
       return { success: true };
     }),
 
@@ -76,7 +76,7 @@ export const menuRouter = router({
    * 重置菜单自定义
    */
   resetMenuCustomization: requirePermission('system:menu:manage').mutation(async ({ ctx }) => {
-    await menuService.resetMenuCustomization(String(ctx.user.id));
+    await menuService.resetMenuCustomization(String(ctx.user!.id));
     return { success: true };
   }),
 

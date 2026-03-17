@@ -423,7 +423,7 @@ export async function seedComplianceData() {
     const insertedDeEmployees: number[] = [];
     for (const emp of germanEmployees) {
       const result = await db.insert(grtEmployees).values(emp);
-      insertedDeEmployees.push(Number(result[0].insertId));
+      insertedDeEmployees.push(Number((result as any)[0].insertId));
     }
     console.log(`Inserted ${insertedDeEmployees.length} German employees`);
     
@@ -432,7 +432,7 @@ export async function seedComplianceData() {
     const insertedUsEmployees: number[] = [];
     for (const emp of usEmployees) {
       const result = await db.insert(grtEmployees).values(emp);
-      insertedUsEmployees.push(Number(result[0].insertId));
+      insertedUsEmployees.push(Number((result as any)[0].insertId));
     }
     console.log(`Inserted ${insertedUsEmployees.length} US employees`);
     
@@ -451,7 +451,7 @@ export async function seedComplianceData() {
         
         // Track first violation entry for alerts
         if (entry.complianceFlag !== "OK" && !firstDeViolationEntryId) {
-          firstDeViolationEntryId = Number(result[0].insertId);
+          firstDeViolationEntryId = Number((result as any)[0].insertId);
         }
       }
     }
@@ -472,7 +472,7 @@ export async function seedComplianceData() {
         
         // Track first violation entry for alerts
         if (entry.complianceFlag !== "OK" && !firstUsViolationEntryId) {
-          firstUsViolationEntryId = Number(result[0].insertId);
+          firstUsViolationEntryId = Number((result as any)[0].insertId);
         }
       }
     }

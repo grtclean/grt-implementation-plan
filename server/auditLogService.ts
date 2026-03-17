@@ -84,7 +84,7 @@ export async function recordSensitiveDataAccess(params: {
     accessResult: params.result === "denied" ? "denied" : "allowed",
   });
 
-  return result[0].insertId;
+  return (result as any)[0].insertId;
 }
 
 /**
@@ -290,7 +290,7 @@ export async function recordPermissionChange(params: {
     reason: params.reason || null,
   });
 
-  return result[0].insertId;
+  return (result as any)[0].insertId;
 }
 
 /**
@@ -451,7 +451,7 @@ export async function cleanupOldAuditLogs(retentionDays: number = 365): Promise<
     .delete(sensitiveDataAccessLog)
     .where(lte(sensitiveDataAccessLog.createdAt, cutoffDate.toISOString()));
 
-  return result[0].affectedRows || 0;
+  return (result as any)[0].affectedRows || 0;
 }
 
 /**

@@ -111,7 +111,7 @@ export default function TemplateUsageAnalytics() {
   // 找出最活跃的小时
   const peakHour = useMemo(() => {
     if (!hourlyDistribution || hourlyDistribution.length === 0) return null;
-    return hourlyDistribution.reduce((max, curr) => 
+    return hourlyDistribution.reduce((max: any, curr: any) => 
       curr.count > max.count ? curr : max
     );
   }, [hourlyDistribution]);
@@ -297,7 +297,7 @@ export default function TemplateUsageAnalytics() {
                         </tr>
                       </thead>
                       <tbody>
-                        {trends.slice(-10).reverse().map((trend, idx) => (
+                        {trends.slice(-10).reverse().map((trend: any, idx: any) => (
                           <tr key={idx} className="border-b hover:bg-muted/50">
                             <td className="p-2">{trend.date}</td>
                             <td className="text-right p-2">{trend.views}</td>
@@ -337,7 +337,7 @@ export default function TemplateUsageAnalytics() {
                 </div>
               ) : popularity && popularity.length > 0 ? (
                 <div className="space-y-3">
-                  {popularity.map((template, idx) => (
+                  {popularity.map((template: any, idx: any) => (
                     <div
                       key={template.templateId}
                       className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg"
@@ -406,7 +406,7 @@ export default function TemplateUsageAnalytics() {
                 </div>
               ) : userActivity && userActivity.length > 0 ? (
                 <div className="space-y-3">
-                  {userActivity.map((user, idx) => (
+                  {userActivity.map((user: any, idx: any) => (
                     <div
                       key={user.userId}
                       className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg"
@@ -473,7 +473,7 @@ export default function TemplateUsageAnalytics() {
               <CardContent>
                 {reportTypeDistribution && reportTypeDistribution.length > 0 ? (
                   <div className="space-y-3">
-                    {reportTypeDistribution.map((item, idx) => (
+                    {reportTypeDistribution.map((item: any, idx: any) => (
                       <div key={idx} className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
                           <span>{item.reportType}</span>
@@ -505,8 +505,8 @@ export default function TemplateUsageAnalytics() {
               <CardContent>
                 {hourlyDistribution && hourlyDistribution.length > 0 ? (
                   <div className="flex items-end gap-1 h-32">
-                    {hourlyDistribution.map((item, idx) => {
-                      const maxCount = Math.max(...hourlyDistribution.map(h => h.count));
+                    {hourlyDistribution.map((item: any, idx: any) => {
+                      const maxCount = Math.max(...hourlyDistribution.map((h: any) => h.count));
                       const height = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
                       return (
                         <div

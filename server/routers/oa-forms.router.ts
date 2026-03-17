@@ -127,7 +127,7 @@ export const oaFormsRouter = router({
           fields: input.fields as any,
           approvalFlow: (input.approvalFlow ?? null) as any,
           isSystem: input.isSystem ?? false,
-          createdBy: ctx.user.id,
+          createdBy: ctx.user!.id,
           version: 1,
         })
         .returning();
@@ -297,8 +297,8 @@ export const oaFormsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const applicantId = ctx.user.id;
-      const applicantName = ctx.user.name ?? `User#${applicantId}`;
+      const applicantId = ctx.user!.id;
+      const applicantName = ctx.user!.name ?? `User#${applicantId}`;
 
       // Look up template
       const [template] = await db
@@ -389,7 +389,7 @@ export const oaFormsRouter = router({
       }
 
       // Only the applicant can withdraw their own submission
-      if (submission.applicantId !== ctx.user.id) {
+      if (submission.applicantId !== ctx.user!.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "只能撤回自己提交的表单",
@@ -424,7 +424,7 @@ export const oaFormsRouter = router({
         .from(oaFormSubmissions)
         .where(
           and(
-            eq(oaFormSubmissions.currentApproverId, ctx.user.id),
+            eq(oaFormSubmissions.currentApproverId, ctx.user!.id),
             eq(oaFormSubmissions.status, "pending"),
           ),
         )
@@ -448,8 +448,8 @@ export const oaFormsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const approverId = ctx.user.id;
-      const approverName = ctx.user.name ?? `User#${approverId}`;
+      const approverId = ctx.user!.id;
+      const approverName = ctx.user!.name ?? `User#${approverId}`;
 
       // Fetch submission
       const [submission] = await db
@@ -583,8 +583,8 @@ export const oaFormsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const approverId = ctx.user.id;
-      const approverName = ctx.user.name ?? `User#${approverId}`;
+      const approverId = ctx.user!.id;
+      const approverName = ctx.user!.name ?? `User#${approverId}`;
 
       // Fetch submission
       const [submission] = await db
@@ -701,7 +701,7 @@ export const oaFormsRouter = router({
         })
         .from(oaFormFavorites)
         .innerJoin(oaFormTemplates, eq(oaFormFavorites.templateId, oaFormTemplates.id))
-        .where(eq(oaFormFavorites.userId, ctx.user.id))
+        .where(eq(oaFormFavorites.userId, ctx.user!.id))
         .orderBy(asc(oaFormFavorites.sortOrder))
         .limit(1000);
 
@@ -717,7 +717,7 @@ export const oaFormsRouter = router({
         const [created] = await db
           .insert(oaFormFavorites)
           .values({
-            userId: ctx.user.id,
+            userId: ctx.user!.id,
             templateId: input.templateId,
             sortOrder: 0,
           })
@@ -741,7 +741,7 @@ export const oaFormsRouter = router({
         .delete(oaFormFavorites)
         .where(
           and(
-            eq(oaFormFavorites.userId, ctx.user.id),
+            eq(oaFormFavorites.userId, ctx.user!.id),
             eq(oaFormFavorites.templateId, input.templateId),
           ),
         );

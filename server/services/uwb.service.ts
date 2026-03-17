@@ -9,6 +9,87 @@ import { handleWorkReportEvent } from './scheduling-auto-refresh.service';
 import { createChildLogger } from "../lib/logger";
 const log = createChildLogger("uwb-svc");
 
+/** Raw MySQL2 connection with execute method */
+interface RawDbConnection {
+  execute(sql: string, params?: unknown[]): Promise<unknown[]>;
+}
+
+/** DB row from uwb_zones */
+interface UwbZoneRow {
+  id: string;
+  zone_code: string;
+  zone_name: string;
+  zone_type: UwbZone['zoneType'];
+  bu_code: string | null;
+  x_min: string;
+  x_max: string;
+  y_min: string;
+  y_max: string;
+  z_min: string | null;
+  z_max: string | null;
+  is_work_zone: number;
+  capacity: number;
+  status: string;
+}
+
+/** DB row from uwb_work_hours */
+interface UwbWorkHoursRow {
+  id: string;
+  employee_id: string;
+  resource_id: string | null;
+  zone_id: string;
+  zone_name: string;
+  work_date: string;
+  start_time: string;
+  end_time: string | null;
+  total_minutes: number;
+  effective_minutes: number;
+  idle_minutes: number;
+  status: string;
+  updated_at: string | null;
+}
+
+/** DB row from uwb_work_hours aggregate */
+interface UwbWorkHoursAggRow {
+  work_date: string;
+  total_minutes: string;
+  effective_minutes: string;
+  idle_minutes: string;
+}
+
+/** DB row from uwb_work_hours zone aggregate */
+interface UwbZoneAggRow {
+  zone_id: string;
+  zone_name: string;
+  minutes: string;
+}
+
+/** DB row for scheduling_resources */
+interface SchedulingResourceRow {
+  id: string;
+  resource_name: string;
+  capacity_per_day: string;
+  status: string;
+}
+
+/** DB row for employee tag lookup */
+interface EmployeeTagRow {
+  employee_id: string;
+  resource_id: string | null;
+}
+
+/** DB row for zone occupancy employees */
+interface ZoneEmployeeRow {
+  employee_id: string;
+  name: string;
+  last_seen: string;
+}
+
+/** DB update result */
+interface DbUpdateResult {
+  affectedRows: number;
+}
+
 // ==================== 类型定义 ====================
 
 export interface UwbLocationData {
@@ -74,7 +155,7 @@ const tagEmployeeMap = new Map<string, { employeeId: string; resourceId?: string
  * 处理UWB定位数据
  */
 export async function processLocationData(data: UwbLocationData): Promise<void> {
-  const db = await getDb() as any;
+  const db = await getDb() as unknown as RawDbConnection;
 
   // 确定所在区域
   const zone = await determineZone(data.x, data.y, data.z);
@@ -137,22 +218,22 @@ export async function processBatchLocationData(dataList: UwbLocationData[]): Pro
  * 确定坐标所在区域
  */
 async function determineZone(x: number, y: number, z?: number): Promise<UwbZone | null> {
-  const db = await getDb() as any;
-  
+  const db = await getDb() as unknown as RawDbConnection;
+
   let query = `
-    SELECT * FROM uwb_zones 
-    WHERE status = 'active' 
+    SELECT * FROM uwb_zones
+    WHERE status = 'active'
       AND x_min <= ? AND x_max >= ?
       AND y_min <= ? AND y_max >= ?
   `;
-  const params: any[] = [x, x, y, y];
+  const params: unknown[] = [x, x, y, y];
 
   if (z !== undefined) {
     query += ' AND (z_min IS NULL OR z_min <= ?) AND (z_max IS NULL OR z_max >= ?)';
     params.push(z, z);
   }
 
-  const [rows] = await db.execute(query, params) as any[];
+  const [rows] = await db.execute(query, params) as [UwbZoneRow[]];
 
   if (rows.length === 0) {
     return null;
@@ -164,7 +245,7 @@ async function determineZone(x: number, y: number, z?: number): Promise<UwbZone 
     zoneCode: row.zone_code,
     zoneName: row.zone_name,
     zoneType: row.zone_type,
-    buCode: row.bu_code,
+    buCode: row.bu_code as any,
     bounds: {
       xMin: parseFloat(row.x_min),
       xMax: parseFloat(row.x_max),
@@ -188,26 +269,26 @@ async function getEmployeeByTag(tagId: string): Promise<{ employeeId: string; re
   }
 
   // 从数据库查询（假设有员工-标签关联表）
-  const db = await getDb() as any;
+  const db = await getDb() as unknown as RawDbConnection;
   const [rows] = await db.execute(
     `SELECT e.id as employee_id, r.id as resource_id
      FROM users e
      LEFT JOIN scheduling_resources r ON r.resource_name = e.name
      WHERE e.uwb_tag_id = ?`,
     [tagId]
-  ) as any[];
+  ) as [EmployeeTagRow[]];
 
   if (rows.length === 0) {
     return null;
   }
 
   const result = {
-    employeeId: rows[0].employee_id,
-    resourceId: rows[0].resource_id,
+    employeeId: rows[0].employee_id as string,
+    resourceId: (rows[0].resource_id ?? undefined) as string | undefined,
   };
 
   // 缓存结果
-  tagEmployeeMap.set(tagId, result);
+  tagEmployeeMap.set(tagId, result as any);
 
   return result;
 }
@@ -221,15 +302,15 @@ async function updateWorkHours(
   zone: UwbZone,
   timestamp: Date
 ): Promise<void> {
-  const db = await getDb() as any;
+  const db = await getDb() as unknown as RawDbConnection;
   const workDate = timestamp.toISOString().split('T')[0];
 
   // 查找当天该区域的工时记录
   const [existing] = await db.execute(
-    `SELECT * FROM uwb_work_hours 
+    `SELECT * FROM uwb_work_hours
      WHERE employee_id = ? AND zone_id = ? AND work_date = ? AND status = 'in_progress'`,
     [employeeId, zone.id, workDate]
-  ) as any[];
+  ) as [UwbWorkHoursRow[]];
 
   if (existing.length === 0) {
     // 创建新记录
@@ -283,10 +364,10 @@ export async function getEmployeeWorkHoursSummary(
   startDate: string,
   endDate: string
 ): Promise<UwbWorkHoursSummary[]> {
-  const db = await getDb() as any;
-  
+  const db = await getDb() as unknown as RawDbConnection;
+
   const [rows] = await db.execute(
-    `SELECT 
+    `SELECT
        work_date,
        SUM(total_minutes) as total_minutes,
        SUM(effective_minutes) as effective_minutes,
@@ -296,7 +377,7 @@ export async function getEmployeeWorkHoursSummary(
      GROUP BY work_date
      ORDER BY work_date`,
     [employeeId, startDate, endDate]
-  ) as any[];
+  ) as [UwbWorkHoursAggRow[]];
 
   const summaries: UwbWorkHoursSummary[] = [];
 
@@ -308,7 +389,7 @@ export async function getEmployeeWorkHoursSummary(
        WHERE employee_id = ? AND work_date = ?
        GROUP BY zone_id, zone_name`,
       [employeeId, row.work_date]
-    ) as any[];
+    ) as [UwbZoneAggRow[]];
 
     const totalMinutes = parseInt(row.total_minutes) || 0;
     const effectiveMinutes = parseInt(row.effective_minutes) || 0;
@@ -319,7 +400,7 @@ export async function getEmployeeWorkHoursSummary(
       totalMinutes,
       effectiveMinutes,
       idleMinutes: parseInt(row.idle_minutes) || 0,
-      zones: zoneRows.map((z: any) => ({
+      zones: zoneRows.map((z: UwbZoneAggRow) => ({
         zoneId: z.zone_id,
         zoneName: z.zone_name,
         minutes: parseInt(z.minutes) || 0,
@@ -338,13 +419,13 @@ export async function calculateResourceCapacity(
   resourceId: string,
   date: string
 ): Promise<UwbCapacityData | null> {
-  const db = await getDb() as any;
+  const db = await getDb() as unknown as RawDbConnection;
 
   // 获取资源信息
   const [resourceRows] = await db.execute(
     'SELECT * FROM scheduling_resources WHERE id = ?',
     [resourceId]
-  ) as any[];
+  ) as [SchedulingResourceRow[]];
 
   if (resourceRows.length === 0) {
     return null;
@@ -359,9 +440,9 @@ export async function calculateResourceCapacity(
      FROM uwb_work_hours
      WHERE resource_id = ? AND work_date = ?`,
     [resourceId, date]
-  ) as any[];
+  ) as [{ effective_minutes: string | null }[]];
 
-  const effectiveMinutes = parseInt(workRows[0]?.effective_minutes) || 0;
+  const effectiveMinutes = parseInt(workRows![0]?.effective_minutes!) || 0;
   const actualWorkHours = effectiveMinutes / 60;
 
   return {
@@ -379,12 +460,12 @@ export async function calculateResourceCapacity(
  * 获取所有资源的实时产能
  */
 export async function getAllResourcesCapacity(date: string): Promise<UwbCapacityData[]> {
-  const db = await getDb() as any;
+  const db = await getDb() as unknown as RawDbConnection;
 
   const [resourceRows] = await db.execute(
     'SELECT id FROM scheduling_resources WHERE status = ?',
     ['available']
-  ) as any[];
+  ) as [{ id: string }[]];
 
   const capacities: UwbCapacityData[] = [];
 
@@ -407,7 +488,7 @@ export async function syncWorkHoursToScheduling(
   taskId: string,
   reportedHours: number
 ): Promise<void> {
-  const db = await getDb() as any;
+  const db = await getDb() as unknown as RawDbConnection;
 
   // 获取资源ID
   const [resourceRows] = await db.execute(
@@ -415,7 +496,7 @@ export async function syncWorkHoursToScheduling(
      JOIN users u ON r.resource_name = u.name
      WHERE u.id = ?`,
     [employeeId]
-  ) as any[];
+  ) as [{ id: string }[]];
 
   const resourceId = resourceRows[0]?.id;
 
@@ -436,14 +517,14 @@ export async function syncWorkHoursToScheduling(
  * 结束当天所有进行中的工时记录
  */
 export async function closeWorkHoursForDay(date: string): Promise<number> {
-  const db = await getDb() as any;
+  const db = await getDb() as unknown as RawDbConnection;
 
   const [result] = await db.execute(
-    `UPDATE uwb_work_hours 
+    `UPDATE uwb_work_hours
      SET status = 'completed', end_time = CONCAT(?, ' 18:00:00')
      WHERE work_date = ? AND status = 'in_progress'`,
     [date, date]
-  ) as any;
+  ) as [DbUpdateResult];
 
   return result.affectedRows || 0;
 }
@@ -454,7 +535,7 @@ export async function closeWorkHoursForDay(date: string): Promise<number> {
  * 创建UWB区域
  */
 export async function createZone(zone: Omit<UwbZone, 'id'>): Promise<string> {
-  const db = await getDb() as any;
+  const db = await getDb() as unknown as RawDbConnection;
   const id = uuidv4();
 
   await db.execute(
@@ -486,19 +567,19 @@ export async function createZone(zone: Omit<UwbZone, 'id'>): Promise<string> {
  * 获取所有区域
  */
 export async function getAllZones(): Promise<UwbZone[]> {
-  const db = await getDb() as any;
+  const db = await getDb() as unknown as RawDbConnection;
 
   const [rows] = await db.execute(
     'SELECT * FROM uwb_zones WHERE status = ? ORDER BY zone_code',
     ['active']
-  ) as any[];
+  ) as [UwbZoneRow[]];
 
-  return rows.map((row: any) => ({
+  return rows.map((row: UwbZoneRow) => ({
     id: row.id,
     zoneCode: row.zone_code,
     zoneName: row.zone_name,
     zoneType: row.zone_type,
-    buCode: row.bu_code,
+    buCode: row.bu_code ?? undefined,
     bounds: {
       xMin: parseFloat(row.x_min),
       xMax: parseFloat(row.x_max),
@@ -522,13 +603,13 @@ export async function getZoneOccupancy(zoneId: string): Promise<{
   capacity: number;
   employees: { id: string; name: string; lastSeen: Date }[];
 }> {
-  const db = await getDb() as any;
+  const db = await getDb() as unknown as RawDbConnection;
 
   // 获取区域信息
   const [zoneRows] = await db.execute(
     'SELECT * FROM uwb_zones WHERE id = ?',
     [zoneId]
-  ) as any[];
+  ) as [UwbZoneRow[]];
 
   if (zoneRows.length === 0) {
     throw new Error('区域不存在');
@@ -546,14 +627,14 @@ export async function getZoneOccupancy(zoneId: string): Promise<{
      WHERE l.zone_id = ? AND l.timestamp >= ?
      GROUP BY l.employee_id, u.name`,
     [zoneId, fiveMinutesAgo]
-  ) as any[];
+  ) as [ZoneEmployeeRow[]];
 
   return {
     zoneId,
     zoneName: zone.zone_name,
     currentCount: employeeRows.length,
     capacity: zone.capacity,
-    employees: employeeRows.map((row: any) => ({
+    employees: employeeRows.map((row: ZoneEmployeeRow) => ({
       id: row.employee_id,
       name: row.name,
       lastSeen: new Date(row.last_seen),
@@ -567,7 +648,7 @@ export async function getZoneOccupancy(zoneId: string): Promise<{
  * 绑定UWB标签到员工
  */
 export async function bindTagToEmployee(tagId: string, employeeId: string): Promise<void> {
-  const db = await getDb() as any;
+  const db = await getDb() as unknown as RawDbConnection;
 
   // 更新员工表的UWB标签字段（假设users表有uwb_tag_id字段）
   await db.execute(
@@ -583,7 +664,7 @@ export async function bindTagToEmployee(tagId: string, employeeId: string): Prom
  * 解绑UWB标签
  */
 export async function unbindTag(tagId: string): Promise<void> {
-  const db = await getDb() as any;
+  const db = await getDb() as unknown as RawDbConnection;
 
   await db.execute(
     'UPDATE users SET uwb_tag_id = NULL WHERE uwb_tag_id = ?',

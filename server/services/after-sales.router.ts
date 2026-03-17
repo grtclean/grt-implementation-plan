@@ -29,7 +29,7 @@ const serviceLogsRouter = router({
 
 const attachmentsRouter = router({
   list: protectedProcedure.input(z.object({ serviceLogId: z.number() })).query(({ input }) => svc.listAttachments(input.serviceLogId)),
-  upload: requirePermission('service:tickets:manage').input(z.object({ serviceLogId: z.number(), fileName: z.string(), fileUrl: z.string(), fileType: z.string().optional(), fileSize: z.number().optional(), description: z.string().optional(), capturedAt: z.string().optional(), gpsLatitude: z.string().optional(), gpsLongitude: z.string().optional() })).mutation(({ input, ctx }) => svc.uploadAttachment({ ...input, uploadedBy: ctx.user.id })),
+  upload: requirePermission('service:tickets:manage').input(z.object({ serviceLogId: z.number(), fileName: z.string(), fileUrl: z.string(), fileType: z.string().optional(), fileSize: z.number().optional(), description: z.string().optional(), capturedAt: z.string().optional(), gpsLatitude: z.string().optional(), gpsLongitude: z.string().optional() })).mutation(({ input, ctx }) => svc.uploadAttachment({ ...input, uploadedBy: ctx.user!.id })),
   delete: requirePermission('service:tickets:manage').input(z.object({ id: z.number() })).mutation(({ input }) => svc.deleteAttachment(input.id)),
 });
 

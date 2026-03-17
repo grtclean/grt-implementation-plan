@@ -148,7 +148,7 @@ export default function ProjectPhaseDocuments() {
   };
 
   const statusLabel = (status: string) => (
-    <StatusBadge color={docStatusColors[status] ?? "gray"}>{statusLabelMap[status] ?? status}</StatusBadge>
+    <StatusBadge color={(docStatusColors as any)[status] ?? "gray"}>{statusLabelMap[status] ?? status}</StatusBadge>
   );
 
   // ── Loading State ───

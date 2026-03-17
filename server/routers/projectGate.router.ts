@@ -19,6 +19,31 @@ import { redBlueConfigs, redBlueExecutions } from "../../drizzle/approval-engine
 import { violationEvents } from "../../drizzle/performance-schema";
 import { eq, desc, and, count, sql, lt, gte, ne, inArray, type SQL } from "drizzle-orm";
 
+// Type for red-blue config results JSON field
+interface RedBlueResults {
+  stageCode?: string;
+  redTeamFindings?: string[];
+  blueTeamResponses?: string[];
+  overallScore?: number;
+}
+
+// Type aliases for pgEnum string values used in stage/status columns
+type MStageCode = "M0" | "M1" | "M2" | "M3" | "M4" | "M5" | "M6" | "M7" | "M8" | "M9" | "M10" | "M11" | "M12";
+type StageV2Status = "NotStarted" | "InProgress" | "Completed" | "Blocked" | "Skipped";
+
+// Audit log entry type
+interface AuditLogEntry {
+  type: string;
+  from?: string;
+  to?: string;
+  approvedBy?: string;
+  regressedBy?: string;
+  score?: number | null;
+  comments?: string | null;
+  reason?: string;
+  timestamp: string;
+}
+
 // Ordered M-stage codes for index-based navigation
 const M_STAGE_CODES = [
   "M0", "M1", "M2", "M3", "M4", "M5", "M6",
@@ -345,7 +370,7 @@ export const projectGateRouter = router({
         )).limit(1000);
 
       // Embed requestor ID in remark for self-approval prevention
-      const remarkWithRequestor = `[REQ:${ctx.user.id}] ${input.summary}`;
+      const remarkWithRequestor = `[REQ:${ctx.user!.id}] ${input.summary}`;
 
       if (existing.length > 0) {
         // Update existing gate to in_review
@@ -405,7 +430,7 @@ export const projectGateRouter = router({
 
       // Self-approval prevention: extract requestor ID from remark [REQ:N]
       const reqMatch = gate.remark?.match(/\[REQ:(\d+)\]/);
-      if (reqMatch && Number(reqMatch[1]) === ctx.user.id) {
+      if (reqMatch && Number(reqMatch[1]) === ctx.user!.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "不能审批自己提交的门禁申请" });
       }
 
@@ -440,7 +465,7 @@ export const projectGateRouter = router({
         .set({
           status: input.approved ? "approved" : "rejected",
           actualDate: input.approved ? new Date().toISOString() : undefined,
-          approverId: ctx.user.id,
+          approverId: ctx.user!.id,
           approvalComment: input.comments,
           updatedAt: new Date().toISOString(),
           version: sql`${projectGates.version} + 1`,
@@ -508,7 +533,7 @@ export const projectGateRouter = router({
 
                 log.info({ projectId: gate.projectId }, "M12 reached — after-sales equipment + warranty created (V1)");
               }
-            } catch (e: any) {
+            } catch (e: unknown) {
               log.warn({ err: e, projectId: gate.projectId }, "M12 after-sales auto-trigger failed (V1)");
             }
           }
@@ -551,19 +576,22 @@ export const projectGateRouter = router({
       const configs = await db.select().from(redBlueConfigs)
         .where(eq(redBlueConfigs.projectId, input.projectId)).limit(1000);
 
-      return configs.map(cfg => ({
-        id: cfg.id,
-        projectId: cfg.projectId,
-        stageCode: (cfg.results as any)?.stageCode || "M4",
-        redTeamLeader: cfg.redTeamLeaderName || `用户${cfg.redTeamLeaderId}`,
-        blueTeamLeader: cfg.blueTeamLeaderName || `用户${cfg.blueTeamLeaderId}`,
-        scheduledDate: cfg.createdAt ? new Date(cfg.createdAt).toISOString().split("T")[0] : null,
-        status: (cfg.status || "draft").toUpperCase(),
-        redTeamFindings: (cfg.results as any)?.redTeamFindings || [],
-        blueTeamResponses: (cfg.results as any)?.blueTeamResponses || [],
-        overallScore: (cfg.results as any)?.overallScore || 0,
-        recommendation: cfg.lessonsLearned || "",
-      }));
+      return configs.map(cfg => {
+        const results = cfg.results as RedBlueResults | null;
+        return {
+          id: cfg.id,
+          projectId: cfg.projectId,
+          stageCode: results?.stageCode || "M4",
+          redTeamLeader: cfg.redTeamLeaderName || `用户${cfg.redTeamLeaderId}`,
+          blueTeamLeader: cfg.blueTeamLeaderName || `用户${cfg.blueTeamLeaderId}`,
+          scheduledDate: cfg.createdAt ? new Date(cfg.createdAt).toISOString().split("T")[0] : null,
+          status: (cfg.status || "draft").toUpperCase(),
+          redTeamFindings: results?.redTeamFindings || [],
+          blueTeamResponses: results?.blueTeamResponses || [],
+          overallScore: results?.overallScore || 0,
+          recommendation: cfg.lessonsLearned || "",
+        };
+      });
     }),
 
   // 创建红蓝对抗
@@ -587,7 +615,7 @@ export const projectGateRouter = router({
         blueTeamLeaderName: input.blueTeamLeader,
         redTeamObjectives: input.objectives?.join("\n"),
         status: "scheduled",
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       }).returning();
       return { success: true, sessionId: config.id, message: "红蓝对抗会议已创建" };
     }),
@@ -693,7 +721,7 @@ export const projectGateRouter = router({
       }
 
       // 2. Cannot advance past M12
-      const currentIdx = M_STAGE_CODES.indexOf(input.currentStageCode as any);
+      const currentIdx = M_STAGE_CODES.indexOf(input.currentStageCode as MStageCode);
       if (currentIdx < 0) throw new Error(`无效阶段: ${input.currentStageCode}`);
       if (currentIdx >= M_STAGE_CODES.length - 1) {
         throw new Error("M12 为终结阶段，无法继续推进");
@@ -727,7 +755,7 @@ export const projectGateRouter = router({
       const now = new Date().toISOString();
 
       // 4a. Mark current stage as Completed
-      const approverName = ctx.user.name ?? `User#${ctx.user.id}`;
+      const approverName = ctx.user!.name ?? `User#${ctx.user!.id}`;
       const auditEntry = {
         type: "ADVANCE",
         from: input.currentStageCode,
@@ -742,10 +770,10 @@ export const projectGateRouter = router({
       const [currentStageRow] = await db.select().from(projectStagesV2)
         .where(and(
           eq(projectStagesV2.projectId, input.projectId),
-          eq(projectStagesV2.stageCode, input.currentStageCode as any),
+          eq(projectStagesV2.stageCode, input.currentStageCode as MStageCode),
         )).limit(1000);
 
-      let existingAuditLog: any[] = [];
+      let existingAuditLog: AuditLogEntry[] = [];
       if (currentStageRow?.auditLog) {
         try { existingAuditLog = JSON.parse(currentStageRow.auditLog); } catch { /* ignore */ }
       }
@@ -753,7 +781,7 @@ export const projectGateRouter = router({
 
       await db.update(projectStagesV2)
         .set({
-          status: "Completed" as any,
+          status: "Completed" as StageV2Status,
           completionPercent: 100,
           actualEndDate: now.split("T")[0],
           auditLog: JSON.stringify(existingAuditLog),
@@ -761,25 +789,25 @@ export const projectGateRouter = router({
         })
         .where(and(
           eq(projectStagesV2.projectId, input.projectId),
-          eq(projectStagesV2.stageCode, input.currentStageCode as any),
+          eq(projectStagesV2.stageCode, input.currentStageCode as MStageCode),
         ));
 
       // 4b. Mark next stage as InProgress
       await db.update(projectStagesV2)
         .set({
-          status: "InProgress" as any,
+          status: "InProgress" as StageV2Status,
           actualStartDate: now.split("T")[0],
           updatedAt: now,
         })
         .where(and(
           eq(projectStagesV2.projectId, input.projectId),
-          eq(projectStagesV2.stageCode, nextStageCode as any),
+          eq(projectStagesV2.stageCode, nextStageCode as MStageCode),
         ));
 
       // 4c. Advance project current stage
       await db.update(projectsV2)
         .set({
-          currentStage: nextStageCode as any,
+          currentStage: nextStageCode as MStageCode,
           updatedAt: now,
         })
         .where(eq(projectsV2.id, input.projectId));
@@ -834,7 +862,7 @@ export const projectGateRouter = router({
             afterSalesCreated = true;
             log.info({ projectId: input.projectId }, "M12 reached — after-sales equipment + warranty created (V2)");
           }
-        } catch (e: any) {
+        } catch (e: unknown) {
           log.warn({ err: e, projectId: input.projectId }, "M12 after-sales auto-trigger failed (V2)");
           // Non-blocking — gate advance still succeeds
         }
@@ -867,8 +895,8 @@ export const projectGateRouter = router({
         .where(eq(projectsV2.id, input.projectId)).limit(1000);
       if (!project) throw new Error("项目不存在");
 
-      const currentIdx = M_STAGE_CODES.indexOf(project.currentStage as any);
-      const targetIdx = M_STAGE_CODES.indexOf(input.targetStageCode as any);
+      const currentIdx = M_STAGE_CODES.indexOf(project.currentStage as MStageCode);
+      const targetIdx = M_STAGE_CODES.indexOf(input.targetStageCode as MStageCode);
 
       if (targetIdx < 0) throw new Error(`无效目标阶段: ${input.targetStageCode}`);
       if (targetIdx >= currentIdx) {
@@ -878,7 +906,7 @@ export const projectGateRouter = router({
       }
 
       const now = new Date().toISOString();
-      const regressorName = ctx.user.name ?? `User#${ctx.user.id}`;
+      const regressorName = ctx.user!.name ?? `User#${ctx.user!.id}`;
       const regressAudit = {
         type: "REGRESS",
         from: project.currentStage,
@@ -895,24 +923,24 @@ export const projectGateRouter = router({
         const [stageRow] = await db.select().from(projectStagesV2)
           .where(and(
             eq(projectStagesV2.projectId, input.projectId),
-            eq(projectStagesV2.stageCode, stageCode as any),
+            eq(projectStagesV2.stageCode, stageCode as MStageCode),
           )).limit(1000);
 
-        let auditLog: any[] = [];
+        let auditLog: AuditLogEntry[] = [];
         if (stageRow?.auditLog) {
           try { auditLog = JSON.parse(stageRow.auditLog); } catch { /* ignore */ }
         }
-        auditLog.push(regressAudit);
+        auditLog.push(regressAudit as any);
 
         await db.update(projectStagesV2)
           .set({
-            status: "Blocked" as any,
+            status: "Blocked" as StageV2Status,
             auditLog: JSON.stringify(auditLog),
             updatedAt: now,
           })
           .where(and(
             eq(projectStagesV2.projectId, input.projectId),
-            eq(projectStagesV2.stageCode, stageCode as any),
+            eq(projectStagesV2.stageCode, stageCode as MStageCode),
           ));
       }
 
@@ -920,31 +948,31 @@ export const projectGateRouter = router({
       const [targetRow] = await db.select().from(projectStagesV2)
         .where(and(
           eq(projectStagesV2.projectId, input.projectId),
-          eq(projectStagesV2.stageCode, input.targetStageCode as any),
+          eq(projectStagesV2.stageCode, input.targetStageCode as MStageCode),
         )).limit(1000);
 
-      let targetAuditLog: any[] = [];
+      let targetAuditLog: AuditLogEntry[] = [];
       if (targetRow?.auditLog) {
         try { targetAuditLog = JSON.parse(targetRow.auditLog); } catch { /* ignore */ }
       }
-      targetAuditLog.push(regressAudit);
+      targetAuditLog.push(regressAudit as any);
 
       await db.update(projectStagesV2)
         .set({
-          status: "InProgress" as any,
+          status: "InProgress" as StageV2Status,
           completionPercent: 0,
           auditLog: JSON.stringify(targetAuditLog),
           updatedAt: now,
         })
         .where(and(
           eq(projectStagesV2.projectId, input.projectId),
-          eq(projectStagesV2.stageCode, input.targetStageCode as any),
+          eq(projectStagesV2.stageCode, input.targetStageCode as MStageCode),
         ));
 
       // 4. Update project current stage
       await db.update(projectsV2)
         .set({
-          currentStage: input.targetStageCode as any,
+          currentStage: input.targetStageCode as MStageCode,
           updatedAt: now,
         })
         .where(eq(projectsV2.id, input.projectId));
@@ -971,7 +999,7 @@ export const projectGateRouter = router({
         .orderBy(projectStagesV2.stageCode).limit(1000);
 
       return stages.map(stage => {
-        let auditEvents: any[] = [];
+        let auditEvents: AuditLogEntry[] = [];
         if (stage.auditLog) {
           try { auditEvents = JSON.parse(stage.auditLog); } catch { /* ignore */ }
         }

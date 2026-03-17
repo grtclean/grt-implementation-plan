@@ -37,7 +37,7 @@ export async function createCostCategory(data: InsertCostCategory) {
   if (!db) return null;
 
   const result = await db.insert(costCategories).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function updateCostCategory(id: number, data: Partial<InsertCostCategory>) {
@@ -62,7 +62,7 @@ export async function createProjectBudget(data: InsertProjectBudget) {
   if (!db) return null;
 
   const result = await db.insert(projectBudgets).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function updateProjectBudget(id: number, data: Partial<InsertProjectBudget>) {
@@ -98,7 +98,7 @@ export async function createCostRecord(data: InsertCostRecord) {
   if (!db) return null;
 
   const result = await db.insert(costRecords).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function updateCostRecord(id: number, data: Partial<InsertCostRecord>) {
@@ -123,7 +123,7 @@ export async function createCostEstimate(data: InsertCostEstimate) {
   if (!db) return null;
 
   const result = await db.insert(costEstimates).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 // --- Labor Costs ---
@@ -143,7 +143,7 @@ export async function createLaborCost(data: InsertLaborCost) {
   if (!db) return null;
 
   const result = await db.insert(laborCosts).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function updateLaborCost(id: number, data: Partial<InsertLaborCost>) {
@@ -171,7 +171,7 @@ export async function createCostVarianceAnalysis(data: InsertCostVarianceAnalysi
   if (!db) return null;
 
   const result = await db.insert(costVarianceAnalysis).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 // --- Cost Summary ---

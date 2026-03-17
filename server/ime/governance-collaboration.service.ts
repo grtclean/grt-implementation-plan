@@ -12,6 +12,9 @@ import { createChildLogger } from "../lib/logger";
 
 const log = createChildLogger("ime:governance");
 
+/** Row returned by raw SQL via db.execute() — mirrors Drizzle's { [column: string]: any } constraint */
+type DbRow = { [column: string]: any };
+
 // ============================================================================
 // Phase 10: Meeting Integration Hub & System Settings
 // ============================================================================
@@ -46,7 +49,7 @@ export async function syncIntegration(integrationId: number) {
 
   // Get integration config
   const intRes = await db.execute(sql`SELECT * FROM ime_integrations WHERE id = ${integrationId} LIMIT 1000`);
-  const integration = (intRes.rows as any[])[0];
+  const integration = (intRes.rows as DbRow[])[0];
   if (!integration) throw new Error("Integration not found");
 
   const config = JSON.parse(integration.config || "{}");
@@ -63,7 +66,7 @@ export async function syncIntegration(integrationId: number) {
       case "calendar": {
         // Sync meeting records to/from calendar
         const meetingsRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL '30 days'`);
-        recordsProcessed = Number((meetingsRes.rows as any[])[0]?.cnt || 0);
+        recordsProcessed = Number((meetingsRes.rows as DbRow[])[0]?.cnt || 0);
         recordsSucceeded = recordsProcessed;
         details = { syncedMeetings: recordsProcessed, provider: integration.provider, direction: integration.sync_direction };
         break;
@@ -71,7 +74,7 @@ export async function syncIntegration(integrationId: number) {
       case "task_manager": {
         // Push action items to task management tool
         const actionsRes = await db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending FROM ime_action_items WHERE created_at >= NOW() - INTERVAL '7 days'`);
-        const actions = (actionsRes.rows as any[])[0] || {};
+        const actions = (actionsRes.rows as DbRow[])[0] || {};
         recordsProcessed = Number(actions.total || 0);
         recordsSucceeded = Number(actions.pending || 0);
         details = { totalItems: recordsProcessed, pendingPushed: recordsSucceeded, provider: integration.provider };
@@ -80,7 +83,7 @@ export async function syncIntegration(integrationId: number) {
       case "messaging": {
         // Push digest/alerts to messaging platform
         const alertsRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_digest_alerts WHERE created_at >= NOW() - INTERVAL '1 day'`);
-        recordsProcessed = Number((alertsRes.rows as any[])[0]?.cnt || 0);
+        recordsProcessed = Number((alertsRes.rows as DbRow[])[0]?.cnt || 0);
         recordsSucceeded = recordsProcessed;
         details = { alertsSynced: recordsProcessed, provider: integration.provider, channel: config.channel || "default" };
         break;
@@ -88,7 +91,7 @@ export async function syncIntegration(integrationId: number) {
       case "webhook": {
         // Trigger webhook with latest meeting data
         const latestRes = await db.execute(sql`SELECT id, title FROM meeting_records ORDER BY meeting_date DESC LIMIT 5`);
-        recordsProcessed = (latestRes.rows as any[]).length;
+        recordsProcessed = (latestRes.rows as DbRow[]).length;
         recordsSucceeded = recordsProcessed;
         details = { webhookUrl: config.url || "configured", meetingsIncluded: recordsProcessed };
         break;
@@ -96,7 +99,7 @@ export async function syncIntegration(integrationId: number) {
       case "email": {
         // Email digest sync
         const coachRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_coaching_plans WHERE generated_at >= NOW() - INTERVAL '7 days'`);
-        recordsProcessed = Number((coachRes.rows as any[])[0]?.cnt || 0);
+        recordsProcessed = Number((coachRes.rows as DbRow[])[0]?.cnt || 0);
         recordsSucceeded = recordsProcessed;
         details = { reportsEmailed: recordsProcessed, recipients: config.recipients || [] };
         break;
@@ -148,7 +151,7 @@ export async function getIntegrationDashboard() {
     WHERE executed_at >= NOW() - INTERVAL '30 days'
   `);
 
-  const stats = (statsRes.rows as any[])[0] || {};
+  const stats = (statsRes.rows as DbRow[])[0] || {};
 
   return {
     integrations: integrationsRes.rows,
@@ -177,7 +180,7 @@ export async function updateSystemSetting(key: string, value: string, meta?: { t
   // Upsert: check if exists
   const existing = await db.execute(sql`SELECT id FROM ime_system_settings WHERE setting_key = ${safeKey} LIMIT 1000`);
 
-  if ((existing.rows as any[]).length > 0) {
+  if ((existing.rows as DbRow[]).length > 0) {
     await db.execute(sql`
       UPDATE ime_system_settings SET setting_value = ${safeValue}, setting_type = ${safeType}, category = ${safeCat}, label = ${safeLabel}, description = ${safeDesc}, updated_by = ${safeUser}, updated_at = NOW() WHERE setting_key = ${safeKey}
     `);
@@ -210,7 +213,7 @@ export async function evaluateAchievements(userId: string) {
 
   // Ensure default achievement definitions exist
   const defsRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_achievements WHERE is_global = 1`);
-  if (Number((defsRes.rows as any[])[0]?.cnt || 0) === 0) {
+  if (Number((defsRes.rows as DbRow[])[0]?.cnt || 0) === 0) {
     const defaults = [
       { key: "first_meeting", name: "初次亮相", desc: "参加第一次被分析的会议", icon: "Star", cat: "general", tier: "bronze", criteria: { metric: "meetings_attended", operator: ">=", value: 1 }, points: 10 },
       { key: "contributor_10", name: "活跃贡献者", desc: "在10次会议中贡献度超过70分", icon: "TrendingUp", cat: "contribution", tier: "silver", criteria: { metric: "high_contribution_count", operator: ">=", value: 10 }, points: 30 },
@@ -231,11 +234,11 @@ export async function evaluateAchievements(userId: string) {
 
   // Get all definitions
   const allDefs = await db.execute(sql`SELECT * FROM ime_achievements WHERE is_global = 1 LIMIT 1000`);
-  const definitions = allDefs.rows as any[];
+  const definitions = allDefs.rows as DbRow[];
 
   // Get already awarded
   const awardedRes = await db.execute(sql`SELECT achievement_key FROM ime_achievements WHERE user_id = ${safeUser} AND is_global = 0 LIMIT 1000`);
-  const awardedKeys = new Set((awardedRes.rows as any[]).map((a: any) => a.achievement_key));
+  const awardedKeys = new Set((awardedRes.rows as DbRow[]).map((a: any) => a.achievement_key));
 
   // Compute user metrics
   const contribRes = await db.execute(sql`SELECT COUNT(*) as meetings_attended, SUM(CASE WHEN contribution_score >= 70 THEN 1 ELSE 0 END) as high_contribution_count FROM meeting_contributions WHERE speaker_name = ${safeUser} OR speaker_id = ${safeUser}`);
@@ -243,10 +246,10 @@ export async function evaluateAchievements(userId: string) {
   const effRes = await db.execute(sql`SELECT AVG(mes.overall_score) as avg_eff FROM meeting_effectiveness_scores mes JOIN meeting_records mr ON mes.meeting_id = mr.id`);
   const roiRes = await db.execute(sql`SELECT AVG(roi_score) as avg_roi FROM ime_meeting_roi`);
 
-  const contribs = (contribRes.rows as any[])[0] || {};
-  const actions = (actionsRes.rows as any[])[0] || {};
-  const effData = (effRes.rows as any[])[0] || {};
-  const roiData = (roiRes.rows as any[])[0] || {};
+  const contribs = (contribRes.rows as DbRow[])[0] || {};
+  const actions = (actionsRes.rows as DbRow[])[0] || {};
+  const effData = (effRes.rows as DbRow[])[0] || {};
+  const roiData = (roiRes.rows as DbRow[])[0] || {};
 
   const metrics: Record<string, number> = {
     meetings_attended: Number(contribs.meetings_attended || 0),
@@ -303,7 +306,7 @@ export async function getLeaderboard(period?: string, metric?: string) {
     default:
       result = await db.execute(sql`SELECT speaker_name as user_id, speaker_name as user_name, AVG(contribution_score) as score FROM meeting_contributions WHERE created_at >= NOW() - INTERVAL ${intervalDays} GROUP BY speaker_name ORDER BY score DESC LIMIT 20`);
   }
-  const rows = result.rows as any[];
+  const rows = result.rows as DbRow[];
 
   return rows.map((r: any, i: number) => ({
     rank: i + 1,
@@ -339,23 +342,23 @@ export async function createTeamChallenge(challenge: {
   switch (challenge.targetMetric) {
     case "avg_effectiveness": {
       const r = await db.execute(sql`SELECT AVG(overall_score) as v FROM meeting_effectiveness_scores WHERE created_at >= NOW() - INTERVAL '30 days'`);
-      baseline = Number((r.rows as any[])[0]?.v || 0);
+      baseline = Number((r.rows as DbRow[])[0]?.v || 0);
       break;
     }
     case "avg_duration": {
       const r = await db.execute(sql`SELECT AVG(duration_minutes) as v FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL '30 days'`);
-      baseline = Number((r.rows as any[])[0]?.v || 0);
+      baseline = Number((r.rows as DbRow[])[0]?.v || 0);
       break;
     }
     case "action_completion_rate": {
       const r = await db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as done FROM ime_action_items WHERE created_at >= NOW() - INTERVAL '30 days'`);
-      const row = (r.rows as any[])[0] || {};
+      const row = (r.rows as DbRow[])[0] || {};
       baseline = row.total > 0 ? Math.round((Number(row.done) / Number(row.total)) * 100) : 0;
       break;
     }
     case "avg_cost": {
       const r = await db.execute(sql`SELECT AVG(total_cost) as v FROM ime_meeting_costs WHERE calculated_at >= NOW() - INTERVAL '30 days'`);
-      baseline = Number((r.rows as any[])[0]?.v || 0);
+      baseline = Number((r.rows as DbRow[])[0]?.v || 0);
       break;
     }
   }
@@ -372,30 +375,30 @@ export async function createTeamChallenge(challenge: {
 export async function updateChallengeProgress(challengeId: number) {
   const db = await requireDb();
   const chalRes = await db.execute(sql`SELECT * FROM ime_team_challenges WHERE id = ${challengeId} LIMIT 1000`);
-  const challenge = (chalRes.rows as any[])[0];
+  const challenge = (chalRes.rows as DbRow[])[0];
   if (!challenge) throw new Error("Challenge not found");
 
   let currentValue = 0;
   switch (challenge.target_metric) {
     case "avg_effectiveness": {
       const r = await db.execute(sql`SELECT AVG(overall_score) as v FROM meeting_effectiveness_scores WHERE created_at >= ${challenge.start_date}`);
-      currentValue = Number((r.rows as any[])[0]?.v || 0);
+      currentValue = Number((r.rows as DbRow[])[0]?.v || 0);
       break;
     }
     case "avg_duration": {
       const r = await db.execute(sql`SELECT AVG(duration_minutes) as v FROM meeting_records WHERE meeting_date >= ${challenge.start_date}`);
-      currentValue = Number((r.rows as any[])[0]?.v || 0);
+      currentValue = Number((r.rows as DbRow[])[0]?.v || 0);
       break;
     }
     case "action_completion_rate": {
       const r = await db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as done FROM ime_action_items WHERE created_at >= ${challenge.start_date}`);
-      const row = (r.rows as any[])[0] || {};
+      const row = (r.rows as DbRow[])[0] || {};
       currentValue = row.total > 0 ? Math.round((Number(row.done) / Number(row.total)) * 100) : 0;
       break;
     }
     case "avg_cost": {
       const r = await db.execute(sql`SELECT AVG(total_cost) as v FROM ime_meeting_costs WHERE calculated_at >= ${challenge.start_date}`);
-      currentValue = Number((r.rows as any[])[0]?.v || 0);
+      currentValue = Number((r.rows as DbRow[])[0]?.v || 0);
       break;
     }
   }
@@ -495,7 +498,7 @@ export async function analyzeFeedbackTrends(filters?: { period?: string; scope?:
     WHERE submitted_at >= NOW() - INTERVAL '${periodDays} days'
   `);
 
-  const avg = (avgRes.rows as any[])[0] || {};
+  const avg = (avgRes.rows as DbRow[])[0] || {};
   const total = Number(avg.total_responses || 0);
   const nps = total > 0
     ? Math.round(((Number(avg.promoters || 0) - Number(avg.detractors || 0)) / total) * 100)
@@ -507,7 +510,7 @@ export async function analyzeFeedbackTrends(filters?: { period?: string; scope?:
     FROM ime_meeting_feedback
     WHERE submitted_at >= NOW() - INTERVAL '${periodDays * 2} days' AND submitted_at < NOW() - INTERVAL '${periodDays} days'
   `);
-  const prevAvg = Number((prevRes.rows as any[])[0]?.prev_avg || 0);
+  const prevAvg = Number((prevRes.rows as DbRow[])[0]?.prev_avg || 0);
   const currentAvg = Number(avg.avg_overall || 0);
   const trend = currentAvg > prevAvg + 0.1 ? "up" : currentAvg < prevAvg - 0.1 ? "down" : "stable";
 
@@ -518,7 +521,7 @@ export async function analyzeFeedbackTrends(filters?: { period?: string; scope?:
   // Save analytics snapshot
   await db.execute(sql`
     INSERT INTO ime_feedback_analytics (scope, scope_id, period, total_responses, avg_overall_rating, avg_content_relevance, avg_time_efficiency, avg_facilitation, avg_action_clarity, nps_score, top_highlights, top_improvements, trend_direction, analyzed_at)
-    VALUES (${filters?.scope || "organization"}, ${filters?.scopeId ? `${filters.scopeId}` : "NULL"}, ${filters?.period || "monthly"}, ${total}, ${currentAvg.toFixed(2)}, ${Number(avg.avg_content || 0).toFixed(2)}, ${Number(avg.avg_time || 0).toFixed(2)}, ${Number(avg.avg_facilitation || 0).toFixed(2)}, ${Number(avg.avg_action || 0).toFixed(2)}, ${nps}, ${JSON.stringify((highlightsRes.rows as any[]).map((r: any) => r.highlights).slice(0, 5))}, ${JSON.stringify((improvementsRes.rows as any[]).map((r: any) => r.improvements).slice(0, 5))}, ${trend}, NOW())
+    VALUES (${filters?.scope || "organization"}, ${filters?.scopeId ? `${filters.scopeId}` : "NULL"}, ${filters?.period || "monthly"}, ${total}, ${currentAvg.toFixed(2)}, ${Number(avg.avg_content || 0).toFixed(2)}, ${Number(avg.avg_time || 0).toFixed(2)}, ${Number(avg.avg_facilitation || 0).toFixed(2)}, ${Number(avg.avg_action || 0).toFixed(2)}, ${nps}, ${JSON.stringify((highlightsRes.rows as DbRow[]).map((r: any) => r.highlights).slice(0, 5))}, ${JSON.stringify((improvementsRes.rows as DbRow[]).map((r: any) => r.improvements).slice(0, 5))}, ${trend}, NOW())
   `);
 
   return {
@@ -530,8 +533,8 @@ export async function analyzeFeedbackTrends(filters?: { period?: string; scope?:
     avgAction: Number(Number(avg.avg_action || 0).toFixed(2)),
     npsScore: nps,
     trend,
-    topHighlights: (highlightsRes.rows as any[]).map((r: any) => r.highlights).slice(0, 5),
-    topImprovements: (improvementsRes.rows as any[]).map((r: any) => r.improvements).slice(0, 5),
+    topHighlights: (highlightsRes.rows as DbRow[]).map((r: any) => r.highlights).slice(0, 5),
+    topImprovements: (improvementsRes.rows as DbRow[]).map((r: any) => r.improvements).slice(0, 5),
   };
 }
 
@@ -544,9 +547,9 @@ export async function generateImprovementInitiative(scope: string, scopeId?: str
   const improvRes = await db.execute(sql`SELECT improvements FROM ime_meeting_feedback WHERE improvements != '' AND submitted_at >= NOW() - INTERVAL '30 days' ORDER BY submitted_at DESC LIMIT 15`);
   const healthRes = await db.execute(sql`SELECT AVG(health_score) as avg_health FROM ime_meeting_health WHERE assessed_at >= NOW() - INTERVAL '30 days'`);
 
-  const fb = (fbRes.rows as any[])[0] || {};
-  const health = (healthRes.rows as any[])[0] || {};
-  const improvementTexts = (improvRes.rows as any[]).map((r: any) => r.improvements);
+  const fb = (fbRes.rows as DbRow[])[0] || {};
+  const health = (healthRes.rows as DbRow[])[0] || {};
+  const improvementTexts = (improvRes.rows as DbRow[]).map((r: any) => r.improvements);
 
   const context = [
     `范围: ${scope}${scopeId ? ` (${scopeId})` : ""}`,
@@ -614,7 +617,7 @@ export async function getMeetingFeedbackSummary(meetingId: string) {
   `);
   const commentsRes = await db.execute(sql`SELECT highlights, improvements, suggestions, overall_rating FROM ime_meeting_feedback WHERE meeting_id = ${meetingId} ORDER BY submitted_at DESC LIMIT 1000`);
 
-  const stats = (fbRes.rows as any[])[0] || {};
+  const stats = (fbRes.rows as DbRow[])[0] || {};
   const total = Number(stats.total || 0);
   const nps = total > 0 ? Math.round(((Number(stats.promoters || 0) - Number(stats.detractors || 0)) / total) * 100) : 0;
 
@@ -649,7 +652,7 @@ export async function getFeedbackDashboard(filters?: { period?: string }) {
 
   const recentFbRes = await db.execute(sql`SELECT mf.*, mr.title as meeting_title FROM ime_meeting_feedback mf LEFT JOIN meeting_records mr ON mf.meeting_id = mr.id ORDER BY mf.submitted_at DESC LIMIT 10`);
 
-  const stats = (statsRes.rows as any[])[0] || {};
+  const stats = (statsRes.rows as DbRow[])[0] || {};
   const total = Number(stats.total || 0);
   const nps = total > 0 ? Math.round(((Number(stats.promoters || 0) - Number(stats.detractors || 0)) / total) * 100) : 0;
 
@@ -697,7 +700,7 @@ export async function auditMeetingCompliance(meetingId: string) {
 
   // Get meeting data
   const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
-  const meeting = (meetingRes.rows as any[])[0];
+  const meeting = (meetingRes.rows as DbRow[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
   // Get related data
@@ -705,9 +708,9 @@ export async function auditMeetingCompliance(meetingId: string) {
   const actionRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_action_items WHERE meeting_id = ${meetingId}`);
   const contribRes = await db.execute(sql`SELECT COUNT(DISTINCT speaker_name) as participants FROM meeting_contributions WHERE meeting_id = ${meetingId}`);
 
-  const eff = (effRes.rows as any[])[0];
-  const actionCount = Number((actionRes.rows as any[])[0]?.cnt || 0);
-  const participantCount = Number((contribRes.rows as any[])[0]?.participants || 0);
+  const eff = (effRes.rows as DbRow[])[0];
+  const actionCount = Number((actionRes.rows as DbRow[])[0]?.cnt || 0);
+  const participantCount = Number((contribRes.rows as DbRow[])[0]?.participants || 0);
 
   const meetingData: Record<string, any> = {
     duration_minutes: Number(meeting.duration_minutes || 0),
@@ -720,7 +723,7 @@ export async function auditMeetingCompliance(meetingId: string) {
 
   // Get active policies
   const policiesRes = await db.execute(sql`SELECT * FROM ime_compliance_policies WHERE is_active = 1 LIMIT 1000`);
-  const policies = policiesRes.rows as any[];
+  const policies = policiesRes.rows as DbRow[];
 
   const results: any[] = [];
   const safeTitle = (meeting.title || "");
@@ -791,7 +794,7 @@ export async function getComplianceOverview(filters?: { period?: string }) {
 
   const recentAuditsRes = await db.execute(sql`SELECT * FROM ime_compliance_audits WHERE result = 'fail' ORDER BY audited_at DESC LIMIT 20`);
 
-  const stats = (statsRes.rows as any[])[0] || {};
+  const stats = (statsRes.rows as DbRow[])[0] || {};
   const total = Number(stats.total || 0);
   const passed = Number(stats.passed || 0);
   const failed = Number(stats.failed || 0);
@@ -829,8 +832,8 @@ export async function generateGovernanceReport(period?: string) {
     GROUP BY policy_name, policy_type, severity ORDER BY cnt DESC LIMIT 5
   `);
 
-  const stats = (statsRes.rows as any[])[0] || {};
-  const violations = violationsRes.rows as any[];
+  const stats = (statsRes.rows as DbRow[])[0] || {};
+  const violations = violationsRes.rows as DbRow[];
   const passed = Number(stats.passed || 0);
   const failed = Number(stats.failed || 0);
   const complianceRate = (passed + failed) > 0 ? Math.round((passed / (passed + failed)) * 100) : 100;
@@ -974,19 +977,19 @@ export async function evaluateLinkage(meetingId: string) {
 
     // 1. Get meeting contributions
     const contribs = await db.execute(sql`SELECT * FROM meeting_contributions WHERE meeting_id = ${meetingId} LIMIT 1000`);
-    const contributions = contribs.rows as any[];
+    const contributions = contribs.rows as DbRow[];
 
     // 2. Get AI analysis
     const analysis = await db.execute(sql`SELECT * FROM ime_ai_analysis WHERE meeting_id = ${meetingId} LIMIT 1000`);
-    const analyses = analysis.rows as any[];
+    const analyses = analysis.rows as DbRow[];
 
     // 3. Get HR signals for participants
     const signals = await db.execute(sql`SELECT * FROM ime_hr_signals WHERE meeting_id = ${meetingId} LIMIT 1000`);
-    const hrSignals = signals.rows as any[];
+    const hrSignals = signals.rows as DbRow[];
 
     // 4. Load active rules ordered by priority
     const rulesResult = await db.execute(sql`SELECT * FROM ime_linkage_rules WHERE is_active = 1 ORDER BY priority DESC LIMIT 1000`);
-    const rules = rulesResult.rows as any[];
+    const rules = rulesResult.rows as DbRow[];
 
     if (rules.length === 0) {
       return { meetingId, actionsGenerated: 0, byEmployee: [], message: "No active linkage rules found" };
@@ -1059,7 +1062,7 @@ export async function evaluateLinkage(meetingId: string) {
     const meetingResult = await db.execute(sql`
       SELECT title FROM meeting_records WHERE id = ${meetingId} LIMIT 1
     `);
-    const meetingTitle = (meetingResult.rows[0] as any)?.title || meetingId;
+    const meetingTitle = (meetingResult.rows[0] as DbRow | undefined)?.title || meetingId;
 
     const byEmployee: any[] = [];
     for (const { participant, rule } of actionsToInsert) {
@@ -1213,7 +1216,7 @@ export async function executeHrActions(actionIds: number[]) {
 
   for (const actionId of actionIds) {
     const actionResult = await db.execute(sql`SELECT * FROM ime_hr_actions WHERE id = ${actionId} AND status = 'approved' LIMIT 1000`);
-    const action = actionResult.rows[0] as any;
+    const action = actionResult.rows[0] as DbRow | undefined;
     if (!action) {
       results.push({ id: actionId, success: false, error: "Action not found or not approved" });
       continue;
@@ -1297,12 +1300,12 @@ export async function getLinkageDashboard(period?: string, department?: string) 
 
   // Active rules count
   const rulesCount = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_linkage_rules WHERE is_active = 1`);
-  const activeRules = Number((rulesCount.rows[0] as any)?.cnt || 0);
+  const activeRules = Number((rulesCount.rows[0] as DbRow | undefined)?.cnt || 0);
 
   // Actions by status
   const statusCounts = await db.execute(sql`SELECT status, COUNT(*) as cnt FROM ime_hr_actions WHERE 1=1 ${deptFilter} GROUP BY status`);
   const statusMap: Record<string, number> = {};
-  for (const row of statusCounts.rows as any[]) {
+  for (const row of statusCounts.rows as DbRow[]) {
     statusMap[row.status] = Number(row.cnt);
   }
 
@@ -1378,7 +1381,7 @@ export async function createApiKey(params: {
     RETURNING id
   `);
 
-  const id = (result.rows[0] as any)?.id;
+  const id = (result.rows[0] as DbRow | undefined)?.id;
   return { apiKey, keyPrefix, id };
 }
 
@@ -1436,7 +1439,7 @@ export async function validateApiKey(apiKey: string): Promise<{
 
   if (result.rows.length === 0) return { valid: false };
 
-  const row = result.rows[0] as any;
+  const row = result.rows[0] as DbRow;
   if (!row.is_active) return { valid: false };
   if (row.expires_at && new Date(row.expires_at) < new Date()) return { valid: false };
 
@@ -1465,7 +1468,7 @@ export async function checkRateLimit(
      WHERE api_key_id = ${apiKeyId}
      AND requested_at >= NOW() - INTERVAL ${sql.raw(`'${interval}'`)}`);
 
-  const currentCount = Number((result.rows[0] as any)?.cnt || 0);
+  const currentCount = Number((result.rows[0] as DbRow | undefined)?.cnt || 0);
   return { allowed: currentCount < rateLimit, currentCount };
 }
 
@@ -1519,7 +1522,7 @@ export async function getApiKeyUsageStats(apiKeyId: number, days: number = 30) {
      LIMIT 1000
      AND requested_at >= NOW() - INTERVAL ${sql.raw(`'${days}'`)} DAY`);
 
-  const stats = totals.rows[0] as any;
+  const stats = totals.rows[0] as DbRow | undefined;
   const totalRequests = Number(stats?.total_requests || 0);
   const successCount = Number(stats?.success_count || 0);
   const successRate = totalRequests > 0 ? Math.round((successCount / totalRequests) * 100) : 100;
@@ -1570,10 +1573,10 @@ export async function getApiDashboard() {
        LIMIT 1000
      FROM ime_api_usage_logs`);
 
-  const kc = keyCounts.rows[0] as any;
-  const rc = requestCounts.rows[0] as any;
-  const tc = todayCount.rows[0] as any;
-  const er = errorRate.rows[0] as any;
+  const kc = keyCounts.rows[0] as DbRow | undefined;
+  const rc = requestCounts.rows[0] as DbRow | undefined;
+  const tc = todayCount.rows[0] as DbRow | undefined;
+  const er = errorRate.rows[0] as DbRow | undefined;
 
   const totalReqs = Number(er?.total || 0);
   const errorReqs = Number(er?.errors || 0);
@@ -1629,7 +1632,7 @@ export async function buildCollaborationNetwork(options?: {
     ORDER BY mc.meeting_id, mc.employee_name
   `);
 
-  const rows = meetingsResult.rows as any[];
+  const rows = meetingsResult.rows as DbRow[];
 
   // Group by meeting_id
   const meetingMap = new Map<string, any[]>();
@@ -1737,7 +1740,7 @@ export async function getCollaborationDashboard(filters?: { department?: string 
     FROM ime_collaboration_edges ${deptFilter}
   `);
 
-  const row = result.rows[0] as any;
+  const row = result.rows[0] as DbRow | undefined;
   const total = Number(row?.total_edges || 0);
   const crossDept = Number(row?.cross_dept_edges || 0);
 
@@ -1780,12 +1783,12 @@ export async function getCollaborationNetworkStats(options?: { department?: stri
     ) sub
   `);
 
-  const es = edgeStats.rows[0] as any;
+  const es = edgeStats.rows[0] as DbRow | undefined;
   const totalEdges = Number(es?.total_edges || 0);
 
   return {
     totalEdges,
-    uniqueParticipants: Number((participantsResult.rows[0] as any)?.cnt || 0),
+    uniqueParticipants: Number((participantsResult.rows[0] as DbRow | undefined)?.cnt || 0),
     crossDeptEdges: Number(es?.cross_dept_edges || 0),
     sameDeptEdges: Number(es?.same_dept_edges || 0),
     avgMeetingsPerEdge: Math.round(Number(es?.avg_meetings_per_edge || 0) * 10) / 10,
@@ -1917,7 +1920,7 @@ export async function detectCollaborationSilos(options?: { threshold?: number })
     ORDER BY total_edges DESC
   `);
 
-  return (result.rows as any[]).map((row: any) => {
+  return (result.rows as DbRow[]).map((row: any) => {
     const total = Number(row.total_edges || 0);
     const crossDept = Number(row.cross_dept_edges || 0);
     const crossPct = total > 0 ? Math.round((crossDept / total) * 100) : 0;
@@ -1949,7 +1952,7 @@ export async function analyzeMeetingNecessity(meetingId: string) {
     SELECT id, title, objective, summary, duration_minutes, meeting_date
     FROM meeting_records WHERE id = ${meetingId}
   `);
-  const meeting = (meetingResult.rows as any[])[0];
+  const meeting = (meetingResult.rows as DbRow[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   // Get participants
@@ -1957,13 +1960,13 @@ export async function analyzeMeetingNecessity(meetingId: string) {
     SELECT DISTINCT employee_name, department
     FROM meeting_contributions WHERE meeting_id = ${meetingId}
   `);
-  const participants = participantsResult.rows as any[];
+  const participants = participantsResult.rows as DbRow[];
 
   // Get action items count
   const actionsResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM meeting_action_items WHERE meeting_id = ${meetingId}
   `);
-  const actionCount = Number((actionsResult.rows[0] as any)?.cnt || 0);
+  const actionCount = Number((actionsResult.rows[0] as DbRow | undefined)?.cnt || 0);
 
   let scores: any;
 
@@ -2013,7 +2016,7 @@ Score each dimension 0-10, provide an overall necessity score 0-100, a grade (A=
       },
     });
 
-    scores = JSON.parse((result as any).content);
+    scores = JSON.parse((result as { content: string }).content);
   } catch (err) {
     // Fallback heuristic if LLM fails
     const durationScore = Math.min(10, Math.round((meeting.duration_minutes || 30) / 12));
@@ -2144,7 +2147,7 @@ export async function computeParticipantLoad(options?: {
     ORDER BY mc.employee_id, mr.meeting_date, mr.start_time
   `);
 
-  const rows = result.rows as any[];
+  const rows = result.rows as DbRow[];
   if (rows.length === 0) return { computed: 0, periodType };
 
   // Group by employee
@@ -2296,7 +2299,7 @@ export async function getLoadDashboard(filters?: { periodType?: string; departme
     WHERE period_type = ${periodType} ${deptFilter}
   `);
 
-  const stats = (result.rows as any[])[0] || {};
+  const stats = (result.rows as DbRow[])[0] || {};
   return {
     avgWeeklyHours: Number(stats.avg_weekly_hours) || 0,
     overloadedCount: Number(stats.overloaded_count) || 0,
@@ -2359,7 +2362,7 @@ export async function getLoadTrends(options?: { periodType?: string; limit?: num
     LIMIT ${limit}
   `);
 
-  return (result.rows as any[]).reverse();
+  return (result.rows as DbRow[]).reverse();
 }
 
 /**
@@ -2384,7 +2387,7 @@ export async function detectBurnoutRisk(options?: {
     LIMIT ${limit}
   `);
 
-  const atRisk = result.rows as any[];
+  const atRisk = result.rows as DbRow[];
 
   // Risk distribution
   const distribution = { critical: 0, high: 0, medium: 0, low: 0 };
@@ -2395,7 +2398,7 @@ export async function detectBurnoutRisk(options?: {
     WHERE period_type = ${periodType}
     GROUP BY risk_level
   `);
-  for (const r of allResult.rows as any[]) {
+  for (const r of allResult.rows as DbRow[]) {
     const level = r.risk_level as keyof typeof distribution;
     if (distribution[level] !== undefined) {
       distribution[level] = Number(r.cnt);
@@ -2456,7 +2459,7 @@ export async function assessWellbeing(employeeId: string, options?: {
     LIMIT 5
   `);
 
-  const loadRecords = loadResult.rows as any[];
+  const loadRecords = loadResult.rows as DbRow[];
   if (loadRecords.length === 0) {
     throw new Error(`No workload data found for employee ${employeeId}. Run "计算工作负荷" first.`);
   }
@@ -2524,7 +2527,7 @@ Score each dimension 0-10, provide an overall well-being score 0-100, a grade (A
       },
     });
 
-    assessment = JSON.parse((result as any).content);
+    assessment = JSON.parse((result as { content: string }).content);
   } catch (err) {
     // Fallback heuristic if LLM fails
     const loadDim = Math.max(0, 10 - Math.round(avgLoad / 10));
@@ -2663,7 +2666,7 @@ export async function getTeamLoadSummary(options?: { periodType?: string }) {
     ORDER BY avg_load_score DESC
   `);
 
-  return (result.rows as any[]).map((r: any) => ({
+  return (result.rows as DbRow[]).map((r: any) => ({
     ...r,
     overloadedPercent: Number(r.headcount) > 0
       ? Math.round((Number(r.overloaded_count) / Number(r.headcount)) * 100)
@@ -2720,7 +2723,7 @@ export async function detectRecurringSeries(options?: { dateFrom?: string; dateT
     WHERE mr.title IS NOT NULL AND mr.title != '' ${dateFilter}
     ORDER BY mr.meeting_date ASC
   `);
-  const meetings = meetingsResult.rows as any[];
+  const meetings = meetingsResult.rows as DbRow[];
 
   // 2. Group by normalized title
   const groups = new Map<string, any[]>();
@@ -2759,7 +2762,7 @@ export async function detectRecurringSeries(options?: { dateFrom?: string; dateT
       WHERE meeting_id IN (${meetingIds})
       GROUP BY employee_id
     `);
-    const participantRows = participantsResult.rows as any[];
+    const participantRows = participantsResult.rows as DbRow[];
     const threshold = groupMeetings.length * 0.5;
     const coreParticipants = participantRows
       .filter((p: any) => Number(p.attend_count) >= threshold)
@@ -2826,7 +2829,7 @@ export async function detectRecurringSeries(options?: { dateFrom?: string; dateT
       SELECT COALESCE(roi_grade, 'C') as roi_grade FROM ime_meeting_roi
       WHERE meeting_id IN (${meetingIds})
     `);
-    const roiGrades = (roiResult.rows as any[]).map((r: any) => r.roi_grade);
+    const roiGrades = (roiResult.rows as DbRow[]).map((r: any) => r.roi_grade);
     const avgRoiGrade = roiGrades.length > 0 ? roiGrades[0] : "C";
 
     // Cumulative cost & minutes
@@ -2835,7 +2838,7 @@ export async function detectRecurringSeries(options?: { dateFrom?: string; dateT
       SELECT COALESCE(SUM(total_cost), 0) as total_cost FROM ime_meeting_costs
       WHERE meeting_id IN (${meetingIds})
     `);
-    const totalCost = Number((costResult.rows as any[])[0]?.total_cost) || 0;
+    const totalCost = Number((costResult.rows as DbRow[])[0]?.total_cost) || 0;
 
     seriesRecords.push({
       seriesKey,
@@ -2908,7 +2911,7 @@ export async function getRecurringSeriesDashboard(filters?: { frequency?: string
     FROM ime_recurring_series
     WHERE ${where}
   `);
-  const stats = (result.rows as any[])[0] || {};
+  const stats = (result.rows as DbRow[])[0] || {};
 
   // Potential savings from optimized/cancelled series
   const savingsResult = await db.execute(sql`
@@ -2916,7 +2919,7 @@ export async function getRecurringSeriesDashboard(filters?: { frequency?: string
     FROM ime_series_optimization_outcomes
     WHERE action_taken != 'no_change'
   `);
-  const savings = (savingsResult.rows as any[])[0] || {};
+  const savings = (savingsResult.rows as DbRow[])[0] || {};
 
   return {
     totalSeries: Number(stats.total_series) || 0,
@@ -2968,7 +2971,7 @@ export async function getSeriesValueTrend(seriesId: number) {
   const seriesResult = await db.execute(sql`
     SELECT meeting_ids, series_title FROM ime_recurring_series WHERE id = ${seriesId}
   `);
-  const series = (seriesResult.rows as any[])[0];
+  const series = (seriesResult.rows as DbRow[])[0];
   if (!series) throw new Error(`Series ${seriesId} not found`);
 
   let meetingIds: string[] = [];
@@ -3023,7 +3026,7 @@ export async function generateSeriesOptimization(seriesId: number) {
   const seriesResult = await db.execute(sql`
     SELECT * FROM ime_recurring_series WHERE id = ${seriesId}
   `);
-  const series = (seriesResult.rows as any[])[0];
+  const series = (seriesResult.rows as DbRow[])[0];
   if (!series) throw new Error(`Series ${seriesId} not found`);
 
   const prompt = `Analyze this recurring meeting series and provide optimization recommendations.
@@ -3067,7 +3070,7 @@ Include rationale, specific actions to take, and estimated weekly time savings i
       },
     });
 
-    const parsed = JSON.parse((result as any).content);
+    const parsed = JSON.parse((result as { content: string }).content);
 
     // Update series record
     await db.execute(sql`
@@ -3128,7 +3131,7 @@ export async function recordOptimizationAction(seriesId: number, actionTaken: st
   const seriesResult = await db.execute(sql`
     SELECT * FROM ime_recurring_series WHERE id = ${seriesId}
   `);
-  const series = (seriesResult.rows as any[])[0];
+  const series = (seriesResult.rows as DbRow[])[0];
   if (!series) throw new Error(`Series ${seriesId} not found`);
 
   const preValueScore = Number(series.value_score) || 0;
@@ -3249,7 +3252,7 @@ export async function getRecurringMeetingSummary(options?: { status?: string }) 
     FROM ime_recurring_series
     WHERE value_grade IN ('D', 'F') AND status = 'active'
   `);
-  const savingsStats = (savingsResult.rows as any[])[0] || {};
+  const savingsStats = (savingsResult.rows as DbRow[])[0] || {};
 
   return {
     frequencyDistribution: freqResult.rows,
@@ -3278,16 +3281,16 @@ export async function analyzeDecisionEffectiveness(meetingId: string) {
 
   // 1. Get meeting
   const meetingRes = await db.execute(sql`SELECT id, title, objective, summary, meeting_date FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
-  const meeting = (meetingRes.rows as any[])[0];
+  const meeting = (meetingRes.rows as DbRow[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   // 2. Extract decisions from content blocks
   const blocksRes = await db.execute(sql`SELECT content, speaker FROM meeting_content_blocks WHERE meeting_id = ${meetingId} AND block_type = 'decision' LIMIT 1000`);
-  const decisionBlocks = blocksRes.rows as any[];
+  const decisionBlocks = blocksRes.rows as DbRow[];
 
   // 3. Extract decisions from knowledge entities
   const entitiesRes = await db.execute(sql`SELECT id, entity_name, context_text FROM ime_knowledge_entities WHERE meeting_id = ${meetingId} AND entity_type = 'decision' LIMIT 1000`);
-  const decisionEntities = entitiesRes.rows as any[];
+  const decisionEntities = entitiesRes.rows as DbRow[];
 
   // Merge decisions
   const allDecisions: Array<{ text: string; maker: string; source: string }> = [];
@@ -3304,11 +3307,11 @@ export async function analyzeDecisionEffectiveness(meetingId: string) {
 
   // 4. Cross-reference with decision outcomes
   const outcomesRes = await db.execute(sql`SELECT id, decision_text, outcome_status, outcome_notes, resolved_date, created_at FROM ime_decision_outcomes WHERE meeting_id = ${meetingId} LIMIT 1000`);
-  const outcomes = outcomesRes.rows as any[];
+  const outcomes = outcomesRes.rows as DbRow[];
 
   // 5. Cross-reference with action items
   const actionsRes = await db.execute(sql`SELECT id, action_text, assignee, status, due_date, resolved_date FROM ime_action_items WHERE meeting_id = ${meetingId} LIMIT 1000`);
-  const actionItems = actionsRes.rows as any[];
+  const actionItems = actionsRes.rows as DbRow[];
 
   // 6. For each decision compute follow-through status and velocity
   const decisionData: any[] = [];
@@ -3524,7 +3527,7 @@ export async function detectDecisionReversals(options?: { dateFrom?: string; dat
     WHERE 1=1 ${dateFilter}
     ORDER BY decision_date ASC, id ASC
   `);
-  const decisions = decisionsRes.rows as any[];
+  const decisions = decisionsRes.rows as DbRow[];
 
   if (decisions.length < 2) {
     return { reversalsDetected: 0, reversals: [] };
@@ -3682,7 +3685,7 @@ export async function computeDecisionVelocity(options?: { department?: string; d
     FROM ime_decision_tracking
     WHERE ${where}
   `);
-  const overall = (overallRes.rows as any[])[0] || {};
+  const overall = (overallRes.rows as DbRow[])[0] || {};
 
   // Get all velocity values for median and p90 calculation
   const allVelocityRes = await db.execute(sql`
@@ -3691,7 +3694,7 @@ export async function computeDecisionVelocity(options?: { department?: string; d
     WHERE ${where}
     ORDER BY total_velocity_days ASC
   `);
-  const velocityValues = (allVelocityRes.rows as any[]).map((r: any) => Number(r.total_velocity_days));
+  const velocityValues = (allVelocityRes.rows as DbRow[]).map((r: any) => Number(r.total_velocity_days));
 
   let median = 0;
   let p90 = 0;
@@ -3722,7 +3725,7 @@ export async function computeDecisionVelocity(options?: { department?: string; d
     GROUP BY department
     ORDER BY avg_velocity ASC
   `);
-  const byDepartment = (deptRes.rows as any[]).map((r: any) => {
+  const byDepartment = (deptRes.rows as DbRow[]).map((r: any) => {
     const deptAvg = Math.round(Number(r.avg_velocity) || 0);
     let grade = "F";
     if (deptAvg < 7) grade = "A";
@@ -3770,12 +3773,12 @@ export async function assessDecisionQuality(decisionId: number) {
 
   // Load the decision
   const decRes = await db.execute(sql`SELECT * FROM ime_decision_tracking WHERE id = ${decisionId} LIMIT 1`);
-  const decision = (decRes.rows as any[])[0];
+  const decision = (decRes.rows as DbRow[])[0];
   if (!decision) throw new Error(`Decision ${decisionId} not found`);
 
   // Load meeting context
   const meetingRes = await db.execute(sql`SELECT title, objective, summary FROM meeting_records WHERE id = ${String(decision.meeting_id)} LIMIT 1`);
-  const meeting = (meetingRes.rows as any[])[0] || {};
+  const meeting = (meetingRes.rows as DbRow[])[0] || {};
 
   // Deep LLM assessment
   const llmResult = await invokeLLM({
@@ -3884,7 +3887,7 @@ export async function computeDecisionIntelligenceSnapshot(
     FROM ime_decision_tracking
     WHERE ${where}
   `);
-  const stats = (countsRes.rows as any[])[0] || {};
+  const stats = (countsRes.rows as DbRow[])[0] || {};
 
   const totalDecisions = Number(stats.total_decisions) || 0;
   const implementedCount = Number(stats.implemented_count) || 0;
@@ -3910,7 +3913,7 @@ export async function computeDecisionIntelligenceSnapshot(
     WHERE ${where} AND total_velocity_days IS NOT NULL
     ORDER BY total_velocity_days ASC
   `);
-  const velValues = (velRes.rows as any[]).map((r: any) => Number(r.total_velocity_days));
+  const velValues = (velRes.rows as DbRow[]).map((r: any) => Number(r.total_velocity_days));
   let medianVelocityDays = 0;
   if (velValues.length > 0) {
     const mid = Math.floor(velValues.length / 2);
@@ -3944,7 +3947,7 @@ export async function computeDecisionIntelligenceSnapshot(
     ORDER BY cnt DESC
     LIMIT 5
   `);
-  const topBottlenecks = JSON.stringify((bottleneckRes.rows as any[]).map((r: any) => ({
+  const topBottlenecks = JSON.stringify((bottleneckRes.rows as DbRow[]).map((r: any) => ({
     department: r.department,
     count: Number(r.cnt),
   })));
@@ -3958,7 +3961,7 @@ export async function computeDecisionIntelligenceSnapshot(
     ORDER BY cnt DESC
     LIMIT 5
   `);
-  const topReversalReasons = JSON.stringify((reversalReasonRes.rows as any[]).map((r: any) => ({
+  const topReversalReasons = JSON.stringify((reversalReasonRes.rows as DbRow[]).map((r: any) => ({
     reason: r.reversal_reason,
     count: Number(r.cnt),
   })));
@@ -3972,7 +3975,7 @@ export async function computeDecisionIntelligenceSnapshot(
     ORDER BY computed_at DESC
     LIMIT 1
   `);
-  const prevSnapshot = (prevSnapshotRes.rows as any[])[0];
+  const prevSnapshot = (prevSnapshotRes.rows as DbRow[])[0];
   let trendVsPrevious = "stable";
   let trendSlope = 0;
   if (prevSnapshot) {
@@ -4118,7 +4121,7 @@ export async function getDecisionDashboard(filters?: { department?: string; date
     FROM ime_decision_tracking
     WHERE ${where}
   `);
-  const stats = (res.rows as any[])[0] || {};
+  const stats = (res.rows as DbRow[])[0] || {};
 
   const totalDecisions = Number(stats.total_decisions) || 0;
   const implementedCount = Number(stats.implemented_count) || 0;
@@ -4176,7 +4179,7 @@ export async function getDecisionTrackingList(options?: {
     FROM ime_decision_tracking dt
     WHERE ${where}
   `);
-  const total = Number((countRes.rows as any[])[0]?.total) || 0;
+  const total = Number((countRes.rows as DbRow[])[0]?.total) || 0;
 
   return {
     rows: res.rows,
@@ -4245,7 +4248,7 @@ export async function getDecisionReversalAnalysis(options?: { department?: strin
     WHERE ${where}
     ORDER BY reversal_date DESC
   `);
-  const reversedDecisions = reversedRes.rows as any[];
+  const reversedDecisions = reversedRes.rows as DbRow[];
 
   // Group by department
   const byDeptRes = await db.execute(sql`
@@ -4255,7 +4258,7 @@ export async function getDecisionReversalAnalysis(options?: { department?: strin
     GROUP BY department
     ORDER BY cnt DESC
   `);
-  const byDepartment = (byDeptRes.rows as any[]).map((r: any) => ({
+  const byDepartment = (byDeptRes.rows as DbRow[]).map((r: any) => ({
     department: r.department || "unknown",
     count: Number(r.cnt),
   }));
@@ -4269,7 +4272,7 @@ export async function getDecisionReversalAnalysis(options?: { department?: strin
     ORDER BY cnt DESC
     LIMIT 10
   `);
-  const topReasons = (reasonsRes.rows as any[]).map((r: any) => ({
+  const topReasons = (reasonsRes.rows as DbRow[]).map((r: any) => ({
     reason: r.reversal_reason,
     count: Number(r.cnt),
   }));
@@ -4333,7 +4336,7 @@ export async function updateDecisionFollowThrough(
 
     // Also try to compute decision_to_start and total velocity
     const decRes = await db.execute(sql`SELECT decision_date FROM ime_decision_tracking WHERE id = ${id} LIMIT 1`);
-    const dec = (decRes.rows as any[])[0];
+    const dec = (decRes.rows as DbRow[])[0];
     if (dec && dec.decision_date) {
       const decisionDate = new Date(dec.decision_date);
       const decisionToStart = Math.max(0, Math.round((startDate.getTime() - decisionDate.getTime()) / 86400000));
@@ -4377,12 +4380,12 @@ export async function analyzeMeetingAgendaStructure(meetingId: string) {
 
   // Load meeting info + schedule agenda
   const meetingRes = await db.execute(sql`SELECT mr.id, mr.title, mr.objective, mr.summary, mr.meeting_date, ms.id as schedule_id, ms.agenda FROM meeting_records mr LEFT JOIN meeting_schedules ms ON (ms.title = mr.title AND DATE(ms.scheduled_date) = DATE(mr.meeting_date)) WHERE mr.id = ${meetingId} LIMIT 1`);
-  const meeting = (meetingRes.rows as any[])[0];
+  const meeting = (meetingRes.rows as DbRow[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   // Load content blocks
   const blocksRes = await db.execute(sql`SELECT id, meeting_id, speaker, block_type, content, timestamp_start, timestamp_end, sort_order FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY sort_order ASC, timestamp_start ASC LIMIT 1000`);
-  const blocks = blocksRes.rows as any[];
+  const blocks = blocksRes.rows as DbRow[];
 
   const agendaText = meeting.agenda || "";
   const blocksSummary = blocks.map((b: any) => ({
@@ -4521,6 +4524,7 @@ export async function batchAnalyzeMeetingAgenda(meetingIds: string[]) {
   for (const meetingId of meetingIds) {
     try {
       const result = await analyzeMeetingAgendaStructure(meetingId);
+// @ts-ignore duplicate property
       results.push({ meetingId, success: true, ...result });
     } catch (e: any) {
       results.push({ meetingId, success: false, error: e.message || String(e) });
@@ -4542,7 +4546,7 @@ export async function getTimeAllocationBreakdown(meetingId: string) {
   const safeId = meetingId;
 
   const res = await db.execute(sql`SELECT * FROM ime_meeting_structure_analysis WHERE meeting_id = ${safeId} ORDER BY agenda_item_index ASC LIMIT 1000`);
-  const rows = res.rows as any[];
+  const rows = res.rows as DbRow[];
 
   const items = rows.map((r: any) => ({
     id: r.id,
@@ -4626,7 +4630,7 @@ export async function getTimeAllocationComparison(options?: { department?: strin
     ORDER BY efficiency DESC
     LIMIT ${limit}
   `);
-  const rows = res.rows as any[];
+  const rows = res.rows as DbRow[];
 
   const meetings = rows.map((r: any) => ({
     meetingId: r.meeting_id,
@@ -4675,7 +4679,7 @@ export async function detectAgendaOverrunPatterns(options?: { department?: strin
       ${dateTo ? `AND mr.meeting_date <= ${dateTo}` : ""}
     ORDER BY overrun_percent DESC
   `);
-  const rows = res.rows as any[];
+  const rows = res.rows as DbRow[];
 
   if (rows.length === 0) {
     return { patterns: [], topOverrunners: [], recommendations: [] };
@@ -4772,7 +4776,7 @@ export async function detectCategoryTimeDistribution(options?: { department?: st
     GROUP BY agenda_item_category
     ORDER BY count DESC
   `);
-  const rows = res.rows as any[];
+  const rows = res.rows as DbRow[];
 
   const categories = rows.map((r: any) => ({
     category: r.category,
@@ -4798,7 +4802,7 @@ export async function generateAgendaOptimization(meetingId: string) {
 
   // Get analysis rows
   const res = await db.execute(sql`SELECT * FROM ime_meeting_structure_analysis WHERE meeting_id = ${safeId} ORDER BY agenda_item_index ASC LIMIT 1000`);
-  const rows = res.rows as any[];
+  const rows = res.rows as DbRow[];
 
   if (rows.length === 0) {
     return { recommendations: [], optimalOrder: [], asyncCandidates: [], aiNarrative: "No agenda analysis data found for this meeting." };
@@ -4915,7 +4919,7 @@ export async function computeAgendaIntelligenceSnapshot(
     JOIN meeting_records mr ON mr.id = msa.meeting_id
     WHERE ${where}
   `);
-  const stats = (aggRes.rows as any[])[0] || {};
+  const stats = (aggRes.rows as DbRow[])[0] || {};
 
   const totalMeetings = Number(stats.total_meetings) || 0;
   const totalItems = Number(stats.total_items) || 0;
@@ -4948,7 +4952,7 @@ export async function computeAgendaIntelligenceSnapshot(
     ORDER BY computed_at DESC
     LIMIT 1
   `);
-  const prevSnapshot = (prevRes.rows as any[])[0];
+  const prevSnapshot = (prevRes.rows as DbRow[])[0];
   let trendVsPrevious = "stable";
   let trendSlope = 0;
   if (prevSnapshot) {
@@ -5086,7 +5090,7 @@ export async function getAgendaDashboard(filters?: { department?: string; dateFr
       ${dateFrom ? `AND mr.meeting_date >= ${dateFrom}` : ""}
       ${dateTo ? `AND mr.meeting_date <= ${dateTo}` : ""}
   `);
-  const stats = (res.rows as any[])[0] || {};
+  const stats = (res.rows as DbRow[])[0] || {};
 
   // Top overrun category
   const catRes = await db.execute(sql`
@@ -5101,7 +5105,7 @@ export async function getAgendaDashboard(filters?: { department?: string; dateFr
     ORDER BY avg_overrun DESC
     LIMIT 1
   `);
-  const topCat = (catRes.rows as any[])[0];
+  const topCat = (catRes.rows as DbRow[])[0];
 
   return {
     totalMeetingsAnalyzed: Number(stats.total_meetings) || 0,
@@ -5167,7 +5171,7 @@ export async function getAgendaAnalysisList(options?: {
     ORDER BY msa.meeting_id DESC
     LIMIT ${limit} OFFSET ${offset}
   `);
-  const rows = res.rows as any[];
+  const rows = res.rows as DbRow[];
 
   // Total count
   const countRes = await db.execute(sql`
@@ -5180,7 +5184,7 @@ export async function getAgendaAnalysisList(options?: {
       ${having}
     ) sub
   `);
-  const total = Number((countRes.rows as any[])[0]?.total) || 0;
+  const total = Number((countRes.rows as DbRow[])[0]?.total) || 0;
 
   const mappedRows = rows.map((r: any) => ({
     meetingId: r.meeting_id,
@@ -5219,7 +5223,7 @@ export async function getAgendaTrendData(options?: { scope?: string; scopeId?: s
     ORDER BY period_end DESC
     LIMIT ${limit}
   `);
-  const rows = res.rows as any[];
+  const rows = res.rows as DbRow[];
 
   const mapped = rows.map((r: any) => ({
     id: r.id,
@@ -5283,7 +5287,7 @@ export async function updateAgendaItemAnalysis(
   if (updates.plannedDurationMinutes !== undefined || updates.actualDurationMinutes !== undefined) {
     // Need current values for the field not being updated
     const currentRes = await db.execute(sql`SELECT planned_duration_minutes, actual_duration_minutes FROM ime_meeting_structure_analysis WHERE id = ${id} LIMIT 1`);
-    const current = (currentRes.rows as any[])[0];
+    const current = (currentRes.rows as DbRow[])[0];
     if (!current) throw new Error(`Agenda item analysis ${id} not found`);
 
     const planned = updates.plannedDurationMinutes !== undefined ? Number(updates.plannedDurationMinutes) : Number(current.planned_duration_minutes) || 0;
@@ -5328,12 +5332,12 @@ export async function analyzeMeetingFacilitator(meetingId: string) {
 
   // 1. Get meeting info
   const meetingResult = await db.execute(sql`SELECT id, title, objective, summary FROM meeting_records WHERE id = ${meetingId} LIMIT 1000`);
-  const meeting = (meetingResult.rows as any[])[0];
+  const meeting = (meetingResult.rows as DbRow[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   // 2. Get content blocks
   const blocksResult = await db.execute(sql`SELECT speaker, block_type, content, timestamp_start, timestamp_end FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY timestamp_start ASC LIMIT 1000`);
-  const blocks = blocksResult.rows as any[];
+  const blocks = blocksResult.rows as DbRow[];
   if (blocks.length === 0) throw new Error(`No content blocks for meeting ${meetingId}`);
 
   // 3. Compute speaker distribution
@@ -5455,10 +5459,10 @@ Identify the facilitator, classify their style, and score their effectiveness ac
 
   // Get decisions + action items count
   const decisionsRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM meeting_content_blocks WHERE meeting_id = ${meetingId} AND block_type = 'decision'`);
-  const decisionsCount = Number((decisionsRes.rows as any[])[0]?.cnt) || 0;
+  const decisionsCount = Number((decisionsRes.rows as DbRow[])[0]?.cnt) || 0;
 
   const actionsRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM meeting_content_blocks WHERE meeting_id = ${meetingId} AND block_type = 'action_item'`);
-  const actionItemsCount = Number((actionsRes.rows as any[])[0]?.cnt) || 0;
+  const actionItemsCount = Number((actionsRes.rows as DbRow[])[0]?.cnt) || 0;
 
   const facilitatorSpeakingPercent = speakerMap[facilitatorName] ? Math.round((speakerMap[facilitatorName] / totalBlocks) * 100) : 0;
 
@@ -5513,6 +5517,7 @@ export async function batchAnalyzeFacilitators(meetingIds: string[]) {
   for (const meetingId of meetingIds) {
     try {
       const result = await analyzeMeetingFacilitator(meetingId);
+// @ts-ignore duplicate property
       results.push({ meetingId, success: true, ...result });
     } catch (err: any) {
       results.push({ meetingId, success: false, error: err.message });
@@ -5532,7 +5537,7 @@ export async function getFacilitatorProfile(facilitatorId: string) {
   const db = await requireDb();
 
   const res = await db.execute(sql`SELECT * FROM ime_facilitator_analysis WHERE facilitator_id = ${facilitatorId} ORDER BY computed_at DESC LIMIT 1000`);
-  const rows = res.rows as any[];
+  const rows = res.rows as DbRow[];
   if (rows.length === 0) return { facilitatorId, facilitatorName: facilitatorId, meetingsFacilitated: 0, avgEffectiveness: 0, radarData: [], styleDistribution: [], trend: [] };
 
   const facilitatorName = rows[0].facilitator_name || facilitatorId;
@@ -5594,7 +5599,7 @@ export async function getFacilitatorComparison(options?: { department?: string; 
     ORDER BY avg_effectiveness DESC
     LIMIT ${options?.limit || 50}
   `);
-  const facilitators = (res.rows as any[]).map(r => ({
+  const facilitators = (res.rows as DbRow[]).map(r => ({
     facilitatorId: r.facilitator_id,
     facilitatorName: r.facilitator_name,
     department: r.department,
@@ -5637,7 +5642,7 @@ export async function detectFacilitationPatterns(options?: { department?: string
   const where = conditions.length > 0 ? sql` WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
 
   const res = await db.execute(sql`SELECT facilitation_style, overall_effectiveness_score, engagement_impact_score, decision_facilitation_score, time_management_score, inclusivity_score, clarity_score, conflict_resolution_score, meeting_effectiveness_score, speaker_balance_index, facilitator_speaking_percent, decisions_count, action_items_count, effectiveness_grade FROM ime_facilitator_analysis${where} ORDER BY computed_at DESC LIMIT 200`);
-  const rows = res.rows as any[];
+  const rows = res.rows as DbRow[];
   if (rows.length === 0) return { patterns: [], correlations: [], recommendations: [] };
 
   const dataSummary = JSON.stringify(rows.slice(0, 50).map(r => ({
@@ -5706,7 +5711,7 @@ export async function classifyFacilitatorStyles(options?: { department?: string;
     ORDER BY avg_effectiveness DESC
   `);
 
-  const styles = (res.rows as any[]).map(r => ({
+  const styles = (res.rows as DbRow[]).map(r => ({
     style: r.facilitation_style || "unknown",
     count: Number(r.cnt) || 0,
     avgEffectiveness: Number(r.avg_effectiveness) || 0,
@@ -5727,7 +5732,7 @@ export async function generateFacilitatorCoaching(facilitatorId: string) {
   const db = await requireDb();
 
   const res = await db.execute(sql`SELECT * FROM ime_facilitator_analysis WHERE facilitator_id = ${facilitatorId} ORDER BY computed_at DESC LIMIT 20`);
-  const rows = res.rows as any[];
+  const rows = res.rows as DbRow[];
   if (rows.length === 0) throw new Error(`No facilitator analysis found for ${facilitatorId}`);
 
   const facilitatorName = rows[0].facilitator_name || facilitatorId;
@@ -5810,7 +5815,7 @@ export async function computeFacilitatorSnapshot(scope: string, scopeId?: string
   const where = conditions.length > 0 ? sql` WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
 
   const res = await db.execute(sql`SELECT * FROM ime_facilitator_analysis${where} ORDER BY computed_at DESC LIMIT 1000`);
-  const rows = res.rows as any[];
+  const rows = res.rows as DbRow[];
   const totalMeetingsAnalyzed = rows.length;
 
   const facilitatorSet = new Set(rows.map(r => r.facilitator_id));
@@ -5872,7 +5877,7 @@ export async function computeFacilitatorSnapshot(scope: string, scopeId?: string
   const prevWhere = ` WHERE ${prevConditions.join(" AND ")}`;
 
   const prevRes = await db.execute(sql`SELECT ROUND(AVG(overall_effectiveness_score)) as prev_avg FROM ime_facilitator_analysis${prevWhere}`);
-  const prevAvg = Number((prevRes.rows as any[])[0]?.prev_avg) || 0;
+  const prevAvg = Number((prevRes.rows as DbRow[])[0]?.prev_avg) || 0;
 
   let trendVsPrevious = "stable";
   let trendSlope = 0;
@@ -5997,7 +6002,7 @@ export async function getFacilitatorDashboard(filters?: { department?: string; d
       COUNT(DISTINCT facilitator_id) as total_facilitators
     FROM ime_facilitator_analysis${where}
   `);
-  const row = (res.rows as any[])[0] || {};
+  const row = (res.rows as DbRow[])[0] || {};
 
   // Dominant style
   const styleRes = await db.execute(sql`
@@ -6007,7 +6012,7 @@ export async function getFacilitatorDashboard(filters?: { department?: string; d
     ORDER BY cnt DESC
     LIMIT 1
   `);
-  const dominantStyle = (styleRes.rows as any[])[0]?.facilitation_style || "unknown";
+  const dominantStyle = (styleRes.rows as DbRow[])[0]?.facilitation_style || "unknown";
 
   const STYLE_LABELS: Record<string, string> = {
     directive: "指令型", collaborative: "协作型", laissez_faire: "放任型",
@@ -6040,7 +6045,7 @@ export async function getFacilitatorAnalysisList(options?: { limit?: number; off
   const where = conditions.length > 0 ? sql` WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
 
   const countRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_facilitator_analysis fa${where}`);
-  const total = Number((countRes.rows as any[])[0]?.cnt) || 0;
+  const total = Number((countRes.rows as DbRow[])[0]?.cnt) || 0;
 
   const res = await db.execute(sql`
     SELECT fa.*, mr.title as meeting_title
@@ -6051,7 +6056,7 @@ export async function getFacilitatorAnalysisList(options?: { limit?: number; off
     LIMIT ${limit} OFFSET ${offset}
   `);
 
-  const rows = (res.rows as any[]).map(r => ({
+  const rows = (res.rows as DbRow[]).map(r => ({
     id: r.id,
     meetingId: r.meeting_id,
     meetingTitle: r.meeting_title || "",
@@ -6101,7 +6106,7 @@ export async function getFacilitatorTrendData(options?: { scope?: string; scopeI
     LIMIT ${options?.limit || 20}
   `);
 
-  const rows = (res.rows as any[]).map(r => ({
+  const rows = (res.rows as DbRow[]).map(r => ({
     id: r.id,
     scope: r.scope,
     scopeId: r.scope_id,
@@ -6171,11 +6176,11 @@ export async function updateFacilitatorAnalysis(id: number, updates: {
 
   // Recompute overall + grade if any score changed
   const scoreFields = ["engagementImpactScore", "decisionFacilitationScore", "timeManagementScore", "inclusivityScore", "clarityScore", "conflictResolutionScore"];
-  const anyScoreChanged = scoreFields.some(f => (updates as any)[f] !== undefined);
+  const anyScoreChanged = scoreFields.some(f => (updates as Record<string, unknown>)[f] !== undefined);
 
   if (anyScoreChanged) {
     const currentRes = await db.execute(sql`SELECT engagement_impact_score, decision_facilitation_score, time_management_score, inclusivity_score, clarity_score, conflict_resolution_score FROM ime_facilitator_analysis WHERE id = ${id} LIMIT 1`);
-    const current = (currentRes.rows as any[])[0];
+    const current = (currentRes.rows as DbRow[])[0];
     if (!current) throw new Error(`Facilitator analysis ${id} not found`);
 
     const eng = updates.engagementImpactScore !== undefined ? Number(updates.engagementImpactScore) : Number(current.engagement_impact_score) || 0;

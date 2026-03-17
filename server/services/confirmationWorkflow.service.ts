@@ -374,7 +374,7 @@ export async function generateConfirmationSummary(
       ]
     });
 
-    return response.choices[0].message.content;
+    return response.choices[0].message.content as any;
   } catch (error) {
     log.error({ err: error }, "Error generating confirmation summary");
     return 'Unable to generate summary at this time.';
@@ -494,7 +494,7 @@ export async function generateAdjustmentSuggestions(
       ]
     });
 
-    return response.choices[0].message.content;
+    return response.choices[0].message.content as any;
   } catch (error) {
     log.error({ err: error }, "Error generating adjustment suggestions");
     return 'Unable to generate suggestions at this time.';

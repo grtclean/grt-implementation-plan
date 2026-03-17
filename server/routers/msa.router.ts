@@ -121,8 +121,8 @@ export const msaRouter = router({
     const db = await requireDb();
     const [m] = await db.insert(msaMeasurements).values({
       studyId: input.studyId,
-      operatorId: ctx.user.id,
-      operatorName: ctx.user.name,
+      operatorId: ctx.user!.id,
+      operatorName: ctx.user!.name,
       partNumber: input.partNumber,
       trialNumber: input.trialNumber,
       measuredValue: input.measuredValue,

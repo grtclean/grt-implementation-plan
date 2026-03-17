@@ -464,7 +464,7 @@ const interactionsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      return createInteraction({ ...input, createdBy: ctx.user.id });
+      return createInteraction({ ...input, createdBy: ctx.user!.id });
     }),
 
   /** Resolve a complaint interaction */

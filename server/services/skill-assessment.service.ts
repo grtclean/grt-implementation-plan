@@ -23,6 +23,9 @@ import {
   skillAssessmentSessions,
   skillAssessmentAnswers,
   skillLevelCerts,
+  skillLevelEnum,
+  assessmentSessionStatusEnum,
+  certStatusEnum,
 } from "../../drizzle/skill-assessment-schema";
 import { createChildLogger } from "../lib/logger";
 
@@ -112,8 +115,8 @@ export async function listQuestions(opts: {
     eq(skillQuestionBank.isActive, true),
   ];
   if (opts.domainKey) conditions.push(eq(skillQuestionBank.domainKey, opts.domainKey));
-  if (opts.difficulty) conditions.push(eq(skillQuestionBank.difficulty, opts.difficulty as any));
-  if (opts.questionType) conditions.push(eq(skillQuestionBank.questionType, opts.questionType as any));
+  if (opts.difficulty) conditions.push(eq(skillQuestionBank.difficulty, opts.difficulty as typeof skillQuestionBank.difficulty.enumValues[number]));
+  if (opts.questionType) conditions.push(eq(skillQuestionBank.questionType, opts.questionType as typeof skillQuestionBank.questionType.enumValues[number]));
   if (opts.manualOnly) conditions.push(eq(skillQuestionBank.isManualEntry, true));
 
   let query = db.select().from(skillQuestionBank);
@@ -153,8 +156,8 @@ export async function createQuestion(input: {
   const db = await requireDb();
   const rows = await db.insert(skillQuestionBank).values({
     ...input,
-    questionType: input.questionType as any,
-    difficulty: input.difficulty as any,
+    questionType: input.questionType as typeof skillQuestionBank.questionType.enumValues[number],
+    difficulty: input.difficulty as typeof skillQuestionBank.difficulty.enumValues[number],
     points: input.points ?? 1,
     isManualEntry: true,
   }).returning();
@@ -176,7 +179,7 @@ export async function updateQuestion(id: number, updates: {
 }) {
   const db = await requireDb();
   await db.update(skillQuestionBank)
-    .set({ ...updates, difficulty: updates.difficulty as any, updatedAt: new Date() })
+    .set({ ...updates, difficulty: updates.difficulty as typeof skillQuestionBank.difficulty.enumValues[number] | undefined, updatedAt: new Date() })
     .where(eq(skillQuestionBank.id, id));
   return { success: true };
 }
@@ -209,8 +212,8 @@ export async function batchImportQuestions(questions: Array<{
   for (const q of questions) {
     await db.insert(skillQuestionBank).values({
       ...q,
-      questionType: q.questionType as any,
-      difficulty: q.difficulty as any,
+      questionType: q.questionType as typeof skillQuestionBank.questionType.enumValues[number],
+      difficulty: q.difficulty as typeof skillQuestionBank.difficulty.enumValues[number],
       points: q.points ?? 1,
       isManualEntry: true,
     });
@@ -271,7 +274,7 @@ export async function listPapers(opts?: { positionKey?: string; targetLevel?: st
   const db = await requireDb();
   let query = db.select().from(skillAssessmentPapers);
   if (opts?.positionKey) query = query.where(eq(skillAssessmentPapers.positionKey, opts.positionKey)) as typeof query;
-  if (opts?.targetLevel) query = query.where(eq(skillAssessmentPapers.targetLevel, opts.targetLevel as any)) as typeof query;
+  if (opts?.targetLevel) query = query.where(eq(skillAssessmentPapers.targetLevel, opts.targetLevel as typeof skillAssessmentPapers.targetLevel.enumValues[number])) as typeof query;
   if (opts?.publishedOnly) query = query.where(eq(skillAssessmentPapers.isPublished, true)) as typeof query;
   return query.orderBy(desc(skillAssessmentPapers.createdAt)).limit(200);
 }
@@ -291,7 +294,7 @@ export async function createPaper(input: {
   const db = await requireDb();
   const rows = await db.insert(skillAssessmentPapers).values({
     ...input,
-    targetLevel: input.targetLevel as any,
+    targetLevel: input.targetLevel as typeof skillAssessmentPapers.targetLevel.enumValues[number],
     timeLimitMinutes: input.timeLimitMinutes ?? 60,
   }).returning();
   log.info({ positionKey: input.positionKey, targetLevel: input.targetLevel }, "assessment paper created");
@@ -331,7 +334,7 @@ export async function startSession(employeeId: number, paperId: number) {
     paperId,
     positionKey: paper.positionKey,
     targetLevel: paper.targetLevel,
-    status: "in_progress" as any,
+    status: "in_progress" as typeof assessmentSessionStatusEnum.enumValues[number],
     startedAt: new Date(),
     expiresAt,
     totalPoints: paper.totalPoints,
@@ -459,7 +462,7 @@ export async function submitSession(sessionId: number) {
 
   await db.update(skillAssessmentSessions)
     .set({
-      status: status as any,
+      status: status as typeof assessmentSessionStatusEnum.enumValues[number],
       submittedAt: new Date(),
       earnedPoints: autoEarned,
       finalScore: finalScore?.toFixed(2),
@@ -548,7 +551,7 @@ export async function completeGrading(sessionId: number, gradedBy: number) {
 
   await db.update(skillAssessmentSessions)
     .set({
-      status: "completed" as any,
+      status: "completed" as typeof assessmentSessionStatusEnum.enumValues[number],
       completedAt: new Date(),
       earnedPoints: totalEarned - manualPortion,
       manualPoints: manualPortion,
@@ -608,7 +611,7 @@ export async function listPendingGrading(opts?: { positionKey?: string; limit?: 
   const db = await requireDb();
   const limit = Math.min(opts?.limit ?? 50, 200);
   const conditions: ReturnType<typeof eq>[] = [
-    eq(skillAssessmentSessions.status, "grading" as any),
+    eq(skillAssessmentSessions.status, "grading" as typeof assessmentSessionStatusEnum.enumValues[number]),
   ];
   if (opts?.positionKey) {
     conditions.push(eq(skillAssessmentSessions.positionKey, opts.positionKey));
@@ -633,11 +636,11 @@ async function issueCertificate(
 
   // Supersede existing active cert for same position
   await db.update(skillLevelCerts)
-    .set({ status: "superseded" as any })
+    .set({ status: "superseded" as typeof certStatusEnum.enumValues[number] })
     .where(and(
       eq(skillLevelCerts.employeeId, employeeId),
       eq(skillLevelCerts.positionKey, positionKey),
-      eq(skillLevelCerts.status, "active" as any),
+      eq(skillLevelCerts.status, "active" as typeof certStatusEnum.enumValues[number]),
     ));
 
   // Generate cert number: GRT-CERT-{positionKey}-{level}-{timestamp}
@@ -646,11 +649,11 @@ async function issueCertificate(
   await db.insert(skillLevelCerts).values({
     employeeId,
     positionKey,
-    level: level as any,
+    level: level as typeof skillLevelEnum.enumValues[number],
     sessionId,
     score: score.toFixed(2),
     certNumber,
-    status: "active" as any,
+    status: "active" as typeof certStatusEnum.enumValues[number],
   });
 
   log.info({ employeeId, positionKey, level, score, certNumber }, "skill certificate issued");
@@ -673,7 +676,7 @@ export async function getCertsByPosition(positionKey: string) {
     .from(skillLevelCerts)
     .where(and(
       eq(skillLevelCerts.positionKey, positionKey),
-      eq(skillLevelCerts.status, "active" as any),
+      eq(skillLevelCerts.status, "active" as typeof certStatusEnum.enumValues[number]),
     ))
     .orderBy(desc(skillLevelCerts.issuedAt))
     .limit(500);
@@ -682,7 +685,7 @@ export async function getCertsByPosition(positionKey: string) {
 export async function revokeCert(certId: number, reason: string) {
   const db = await requireDb();
   await db.update(skillLevelCerts)
-    .set({ status: "revoked" as any, revokedReason: reason })
+    .set({ status: "revoked" as typeof certStatusEnum.enumValues[number], revokedReason: reason })
     .where(eq(skillLevelCerts.id, certId));
   return { success: true };
 }
@@ -730,7 +733,7 @@ export async function getDashboardStats() {
       count: sql<number>`count(*)::int`,
     })
     .from(skillLevelCerts)
-    .where(eq(skillLevelCerts.status, "active" as any))
+    .where(eq(skillLevelCerts.status, "active" as typeof certStatusEnum.enumValues[number]))
     .groupBy(skillLevelCerts.level)
     .limit(10);
 

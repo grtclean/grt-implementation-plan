@@ -106,7 +106,7 @@ export default function ChangeManagement() {
       refetchCRs();
       resetForm();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(t("projects.change.createFailed") + ": " + error.message);
     },
   });
@@ -116,7 +116,7 @@ export default function ChangeManagement() {
       toast.success(t("projects.change.crSubmitted"));
       refetchCRs();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(t("projects.change.submitFailed") + ": " + error.message);
     },
   });
@@ -127,7 +127,7 @@ export default function ChangeManagement() {
       refetchApprovals();
       refetchCRs();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(t("projects.change.decisionFailed") + ": " + error.message);
     },
   });
@@ -369,7 +369,7 @@ export default function ChangeManagement() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {crList?.items.map((cr) => (
+                    {crList?.items.map((cr: any) => (
                       <div
                         key={cr.id}
                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -422,7 +422,7 @@ export default function ChangeManagement() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {pendingApprovals.map(({ approval, changeRequest }) => (
+                    {pendingApprovals.map(({ approval, changeRequest }: any) => (
                       <div
                         key={approval.id}
                         className="p-4 border rounded-lg space-y-3"
@@ -485,7 +485,7 @@ export default function ChangeManagement() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {releases.items.map((release) => (
+                    {releases.items.map((release: any) => (
                       <div
                         key={release.id}
                         className="flex items-center justify-between p-4 border rounded-lg"
@@ -520,7 +520,7 @@ export default function ChangeManagement() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {cabMembers.map((member) => (
+                    {cabMembers.map((member: any) => (
                       <div
                         key={member.id}
                         className="flex items-center justify-between p-4 border rounded-lg"
@@ -567,7 +567,7 @@ export default function ChangeManagement() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {auditLogs.items.map((log) => (
+                    {auditLogs.items.map((log: any) => (
                       <div
                         key={log.id}
                         className="flex items-center justify-between p-3 border rounded text-sm"

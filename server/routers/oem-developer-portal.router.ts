@@ -79,7 +79,7 @@ const keysRouter = router({
       scopes: input.scopes,
       rateLimitPerHour: input.rateLimitPerHour,
       expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
-      createdBy: ctx.user.id,
+      createdBy: ctx.user!.id,
     }).returning();
 
     log.info({ keyId: key.id, clientId: input.clientId }, "API key created");
@@ -125,7 +125,7 @@ const keysRouter = router({
       keyHash: hash,
       keyPrefix: prefix,
       scopes: input.scopes,
-      createdBy: ctx.user.id,
+      createdBy: ctx.user!.id,
     }).returning();
 
     log.info({ oldKeyId: input.keyId, newKeyId: newKey.id }, "API key rotated");
@@ -199,7 +199,7 @@ const webhooksRouter = router({
       events: input.events,
       secretHash: hash,
       secretPrefix: prefix,
-      createdBy: ctx.user.id,
+      createdBy: ctx.user!.id,
     }).returning();
 
     log.info({ webhookId: webhook.id, clientId: input.clientId }, "Webhook created");

@@ -33,7 +33,7 @@ function LoadingSkeleton() {
 function WarehouseListTab() {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
-  const warehouseQuery = trpc.warehouse.getWarehouses.useQuery();
+  const warehouseQuery = trpc.warehouse.getWarehouses.useQuery({});
   const warehouses = warehouseQuery.data ?? [];
   const isLoading = warehouseQuery.isLoading;
 

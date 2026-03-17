@@ -45,7 +45,7 @@ export function useContextualHelp() {
     },
   );
 
-  const articles: HelpArticle[] = contextualQuery?.data?.articles ?? [];
+  const articles: HelpArticle[] = (contextualQuery?.data?.articles ?? []) as any;
   const isLoading: boolean = contextualQuery?.isLoading ?? false;
 
   // ---------------------------------------------------------------------------
@@ -60,7 +60,7 @@ export function useContextualHelp() {
     },
   );
 
-  const searchResults: HelpArticle[] = searchQueryResult?.data ?? [];
+  const searchResults: HelpArticle[] = (searchQueryResult?.data ?? []) as any;
   const isSearching: boolean = searchQueryResult?.isLoading ?? false;
 
   /**

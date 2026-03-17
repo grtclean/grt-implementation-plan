@@ -27,7 +27,7 @@ export const rdServiceIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "RD_ANALYZE_REQUIREMENTS",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -48,7 +48,7 @@ export const rdServiceIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "RD_REVIEW_DESIGN",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -68,7 +68,7 @@ export const rdServiceIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "RD_DIAGNOSE_FAULT",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -89,7 +89,7 @@ export const rdServiceIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "RD_PLAN_MAINTENANCE",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),

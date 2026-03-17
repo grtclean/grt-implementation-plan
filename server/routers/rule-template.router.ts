@@ -56,7 +56,7 @@ export const ruleTemplateRouter = router({
       category: input.category || "budget",
       ruleConfig: typeof input.ruleConfig === "string" ? input.ruleConfig : JSON.stringify(input.ruleConfig || {}),
       isActive: 1,
-      createdBy: ctx.user.id,
+      createdBy: ctx.user!.id,
     } as any).returning();
     return { success: true, message: "模板创建成功", data: template };
   }),
@@ -109,7 +109,7 @@ export const ruleTemplateRouter = router({
     name: z.string().max(200).optional(),
   })).mutation(async ({ input }) => {
     const db = await requireDb();
-    const sourceId = toNum(input.ruleId || input.id);
+    const sourceId = toNum(input.ruleId! || input.id!);
     const [source] = await db.select().from(costAlertRuleTemplates).where(eq(costAlertRuleTemplates.id, sourceId)).limit(1000);
     if (!source) return { success: false, message: "源规则不存在" };
     const [template] = await db.insert(costAlertRuleTemplates).values({

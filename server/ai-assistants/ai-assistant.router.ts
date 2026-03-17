@@ -37,7 +37,7 @@ export const aiAssistantRouter = router({
       return createEmployeeDA({
         employeeId: input.employeeId,
         displayName: input.displayName,
-        capabilities: input.capabilities,
+        assistantCode: `${input.employeeId}-DA`,
       });
     }),
   

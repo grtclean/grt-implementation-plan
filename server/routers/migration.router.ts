@@ -21,7 +21,7 @@ export const migrationRouter = router({
   })).mutation(async ({ input }) => {
     const db = await requireDb();
     const moduleId = `MIG-${Date.now().toString(36).toUpperCase()}`;
-    const [task] = await db.insert(migrationTasks).values({
+    const [task] = await (db.insert(migrationTasks) as any).values({
       moduleId,
       moduleName: input.moduleName,
       sourceTable: input.sourceTable,

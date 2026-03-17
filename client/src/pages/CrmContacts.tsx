@@ -96,7 +96,7 @@ export default function CrmContacts() {
   // Statistics
   const totalContacts = contacts.length;
   const keyContacts = contacts.filter((c: any) => c.isKeyPerson === true).length;
-  const uniqueCustomers = new Set(contacts.map(c => c.customerId)).size;
+  const uniqueCustomers = new Set(contacts.map((c: any) => c.customerId)).size;
 
   return (
       <div className="space-y-6">
@@ -287,7 +287,7 @@ export default function CrmContacts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {contacts.map((contact) => (
+                  {contacts.map((contact: any) => (
                     <TableRow key={contact.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">

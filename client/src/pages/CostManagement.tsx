@@ -164,7 +164,7 @@ export default function CostManagement() {
   const { data: ruleVersions, isLoading: versionsLoading } = trpc.ruleVersion.getAll.useQuery(
     undefined,
     { enabled: !!selectedRuleForVersion }
-  );
+  ) as any;
 
   const { data: versionComparison } = trpc.ruleVersion.compare.useQuery(
     { versionA: compareVersions?.v1 || 0, versionB: compareVersions?.v2 || 0 },
@@ -307,10 +307,10 @@ export default function CostManagement() {
       try {
         // Find the latest version before the target date
         const versions = await utils.ruleVersion.getAll.fetch();
-        const targetVersion = versions?.find(v => new Date(v.changedAt) <= targetDate);
+        const targetVersion = (versions as any[])?.find((v: any) => new Date(v.changedAt) <= targetDate);
         
         if (targetVersion) {
-          await rollbackMutation.mutateAsync({ ruleId, versionNumber: targetVersion.versionNumber });
+          await rollbackMutation.mutateAsync({ ruleId, versionNumber: (targetVersion as any).versionNumber });
           successCount++;
         } else {
           failCount++;
@@ -800,7 +800,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                             className="flex items-center justify-between p-4 rounded-lg border bg-card"
                           >
                             <div>
-                              <p className="font-medium">{lb.description || tpl("finance.cost.laborDesc", { id: labor.employeeId })}</p>
+                              <p className="font-medium">{lb.description || tpl("finance.cost.laborDesc", { id: labor.employeeId ?? "" })}</p>
                               <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                                 <span>{tpl("finance.cost.hoursLabel", { hours: labor.hours })}</span>
                                 <span>• {tpl("finance.cost.hourlyRateLabel", { rate: formatCurrency(lb.hourlyRate || labor.rate) })}</span>
@@ -1317,7 +1317,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                         <>
                           {/* Version List */}
                           <div className="space-y-2">
-                            {ruleVersions.map((version: any, index: number) => {
+                            {(ruleVersions as any[]).map((version: any, index: number) => {
                               const ruleData = JSON.parse(version.ruleData);
                               const isLatest = index === 0;
                               return (
@@ -1619,7 +1619,7 @@ ${costRecords?.map(r => `${(r as any).costCode || r.categoryId} - ${r.descriptio
                                 </div>
                                 <Button
                                   size="sm"
-                                  onClick={() => createRuleFromTemplateMutation.mutate({ name: template.name, description: template.description, category: template.category, ruleConfig: template.ruleConfig })}
+                                  onClick={() => createRuleFromTemplateMutation.mutate({ name: template.name, description: template.description ?? undefined, category: template.category, ruleConfig: template.ruleConfig })}
                                   disabled={createRuleFromTemplateMutation.isPending}
                                 >
                                   {createRuleFromTemplateMutation.isPending ? (

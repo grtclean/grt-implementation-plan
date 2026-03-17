@@ -682,7 +682,7 @@ class NotificationService {
       [AlarmLevel.INFO]: 'ℹ️'
     };
 
-    return `${levelEmoji[notification.level]} **${notification.level} 告警**
+    return `${(levelEmoji as any)[notification.level]} **${notification.level} 告警**
 
 **项目ID**: ${notification.projectId}
 **表单类型**: ${notification.formType}

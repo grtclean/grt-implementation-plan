@@ -41,11 +41,11 @@ export const permissionRouter = router({
     .input(z.object({ permissionCode: z.string() }))
     .query(async ({ ctx, input }) => {
       // Admin bypass: users with role='admin' in users table have all permissions
-      if ((ctx.user as any).role === 'admin') {
+      if (ctx.user!.role === 'admin') {
         return { hasPermission: true };
       }
       const hasPermission = await permissionService.checkPermission(
-        ctx.user.openId || String(ctx.user.id),
+        ctx.user!.openId || String(ctx.user!.id),
         input.permissionCode
       );
       return { hasPermission };
@@ -55,7 +55,7 @@ export const permissionRouter = router({
    * 获取用户所有权限
    */
   getUserPermissions: protectedProcedure.query(async ({ ctx }) => {
-    const permissions = await permissionService.getUserPermissions(ctx.user.openId || String(ctx.user.id));
+    const permissions = await permissionService.getUserPermissions(ctx.user!.openId || String(ctx.user!.id));
     return { permissions };
   }),
 
@@ -63,7 +63,7 @@ export const permissionRouter = router({
    * 获取用户数据范围
    */
   getUserDataScope: protectedProcedure.query(async ({ ctx }) => {
-    const dataScope = await permissionService.getUserDataScope(ctx.user.openId || String(ctx.user.id));
+    const dataScope = await permissionService.getUserDataScope(ctx.user!.openId || String(ctx.user!.id));
     return { dataScope };
   }),
 
@@ -72,7 +72,7 @@ export const permissionRouter = router({
    */
   getUserCertifications: protectedProcedure.query(async ({ ctx }) => {
     const certifications = await permissionService.getUserCertifications(
-      ctx.user.openId || String(ctx.user.id)
+      ctx.user!.openId || String(ctx.user!.id)
     );
     return { certifications };
   }),
@@ -84,7 +84,7 @@ export const permissionRouter = router({
     .use(createRoleMiddleware(['admin', 'super_admin']))
     .query(async () => {
       const db = await requireDb();
-      const allRoles = await (db as any).select().from(roles).limit(1000);
+      const allRoles = await db.select().from(roles).limit(1000);
       return { roles: allRoles };
     }),
 
@@ -112,7 +112,7 @@ export const permissionRouter = router({
       const db = await requireDb();
 
       // 检查角色名称是否已存在
-      const existing = await (db as any)
+      const existing = await db
         .select()
         .from(roles)
         .where(eq(roles.name, input.name))
@@ -126,7 +126,7 @@ export const permissionRouter = router({
       }
 
       // 创建角色
-      const result = await (db as any).insert(roles).values({
+      const result = await db.insert(roles).values({
         name: input.name,
         displayName: input.displayName,
         description: input.description,
@@ -136,7 +136,7 @@ export const permissionRouter = router({
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        ctx.user.openId || String(ctx.user.id),
+        ctx.user!.openId || String(ctx.user!.id),
         'create_role',
         undefined,
         result[0]?.id,
@@ -169,7 +169,7 @@ export const permissionRouter = router({
       if (input.isActive !== undefined) updateData.isActive = input.isActive;
 
       if (Object.keys(updateData).length > 0) {
-        await (db as any)
+        await db
           .update(roles)
           .set(updateData)
           .where(eq(roles.id, input.roleId));
@@ -177,7 +177,7 @@ export const permissionRouter = router({
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        ctx.user.openId || String(ctx.user.id),
+        ctx.user!.openId || String(ctx.user!.id),
         'update_role',
         undefined,
         input.roleId,
@@ -198,10 +198,10 @@ export const permissionRouter = router({
       const db = await requireDb();
 
       // 检查是否有用户拥有此角色
-      const userCount = await (db as any)
+      const userCount = await db
         .select()
         .from(userRoles)
-        .where(eq(userRoles.roleId, input.roleId as any))
+        .where(eq(userRoles.roleId, input.roleId))
         .limit(1000);
 
       if (userCount.length > 0) {
@@ -212,16 +212,16 @@ export const permissionRouter = router({
       }
 
       // 删除角色权限关联
-      await (db as any)
+      await db
         .delete(rolePermissions)
         .where(eq(rolePermissions.roleId, input.roleId));
 
       // 删除角色
-      await (db as any).delete(roles).where(eq(roles.id, input.roleId));
+      await db.delete(roles).where(eq(roles.id, input.roleId));
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        ctx.user.openId || String(ctx.user.id),
+        ctx.user!.openId || String(ctx.user!.id),
         'delete_role',
         undefined,
         input.roleId,
@@ -239,7 +239,7 @@ export const permissionRouter = router({
     .use(createRoleMiddleware(['admin', 'super_admin']))
     .query(async () => {
       const db = await requireDb();
-      const allPermissions = await (db as any).select().from(permissions).limit(1000);
+      const allPermissions = await db.select().from(permissions).limit(1000);
       return { permissions: allPermissions };
     }),
 
@@ -258,13 +258,13 @@ export const permissionRouter = router({
       const db = await requireDb();
 
       // 删除现有权限
-      await (db as any)
+      await db
         .delete(rolePermissions)
         .where(eq(rolePermissions.roleId, input.roleId));
 
       // 添加新权限
       if (input.permissionIds.length > 0) {
-        await (db as any).insert(rolePermissions).values(
+        await db.insert(rolePermissions).values(
           input.permissionIds.map((permissionId) => ({
             roleId: input.roleId,
             permissionId,
@@ -274,7 +274,7 @@ export const permissionRouter = router({
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        ctx.user.openId || String(ctx.user.id),
+        ctx.user!.openId || String(ctx.user!.id),
         'grant_permission',
         undefined,
         input.roleId,
@@ -302,7 +302,7 @@ export const permissionRouter = router({
       await permissionService.assignRoleToUserById(
         input.userId,
         input.roleId,
-        ctx.user.openId || String(ctx.user.id),
+        ctx.user!.openId || String(ctx.user!.id),
         input.startDate ? new Date(input.startDate) : undefined,
         input.endDate ? new Date(input.endDate) : undefined
       );
@@ -324,14 +324,14 @@ export const permissionRouter = router({
       const db = await requireDb();
 
       // Verify the record exists before revoking
-      const existing = await (db as any)
+      const existing = await db
         .select({ id: userRoles.id })
         .from(userRoles)
         .where(
           and(
-            eq(userRoles.userId, input.userId as any),
-            eq(userRoles.roleId, input.roleId as any),
-            eq(userRoles.isActive, true as any)
+            eq(userRoles.userId, input.userId),
+            eq(userRoles.roleId, input.roleId),
+            eq(userRoles.isActive, true)
           )
         )
         .limit(1);
@@ -343,19 +343,19 @@ export const permissionRouter = router({
         });
       }
 
-      await (db as any)
+      await db
         .update(userRoles)
-        .set({ isActive: false } as any)
+        .set({ isActive: false })
         .where(
           and(
-            eq(userRoles.userId, input.userId as any),
-            eq(userRoles.roleId, input.roleId as any)
+            eq(userRoles.userId, input.userId),
+            eq(userRoles.roleId, input.roleId)
           )
         );
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        ctx.user.openId || String(ctx.user.id),
+        ctx.user!.openId || String(ctx.user!.id),
         'revoke_role',
         input.userId,
         input.roleId,
@@ -374,7 +374,7 @@ export const permissionRouter = router({
     .input(z.object({ userId: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const records = await (db as any)
+      const records = await db
         .select({
           id: userRoles.id,
           userId: userRoles.userId,
@@ -390,7 +390,7 @@ export const permissionRouter = router({
         })
         .from(userRoles)
         .innerJoin(roles, eq(userRoles.roleId, roles.id))
-        .where(eq(userRoles.userId, input.userId as any));
+        .where(eq(userRoles.userId, input.userId));
       return { userRoles: records };
     }),
 
@@ -402,7 +402,7 @@ export const permissionRouter = router({
     .input(z.object({ roleId: z.number() }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const records = await (db as any)
+      const records = await db
         .select({
           permissionId: rolePermissions.permissionId,
           roleId: rolePermissions.roleId,
@@ -426,7 +426,7 @@ export const permissionRouter = router({
     .use(createRoleMiddleware(['admin', 'super_admin']))
     .query(async () => {
       const db = await requireDb();
-      const records = await (db as any)
+      const records = await db
         .select({
           roleId: userRoles.roleId,
           count: sql<number>`count(*)::int`,
@@ -434,7 +434,7 @@ export const permissionRouter = router({
         .from(userRoles)
         .where(
           and(
-            eq(userRoles.isActive, true as any),
+            eq(userRoles.isActive, true),
             lte(userRoles.startDate, sql`now()`),
             or(
               isNull(userRoles.endDate),
@@ -460,13 +460,13 @@ export const permissionRouter = router({
       const db = await requireDb();
 
       // Get active roles
-      const activeRoles = await (db as any)
+      const activeRoles = await db
         .select({ roleId: userRoles.roleId })
         .from(userRoles)
         .where(
           and(
-            eq(userRoles.userId, input.userId as any),
-            eq(userRoles.isActive, true as any),
+            eq(userRoles.userId, input.userId),
+            eq(userRoles.isActive, true),
             lte(userRoles.startDate, sql`now()`),
             or(
               isNull(userRoles.endDate),
@@ -476,11 +476,11 @@ export const permissionRouter = router({
         )
         .limit(1000);
 
-      const roleIds = activeRoles.map((r: any) => r.roleId);
+      const roleIds = activeRoles.map((r: { roleId: number }) => r.roleId);
       if (roleIds.length === 0) return { permissions: [] };
 
       // Get all permissions from these roles
-      const perms = await (db as any)
+      const perms = await db
         .select({
           id: permissions.id,
           code: permissions.code,
@@ -491,11 +491,11 @@ export const permissionRouter = router({
         })
         .from(rolePermissions)
         .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-        .where(inArray(rolePermissions.roleId, roleIds as any));
+        .where(inArray(rolePermissions.roleId, roleIds));
 
       // Deduplicate by permission id
       const seen = new Set<number>();
-      const unique = perms.filter((p: any) => {
+      const unique = perms.filter((p: { id: number; code: string; name: string; description: string | null; module: string; category: string }) => {
         if (seen.has(p.id)) return false;
         seen.add(p.id);
         return true;
@@ -511,7 +511,7 @@ export const permissionRouter = router({
     .use(createRoleMiddleware(['admin', 'super_admin']))
     .query(async () => {
       const db = await requireDb();
-      const records = await (db as any)
+      const records = await db
         .select({
           roleId: rolePermissions.roleId,
           permissionId: rolePermissions.permissionId,
@@ -546,23 +546,24 @@ export const permissionRouter = router({
       }
 
       if (input.actionType) {
-        conditions.push(eq(permissionAuditLogs.actionType, input.actionType as any));
+        conditions.push(eq(permissionAuditLogs.actionType, input.actionType));
       }
 
       if (input.startDate) {
-        conditions.push(gte(permissionAuditLogs.createdAt, new Date(input.startDate) as any));
+        conditions.push(gte(permissionAuditLogs.createdAt, new Date(input.startDate)));
       }
 
       if (input.endDate) {
-        conditions.push(lte(permissionAuditLogs.createdAt, new Date(input.endDate) as any));
+        conditions.push(lte(permissionAuditLogs.createdAt, new Date(input.endDate)));
       }
 
-      let query = (db as any)
+      let query = db
         .select()
         .from(permissionAuditLogs)
         .orderBy(desc(permissionAuditLogs.createdAt));
 
       if (conditions.length > 0) {
+// @ts-ignore missing property
         query = query.where(and(...conditions));
       }
 
@@ -589,7 +590,7 @@ export const permissionRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
 
-      await (db as any).insert(qualificationCertificates).values({
+      await (db.insert(qualificationCertificates) as any).values({
         userId: input.userId,
         certificateCode: input.certificateCode,
         certificateName: input.certificateName,
@@ -598,11 +599,11 @@ export const permissionRouter = router({
         expiryDate: input.expiryDate,
         issuingOrganization: input.issuingOrganization,
         status: 'active',
-      } as any);
+      });
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        ctx.user.openId || String(ctx.user.id),
+        ctx.user!.openId || String(ctx.user!.id),
         'grant_permission',
         input.userId,
         undefined,
@@ -627,19 +628,19 @@ export const permissionRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
 
-      await (db as any)
+      await db
         .update(qualificationCertificates)
-        .set({ status: 'revoked' } as any)
+        .set({ status: 'revoked' } as Record<string, unknown>)
         .where(
           and(
-            eq((qualificationCertificates as any).userId, input.userId),
+            eq((qualificationCertificates as unknown as { userId: typeof qualificationCertificates.certificateCode }).userId, input.userId),
             eq(qualificationCertificates.certificateCode, input.certificateCode)
           )
         );
 
       // 记录审计日志
       await permissionService.logAuditEvent(
-        ctx.user.openId || String(ctx.user.id),
+        ctx.user!.openId || String(ctx.user!.id),
         'revoke_permission',
         input.userId,
         undefined,

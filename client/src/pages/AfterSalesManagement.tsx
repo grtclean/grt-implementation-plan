@@ -161,7 +161,7 @@ function ClientsTab() {
                   </div>
                   <div className="flex flex-col gap-1 items-end">
                     {getTierBadge(client.tier)}
-                    {getStatusBadge(client.status)}
+                    {getStatusBadge(client.status!)}
                   </div>
                 </div>
               </CardHeader>
@@ -470,7 +470,7 @@ function EquipmentsTab() {
                     <CardTitle className="text-lg font-mono">{equipment.serialNumber}</CardTitle>
                     <CardDescription>{equipment.modelName}</CardDescription>
                   </div>
-                  {getOperationalStatusBadge(equipment.operationalStatus)}
+                  {getOperationalStatusBadge(equipment.operationalStatus!)}
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -780,7 +780,7 @@ function ServiceLogsTab() {
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-bold">{log.ticketId}</span>
                       {getServiceTypeBadge(log.serviceType)}
-                      {getPriorityBadge(log.priority)}
+                      {getPriorityBadge(log.priority!)}
                       {getStatusBadge(log.status)}
                     </div>
                     <p className="text-sm text-muted-foreground">

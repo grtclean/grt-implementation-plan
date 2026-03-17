@@ -46,7 +46,7 @@ export const aiSuggestionRouter = router({
     const { taskId } = await submitTask(
       "AI_SUGGESTION_GENERATE",
       { processType, processId, stepCode, context, question },
-      ctx.user.name ?? `User#${ctx.user.id}`,
+      ctx.user!.name ?? `User#${ctx.user!.id}`,
     );
 
     return { success: true, taskId, status: "processing" as const, suggestion: null, id: null };
@@ -98,7 +98,7 @@ export const aiSuggestionRouter = router({
     }).where(eq(aiProcessSuggestions.id, numId));
 
     const inputObj = typeof input === "object" ? input : {};
-    const executorName = ctx.user.name ?? `User#${ctx.user.id}`;
+    const executorName = ctx.user!.name ?? `User#${ctx.user!.id}`;
     const [log] = await db.insert(aiSuggestionExecutionLogs).values({
       suggestionId: numId,
       actionId: (inputObj as any).actionId || `ACT-${Date.now()}`,

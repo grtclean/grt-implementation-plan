@@ -881,7 +881,7 @@ export default function WorkerManagement() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {(alertsData as any)?.alerts.map((alert) => (
+                    {(alertsData as any)?.alerts.map((alert: any) => (
                       <div 
                         key={alert.id} 
                         className={`flex items-center gap-4 p-4 rounded-lg border ${

@@ -270,7 +270,7 @@ export const employeeAiAssistantRouter = router({
             message: input.message,
             userId,
           },
-          ctx.user.name ?? `User#${userId}`,
+          ctx.user!.name ?? `User#${userId}`,
         );
 
         return {
@@ -364,7 +364,7 @@ export const employeeAiAssistantRouter = router({
       const { taskId } = await submitTask(
         "AI_PAGE_SUGGESTIONS",
         { routePath: input.routePath, pageContext: input.pageContext },
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),

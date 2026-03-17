@@ -73,11 +73,11 @@ export const meetingRouter = router({
   // Channel Operations
   channels: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      return await meetingDb.getChannelsByUser(ctx.user.openId);
+      return await meetingDb.getChannelsByUser(ctx.user!.openId);
     }),
 
     tree: protectedProcedure.query(async ({ ctx }) => {
-      const channels = await meetingDb.getChannelTree(ctx.user.openId);
+      const channels = await meetingDb.getChannelTree(ctx.user!.openId);
       return buildChannelTree(channels);
     }),
 
@@ -91,10 +91,10 @@ export const meetingRouter = router({
           description: input.description,
           parentId: input.parentId,
           isConfidential: input.isConfidential,
-          createdBy: ctx.user.openId,
+          createdBy: ctx.user!.openId,
         });
         // Add creator as owner
-        await meetingDb.addChannelMember(id, ctx.user.openId, 'owner');
+        await meetingDb.addChannelMember(id, ctx.user!.openId, 'owner');
         return { id, success: true };
       }),
 
@@ -142,7 +142,7 @@ export const meetingRouter = router({
           meetingDate: input.meetingDate,
           phase: input.phase,
           objective: input.objective,
-          createdBy: ctx.user.openId,
+          createdBy: ctx.user!.openId,
           // 保存模板相关元数据
           metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
         });
@@ -344,7 +344,7 @@ Format as JSON with keys: summary, decisions, actionItems, risks, strategicAlign
     review: requirePermission('collab:meeting:hub')
       .input(z.object({ assessmentId: z.string().uuid() }))
       .mutation(async ({ ctx, input }) => {
-        await meetingDb.reviewAssessment(input.assessmentId, ctx.user.openId);
+        await meetingDb.reviewAssessment(input.assessmentId, ctx.user!.openId);
         return { success: true };
       }),
 
@@ -546,7 +546,7 @@ Provide 3-5 actionable insights connecting meeting performance to strategic goal
           channelId: input.channelId,
           webhookUrl: input.webhookUrl,
           events: input.events,
-          createdBy: ctx.user.openId,
+          createdBy: ctx.user!.openId,
         });
         return { id, success: true };
       }),
@@ -625,7 +625,7 @@ Provide 3-5 actionable insights connecting meeting performance to strategic goal
         const job = await transcriptionService.createTranscriptionJob({
           meetingId: input.meetingId,
           audioUrl: input.audioUrl,
-          createdBy: ctx.user.openId,
+          createdBy: ctx.user!.openId,
         });
         
         // Start transcription asynchronously

@@ -80,7 +80,7 @@ export const devEnvRouter = router({
     z.object({ projectId: z.number().int().positive() }),
   ).mutation(async ({ input, ctx }) => {
     const { projectId } = input;
-    log.info({ projectId, userId: ctx.user.id }, "checkMechElecSync invoked");
+    log.info({ projectId, userId: ctx.user!.id }, "checkMechElecSync invoked");
 
     const result: ConflictCheckResult = await checkDesignConflicts(projectId);
     const blockingConflicts = result.conflicts.filter(c => c.severity === "blocking");
@@ -91,7 +91,7 @@ export const devEnvRouter = router({
       await logDesignSyncEvent({
         projectId,
         eventType: "conflict_detected",
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         description: `Pre-push blocked: ${blockingConflicts.length} mechanical/electrical conflicts`,
         metadata: {
           conflictCount: blockingConflicts.length,
@@ -121,7 +121,7 @@ export const devEnvRouter = router({
     z.object({ projectId: z.number().int().positive().optional().default(1) }),
   ).mutation(async ({ input, ctx }) => {
     const { projectId } = input;
-    log.info({ projectId, userId: ctx.user.id }, "runOilingSimulation invoked");
+    log.info({ projectId, userId: ctx.user!.id }, "runOilingSimulation invoked");
 
     const readings = generateSyntheticReadings(5);
     const POSE_THRESHOLD = 0.5;
@@ -155,8 +155,8 @@ export const devEnvRouter = router({
         await db.insert(designSyncEvents).values({
           projectId,
           eventType: "robot_anomaly",
-          userId: ctx.user.id,
-          userName: ctx.user.name ?? "unknown",
+          userId: ctx.user!.id,
+          userName: ctx.user!.name ?? "unknown",
           description: `Oiling simulation: ${failedReadings.length}/5 readings exceeded ΔPos threshold (${POSE_THRESHOLD}mm)`,
           metadata: {
             failedReadings: failedReadings.map(r => ({
@@ -181,7 +181,7 @@ export const devEnvRouter = router({
           failedCount: failedReadings.length,
           totalCount: 5,
           timestamp: new Date().toISOString(),
-          user: ctx.user.name ?? "unknown",
+          user: ctx.user!.name ?? "unknown",
         });
       } catch (err) {
         log.error({ err }, "Failed to publish SSE oiling event");

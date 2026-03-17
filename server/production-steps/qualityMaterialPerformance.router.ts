@@ -47,7 +47,7 @@ export const qualityMaterialPerformanceRouter = router({
       sortOrder: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return createQualityCheckpoint({ ...input, createdBy: ctx.user.openId });
+      return createQualityCheckpoint({ ...input, createdBy: ctx.user!.openId });
     }),
 
   getCheckpoints: protectedProcedure
@@ -100,8 +100,8 @@ export const qualityMaterialPerformanceRouter = router({
     .mutation(async ({ input, ctx }) => {
       return submitCheckResult({
         ...input,
-        inspectorId: ctx.user.openId,
-        inspectorName: ctx.user.name,
+        inspectorId: ctx.user!.openId,
+        inspectorName: ctx.user!.name as any,
       });
     }),
 
@@ -187,8 +187,8 @@ export const qualityMaterialPerformanceRouter = router({
     .mutation(async ({ input, ctx }) => {
       return createMaterialFlow({
         ...input,
-        operatorId: ctx.user.openId,
-        operatorName: ctx.user.name,
+        operatorId: ctx.user!.openId,
+        operatorName: ctx.user!.name as any,
       });
     }),
 

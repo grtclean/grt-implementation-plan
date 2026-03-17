@@ -24,7 +24,7 @@ export default function AIAssistantPage() {
       toast({ title: t("ai.assistantPage.title") });
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
@@ -39,7 +39,7 @@ export default function AIAssistantPage() {
     },
   });
 
-  const filteredAssistants = assistants?.filter((assistant) =>
+  const filteredAssistants = assistants?.filter((assistant: any) =>
     assistant.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
@@ -57,7 +57,7 @@ export default function AIAssistantPage() {
 
       {/* 快速操作 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard icon={Zap} label={t("ai.assistantPage.activeAssistants")} value={assistants?.filter((a) => a.isActive).length || 0} iconColor="text-yellow-500" iconBg="bg-yellow-100" />
+        <StatCard icon={Zap} label={t("ai.assistantPage.activeAssistants")} value={assistants?.filter((a: any) => a.isActive).length || 0} iconColor="text-yellow-500" iconBg="bg-yellow-100" />
         <StatCard icon={MessageSquare} label={t("ai.assistantPage.pendingSuggestions")} value={12} iconColor="text-blue-500" iconBg="bg-blue-100" />
         <StatCard icon={AlertCircle} label={t("ai.assistantPage.executionRate")} value="87%" iconColor="text-green-500" iconBg="bg-green-100" />
       </div>
@@ -102,7 +102,7 @@ export default function AIAssistantPage() {
                 </CardContent>
               </Card>
             ) : (
-              filteredAssistants.map((assistant) => (
+              filteredAssistants.map((assistant: any) => (
                 <Card key={assistant.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -145,7 +145,7 @@ export default function AIAssistantPage() {
 
         <TabsContent value="active">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredAssistants.filter((a) => a.isActive).length === 0 ? (
+            {filteredAssistants.filter((a: any) => a.isActive).length === 0 ? (
               <Card className="md:col-span-2">
                 <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
                   <AlertCircle className="w-4 h-4 mr-2" />
@@ -154,8 +154,8 @@ export default function AIAssistantPage() {
               </Card>
             ) : (
               filteredAssistants
-                .filter((a) => a.isActive)
-                .map((assistant) => (
+                .filter((a: any) => a.isActive)
+                .map((assistant: any) => (
                   <Card key={assistant.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <CardTitle className="text-lg">{assistant.name}</CardTitle>
@@ -179,7 +179,7 @@ export default function AIAssistantPage() {
 
         <TabsContent value="inactive">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredAssistants.filter((a) => !a.isActive).length === 0 ? (
+            {filteredAssistants.filter((a: any) => !a.isActive).length === 0 ? (
               <Card className="md:col-span-2">
                 <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
                   <AlertCircle className="w-4 h-4 mr-2" />
@@ -188,8 +188,8 @@ export default function AIAssistantPage() {
               </Card>
             ) : (
               filteredAssistants
-                .filter((a) => !a.isActive)
-                .map((assistant) => (
+                .filter((a: any) => !a.isActive)
+                .map((assistant: any) => (
                   <Card key={assistant.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <CardTitle className="text-lg">{assistant.name}</CardTitle>

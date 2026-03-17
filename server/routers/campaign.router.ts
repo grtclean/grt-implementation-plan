@@ -145,7 +145,7 @@ export const campaignRouter = router({
           description: input.description,
           campaignType: input.campaignType,
           status: "DRAFT",
-          createdBy: ctx.user.id,
+          createdBy: ctx.user!.id,
           metadata: input.metadata as Record<string, unknown> | undefined,
         })
         .returning();
@@ -485,7 +485,7 @@ export const campaignRouter = router({
         .update(globalCampaigns)
         .set({
           status: "APPROVED",
-          approvedBy: ctx.user.id,
+          approvedBy: ctx.user!.id,
           approvedAt: now,
           updatedAt: now,
         })
@@ -501,7 +501,7 @@ export const campaignRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      return execCampaign(toNum(input.campaignId), ctx.user.id);
+      return execCampaign(toNum(input.campaignId), ctx.user!.id);
     }),
 
   rollbackCampaign: requirePermission('crm:leads:manage')

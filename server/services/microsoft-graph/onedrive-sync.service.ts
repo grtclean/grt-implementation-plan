@@ -11,6 +11,101 @@ import { sql } from "drizzle-orm";
 
 const log = createChildLogger("ms-graph-onedrive-sync");
 
+// ── Graph API response types ─────────────────────────────
+
+interface GraphDriveItem {
+  id: string;
+  name: string;
+  size?: number;
+  file?: { mimeType?: string };
+  webUrl?: string;
+  "@microsoft.graph.downloadUrl"?: string;
+  lastModifiedDateTime?: string;
+  createdBy?: { user?: { displayName?: string } };
+  parentReference?: { path?: string };
+}
+
+interface GraphDriveItemResponse {
+  id: string;
+  webUrl?: string;
+}
+
+interface GraphDeltaResponse {
+  value?: GraphDriveItem[];
+  "@odata.deltaLink"?: string;
+}
+
+/** Raw row returned from sharepoint_folder_mappings */
+interface FolderMappingRow {
+  id: number;
+  grt_folder_id: number;
+  grt_folder_name: string;
+  sharepoint_site_id: string;
+  sharepoint_folder_id: string | null;
+  sharepoint_path: string;
+  sync_direction: string;
+  auto_sync: boolean;
+  last_sync_at: string | null;
+  status: string;
+  created_at: string;
+  cnt?: number;
+}
+
+/** Raw row returned from organization_nodes */
+interface OrgNodeRow {
+  id: number;
+  code: string;
+  name: string;
+  name_en: string | null;
+  type: string;
+  parent_id: number | null;
+  bu_id: number | null;
+  sp_site_id: string | null;
+  sp_root_path: string | null;
+  sp_token_scope: string | null;
+  data_scope: string | null;
+  is_active: boolean | null;
+  cluster: string | null;
+  site_code: string | null;
+  sort_order: number | null;
+}
+
+/** Raw row returned from department_sp_mappings */
+interface DeptSpMappingRow {
+  id: number;
+  dept_code: string;
+  sp_site_id: string;
+  sp_root_path: string;
+  sync_direction: string | null;
+  auto_sync: boolean;
+  auto_mirror: boolean;
+  status: string | null;
+}
+
+/** Raw row returned from sync_logs */
+interface SyncLogRow {
+  id: number;
+  dept_code: string | null;
+  action: string;
+  source_type: string;
+  source_path: string | null;
+  target_path: string | null;
+  status: string;
+  error_message: string | null;
+  file_count: number | null;
+  bytes_transferred: number | null;
+  triggered_by: string | null;
+  created_at: string | null;
+}
+
+/** Raw row returned from collaboration_docs_files */
+interface DocFileRow {
+  id: number;
+  file_name: string;
+  file_path: string | null;
+  file_size: number;
+}
+
 // ── Types ────────────────────────────────────────────────
 
 export interface OneDriveItem {
@@ -89,7 +184,7 @@ async function ensureFolderMappingTable() {
       )
     `);
     folderMappingTableEnsured = true;
-  } catch (e: any) {
+  } catch (e: unknown) {
     log.warn({ err: e }, "ensureFolderMappingTable failed");
     folderMappingTableEnsured = true;
   }
@@ -160,10 +255,10 @@ export const oneDriveSyncService = {
 
       const endpoint = `https://graph.microsoft.com/v1.0${path}`;
 
-      const result = await graphRequest<any>(endpoint, {
+      const result = await graphRequest<GraphDriveItemResponse>(endpoint, {
         method: "PUT",
         headers: { "Content-Type": contentType },
-        body: fileBuffer as any,
+        body: fileBuffer as unknown as BodyInit,
       });
 
       if (!result?.id) {
@@ -181,9 +276,9 @@ export const oneDriveSyncService = {
         oneDriveId: result.id,
         webUrl: result.webUrl,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.error({ err: error, fileName }, "OneDrive upload failed");
-      return { success: false, error: error.message ?? "Upload failed" };
+      return { success: false, error: error instanceof Error ? error.message : "Upload failed" };
     }
   },
 
@@ -198,12 +293,12 @@ export const oneDriveSyncService = {
       : "/me/drive/root/children";
 
     const endpoint = `https://graph.microsoft.com/v1.0${path}?$top=100`;
-    const result = await graphRequest<{ value: any[] }>(endpoint);
+    const result = await graphRequest<{ value: GraphDriveItem[] }>(endpoint);
     if (!result?.value) return mockDriveItems;
 
     return result.value
-      .filter((item: any) => item.file) // only files, not folders
-      .map((item: any) => ({
+      .filter((item) => item.file) // only files, not folders
+      .map((item) => ({
         id: item.id,
         name: item.name,
         size: item.size ?? 0,
@@ -226,7 +321,7 @@ export const oneDriveSyncService = {
     }
 
     const endpoint = `https://graph.microsoft.com/v1.0/me/drive/items/${oneDriveItemId}`;
-    const result = await graphRequest<any>(endpoint);
+    const result = await graphRequest<GraphDriveItem>(endpoint);
     return result?.["@microsoft.graph.downloadUrl"] ?? null;
   },
 
@@ -267,14 +362,14 @@ export const oneDriveSyncService = {
       ? `https://graph.microsoft.com/v1.0/me/drive/root/delta?token=${deltaToken}`
       : "https://graph.microsoft.com/v1.0/me/drive/root/delta";
 
-    const result = await graphRequest<any>(endpoint);
+    const result = await graphRequest<GraphDeltaResponse>(endpoint);
     if (!result?.value) {
       return { items: [], nextDeltaToken: deltaToken ?? "" };
     }
 
     const items: OneDriveItem[] = result.value
-      .filter((item: any) => item.file)
-      .map((item: any) => ({
+      .filter((item) => item.file)
+      .map((item) => ({
         id: item.id,
         name: item.name,
         size: item.size ?? 0,
@@ -323,17 +418,17 @@ export const folderMappingService = {
         ORDER BY grt_folder_id
         LIMIT 1000
       `);
-      return (result.rows as any[]).map(r => ({
+      return (result.rows as unknown as FolderMappingRow[]).map(r => ({
         id: r.id,
         grtFolderId: r.grt_folder_id,
         grtFolderName: r.grt_folder_name,
         sharepointSiteId: r.sharepoint_site_id,
         sharepointFolderId: r.sharepoint_folder_id,
         sharepointPath: r.sharepoint_path,
-        syncDirection: r.sync_direction,
+        syncDirection: r.sync_direction as FolderMapping["syncDirection"],
         autoSync: r.auto_sync,
         lastSyncAt: r.last_sync_at ? new Date(r.last_sync_at).toISOString() : null,
-        status: r.status,
+        status: r.status as FolderMapping["status"],
         createdAt: new Date(r.created_at).toISOString(),
       }));
     } catch {
@@ -365,7 +460,7 @@ export const folderMappingService = {
     const existing = await db.execute(sql`
       SELECT id FROM sharepoint_folder_mappings WHERE grt_folder_id = ${input.grtFolderId} LIMIT 1
     `);
-    if ((existing.rows as any[]).length > 0) {
+    if ((existing.rows as unknown as FolderMappingRow[]).length > 0) {
       await db.execute(sql`
         UPDATE sharepoint_folder_mappings SET
           grt_folder_name = ${input.grtFolderName},
@@ -386,13 +481,13 @@ export const folderMappingService = {
     const result = await db.execute(sql`
       SELECT * FROM sharepoint_folder_mappings WHERE grt_folder_id = ${input.grtFolderId} LIMIT 1
     `);
-    const r = (result.rows as any[])[0];
+    const r = (result.rows as unknown as FolderMappingRow[])[0];
     return {
       id: r.id, grtFolderId: r.grt_folder_id, grtFolderName: r.grt_folder_name,
       sharepointSiteId: r.sharepoint_site_id, sharepointFolderId: r.sharepoint_folder_id,
-      sharepointPath: r.sharepoint_path, syncDirection: r.sync_direction,
+      sharepointPath: r.sharepoint_path, syncDirection: r.sync_direction as FolderMapping["syncDirection"],
       autoSync: r.auto_sync, lastSyncAt: r.last_sync_at ? new Date(r.last_sync_at).toISOString() : null,
-      status: r.status, createdAt: new Date(r.created_at).toISOString(),
+      status: r.status as FolderMapping["status"], createdAt: new Date(r.created_at).toISOString(),
     };
   },
 
@@ -408,7 +503,7 @@ export const folderMappingService = {
     await ensureFolderMappingTable();
     const db = await requireDb();
     const count = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM sharepoint_folder_mappings`);
-    if (Number((count.rows as any[])[0]?.cnt) > 0) return 0;
+    if (Number((count.rows as unknown as FolderMappingRow[])[0]?.cnt) > 0) return 0;
 
     let inserted = 0;
     for (const m of DEFAULT_FOLDER_MAPPINGS) {
@@ -626,7 +721,7 @@ async function ensureOrgTables(): Promise<void> {
       )
     `);
     orgTablesCreated = true;
-  } catch (e: any) {
+  } catch (e: unknown) {
     log.warn({ err: e }, "Failed to create org tables (may already exist)");
     orgTablesCreated = true;
   }
@@ -668,7 +763,7 @@ export const departmentMappingService = {
         SELECT id, code, name, name_en, type, parent_id, bu_id, sp_site_id, sp_root_path, sp_token_scope, data_scope, is_active, cluster, site_code, sort_order
         FROM organization_nodes WHERE is_active = true ORDER BY cluster, sort_order, code LIMIT 200
       `);
-      return (result.rows as any[]).map(r => ({
+      return (result.rows as unknown as OrgNodeRow[]).map(r => ({
         id: r.id, code: r.code, name: r.name, nameEn: r.name_en, type: r.type,
         parentId: r.parent_id, buId: r.bu_id, spSiteId: r.sp_site_id, spRootPath: r.sp_root_path,
         spTokenScope: r.sp_token_scope, dataScope: r.data_scope ?? "department", isActive: r.is_active ?? true,
@@ -689,8 +784,8 @@ export const departmentMappingService = {
         SELECT sp_site_id, sp_root_path FROM department_sp_mappings
         WHERE dept_code = ${deptCode} AND status = 'active' LIMIT 1
       `);
-      if ((mapResult.rows as any[]).length > 0) {
-        const r = (mapResult.rows as any[])[0];
+      if ((mapResult.rows as unknown as DeptSpMappingRow[]).length > 0) {
+        const r = (mapResult.rows as unknown as DeptSpMappingRow[])[0];
         return { spSiteId: r.sp_site_id, spRootPath: r.sp_root_path };
       }
       // Fallback to organization_nodes
@@ -698,8 +793,8 @@ export const departmentMappingService = {
         SELECT sp_site_id, sp_root_path FROM organization_nodes
         WHERE code = ${deptCode} AND is_active = true LIMIT 1
       `);
-      if ((nodeResult.rows as any[]).length > 0) {
-        const r = (nodeResult.rows as any[])[0];
+      if ((nodeResult.rows as unknown as OrgNodeRow[]).length > 0) {
+        const r = (nodeResult.rows as unknown as OrgNodeRow[])[0];
         if (r.sp_root_path) return { spSiteId: r.sp_site_id ?? "default", spRootPath: r.sp_root_path };
       }
       return null;
@@ -719,7 +814,7 @@ export const departmentMappingService = {
         SELECT id, dept_code, sp_site_id, sp_root_path, sync_direction, auto_sync, auto_mirror, status
         FROM department_sp_mappings WHERE status != 'deleted' ORDER BY dept_code LIMIT 100
       `);
-      return (result.rows as any[]).map(r => ({
+      return (result.rows as unknown as DeptSpMappingRow[]).map(r => ({
         id: r.id, deptCode: r.dept_code, spSiteId: r.sp_site_id, spRootPath: r.sp_root_path,
         syncDirection: r.sync_direction ?? "bidirectional", autoSync: !!r.auto_sync,
         autoMirror: !!r.auto_mirror, status: r.status ?? "active",
@@ -744,8 +839,8 @@ export const departmentMappingService = {
     const existing = await db.execute(sql`
       SELECT id FROM department_sp_mappings WHERE dept_code = ${input.deptCode} LIMIT 1
     `);
-    if ((existing.rows as any[]).length > 0) {
-      const id = (existing.rows as any[])[0].id;
+    if ((existing.rows as unknown as DeptSpMappingRow[]).length > 0) {
+      const id = (existing.rows as unknown as DeptSpMappingRow[])[0].id;
       await db.execute(sql`
         UPDATE department_sp_mappings
         SET sp_site_id = ${input.spSiteId}, sp_root_path = ${input.spRootPath},
@@ -774,7 +869,7 @@ export const departmentMappingService = {
       try {
         // Check if exists
         const existing = await db.execute(sql`SELECT id FROM organization_nodes WHERE code = ${n.code} LIMIT 1`);
-        if ((existing.rows as any[]).length > 0) {
+        if ((existing.rows as unknown as OrgNodeRow[]).length > 0) {
           await db.execute(sql`
             UPDATE organization_nodes SET name = ${n.name}, name_en = ${n.nameEn}, type = ${n.type},
               sp_root_path = ${n.spRootPath}, data_scope = ${n.dataScope},
@@ -833,7 +928,7 @@ export const departmentMappingService = {
                 ${entry.errorMessage ?? null}, ${entry.fileCount ?? 0}, ${entry.bytesTransferred ?? 0},
                 ${entry.triggeredBy ?? null})
       `);
-    } catch (e: any) {
+    } catch (e: unknown) {
       log.warn({ err: e }, "Failed to write sync log");
     }
   },
@@ -851,7 +946,7 @@ export const departmentMappingService = {
         : await db.execute(sql`
             SELECT * FROM sync_logs ORDER BY created_at DESC LIMIT ${limit}
           `);
-      return (result.rows as any[]).map(r => ({
+      return (result.rows as unknown as SyncLogRow[]).map(r => ({
         id: r.id, deptCode: r.dept_code, action: r.action, sourceType: r.source_type,
         sourcePath: r.source_path, targetPath: r.target_path, status: r.status,
         errorMessage: r.error_message, fileCount: r.file_count ?? 0,
@@ -876,7 +971,7 @@ export const showroomSyncService = {
       const folderResult = await db.execute(sql`
         SELECT id FROM collaboration_docs_folders WHERE name LIKE '%展厅%' OR name LIKE '%VDO%' LIMIT 20
       `);
-      const folderIds = (folderResult.rows as any[]).map((r: any) => r.id);
+      const folderIds = (folderResult.rows as Array<{ id: number }>).map((r) => r.id);
       if (folderIds.length === 0) return { synced: 0, failed: 0 };
 
       // Get files not yet synced
@@ -888,7 +983,7 @@ export const showroomSyncService = {
           WHERE f.folder_id = ${fid} AND f.status != 'deleted' AND s.id IS NULL
           LIMIT 50
         `);
-        for (const file of (filesResult.rows as any[])) {
+        for (const file of (filesResult.rows as unknown as DocFileRow[])) {
           try {
             if (file.file_path && isGraphConfigured()) {
               // Mark as synced in registry (actual upload deferred to scheduled job)
@@ -910,7 +1005,7 @@ export const showroomSyncService = {
         status: failed === 0 ? "success" : "error", fileCount: synced,
         triggeredBy: "system",
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       log.warn({ err: e }, "Showroom sync failed");
     }
     return { synced, failed };
@@ -924,8 +1019,8 @@ export const showroomSyncService = {
         SELECT created_at, file_count, status FROM sync_logs
         WHERE action = 'showroom_publish' ORDER BY created_at DESC LIMIT 1
       `);
-      if ((logResult.rows as any[]).length > 0) {
-        const r = (logResult.rows as any[])[0];
+      if ((logResult.rows as unknown as SyncLogRow[]).length > 0) {
+        const r = (logResult.rows as unknown as SyncLogRow[])[0];
         return { lastSync: r.created_at ? new Date(r.created_at).toISOString() : null, fileCount: r.file_count ?? 0, status: r.status };
       }
       return { lastSync: null, fileCount: 0, status: "never" };

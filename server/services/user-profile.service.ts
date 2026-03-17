@@ -67,11 +67,11 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     SELECT * FROM user_profiles WHERE user_id = ${userId}
   `);
   
-  if (!result[0] || (result[0] as any[]).length === 0) {
+  if (!(result as any)[0] || ((result as any)[0] as any[]).length === 0) {
     return null;
   }
   
-  const row = (result[0] as any[])[0];
+  const row = ((result as any)[0] as any[])[0];
   return mapRowToProfile(row);
 }
 
@@ -157,7 +157,7 @@ export async function getUserTasks(userId: string, options?: {
   query = sql`${query} ORDER BY due_date ASC, priority DESC`;
   
   const result = await db.execute(query);
-  return ((result[0] as any[]) || []).map(mapRowToTask);
+  return (((result as any)[0] as any[]) || []).map(mapRowToTask);
 }
 
 // 获取今日待完成任务
@@ -173,7 +173,7 @@ export async function getTodayTasks(userId: string): Promise<UserTask[]> {
     ORDER BY priority DESC, due_time ASC
   `);
   
-  return ((result[0] as any[]) || []).map(mapRowToTask);
+  return (((result as any)[0] as any[]) || []).map(mapRowToTask);
 }
 
 // 创建用户任务
@@ -192,7 +192,7 @@ export async function createUserTask(task: Omit<UserTask, 'id' | 'createdAt'>): 
     )
   `);
   
-  const insertId = (result[0] as any).insertId;
+  const insertId = ((result as any)[0] as any).insertId;
   return { ...task, id: insertId };
 }
 
@@ -225,7 +225,7 @@ export async function getTasksNeedingReminder(reminderTime: string): Promise<Arr
     AND (p.task_reminder_enabled = TRUE OR p.task_reminder_enabled IS NULL)
   `);
   
-  return ((result[0] as any[]) || []).map(mapRowToTask);
+  return (((result as any)[0] as any[]) || []).map(mapRowToTask);
 }
 
 // 标记提醒已发送
@@ -268,7 +268,7 @@ export async function getOverdueTasks(userId?: string): Promise<UserTask[]> {
   query = sql`${query} ORDER BY due_date ASC`;
   
   const result = await db.execute(query);
-  return ((result[0] as any[]) || []).map(mapRowToTask);
+  return (((result as any)[0] as any[]) || []).map(mapRowToTask);
 }
 
 // 辅助函数：映射数据库行到Profile对象

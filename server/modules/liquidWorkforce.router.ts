@@ -12,6 +12,21 @@ import { randomUUID } from "crypto";
 import { createChildLogger } from "../lib/logger";
 const log = createChildLogger("liquid-workforce-mod");
 
+/** Raw SQL execute interface for dynamic query building */
+interface RawExecutor {
+  execute(query: string, params?: unknown[]): Promise<[Record<string, unknown>[], unknown]>;
+}
+
+interface InsertResult {
+  insertId: number;
+}
+
+interface PromisedSla {
+  deliveryDays: number;
+  qualityScore: number;
+  revisionCount?: number;
+}
+
 // ==================== 液态用工路由 ====================
 export const liquidWorkforceRouter = router({
   // ==================== 技能胶囊管理 ====================
@@ -63,10 +78,10 @@ export const liquidWorkforceRouter = router({
       query += ` ORDER BY usage_count DESC, level DESC LIMIT ? OFFSET ?`;
       params.push(pageSize, (page - 1) * pageSize);
       
-      const [rows] = await (db as any).execute(query, params);
+      const [rows] = await (db as unknown as RawExecutor).execute(query, params);
       
       return {
-        items: rows as any[],
+        items: rows as Record<string, unknown>[],
         page,
         pageSize,
       };
@@ -95,13 +110,13 @@ export const liquidWorkforceRouter = router({
         throw new TRPCError({ code: 'BAD_REQUEST', message: '需要提供id或skillId' });
       }
       
-      const [rows] = await (db as any).execute(query, params);
+      const [rows] = await (db as unknown as RawExecutor).execute(query, params);
       
-      if ((rows as any[]).length === 0) {
+      if ((rows as Record<string, unknown>[]).length === 0) {
         throw new TRPCError({ code: 'NOT_FOUND', message: '技能胶囊不存在' });
       }
       
-      return (rows as any[])[0];
+      return (rows as Record<string, unknown>[])[0];
     }),
 
   // 创建技能胶囊
@@ -123,7 +138,7 @@ export const liquidWorkforceRouter = router({
       
       const skillId = `SKL-${Date.now().toString(36).toUpperCase()}-${randomUUID().slice(0, 4).toUpperCase()}`;
       
-      const [result] = await (db as any).execute(
+      const [result] = await (db as unknown as RawExecutor).execute(
         `INSERT INTO skill_capsules 
          (skill_id, name, description, owner_did, owner_id, domain, level, royalty_rate, tags, evidence_ids)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -132,7 +147,7 @@ export const liquidWorkforceRouter = router({
          evidenceIds ? JSON.stringify(evidenceIds) : null]
       );
       
-      return { id: (result as any).insertId, skillId, success: true };
+      return { id: (result as unknown as InsertResult).insertId, skillId, success: true };
     }),
 
   // 更新技能胶囊
@@ -193,7 +208,7 @@ export const liquidWorkforceRouter = router({
       }
       
       params.push(id);
-      await (db as any).execute(
+      await (db as unknown as RawExecutor).execute(
         `UPDATE skill_capsules SET ${setClauses.join(', ')} WHERE id = ?`,
         params
       );
@@ -210,7 +225,7 @@ export const liquidWorkforceRouter = router({
       const db = await requireDb();
       const { skillId } = input;
       
-      await (db as any).execute(
+      await (db as unknown as RawExecutor).execute(
         `UPDATE skill_capsules SET usage_count = usage_count + 1 WHERE skill_id = ?`,
         [skillId]
       );
@@ -256,10 +271,10 @@ export const liquidWorkforceRouter = router({
       query += ` ORDER BY tb.ai_judge_score DESC, tb.created_at DESC LIMIT ? OFFSET ?`;
       params.push(pageSize, (page - 1) * pageSize);
       
-      const [rows] = await (db as any).execute(query, params);
+      const [rows] = await (db as unknown as RawExecutor).execute(query, params);
       
       return {
-        items: rows as any[],
+        items: rows as Record<string, unknown>[],
         page,
         pageSize,
       };
@@ -286,19 +301,19 @@ export const liquidWorkforceRouter = router({
       // 获取竞标者信誉分（从用户表或其他来源）
       let creditScore = 80; // 默认分数
       if (ctx.user?.id) {
-        const [users] = await (db as any).execute(
+        const [users] = await (db as unknown as RawExecutor).execute(
           `SELECT credit_score FROM user WHERE id = ?`,
           [ctx.user.id]
         );
-        if ((users as any[]).length > 0 && (users as any[])[0].credit_score) {
-          creditScore = (users as any[])[0].credit_score;
+        if ((users as { credit_score?: number }[]).length > 0 && (users as { credit_score?: number }[])[0].credit_score) {
+          creditScore = (users as { credit_score: number }[])[0].credit_score;
         }
       }
       
       // AI评估竞标
       const aiJudgeResult = await evaluateBidWithAI(taskId, bidPrice, promisedSla, creditScore, db);
       
-      const [result] = await (db as any).execute(
+      const [result] = await (db as unknown as RawExecutor).execute(
         `INSERT INTO task_bids 
          (task_id, bidder_agent_id, bidder_id, bid_price, currency, promised_sla, 
           credit_score_snapshot, ai_judge_score, ai_judge_reason, required_skills, expires_at)
@@ -309,7 +324,7 @@ export const liquidWorkforceRouter = router({
       );
       
       return { 
-        id: (result as any).insertId, 
+        id: (result as unknown as InsertResult).insertId, 
         aiScore: aiJudgeResult.score,
         aiReason: aiJudgeResult.reason,
         success: true 
@@ -326,29 +341,29 @@ export const liquidWorkforceRouter = router({
       const { bidId } = input;
       
       // 获取竞标信息
-      const [bids] = await (db as any).execute(
+      const [bids] = await (db as unknown as RawExecutor).execute(
         `SELECT * FROM task_bids WHERE id = ?`,
         [bidId]
       );
       
-      if ((bids as any[]).length === 0) {
+      if ((bids as Record<string, unknown>[]).length === 0) {
         throw new TRPCError({ code: 'NOT_FOUND', message: '竞标不存在' });
       }
-      
-      const bid = (bids as any[])[0];
+
+      const bid = (bids as Record<string, unknown>[])[0];
       
       if (bid.status !== 'pending') {
         throw new TRPCError({ code: 'BAD_REQUEST', message: '竞标状态不允许接受' });
       }
       
       // 更新竞标状态
-      await (db as any).execute(
+      await (db as unknown as RawExecutor).execute(
         `UPDATE task_bids SET status = 'accepted', accepted_at = NOW() WHERE id = ?`,
         [bidId]
       );
       
       // 拒绝同一任务的其他竞标
-      await (db as any).execute(
+      await (db as unknown as RawExecutor).execute(
         `UPDATE task_bids SET status = 'rejected', rejection_reason = '其他竞标已被接受' 
          WHERE task_id = ? AND id != ? AND status = 'pending'`,
         [bid.task_id, bidId]
@@ -367,7 +382,7 @@ export const liquidWorkforceRouter = router({
       const db = await requireDb();
       const { bidId, reason } = input;
       
-      await (db as any).execute(
+      await (db as unknown as RawExecutor).execute(
         `UPDATE task_bids SET status = 'rejected', rejection_reason = ? WHERE id = ? AND status = 'pending'`,
         [reason || '未通过审核', bidId]
       );
@@ -414,10 +429,10 @@ export const liquidWorkforceRouter = router({
       query += ` ORDER BY sc.created_at DESC LIMIT ? OFFSET ?`;
       params.push(pageSize, (page - 1) * pageSize);
       
-      const [rows] = await (db as any).execute(query, params);
+      const [rows] = await (db as unknown as RawExecutor).execute(query, params);
       
       return {
-        items: rows as any[],
+        items: rows as Record<string, unknown>[],
         page,
         pageSize,
       };
@@ -441,14 +456,14 @@ export const liquidWorkforceRouter = router({
       const db = await requireDb();
       const { taskBidId, payerId, payeeId, paymentType, amount, triggerCondition } = input;
       
-      const [result] = await (db as any).execute(
+      const [result] = await (db as unknown as RawExecutor).execute(
         `INSERT INTO smart_contracts 
          (task_bid_id, payer_id, payee_id, payment_type, amount, trigger_condition, execution_status)
          VALUES (?, ?, ?, ?, ?, ?, 'draft')`,
         [taskBidId, payerId, payeeId, paymentType, amount, JSON.stringify(triggerCondition)]
       );
       
-      return { id: (result as any).insertId, success: true };
+      return { id: (result as unknown as InsertResult).insertId, success: true };
     }),
 
   // 锁定合约资金
@@ -460,7 +475,7 @@ export const liquidWorkforceRouter = router({
       const db = await requireDb();
       const { contractId } = input;
       
-      await (db as any).execute(
+      await (db as unknown as RawExecutor).execute(
         `UPDATE smart_contracts SET execution_status = 'locked', locked_at = NOW() 
          WHERE id = ? AND execution_status = 'draft'`,
         [contractId]
@@ -482,7 +497,7 @@ export const liquidWorkforceRouter = router({
       
       const status = partial ? 'partial_released' : 'released';
       
-      await (db as any).execute(
+      await (db as unknown as RawExecutor).execute(
         `UPDATE smart_contracts SET execution_status = ?, released_at = NOW() 
          WHERE id = ? AND execution_status IN ('locked', 'partial_released')`,
         [status, contractId]
@@ -503,7 +518,7 @@ export const liquidWorkforceRouter = router({
       const db = await requireDb();
       const { contractId, reason } = input;
       
-      await (db as any).execute(
+      await (db as unknown as RawExecutor).execute(
         `UPDATE smart_contracts SET execution_status = 'disputed', dispute_reason = ? 
          WHERE id = ? AND execution_status IN ('locked', 'partial_released')`,
         [reason, contractId]
@@ -520,19 +535,19 @@ export const liquidWorkforceRouter = router({
       const db = await requireDb();
       
       // 技能胶囊统计
-      const [skillStats] = await (db as any).execute(
+      const [skillStats] = await (db as unknown as RawExecutor).execute(
         `SELECT domain, COUNT(*) as count, AVG(level) as avg_level, SUM(usage_count) as total_usage
          FROM skill_capsules WHERE is_active = 1 GROUP BY domain`
       );
       
       // 竞标统计
-      const [bidStats] = await (db as any).execute(
+      const [bidStats] = await (db as unknown as RawExecutor).execute(
         `SELECT status, COUNT(*) as count, AVG(bid_price) as avg_price, AVG(ai_judge_score) as avg_ai_score
          FROM task_bids GROUP BY status`
       );
       
       // 合约统计
-      const [contractStats] = await (db as any).execute(
+      const [contractStats] = await (db as unknown as RawExecutor).execute(
         `SELECT execution_status, COUNT(*) as count, SUM(amount) as total_amount
          FROM smart_contracts GROUP BY execution_status`
       );
@@ -549,20 +564,20 @@ export const liquidWorkforceRouter = router({
 
 // AI评估竞标
 async function evaluateBidWithAI(
-  taskId: number, 
-  bidPrice: number, 
-  promisedSla: any, 
+  taskId: number,
+  bidPrice: number,
+  promisedSla: PromisedSla,
   creditScore: number,
-  db: any
+  db: unknown
 ): Promise<{ score: number; reason: string }> {
   try {
     // 获取任务信息
-    const [tasks] = await (db as any).execute(
+    const [tasks] = await (db as unknown as RawExecutor).execute(
       `SELECT name, description, budget FROM tasks WHERE id = ?`,
       [taskId]
     );
     
-    const task = (tasks as any[])[0] || { name: '未知任务', description: '', budget: 0 };
+    const task = (tasks as { name: string; description: string; budget: number }[])[0] || { name: '未知任务', description: '', budget: 0 };
     
     const response = await invokeLLM({
       messages: [

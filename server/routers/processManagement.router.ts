@@ -260,7 +260,7 @@ export const processManagementRouter = router({
         .update(aiSopRecommendations)
         .set({
           isAccepted: input.accepted,
-          acceptedBy: ctx.user.id,
+          acceptedBy: ctx.user!.id,
           acceptedAt: new Date(),
           feedback: input.feedback || null,
         })
@@ -417,7 +417,7 @@ export const processManagementRouter = router({
         .update(processRiskAlerts)
         .set({
           status: "ACKNOWLEDGED",
-          acknowledgedBy: ctx.user.id,
+          acknowledgedBy: ctx.user!.id,
           acknowledgedAt: new Date(),
           mitigationNotes: input.notes || null,
           updatedAt: new Date(),

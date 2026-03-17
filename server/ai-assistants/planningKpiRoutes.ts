@@ -26,7 +26,7 @@ export const planningAssistantRouter = router({
     .mutation(async ({ ctx, input }) => {
       return planningAssistant.generatePlan({
         ...input,
-        ownerId: ctx.user.id,
+        ownerId: ctx.user!.id,
       });
     }),
 
@@ -58,7 +58,7 @@ export const planningAssistantRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { plan, requiresApproval, ...inputData } = input;
-      return planningAssistant.savePlan(plan, { ...inputData, ownerId: ctx.user.id }, requiresApproval);
+      return planningAssistant.savePlan(plan, { ...inputData, ownerId: ctx.user!.id }, requiresApproval);
     }),
 
   // 添加跟踪记录
@@ -74,7 +74,7 @@ export const planningAssistantRouter = router({
     .mutation(async ({ ctx, input }) => {
       return planningAssistant.addTrackingRecord({
         ...input,
-        recordedBy: ctx.user.id,
+        recordedBy: ctx.user!.id,
       });
     }),
 
@@ -91,7 +91,7 @@ export const planningAssistantRouter = router({
     .mutation(async ({ ctx, input }) => {
       return planningAssistant.createExecutionNote({
         ...input,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       });
     }),
 
@@ -115,7 +115,7 @@ export const planningAssistantRouter = router({
     .query(async ({ ctx, input }) => {
       return planningAssistant.listPlans({
         ...input,
-        ownerId: input.ownerId ?? ctx.user.id,
+        ownerId: input.ownerId ?? ctx.user!.id,
       });
     }),
 
@@ -137,13 +137,13 @@ export const planningAssistantRouter = router({
       action: z.enum(["approve", "reject"]),
     }))
     .mutation(async ({ ctx, input }) => {
-      return planningAssistant.approvePlan(input.planId, ctx.user.id, input.action);
+      return planningAssistant.approvePlan(input.planId, ctx.user!.id, input.action);
     }),
 
   // 获取未完成任务
   getIncompleteTasks: protectedProcedure
     .query(async ({ ctx }) => {
-      return planningAssistant.getIncompleteTasks(ctx.user.id);
+      return planningAssistant.getIncompleteTasks(ctx.user!.id);
     }),
 
   // 获取执行说明
@@ -164,7 +164,7 @@ export const kpiAssistantRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       return kpiAssistant.calculateKpiScore({
-        employeeId: input.employeeId ?? ctx.user.id,
+        employeeId: input.employeeId ?? ctx.user!.id,
         periodType: input.periodType,
         periodValue: input.periodValue,
       });
@@ -180,7 +180,7 @@ export const kpiAssistantRouter = router({
     .mutation(async ({ ctx, input }) => {
       return kpiAssistant.generateCommunicationSuggestion({
         employeeId: input.employeeId,
-        supervisorId: ctx.user.id,
+        supervisorId: ctx.user!.id,
         triggerReason: input.triggerReason,
         scoreId: input.scoreId,
       });
@@ -207,7 +207,7 @@ export const kpiAssistantRouter = router({
       action: z.enum(["approve", "reject"]),
     }))
     .mutation(async ({ ctx, input }) => {
-      return kpiAssistant.approveCommunicationSuggestion(input.suggestionId, ctx.user.id, input.action);
+      return kpiAssistant.approveCommunicationSuggestion(input.suggestionId, ctx.user!.id, input.action);
     }),
 
   // 审批邮件通知
@@ -217,7 +217,7 @@ export const kpiAssistantRouter = router({
       action: z.enum(["approve", "reject"]),
     }))
     .mutation(async ({ ctx, input }) => {
-      return kpiAssistant.approveEmailNotification(input.notificationId, ctx.user.id, input.action);
+      return kpiAssistant.approveEmailNotification(input.notificationId, ctx.user!.id, input.action);
     }),
 
   // 记录沟通效果
@@ -240,19 +240,19 @@ export const kpiAssistantRouter = router({
       limit: z.number().optional(),
     }))
     .query(async ({ ctx, input }) => {
-      return kpiAssistant.getScoreHistory(input.employeeId ?? ctx.user.id, input.limit);
+      return kpiAssistant.getScoreHistory(input.employeeId ?? ctx.user!.id, input.limit);
     }),
 
   // 获取待处理沟通建议
   getPendingCommunicationSuggestions: protectedProcedure
     .query(async ({ ctx }) => {
-      return kpiAssistant.getPendingCommunicationSuggestions(ctx.user.id);
+      return kpiAssistant.getPendingCommunicationSuggestions(ctx.user!.id);
     }),
 
   // 获取待审批邮件通知
   getPendingEmailNotifications: protectedProcedure
     .query(async ({ ctx }) => {
-      return kpiAssistant.getPendingEmailNotifications(ctx.user.id);
+      return kpiAssistant.getPendingEmailNotifications(ctx.user!.id);
     }),
 
   // 创建评估记录
@@ -267,7 +267,7 @@ export const kpiAssistantRouter = router({
     .mutation(async ({ ctx, input }) => {
       return kpiAssistant.createAssessment({
         ...input,
-        assessedBy: ctx.user.id,
+        assessedBy: ctx.user!.id,
       });
     }),
 

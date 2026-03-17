@@ -69,7 +69,7 @@ export const procurementRouter = router({
         status: 'draft',
       });
 
-      const insertId = result[0].insertId;
+      const insertId = (result as any)[0].insertId;
       const rows = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, insertId)).limit(1000);
       return rows[0];
     }),
@@ -221,7 +221,7 @@ export const procurementRouter = router({
         createdBy: ctx.user?.id ?? 0,
       });
 
-      const insertId = result[0].insertId;
+      const insertId = (result as any)[0].insertId;
       const rows = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, insertId)).limit(1000);
       return rows[0];
     }),
@@ -349,7 +349,7 @@ export const procurementRouter = router({
         actualDeliveryDate: totalReceived >= po.quantity ? new Date().toISOString() : null,
       }).where(eq(purchaseOrders.id, input.purchaseOrderId));
 
-      const insertId = result[0].insertId;
+      const insertId = (result as any)[0].insertId;
       const rows = await db.select().from(purchaseReceipts).where(eq(purchaseReceipts.id, insertId)).limit(1000);
       return rows[0];
     }),
@@ -422,7 +422,7 @@ export const procurementRouter = router({
         createdBy: ctx.user?.id ?? 0,
       });
 
-      const insertId = result[0].insertId;
+      const insertId = (result as any)[0].insertId;
       const rows = await db.select().from(suppliers).where(eq(suppliers.id, insertId)).limit(1000);
       return rows[0];
     }),
@@ -523,7 +523,7 @@ export const procurementRouter = router({
       const poAmountResult = await db.execute(
         sql`SELECT COALESCE(SUM(total_amount), 0) as total FROM purchase_orders`
       );
-      const poAmountRows = poAmountResult[0] as Array<{ total: string }>;
+      const poAmountRows = (poAmountResult as any)[0] as Array<{ total: string }>;
       const totalPOAmount = Number(poAmountRows[0]?.total ?? 0);
 
       const averagePOAmount = totalPOCount > 0 ? totalPOAmount / totalPOCount : 0;
@@ -540,7 +540,7 @@ export const procurementRouter = router({
             FROM purchase_orders
             WHERE status = 'received' AND actual_delivery_date IS NOT NULL`
       );
-      const deliveredRows = deliveredResult[0] as Array<{ total_delivered: number; on_time: number }>;
+      const deliveredRows = (deliveredResult as any)[0] as Array<{ total_delivered: number; on_time: number }>;
       const totalDelivered = Number(deliveredRows[0]?.total_delivered ?? 0);
       const onTimeCount = Number(deliveredRows[0]?.on_time ?? 0);
       const onTimeDeliveryRate = totalDelivered > 0 ? Math.round((onTimeCount / totalDelivered) * 10000) / 100 : 0;
@@ -552,7 +552,7 @@ export const procurementRouter = router({
               SUM(CASE WHEN quality_status = 'passed' THEN 1 ELSE 0 END) as passed
             FROM purchase_receipts`
       );
-      const qualityRows = qualityResult[0] as Array<{ total_receipts: number; passed: number }>;
+      const qualityRows = (qualityResult as any)[0] as Array<{ total_receipts: number; passed: number }>;
       const totalReceipts = Number(qualityRows[0]?.total_receipts ?? 0);
       const passedCount = Number(qualityRows[0]?.passed ?? 0);
       const qualityPassRate = totalReceipts > 0 ? Math.round((passedCount / totalReceipts) * 10000) / 100 : 0;
@@ -561,7 +561,7 @@ export const procurementRouter = router({
       const unpaidResult = await db.execute(
         sql`SELECT COALESCE(SUM(total_amount), 0) as total FROM purchase_orders WHERE payment_status = 'unpaid'`
       );
-      const unpaidRows = unpaidResult[0] as Array<{ total: string }>;
+      const unpaidRows = (unpaidResult as any)[0] as Array<{ total: string }>;
       const unpaidAmount = Number(unpaidRows[0]?.total ?? 0);
 
       // Overdue amount (invoices past due date and not fully paid)
@@ -570,7 +570,7 @@ export const procurementRouter = router({
             FROM purchase_invoices
             WHERE payment_status != 'paid' AND due_date < NOW()`
       );
-      const overdueRows = overdueResult[0] as Array<{ total: string }>;
+      const overdueRows = (overdueResult as any)[0] as Array<{ total: string }>;
       const overdueAmount = Number(overdueRows[0]?.total ?? 0);
 
       return {
@@ -639,7 +639,7 @@ export const procurementRouter = router({
             ORDER BY total_amount DESC`
       );
 
-      const dataRows = analysisResult[0] as Array<{ group_key: string; order_count: number; total_amount: string }>;
+      const dataRows = (analysisResult as any)[0] as Array<{ group_key: string; order_count: number; total_amount: string }>;
       const data = dataRows.map(row => ({
         [groupLabel]: row.group_key,
         orderCount: Number(row.order_count),
@@ -654,7 +654,7 @@ export const procurementRouter = router({
             FROM purchase_orders
             WHERE po_date >= ${input.startDate} AND po_date <= ${input.endDate}`
       );
-      const summaryRows = summaryResult[0] as Array<{ total_count: number; total_amount: string }>;
+      const summaryRows = (summaryResult as any)[0] as Array<{ total_count: number; total_amount: string }>;
       const totalCount = Number(summaryRows[0]?.total_count ?? 0);
       const totalAmount = Number(summaryRows[0]?.total_amount ?? 0);
 

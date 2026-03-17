@@ -82,7 +82,7 @@ async function handleWeeklyProjectSummary(): Promise<TaskExecutionResult> {
       ORDER BY p.bu_code, p.name
     `);
     
-    const projects = (projectsResult[0] as any[]) || [];
+    const projects = ((projectsResult as any)[0] as any[]) || [];
     
     // 按BU分组统计
     const buStats: Record<string, { projects: number; avgProgress: number; tasks: number; completed: number }> = {};
@@ -175,7 +175,7 @@ async function handleMonthlyCostReport(): Promise<TaskExecutionResult> {
       GROUP BY p.bu_code
     `);
     
-    const costs = (costResult[0] as any[]) || [];
+    const costs = ((costResult as any)[0] as any[]) || [];
     
     // 计算总成本
     let totalMaterial = 0, totalLabor = 0, totalOverhead = 0, totalCost = 0;
@@ -232,7 +232,7 @@ async function handleTrainingExpiryReminder(): Promise<TaskExecutionResult> {
       ORDER BY t.expiry_date ASC
     `);
     
-    const trainings = (trainingsResult[0] as any[]) || [];
+    const trainings = ((trainingsResult as any)[0] as any[]) || [];
     
     let sentCount = 0;
     for (const training of trainings) {
@@ -319,7 +319,7 @@ async function handlePerformanceReviewReminder(): Promise<TaskExecutionResult> {
       WHERE p.performance_reminder_enabled = TRUE
     `);
     
-    const users = (usersResult[0] as any[]) || [];
+    const users = ((usersResult as any)[0] as any[]) || [];
     
     let sentCount = 0;
     for (const user of users) {

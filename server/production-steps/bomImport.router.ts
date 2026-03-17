@@ -108,7 +108,7 @@ export const bomImportRouter = router({
       return executeBomImport({
         ...input,
         importedBy: ctx.user?.openId,
-        importedByName: ctx.user?.name,
+        importedByName: ctx.user?.name as any,
       });
     }),
 

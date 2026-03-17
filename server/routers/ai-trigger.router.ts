@@ -103,7 +103,7 @@ export const aiTriggerRouter = router({
           isEnabled:
             input.isEnabled !== undefined ? (input.isEnabled ? 1 : 0) : 1,
           priority: input.priority ?? 0,
-          createdBy: ctx.user.id,
+          createdBy: ctx.user!.id,
         })
         .returning();
 

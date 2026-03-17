@@ -18,7 +18,7 @@ export const aiChatRouter = router({
 
     if (!sessionId) {
       const [session] = await db.insert(aiChatSessions).values({
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         assistantType: input.assistantType || "personal",
         title: input.message.slice(0, 50),
         status: "active",
@@ -40,11 +40,11 @@ export const aiChatRouter = router({
       {
         sessionId,
         message: input.message,
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         assistantType: input.assistantType || "personal",
         context: input.context,
       },
-      ctx.user.name ?? `User#${ctx.user.id}`,
+      ctx.user!.name ?? `User#${ctx.user!.id}`,
     );
 
     return { sessionId, taskId, status: "processing" as const };

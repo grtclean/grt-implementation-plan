@@ -98,8 +98,8 @@ export const budgetOverrunApprovalRouter = router({
         const [inserted] = await db.insert(budgetOverrunRequests).values({
           projectId: input.projectId ?? null,
           projectName: input.projectName ?? null,
-          requestorId: ctx.user.id,
-          requestorName: ctx.user.name ?? `User#${ctx.user.id}`,
+          requestorId: ctx.user!.id,
+          requestorName: ctx.user!.name ?? `User#${ctx.user!.id}`,
           originalBudget: input.originalBudget,
           overrunAmount: input.overrunAmount,
           newTotalBudget: newTotal,
@@ -130,15 +130,15 @@ export const budgetOverrunApprovalRouter = router({
       const [existing] = await db.select({ requestorId: budgetOverrunRequests.requestorId })
         .from(budgetOverrunRequests).where(eq(budgetOverrunRequests.id, input.id));
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: `超预算申请 #${input.id} 不存在` });
-      if (existing.requestorId === ctx.user.id) {
+      if (existing.requestorId === ctx.user!.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "不能批准自己提交的超预算申请" });
       }
 
       // Atomic status guard — only pending can be approved
       const [updated] = await db.update(budgetOverrunRequests).set({
         status: "approved",
-        approverId: ctx.user.id,
-        approverName: ctx.user.name ?? `User#${ctx.user.id}`,
+        approverId: ctx.user!.id,
+        approverName: ctx.user!.name ?? `User#${ctx.user!.id}`,
         approverComment: input.comment ?? null,
         approvedAt: new Date(),
         updatedAt: new Date(),
@@ -161,8 +161,8 @@ export const budgetOverrunApprovalRouter = router({
       // Atomic status guard — only pending can be rejected
       const [updated] = await db.update(budgetOverrunRequests).set({
         status: "rejected",
-        approverId: ctx.user.id,
-        approverName: ctx.user.name ?? `User#${ctx.user.id}`,
+        approverId: ctx.user!.id,
+        approverName: ctx.user!.name ?? `User#${ctx.user!.id}`,
         approverComment: input.comment ?? null,
         approvedAt: new Date(),
         updatedAt: new Date(),

@@ -59,7 +59,7 @@ export default function BomImport() {
 
   // Mutations
   const batchImportMutation = (trpc.bomImport as any).batchImport.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: t("manufacturing.bom.import.complete"),
         description: `${t("manufacturing.bom.import.success")}: ${data.successCount}, ${t("manufacturing.bom.import.failed")}: ${data.failedCount}, ${t("manufacturing.bom.import.skipped")}: ${data.skippedCount}`,
@@ -72,7 +72,7 @@ export default function BomImport() {
   });
 
   const downloadTemplateMutation = (trpc.bomImport as any).downloadTemplate.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       // Create and download CSV file
       const blob = new Blob([data.csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);

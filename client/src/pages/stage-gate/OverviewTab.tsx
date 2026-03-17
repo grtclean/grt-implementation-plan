@@ -74,7 +74,7 @@ export default function OverviewTab({ projectId }: OverviewTabProps) {
         projectId,
         gateStage: stage as any,
       });
-      setPassResult({ stage, ...result });
+      setPassResult({ stage, ...result } as any);
     } catch (err: any) {
       toast.error(`检查失败: ${err.message}`);
     } finally {

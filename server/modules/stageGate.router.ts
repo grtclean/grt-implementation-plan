@@ -16,6 +16,110 @@ import {
   type M5ReviewCategory,
 } from "../../shared/stage-definitions";
 
+// Raw SQL executor interface for Drizzle db instances used with raw queries
+interface RawQueryExecutor {
+  execute(query: string, params?: unknown[]): Promise<[unknown[], unknown]>;
+}
+
+// Result set header from raw INSERT/UPDATE queries
+interface ResultSetHeader {
+  insertId: number;
+  affectedRows: number;
+}
+
+// Gate checklist row from DB
+interface GateChecklistRow {
+  id: number;
+  project_id: number;
+  gate_stage: string;
+  check_item: string;
+  description: string | null;
+  category: string | null;
+  is_mandatory: boolean | number;
+  status: string;
+  sort_order: number;
+  auto_verify_source: string | null;
+  auto_verify_query: string | null;
+  auto_verified: boolean | number;
+  verified_by: number | null;
+  verified_at: string | null;
+  verification_note: string | null;
+  evidence_url: string | null;
+  due_date: string | null;
+  project_name?: string;
+}
+
+// Gate overview row from DB
+interface GateOverviewRow {
+  gate_stage: string;
+  total_items: number;
+  passed_items: number;
+  failed_items: number;
+  pending_items: number;
+  mandatory_failures: number;
+}
+
+// Gate summary row from DB
+interface GateSummaryRow {
+  total: number;
+  completed: number;
+}
+
+// Count row from DB
+interface CountRow {
+  cnt: number;
+}
+
+// Pull signal row from DB
+interface PullSignalRow {
+  signal_id: string;
+  project_id: number | null;
+  upstream_gate: string;
+  trigger_event: string;
+  trigger_source: string | null;
+  target_aas_id: string;
+  target_device_name: string | null;
+  action_payload: string;
+  priority: string;
+  status: string;
+  scheduled_at: string | null;
+  sent_at: string | null;
+  executed_at: string | null;
+  response_data: string | null;
+  execution_result: string | null;
+  created_at: string;
+  project_name?: string;
+}
+
+// Gate stat row from DB
+interface GateStatRow {
+  gate_stage: string;
+  status: string;
+  count: number;
+}
+
+// Signal stat row from DB
+interface SignalStatRow {
+  status: string;
+  priority: string;
+  count: number;
+}
+
+// Auto verify stat row from DB
+interface AutoVerifyStatRow {
+  auto_verified: boolean | number;
+  count: number;
+}
+
+// Template item for standard gate checklists
+interface TemplateItem {
+  stage: string;
+  item: string;
+  category: string;
+  mandatory: boolean;
+  autoSource?: string;
+}
+
 // ==================== 门径管理路由 ====================
 export const stageGateRouter = router({
   // ==================== 门径检查项管理 ====================
@@ -65,10 +169,10 @@ export const stageGateRouter = router({
       query += ` ORDER BY gc.gate_stage, gc.sort_order, gc.id LIMIT ? OFFSET ?`;
       params.push(pageSize, (page - 1) * pageSize);
       
-      const [rows] = await (db as any).execute(query, params);
+      const [rows] = await (db as unknown as RawQueryExecutor).execute(query, params);
 
       return {
-        items: rows as any[],
+        items: rows as GateChecklistRow[],
         page,
         pageSize,
       };
@@ -83,7 +187,7 @@ export const stageGateRouter = router({
       const db = await requireDb();
       const { projectId } = input;
       
-      const [overview] = await (db as any).execute(
+      const [overview] = await (db as unknown as RawQueryExecutor).execute(
         `SELECT gate_stage,
                 COUNT(*) as total_items,
                 SUM(CASE WHEN status = 'pass' THEN 1 ELSE 0 END) as passed_items,
@@ -97,7 +201,7 @@ export const stageGateRouter = router({
         [projectId]
       );
       
-      return overview as any[];
+      return overview as GateOverviewRow[];
     }),
 
   // 创建门径检查项
@@ -119,7 +223,7 @@ export const stageGateRouter = router({
       const { projectId, gateStage, checkItem, description, category, isMandatory,
               autoVerifySource, autoVerifyQuery, sortOrder, dueDate } = input;
       
-      const [result] = await (db as any).execute(
+      const [result] = await (db as unknown as RawQueryExecutor).execute(
         `INSERT INTO gate_checklists
          (project_id, gate_stage, check_item, description, category, is_mandatory,
           auto_verify_source, auto_verify_query, sort_order, due_date, status)
@@ -129,7 +233,7 @@ export const stageGateRouter = router({
          sortOrder, dueDate || null]
       );
       
-      return { id: (result as any).insertId, success: true };
+      return { id: (result as unknown as ResultSetHeader).insertId, success: true };
     }),
 
   // 批量创建门径检查项（从模板）
@@ -143,7 +247,7 @@ export const stageGateRouter = router({
       const { projectId, templateName } = input;
       
       // 标准门径检查模板
-      const standardTemplate = [
+      const standardTemplate: TemplateItem[] = [
         // M3 - 立项评审（business_value - 商业价值）
         { stage: 'M3', item: '项目立项申请已批准', category: '商业价值', mandatory: true },
         { stage: 'M3', item: '初步商务条款已确认', category: '商业价值', mandatory: true },
@@ -217,12 +321,12 @@ export const stageGateRouter = router({
       
       let insertCount = 0;
       for (const item of standardTemplate) {
-        await (db as any).execute(
+        await (db as unknown as RawQueryExecutor).execute(
           `INSERT INTO gate_checklists
            (project_id, gate_stage, check_item, category, is_mandatory, auto_verify_source, status, sort_order)
            VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
           [projectId, item.stage, item.item, item.category, item.mandatory,
-           (item as any).autoSource || null, insertCount]
+           item.autoSource || null, insertCount]
         );
         insertCount++;
       }
@@ -243,7 +347,7 @@ export const stageGateRouter = router({
       const db = await requireDb();
       const { id, status, verifiedBy, verificationNote, evidenceUrl } = input;
       
-      await (db as any).execute(
+      await (db as unknown as RawQueryExecutor).execute(
         `UPDATE gate_checklists SET
          status = ?, verified_by = ?, verified_at = NOW(),
          verification_note = ?, evidence_url = ?
@@ -265,16 +369,17 @@ export const stageGateRouter = router({
       const { id } = input;
       
       // 获取检查项
-      const [items] = await (db as any).execute(
+      const [items] = await (db as unknown as RawQueryExecutor).execute(
         `SELECT * FROM gate_checklists WHERE id = ?`,
         [id]
       );
       
-      if ((items as any[]).length === 0) {
+      const checklistItems = items as GateChecklistRow[];
+      if (checklistItems.length === 0) {
         throw new TRPCError({ code: 'NOT_FOUND', message: '检查项不存在' });
       }
-      
-      const item = (items as any[])[0];
+
+      const item = checklistItems[0];
       
       if (!item.auto_verify_source) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: '该检查项不支持自动验证' });
@@ -284,7 +389,7 @@ export const stageGateRouter = router({
       // 这里是模拟实现
       const verificationResult = await simulateAutoVerification(item.auto_verify_source, item.auto_verify_query);
       
-      await (db as any).execute(
+      await (db as unknown as RawQueryExecutor).execute(
         `UPDATE gate_checklists SET
          status = ?, verified_at = NOW(), verification_note = ?, auto_verified = 1
          WHERE id = ?`,
@@ -309,14 +414,14 @@ export const stageGateRouter = router({
       const { projectId, gateStage } = input;
       
       // 检查是否有强制项未通过
-      const [mandatoryFailures] = await (db as any).execute(
+      const [mandatoryFailures] = await (db as unknown as RawQueryExecutor).execute(
         `SELECT * FROM gate_checklists
          WHERE project_id = ? AND gate_stage = ? AND is_mandatory = 1 AND status != 'pass' AND status != 'waived'`,
         [projectId, gateStage]
       );
 
       // 检查所有项的完成情况
-      const [summary] = await (db as any).execute(
+      const [summary] = await (db as unknown as RawQueryExecutor).execute(
         `SELECT
            COUNT(*) as total,
            SUM(CASE WHEN status = 'pass' OR status = 'waived' OR status = 'not_applicable' THEN 1 ELSE 0 END) as completed
@@ -325,8 +430,8 @@ export const stageGateRouter = router({
         [projectId, gateStage]
       );
       
-      const failures = mandatoryFailures as any[];
-      const stats = (summary as any[])[0];
+      const failures = mandatoryFailures as GateChecklistRow[];
+      const stats = (summary as GateSummaryRow[])[0];
       
       return {
         passable: failures.length === 0,
@@ -361,7 +466,7 @@ export const stageGateRouter = router({
       const { projectId } = input;
 
       // 获取该项目 M5 阶段所有检查项
-      const [rows] = await (db as any).execute(
+      const [rows] = await (db as unknown as RawQueryExecutor).execute(
         `SELECT gc.category, gc.status, gc.is_mandatory, gc.check_item,
                 gc.verified_by, gc.verified_at, gc.auto_verify_source
          FROM gate_checklists gc
@@ -370,7 +475,7 @@ export const stageGateRouter = router({
         [projectId]
       );
 
-      const items = rows as any[];
+      const items = rows as GateChecklistRow[];
 
       // 按类别汇总
       const categoryMap: Record<string, {
@@ -380,7 +485,7 @@ export const stageGateRouter = router({
         pending: number;
         mandatoryTotal: number;
         mandatoryPassed: number;
-        items: any[];
+        items: GateChecklistRow[];
       }> = {};
 
       for (const cat of M5_REVIEW_CATEGORIES) {
@@ -462,14 +567,15 @@ export const stageGateRouter = router({
 
       // 检查是否已有M5检查项
       if (skipExisting) {
-        const [existing] = await (db as any).execute(
+        const [existing] = await (db as unknown as RawQueryExecutor).execute(
           `SELECT COUNT(*) as cnt FROM gate_checklists WHERE project_id = ? AND gate_stage = 'M5'`,
           [projectId]
         );
-        if ((existing as any[])[0]?.cnt > 0) {
+        const existingRows = existing as CountRow[];
+        if (existingRows[0]?.cnt > 0) {
           return {
             success: false,
-            message: `该项目已有 ${(existing as any[])[0].cnt} 条M5检查项，跳过初始化`,
+            message: `该项目已有 ${existingRows[0].cnt} 条M5检查项，跳过初始化`,
             insertedCount: 0,
           };
         }
@@ -484,7 +590,7 @@ export const stageGateRouter = router({
 
       for (const item of M5_DESIGN_CHECKLIST) {
         const categoryName = categoryNameMap[item.category] || item.category;
-        await (db as any).execute(
+        await (db as unknown as RawQueryExecutor).execute(
           `INSERT INTO gate_checklists
            (project_id, gate_stage, check_item, description, category, is_mandatory,
             auto_verify_source, status, sort_order)
@@ -521,7 +627,7 @@ export const stageGateRouter = router({
       const db = await requireDb();
       const { projectId, categoryName, status, verificationNote } = input;
 
-      const [result] = await (db as any).execute(
+      const [result] = await (db as unknown as RawQueryExecutor).execute(
         `UPDATE gate_checklists SET
          status = ?, verified_by = ?, verified_at = NOW(), verification_note = ?
          WHERE project_id = ? AND gate_stage = 'M5' AND category = ?`,
@@ -530,7 +636,7 @@ export const stageGateRouter = router({
 
       return {
         success: true,
-        updatedCount: (result as any).affectedRows || 0,
+        updatedCount: (result as unknown as ResultSetHeader).affectedRows || 0,
       };
     }),
 
@@ -571,10 +677,10 @@ export const stageGateRouter = router({
       query += ` ORDER BY ps.created_at DESC LIMIT ? OFFSET ?`;
       params.push(pageSize, (page - 1) * pageSize);
       
-      const [rows] = await (db as any).execute(query, params);
+      const [rows] = await (db as unknown as RawQueryExecutor).execute(query, params);
 
       return {
-        items: rows as any[],
+        items: rows as PullSignalRow[],
         page,
         pageSize,
       };
@@ -600,7 +706,7 @@ export const stageGateRouter = router({
       
       const signalId = `PUL-${Date.now().toString(36).toUpperCase()}-${randomUUID().slice(0, 4).toUpperCase()}`;
       
-      const [result] = await (db as any).execute(
+      const [result] = await (db as unknown as RawQueryExecutor).execute(
         `INSERT INTO production_pull_signals
          (signal_id, project_id, upstream_gate, trigger_event, trigger_source,
           target_aas_id, target_device_name, action_payload, priority, scheduled_at, status)
@@ -610,7 +716,7 @@ export const stageGateRouter = router({
          priority, scheduledAt || null]
       );
       
-      return { id: (result as any).insertId, signalId, success: true };
+      return { id: (result as unknown as ResultSetHeader).insertId, signalId, success: true };
     }),
 
   // 发送拉动信号
@@ -623,16 +729,17 @@ export const stageGateRouter = router({
       const { signalId } = input;
       
       // 获取信号
-      const [signals] = await (db as any).execute(
+      const [signals] = await (db as unknown as RawQueryExecutor).execute(
         `SELECT * FROM production_pull_signals WHERE signal_id = ?`,
         [signalId]
       );
 
-      if ((signals as any[]).length === 0) {
+      const signalRows = signals as PullSignalRow[];
+      if (signalRows.length === 0) {
         throw new TRPCError({ code: 'NOT_FOUND', message: '拉动信号不存在' });
       }
 
-      const signal = (signals as any[])[0];
+      const signal = signalRows[0];
 
       if (signal.status !== 'pending') {
         throw new TRPCError({ code: 'BAD_REQUEST', message: '信号状态不允许发送' });
@@ -640,9 +747,9 @@ export const stageGateRouter = router({
 
       // TODO: 实际发送到AAS设备
       // 这里是模拟实现
-      const sendResult = await simulateSendToAAS(signal.target_aas_id, JSON.parse(signal.action_payload));
+      const sendResult = await simulateSendToAAS(signal.target_aas_id, JSON.parse(signal.action_payload) as Record<string, unknown>);
 
-      await (db as any).execute(
+      await (db as unknown as RawQueryExecutor).execute(
         `UPDATE production_pull_signals SET
          status = ?, sent_at = NOW(), response_data = ?
          WHERE signal_id = ?`,
@@ -662,7 +769,7 @@ export const stageGateRouter = router({
       const db = await requireDb();
       const { signalId, executionResult } = input;
       
-      await (db as any).execute(
+      await (db as unknown as RawQueryExecutor).execute(
         `UPDATE production_pull_signals SET
          status = 'executed', executed_at = NOW(), execution_result = ?
          WHERE signal_id = ? AND status IN ('sent', 'acknowledged')`,
@@ -687,7 +794,7 @@ export const stageGateRouter = router({
       const whereClause = projectId ? 'WHERE project_id = $1' : '';
 
       // 门径检查统计
-      const [gateStats] = await (db as any).execute(
+      const [gateStats] = await (db as unknown as RawQueryExecutor).execute(
         `SELECT gate_stage, status, COUNT(*) as count
          FROM gate_checklists ${whereClause}
          GROUP BY gate_stage, status`,
@@ -695,7 +802,7 @@ export const stageGateRouter = router({
       );
 
       // 拉动信号统计
-      const [signalStats] = await (db as any).execute(
+      const [signalStats] = await (db as unknown as RawQueryExecutor).execute(
         `SELECT status, priority, COUNT(*) as count
          FROM production_pull_signals ${whereClause}
          GROUP BY status, priority`,
@@ -703,7 +810,7 @@ export const stageGateRouter = router({
       );
 
       // 自动验证统计
-      const [autoVerifyStats] = await (db as any).execute(
+      const [autoVerifyStats] = await (db as unknown as RawQueryExecutor).execute(
         `SELECT auto_verified, COUNT(*) as count
          FROM gate_checklists ${whereClause}
          GROUP BY auto_verified`,
@@ -790,7 +897,7 @@ async function simulateAutoVerification(source: string, query: string | null): P
 }
 
 // 模拟发送到AAS设备
-async function simulateSendToAAS(aasId: string, payload: any): Promise<{ success: boolean; message: string }> {
+async function simulateSendToAAS(aasId: string, _payload: Record<string, unknown>): Promise<{ success: boolean; message: string }> {
   // 实际实现应该通过AAS协议发送
   // 这里是模拟实现
   return {

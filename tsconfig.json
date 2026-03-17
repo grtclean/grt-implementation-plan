@@ -6,7 +6,7 @@
     "noEmit": true,
     "target": "ESNext",
     "module": "ESNext",
-    "strict": false,
+    "strict": true,
     "lib": ["esnext", "dom", "dom.iterable"],
     "jsx": "preserve",
     "esModuleInterop": true,

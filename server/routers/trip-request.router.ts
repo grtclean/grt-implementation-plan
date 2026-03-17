@@ -30,9 +30,9 @@ export const tripRequestRouter = router({
   // 出差申请列表 — scoped by role
   list: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     const isManager = TRIP_MANAGER_ROLES.has(role);
-    const whereCondition = isManager ? undefined : eq(tripRequests.userId, ctx.user.id);
+    const whereCondition = isManager ? undefined : eq(tripRequests.userId, ctx.user!.id);
     const items = await db.select().from(tripRequests).where(whereCondition).orderBy(desc(tripRequests.createdAt)).limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
@@ -41,7 +41,7 @@ export const tripRequestRouter = router({
   getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
-    await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+    await assertTripOwnership(db, id, ctx.user!.id, ctx.user!.role ?? "employee");
     const [request] = await db.select().from(tripRequests).where(eq(tripRequests.id, id)).limit(1000);
     if (!request) return null;
 
@@ -103,7 +103,7 @@ export const tripRequestRouter = router({
 
     const [request] = await db.insert(tripRequests).values({
       requestCode: code,
-      userId: ctx.user.id,
+      userId: ctx.user!.id,
       tripPurpose,
       destinationCity: destCity,
       plannedStartDate: plannedStart,
@@ -135,7 +135,7 @@ export const tripRequestRouter = router({
     const db = await requireDb();
     const { id, ...updates } = input;
     const numId = parseInt(id);
-    await assertTripOwnership(db, numId, ctx.user.id, ctx.user.role ?? "employee");
+    await assertTripOwnership(db, numId, ctx.user!.id, ctx.user!.role ?? "employee");
     const [request] = await db.update(tripRequests)
       .set({ ...updates, updatedAt: new Date().toISOString() })
       .where(eq(tripRequests.id, numId))
@@ -147,7 +147,7 @@ export const tripRequestRouter = router({
   delete: requirePermission('finance:trip:create').input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
-    await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+    await assertTripOwnership(db, id, ctx.user!.id, ctx.user!.role ?? "employee");
     // Delete related records first
     await db.delete(tripItineraries).where(eq(tripItineraries.tripRequestId, id));
     await db.delete(tripBookings).where(eq(tripBookings.tripRequestId, id));
@@ -163,7 +163,7 @@ export const tripRequestRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     if (!TRIP_MANAGER_ROLES.has(role)) {
       throw new TRPCError({ code: "FORBIDDEN", message: "仅管理角色可审批出差申请" });
     }
@@ -171,7 +171,7 @@ export const tripRequestRouter = router({
     const [existing] = await db.select({ userId: tripRequests.userId, status: tripRequests.status })
       .from(tripRequests).where(eq(tripRequests.id, id));
     if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: `出差申请 #${id} 不存在` });
-    if (existing.userId === ctx.user.id) {
+    if (existing.userId === ctx.user!.id) {
       throw new TRPCError({ code: "FORBIDDEN", message: "不能审批自己的出差申请" });
     }
     if (existing.status !== "submitted") {
@@ -181,7 +181,7 @@ export const tripRequestRouter = router({
       .set({
         status: "approved",
         managerApprovedAt: new Date(),
-        managerApprovedBy: ctx.user.id,
+        managerApprovedBy: ctx.user!.id,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(tripRequests.id, id))
@@ -196,14 +196,14 @@ export const tripRequestRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     if (!TRIP_MANAGER_ROLES.has(role)) {
       throw new TRPCError({ code: "FORBIDDEN", message: "仅管理角色可驳回出差申请" });
     }
     const [existing] = await db.select({ userId: tripRequests.userId, status: tripRequests.status })
       .from(tripRequests).where(eq(tripRequests.id, id));
     if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: `出差申请 #${id} 不存在` });
-    if (existing.userId === ctx.user.id) {
+    if (existing.userId === ctx.user!.id) {
       throw new TRPCError({ code: "FORBIDDEN", message: "不能驳回自己的出差申请" });
     }
     if (existing.status !== "submitted") {
@@ -224,7 +224,7 @@ export const tripRequestRouter = router({
   submit: requirePermission('finance:trip:create').input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
-    await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+    await assertTripOwnership(db, id, ctx.user!.id, ctx.user!.role ?? "employee");
     const [request] = await db.update(tripRequests)
       .set({ status: "submitted", updatedAt: new Date().toISOString() })
       .where(eq(tripRequests.id, id))
@@ -236,7 +236,7 @@ export const tripRequestRouter = router({
   cancel: requirePermission('finance:trip:create').input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
-    await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+    await assertTripOwnership(db, id, ctx.user!.id, ctx.user!.role ?? "employee");
     const [request] = await db.update(tripRequests)
       .set({ status: "cancelled", updatedAt: new Date().toISOString() })
       .where(eq(tripRequests.id, id))
@@ -248,7 +248,7 @@ export const tripRequestRouter = router({
   start: requirePermission('finance:trip:create').input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
-    await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+    await assertTripOwnership(db, id, ctx.user!.id, ctx.user!.role ?? "employee");
     const [request] = await db.update(tripRequests)
       .set({
         status: "in_progress",
@@ -264,7 +264,7 @@ export const tripRequestRouter = router({
   complete: requirePermission('finance:trip:create').input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
-    await assertTripOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+    await assertTripOwnership(db, id, ctx.user!.id, ctx.user!.role ?? "employee");
     const [request] = await db.update(tripRequests)
       .set({
         status: "completed",

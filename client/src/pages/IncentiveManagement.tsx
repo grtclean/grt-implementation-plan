@@ -104,8 +104,8 @@ export default function IncentiveManagement() {
     }
   };
 
-  const totalSpend = (summary.data ?? []).reduce((s, d) => s + d.totalAmount, 0);
-  const totalAwards = (summary.data ?? []).reduce((s, d) => s + d.awardCount, 0);
+  const totalSpend = (summary.data ?? []).reduce((s: any, d: any) => s + d.totalAmount, 0);
+  const totalAwards = (summary.data ?? []).reduce((s: any, d: any) => s + d.awardCount, 0);
 
   return (
     <div className="p-4 md:p-6 space-y-4 max-w-6xl mx-auto">
@@ -300,7 +300,7 @@ export default function IncentiveManagement() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(summary.data ?? []).map((s, i) => (
+                    {(summary.data ?? []).map((s: any, i: any) => (
                       <tr key={i} className="border-b last:border-0">
                         <td className="py-2">{s.awardType}</td>
                         <td className="text-right">{s.awardCount}</td>

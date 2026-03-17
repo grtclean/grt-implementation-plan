@@ -566,8 +566,8 @@ export const hrmRouter = router({
     .query(({ input, ctx }) => {
       // Non-manager roles can only query their own score
       const HR_ROLES = new Set(["admin", "director", "hr_manager", "dept_manager", "team_lead"]);
-      const targetUserId = input.userId ?? ctx.user.id;
-      if (targetUserId !== ctx.user.id && !HR_ROLES.has(ctx.user.role ?? "employee")) {
+      const targetUserId = input.userId ?? ctx.user!.id;
+      if (targetUserId !== ctx.user!.id && !HR_ROLES.has(ctx.user!.role ?? "employee")) {
         return { overallScore: 0, grade: "N/A" as const, dimensions: {}, recommendations: ["无权查看他人绩效评分"] };
       }
       const seed = targetUserId * 1000 + input.projectId + (input.stageCode ? input.stageCode.length * 7 : 0);

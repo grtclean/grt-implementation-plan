@@ -37,19 +37,19 @@ export default function BusinessUnits() {
 
   // 查询选中事业部的绩效数据
   const { data: performance } = trpc.bu.getPerformance.useQuery(
-    selectedBu ? { buId: selectedBu, fiscalYear: 2026 } : undefined,
+    (selectedBu ? { buId: selectedBu, fiscalYear: 2026 } : undefined) as any,
     { enabled: !!selectedBu }
   );
 
   // 查询KPI
   const { data: kpis } = trpc.bu.getKpis.useQuery(
-    selectedBu ? { buId: selectedBu, fiscalYear: 2026 } : undefined,
+    (selectedBu ? { buId: selectedBu, fiscalYear: 2026 } : undefined) as any,
     { enabled: !!selectedBu }
   );
 
   // 查询统计信息
   const { data: statistics } = trpc.bu.getStatistics.useQuery(
-    selectedBu ? { buId: selectedBu, fiscalYear: 2026 } : undefined,
+    (selectedBu ? { buId: selectedBu, fiscalYear: 2026 } : undefined) as any,
     { enabled: !!selectedBu }
   );
 

@@ -106,7 +106,7 @@ export default function MeetingOwnerManagement() {
       setEditingOwner(null);
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: t("meeting.owner.saveFailed"), description: error.message, variant: 'destructive' });
     }
   });
@@ -117,7 +117,7 @@ export default function MeetingOwnerManagement() {
       toast({ title: t("meeting.owner.deleteSuccess") });
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: t("meeting.owner.deleteFailed"), description: error.message, variant: 'destructive' });
     }
   });
@@ -129,7 +129,7 @@ export default function MeetingOwnerManagement() {
       setShowRuleDialog(false);
       setEditingRule(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: t("meeting.owner.saveFailed"), description: error.message, variant: 'destructive' });
     }
   });

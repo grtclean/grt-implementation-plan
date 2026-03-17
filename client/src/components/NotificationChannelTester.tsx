@@ -41,7 +41,7 @@ export default function NotificationChannelTester() {
 
   // 测试系统通知
   const testSystemMutation = (trpc.notificationChannelTest as any).testSystem.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       addTestResult(result);
       if (result.success) {
         toast.success("系统通知测试成功");
@@ -49,14 +49,14 @@ export default function NotificationChannelTester() {
         toast.error(`系统通知测试失败: ${result.message}`);
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`测试失败: ${error.message}`);
     },
   });
 
   // 测试邮件通知
   const testEmailMutation = (trpc.notificationChannelTest as any).testEmail.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       addTestResult(result);
       if (result.success) {
         toast.success("邮件通知测试成功");
@@ -64,14 +64,14 @@ export default function NotificationChannelTester() {
         toast.error(`邮件通知测试失败: ${result.message}`);
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`测试失败: ${error.message}`);
     },
   });
 
   // 测试Webhook通知
   const testWebhookMutation = (trpc.notificationChannelTest as any).testWebhook.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       addTestResult(result);
       if (result.success) {
         toast.success("Webhook测试成功");
@@ -79,14 +79,14 @@ export default function NotificationChannelTester() {
         toast.error(`Webhook测试失败: ${result.message}`);
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`测试失败: ${error.message}`);
     },
   });
 
   // 测试企业微信通知
   const testWechatMutation = (trpc.notificationChannelTest as any).testWechat.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       addTestResult(result);
       if (result.success) {
         toast.success("企业微信通知测试成功");
@@ -94,7 +94,7 @@ export default function NotificationChannelTester() {
         toast.error(`企业微信通知测试失败: ${result.message}`);
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`测试失败: ${error.message}`);
     },
   });

@@ -14,9 +14,10 @@ import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { requireDb } from "../db";
 import { eq, and, sql, SQL, desc } from "drizzle-orm";
 import {
-  equipmentStations, designExportLogs,
+  equipmentStations, designExportLogs, stationTypeEnum, exportFormatEnum, exportStatusEnum,
   type MechanicalParams, type ElectricalParams,
 } from "../../drizzle/design-engine-schema";
+import type { AlarmDef } from "../services/plc-brands/types";
 import { bomMasters, bomItems } from "../../drizzle/bom-schema";
 import { submitTask, getTaskStatus } from "../services/task-worker.service";
 import { registerTaskHandler } from "../services/task-worker.service";
@@ -34,13 +35,13 @@ import { checkDesignConflicts, assertNoBlockingConflicts } from "../services/des
 import {
   plcProjects, plcProgramModules, plcIoMappings, plcAlarmDefinitions,
   plcUserAccessLevels, plcVersionHistory, plcEplanSchematics,
-  type PlcAccessPermissions,
+  type PlcAccessPermissions, type PlcBrand, type PlcModuleType, type PlcProgramStatus,
 } from "../../drizzle/plc-program-schema";
 import {
   generateProgramArchitecture, generateIoMappings as genIoMap,
   generateAlarmDefinitions as genAlarms, generateDefaultAccessLevels,
   generateLogicDiagram, generateModeStateDiagram, generateTroubleshootingGuide,
-  type StationInfo,
+  type StationInfo, type ProgramModule, type IoMappingEntry,
 } from "../services/plc-architecture.service";
 import { generateModuleCode, generateAllModuleCode } from "../services/plc-code-generator.service";
 import { promoteVersion, verifyProductionIntegrity, assertNotFrozen } from "../services/plc-version-promotion.service";
@@ -54,6 +55,22 @@ import "../services/plc-brands/mitsubishi-iqr.adapter";
 import "../services/plc-brands/omron-nj.adapter";
 
 const log = createChildLogger("design-engine");
+
+type StationType = typeof stationTypeEnum.enumValues[number];
+type ExportFormat = typeof exportFormatEnum.enumValues[number];
+type ExportStatus = typeof exportStatusEnum.enumValues[number];
+
+interface DecomposeTaskInput {
+  projectId: number;
+  proposalId?: number;
+  proposalSummary?: string;
+  workpieceInfo?: string;
+  cleanlinessRequirement?: string;
+  cycleTimeTarget?: number;
+  preferredCleaningType?: string;
+  buCode?: string;
+  createdBy?: string;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Station type metadata (for AI & frontend)
@@ -122,7 +139,7 @@ const STATION_TYPE_META: Record<string, {
 // ═══════════════════════════════════════════════════════════════════════════
 
 registerTaskHandler("M3_STATION_DECOMPOSE", async (_taskId, input) => {
-  const { projectId, proposalId, proposalSummary, workpieceInfo, cleanlinessRequirement, cycleTimeTarget, preferredCleaningType } = input as any;
+  const { projectId, proposalId, proposalSummary, workpieceInfo, cleanlinessRequirement, cycleTimeTarget, preferredCleaningType } = input as unknown as DecomposeTaskInput;
 
   const prompt = `你是 GRT 非标清洗设备资深总工程师，拥有20年超声波/高压喷淋/真空干燥清洗线设计经验。
 
@@ -211,31 +228,31 @@ ${proposalSummary || "暂无"}
         stationIndex: i + 1,
         stationName: st.stationName,
         stationNameEn: st.stationNameEn,
-        stationType: st.stationType as any,
+        stationType: st.stationType as StationType,
         description: st.description,
         cycleTime: st.cycleTime,
         mechanicalParams: st.mechanicalParams,
         electricalParams: st.electricalParams,
         aiGenerated: true,
         aiConfidence: "0.85",
-        buCode: (input as any).buCode || "BU3",
-        createdBy: (input as any).createdBy || "AI",
+        buCode: (input as unknown as DecomposeTaskInput).buCode || "BU3",
+        createdBy: (input as unknown as DecomposeTaskInput).createdBy || "AI",
       }).returning();
       savedIds.push(row.id);
     }
 
     return { success: true, stationCount: stations.length, stationIds: savedIds, stations };
-  } catch (err: any) {
+  } catch (err: unknown) {
     log.error({ err, projectId }, "M3_STATION_DECOMPOSE failed");
     // Fallback: generate default stations from the preferred cleaning type
-    return generateFallbackStations(projectId, proposalId, preferredCleaningType, input as any);
+    return generateFallbackStations(projectId, proposalId, preferredCleaningType!, input as unknown as DecomposeTaskInput);
   }
 });
 
 /** Fallback when LLM fails — use engineering templates */
 async function generateFallbackStations(
   projectId: number, proposalId: number | undefined,
-  cleaningType: string, meta: any,
+  _cleaningType: string, meta: DecomposeTaskInput,
 ) {
   // Standard ultrasonic + spray cleaning line template
   const template: Array<{ code: string; type: string; name: string; nameEn: string }> = [
@@ -265,7 +282,7 @@ async function generateFallbackStations(
       stationIndex: i + 1,
       stationName: t.name,
       stationNameEn: t.nameEn,
-      stationType: t.type as any,
+      stationType: t.type as StationType,
       description: `${t.name} — 标准模板生成`,
       cycleTime: 60,
       mechanicalParams: typeMeta.defaultMechParams,
@@ -284,8 +301,8 @@ async function generateFallbackStations(
 // SolidWorks VBA — delegates to enhanced service
 // ═══════════════════════════════════════════════════════════════════════════
 
-function generateSolidWorksVBA(stations: any[], projectName: string): string {
-  const stationData: StationData[] = stations.map((s, i) => ({
+function generateSolidWorksVBA(stations: Record<string, unknown>[], projectName: string): string {
+  const stationData: StationData[] = stations.map((s: any, i: number) => ({
     stationCode: s.stationCode,
     stationName: s.stationName,
     stationType: s.stationType,
@@ -300,7 +317,16 @@ function generateSolidWorksVBA(stations: any[], projectName: string): string {
 // EPLAN XML Generator
 // ═══════════════════════════════════════════════════════════════════════════
 
-function generateEplanXML(stations: any[], projectName: string): string {
+interface EplanStationRow {
+  stationCode: string;
+  stationName: string;
+  stationNameEn?: string;
+  stationType: string;
+  mechanicalParams?: Record<string, unknown>;
+  electricalParams?: Record<string, unknown>;
+}
+
+function generateEplanXML(stations: EplanStationRow[], projectName: string): string {
   const xmlLines: string[] = [
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<!-- GRT Design Engine — EPLAN P8 / Pro Panel Import -->`,
@@ -320,8 +346,8 @@ function generateEplanXML(stations: any[], projectName: string): string {
   let totalDI = 0, totalDO = 0, totalAI = 0, totalAO = 0, totalMotorPower = 0;
 
   for (const st of stations) {
-    const ep = st.electricalParams || {};
-    const mp = st.mechanicalParams || {};
+    const ep = (st.electricalParams || {}) as any;
+    const mp = (st.mechanicalParams || {}) as any;
     const code = st.stationCode;
     const di = ep.plcDI || 0; const dout = ep.plcDO || 0;
     const ai = ep.plcAI || 0; const ao = ep.plcAO || 0;
@@ -386,7 +412,7 @@ function generateEplanXML(stations: any[], projectName: string): string {
     }
 
     // Safety
-    if (ep.safetyInterlocks && ep.safetyInterlocks.length > 0) {
+    if (ep.safetyInterlocks && (ep as any).safetyInterlocks.length > 0) {
       xmlLines.push(`      <SafetyInterlocks>`);
       for (const si of ep.safetyInterlocks) {
         xmlLines.push(`        <Interlock Type="${si}" />`);
@@ -472,7 +498,7 @@ export const designEngineRouter = router({
         stationIndex: input.stationIndex,
         stationName: input.stationName,
         stationNameEn: input.stationNameEn || "",
-        stationType: input.stationType as any,
+        stationType: input.stationType as StationType,
         description: input.description || "",
         cycleTime: input.cycleTime,
         mechanicalParams: (input.mechanicalParams || {}) as MechanicalParams,
@@ -499,7 +525,7 @@ export const designEngineRouter = router({
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      const updates: any = { updatedAt: new Date().toISOString(), manualOverride: true };
+      const updates: Record<string, unknown> = { updatedAt: new Date().toISOString(), manualOverride: true };
       if (input.stationName !== undefined) updates.stationName = input.stationName;
       if (input.stationNameEn !== undefined) updates.stationNameEn = input.stationNameEn;
       if (input.stationType !== undefined) updates.stationType = input.stationType;
@@ -587,8 +613,8 @@ export const designEngineRouter = router({
 
       const [logRow] = await db.insert(designExportLogs).values({
         projectId: input.projectId,
-        exportFormat: "SOLIDWORKS_VBA" as any,
-        exportStatus: "COMPLETED" as any,
+        exportFormat: "SOLIDWORKS_VBA" as ExportFormat,
+        exportStatus: "COMPLETED" as ExportStatus,
         stationIds: stations.map(s => s.id),
         fileContent: vbaContent,
         fileName,
@@ -617,13 +643,13 @@ export const designEngineRouter = router({
       if (stations.length === 0) throw new Error("No stations found for this project");
 
       const projectName = input.projectName || `Project-${input.projectId}`;
-      const xmlContent = generateEplanXML(stations, projectName);
+      const xmlContent = generateEplanXML(stations as any, projectName);
       const fileName = `GRT_${projectName.replace(/\s+/g, "_")}_EPLAN.xml`;
 
       const [logRow] = await db.insert(designExportLogs).values({
         projectId: input.projectId,
-        exportFormat: "EPLAN_XML" as any,
-        exportStatus: "COMPLETED" as any,
+        exportFormat: "EPLAN_XML" as ExportFormat,
+        exportStatus: "COMPLETED" as ExportStatus,
         stationIds: stations.map(s => s.id),
         fileContent: xmlContent,
         fileName,
@@ -667,7 +693,7 @@ export const designEngineRouter = router({
       if (!row) return null;
       // Increment download count
       await db.update(designExportLogs)
-        .set({ downloadCount: (row.downloadCount || 0) + 1, exportStatus: "DOWNLOADED" as any })
+        .set({ downloadCount: (row.downloadCount || 0) + 1, exportStatus: "DOWNLOADED" as ExportStatus })
         .where(eq(designExportLogs.id, input.id));
       return { fileName: row.fileName, content: row.fileContent, format: row.exportFormat };
     }),
@@ -826,9 +852,9 @@ export const designEngineRouter = router({
       const [master] = await db.insert(bomMasters).values({
         productCode: `BOM-M3-${input.projectId}`,
         productName: `${projectName} 设备BOM`,
-        bomType: "engineering" as any,
+        bomType: "engineering",
         currentVersion: "1.0",
-        status: "draft" as any,
+        status: "draft",
         maxLevel: 2,
         standardQty: "1",
         standardUnit: "套",
@@ -853,7 +879,7 @@ export const designEngineRouter = router({
           materialSpec: stResult.stationType,
           quantity: "1",
           unit: "台",
-          sourceType: "manufacture" as any,
+          sourceType: "manufacture",
           unitCost: String(stResult.subtotal),
           extendedCost: String(stResult.subtotal),
           isCritical: true,
@@ -873,7 +899,7 @@ export const designEngineRouter = router({
             materialSpec: comp.materialSpec,
             quantity: String(comp.quantity),
             unit: comp.unit,
-            sourceType: comp.sourceType as any,
+            sourceType: comp.sourceType,
             unitCost: String(comp.unitCost),
             extendedCost: String(comp.unitCost * comp.quantity),
             isCritical: comp.isCritical,
@@ -1178,7 +1204,7 @@ export const designEngineRouter = router({
       const [project] = await db.insert(plcProjects).values({
         projectId: input.projectId,
         projectName: input.projectName,
-        plcBrand: input.plcBrand as any,
+        plcBrand: input.plcBrand as PlcBrand,
         plcModel: input.plcModel || "CPU 1516-3 PN/DP",
         networkProtocol: input.networkProtocol,
         hmiModel: input.hmiModel,
@@ -1188,7 +1214,7 @@ export const designEngineRouter = router({
         ioTotalAO: totalAO,
         rackCount: Math.ceil((totalDI + totalDO + totalAI + totalAO) / 128) || 1,
         createdBy: ctx.user?.name || "",
-        buCode: (ctx as any).bu?.code || "BU3",
+        buCode: (ctx as unknown as { bu?: { code: string } }).bu?.code || "BU3",
       }).returning();
 
       log.info({ plcProjectId: project.id, brand: input.plcBrand }, "PLC project created");
@@ -1427,15 +1453,15 @@ export const designEngineRouter = router({
       const accessRows = await db.select().from(plcUserAccessLevels).where(eq(plcUserAccessLevels.plcProjectId, mod.plcProjectId)).limit(20);
 
       const code = generateModuleCode(adapter, {
-        moduleName: mod.moduleName, moduleType: mod.moduleType as any,
+        moduleName: mod.moduleName, moduleType: mod.moduleType as ProgramModule["moduleType"],
         moduleNumber: mod.moduleNumber, sortOrder: mod.sortOrder || 0,
         description: mod.description || "", descriptionEn: mod.descriptionEn || "",
-        category: mod.category || "", parameterInterface: (mod.parameterInterface || {}) as any,
+        category: mod.category || "", parameterInterface: (mod.parameterInterface || {}) as ProgramModule["parameterInterface"],
       }, {
         stations,
-        ioMappings: ioRows.map(r => ({ ...r, stationId: r.stationId, signalName: r.signalName, signalNameEn: r.signalNameEn || "", address: r.address, ioType: r.ioType as any, dataType: r.dataType, moduleRack: r.moduleRack || 0, moduleSlot: r.moduleSlot || 0, moduleChannel: r.moduleChannel || 0, description: r.description || "", safetyRelevant: r.safetyRelevant || false })),
-        alarms: alarmRows.map(a => ({ code: a.alarmCode, message: a.messageZh || "", messageEn: a.messageEn || "", triggerCondition: a.triggerCondition || "", interlockAction: a.interlockAction || "", resetType: (a.resetType || "manual") as any, severity: (a.severity || "medium") as any })),
-        accessLevels: accessRows.map(a => ({ levelNumber: a.levelNumber, levelName: a.levelName, levelNameEn: a.levelNameEn || "", permissions: (a.permissions || {}) as any, timeout: a.timeout || 1800 })),
+        ioMappings: ioRows.map(r => ({ ...r, stationId: r.stationId, signalName: r.signalName, signalNameEn: r.signalNameEn || "", address: r.address, ioType: r.ioType as IoMappingEntry["ioType"], dataType: r.dataType, moduleRack: r.moduleRack || 0, moduleSlot: r.moduleSlot || 0, moduleChannel: r.moduleChannel || 0, description: r.description || "", safetyRelevant: r.safetyRelevant || false })),
+        alarms: alarmRows.map(a => ({ code: a.alarmCode, message: a.messageZh || "", messageEn: a.messageEn || "", triggerCondition: a.triggerCondition || "", interlockAction: a.interlockAction || "", resetType: (a.resetType || "manual") as AlarmDef["resetType"], severity: (a.severity || "medium") as AlarmDef["severity"] })),
+        accessLevels: accessRows.map(a => ({ levelNumber: a.levelNumber, levelName: a.levelName, levelNameEn: a.levelNameEn || "", permissions: (a.permissions || {}) as Record<string, boolean>, timeout: a.timeout || 1800 })),
       });
 
       await db.update(plcProgramModules).set({ sourceCode: code }).where(eq(plcProgramModules.id, input.moduleId));
@@ -1597,7 +1623,7 @@ export const designEngineRouter = router({
         stations,
         ioMappings: ioRows.map(r => ({
           signalName: r.signalName, signalNameEn: r.signalNameEn || "",
-          address: r.address, ioType: r.ioType as any, dataType: r.dataType,
+          address: r.address, ioType: r.ioType as IoMappingEntry["ioType"], dataType: r.dataType,
           moduleRack: r.moduleRack || 0, moduleSlot: r.moduleSlot || 0, moduleChannel: r.moduleChannel || 0,
           stationId: r.stationId, stationCode: stationRows.find(s => s.id === r.stationId)?.stationCode,
           description: r.description || "", safetyRelevant: r.safetyRelevant || false,
@@ -1707,7 +1733,7 @@ export const designEngineRouter = router({
 
       await db.update(plcProjects).set({
         currentVersion: target.versionString,
-        currentStatus: target.versionType as any,
+        currentStatus: target.versionType as PlcProgramStatus,
       }).where(eq(plcProjects.id, input.plcProjectId));
 
       return { success: true, rolledBackTo: target.versionString };
@@ -1745,10 +1771,10 @@ export const designEngineRouter = router({
         .orderBy(plcProgramModules.sortOrder).limit(200);
 
       const programModules = modules.map(m => ({
-        moduleName: m.moduleName, moduleType: m.moduleType as any,
+        moduleName: m.moduleName, moduleType: m.moduleType as ProgramModule["moduleType"],
         moduleNumber: m.moduleNumber, sortOrder: m.sortOrder || 0,
         description: m.description || "", descriptionEn: m.descriptionEn || "",
-        category: m.category || "", parameterInterface: (m.parameterInterface || {}) as any,
+        category: m.category || "", parameterInterface: (m.parameterInterface || {}) as ProgramModule["parameterInterface"],
       }));
 
       return {
@@ -1774,8 +1800,8 @@ export const designEngineRouter = router({
           messageEn: alarm.messageEn || "",
           triggerCondition: alarm.triggerCondition || "",
           interlockAction: alarm.interlockAction || "",
-          resetType: (alarm.resetType || "manual") as any,
-          severity: (alarm.severity || "medium") as any,
+          resetType: (alarm.resetType || "manual") as AlarmDef["resetType"],
+          severity: (alarm.severity || "medium") as AlarmDef["severity"],
         }),
         steps: alarm.troubleshootingSteps || [],
       };

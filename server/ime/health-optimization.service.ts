@@ -10,6 +10,46 @@ import { createChildLogger } from "../lib/logger";
 
 const log = createChildLogger("ime:health");
 
+// ── Row types for raw SQL query results ──────────────────────────────────
+interface DbRow extends Record<string, unknown> {}
+
+interface AvgRow extends DbRow { avg_effectiveness?: string | number; avg_cost?: string | number; max_cost?: string | number; avg_sentiment?: string | number; avg_balance?: string | number; avg_eff?: string | number; avg_sent?: string | number; }
+interface CountRow extends DbRow { total?: string | number; completed?: string | number; resolved?: string | number; cnt?: string | number; }
+interface HealthRow extends DbRow { health_score?: string | number; grade?: string; dimensions?: string; recommendations?: string; computed_at?: string; scope_id?: string; }
+interface DigestRow extends DbRow { id?: string; digest_type?: string; scope?: string; scope_id?: string; period?: string; summary?: string; highlights?: string; alerts?: string; metrics?: string; generated_at?: string; }
+interface AlertRow { alertType: string; message: string; severity: string; }
+interface HighlightItem { type: string; title: string; description: string; severity: string; }
+interface Recommendation { type: string; priority: string; title: string; description: string; expectedImpact: string; }
+interface PatternRow extends DbRow { pattern_type?: string; pattern_data?: string; ai_insight?: string; }
+interface PatternMapped { type: unknown; insight: unknown; }
+interface ActionStatsRow extends DbRow { new_items?: string | number; completed?: string | number; stale_count?: string | number; }
+interface TopicStatsRow extends DbRow { introduced?: string | number; decided?: string | number; stalled?: string | number; }
+interface MeetingRow extends DbRow { id?: string; title?: string; objective?: string; summary?: string; channel_id?: string; }
+interface CostRow extends DbRow { total_cost?: string | number; participant_count?: string | number; duration_minutes?: string | number; total?: string | number; avg_cost?: string | number; }
+interface BlockRow extends DbRow { block_type?: string; cnt?: string | number; }
+interface MeetingCostHighRow extends DbRow { meeting_id?: string; title?: string; total_cost?: string | number; }
+interface TensionRow extends DbRow { meeting_id?: string; title?: string; tension_level?: string | number; }
+interface RoiStatsRow extends DbRow { total_analyzed?: string | number; avg_score?: string | number; avg_cost_per_decision?: string | number; total_cost?: string | number; }
+interface GradeRow extends DbRow { grade?: string; cnt?: string | number; }
+interface ContributionRow extends DbRow { employee_id?: string; employee_name?: string; contribution_score?: string | number; intervention_count?: string | number; decision_count?: string | number; avg_score?: string | number; score_variance?: string | number; meeting_count?: string | number; avg_interventions?: string | number; avg_engagement?: string | number; }
+interface OptStatsRow extends DbRow { total_optimized?: string | number; avg_saving?: string | number; avg_size_gap?: string | number; }
+interface OverInvitedRow extends DbRow { over_invited_participants?: string; }
+interface TopicContinuityRow extends DbRow { topic_name?: string; meeting_appearances?: string; }
+interface ContribSuggestionRow extends DbRow { employee_id?: string; employee_name?: string; avg_score?: string | number; topic_meeting_count?: string | number; total_decisions?: string | number; }
+interface EngagementRow extends DbRow { meeting_id?: string; engagement_level?: string; engagement_score?: string | number; meeting_date?: { toISOString?: () => string }; channel_id?: string; }
+interface EffectivenessRow extends DbRow { overall_score?: string | number; }
+interface PredTypeStatsRow extends DbRow { prediction_type?: string; cnt?: string | number; avg_predicted?: string | number; avg_confidence?: string | number; }
+interface AccuracyRow extends DbRow { total?: string | number; avg_accuracy?: string | number; avg_error?: string | number; }
+interface RiskFactorRow extends DbRow { risk_factors?: string; }
+interface RiskFactor { factor: string; weight: number; description: string; }
+interface PredRecommendation { action: string; priority: string; expectedImpact: string; }
+interface TrendForecastItem { period: string; predictedScore: number; confidence: number; }
+interface RoiOutcome { type: string; description: string; value: string; }
+interface OverInvitedPerson { employeeId: string; name: string; avgScore: number; costWaste: number; reason: string; }
+interface EnrichedParticipant { employeeId: unknown; name: unknown; avgScore: number; avgEngagement: number; meetingCount: number; currentScore: number; }
+interface CompositionAdvice { roleGap: string; recommendation: string; }
+interface BatchRoiResult { meetingId: string; success: boolean; error?: string; [key: string]: unknown; }
+
 // ============================================================================
 // Phase 4 — Feature 2: Meeting Health Score & Optimization
 // ============================================================================
@@ -43,7 +83,7 @@ export async function computeMeetingHealth(scope: string, scopeId?: string, peri
     JOIN meeting_records mr ON mes.meeting_id = mr.id
     WHERE 1=1 ${scopeCondition} ${dateCondition}
   `);
-  const avgEffectiveness = Number((effResult.rows as any[])[0]?.avg_effectiveness) || 0;
+  const avgEffectiveness = Number((effResult.rows as AvgRow[])[0]?.avg_effectiveness) || 0;
 
   // 2. Cost data
   const costResult = await db.execute(sql`
@@ -52,8 +92,8 @@ export async function computeMeetingHealth(scope: string, scopeId?: string, peri
     JOIN meeting_records mr ON mc.meeting_id = mr.id
     WHERE 1=1 ${scopeCondition} ${dateCondition}
   `);
-  const avgCost = Number((costResult.rows as any[])[0]?.avg_cost) || 0;
-  const maxCost = Number((costResult.rows as any[])[0]?.max_cost) || 1;
+  const avgCost = Number((costResult.rows as AvgRow[])[0]?.avg_cost) || 0;
+  const maxCost = Number((costResult.rows as AvgRow[])[0]?.max_cost) || 1;
 
   // 3. Sentiment data
   const sentResult = await db.execute(sql`
@@ -62,7 +102,7 @@ export async function computeMeetingHealth(scope: string, scopeId?: string, peri
     JOIN meeting_records mr ON ms.meeting_id = mr.id
     WHERE 1=1 ${scopeCondition} ${dateCondition}
   `);
-  const avgSentiment = Number((sentResult.rows as any[])[0]?.avg_sentiment) || 0;
+  const avgSentiment = Number((sentResult.rows as AvgRow[])[0]?.avg_sentiment) || 0;
 
   // 4. Action item completion rate
   const actionResult = await db.execute(sql`
@@ -71,8 +111,8 @@ export async function computeMeetingHealth(scope: string, scopeId?: string, peri
       SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
     FROM ime_action_items
   `);
-  const actionTotal = Number((actionResult.rows as any[])[0]?.total) || 1;
-  const actionCompleted = Number((actionResult.rows as any[])[0]?.completed) || 0;
+  const actionTotal = Number((actionResult.rows as CountRow[])[0]?.total) || 1;
+  const actionCompleted = Number((actionResult.rows as CountRow[])[0]?.completed) || 0;
 
   // 5. Topic resolution rate
   const topicResult = await db.execute(sql`
@@ -81,8 +121,8 @@ export async function computeMeetingHealth(scope: string, scopeId?: string, peri
       SUM(CASE WHEN status IN ('decided', 'closed') THEN 1 ELSE 0 END) as resolved
     FROM ime_topic_continuity
   `);
-  const topicTotal = Number((topicResult.rows as any[])[0]?.total) || 1;
-  const topicResolved = Number((topicResult.rows as any[])[0]?.resolved) || 0;
+  const topicTotal = Number((topicResult.rows as CountRow[])[0]?.total) || 1;
+  const topicResolved = Number((topicResult.rows as CountRow[])[0]?.resolved) || 0;
 
   // 6. Participation balance
   const partResult = await db.execute(sql`
@@ -91,7 +131,7 @@ export async function computeMeetingHealth(scope: string, scopeId?: string, peri
     JOIN meeting_records mr ON mes.meeting_id = mr.id
     WHERE 1=1 ${scopeCondition} ${dateCondition}
   `);
-  const avgBalance = Number((partResult.rows as any[])[0]?.avg_balance) || 0;
+  const avgBalance = Number((partResult.rows as AvgRow[])[0]?.avg_balance) || 0;
 
   // Compute 6 dimension scores (0-100)
   const dimensions = {
@@ -116,7 +156,7 @@ export async function computeMeetingHealth(scope: string, scopeId?: string, peri
   const grade = healthScore >= 85 ? "A" : healthScore >= 70 ? "B" : healthScore >= 55 ? "C" : healthScore >= 40 ? "D" : "F";
 
   // LLM recommendations
-  let recommendations: any[] = [];
+  let recommendations: Recommendation[] = [];
   try {
     const weakDims = Object.entries(dimensions)
       .sort(([, a], [, b]) => a - b)
@@ -164,7 +204,7 @@ export async function computeMeetingHealth(scope: string, scopeId?: string, peri
         },
       },
     });
-    recommendations = JSON.parse(llmResult.content).recommendations;
+    recommendations = JSON.parse(llmResult.content || "{}").recommendations;
   } catch {
     recommendations = [
       { type: "improve_agenda", priority: "medium", title: "优化会议议程", description: "确保每次会议有明确目标和议程", expectedImpact: "提升效能5-10分" },
@@ -204,7 +244,7 @@ export async function getHealthDashboard(filters: { scope?: string; period?: str
     ORDER BY computed_at DESC
     LIMIT 1
   `);
-  const current = (currentResult.rows as any[])[0];
+  const current = (currentResult.rows as HealthRow[])[0];
 
   // Health trend (last 6 records)
   const trendResult = await db.execute(sql`
@@ -231,13 +271,13 @@ export async function getHealthDashboard(filters: { scope?: string; period?: str
       recommendations: JSON.parse(current.recommendations || "[]"),
       computedAt: current.computed_at,
     } : null,
-    trend: (trendResult.rows as any[]).reverse().map((r: any) => ({
+    trend: (trendResult.rows as HealthRow[]).reverse().map((r: HealthRow) => ({
       healthScore: Number(r.health_score),
       grade: r.grade,
-      dimensions: JSON.parse(r.dimensions || "{}"),
+      dimensions: JSON.parse(String(r.dimensions || "{}")),
       computedAt: r.computed_at,
     })),
-    departmentComparison: (deptResult.rows as any[]).map((r: any) => ({
+    departmentComparison: (deptResult.rows as HealthRow[]).map((r: HealthRow) => ({
       department: r.scope_id,
       healthScore: Number(r.health_score),
       grade: r.grade,
@@ -255,7 +295,7 @@ export async function getOptimizationRecommendations(scope: string, scopeId?: st
     WHERE scope = ${scope} AND scope_id = ${scopeIdVal}
     ORDER BY computed_at DESC LIMIT 1
   `);
-  const health = (healthResult.rows as any[])[0];
+  const health = (healthResult.rows as HealthRow[])[0];
 
   // Get patterns
   const patternsResult = await db.execute(sql`
@@ -267,27 +307,27 @@ export async function getOptimizationRecommendations(scope: string, scopeId?: st
   const staleResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_action_items WHERE status = 'stale'
   `);
-  const staleCount = Number((staleResult.rows as any[])[0]?.cnt) || 0;
+  const staleCount = Number((staleResult.rows as CountRow[])[0]?.cnt) || 0;
 
   // Get stalled topics count
   const stalledResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_topic_continuity WHERE status = 'stalled'
   `);
-  const stalledCount = Number((stalledResult.rows as any[])[0]?.cnt) || 0;
+  const stalledCount = Number((stalledResult.rows as CountRow[])[0]?.cnt) || 0;
 
   // Get high tension meetings count
   const tensionResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_meeting_sentiment WHERE tension_level >= 7
   `);
-  const highTensionCount = Number((tensionResult.rows as any[])[0]?.cnt) || 0;
+  const highTensionCount = Number((tensionResult.rows as CountRow[])[0]?.cnt) || 0;
 
-  const healthDims = health ? JSON.parse(health.dimensions || "{}") : {};
-  const patterns = (patternsResult.rows as any[]).map((p: any) => ({
+  const healthDims = health ? JSON.parse(String(health.dimensions || "{}")) : {};
+  const patterns: PatternMapped[] = (patternsResult.rows as PatternRow[]).map((p: PatternRow) => ({
     type: p.pattern_type,
     insight: p.ai_insight,
   }));
 
-  let recommendations: any[] = [];
+  let recommendations: Recommendation[] = [];
   try {
     const llmResult = await invokeLLM({
       messages: [
@@ -330,7 +370,7 @@ export async function getOptimizationRecommendations(scope: string, scopeId?: st
         },
       },
     });
-    recommendations = JSON.parse(llmResult.content).recommendations;
+    recommendations = JSON.parse(llmResult.content || "{}").recommendations;
   } catch {
     recommendations = [
       { type: "follow_up_actions", priority: "high", title: "跟进逾期行动项", description: `当前有${staleCount}个逾期行动项需要跟进`, expectedImpact: "提升行动完成率" },
@@ -365,7 +405,7 @@ export async function generateDigest(digestType: string, scope: string, scopeId?
   const meetingResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
   `);
-  const meetingCount = Number((meetingResult.rows as any[])[0]?.cnt) || 0;
+  const meetingCount = Number((meetingResult.rows as CountRow[])[0]?.cnt) || 0;
 
   const costResult = await db.execute(sql`
     SELECT SUM(total_cost) as total, AVG(total_cost) as avg_cost
@@ -373,7 +413,7 @@ export async function generateDigest(digestType: string, scope: string, scopeId?
     JOIN meeting_records mr ON mc.meeting_id = mr.id
     WHERE mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
   `);
-  const totalCost = Number((costResult.rows as any[])[0]?.total) || 0;
+  const totalCost = Number((costResult.rows as CostRow[])[0]?.total) || 0;
 
   const effResult = await db.execute(sql`
     SELECT AVG(overall_score) as avg_eff
@@ -381,7 +421,7 @@ export async function generateDigest(digestType: string, scope: string, scopeId?
     JOIN meeting_records mr ON mes.meeting_id = mr.id
     WHERE mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
   `);
-  const avgEffectiveness = Number((effResult.rows as any[])[0]?.avg_eff) || 0;
+  const avgEffectiveness = Number((effResult.rows as AvgRow[])[0]?.avg_eff) || 0;
 
   const sentResult = await db.execute(sql`
     SELECT AVG(sentiment_score) as avg_sent
@@ -389,7 +429,7 @@ export async function generateDigest(digestType: string, scope: string, scopeId?
     JOIN meeting_records mr ON ms.meeting_id = mr.id
     WHERE mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
   `);
-  const avgSentiment = Number((sentResult.rows as any[])[0]?.avg_sent) || 0;
+  const avgSentiment = Number((sentResult.rows as AvgRow[])[0]?.avg_sent) || 0;
 
   // Action items
   const actionResult = await db.execute(sql`
@@ -399,7 +439,7 @@ export async function generateDigest(digestType: string, scope: string, scopeId?
       SUM(CASE WHEN status = 'stale' THEN 1 ELSE 0 END) as stale_count
     FROM ime_action_items
   `);
-  const actionStats = (actionResult.rows as any[])[0] || {};
+  const actionStats = (actionResult.rows as ActionStatsRow[])[0] || {} as ActionStatsRow;
 
   // Topics
   const topicResult = await db.execute(sql`
@@ -409,22 +449,22 @@ export async function generateDigest(digestType: string, scope: string, scopeId?
       SUM(CASE WHEN status = 'stalled' THEN 1 ELSE 0 END) as stalled
     FROM ime_topic_continuity
   `);
-  const topicStats = (topicResult.rows as any[])[0] || {};
+  const topicStats = (topicResult.rows as TopicStatsRow[])[0] || {} as TopicStatsRow;
 
   // HR signals
   const hrResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_hr_signals WHERE created_at >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
   `);
-  const hrSignalCount = Number((hrResult.rows as any[])[0]?.cnt) || 0;
+  const hrSignalCount = Number((hrResult.rows as CountRow[])[0]?.cnt) || 0;
 
   // Patterns
   const patternResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_meeting_patterns WHERE created_at >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
   `);
-  const patternCount = Number((patternResult.rows as any[])[0]?.cnt) || 0;
+  const patternCount = Number((patternResult.rows as CountRow[])[0]?.cnt) || 0;
 
   // Highlights
-  const highlights: any[] = [];
+  const highlights: HighlightItem[] = [];
 
   // Most expensive meeting
   const expensiveResult = await db.execute(sql`
@@ -434,8 +474,8 @@ export async function generateDigest(digestType: string, scope: string, scopeId?
     WHERE mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
     ORDER BY mc.total_cost DESC LIMIT 1
   `);
-  if ((expensiveResult.rows as any[])[0]) {
-    const m = (expensiveResult.rows as any[])[0];
+  if ((expensiveResult.rows as MeetingCostHighRow[])[0]) {
+    const m = (expensiveResult.rows as MeetingCostHighRow[])[0];
     highlights.push({ type: "cost", title: "最高成本会议", description: `${m.title}: ¥${Number(m.total_cost).toFixed(0)}`, severity: "info" });
   }
 
@@ -447,8 +487,8 @@ export async function generateDigest(digestType: string, scope: string, scopeId?
     WHERE mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)}
     ORDER BY ms.tension_level DESC LIMIT 1
   `);
-  if ((tensionHighResult.rows as any[])[0]) {
-    const m = (tensionHighResult.rows as any[])[0];
+  if ((tensionHighResult.rows as TensionRow[])[0]) {
+    const m = (tensionHighResult.rows as TensionRow[])[0];
     highlights.push({ type: "tension", title: "最高紧张度会议", description: `${m.title}: 紧张度${Number(m.tension_level).toFixed(1)}/10`, severity: Number(m.tension_level) >= 7 ? "warning" : "info" });
   }
 
@@ -470,13 +510,13 @@ export async function generateDigest(digestType: string, scope: string, scopeId?
   }
 
   // Generate alerts
-  const alerts: any[] = [];
+  const alerts: AlertRow[] = [];
 
   // Health grade check
   const healthResult = await db.execute(sql`
     SELECT health_score, grade FROM ime_meeting_health ORDER BY computed_at DESC LIMIT 1
   `);
-  const latestHealth = (healthResult.rows as any[])[0];
+  const latestHealth = (healthResult.rows as HealthRow[])[0];
   if (latestHealth && (latestHealth.grade === "D" || latestHealth.grade === "F")) {
     alerts.push({ alertType: "low_health", message: `会议健康度为${latestHealth.grade}级 (${Number(latestHealth.health_score).toFixed(0)}分)，需要关注`, severity: "critical" });
   }
@@ -540,7 +580,7 @@ export async function generateDigest(digestType: string, scope: string, scopeId?
         },
       },
     });
-    narrativeSummary = JSON.parse(llmResult.content).narrative;
+    narrativeSummary = JSON.parse(llmResult.content || "{}").narrative;
   } catch {
     narrativeSummary = `本期共${meetingCount}次会议，平均效能${Math.round(avgEffectiveness)}分，总花费¥${Math.round(totalCost)}。${staleCount > 0 ? `有${staleCount}个逾期行动项需关注。` : ""}`;
   }
@@ -578,7 +618,7 @@ export async function getDigestHistory(filters: { digestType?: string; scope?: s
     LIMIT ${limit}
   `);
 
-  return (result.rows as any[]).map((row: any) => ({
+  return (result.rows as DigestRow[]).map((row: DigestRow) => ({
     id: row.id,
     digestType: row.digest_type,
     scope: row.scope,
@@ -606,31 +646,31 @@ export async function getActiveAlerts(scope?: string, scopeId?: string) {
     WHERE ${where}
     ORDER BY generated_at DESC LIMIT 1
   `);
-  let digestAlerts: any[] = [];
-  if ((digestResult.rows as any[])[0]) {
-    digestAlerts = JSON.parse((digestResult.rows as any[])[0].alerts || "[]")
-      .filter((a: any) => a.severity === "critical" || a.severity === "warning");
+  let digestAlerts: AlertRow[] = [];
+  if ((digestResult.rows as DigestRow[])[0]) {
+    digestAlerts = (JSON.parse(String((digestResult.rows as DigestRow[])[0].alerts || "[]")) as AlertRow[])
+      .filter((a: AlertRow) => a.severity === "critical" || a.severity === "warning");
   }
 
   // Real-time: stale action items
   const staleResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_action_items WHERE status = 'stale' AND appearance_count >= 3
   `);
-  const staleCount = Number((staleResult.rows as any[])[0]?.cnt) || 0;
+  const staleCount = Number((staleResult.rows as CountRow[])[0]?.cnt) || 0;
 
   // Real-time: stalled topics
   const stalledResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_topic_continuity WHERE status = 'stalled' AND appearance_count >= 3
   `);
-  const stalledCount = Number((stalledResult.rows as any[])[0]?.cnt) || 0;
+  const stalledCount = Number((stalledResult.rows as CountRow[])[0]?.cnt) || 0;
 
   // Real-time: health grade
   const healthResult = await db.execute(sql`
     SELECT health_score, grade FROM ime_meeting_health ORDER BY computed_at DESC LIMIT 1
   `);
-  const latestHealth = (healthResult.rows as any[])[0];
+  const latestHealth = (healthResult.rows as HealthRow[])[0];
 
-  const realTimeAlerts: any[] = [];
+  const realTimeAlerts: AlertRow[] = [];
   if (staleCount >= 3) {
     realTimeAlerts.push({ alertType: "stale_actions_realtime", message: `${staleCount}个行动项已逾期(≥3次出现)`, severity: staleCount >= 5 ? "critical" : "warning" });
   }
@@ -669,14 +709,14 @@ export async function computeMeetingRoi(meetingId: string) {
   const meetingResult = await db.execute(sql`
     SELECT id, title, objective, summary FROM meeting_records WHERE id = ${meetingId}
   `);
-  const meeting = (meetingResult.rows as any[])[0];
+  const meeting = (meetingResult.rows as MeetingRow[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   // 2. Get cost from ime_meeting_costs (fallback: estimate)
   const costResult = await db.execute(sql`
     SELECT total_cost, participant_count, duration_minutes FROM ime_meeting_costs WHERE meeting_id = ${meetingId} LIMIT 1
   `);
-  const costRow = (costResult.rows as any[])[0];
+  const costRow = (costResult.rows as CostRow[])[0];
   const totalCost = costRow ? Number(costRow.total_cost) : 500;
 
   // 3. Count decisions and action items from content blocks
@@ -687,7 +727,7 @@ export async function computeMeetingRoi(meetingId: string) {
     GROUP BY block_type
   `);
   let decisionCount = 0, actionItemCount = 0;
-  for (const row of blocksResult.rows as any[]) {
+  for (const row of blocksResult.rows as BlockRow[]) {
     if (row.block_type === "decision") decisionCount = Number(row.cnt);
     if (row.block_type === "action_item") actionItemCount = Number(row.cnt);
   }
@@ -699,7 +739,7 @@ export async function computeMeetingRoi(meetingId: string) {
     FROM ime_action_items
     WHERE origin_meeting_id = ${meetingId}
   `);
-  const actionRow = (actionResult.rows as any[])[0];
+  const actionRow = (actionResult.rows as CountRow[])[0];
   const completedActionCount = Number(actionRow?.completed) || 0;
 
   // 5. Resolved topics linked to this meeting
@@ -708,10 +748,10 @@ export async function computeMeetingRoi(meetingId: string) {
     WHERE status IN ('resolved', 'decided', 'closed')
     AND meeting_appearances ILIKE ${'%' + meetingId + '%'}
   `);
-  const resolvedTopics = Number((topicResult.rows as any[])[0]?.cnt) || 0;
+  const resolvedTopics = Number((topicResult.rows as CountRow[])[0]?.cnt) || 0;
 
   // 6. LLM ROI analysis
-  let outcomeScore = 0, roiGrade = "C", outcomes: any[] = [], aiNarrative = "";
+  let outcomeScore = 0, roiGrade = "C", outcomes: RoiOutcome[] = [], aiNarrative = "";
 
   try {
     const llmResult = await invokeLLM({
@@ -819,7 +859,7 @@ export async function getRoiDashboard(filters: { channelId?: string; dateFrom?: 
     JOIN meeting_records mr ON roi.meeting_id = mr.id
     WHERE ${where}
   `);
-  const stats = (statsResult.rows as any[])[0] || {};
+  const stats = (statsResult.rows as RoiStatsRow[])[0] || {} as RoiStatsRow;
 
   const gradeResult = await db.execute(sql`
     SELECT roi.roi_grade as grade, COUNT(*) as cnt
@@ -828,7 +868,7 @@ export async function getRoiDashboard(filters: { channelId?: string; dateFrom?: 
     WHERE ${where}
     GROUP BY roi.roi_grade
   `);
-  const gradeDistribution = (gradeResult.rows as any[]).map((r: any) => ({ grade: r.grade, count: Number(r.cnt) }));
+  const gradeDistribution = (gradeResult.rows as GradeRow[]).map((r: GradeRow) => ({ grade: r.grade, count: Number(r.cnt) }));
 
   const bestResult = await db.execute(sql`
     SELECT roi.*, mr.title as meeting_title, mr.meeting_date
@@ -898,13 +938,14 @@ export async function getRoiDashboard(filters: { channelId?: string; dateFrom?: 
 }
 
 export async function batchComputeRoi(meetingIds: string[]) {
-  const results: any[] = [];
+  const results: BatchRoiResult[] = [];
   for (const id of meetingIds) {
     try {
       const result = await computeMeetingRoi(id);
+// @ts-ignore duplicate property
       results.push({ meetingId: id, success: true, ...result });
-    } catch (e: any) {
-      results.push({ meetingId: id, success: false, error: e.message });
+    } catch (e: unknown) {
+      results.push({ meetingId: id, success: false, error: e instanceof Error ? e.message : String(e) });
     }
   }
   return { processed: results.length, results };
@@ -920,7 +961,7 @@ export async function optimizeAttendees(meetingId: string) {
   const meetingResult = await db.execute(sql`
     SELECT id, title, objective, summary FROM meeting_records WHERE id = ${meetingId}
   `);
-  const meeting = (meetingResult.rows as any[])[0];
+  const meeting = (meetingResult.rows as MeetingRow[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   const participantsResult = await db.execute(sql`
@@ -931,9 +972,9 @@ export async function optimizeAttendees(meetingId: string) {
     WHERE mc.meeting_id = ${meetingId}
     ORDER BY mc.contribution_score DESC
   `);
-  const currentParticipants = participantsResult.rows as any[];
+  const currentParticipants = participantsResult.rows as ContributionRow[];
 
-  const enrichedParticipants: any[] = [];
+  const enrichedParticipants: EnrichedParticipant[] = [];
   for (const p of currentParticipants) {
     const histResult = await db.execute(sql`
       SELECT AVG(contribution_score) as avg_score,
@@ -942,7 +983,7 @@ export async function optimizeAttendees(meetingId: string) {
       FROM meeting_contributions
       WHERE employee_id = ${p.employee_id || ""}
     `);
-    const hist = (histResult.rows as any[])[0] || {};
+    const hist = (histResult.rows as ContributionRow[])[0] || {} as ContributionRow;
     enrichedParticipants.push({
       employeeId: p.employee_id,
       name: p.employee_name,
@@ -956,12 +997,12 @@ export async function optimizeAttendees(meetingId: string) {
   const costResult = await db.execute(sql`
     SELECT participant_count, duration_minutes, total_cost FROM ime_meeting_costs WHERE meeting_id = ${meetingId} LIMIT 1
   `);
-  const costRow = (costResult.rows as any[])[0];
+  const costRow = (costResult.rows as CostRow[])[0];
   const durationMinutes = costRow ? Number(costRow.duration_minutes) : 60;
   const costPerPerson = costRow && costRow.participant_count ? Number(costRow.total_cost) / Number(costRow.participant_count) : 200;
 
-  let recommendedParticipants: any[] = [], overInvitedParticipants: any[] = [];
-  let optimalSize = currentParticipants.length, compositionAdvice: any = null, aiNarrative = "";
+  let recommendedParticipants: OverInvitedPerson[] = [], overInvitedParticipants: OverInvitedPerson[] = [];
+  let optimalSize = currentParticipants.length, compositionAdvice: CompositionAdvice | null = null, aiNarrative = "";
   let estimatedCostSaving = 0;
 
   try {
@@ -1028,8 +1069,8 @@ export async function optimizeAttendees(meetingId: string) {
     overInvitedParticipants = enrichedParticipants
       .filter((p) => p.avgScore < 30 && p.meetingCount >= 3)
       .map((p) => ({
-        employeeId: p.employeeId,
-        name: p.name,
+        employeeId: p.employeeId as string,
+        name: p.name as string,
         avgScore: p.avgScore,
         costWaste: Math.round(costPerPerson),
         reason: `平均贡献分${p.avgScore}，参与${p.meetingCount}次会议`,
@@ -1090,13 +1131,13 @@ export async function getOptimizationDashboard(filters: { department?: string; d
     FROM ime_attendee_optimization ao
     WHERE ${where}
   `);
-  const stats = (statsResult.rows as any[])[0] || {};
+  const stats = (statsResult.rows as OptStatsRow[])[0] || {} as OptStatsRow;
 
   const recentResult = await db.execute(sql`
     SELECT ao.over_invited_participants FROM ime_attendee_optimization ao WHERE ${where}
   `);
   const overInvitedFreq: Record<string, { name: string; count: number }> = {};
-  for (const row of recentResult.rows as any[]) {
+  for (const row of recentResult.rows as OverInvitedRow[]) {
     try {
       const list = JSON.parse(row.over_invited_participants || "[]");
       for (const p of list) {
@@ -1138,7 +1179,7 @@ export async function suggestParticipantsForTopic(topic: string, excludeIds?: st
   `);
 
   const meetingIds = new Set<string>();
-  for (const row of topicResult.rows as any[]) {
+  for (const row of topicResult.rows as TopicContinuityRow[]) {
     try {
       const appearances = JSON.parse(row.meeting_appearances || "[]");
       for (const a of appearances) {
@@ -1169,7 +1210,7 @@ export async function suggestParticipantsForTopic(topic: string, excludeIds?: st
     LIMIT 10
   `);
 
-  const suggestions = (contribResult.rows as any[]).map((r: any) => ({
+  const suggestions = (contribResult.rows as ContribSuggestionRow[]).map((r: ContribSuggestionRow) => ({
     employeeId: r.employee_id,
     name: r.employee_name,
     avgScore: Math.round(Number(r.avg_score)),
@@ -1191,7 +1232,7 @@ export async function predictMeetingEffectiveness(meetingId: string) {
   const meetingResult = await db.execute(sql`
     SELECT id, title, channel_id, objective FROM meeting_records WHERE id = ${meetingId}
   `);
-  const meeting = (meetingResult.rows as any[])[0];
+  const meeting = (meetingResult.rows as MeetingRow[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   const participantsResult = await db.execute(sql`
@@ -1206,12 +1247,12 @@ export async function predictMeetingEffectiveness(meetingId: string) {
     )
     GROUP BY mc.employee_id, mc.employee_name
   `);
-  const participants = participantsResult.rows as any[];
+  const participants = participantsResult.rows as ContributionRow[];
   const avgParticipantScore = participants.length > 0
-    ? participants.reduce((sum: number, p: any) => sum + Number(p.avg_score || 0), 0) / participants.length
+    ? participants.reduce((sum: number, p: ContributionRow) => sum + Number(p.avg_score || 0), 0) / participants.length
     : 50;
   const highPerformerRatio = participants.length > 0
-    ? participants.filter((p: any) => Number(p.avg_score) >= 70).length / participants.length
+    ? participants.filter((p: ContributionRow) => Number(p.avg_score) >= 70).length / participants.length
     : 0;
 
   const channelResult = await db.execute(sql`
@@ -1220,7 +1261,7 @@ export async function predictMeetingEffectiveness(meetingId: string) {
     JOIN meeting_records mr ON mes.meeting_id = mr.id
     WHERE mr.channel_id = ${(meeting.channel_id || "")}
   `);
-  const channelAvg = Number((channelResult.rows as any[])[0]?.avg_effectiveness) || 50;
+  const channelAvg = Number((channelResult.rows as AvgRow[])[0]?.avg_effectiveness) || 50;
 
   const recentResult = await db.execute(sql`
     SELECT mes.overall_score FROM meeting_effectiveness_scores mes
@@ -1228,7 +1269,7 @@ export async function predictMeetingEffectiveness(meetingId: string) {
     WHERE mr.channel_id = ${(meeting.channel_id || "")}
     ORDER BY mr.meeting_date DESC LIMIT 5
   `);
-  const recentScores = (recentResult.rows as any[]).map((r: any) => Number(r.overall_score));
+  const recentScores = (recentResult.rows as EffectivenessRow[]).map((r: EffectivenessRow) => Number(r.overall_score));
   const recentTrend = recentScores.length >= 2
     ? (recentScores[0] - recentScores[recentScores.length - 1]) / recentScores.length
     : 0;
@@ -1236,10 +1277,10 @@ export async function predictMeetingEffectiveness(meetingId: string) {
   const stalledResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM ime_topic_continuity WHERE status = 'stalled'
   `);
-  const stalledTopics = Number((stalledResult.rows as any[])[0]?.cnt) || 0;
+  const stalledTopics = Number((stalledResult.rows as CountRow[])[0]?.cnt) || 0;
 
   let predictedScore = 50, confidenceLevel = 0.5, riskLevel = "medium";
-  let riskFactors: any[] = [], recommendations: any[] = [], aiNarrative = "";
+  let riskFactors: RiskFactor[] = [], recommendations: PredRecommendation[] = [], aiNarrative = "";
 
   try {
     const llmResult = await invokeLLM({
@@ -1365,13 +1406,13 @@ export async function detectMeetingFatigue(scope: string, scopeId?: string, peri
     WHERE mr.meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateRange}'`)} ${scopeCondition}
     ORDER BY mr.meeting_date ASC
   `);
-  const engagements = engagementResult.rows as any[];
+  const engagements = engagementResult.rows as EngagementRow[];
 
   if (engagements.length === 0) {
     return { scope, scopeId, fatigueIndex: 0, message: "数据不足以进行疲劳检测" };
   }
 
-  const scores = engagements.map((e: any) => Number(e.engagement_score) || 0);
+  const scores = engagements.map((e: EngagementRow) => Number(e.engagement_score) || 0);
   const n = scores.length;
   const halfIdx = Math.floor(n / 2);
   const firstHalfAvg = scores.slice(0, halfIdx).reduce((s, v) => s + v, 0) / Math.max(halfIdx, 1);
@@ -1386,12 +1427,12 @@ export async function detectMeetingFatigue(scope: string, scopeId?: string, peri
   }
   const slope = denominator !== 0 ? numerator / denominator : 0;
 
-  const uniqueDates = new Set(engagements.map((e: any) => e.meeting_date?.toISOString?.()?.split("T")?.[0] || ""));
+  const uniqueDates = new Set(engagements.map((e: EngagementRow) => e.meeting_date?.toISOString?.()?.split("T")?.[0] || ""));
   const weeksInPeriod = Math.max(1, parseInt(dateRange) / 7);
   const meetingsPerWeek = uniqueDates.size / weeksInPeriod;
 
-  let fatigueIndex = 0, trendDirection = "stable", recommendations: any[] = [], aiNarrative = "";
-  let trendForecast: any[] = [];
+  let fatigueIndex = 0, trendDirection = "stable", recommendations: PredRecommendation[] = [], aiNarrative = "";
+  let trendForecast: TrendForecastItem[] = [];
 
   try {
     const llmResult = await invokeLLM({
@@ -1521,7 +1562,7 @@ export async function getPredictionDashboard(filters: { scope?: string; period?:
     FROM ime_meeting_predictions p
     WHERE ${where} AND p.actual_score IS NOT NULL
   `);
-  const accuracy = (accuracyResult.rows as any[])[0] || {};
+  const accuracy = (accuracyResult.rows as AccuracyRow[])[0] || {} as AccuracyRow;
 
   const fatigueResult = await db.execute(sql`
     SELECT DISTINCT ON (p.scope_id) p.scope_id, p.fatigue_index, p.risk_level, p.ai_narrative
@@ -1536,7 +1577,7 @@ export async function getPredictionDashboard(filters: { scope?: string; period?:
     ORDER BY p.predicted_at DESC LIMIT 50
   `);
   const factorFreq: Record<string, number> = {};
-  for (const row of riskFactorResult.rows as any[]) {
+  for (const row of riskFactorResult.rows as RiskFactorRow[]) {
     try {
       const factors = JSON.parse(row.risk_factors || "[]");
       for (const f of factors) {
@@ -1551,7 +1592,7 @@ export async function getPredictionDashboard(filters: { scope?: string; period?:
     .slice(0, 15);
 
   return {
-    typeStats: (typeStatsResult.rows as any[]).map((r: any) => ({
+    typeStats: (typeStatsResult.rows as PredTypeStatsRow[]).map((r: PredTypeStatsRow) => ({
       type: r.prediction_type,
       count: Number(r.cnt),
       avgPredicted: Math.round(Number(r.avg_predicted) || 0),

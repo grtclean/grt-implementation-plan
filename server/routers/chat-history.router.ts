@@ -30,7 +30,7 @@ export const chatHistoryRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [session] = await db.insert(aiChatSessions).values({
-      userId: ctx.user.id,
+      userId: ctx.user!.id,
       assistantType: input.assistantType || "solution",
       title: input.title,
       projectId: input.projectId,
@@ -80,7 +80,7 @@ export const chatHistoryRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [session] = await db.insert(aiChatSessions).values({
-      userId: ctx.user.id,
+      userId: ctx.user!.id,
       assistantType: input.assistantType || "solution",
       title: input.title || "新会话",
     } as any).returning();

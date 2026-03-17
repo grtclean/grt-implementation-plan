@@ -39,6 +39,12 @@ import { buildOwnerContext } from "./ai-assistant-provisioning.service";
 
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 
+/** Result from db.execute(sql`...`) may have a .rows property */
+type RawExecuteResult = { rows?: Record<string, unknown>[] } & Record<string, unknown>;
+
+/** Generic DB row from raw SQL execute() */
+type DbRow = Record<string, unknown>;
+
 // ── AI_CHAT_REPLY ────────────────────────────────────────
 registerTaskHandler("AI_CHAT_REPLY", async (_taskId, input) => {
   const db = await requireDb();
@@ -433,96 +439,96 @@ async function registerIntelligenceHandlers() {
     registerTaskHandler("PROJECT_ASK_KNOWLEDGE", async (_id, input) => {
       const result = await projSvc.askProjectKnowledge(
         input.question as string,
-        input.history as any[],
+        input.history as Array<{ role: "user" | "assistant"; content: string }>,
       );
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("PROJECT_FIND_SIMILAR", async (_id, input) => {
-      const result = await projSvc.findSimilarProjects(input as any);
+      const result = await projSvc.findSimilarProjects(input as unknown as Parameters<typeof projSvc.findSimilarProjects>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("PROJECT_CHANGE_IMPACT", async (_id, input) => {
-      const result = await projSvc.analyzeChangeImpact(input as any);
+      const result = await projSvc.analyzeChangeImpact(input as unknown as Parameters<typeof projSvc.analyzeChangeImpact>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("PROJECT_RISK_PREDICT", async (_id, input) => {
-      const result = await projSvc.predictProjectRisk(input as any);
+      const result = await projSvc.predictProjectRisk(input as unknown as Parameters<typeof projSvc.predictProjectRisk>[0]);
       return result as unknown as Record<string, unknown>;
     });
 
     // Operations Intelligence
     const opsSvc = await import("../operations-intelligence/operationsIntelligence.service");
     registerTaskHandler("OPS_ASSESS_SUPPLIER", async (_id, input) => {
-      const result = await opsSvc.assessSupplier(input as any);
+      const result = await opsSvc.assessSupplier(input as unknown as Parameters<typeof opsSvc.assessSupplier>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("OPS_OPTIMIZE_INVENTORY", async (_id, input) => {
-      const result = await opsSvc.optimizeInventory(input as any);
+      const result = await opsSvc.optimizeInventory(input as unknown as Parameters<typeof opsSvc.optimizeInventory>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("OPS_PREDICT_QUALITY", async (_id, input) => {
-      const result = await opsSvc.predictQualityTrend(input as any);
+      const result = await opsSvc.predictQualityTrend(input as unknown as Parameters<typeof opsSvc.predictQualityTrend>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("OPS_ANALYZE_EFFICIENCY", async (_id, input) => {
-      const result = await opsSvc.analyzeProductionEfficiency(input as any);
+      const result = await opsSvc.analyzeProductionEfficiency(input as unknown as Parameters<typeof opsSvc.analyzeProductionEfficiency>[0]);
       return result as unknown as Record<string, unknown>;
     });
 
     // HR Intelligence
     const hrSvc = await import("../hr-intelligence/hrIntelligence.service");
     registerTaskHandler("HR_ASSESS_TALENT", async (_id, input) => {
-      const result = await hrSvc.assessTalent(input as any);
+      const result = await hrSvc.assessTalent(input as unknown as Parameters<typeof hrSvc.assessTalent>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("HR_RECOMMEND_TRAINING", async (_id, input) => {
-      const result = await hrSvc.recommendTraining(input as any);
+      const result = await hrSvc.recommendTraining(input as unknown as Parameters<typeof hrSvc.recommendTraining>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("HR_ANALYZE_COMPENSATION", async (_id, input) => {
-      const result = await hrSvc.analyzeCompensation(input as any);
+      const result = await hrSvc.analyzeCompensation(input as unknown as Parameters<typeof hrSvc.analyzeCompensation>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("HR_PLAN_WORKFORCE", async (_id, input) => {
-      const result = await hrSvc.planWorkforce(input as any);
+      const result = await hrSvc.planWorkforce(input as unknown as Parameters<typeof hrSvc.planWorkforce>[0]);
       return result as unknown as Record<string, unknown>;
     });
 
     // Sales & Finance Intelligence
     const sfSvc = await import("../sales-finance-intelligence/salesFinanceIntelligence.service");
     registerTaskHandler("SF_FORECAST_SALES", async (_id, input) => {
-      const result = await sfSvc.forecastSales(input as any);
+      const result = await sfSvc.forecastSales(input as unknown as Parameters<typeof sfSvc.forecastSales>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("SF_PREDICT_CHURN", async (_id, input) => {
-      const result = await sfSvc.predictChurn(input as any);
+      const result = await sfSvc.predictChurn(input as unknown as Parameters<typeof sfSvc.predictChurn>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("SF_ANALYZE_BUDGET", async (_id, input) => {
-      const result = await sfSvc.analyzeBudget(input as any);
+      const result = await sfSvc.analyzeBudget(input as unknown as Parameters<typeof sfSvc.analyzeBudget>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("SF_OPTIMIZE_COST", async (_id, input) => {
-      const result = await sfSvc.optimizeCost(input as any);
+      const result = await sfSvc.optimizeCost(input as unknown as Parameters<typeof sfSvc.optimizeCost>[0]);
       return result as unknown as Record<string, unknown>;
     });
 
     // R&D & Service Intelligence
     const rdSvc = await import("../rd-service-intelligence/rdServiceIntelligence.service");
     registerTaskHandler("RD_ANALYZE_REQUIREMENTS", async (_id, input) => {
-      const result = await rdSvc.analyzeRequirements(input as any);
+      const result = await rdSvc.analyzeRequirements(input as unknown as Parameters<typeof rdSvc.analyzeRequirements>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("RD_REVIEW_DESIGN", async (_id, input) => {
-      const result = await rdSvc.reviewDesign(input as any);
+      const result = await rdSvc.reviewDesign(input as unknown as Parameters<typeof rdSvc.reviewDesign>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("RD_DIAGNOSE_FAULT", async (_id, input) => {
-      const result = await rdSvc.diagnoseFault(input as any);
+      const result = await rdSvc.diagnoseFault(input as unknown as Parameters<typeof rdSvc.diagnoseFault>[0]);
       return result as unknown as Record<string, unknown>;
     });
     registerTaskHandler("RD_PLAN_MAINTENANCE", async (_id, input) => {
-      const result = await rdSvc.planMaintenance(input as any);
+      const result = await rdSvc.planMaintenance(input as unknown as Parameters<typeof rdSvc.planMaintenance>[0]);
       return result as unknown as Record<string, unknown>;
     });
 
@@ -720,7 +726,7 @@ registerTaskHandler("SALES_COACH_FEEDBACK", async (_taskId, input) => {
       ${buCode ? sql`WHERE bu_code = ${buCode}` : sql``}
       GROUP BY stage
     `);
-    const pipelineRows = (pipelineResult as any).rows ?? pipelineResult;
+    const pipelineRows = (pipelineResult as unknown as RawExecuteResult).rows ?? pipelineResult;
 
     // 3. Load budget coverage
     const year = parseInt(logDate.substring(0, 4));
@@ -732,7 +738,7 @@ registerTaskHandler("SALES_COACH_FEEDBACK", async (_taskId, input) => {
       WHERE b.year = ${year}
       ${buCode ? sql`AND b.bu_code = ${buCode}` : sql``}
     `);
-    const budgetStats = ((budgetResult as any).rows ?? budgetResult)[0] ?? { covered: 0, total: 0 };
+    const budgetStats = (((budgetResult as unknown as RawExecuteResult).rows ?? budgetResult) as unknown as DbRow[])[0] ?? { covered: 0, total: 0 };
 
     // 4. Build prompt
     const contextJson = JSON.stringify({
@@ -777,7 +783,7 @@ registerTaskHandler("SALES_COACH_FEEDBACK", async (_taskId, input) => {
     }
 
     // 6. Compute pipeline health score
-    const totalPipeline = Array.isArray(pipelineRows) ? pipelineRows.reduce((s: number, r: any) => s + (r.cnt || 0), 0) : 0;
+    const totalPipeline = Array.isArray(pipelineRows) ? pipelineRows.reduce((s: number, r: DbRow) => s + (Number(r.cnt) || 0), 0) : 0;
     const budgetCovPct = Number(budgetStats.total) > 0 ? (Number(budgetStats.covered) / Number(budgetStats.total)) * 100 : 0;
     const pipelineScore = Math.min(totalPipeline * 5, 100); // 20 projects = 100%
     const healthScore = Math.round(pipelineScore * 0.6 + budgetCovPct * 0.4);
@@ -824,7 +830,7 @@ registerTaskHandler("BATTLE_PREP_REPORT", async (_taskId, input) => {
         AND TO_CHAR(m.scheduled_start, 'YYYY-MM') = ${period}
       ORDER BY m.scheduled_start DESC LIMIT 20
     `);
-    const meetings = (meetingsResult as any).rows ?? meetingsResult;
+    const meetings = (meetingsResult as unknown as RawExecuteResult).rows ?? meetingsResult;
 
     // 2. Load M0-M3 pipeline counts
     const pipelineResult = await db.execute(sql`
@@ -834,7 +840,7 @@ registerTaskHandler("BATTLE_PREP_REPORT", async (_taskId, input) => {
       ${buCode ? sql`AND bu_code = ${buCode}` : sql``}
       GROUP BY stage
     `);
-    const pipeline = (pipelineResult as any).rows ?? pipelineResult;
+    const pipeline = (pipelineResult as unknown as RawExecuteResult).rows ?? pipelineResult;
 
     // 3. Load CAPEX budget coverage
     const budgetResult = await db.execute(sql`
@@ -845,7 +851,7 @@ registerTaskHandler("BATTLE_PREP_REPORT", async (_taskId, input) => {
       WHERE recorded_by = ${userId}
         AND year = ${parseInt(period.substring(0, 4))}
     `);
-    const budgetStats = ((budgetResult as any).rows ?? budgetResult)[0] ?? { covered: 0, total: 0 };
+    const budgetStats = (((budgetResult as unknown as RawExecuteResult).rows ?? budgetResult) as unknown as DbRow[])[0] ?? { covered: 0, total: 0 };
 
     // 4. Load sales target
     const salesResult = await db.execute(sql`
@@ -854,22 +860,22 @@ registerTaskHandler("BATTLE_PREP_REPORT", async (_taskId, input) => {
       ${buCode ? sql`AND department_id = ${buCode}` : sql``}
       LIMIT 1
     `);
-    const salesTarget = ((salesResult as any).rows ?? salesResult)[0]?.total_sales_target ?? 0;
+    const salesTarget = (((salesResult as unknown as RawExecuteResult).rows ?? salesResult) as unknown as DbRow[])[0]?.total_sales_target ?? 0;
 
     // 5. Build meeting highlights
-    const meetingHighlights = Array.isArray(meetings) ? meetings.slice(0, 5).map((m: any) => ({
+    const meetingHighlights = Array.isArray(meetings) ? meetings.slice(0, 5).map((m: DbRow) => ({
       meetingTitle: m.title || "Untitled",
       date: m.scheduled_start ? String(m.scheduled_start).substring(0, 10) : period,
-      keyDecisions: m.ai_summary?.keyDecisions ?? [],
+      keyDecisions: (m.ai_summary as Record<string, unknown> | null)?.keyDecisions ?? [],
     })) : [];
 
     // 6. Compute KPI
     const pipelineMap: Record<string, number> = {};
     if (Array.isArray(pipeline)) {
-      for (const p of pipeline) pipelineMap[p.stage] = p.cnt;
+      for (const p of pipeline) pipelineMap[p.stage as string] = p.cnt as any;
     }
-    const totalActions = Array.isArray(meetings) ? meetings.reduce((s: number, m: any) => s + (m.action_total || 0), 0) : 0;
-    const doneActions = Array.isArray(meetings) ? meetings.reduce((s: number, m: any) => s + (m.action_done || 0), 0) : 0;
+    const totalActions = Array.isArray(meetings) ? meetings.reduce((s: number, m: DbRow) => s + (Number(m.action_total) || 0), 0) : 0;
+    const doneActions = Array.isArray(meetings) ? meetings.reduce((s: number, m: DbRow) => s + (Number(m.action_done) || 0), 0) : 0;
 
     const kpi = {
       salesTarget: parseFloat(String(salesTarget)) || 0,
@@ -912,7 +918,7 @@ registerTaskHandler("BATTLE_PREP_REPORT", async (_taskId, input) => {
         aiGeneratedSummary: parsed.summary,
         actualVsTargetKpi: kpi,
         aiTacticalSuggestions: parsed.suggestions,
-        meetingHighlights,
+        meetingHighlights: meetingHighlights as any,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(monthlyBattleReports.id, reportId));
@@ -947,7 +953,7 @@ registerTaskHandler("ARENA_COMPUTE_RANKINGS", async (_taskId, input) => {
       WHERE cs.period = ${period}
       ORDER BY score DESC
     `);
-    const scores = (scoresResult as any).rows ?? scoresResult;
+    const scores = (scoresResult as unknown as RawExecuteResult).rows ?? scoresResult;
 
     if (!Array.isArray(scores) || scores.length === 0) {
       return { computed: 0, message: "No scores found for period" } as Record<string, unknown>;
@@ -959,7 +965,7 @@ registerTaskHandler("ARENA_COMPUTE_RANKINGS", async (_taskId, input) => {
 
     // 3. Rank and insert
     const total = scores.length;
-    const rankings = scores.map((s: any, idx: number) => {
+    const rankings = scores.map((s: DbRow, idx: number) => {
       const rank = idx + 1;
       const tier = computeBonusTier(rank, total);
       return {
@@ -979,7 +985,7 @@ registerTaskHandler("ARENA_COMPUTE_RANKINGS", async (_taskId, input) => {
 
     // Batch insert
     if (rankings.length > 0) {
-      await db.insert(globalArenaRankings).values(rankings);
+      await (db.insert(globalArenaRankings) as any).values(rankings);
     }
 
     // 4. Compute previous rank changes
@@ -989,7 +995,7 @@ registerTaskHandler("ARENA_COMPUTE_RANKINGS", async (_taskId, input) => {
         SELECT MAX(period) FROM global_arena_rankings WHERE period < ${period}
       ) AND entity_type = 'SALES'
     `);
-    const prevRanks = (prevPeriodResult as any).rows ?? prevPeriodResult;
+    const prevRanks = (prevPeriodResult as unknown as RawExecuteResult).rows ?? prevPeriodResult;
     const prevMap = new Map<number, number>();
     if (Array.isArray(prevRanks)) {
       for (const p of prevRanks) prevMap.set(Number(p.entity_id), Number(p.rank_position));

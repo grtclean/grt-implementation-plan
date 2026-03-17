@@ -136,7 +136,7 @@ export default function DocumentDetailDrawer({ docId, open, onClose, onEdit }: P
                       <span className="font-mono text-xs">{value}</span>
                     </div>
                   ))}
-                  {doc.tags && Array.isArray(doc.tags) && (
+                  {!!(doc.tags) && Array.isArray(doc.tags) && (
                     <div>
                       <span className="text-muted-foreground text-xs">{t("标签", "Tags")}</span>
                       <div className="flex flex-wrap gap-1 mt-1">

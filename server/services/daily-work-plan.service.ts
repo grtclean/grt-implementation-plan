@@ -103,7 +103,7 @@ export async function generateDailyPlan(userId: number) {
 
   // Get user name
   const userResult = await db.execute(sql`SELECT name FROM users WHERE id = ${userId} LIMIT 1000`);
-  const userName = (userResult.rows as any[])[0]?.name || 'Unknown';
+  const userName = (userResult.rows as { name: string }[])[0]?.name || 'Unknown';
 
   // Query data sources in parallel (each wrapped for resilience)
   const empty = { rows: [] };
@@ -115,14 +115,14 @@ export async function generateDailyPlan(userId: number) {
         AND status IN ('pending', 'in_progress')
       ORDER BY priority ASC
       LIMIT 20
-    `), empty),
+    `), empty as any),
     safeQuery(() => db.execute(sql`
       SELECT id, content, status, ai_summary
       FROM ime_action_items
       WHERE owner = ${userName} AND status = 'open'
       ORDER BY last_seen_date DESC
       LIMIT 10
-    `), empty),
+    `), empty as any),
     safeQuery(() => db.execute(sql`
       SELECT pt."taskId", pt.title, pt.description, pt.priority, pt."sourceType"
       FROM planning_tasks pt
@@ -131,12 +131,12 @@ export async function generateDailyPlan(userId: number) {
         AND pp."planType" = 'daily'
         AND pp."planPeriod" = ${yesterday()}
         AND pt.status NOT IN ('completed', 'cancelled')
-    `), empty),
+    `), empty as any),
   ]);
 
-  const engRows = engTasks.rows as any[];
-  const actionRows = actionItems.rows as any[];
-  const yesterdayRows = yesterdayTasks.rows as any[];
+  const engRows = engTasks.rows as { taskId: string; taskName: string; taskDescription: string | null; priority: string | null; plannedEndDate: string | null }[];
+  const actionRows = actionItems.rows as { id: number; content: string; status: string; ai_summary: string | null }[];
+  const yesterdayRows = yesterdayTasks.rows as { taskId: string; title: string; description: string | null; priority: string | null; sourceType: string | null }[];
 
   // Map to PlanInput format
   const planInput: PlanInput = {
@@ -145,21 +145,21 @@ export async function generateDailyPlan(userId: number) {
       projectId: 'current',
       projectName: '当前工程任务',
       stage: 'active',
-      items: engRows.map((t: any) => `${t.taskName} (${t.priority})`),
+      items: engRows.map((t) => `${t.taskName} (${t.priority})`),
       deadline: engRows[0]?.plannedEndDate || todayStr,
     }] : undefined,
     meetingMinutes: actionRows.length > 0 ? [{
       id: 'action-items',
       meetingType: '会议行动项',
       date: todayStr,
-      actionItems: actionRows.map((a: any) => ({
+      actionItems: actionRows.map((a) => ({
         description: a.content,
         assignee: userName,
         deadline: todayStr,
         status: 'pending' as const,
       })),
     }] : undefined,
-    unfinishedPlans: yesterdayRows.length > 0 ? yesterdayRows.map((t: any) => ({
+    unfinishedPlans: yesterdayRows.length > 0 ? yesterdayRows.map((t) => ({
       id: t.taskId,
       title: t.title,
       originalDeadline: yesterday(),
@@ -183,7 +183,11 @@ export async function generateDailyPlan(userId: number) {
   `);
 
   // Insert tasks
-  const tasks: any[] = [];
+  const tasks: Array<{
+    taskId: string; title: string; description: string; priority: string;
+    taskType: string; sourceType: string; estimatedHours: number;
+    status: string; completedAt: null; actualHours: null;
+  }> = [];
   for (let i = 0; i < workPlan.tasks.length; i++) {
     const t = workPlan.tasks[i];
     const taskId = t.id;
@@ -239,7 +243,7 @@ export async function getTodayPlan(userId: number) {
     LIMIT 1
   `);
 
-  const plan = (planResult.rows as any[])[0];
+  const plan = (planResult.rows as { planId: string; title: string; status: string; completionRate: string; aiSummary: string | null; createdAt: string }[])[0];
   if (!plan) return null;
 
   const tasksResult = await db.execute(sql`
@@ -249,8 +253,8 @@ export async function getTodayPlan(userId: number) {
     ORDER BY priority ASC, "createdAt" ASC
   `);
 
-  const tasks = tasksResult.rows as any[];
-  const completedCount = tasks.filter((t: any) => t.status === 'completed').length;
+  const tasks = tasksResult.rows as { taskId: string; title: string; description: string | null; priority: string; taskType: string; sourceType: string; estimatedHours: string | null; actualHours: string | null; status: string; completedAt: string | null }[];
+  const completedCount = tasks.filter((t) => t.status === 'completed').length;
 
   return {
     planId: plan.planId as string,
@@ -285,7 +289,7 @@ export async function getPlanHistory(userId: number, options?: { limit?: number;
     LIMIT ${limit} OFFSET ${offset}
   `);
 
-  return result.rows as any[];
+  return result.rows as { planId: string; title: string; planPeriod: string; status: string; completionRate: string; createdAt: string; totalTasks: string; completedTasks: string }[];
 }
 
 // --- 4. updateTaskStatus ---
@@ -316,7 +320,7 @@ export async function updateTaskStatus(taskId: string, status: string, actualHou
     const planIdResult = await db.execute(sql`
       SELECT "planId" FROM planning_tasks WHERE "taskId" = ${taskId} LIMIT 1
     `);
-    const planIdVal = (planIdResult.rows as any[])[0]?.planId;
+    const planIdVal = (planIdResult.rows as { planId: string }[])[0]?.planId;
     if (planIdVal) {
       const statsResult = await db.execute(sql`
         SELECT COUNT(*) as total,
@@ -324,7 +328,7 @@ export async function updateTaskStatus(taskId: string, status: string, actualHou
                COUNT(CASE WHEN status NOT IN ('completed', 'cancelled') THEN 1 END) as remaining
         FROM planning_tasks WHERE "planId" = ${planIdVal}
       `);
-      const stats = (statsResult.rows as any[])[0];
+      const stats = (statsResult.rows as { total: string; completed: string; remaining: string }[])[0];
       const total = parseInt(stats?.total) || 1;
       const completed = parseInt(stats?.completed) || 0;
       const remaining = parseInt(stats?.remaining) || 0;
@@ -354,7 +358,7 @@ export async function addAdHocTask(userId: number, task: { title: string; descri
   // Ensure today's plan exists
   let plan = await getTodayPlan(userId);
   if (!plan) {
-    plan = await generateDailyPlan(userId);
+    plan = await generateDailyPlan(userId) as any;
   }
 
   const taskId = `TASK-${Date.now()}-adhoc`;
@@ -365,7 +369,7 @@ export async function addAdHocTask(userId: number, task: { title: string; descri
     INSERT INTO planning_tasks
       ("taskId", "planId", title, description, priority, "taskType", "sourceType", "ownerId", "estimatedHours", status, "createdAt", "updatedAt")
     VALUES
-      (${taskId}, ${plan.planId}, ${task.title}, ${task.description || ''}, ${priority}, 'work', 'manual', ${userId}, ${task.estimatedHours ? String(task.estimatedHours) : '1'}, 'pending', ${nowISO}, ${nowISO})
+      (${taskId}, ${plan!.planId}, ${task.title}, ${task.description || ''}, ${priority}, 'work', 'manual', ${userId}, ${task.estimatedHours ? String(task.estimatedHours) : '1'}, 'pending', ${nowISO}, ${nowISO})
   `);
 
   // Recompute completion rate (best-effort)
@@ -373,15 +377,15 @@ export async function addAdHocTask(userId: number, task: { title: string; descri
     const statsResult = await db.execute(sql`
       SELECT COUNT(*) as total,
              COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed
-      FROM planning_tasks WHERE "planId" = ${plan.planId}
+      FROM planning_tasks WHERE "planId" = ${plan!.planId}
     `);
-    const stats = (statsResult.rows as any[])[0];
+    const stats = (statsResult.rows as { total: string; completed: string }[])[0];
     const total = parseInt(stats?.total) || 1;
     const completed = parseInt(stats?.completed) || 0;
     const rate = Math.round((completed / total) * 10000) / 100;
     await db.execute(sql`
       UPDATE planning_plans SET "completionRate" = ${String(rate)}, "updatedAt" = ${nowISO}
-      WHERE "planId" = ${plan.planId}
+      WHERE "planId" = ${plan!.planId}
     `);
   } catch { /* best-effort */ }
 
@@ -404,7 +408,7 @@ export async function getYesterdayIncomplete(userId: number) {
     ORDER BY pt.priority ASC
   `);
 
-  return result.rows as any[];
+  return result.rows as { taskId: string; title: string; description: string | null; priority: string; sourceType: string; estimatedHours: string | null }[];
 }
 
 // --- 7. getPlanStats ---
@@ -431,7 +435,7 @@ export async function getPlanStats(userId: number) {
   `);
 
   let streak = 0;
-  const streakRows = streakResult.rows as any[];
+  const streakRows = streakResult.rows as { planPeriod: string; completionRate: string }[];
   const checkDate = new Date();
   for (const row of streakRows) {
     const expected = checkDate.toISOString().split('T')[0];
@@ -461,12 +465,12 @@ export async function getPlanStats(userId: number) {
       AND pp."planPeriod" >= (CURRENT_DATE - INTERVAL '7 days')::text
   `);
 
-  const avg = avgResult.rows as any[];
-  const overdue = overdueResult.rows as any[];
-  const week = weekResult.rows as any[];
+  const avg = avgResult.rows as { avgRate: string | null; planCount: string }[];
+  const overdue = overdueResult.rows as { count: string }[];
+  const week = weekResult.rows as { total: string; completed: string }[];
 
   return {
-    avgCompletionRate: Math.round(parseFloat(avg[0]?.avgRate) || 0),
+    avgCompletionRate: Math.round(parseFloat(avg![0]?.avgRate!) || 0),
     planCount: parseInt(avg[0]?.planCount) || 0,
     streak,
     overdueTasks: parseInt(overdue[0]?.count) || 0,
@@ -527,7 +531,7 @@ export async function aggregateDailyItems(
         ORDER BY priority ASC
         LIMIT 8
       `);
-      return (r.rows as any[]).map((row: any) => ({
+      return (r.rows as { id: number; company_name: string; contact_name: string | null; status: string; priority: string | null }[]).map((row) => ({
         id: `crm-${row.id}`,
         title: `跟进客户: ${row.company_name} (${row.contact_name || '未知联系人'})`,
         description: `状态: ${row.status}`,
@@ -549,7 +553,7 @@ export async function aggregateDailyItems(
         ORDER BY priority ASC
         LIMIT 10
       `);
-      return (r.rows as any[]).map((row: any) => ({
+      return (r.rows as { taskId: string; taskName: string; taskDescription: string | null; priority: string | null; plannedEndDate: string | null }[]).map((row) => ({
         id: `eng-${row.taskId}`,
         title: row.taskName,
         description: row.taskDescription || undefined,
@@ -571,7 +575,7 @@ export async function aggregateDailyItems(
         ORDER BY scheduled_date ASC
         LIMIT 5
       `);
-      return (r.rows as any[]).map((row: any) => ({
+      return (r.rows as { id: number; title: string; description: string | null; scheduled_date: string | null; status: string }[]).map((row) => ({
         id: `annual-${row.id}`,
         title: row.title,
         description: row.description || undefined,
@@ -596,7 +600,7 @@ export async function aggregateDailyItems(
         ORDER BY scheduled_start ASC
         LIMIT 5
       `);
-      for (const m of meetings.rows as any[]) {
+      for (const m of meetings.rows as { id: number; title: string; scheduled_start: string | null }[]) {
         const time = m.scheduled_start ? new Date(m.scheduled_start).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '';
         items.push({
           id: `meet-${m.id}`,
@@ -616,7 +620,7 @@ export async function aggregateDailyItems(
         ORDER BY due_date ASC
         LIMIT 3
       `);
-      for (const a of actions.rows as any[]) {
+      for (const a of actions.rows as { id: number; task_desc: string; due_date: string | null }[]) {
         items.push({
           id: `action-${a.id}`,
           title: `会议行动项: ${a.task_desc}`,
@@ -643,7 +647,7 @@ export async function aggregateDailyItems(
         ORDER BY pp."planPeriod" DESC, pt.priority ASC
         LIMIT 10
       `);
-      return (r.rows as any[]).map((row: any) => ({
+      return (r.rows as { taskId: string; title: string; description: string | null; priority: string | null; sourceType: string | null }[]).map((row) => ({
         id: `carry-${row.taskId}`,
         title: row.title,
         description: row.description || undefined,
@@ -665,7 +669,7 @@ export async function aggregateDailyItems(
         ORDER BY created_at DESC
         LIMIT 5
       `);
-      return (r.rows as any[]).map((row: any) => ({
+      return (r.rows as { id: number; title: string; description: string | null; priority: string | null; assigned_by_name: string | null; source_reference: string | null; due_date: string | null }[]).map((row) => ({
         id: `custassign-${row.id}`,
         title: row.title,
         description: row.description ? `${row.assigned_by_name ? `来自: ${row.assigned_by_name} — ` : ''}${row.description}` : undefined,
@@ -688,7 +692,7 @@ export async function aggregateDailyItems(
         ORDER BY created_at DESC
         LIMIT 8
       `);
-      return (r.rows as any[]).map((row: any) => ({
+      return (r.rows as { id: number; title: string; description: string | null; priority: string | null; assigned_by_name: string | null; source_reference: string | null; due_date: string | null }[]).map((row) => ({
         id: `super-${row.id}`,
         title: row.title,
         description: row.description ? `${row.assigned_by_name ? `分配人: ${row.assigned_by_name} — ` : ''}${row.description}` : undefined,
@@ -712,7 +716,7 @@ export async function aggregateDailyItems(
         ORDER BY pt."createdAt" ASC
         LIMIT 10
       `);
-      return (r.rows as any[]).map((row: any) => ({
+      return (r.rows as { taskId: string; title: string; description: string | null; priority: string | null; estimatedHours: string | null; status: string }[]).map((row) => ({
         id: `personal-${row.taskId}`,
         title: row.title,
         description: row.description || undefined,
@@ -814,5 +818,5 @@ export async function assignInboxItem(input: {
     RETURNING *
   `);
 
-  return (result.rows as any[])[0] ?? { id: -1, title: input.title, status: 'pending' };
+  return (result.rows as Record<string, unknown>[])[0] ?? { id: -1, title: input.title, status: 'pending' };
 }

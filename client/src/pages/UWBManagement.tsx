@@ -426,11 +426,11 @@ export default function UWBManagement() {
                   ))}
                   
                   {/* 工人位置标记 */}
-                  {floorLocations.map((loc) => (
-                    <div 
-                      key={loc.tagId} 
-                      className="absolute w-8 h-8 -ml-4 -mt-4 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xs font-bold shadow-lg cursor-pointer hover:scale-110 transition-transform" 
-                      style={{ left: `${loc.x || 50}%`, top: `${loc.y || 50}%` }} 
+                  {floorLocations.map((loc: any) => (
+                    <div
+                      key={loc.tagId}
+                      className="absolute w-8 h-8 -ml-4 -mt-4 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xs font-bold shadow-lg cursor-pointer hover:scale-110 transition-transform"
+                      style={{ left: `${loc.x || 50}%`, top: `${loc.y || 50}%` }}
                       title={`${loc.employeeName || '未知'} - ${loc.zoneName || '未知区域'}`}
                     >
                       {(loc.employeeName || '?').charAt(0)}
@@ -658,7 +658,7 @@ export default function UWBManagement() {
                       {/* 绘制轨迹线 */}
                       <svg className="absolute inset-0 w-full h-full pointer-events-none">
                         <polyline
-                          points={historyTrackData.slice(0, playbackIndex + 1).map((p: any) => `${p.x || 50}%,${p.y || 50}%`).join(' ')}
+                          points={historyTrackData!.slice(0, playbackIndex + 1).map((p: any) => `${p.x || 50}%,${p.y || 50}%`).join(' ')}
                           fill="none"
                           stroke="#f97316"
                           strokeWidth="2"
@@ -668,12 +668,12 @@ export default function UWBManagement() {
                       </svg>
                       
                       {/* 当前位置标记 */}
-                      {historyTrackData[playbackIndex] && (
+                      {historyTrackData![playbackIndex] && (
                         <div 
                           className="absolute w-10 h-10 -ml-5 -mt-5 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-bold shadow-lg animate-pulse"
                           style={{ 
-                            left: `${historyTrackData[playbackIndex].x || 50}%`, 
-                            top: `${historyTrackData[playbackIndex].y || 50}%` 
+                            left: `${historyTrackData![playbackIndex].x || 50}%`, 
+                            top: `${historyTrackData![playbackIndex].y || 50}%` 
                           }}
                         >
                           <MapPin className="w-5 h-5" />
@@ -683,11 +683,11 @@ export default function UWBManagement() {
                       {/* 信息面板 */}
                       <div className="absolute bottom-4 right-4 bg-background/90 backdrop-blur-sm rounded-lg p-3 border border-border">
                         <p className="text-xs font-medium mb-1">当前位置</p>
-                        {historyTrackData[playbackIndex] && (
+                        {historyTrackData![playbackIndex] && (
                           <>
-                            <p className="text-xs text-muted-foreground">区域: {historyTrackData[playbackIndex].zoneName || '未知'}</p>
-                            <p className="text-xs text-muted-foreground">时间: {new Date(historyTrackData[playbackIndex].timestamp).toLocaleTimeString()}</p>
-                            <p className="text-xs text-muted-foreground">坐标: ({(historyTrackData[playbackIndex].x || 0).toFixed(1)}, {(historyTrackData[playbackIndex].y || 0).toFixed(1)})</p>
+                            <p className="text-xs text-muted-foreground">区域: {historyTrackData![playbackIndex].zoneName || '未知'}</p>
+                            <p className="text-xs text-muted-foreground">时间: {new Date(historyTrackData![playbackIndex].timestamp).toLocaleTimeString()}</p>
+                            <p className="text-xs text-muted-foreground">坐标: ({(historyTrackData![playbackIndex].x || 0).toFixed(1)}, {(historyTrackData![playbackIndex].y || 0).toFixed(1)})</p>
                           </>
                         )}
                       </div>

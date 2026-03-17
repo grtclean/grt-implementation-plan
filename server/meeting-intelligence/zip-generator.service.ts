@@ -3,6 +3,7 @@
  * 用于生成和管理会议转录导出的ZIP压缩包
  */
 
+// @ts-ignore no declaration file
 import archiver from "archiver";
 import { Readable, PassThrough } from "stream";
 import { requireDb } from "../db";
@@ -40,7 +41,7 @@ export async function generateZipArchive(
   });
 
   // 处理错误
-  archive.on("error", (err) => {
+  archive.on("error", (err: any) => {
     output.destroy(err);
   });
 
@@ -219,7 +220,7 @@ export async function createDirectoryZip(
     zlib: { level: options.compressionLevel || 6 },
   });
 
-  archive.on("error", (err) => {
+  archive.on("error", (err: any) => {
     output.destroy(err);
   });
 

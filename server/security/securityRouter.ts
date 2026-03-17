@@ -926,7 +926,7 @@ export const securityRouter = router({
         eventType: 'system.config.change',
         severity: 'high',
         userId: ctx.user?.id,
-        userName: ctx.user?.name,
+        userName: ctx.user?.name as any,
         ipAddress: (ctx as any).req?.ip || 'unknown',
         action: '设置/更新服务器访问密码',
         result: 'success',

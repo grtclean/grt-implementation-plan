@@ -553,15 +553,15 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
   function renderStepData(step: DStep) {
     switch (step) {
       case "D2":
-        return report.d2Description ? (
+        return report!.d2Description ? (
           <div className="text-sm text-[#323130] space-y-1">
-            <div><span className="font-medium text-[#605e5c]">Description:</span> {report.d2Description}</div>
-            {report.d2IsWhat && <div><span className="font-medium text-[#605e5c]">Is:</span> {report.d2IsWhat}</div>}
-            {report.d2IsNotWhat && <div><span className="font-medium text-[#605e5c]">Is Not:</span> {report.d2IsNotWhat}</div>}
+            <div><span className="font-medium text-[#605e5c]">Description:</span> {report!.d2Description}</div>
+            {report!.d2IsWhat && <div><span className="font-medium text-[#605e5c]">Is:</span> {report!.d2IsWhat}</div>}
+            {report!.d2IsNotWhat && <div><span className="font-medium text-[#605e5c]">Is Not:</span> {report!.d2IsNotWhat}</div>}
           </div>
         ) : null;
       case "D3": {
-        const acts = parseJsonArray(report.d3ContainmentActions);
+        const acts = parseJsonArray(report!.d3ContainmentActions);
         return acts.length > 0 ? (
           <ul className="list-disc list-inside text-sm text-[#323130] space-y-0.5">
             {acts.map((a, i) => <li key={i}>{a}</li>)}
@@ -569,10 +569,10 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
         ) : null;
       }
       case "D4": {
-        const causes = parseJsonArray(report.d4RootCauses);
+        const causes = parseJsonArray(report!.d4RootCauses);
         return (
           <div className="text-sm text-[#323130] space-y-1">
-            {report.d4AnalysisMethod && <div><span className="font-medium text-[#605e5c]">Method:</span> {report.d4AnalysisMethod}</div>}
+            {report!.d4AnalysisMethod && <div><span className="font-medium text-[#605e5c]">Method:</span> {report!.d4AnalysisMethod}</div>}
             {causes.length > 0 && (
               <ul className="list-disc list-inside space-y-0.5">
                 {causes.map((c, i) => <li key={i}>{c}</li>)}
@@ -582,7 +582,7 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
         );
       }
       case "D5": {
-        const acts = parseJsonArray(report.d5CorrectiveActions);
+        const acts = parseJsonArray(report!.d5CorrectiveActions);
         return acts.length > 0 ? (
           <ul className="list-disc list-inside text-sm text-[#323130] space-y-0.5">
             {acts.map((a, i) => <li key={i}>{a}</li>)}
@@ -590,11 +590,11 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
         ) : null;
       }
       case "D6":
-        return report.d6VerificationResult ? (
-          <div className="text-sm text-[#323130]">{report.d6VerificationResult}</div>
+        return report!.d6VerificationResult ? (
+          <div className="text-sm text-[#323130]">{report!.d6VerificationResult}</div>
         ) : null;
       case "D7": {
-        const acts = parseJsonArray(report.d7PreventionActions);
+        const acts = parseJsonArray(report!.d7PreventionActions);
         return acts.length > 0 ? (
           <ul className="list-disc list-inside text-sm text-[#323130] space-y-0.5">
             {acts.map((a, i) => <li key={i}>{a}</li>)}
@@ -602,8 +602,8 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
         ) : null;
       }
       case "D8":
-        return report.d8LessonsLearned ? (
-          <div className="text-sm text-[#323130]">{report.d8LessonsLearned}</div>
+        return report!.d8LessonsLearned ? (
+          <div className="text-sm text-[#323130]">{report!.d8LessonsLearned}</div>
         ) : null;
       default:
         return null;
@@ -611,8 +611,8 @@ function DetailTab({ reportId, onBack }: { reportId: number; onBack: () => void 
   }
 
   function renderActiveStepForm() {
-    const isEditable = stepIndex(activeStep) <= currentIdx || activeStep === report.currentStep;
-    if (!isEditable && activeStep !== report.currentStep) return null;
+    const isEditable = stepIndex(activeStep) <= currentIdx || activeStep === report!.currentStep;
+    if (!isEditable && activeStep !== report!.currentStep) return null;
 
     switch (activeStep) {
       case "D2":

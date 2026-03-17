@@ -84,7 +84,7 @@ export const solutionAssistantRouter = router({
     .mutation(async ({ ctx, input }) => {
       const report = await SolutionAssistant.recommendSolutions(
         input.parameters as ProcessParameters,
-        ctx.user.id,
+        ctx.user!.id,
         input.maxResults || 5
       );
       return { success: true, data: report };
@@ -148,7 +148,7 @@ export const solutionAssistantRouter = router({
         solutionId: `SOL-${new Date().getFullYear()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
         workpieceWeight: input.workpieceWeight ? String(input.workpieceWeight) : undefined,
         deliveryDate: input.deliveryDate,
-        createdBy: ctx.user.id
+        createdBy: ctx.user!.id
       });
       return { success: true, solutionId };
     }),
@@ -225,7 +225,7 @@ export const quotationAssistantRouter = router({
     .mutation(async ({ ctx, input }) => {
       const report = await QuotationAssistant.recommendQuotation(
         input as QuotationInput,
-        ctx.user.id
+        ctx.user!.id
       );
       return { success: true, data: report };
     }),
@@ -298,7 +298,7 @@ export const quotationAssistantRouter = router({
         finalPrice: input.finalPrice ? String(input.finalPrice) : undefined,
         quotationDate: input.quotationDate,
         validUntil: input.validUntil,
-        createdBy: ctx.user.id
+        createdBy: ctx.user!.id
       });
       return { success: true, quotationId };
     }),

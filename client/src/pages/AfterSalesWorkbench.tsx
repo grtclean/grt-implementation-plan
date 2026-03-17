@@ -228,7 +228,7 @@ function WarrantyTab() {
   const [search, setSearch] = useState("");
 
   const equipQ = trpc.afterSales.equipments.list.useQuery();
-  const dueSoonQ = trpc.afterSales.equipments.getDueSoon.useQuery();
+  const dueSoonQ = trpc.afterSales.equipments.getDueSoon.useQuery({} as any);
 
   const equipments: any[] = Array.isArray((equipQ.data as any)?.items) ? (equipQ.data as any).items : Array.isArray(equipQ.data) ? equipQ.data : [];
   const dueSoon: any[] = Array.isArray((dueSoonQ.data as any)?.items) ? (dueSoonQ.data as any).items : Array.isArray(dueSoonQ.data) ? dueSoonQ.data : [];
@@ -745,7 +745,7 @@ function DashboardTab() {
   const { t } = useLanguage();
   const dashQ = trpc.supplyChain.dashboardStats.useQuery();
   const equipQ = trpc.afterSales.equipments.list.useQuery();
-  const dueSoonQ = trpc.afterSales.equipments.getDueSoon.useQuery();
+  const dueSoonQ = trpc.afterSales.equipments.getDueSoon.useQuery({} as any);
   const complaintsQ = trpc.supplyChain.complaint.list.useQuery();
   const complaintStatsQ = trpc.supplyChain.complaint.stats.useQuery();
   const penaltiesQ = trpc.supplyChain.penalty.list.useQuery();

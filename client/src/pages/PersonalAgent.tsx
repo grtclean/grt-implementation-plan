@@ -88,17 +88,17 @@ export default function PersonalAgent() {
       toast.success(t("ai.personalAgent.knowledgeExtracted"));
       refetchNotes();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("ai.personalAgent.extractFailed")}: ${error.message}`);
     },
   });
 
   const inferSkillMutation = (trpc.personalAgent as any).inferSkillFromBehavior.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast.success(`${t("ai.personalAgent.inferredSkills")}: ${data.impliedSkill}`);
       refetchLogs();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("ai.personalAgent.inferFailed")}: ${error.message}`);
     },
   });

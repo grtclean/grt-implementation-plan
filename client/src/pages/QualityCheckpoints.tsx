@@ -115,7 +115,7 @@ export default function QualityCheckpoints() {
   });
   const analyzeCCDMut = trpc.qualityMaterialPerformance.analyzeCCD.useMutation({
     onSuccess: (data) => {
-      toast({ title: t("quality.checkpoints.ccdAnalysisComplete"), description: `${t("quality.checkpoints.result")}: ${data?.overallResult}, ${t("quality.checkpoints.score")}: ${data?.score}` });
+      toast({ title: t("quality.checkpoints.ccdAnalysisComplete"), description: `${t("quality.checkpoints.result")}: ${(data as any)?.overallResult}, ${t("quality.checkpoints.score")}: ${(data as any)?.score}` });
     },
   });
 
@@ -155,9 +155,9 @@ export default function QualityCheckpoints() {
         {/* Dashboard Tab */}
         <TabsContent value="dashboard" className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard icon={CheckCircle2} label={t("quality.checkpoints.passed")} value={dashboard?.results?.pass_count || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
-            <StatCard icon={XCircle} label={t("quality.checkpoints.failed")} value={dashboard?.results?.fail_count || 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
-            <StatCard icon={AlertTriangle} label={t("quality.checkpoints.pendingDefects")} value={dashboard?.defects?.open_count || 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
+            <StatCard icon={CheckCircle2} label={t("quality.checkpoints.passed")} value={Number(dashboard?.results?.pass_count) || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+            <StatCard icon={XCircle} label={t("quality.checkpoints.failed")} value={Number(dashboard?.results?.fail_count) || 0} iconColor="text-red-500" iconBg="bg-red-500/10" />
+            <StatCard icon={AlertTriangle} label={t("quality.checkpoints.pendingDefects")} value={Number(dashboard?.defects?.open_count) || 0} iconColor="text-yellow-500" iconBg="bg-yellow-500/10" />
             <StatCard icon={BarChart3} label={t("quality.checkpoints.avgScore")} value={dashboard?.results?.avg_score ? Math.round(Number(dashboard.results.avg_score)) : 0} iconColor="text-blue-500" iconBg="bg-blue-500/10" />
           </div>
 
@@ -457,10 +457,10 @@ export default function QualityCheckpoints() {
             <Button
               className="w-full"
               onClick={() => createDefectMut.mutate({
-                checkResultId: newDefect.checkResultId || 1,
                 projectId: selectedProject,
                 processCode: selectedProcess === "all" ? "T1" : selectedProcess,
                 ...newDefect,
+                checkResultId: newDefect.checkResultId || 1,
               })}
               disabled={createDefectMut.isPending || !newDefect.description}
             >

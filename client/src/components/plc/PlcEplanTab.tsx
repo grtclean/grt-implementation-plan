@@ -64,7 +64,7 @@ export default function PlcEplanTab({ projectId, plcProjectId }: PlcEplanTabProp
 
   const downloadXml = () => {
     if (!selectedPage.data) return;
-    const blob = new Blob([selectedPage.data.xmlContent], { type: "application/xml" });
+    const blob = new Blob([selectedPage.data.xmlContent!], { type: "application/xml" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -149,7 +149,7 @@ export default function PlcEplanTab({ projectId, plcProjectId }: PlcEplanTabProp
                 <div
                   className="w-full"
                   dangerouslySetInnerHTML={{
-                    __html: schematics.data.find(p => p.id === selectedPageId)!.svgPreview,
+                    __html: schematics.data.find(p => p.id === selectedPageId)!.svgPreview!,
                   }}
                 />
               ) : (

@@ -38,7 +38,7 @@ export const chatHistoryRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       return chatHistoryService.createSession({
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         ...input,
       });
     }),
@@ -55,7 +55,7 @@ export const chatHistoryRouter = router({
     }).optional())
     .query(async ({ ctx, input }) => {
       return chatHistoryService.getUserSessions({
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         ...input,
       });
     }),
@@ -170,7 +170,7 @@ export const chatHistoryRouter = router({
    */
   getBookmarkedMessages: protectedProcedure
     .query(async ({ ctx }) => {
-      return chatHistoryService.getBookmarkedMessages(ctx.user.id);
+      return chatHistoryService.getBookmarkedMessages(ctx.user!.id);
     }),
 
   // ============================================
@@ -187,7 +187,7 @@ export const chatHistoryRouter = router({
     }).optional())
     .query(async ({ ctx, input }) => {
       return chatHistoryService.getTemplates({
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         ...input,
       });
     }),
@@ -206,7 +206,7 @@ export const chatHistoryRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       return chatHistoryService.createTemplate({
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         ...input,
       });
     }),
@@ -231,6 +231,6 @@ export const chatHistoryRouter = router({
    */
   getStats: protectedProcedure
     .query(async ({ ctx }) => {
-      return chatHistoryService.getUserChatStats(ctx.user.id);
+      return chatHistoryService.getUserChatStats(ctx.user!.id);
     }),
 });

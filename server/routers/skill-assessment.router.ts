@@ -59,7 +59,7 @@ const positionsRouter = router({
       timeLimitMinutes: z.record(z.string(), z.number()).optional(),
       questionCount: z.record(z.string(), z.number()).optional(),
     }))
-    .mutation(({ input, ctx }) => svc.upsertPositionProfile({ ...input, createdBy: ctx.user.id })),
+    .mutation(({ input, ctx }) => svc.upsertPositionProfile({ ...input, createdBy: ctx.user!.id })),
 });
 
 // ── Question Bank (含人为输入题目) ──────────────────────
@@ -99,8 +99,8 @@ const questionsRouter = router({
     }))
     .mutation(({ input, ctx }) => svc.createQuestion({
       ...input,
-      createdBy: ctx.user.id,
-      createdByName: ctx.user.name ?? undefined,
+      createdBy: ctx.user!.id,
+      createdByName: ctx.user!.name ?? undefined,
     })),
 
   update: hrViewPerm
@@ -143,7 +143,7 @@ const questionsRouter = router({
       })),
     }))
     .mutation(({ input, ctx }) => svc.batchImportQuestions(
-      input.questions.map(q => ({ ...q, createdBy: ctx.user.id, createdByName: ctx.user.name ?? undefined })),
+      input.questions.map(q => ({ ...q, createdBy: ctx.user!.id, createdByName: ctx.user!.name ?? undefined })),
     )),
 
   stats: protectedProcedure
@@ -178,7 +178,7 @@ const papersRouter = router({
       })),
       domainWeights: z.record(z.string(), z.number()).optional(),
     }))
-    .mutation(({ input, ctx }) => svc.createPaper({ ...input, createdBy: ctx.user.id })),
+    .mutation(({ input, ctx }) => svc.createPaper({ ...input, createdBy: ctx.user!.id })),
 
   publish: managePerm
     .input(z.object({ id: z.number().int().positive() }))
@@ -191,7 +191,7 @@ const sessionsRouter = router({
   /** Start a new assessment session */
   start: protectedProcedure
     .input(z.object({ paperId: z.number().int().positive() }))
-    .mutation(({ input, ctx }) => svc.startSession(ctx.user.id, input.paperId)),
+    .mutation(({ input, ctx }) => svc.startSession(ctx.user!.id, input.paperId)),
 
   /** Submit answer for a question */
   submitAnswer: protectedProcedure
@@ -222,7 +222,7 @@ const sessionsRouter = router({
       positionKey: z.string().optional(),
       limit: z.number().int().min(1).max(200).optional(),
     }).optional())
-    .query(({ input, ctx }) => svc.listMySessions(ctx.user.id, input ?? undefined)),
+    .query(({ input, ctx }) => svc.listMySessions(ctx.user!.id, input ?? undefined)),
 
   /** Sessions pending manual grading (for managers) */
   pendingGrading: hrViewPerm
@@ -235,7 +235,7 @@ const sessionsRouter = router({
   /** Complete grading for all subjective questions in a session */
   completeGrading: hrViewPerm
     .input(z.object({ sessionId: z.number().int().positive() }))
-    .mutation(({ input, ctx }) => svc.completeGrading(input.sessionId, ctx.user.id)),
+    .mutation(({ input, ctx }) => svc.completeGrading(input.sessionId, ctx.user!.id)),
 });
 
 // ── Manual Grading ───────────────────────────────────────
@@ -251,7 +251,7 @@ const gradingRouter = router({
     .mutation(({ input, ctx }) => svc.gradeAnswer(input.answerId, {
       manualScore: input.manualScore,
       manualFeedback: input.manualFeedback,
-      gradedBy: ctx.user.id,
+      gradedBy: ctx.user!.id,
     })),
 });
 
@@ -259,7 +259,7 @@ const gradingRouter = router({
 
 const certsRouter = router({
   myCerts: protectedProcedure
-    .query(({ ctx }) => svc.getMyCerts(ctx.user.id)),
+    .query(({ ctx }) => svc.getMyCerts(ctx.user!.id)),
 
   byPosition: hrViewPerm
     .input(z.object({ positionKey: z.string() }))

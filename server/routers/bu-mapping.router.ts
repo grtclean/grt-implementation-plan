@@ -261,7 +261,7 @@ export const buMappingRouter = router({
           if (!buData) continue;
           
           // 找到该部门的成员
-          const deptMembers = allMembers.filter(m =>
+          const deptMembers = allMembers.filter((m: any) =>
             m.departments?.includes(mapping.extDeptNo)
           );
           

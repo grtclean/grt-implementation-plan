@@ -491,7 +491,7 @@ function AssetCard({
         </span>
 
         {/* Frozen indicator */}
-        {asset.designFrozen && (
+        {!!asset.designFrozen && (
           <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded bg-blue-900/80 px-1.5 py-0.5 font-mono text-[10px] text-blue-300 ring-1 ring-blue-500/30">
             <Snowflake className="h-3 w-3" /> FROZEN
           </span>
@@ -748,11 +748,11 @@ function ViewerDialogContent({
               </div>
 
               {/* Description */}
-              {asset.description && (
+              {((asset.description as any) ? (
                 <div className="rounded border border-slate-700/40 bg-slate-800/40 p-2 text-xs text-slate-400">
                   {asset.description as string}
                 </div>
-              )}
+              ) : null) as any}
 
               {/* Tags */}
               {asset.tags && (
@@ -787,21 +787,21 @@ function ViewerDialogContent({
                 <span className={`text-2xl font-bold ${sc.text}`}>
                   {sc.labelKey ? t(sc.labelKey) : sc.label} / {sc.label}
                 </span>
-                {asset.designFrozen && (
+                {!!asset.designFrozen && (
                   <span className="flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-xs text-blue-300 ring-1 ring-blue-500/30">
                     <Snowflake className="h-3 w-3" /> Design Frozen
                   </span>
                 )}
               </div>
 
-              {asset.designFrozenAt && (
+              {!!asset.designFrozenAt && (
                 <p className="font-mono text-[10px] text-slate-500">
                   Frozen at: {formatDate(asset.designFrozenAt as string)}
                 </p>
               )}
 
               {/* Latest tag indicator */}
-              {asset.isLatest && (
+              {Boolean(asset.isLatest) && (
                 <div className="flex items-center gap-1.5 text-xs text-emerald-400">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Latest version in chain

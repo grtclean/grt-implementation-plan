@@ -56,7 +56,7 @@ const rulesRouter = router({
       gracePeriodDays: z.number().int().min(1).max(90).optional(),
       priority: z.number().int().min(0).max(100).optional(),
     }))
-    .mutation(({ input, ctx }) => svc.upsertTriggerRule({ ...input, createdBy: ctx.user.id })),
+    .mutation(({ input, ctx }) => svc.upsertTriggerRule({ ...input, createdBy: ctx.user!.id })),
 
   toggle: managePerm
     .input(z.object({
@@ -151,7 +151,7 @@ const workflowsRouter = router({
       score: input.score,
       passed: input.passed,
       notes: input.notes,
-      decidedBy: ctx.user.id,
+      decidedBy: ctx.user!.id,
     })),
 });
 
@@ -168,7 +168,7 @@ const enforcementsRouter = router({
     .query(({ input }) => svc.listEnforcements(input ?? undefined)),
 
   myActive: protectedProcedure
-    .query(({ ctx }) => svc.getMyEnforcements(ctx.user.id)),
+    .query(({ ctx }) => svc.getMyEnforcements(ctx.user!.id)),
 
   lift: managePerm
     .input(z.object({
@@ -178,7 +178,7 @@ const enforcementsRouter = router({
       reassessmentSessionId: z.number().optional(),
     }))
     .mutation(({ input, ctx }) => svc.liftEnforcement(input.enforcementId, {
-      liftedBy: ctx.user.id,
+      liftedBy: ctx.user!.id,
       reason: input.reason,
       reassessmentPassed: input.reassessmentPassed,
       reassessmentSessionId: input.reassessmentSessionId,

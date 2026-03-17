@@ -196,12 +196,12 @@ export class ZOPACalculator {
       riskLevel = "medium";
     }
 
-    if (params.buyerReservationPrice < params.marketBenchmark * 0.8) {
+    if (params.buyerReservationPrice < params.marketBenchmark! * 0.8) {
       risks.push("买方预算明显低于市场价，可能存在预期管理问题");
       riskLevel = riskLevel === "high" ? "high" : "medium";
     }
 
-    if (params.sellerReservationPrice > params.marketBenchmark * 1.2) {
+    if (params.sellerReservationPrice > params.marketBenchmark! * 1.2) {
       risks.push("卖方底价高于市场价，竞争力不足");
       riskLevel = riskLevel === "high" ? "high" : "medium";
     }

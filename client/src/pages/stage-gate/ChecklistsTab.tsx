@@ -168,7 +168,7 @@ export default function ChecklistsTab({ projectId }: ChecklistsTabProps) {
     });
   };
 
-  const items: ChecklistItem[] = data?.items ?? [];
+  const items: ChecklistItem[] = (data?.items ?? []) as unknown as ChecklistItem[];
 
   const columns: Column<ChecklistItem>[] = [
     {

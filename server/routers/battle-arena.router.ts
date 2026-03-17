@@ -92,7 +92,7 @@ const battleReportRouter = router({
         userId: input.userId,
         period: input.period,
         buCode: input.buCode ?? null,
-      }, String(ctx.user.id));
+      }, String(ctx.user!.id));
 
       await db.update(monthlyBattleReports)
         .set({ generationTaskId: result.taskId })
@@ -207,7 +207,7 @@ const rankingsRouter = router({
       // Fire async task for heavy computation
       const result = await submitTask("ARENA_COMPUTE_RANKINGS", {
         period: input.period,
-      }, String(ctx.user.id));
+      }, String(ctx.user!.id));
 
       log.info({ period: input.period, taskId: result.taskId }, "Arena ranking computation triggered");
       return { taskId: result.taskId, status: "computing" };

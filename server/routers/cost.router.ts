@@ -108,7 +108,7 @@ export const costRouter = router({
       milestoneId: input.milestoneId,
       phaseCode: input.phaseCode,
       status: input.status ?? "pending",
-      submitterId: ctx.user.id,
+      submitterId: ctx.user!.id,
       remark: input.remark,
     } as any);
     return successResponse;
@@ -259,7 +259,7 @@ export const costRouter = router({
       phaseCode: input.phaseCode,
       basis: input.basis,
       assumptions: input.assumptions,
-      estimatorId: ctx.user.id,
+      estimatorId: ctx.user!.id,
     } as any);
     return successResponse;
   }),

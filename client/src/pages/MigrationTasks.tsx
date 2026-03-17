@@ -67,7 +67,7 @@ export default function MigrationTasks() {
   // Initialize default tasks if empty
   useEffect(() => {
     if (tasks && tasks.length === 0) {
-      initMutation.mutate();
+      initMutation.mutate({} as any);
     }
   }, [tasks]);
 

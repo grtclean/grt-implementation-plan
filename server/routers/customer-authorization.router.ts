@@ -139,8 +139,8 @@ export const customerAuthorizationRouter = router({
         ndaRequired: input.ndaRequired,
         validFrom,
         validUntil,
-        grantedByUserId: ctx.user.id,
-        grantedByName: ctx.user.name ?? ctx.user.openId ?? "system",
+        grantedByUserId: ctx.user!.id,
+        grantedByName: ctx.user!.name ?? ctx.user!.openId ?? "system",
       }).returning();
 
       log.info({ authId: auth.id, company: input.companyName, tier: input.accessTier }, "Customer authorization created");
@@ -170,7 +170,7 @@ export const customerAuthorizationRouter = router({
         await recordAudit(db, {
           authorizationId: input.id,
           actionType: "tier_upgraded",
-          metadata: { newTier: input.accessTier, updatedBy: ctx.user.id },
+          metadata: { newTier: input.accessTier, updatedBy: ctx.user!.id },
         });
       }
       return updated;
@@ -183,7 +183,7 @@ export const customerAuthorizationRouter = router({
       const [revoked] = await db.update(customerAuthorizations)
         .set({
           status: "revoked",
-          revokedByUserId: ctx.user.id,
+          revokedByUserId: ctx.user!.id,
           revokedReason: input.reason,
           updatedAt: new Date(),
         })
@@ -194,7 +194,7 @@ export const customerAuthorizationRouter = router({
         authorizationId: input.id,
         customerCompany: revoked?.companyName,
         actionType: "access_revoked",
-        metadata: { reason: input.reason, revokedBy: ctx.user.id },
+        metadata: { reason: input.reason, revokedBy: ctx.user!.id },
       });
 
       log.info({ authId: input.id, reason: input.reason }, "Customer authorization revoked");
@@ -291,7 +291,7 @@ export const customerAuthorizationRouter = router({
         allowDownload: input.allowDownload,
         allowPrint: input.allowPrint,
         expiryOverride: input.expiryOverride ? new Date(input.expiryOverride) : null,
-        addedByUserId: ctx.user.id,
+        addedByUserId: ctx.user!.id,
       }).returning();
       return doc;
     }),
@@ -464,7 +464,7 @@ export const customerAuthorizationRouter = router({
       const [updated] = await db.update(customerNdaAgreements)
         .set({
           isCountersigned: true,
-          countersignedBy: ctx.user.name ?? ctx.user.openId ?? "admin",
+          countersignedBy: ctx.user!.name ?? ctx.user!.openId ?? "admin",
           countersignedAt: now,
           status: "countersigned",
           updatedAt: now,
@@ -475,7 +475,7 @@ export const customerAuthorizationRouter = router({
         ))
         .returning();
       if (!updated) throw new Error("NDA not found or not in signed status");
-      log.info({ authId: input.authorizationId, countersigner: ctx.user.name }, "NDA countersigned");
+      log.info({ authId: input.authorizationId, countersigner: ctx.user!.name }, "NDA countersigned");
       return updated;
     }),
 
@@ -522,7 +522,7 @@ export const customerAuthorizationRouter = router({
     .query(async ({ ctx }) => {
       const db = await requireDb();
       const [auth] = await db.select().from(customerAuthorizations)
-        .where(eq(customerAuthorizations.portalUserId, ctx.user.id))
+        .where(eq(customerAuthorizations.portalUserId, ctx.user!.id))
         .limit(1);
       if (!auth) return null;
 
@@ -538,7 +538,7 @@ export const customerAuthorizationRouter = router({
       const db = await requireDb();
       const [auth] = await db.select().from(customerAuthorizations)
         .where(and(
-          eq(customerAuthorizations.portalUserId, ctx.user.id),
+          eq(customerAuthorizations.portalUserId, ctx.user!.id),
           eq(customerAuthorizations.status, "active"),
         ))
         .limit(1);
@@ -566,7 +566,7 @@ export const customerAuthorizationRouter = router({
       // Verify portal user has access
       const [auth] = await db.select().from(customerAuthorizations)
         .where(and(
-          eq(customerAuthorizations.portalUserId, ctx.user.id),
+          eq(customerAuthorizations.portalUserId, ctx.user!.id),
           eq(customerAuthorizations.status, "active"),
         ))
         .limit(1);
@@ -607,7 +607,7 @@ export const customerAuthorizationRouter = router({
       await recordAudit(db, {
         authorizationId: auth.id,
         documentId: doc.id,
-        portalUserId: ctx.user.id,
+        portalUserId: ctx.user!.id,
         customerCompany: auth.companyName,
         actionType: "doc_view",
         docCategory: doc.docCategory,
@@ -629,7 +629,7 @@ export const customerAuthorizationRouter = router({
       const db = await requireDb();
       const [auth] = await db.select().from(customerAuthorizations)
         .where(and(
-          eq(customerAuthorizations.portalUserId, ctx.user.id),
+          eq(customerAuthorizations.portalUserId, ctx.user!.id),
           eq(customerAuthorizations.status, "active"),
         ))
         .limit(1);
@@ -659,7 +659,7 @@ export const customerAuthorizationRouter = router({
       await recordAudit(db, {
         authorizationId: auth.id,
         documentId: doc.id,
-        portalUserId: ctx.user.id,
+        portalUserId: ctx.user!.id,
         customerCompany: auth.companyName,
         actionType: "doc_download",
         docCategory: doc.docCategory,
@@ -680,7 +680,7 @@ export const customerAuthorizationRouter = router({
       const db = await requireDb();
       const [auth] = await db.select().from(customerAuthorizations)
         .where(and(
-          eq(customerAuthorizations.portalUserId, ctx.user.id),
+          eq(customerAuthorizations.portalUserId, ctx.user!.id),
           eq(customerAuthorizations.status, "active"),
         ))
         .limit(1);

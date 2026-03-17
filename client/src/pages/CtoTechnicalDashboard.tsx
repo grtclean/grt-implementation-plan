@@ -376,7 +376,7 @@ export default function CtoTechnicalDashboard() {
               </div>
             ) : (
               <div className="space-y-2 max-h-[220px] overflow-y-auto">
-                {conflicts.map((c) => (
+                {conflicts.map((c: any) => (
                   <div
                     key={c.projectId}
                     className="flex items-center justify-between p-2 rounded-md border bg-muted/30"

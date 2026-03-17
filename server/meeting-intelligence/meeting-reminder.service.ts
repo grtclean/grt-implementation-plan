@@ -53,7 +53,7 @@ export async function getWebhookConfig(channelId: string) {
     SELECT * FROM meeting_webhook_configs
     WHERE channel_id = ${channelId} AND is_active = TRUE
   `);
-  return (result[0] as any[])[0] || null;
+  return ((result as any)[0] as any[])[0] || null;
 }
 
 export async function createWebhookConfig(data: {
@@ -146,7 +146,7 @@ export async function getPendingReminders() {
     LIMIT 100
   `);
   
-  return result[0] as any[];
+  return (result as any)[0] as any[];
 }
 
 export async function updateReminderStatus(reminderId: string, status: "sent" | "failed", error?: string) {

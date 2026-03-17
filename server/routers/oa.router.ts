@@ -90,7 +90,7 @@ export const oaRouter = router({
     approverId: z.number().optional(),
   })).mutation(async ({ input, ctx }) => {
     return createOARequest({
-      applicantId: ctx.user.id,
+      applicantId: ctx.user!.id,
       type: input.type,
       title: input.title,
       content: input.content as Record<string, unknown> | undefined,
@@ -103,14 +103,14 @@ export const oaRouter = router({
     id: z.union([z.string(), z.number()]),
     comment: z.string().optional(),
   })).mutation(async ({ input, ctx }) => {
-    return approveOARequest(toNum(input.id), ctx.user.id, input.comment);
+    return approveOARequest(toNum(input.id), ctx.user!.id, input.comment);
   }),
 
   rejectWorkflow: requirePermission('oa:forms:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     comment: z.string().optional(),
   })).mutation(async ({ input, ctx }) => {
-    return rejectOARequest(toNum(input.id), ctx.user.id, input.comment);
+    return rejectOARequest(toNum(input.id), ctx.user!.id, input.comment);
   }),
 
   cancelWorkflow: requirePermission('oa:forms:manage').input(z.object({
@@ -135,7 +135,7 @@ export const oaRouter = router({
 
   getMyPendingApprovals: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
-    const userId = ctx.user.id;
+    const userId = ctx.user!.id;
     const items = await db.select().from(oaWorkflows)
       .where(
         and(
@@ -435,7 +435,7 @@ export const oaRouter = router({
     year: z.number().optional(),
   }).optional()).query(async ({ input, ctx }) => {
     const year = input?.year ?? new Date().getFullYear();
-    return getLeaveBalances(ctx.user.id, year);
+    return getLeaveBalances(ctx.user!.id, year);
   }),
 
   initLeaveBalances: requirePermission('oa:forms:manage').input(z.object({

@@ -474,7 +474,7 @@ export async function getProjectWorkOrders(
       lastSyncAt: record.lastSyncAt,
       mesReference: data.mesReference,
     };
-  });
+  }) as MESWorkOrder[];
 }
 
 /**

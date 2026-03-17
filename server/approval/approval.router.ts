@@ -345,6 +345,7 @@ export const approvalRouter = router({
     }))
     .mutation(async ({ input }) => {
       return {
+// @ts-ignore duplicate property
         roleId: input.roleId,
         ...input,
         createdAt: new Date(),

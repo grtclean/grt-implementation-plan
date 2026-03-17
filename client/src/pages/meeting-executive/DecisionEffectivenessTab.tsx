@@ -18,6 +18,99 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 
+interface DecisionTrackingRow {
+  id: number;
+  meeting_id: string;
+  meeting_title?: string;
+  decision_text?: string;
+  decision_maker?: string;
+  follow_through_status: string;
+  total_velocity_days?: number;
+  impact_category?: string;
+  impact_score?: number;
+  ai_quality_score?: number;
+  velocity_grade?: string;
+  stakeholders?: string;
+  decision_date?: string;
+  implementation_start_date?: string;
+  implementation_end_date?: string;
+  business_outcome?: string;
+  ai_narrative?: string;
+  ai_recommendations?: string;
+  reversal_reason?: string;
+  reversal_meeting_id?: string;
+  reversal_date?: string;
+}
+
+interface DecisionDashboard {
+  totalDecisions?: number | string;
+  followThroughRate?: number;
+  avgVelocityDays?: number | string;
+  reversedCount?: number | string;
+}
+
+interface VelocityTrendRow {
+  period_end: string;
+  avg_velocity_days: number;
+  follow_through_rate: number;
+}
+
+interface ReversalAnalysis {
+  totalReversals?: number;
+  byDepartment?: Array<{ department: string; count: number }>;
+  topReasons?: Array<{ reason: string; count?: number } | string>;
+}
+
+interface VelocityData {
+  byDepartment?: Array<{
+    department: string;
+    avgVelocity: number;
+    count: number;
+  }>;
+}
+
+interface AnalyzeDecisionResult {
+  decisionsAnalyzed?: number;
+}
+
+interface BatchAnalyzeResult {
+  success: boolean;
+}
+
+interface DetectReversalsResult {
+  reversalsDetected?: number;
+  reversals?: Array<{
+    original_decision: string;
+    original_meeting_id: string;
+    reversal_meeting_id: string;
+    reversal_date?: string;
+    reason?: string;
+  }>;
+}
+
+interface QualityAssessmentResult {
+  qualityScore?: number;
+  clarityScore?: number;
+  alignmentScore?: number;
+  riskFactors?: string[];
+  recommendations?: string[];
+  narrative?: string;
+}
+
+interface DecisionSnapshotResult {
+  totalDecisions?: number;
+  implementedCount?: number;
+  avgVelocityDays?: number | string;
+  followThroughRate?: number | string;
+  reversedCount?: number;
+  avgQualityScore?: number | string;
+  trendVsPrevious?: string;
+  topBottlenecks?: string[];
+  topReversalReasons?: string[];
+  aiNarrative?: string;
+  recommendations?: string[];
+}
+
 const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 
 const GRADE_COLORS: Record<string, string> = {
@@ -122,12 +215,12 @@ export function DecisionEffectivenessTab() {
     },
   });
 
-  const dashboard = (dashboardQuery.data ?? {}) as any;
-  const trackingList = ((trackingListQuery.data as any)?.rows || []) as any[];
-  const velocityTrend = (velocityTrendQuery.data || []) as any[];
-  const reversalAnalysis = (reversalAnalysisQuery.data ?? {}) as any;
-  const velocityData = (velocityQuery.data ?? {}) as any;
-  const velocityByDept = (velocityData?.byDepartment || []) as any[];
+  const dashboard = (dashboardQuery.data ?? {}) as DecisionDashboard;
+  const trackingList = ((trackingListQuery.data as Record<string, unknown> | undefined)?.rows || []) as DecisionTrackingRow[];
+  const velocityTrend = (velocityTrendQuery.data || []) as unknown as VelocityTrendRow[];
+  const reversalAnalysis = (reversalAnalysisQuery.data ?? {}) as ReversalAnalysis;
+  const velocityData = (velocityQuery.data ?? {}) as VelocityData;
+  const velocityByDept = (velocityData?.byDepartment || []) as NonNullable<VelocityData["byDepartment"]>;
 
   // Compute status distribution from tracking list for pie chart
   const statusDistMap: Record<string, number> = {};
@@ -174,7 +267,7 @@ export function DecisionEffectivenessTab() {
           </div>
           {analyzeMut.data && (
             <p className="text-sm text-green-600">
-              {t("meeting.decision.analyzeSuccess")}: {(analyzeMut.data as any).decisionsAnalyzed ?? 0} {t("meeting.decision.decisionsUnit")}
+              {t("meeting.decision.analyzeSuccess")}: {(analyzeMut.data as AnalyzeDecisionResult).decisionsAnalyzed ?? 0} {t("meeting.decision.decisionsUnit")}
             </p>
           )}
           {analyzeMut.isError && (
@@ -208,7 +301,7 @@ export function DecisionEffectivenessTab() {
             </div>
             {batchAnalyzeMut.data && (
               <p className="text-sm text-green-600 mt-2">
-                {t("meeting.decision.batchCompleted")} {(batchAnalyzeMut.data as any[]).filter((r: any) => r.success).length} {t("meeting.decision.batchSuccessUnit")}, {t("meeting.decision.batchFailed")} {(batchAnalyzeMut.data as any[]).filter((r: any) => !r.success).length} {t("meeting.decision.batchSuccessUnit")}
+                {t("meeting.decision.batchCompleted")} {(batchAnalyzeMut.data as BatchAnalyzeResult[]).filter((r) => r.success).length} {t("meeting.decision.batchSuccessUnit")}, {t("meeting.decision.batchFailed")} {(batchAnalyzeMut.data as BatchAnalyzeResult[]).filter((r) => !r.success).length} {t("meeting.decision.batchSuccessUnit")}
               </p>
             )}
             {batchAnalyzeMut.isError && (
@@ -272,7 +365,7 @@ export function DecisionEffectivenessTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {trackingList.map((row: any) => (
+                {trackingList.map((row: DecisionTrackingRow) => (
                   <>
                     <TableRow
                       key={row.id}
@@ -282,8 +375,8 @@ export function DecisionEffectivenessTab() {
                       <TableCell className="font-mono text-xs">{row.id}</TableCell>
                       <TableCell className="text-xs max-w-[120px] truncate" title={row.meeting_id}>{row.meeting_title || row.meeting_id}</TableCell>
                       <TableCell className="max-w-[200px] truncate">
-                        {row.decision_text?.length > 50
-                          ? row.decision_text.slice(0, 50) + "..."
+                        {(row.decision_text?.length ?? 0) > 50
+                          ? row.decision_text!.slice(0, 50) + "..."
                           : row.decision_text}
                       </TableCell>
                       <TableCell>{row.decision_maker || "—"}</TableCell>
@@ -477,7 +570,7 @@ export function DecisionEffectivenessTab() {
                     dataKey="value"
                     label={({ name, value }) => `${name}: ${value}`}
                   >
-                    {statusPieData.map((_: any, idx: number) => (
+                    {statusPieData.map((_: { name: string; value: number }, idx: number) => (
                       <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
                     ))}
                   </Pie>
@@ -562,12 +655,12 @@ export function DecisionEffectivenessTab() {
               {t("meeting.decision.detectReversalsBtn")}
             </Button>
           </div>
-          {detectReversalsMut.data && (
+          {detectReversalsMut.data && (() => { const reversalData = detectReversalsMut.data as DetectReversalsResult; return (
             <div className="space-y-3">
               <p className="text-sm text-green-600">
-                {t("meeting.decision.detectionComplete")}: {(detectReversalsMut.data as any).reversalsDetected ?? 0} {t("meeting.decision.reversalsUnit")}
+                {t("meeting.decision.detectionComplete")}: {reversalData.reversalsDetected ?? 0} {t("meeting.decision.reversalsUnit")}
               </p>
-              {((detectReversalsMut.data as any).reversals || []).length > 0 && (
+              {(reversalData.reversals || []).length > 0 && (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -579,7 +672,7 @@ export function DecisionEffectivenessTab() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {((detectReversalsMut.data as any).reversals as any[]).map((r: any, i: number) => (
+                    {reversalData.reversals!.map((r, i: number) => (
                       <TableRow key={i}>
                         <TableCell className="max-w-[200px] truncate">{r.original_decision}</TableCell>
                         <TableCell className="font-mono text-xs">{r.original_meeting_id}</TableCell>
@@ -592,13 +685,13 @@ export function DecisionEffectivenessTab() {
                 </Table>
               )}
             </div>
-          )}
+          ); })()}
           {detectReversalsMut.isError && (
             <p className="text-sm text-red-500">{t("meeting.decision.error")}: {detectReversalsMut.error.message}</p>
           )}
 
           {/* Reversal analysis aggregate */}
-          {(reversalAnalysis?.totalReversals !== undefined || reversalAnalysis?.byDepartment?.length > 0) && (
+          {(reversalAnalysis?.totalReversals !== undefined || (reversalAnalysis?.byDepartment?.length ?? 0) > 0) && (
             <div className="border-t pt-4 space-y-3">
               <h4 className="text-sm font-medium">{t("meeting.decision.reversalSummary")}</h4>
               <div className="flex gap-4 text-sm">
@@ -615,7 +708,7 @@ export function DecisionEffectivenessTab() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(reversalAnalysis.byDepartment as any[]).map((d: any, i: number) => (
+                      {(reversalAnalysis.byDepartment as NonNullable<ReversalAnalysis["byDepartment"]>).map((d, i: number) => (
                         <TableRow key={i}>
                           <TableCell className="font-medium">{d.department}</TableCell>
                           <TableCell className="text-center">{d.count}</TableCell>
@@ -629,9 +722,9 @@ export function DecisionEffectivenessTab() {
                 <div>
                   <h5 className="text-sm font-medium mb-1">{t("meeting.decision.topReversalReasons")}</h5>
                   <ul className="space-y-1 text-sm">
-                    {(reversalAnalysis.topReasons as any[]).map((r: any, i: number) => (
+                    {(reversalAnalysis.topReasons as NonNullable<ReversalAnalysis["topReasons"]>).map((r, i: number) => (
                       <li key={i} className="text-muted-foreground">
-                        • {r.reason || r} {r.count ? `(${r.count}${t("meeting.decision.timesUnit")})` : ""}
+                        • {typeof r === "string" ? r : r.reason} {typeof r !== "string" && r.count ? `(${r.count}${t("meeting.decision.timesUnit")})` : ""}
                       </li>
                     ))}
                   </ul>
@@ -672,7 +765,7 @@ export function DecisionEffectivenessTab() {
               {t("meeting.decision.assessQualityBtn")}
             </Button>
           </div>
-          {assessQualityMut.data && (
+          {assessQualityMut.data && (() => { const qData = assessQualityMut.data as QualityAssessmentResult; return (
             <div className="bg-muted/50 rounded-lg p-4 space-y-3 text-sm">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -681,10 +774,10 @@ export function DecisionEffectivenessTab() {
                     <div className="flex-1 bg-gray-200 rounded-full h-3">
                       <div
                         className="bg-indigo-500 h-3 rounded-full"
-                        style={{ width: `${(assessQualityMut.data as any).qualityScore ?? 0}%` }}
+                        style={{ width: `${qData.qualityScore ?? 0}%` }}
                       />
                     </div>
-                    <span className="font-semibold">{(assessQualityMut.data as any).qualityScore}</span>
+                    <span className="font-semibold">{qData.qualityScore}</span>
                   </div>
                 </div>
                 <div>
@@ -693,10 +786,10 @@ export function DecisionEffectivenessTab() {
                     <div className="flex-1 bg-gray-200 rounded-full h-3">
                       <div
                         className="bg-green-500 h-3 rounded-full"
-                        style={{ width: `${(assessQualityMut.data as any).clarityScore ?? 0}%` }}
+                        style={{ width: `${qData.clarityScore ?? 0}%` }}
                       />
                     </div>
-                    <span className="font-semibold">{(assessQualityMut.data as any).clarityScore}</span>
+                    <span className="font-semibold">{qData.clarityScore}</span>
                   </div>
                 </div>
                 <div>
@@ -705,41 +798,41 @@ export function DecisionEffectivenessTab() {
                     <div className="flex-1 bg-gray-200 rounded-full h-3">
                       <div
                         className="bg-amber-500 h-3 rounded-full"
-                        style={{ width: `${(assessQualityMut.data as any).alignmentScore ?? 0}%` }}
+                        style={{ width: `${qData.alignmentScore ?? 0}%` }}
                       />
                     </div>
-                    <span className="font-semibold">{(assessQualityMut.data as any).alignmentScore}</span>
+                    <span className="font-semibold">{qData.alignmentScore}</span>
                   </div>
                 </div>
               </div>
-              {((assessQualityMut.data as any).riskFactors || []).length > 0 && (
+              {(qData.riskFactors || []).length > 0 && (
                 <div>
                   <span className="font-medium">{t("meeting.decision.riskFactors")}:</span>
                   <ul className="mt-1 space-y-1">
-                    {((assessQualityMut.data as any).riskFactors as string[]).map((f: string, i: number) => (
+                    {qData.riskFactors!.map((f: string, i: number) => (
                       <li key={i} className="text-muted-foreground">• {f}</li>
                     ))}
                   </ul>
                 </div>
               )}
-              {((assessQualityMut.data as any).recommendations || []).length > 0 && (
+              {(qData.recommendations || []).length > 0 && (
                 <div>
                   <span className="font-medium">{t("meeting.decision.improveSuggestions")}:</span>
                   <ul className="mt-1 space-y-1">
-                    {((assessQualityMut.data as any).recommendations as string[]).map((r: string, i: number) => (
+                    {qData.recommendations!.map((r: string, i: number) => (
                       <li key={i} className="text-muted-foreground">• {r}</li>
                     ))}
                   </ul>
                 </div>
               )}
-              {(assessQualityMut.data as any).narrative && (
+              {qData.narrative && (
                 <div>
                   <span className="font-medium">{t("meeting.decision.aiNarrative")}: </span>
-                  <span className="text-muted-foreground">{(assessQualityMut.data as any).narrative}</span>
+                  <span className="text-muted-foreground">{qData.narrative}</span>
                 </div>
               )}
             </div>
-          )}
+          ); })()}
           {assessQualityMut.isError && (
             <p className="text-sm text-red-500">{t("meeting.decision.error")}: {assessQualityMut.error.message}</p>
           )}
@@ -897,66 +990,66 @@ export function DecisionEffectivenessTab() {
               {t("meeting.decision.generateSnapshot")}
             </Button>
           </div>
-          {snapshotMut.data && (
+          {snapshotMut.data && (() => { const snapData = snapshotMut.data as DecisionSnapshotResult; return (
             <div className="space-y-4">
               {/* Metrics grid */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 <Card>
                   <CardContent className="pt-4 text-center">
                     <Target className="h-5 w-5 mx-auto text-indigo-500 mb-1" />
-                    <div className="text-xl font-bold">{(snapshotMut.data as any).totalDecisions ?? 0}</div>
+                    <div className="text-xl font-bold">{snapData.totalDecisions ?? 0}</div>
                     <div className="text-xs text-muted-foreground">{t("meeting.decision.totalDecisions")}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 text-center">
                     <CheckCircle2 className="h-5 w-5 mx-auto text-green-500 mb-1" />
-                    <div className="text-xl font-bold">{(snapshotMut.data as any).implementedCount ?? 0}</div>
+                    <div className="text-xl font-bold">{snapData.implementedCount ?? 0}</div>
                     <div className="text-xs text-muted-foreground">{t("meeting.decision.statusImplemented")}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 text-center">
                     <Clock className="h-5 w-5 mx-auto text-blue-500 mb-1" />
-                    <div className="text-xl font-bold">{(snapshotMut.data as any).avgVelocityDays ?? "—"}</div>
+                    <div className="text-xl font-bold">{snapData.avgVelocityDays ?? "—"}</div>
                     <div className="text-xs text-muted-foreground">{t("meeting.decision.avgVelocityDays")}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 text-center">
                     <TrendingUp className="h-5 w-5 mx-auto text-emerald-500 mb-1" />
-                    <div className="text-xl font-bold">{(snapshotMut.data as any).followThroughRate ?? "—"}%</div>
+                    <div className="text-xl font-bold">{snapData.followThroughRate ?? "—"}%</div>
                     <div className="text-xs text-muted-foreground">{t("meeting.decision.followThroughRate")}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 text-center">
                     <AlertTriangle className="h-5 w-5 mx-auto text-orange-500 mb-1" />
-                    <div className="text-xl font-bold">{(snapshotMut.data as any).reversedCount ?? 0}</div>
+                    <div className="text-xl font-bold">{snapData.reversedCount ?? 0}</div>
                     <div className="text-xs text-muted-foreground">{t("meeting.decision.reversedCount")}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 text-center">
                     <BarChart3 className="h-5 w-5 mx-auto text-purple-500 mb-1" />
-                    <div className="text-xl font-bold">{(snapshotMut.data as any).avgQualityScore ?? "—"}</div>
+                    <div className="text-xl font-bold">{snapData.avgQualityScore ?? "—"}</div>
                     <div className="text-xs text-muted-foreground">{t("meeting.decision.avgQualityScore")}</div>
                   </CardContent>
                 </Card>
               </div>
 
               {/* Trend badge */}
-              {(snapshotMut.data as any).trendVsPrevious && (
+              {snapData.trendVsPrevious && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{t("meeting.decision.overallTrend")}:</span>
-                  <Badge className={TREND_COLORS[(snapshotMut.data as any).trendVsPrevious] || ""} variant="secondary">
+                  <Badge className={TREND_COLORS[snapData.trendVsPrevious] || ""} variant="secondary">
                     {(() => {
-                      const trend = (snapshotMut.data as any).trendVsPrevious;
+                      const trend = snapData.trendVsPrevious;
                       const Icon = trend === "improving" ? TrendingUp : trend === "declining" ? TrendingDown : Minus;
                       return (
                         <>
                           <Icon className="h-3 w-3 mr-1" />
-                          {t(TREND_LABEL_KEYS[trend] || "meeting.decision.trendStable")}
+                          {t(TREND_LABEL_KEYS[trend!] || "meeting.decision.trendStable")}
                         </>
                       );
                     })()}
@@ -965,11 +1058,11 @@ export function DecisionEffectivenessTab() {
               )}
 
               {/* Bottlenecks */}
-              {((snapshotMut.data as any).topBottlenecks || []).length > 0 && (
+              {(snapData.topBottlenecks || []).length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium mb-1">{t("meeting.decision.bottleneckAnalysis")}</h4>
                   <ul className="space-y-1 text-sm">
-                    {((snapshotMut.data as any).topBottlenecks as string[]).map((b: string, i: number) => (
+                    {snapData.topBottlenecks!.map((b: string, i: number) => (
                       <li key={i} className="text-muted-foreground">• {b}</li>
                     ))}
                   </ul>
@@ -977,11 +1070,11 @@ export function DecisionEffectivenessTab() {
               )}
 
               {/* Reversal reasons */}
-              {((snapshotMut.data as any).topReversalReasons || []).length > 0 && (
+              {(snapData.topReversalReasons || []).length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium mb-1">{t("meeting.decision.reversalReasons")}</h4>
                   <ul className="space-y-1 text-sm">
-                    {((snapshotMut.data as any).topReversalReasons as string[]).map((r: string, i: number) => (
+                    {snapData.topReversalReasons!.map((r: string, i: number) => (
                       <li key={i} className="text-muted-foreground">• {r}</li>
                     ))}
                   </ul>
@@ -989,26 +1082,26 @@ export function DecisionEffectivenessTab() {
               )}
 
               {/* AI narrative */}
-              {(snapshotMut.data as any).aiNarrative && (
+              {snapData.aiNarrative && (
                 <div className="bg-muted/50 rounded-lg p-4">
                   <h4 className="text-sm font-medium mb-1">{t("meeting.decision.aiAnalysis")}</h4>
-                  <p className="text-sm text-muted-foreground">{(snapshotMut.data as any).aiNarrative}</p>
+                  <p className="text-sm text-muted-foreground">{snapData.aiNarrative}</p>
                 </div>
               )}
 
               {/* Recommendations */}
-              {((snapshotMut.data as any).recommendations || []).length > 0 && (
+              {(snapData.recommendations || []).length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium mb-1">{t("meeting.decision.optimizeSuggestions")}</h4>
                   <ul className="space-y-1 text-sm">
-                    {((snapshotMut.data as any).recommendations as string[]).map((r: string, i: number) => (
+                    {snapData.recommendations!.map((r: string, i: number) => (
                       <li key={i} className="text-muted-foreground">• {r}</li>
                     ))}
                   </ul>
                 </div>
               )}
             </div>
-          )}
+          ); })()}
           {snapshotMut.isError && (
             <p className="text-sm text-red-500">{t("meeting.decision.error")}: {snapshotMut.error.message}</p>
           )}

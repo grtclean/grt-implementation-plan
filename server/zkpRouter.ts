@@ -89,7 +89,7 @@ export const zkpRouter = router({
           claim_type, claim_description, claim_parameters,
           status, expires_at
         ) VALUES (
-          ${requestCode}, ${input.requestType}, ${ctx.user.id}, 'human_user', ${ctx.user.name || ctx.user.openId},
+          ${requestCode}, ${input.requestType}, ${ctx.user!.id}, 'human_user', ${ctx.user!.name || ctx.user!.openId},
           ${input.targetEntityType}, ${input.targetEntityId || null}, ${input.targetEntityCode || null},
           ${input.claimType}, ${input.claimDescription || null}, ${JSON.stringify(input.claimParameters || {})},
           'pending', ${expiresAt.toISOString().slice(0, 19).replace('T', ' ')}
@@ -102,7 +102,7 @@ export const zkpRouter = router({
         ) VALUES (
           ${(result as any)[0].insertId}, 'request_created',
           ${JSON.stringify({ requestCode, claimType: input.claimType })},
-          'human_user', ${ctx.user.id.toString()}
+          'human_user', ${ctx.user!.id.toString()}
         )
       `);
       
@@ -394,13 +394,13 @@ export const zkpRouter = router({
           res.is_verified, res.confidence_level, res.proof_hash
         FROM zkp_verification_requests r
         LEFT JOIN zkp_verification_results res ON r.id = res.request_id
-        WHERE r.requester_id = ${ctx.user.id}
+        WHERE r.requester_id = ${ctx.user!.id}
         ORDER BY r.created_at DESC
         LIMIT ${input.pageSize} OFFSET ${offset}
       `);
       
       const countResult = await db.execute(sql`
-        SELECT COUNT(*) as total FROM zkp_verification_requests WHERE requester_id = ${ctx.user.id}
+        SELECT COUNT(*) as total FROM zkp_verification_requests WHERE requester_id = ${ctx.user!.id}
       `);
       
       return {

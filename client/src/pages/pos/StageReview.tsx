@@ -430,7 +430,7 @@ export default function StageReview() {
                         <dim.icon className="w-5 h-5" />
                         {dim.name}
                       </CardTitle>
-                      <CardDescription>{dim.desc}</CardDescription>
+                      <CardDescription>{(dim as any).desc}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       {/* M4检查项清单 */}

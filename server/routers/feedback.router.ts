@@ -19,7 +19,7 @@ export const feedbackRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [item] = await db.insert(feedback).values({
-      userId: ctx.user.id,
+      userId: ctx.user!.id,
       type: (input.type || "suggestion") as "suggestion" | "bug" | "other",
       content: input.content || "",
       status: "pending" as const,
@@ -34,7 +34,7 @@ export const feedbackRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [item] = await db.insert(feedback).values({
-      userId: ctx.user.id,
+      userId: ctx.user!.id,
       type: (input.type || "suggestion") as "suggestion" | "bug" | "other",
       content: input.content || "",
       status: "pending" as const,

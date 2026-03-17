@@ -13,6 +13,9 @@ import {
   aiEnhancedMatching,
 } from "../services/liquid-workforce-enhanced.service";
 
+/** Row type for raw MySQL execute results */
+type DbRow = Record<string, unknown>;
+
 export const liquidWorkforceEnhancedRouter = router({
   // ==================== ZKP技能证明 ====================
 
@@ -25,7 +28,7 @@ export const liquidWorkforceEnhancedRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as { execute: (sql: string, params?: unknown[]) => Promise<[DbRow[], unknown]> };
       const { skillId, evidenceIds } = input;
 
       // 获取技能信息
@@ -33,10 +36,10 @@ export const liquidWorkforceEnhancedRouter = router({
         `SELECT * FROM skill_capsules WHERE skill_id = ?`,
         [skillId]
       );
-      if ((skillRows as any[]).length === 0) {
+      if ((skillRows as DbRow[]).length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "技能不存在" });
       }
-      const skill = (skillRows as any[])[0];
+      const skill = (skillRows as DbRow[])[0];
 
       // 验证所有权
       if (skill.owner_id !== ctx.user?.id) {
@@ -52,14 +55,14 @@ export const liquidWorkforceEnhancedRouter = router({
       // 生成ZKP证明
       const proof = await ZKPSkillProver.generateProof(
         skillId,
-        skill.level,
+        skill.level as number,
         evidenceIds,
         salt
       );
 
       // 保存证明到数据库
       await db.execute(
-        `INSERT INTO zkp_skill_proofs 
+        `INSERT INTO zkp_skill_proofs
          (skill_id, owner_id, proof_data, proof_strength, evidence_count, expires_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
@@ -74,7 +77,7 @@ export const liquidWorkforceEnhancedRouter = router({
 
       // 更新技能的证明状态
       await db.execute(
-        `UPDATE skill_capsules 
+        `UPDATE skill_capsules
          SET validation_proof = ?, proof_type = 'zkp_verified', validated_at = NOW()
          WHERE skill_id = ?`,
         [proof.commitment, skillId]
@@ -96,7 +99,7 @@ export const liquidWorkforceEnhancedRouter = router({
       })
     )
     .query(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as { execute: (sql: string, params?: unknown[]) => Promise<[DbRow[], unknown]> };
       const { skillId, proofId } = input;
 
       // 获取证明
@@ -109,27 +112,27 @@ export const liquidWorkforceEnhancedRouter = router({
       query += ` ORDER BY created_at DESC LIMIT 1`;
 
       const [rows] = await db.execute(query, params);
-      if ((rows as any[]).length === 0) {
+      if ((rows as DbRow[]).length === 0) {
         return { valid: false, reason: "未找到证明" };
       }
 
-      const proofRecord = (rows as any[])[0];
-      const proof = JSON.parse(proofRecord.proof_data);
+      const proofRecord = (rows as DbRow[])[0];
+      const proof = JSON.parse(proofRecord.proof_data as string);
 
       // 获取技能信息
       const [skillRows] = await db.execute(
         `SELECT level FROM skill_capsules WHERE skill_id = ?`,
         [skillId]
       );
-      if ((skillRows as any[]).length === 0) {
+      if ((skillRows as DbRow[]).length === 0) {
         return { valid: false, reason: "技能不存在" };
       }
-      const skill = (skillRows as any[])[0];
+      const skill = (skillRows as DbRow[])[0];
 
       // 验证证明
       const result = ZKPSkillProver.verifyProof(proof, {
         skillId,
-        level: skill.level,
+        level: skill.level as number,
       });
 
       return {
@@ -152,7 +155,7 @@ export const liquidWorkforceEnhancedRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as { execute: (sql: string, params?: unknown[]) => Promise<[DbRow[], unknown]> };
       const { skillId, ownerId, page, pageSize } = input;
 
       let query = `SELECT zsp.*, sc.name as skill_name, sc.level as skill_level
@@ -176,9 +179,9 @@ export const liquidWorkforceEnhancedRouter = router({
       const [rows] = await db.execute(query, params);
 
       return {
-        items: (rows as any[]).map((row) => ({
+        items: (rows as DbRow[]).map((row) => ({
           ...row,
-          proof_data: JSON.parse(row.proof_data || "{}"),
+          proof_data: JSON.parse((row.proof_data as string) || "{}"),
         })),
         page,
         pageSize,
@@ -198,7 +201,7 @@ export const liquidWorkforceEnhancedRouter = router({
       })
     )
     .query(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as { execute: (sql: string, params?: unknown[]) => Promise<[DbRow[], unknown]> };
       const { taskId, maxResults, minScore, useAI } = input;
 
       // 获取任务信息
@@ -206,10 +209,10 @@ export const liquidWorkforceEnhancedRouter = router({
         `SELECT * FROM liquid_tasks WHERE id = ?`,
         [taskId]
       );
-      if ((taskRows as any[]).length === 0) {
+      if ((taskRows as DbRow[]).length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "任务不存在" });
       }
-      const task = (taskRows as any[])[0];
+      const task = (taskRows as DbRow[])[0];
 
       // 执行匹配
       let matches = await SkillMarketMatcher.matchProvidersForTask(taskId, {
@@ -227,7 +230,7 @@ export const liquidWorkforceEnhancedRouter = router({
           id: task.id,
           name: task.name,
           budget: task.budget,
-          requiredSkills: JSON.parse(task.required_skills || "[]"),
+          requiredSkills: JSON.parse((task.required_skills as string) || "[]"),
         },
         matches,
         totalMatches: matches.length,
@@ -265,11 +268,11 @@ export const liquidWorkforceEnhancedRouter = router({
 
   // 获取技能市场统计
   getMarketStats: protectedProcedure.query(async () => {
-    const db = await requireDb() as any;
+    const db = await requireDb() as unknown as { execute: (sql: string, params?: unknown[]) => Promise<[DbRow[], unknown]> };
 
     // 获取各项统计
     const [skillStats] = await db.execute(`
-      SELECT 
+      SELECT
         COUNT(*) as total_skills,
         COUNT(DISTINCT owner_id) as total_providers,
         AVG(level) as avg_level,
@@ -278,7 +281,7 @@ export const liquidWorkforceEnhancedRouter = router({
     `);
 
     const [taskStats] = await db.execute(`
-      SELECT 
+      SELECT
         COUNT(*) as total_tasks,
         COUNT(CASE WHEN status = 'open' THEN 1 END) as open_tasks,
         SUM(budget) as total_budget,
@@ -287,7 +290,7 @@ export const liquidWorkforceEnhancedRouter = router({
     `);
 
     const [bidStats] = await db.execute(`
-      SELECT 
+      SELECT
         COUNT(*) as total_bids,
         COUNT(CASE WHEN status = 'accepted' THEN 1 END) as accepted_bids,
         AVG(bid_price) as avg_bid_price
@@ -295,7 +298,7 @@ export const liquidWorkforceEnhancedRouter = router({
     `);
 
     const [zkpStats] = await db.execute(`
-      SELECT 
+      SELECT
         COUNT(*) as total_proofs,
         AVG(proof_strength) as avg_proof_strength
       FROM zkp_skill_proofs WHERE expires_at > NOW()
@@ -309,11 +312,11 @@ export const liquidWorkforceEnhancedRouter = router({
     `);
 
     return {
-      skills: (skillStats as any[])[0],
-      tasks: (taskStats as any[])[0],
-      bids: (bidStats as any[])[0],
-      zkp: (zkpStats as any[])[0],
-      hotDomains: hotDomains as any[],
+      skills: (skillStats as DbRow[])[0],
+      tasks: (taskStats as DbRow[])[0],
+      bids: (bidStats as DbRow[])[0],
+      zkp: (zkpStats as DbRow[])[0],
+      hotDomains: hotDomains as DbRow[],
     };
   }),
 
@@ -325,7 +328,7 @@ export const liquidWorkforceEnhancedRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as { execute: (sql: string, params?: unknown[]) => Promise<[DbRow[], unknown]> };
       const { limit } = input;
 
       // 获取用户已有技能的领域
@@ -337,7 +340,7 @@ export const liquidWorkforceEnhancedRouter = router({
       // 获取热门且用户未拥有的技能
       const [recommendations] = await db.execute(
         `SELECT name, domain, AVG(level) as avg_level, COUNT(*) as provider_count
-         FROM skill_capsules 
+         FROM skill_capsules
          WHERE is_active = 1 AND owner_id != ?
          GROUP BY name, domain
          ORDER BY provider_count DESC, avg_level DESC
@@ -346,8 +349,8 @@ export const liquidWorkforceEnhancedRouter = router({
       );
 
       return {
-        recommendations: recommendations as any[],
-        userSkillCount: (userSkills as any[]).length,
+        recommendations: recommendations as DbRow[],
+        userSkillCount: (userSkills as DbRow[]).length,
       };
     }),
 });

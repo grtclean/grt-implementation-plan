@@ -148,7 +148,7 @@ export default function PullSignalsTab({ projectId }: PullSignalsTabProps) {
     });
   };
 
-  const signals: PullSignal[] = data?.items ?? [];
+  const signals: PullSignal[] = (data?.items ?? []) as unknown as PullSignal[];
   const filteredSignals = filterPriority === "all" ? signals : signals.filter(s => s.priority === filterPriority);
 
   const columns: Column<PullSignal>[] = [

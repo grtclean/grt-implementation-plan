@@ -83,7 +83,7 @@ export default function MeetingEditor({ meetingId }: MeetingEditorProps) {
       }),
     ],
     content: meeting?.notes?.content || "",
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ editor }: any) => {
       // 自动保存（防抖）
       const content = editor.getJSON();
       handleAutoSave(JSON.stringify(content));

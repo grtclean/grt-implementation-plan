@@ -110,9 +110,9 @@ export const changeManagementRouter = router({
       
       const request = changeManagementService.createChangeRequest({
         ...input,
-        applicantId: user.id,
-        applicantName: user.name || user.openId,
-        applicantRole: (user.role === 'admin' ? 'admin' : 'developer') as ApplicantRole,
+        applicantId: user!.id,
+        applicantName: user!.name || user!.openId,
+        applicantRole: (user!.role === 'admin' ? 'admin' : 'developer') as ApplicantRole,
         plannedStartTime: input.plannedStartTime ? new Date(input.plannedStartTime) : undefined,
         plannedEndTime: input.plannedEndTime ? new Date(input.plannedEndTime) : undefined,
       });
@@ -204,7 +204,7 @@ export const changeManagementRouter = router({
         return { success: false, error: '只能修改草稿状态的申请' };
       }
       
-      if (request.applicantId !== ctx.user.id && ctx.user.role !== 'admin') {
+      if (request.applicantId !== ctx.user!.id && ctx.user!.role !== 'admin') {
         return { success: false, error: '无权修改此申请' };
       }
       
@@ -225,14 +225,14 @@ export const changeManagementRouter = router({
       const user = ctx.user;
       
       // 检查权限（需要是技术负责人或管理员）
-      if (user.role !== 'admin') {
+      if (user!.role !== 'admin') {
         return { success: false, error: '无技术审核权限' };
       }
       
       const result = changeManagementService.reviewChangeRequest(
         input.requestId,
-        user.id,
-        user.name || user.openId,
+        user!.id,
+        user!.name || user!.openId,
         input.approved,
         input.comment
       );
@@ -257,14 +257,14 @@ export const changeManagementRouter = router({
       const user = ctx.user;
       
       // 检查权限
-      if (user.role !== 'admin') {
+      if (user!.role !== 'admin') {
         return { success: false, error: '无审批权限' };
       }
       
       const result = changeManagementService.approveChangeRequest(
         input.requestId,
-        user.id,
-        user.name || user.openId,
+        user!.id,
+        user!.name || user!.openId,
         input.approved,
         input.comment
       );
@@ -305,8 +305,8 @@ export const changeManagementRouter = router({
           input.requestId,
           input.tokenId,
           input.environment,
-          ctx.user.id,
-          ctx.user.name || ctx.user.openId
+          ctx.user!.id,
+          ctx.user!.name || ctx.user!.openId
         );
         
         if (!execution) {
@@ -411,7 +411,7 @@ export const changeManagementRouter = router({
     .input(rollbackExecutionSchema)
     .mutation(async ({ ctx, input }) => {
       // 检查权限
-      if (ctx.user.role !== 'admin') {
+      if (ctx.user!.role !== 'admin') {
         return { success: false, error: '无回滚权限' };
       }
       
@@ -463,15 +463,15 @@ export const changeManagementRouter = router({
     .input(deployToProductionSchema)
     .mutation(async ({ ctx, input }) => {
       // 检查权限
-      if (ctx.user.role !== 'admin') {
+      if (ctx.user!.role !== 'admin') {
         return { success: false, error: '无部署权限' };
       }
       
       try {
         const success = changeManagementService.deployToProduction(
           input.requestId,
-          ctx.user.id,
-          ctx.user.name || ctx.user.openId
+          ctx.user!.id,
+          ctx.user!.name || ctx.user!.openId
         );
         
         return {

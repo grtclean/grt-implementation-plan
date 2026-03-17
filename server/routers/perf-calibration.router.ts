@@ -108,7 +108,7 @@ const weightConfigRouter = router({
         role: input.role ?? null,
         buCode: input.buCode ?? null,
         period: input.period ?? null,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       }).returning();
       log.info({ id: row.id }, "Weight config created");
       return { id: row.id, action: "created" };
@@ -330,7 +330,7 @@ const feedback360Router = router({
         .where(eq(perf360Feedback.id, input.feedbackId))
         .limit(1);
       if (!existing) throw new Error("Feedback not found");
-      if (existing.reviewerEmployeeId !== ctx.user.id) throw new Error("Not your feedback to submit");
+      if (existing.reviewerEmployeeId !== ctx.user!.id) throw new Error("Not your feedback to submit");
 
       await db.update(perf360Feedback).set({
         questionnaire: input.questionnaire,
@@ -348,7 +348,7 @@ const feedback360Router = router({
     const db = await requireDb();
     const rows = await db.select().from(perf360Feedback)
       .where(and(
-        eq(perf360Feedback.reviewerEmployeeId, ctx.user.id),
+        eq(perf360Feedback.reviewerEmployeeId, ctx.user!.id),
         eq(perf360Feedback.status, "pending"),
       ))
       .orderBy(desc(perf360Feedback.createdAt))
@@ -491,7 +491,7 @@ const forcedDistributionRouter = router({
         department: input.department ?? null,
         buCode: input.buCode ?? null,
         period: input.period ?? null,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       }).returning();
       return { id: row.id, action: "created" };
     }),
@@ -543,7 +543,7 @@ const calibrationRouter = router({
       const db = await requireDb();
       const [row] = await db.insert(perfCalibrationSessions).values({
         ...input,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
         status: "draft",
       }).returning();
       log.info({ id: row.id, scope: input.scope }, "Calibration session created");
@@ -643,8 +643,8 @@ const calibrationRouter = router({
         previousScore: score.finalScore ?? score.aiCompositeScore ?? "70.00",
         newScore: input.newScore,
         adjustmentReason: input.adjustmentReason,
-        adjustedBy: ctx.user.id,
-        adjustedByName: ctx.user.name,
+        adjustedBy: ctx.user!.id,
+        adjustedByName: ctx.user!.name,
       }).returning();
 
       // Update composite score
@@ -652,7 +652,7 @@ const calibrationRouter = router({
         finalScore: input.newScore,
         finalGrade: input.newGrade,
         overrideJustification: input.adjustmentReason,
-        overrideBy: ctx.user.id,
+        overrideBy: ctx.user!.id,
         overrideAt: new Date(),
         calibrationSessionId: input.sessionId,
         status: "calibrated",
@@ -676,7 +676,7 @@ const calibrationRouter = router({
       // Mark adjustment as undone
       await db.update(perfCalibrationAdjustments).set({
         undoneAt: new Date(),
-        undoneBy: ctx.user.id,
+        undoneBy: ctx.user!.id,
       }).where(eq(perfCalibrationAdjustments.id, input.adjustmentId));
 
       // Revert composite score
@@ -771,13 +771,13 @@ const manualOverrideRouter = router({
         finalScore: input.newScore,
         finalGrade: input.newGrade,
         overrideJustification: input.justification,
-        overrideBy: ctx.user.id,
+        overrideBy: ctx.user!.id,
         overrideAt: new Date(),
         status: "calibrated",
         updatedAt: new Date(),
       }).where(eq(perfCompositeScores.id, input.compositeScoreId));
 
-      log.info({ id: input.compositeScoreId, newGrade: input.newGrade, by: ctx.user.id }, "Manual override applied");
+      log.info({ id: input.compositeScoreId, newGrade: input.newGrade, by: ctx.user!.id }, "Manual override applied");
       return { success: true };
     }),
 
@@ -799,7 +799,7 @@ const manualOverrideRouter = router({
             finalScore: o.newScore,
             finalGrade: o.newGrade,
             overrideJustification: o.justification,
-            overrideBy: ctx.user.id,
+            overrideBy: ctx.user!.id,
             overrideAt: new Date(),
             status: "calibrated",
             updatedAt: new Date(),
@@ -894,7 +894,7 @@ const incentiveRouter = router({
         ...input,
         maxAmount: input.maxAmount ?? null,
         formula: input.formula ?? null,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       }).returning();
       return { id: row.id, action: "created" };
     }),
@@ -931,8 +931,8 @@ const incentiveRouter = router({
         awardTitle: catalog.name,
         awardAmount: input.amount,
         justification: input.justification,
-        awardedBy: ctx.user.id,
-        awardedByName: ctx.user.name ?? "System",
+        awardedBy: ctx.user!.id,
+        awardedByName: ctx.user!.name ?? "System",
       } as any).returning();
 
       log.info({ awardId: award.id, employee: input.employeeId, type: catalog.code, amount: input.amount }, "Incentive awarded");
@@ -1188,7 +1188,7 @@ const pipelineRouter = router({
       const db = await requireDb();
       const { period, department, skipComposite } = input;
 
-      log.info({ period, department, userId: ctx.user.id }, "Monthly salary preparation started");
+      log.info({ period, department, userId: ctx.user!.id }, "Monthly salary preparation started");
 
       // Step 1: Batch composite scoring (unless skipped)
       let compositeResult = { processed: 0, errors: 0 };
@@ -1203,7 +1203,7 @@ const pipelineRouter = router({
         taskType: "payroll_batch_calculation",
         status: "pending",
         inputData: { period, department },
-        createdBy: String(ctx.user.id),
+        createdBy: String(ctx.user!.id),
       }).returning();
 
       // Fire-and-forget payroll processing
@@ -1296,8 +1296,8 @@ const pipelineRouter = router({
           gradeDistribution,
           overrideCount,
           totalPerformanceBonus: totalBonus,
-          payrollCompleted: rows.filter(r => r.payrollStatus !== "not_calculated").length,
-          ceoApproved: rows.filter(r => r.payrollStatus === "CEO_APPROVED" || r.payrollStatus === "PAID").length,
+          payrollCompleted: rows.filter((r: any) => r.payrollStatus !== "not_calculated").length,
+          ceoApproved: rows.filter((r: any) => r.payrollStatus === "CEO_APPROVED" || r.payrollStatus === "PAID").length,
         },
       };
     }),

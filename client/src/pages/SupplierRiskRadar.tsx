@@ -94,7 +94,7 @@ export default function SupplierRiskRadar() {
   const overrideMut = trpc.supplierRisk.override.useMutation({
     onSuccess: (data) => {
       if (data.success) {
-        setOverridden(prev => new Set(prev).add(data.supplierId));
+        setOverridden(prev => new Set(prev).add(data.supplierId!));
         setOverrideModal(null);
         setPin("");
         setOverrideReason("");

@@ -28,7 +28,7 @@ export async function createProject(data: InsertProject) {
     const code = `PRJ${String(count[0].count + 1).padStart(6, '0')}`;
     
     const result = await db.insert(projects).values({ ...data, projectCode: code });
-    return { id: result[0].insertId, projectCode: code };
+    return { id: (result as any)[0].insertId, projectCode: code };
   } catch (error) {
     log.error({ err: error }, "Failed to create project");
     throw error;
@@ -115,7 +115,7 @@ export async function createProjectGate(data: InsertProjectGate) {
   if (!db) return null;
 
   const result = await db.insert(projectGates).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function getProjectGates(projectId: number) {
@@ -164,7 +164,7 @@ export async function createProjectMilestone(data: InsertProjectMilestone) {
   if (!db) return null;
 
   const result = await db.insert(projectMilestones).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function getProjectMilestones(projectId: number) {
@@ -198,7 +198,7 @@ export async function createProjectTask(data: InsertProjectTask) {
   if (!db) return null;
 
   const result = await db.insert(projectTasks).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function getProjectTasks(projectId: number) {
@@ -232,7 +232,7 @@ export async function addProjectTeamMember(data: InsertProjectTeamMember) {
   if (!db) return null;
 
   const result = await db.insert(projectTeamMembers).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function getProjectTeamMembers(projectId: number) {
@@ -257,7 +257,7 @@ export async function createProjectDocument(data: InsertProjectDocument) {
   if (!db) return null;
 
   const result = await db.insert(projectDocuments).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function getProjectDocuments(projectId: number) {

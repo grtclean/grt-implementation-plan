@@ -20,7 +20,7 @@ export const workerRouter = router({
     if (input?.skillLevel) items = items.filter(w => w.skillLevel === input.skillLevel);
     if (input?.search) {
       const s = input.search.toLowerCase();
-      items = items.filter(w => w.name.toLowerCase().includes(s) || w.employeeCode.toLowerCase().includes(s));
+      items = items.filter(w => w.name.toLowerCase().includes(s) || w.employeeCode!.toLowerCase().includes(s));
     }
     return { workers: items, total: items.length };
   }),

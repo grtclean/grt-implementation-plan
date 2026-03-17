@@ -19,6 +19,16 @@ import { jsonValue } from "@shared/validators";
 import { createChildLogger } from "../lib/logger";
 const log = createChildLogger("social-community");
 
+/** Raw DB connection interface for execute()-based queries */
+interface RawDb {
+  execute(query: string, params?: unknown[]): Promise<[Record<string, unknown>[], unknown]>;
+}
+
+/** MySQL INSERT result with insertId */
+interface InsertResult {
+  insertId: number;
+}
+
 // ==================== 社群管理路由 ====================
 export const socialCommunityRouter = router({
   // ==================== 社群组管理 ====================
@@ -32,7 +42,7 @@ export const socialCommunityRouter = router({
       pageSize: z.number().default(20),
     }).optional())
     .query(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const { status, type, page = 1, pageSize = 20 } = input || {};
 
       let query = `SELECT * FROM social_groups WHERE 1=1`;
@@ -54,7 +64,7 @@ export const socialCommunityRouter = router({
       
       // 获取总数
       let countQuery = `SELECT COUNT(*) as total FROM social_groups WHERE 1=1`;
-      const countParams: any[] = [];
+      const countParams: unknown[] = [];
       if (status) {
         countQuery += ` AND status = ?`;
         countParams.push(status);
@@ -66,8 +76,8 @@ export const socialCommunityRouter = router({
       const [countResult] = await db.execute(countQuery, countParams);
       
       return {
-        items: rows as any[],
-        total: (countResult as any[])[0]?.total || 0,
+        items: rows as Record<string, unknown>[],
+        total: (countResult as Record<string, unknown>[])[0]?.total as number || 0,
         page,
         pageSize,
       };
@@ -83,7 +93,7 @@ export const socialCommunityRouter = router({
       bridgeConfig: z.record(z.string(), jsonValue).optional(),
     }))
     .mutation(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const { groupWxId, name, type, description, bridgeConfig } = input;
       
       const [result] = await db.execute(
@@ -91,7 +101,7 @@ export const socialCommunityRouter = router({
         [groupWxId, name, type, description || null, bridgeConfig ? JSON.stringify(bridgeConfig) : null]
       );
       
-      return { id: (result as any).insertId, success: true };
+      return { id: (result as unknown as InsertResult).insertId, success: true };
     }),
 
   // 更新社群组
@@ -105,7 +115,7 @@ export const socialCommunityRouter = router({
       bridgeConfig: z.record(z.string(), jsonValue).optional(),
     }))
     .mutation(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const { id, ...updates } = input;
       
       const setClauses: string[] = [];
@@ -159,7 +169,7 @@ export const socialCommunityRouter = router({
       pageSize: z.number().default(50),
     }).optional())
     .query(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const { groupId, needsReply, isSensitive, startDate, endDate, page = 1, pageSize = 50 } = input || {};
       
       let query = `SELECT m.*, g.name as group_name FROM social_messages m 
@@ -193,7 +203,7 @@ export const socialCommunityRouter = router({
       const [rows] = await db.execute(query, params);
       
       return {
-        items: rows as any[],
+        items: rows as Record<string, unknown>[],
         page,
         pageSize,
       };
@@ -210,7 +220,7 @@ export const socialCommunityRouter = router({
       receivedAt: z.string(),
     }))
     .mutation(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const { groupWxId, senderWxId, senderName, content, contentType, receivedAt } = input;
       
       // 查找群组
@@ -219,11 +229,11 @@ export const socialCommunityRouter = router({
         [groupWxId]
       );
       
-      if ((groups as any[]).length === 0) {
+      if ((groups as Record<string, unknown>[]).length === 0) {
         throw new TRPCError({ code: 'NOT_FOUND', message: '群组不存在' });
       }
       
-      const groupId = (groups as any[])[0].id;
+      const groupId = (groups as Record<string, unknown>[])[0].id;
       
       // 敏感词检测（简单实现，可扩展）
       const sensitiveKeywords = ['价格', '报价', '配方', '工艺', '专利', '机密'];
@@ -252,7 +262,7 @@ export const socialCommunityRouter = router({
          needsReply, receivedAt]
       );
       
-      const messageId = (result as any).insertId;
+      const messageId = (result as unknown as InsertResult).insertId;
       
       // 如果需要回复，自动生成AI草稿
       if (needsReply) {
@@ -272,7 +282,7 @@ export const socialCommunityRouter = router({
       pageSize: z.number().default(20),
     }).optional())
     .query(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const { status, page = 1, pageSize = 20 } = input || {};
       
       let query = `SELECT d.*, m.content as original_message, m.sender_name, g.name as group_name
@@ -293,7 +303,7 @@ export const socialCommunityRouter = router({
       const [rows] = await db.execute(query, params);
       
       return {
-        items: rows as any[],
+        items: rows as Record<string, unknown>[],
         page,
         pageSize,
       };
@@ -308,7 +318,7 @@ export const socialCommunityRouter = router({
       modifiedContent: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const { draftId, action, comment, modifiedContent } = input;
       
       const reviewStatus = action === 'approve' ? 'approved' : 
@@ -334,8 +344,8 @@ export const socialCommunityRouter = router({
           [draftId]
         );
         
-        if ((drafts as any[]).length > 0) {
-          const draft = (drafts as any[])[0];
+        if ((drafts as Record<string, unknown>[]).length > 0) {
+          const draft = (drafts as Record<string, unknown>[])[0];
           const content = finalContent || draft.draft_content;
           
           await db.execute(
@@ -356,7 +366,7 @@ export const socialCommunityRouter = router({
       additionalContext: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const { messageId, additionalContext } = input;
       
       // 获取原始消息
@@ -365,14 +375,14 @@ export const socialCommunityRouter = router({
         [messageId]
       );
       
-      if ((messages as any[]).length === 0) {
+      if ((messages as Record<string, unknown>[]).length === 0) {
         throw new TRPCError({ code: 'NOT_FOUND', message: '消息不存在' });
       }
       
-      const content = (messages as any[])[0].deidentified_content;
+      const content = (messages as Record<string, unknown>[])[0].deidentified_content as string;
       const fullContext = additionalContext ? `${content}\n\n额外上下文: ${additionalContext}` : content;
-      
-      await generateAIDraft(db, messageId, fullContext);
+
+      await generateAIDraft(db, messageId, fullContext as string);
       
       return { success: true };
     }),
@@ -387,7 +397,7 @@ export const socialCommunityRouter = router({
       pageSize: z.number().default(20),
     }).optional())
     .query(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const { status, page = 1, pageSize = 20 } = input || {};
       
       let query = `SELECT pq.*, g.name as group_name, g.group_wx_id
@@ -407,7 +417,7 @@ export const socialCommunityRouter = router({
       const [rows] = await db.execute(query, params);
       
       return {
-        items: rows as any[],
+        items: rows as Record<string, unknown>[],
         page,
         pageSize,
       };
@@ -419,7 +429,7 @@ export const socialCommunityRouter = router({
       queueId: z.number(),
     }))
     .mutation(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const { queueId } = input;
       
       // 更新状态为发送中
@@ -437,11 +447,11 @@ export const socialCommunityRouter = router({
         [queueId]
       );
       
-      if ((items as any[]).length === 0) {
+      if ((items as Record<string, unknown>[]).length === 0) {
         throw new TRPCError({ code: 'NOT_FOUND', message: '发布任务不存在' });
       }
       
-      const item = (items as any[])[0];
+      const item = (items as Record<string, unknown>[])[0];
       
       try {
         // TODO: 实际调用Social Bridge API发送消息
@@ -455,14 +465,15 @@ export const socialCommunityRouter = router({
         );
         
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         // 发送失败
+        const errMsg = error instanceof Error ? error.message : String(error);
         await db.execute(
           `UPDATE publish_queue SET status = 'failed', error_message = ?, retry_count = retry_count + 1 WHERE id = ?`,
-          [error.message, queueId]
+          [errMsg, queueId]
         );
-        
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: '发送失败: ' + error.message });
+
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: '发送失败: ' + errMsg });
       }
     }),
 
@@ -472,7 +483,7 @@ export const socialCommunityRouter = router({
       queueId: z.number(),
     }))
     .mutation(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const { queueId } = input;
       
       await db.execute(
@@ -494,7 +505,7 @@ export const socialCommunityRouter = router({
       pageSize: z.number().default(50),
     }))
     .query(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const { groupId, role, page, pageSize } = input;
       
       let query = `SELECT * FROM social_members WHERE group_id = ?`;
@@ -511,7 +522,7 @@ export const socialCommunityRouter = router({
       const [rows] = await db.execute(query, params);
       
       return {
-        items: rows as any[],
+        items: rows as Record<string, unknown>[],
         page,
         pageSize,
       };
@@ -522,25 +533,25 @@ export const socialCommunityRouter = router({
   // 获取社群统计
   getStats: protectedProcedure
     .query(async () => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       
       // 群组统计 - 活跃群组数
       const [activeGroupsResult] = await db.execute(
         `SELECT COUNT(*) as count FROM social_groups WHERE status = 'active'`
       );
-      const activeGroups = (activeGroupsResult as any[])[0]?.count || 0;
+      const activeGroups = (activeGroupsResult as Record<string, unknown>[])[0]?.count as number || 0;
       
       // 消息统计（今日）
       const [messageStatsResult] = await db.execute(
         `SELECT COUNT(*) as total FROM social_messages WHERE DATE(received_at) = CURRENT_DATE`
       );
-      const todayMessages = (messageStatsResult as any[])[0]?.total || 0;
+      const todayMessages = (messageStatsResult as Record<string, unknown>[])[0]?.total as number || 0;
       
       // 草稿统计 - 待审核数
       const [pendingDraftsResult] = await db.execute(
         `SELECT COUNT(*) as count FROM ai_draft_replies WHERE review_status = 'pending'`
       );
-      const pendingDrafts = (pendingDraftsResult as any[])[0]?.count || 0;
+      const pendingDrafts = (pendingDraftsResult as Record<string, unknown>[])[0]?.count as number || 0;
       
       // AI回复率计算
       const [replyStatsResult] = await db.execute(
@@ -549,12 +560,12 @@ export const socialCommunityRouter = router({
            SUM(CASE WHEN needs_reply = 1 THEN 1 ELSE 0 END) as needs_reply
          FROM social_messages`
       );
-      const replyStats = (replyStatsResult as any[])[0] || { total: 0, needs_reply: 0 };
+      const replyStats = (replyStatsResult as { total: number; needs_reply: number }[])[0] || { total: 0, needs_reply: 0 };
       
       const [repliedCountResult] = await db.execute(
         `SELECT COUNT(DISTINCT message_id) as count FROM ai_draft_replies WHERE review_status = 'approved'`
       );
-      const repliedCount = (repliedCountResult as any[])[0]?.count || 0;
+      const repliedCount = (repliedCountResult as Record<string, unknown>[])[0]?.count as number || 0;
       
       const aiReplyRate = replyStats.needs_reply > 0 
         ? Math.round((repliedCount / replyStats.needs_reply) * 100) 
@@ -573,11 +584,11 @@ export const socialCommunityRouter = router({
   // 获取平台配置列表
   getPlatformConfigs: adminProcedure
     .query(async () => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const [rows] = await db.execute(
         `SELECT * FROM social_platform_configs ORDER BY created_at DESC`
       );
-      return rows as any[];
+      return rows as Record<string, unknown>[];
     }),
 
   // 保存平台配置
@@ -588,7 +599,7 @@ export const socialCommunityRouter = router({
       config: z.record(z.string(), jsonValue),
     }))
     .mutation(async ({ input }) => {
-      const db = await requireDb() as any;
+      const db = await requireDb() as unknown as RawDb;
       const { platform, enabled, config } = input;
       
       // 检查是否已存在
@@ -597,7 +608,7 @@ export const socialCommunityRouter = router({
         [platform]
       );
       
-      if ((existing as any[]).length > 0) {
+      if ((existing as Record<string, unknown>[]).length > 0) {
         // 更新
         await db.execute(
           `UPDATE social_platform_configs SET enabled = ?, config = ?, updated_at = NOW() WHERE platform = ?`,
@@ -694,7 +705,7 @@ export const socialCommunityRouter = router({
 // ==================== 辅助函数 ====================
 
 // 生成AI草稿
-async function generateAIDraft(db: any, messageId: number, content: string) {
+async function generateAIDraft(db: RawDb, messageId: number, content: string) {
   try {
     const response = await invokeLLM({
       messages: [

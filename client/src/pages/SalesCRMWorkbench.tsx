@@ -9,6 +9,16 @@ import {
   Clock, CheckCircle2, XCircle, AlertTriangle, Sparkles, Send
 } from "lucide-react";
 
+// ─── tRPC CRM sub-router proxy type (dynamically registered, not in static type) ──
+// Allows chained property access + hook calls without `as any`
+interface TrpcDynamicProxy {
+  [key: string]: TrpcDynamicProxy & {
+    useQuery: (input?: unknown, opts?: unknown) => { data: any; error: any; isLoading: boolean; refetch: () => void };
+    useMutation: (opts?: unknown) => { mutate: (input?: unknown) => void; mutateAsync: (input?: unknown) => Promise<any>; isPending: boolean };
+    invalidate: () => void;
+  };
+}
+
 // ─── Zod Schemas ───────────────────────────────────────────────
 const opportunitySchema = z.object({
   name: schemas.requiredString("Opportunity name is required / 商机名称必填"),
@@ -158,12 +168,15 @@ function PipelineTab() {
     { key: 'closed_lost', label: t("crm.workbench.stageLost"), color: '#d13438' },
   ];
 
-  const oppsQ = (trpc.crm as any).opportunities.list.useQuery({ search: search || undefined, stage: stageFilter || undefined });
-  const statsQ = (trpc.crm as any).opportunities.stats.useQuery({});
-  const funnelQ = (trpc.crm as any).opportunities.funnel.useQuery({});
+  const crmTrpc = (trpc as unknown as TrpcDynamicProxy).crm;
+  const crmOpps = crmTrpc.opportunities;
+  const oppsQ = crmOpps.list.useQuery({ search: search || undefined, stage: stageFilter || undefined });
+  const statsQ = crmOpps.stats.useQuery({});
+  const funnelQ = crmOpps.funnel.useQuery({});
   const utils = trpc.useUtils();
-  const createM = (trpc.crm as any).opportunities.create.useMutation({
-    onSuccess: () => { (utils.crm as any).opportunities.list.invalidate(); (utils.crm as any).opportunities.stats.invalidate(); setShowCreate(false); form.reset(); }
+  const crmOppUtils = (utils as unknown as TrpcDynamicProxy).crm.opportunities;
+  const createM = crmOpps.create.useMutation({
+    onSuccess: () => { crmOppUtils.list.invalidate(); crmOppUtils.stats.invalidate(); setShowCreate(false); form.reset(); }
   });
 
   const opps = oppsQ.data?.items || [];
@@ -298,13 +311,15 @@ function LeadsTab() {
     defaultValues: { companyName: '', contactName: '', contactPhone: '', contactEmail: '', source: 'website', priority: 'medium', notes: '' },
   });
 
-  const leadsQ = (trpc.crm as any).leads.list.useQuery({ search: search || undefined, status: statusFilter || undefined });
+  const crmLeads = (trpc as unknown as TrpcDynamicProxy).crm.leads;
+  const leadsQ = crmLeads.list.useQuery({ search: search || undefined, status: statusFilter || undefined });
   const utils = trpc.useUtils();
-  const createM = (trpc.crm as any).leads.create.useMutation({
-    onSuccess: () => { (utils.crm as any).leads.list.invalidate(); setShowCreate(false); form.reset(); }
+  const crmLeadUtils = (utils as unknown as TrpcDynamicProxy).crm.leads;
+  const createM = crmLeads.create.useMutation({
+    onSuccess: () => { crmLeadUtils.list.invalidate(); setShowCreate(false); form.reset(); }
   });
-  const convertM = (trpc.crm as any).leads.convertToCustomer.useMutation({
-    onSuccess: () => { (utils.crm as any).leads.list.invalidate(); }
+  const convertM = crmLeads.convertToCustomer.useMutation({
+    onSuccess: () => { crmLeadUtils.list.invalidate(); }
   });
 
   const leads = leadsQ.data || [];
@@ -434,12 +449,13 @@ function CustomersTab() {
   const [levelFilter, setLevelFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
-  const custQ = (trpc.crm as any).customers.list.useQuery({
+  const crmCustomers = (trpc as unknown as TrpcDynamicProxy).crm.customers;
+  const custQ = crmCustomers.list.useQuery({
     search: search || undefined,
     level: levelFilter || undefined,
     type: typeFilter || undefined,
   });
-  const statsQ = (trpc.crm as any).customers.stats.useQuery({});
+  const statsQ = crmCustomers.stats.useQuery({});
 
   const customers = custQ.data?.items || [];
   const stats = statsQ.data;
@@ -524,10 +540,12 @@ function InteractionsTab() {
     defaultValues: { customerId: '', type: 'call', subject: '', content: '' },
   });
 
-  const intQ = (trpc.crm as any).interactions.list.useQuery({ type: typeFilter || undefined });
+  const crmInteractions = (trpc as unknown as TrpcDynamicProxy).crm.interactions;
+  const intQ = crmInteractions.list.useQuery({ type: typeFilter || undefined });
   const utils = trpc.useUtils();
-  const createM = (trpc.crm as any).interactions.create.useMutation({
-    onSuccess: () => { (utils.crm as any).interactions.list.invalidate(); setShowCreate(false); form.reset(); }
+  const crmIntUtils = (utils as unknown as TrpcDynamicProxy).crm.interactions;
+  const createM = crmInteractions.create.useMutation({
+    onSuccess: () => { crmIntUtils.list.invalidate(); setShowCreate(false); form.reset(); }
   });
 
   const interactions = intQ.data?.items || [];
@@ -642,10 +660,11 @@ function AnalyticsTab() {
     { key: 'closed_lost', label: t("crm.workbench.stageLost"), color: '#d13438' },
   ];
 
-  const oppStatsQ = (trpc.crm as any).opportunities.stats.useQuery({});
-  const custStatsQ = (trpc.crm as any).customers.stats.useQuery({});
-  const funnelQ = (trpc.crm as any).opportunities.funnel.useQuery({});
-  const intStatsQ = (trpc.crm as any).interactions.stats.useQuery({});
+  const crmProxy = (trpc as unknown as TrpcDynamicProxy).crm;
+  const oppStatsQ = crmProxy.opportunities.stats.useQuery({});
+  const custStatsQ = crmProxy.customers.stats.useQuery({});
+  const funnelQ = crmProxy.opportunities.funnel.useQuery({});
+  const intStatsQ = crmProxy.interactions.stats.useQuery({});
 
   const queryError = oppStatsQ.error || custStatsQ.error || funnelQ.error || intStatsQ.error;
   const oppStats = oppStatsQ.data;

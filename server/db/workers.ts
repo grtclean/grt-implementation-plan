@@ -5,6 +5,10 @@
 import { sql, type SQL } from "drizzle-orm";
 import { requireDb } from "./connection";
 
+/** Raw row shape from MySQL-style `db.execute()` results */
+interface DbResultMeta { insertId: number; affectedRows: number }
+type DbRow = Record<string, unknown>;
+
 // ==================== 工人管理数据库函数 ====================
 
 export interface Worker {
@@ -104,14 +108,14 @@ export async function getWorkers(params: {
   const countResult = await db.execute(
     sql`SELECT COUNT(*) as total FROM workers WHERE ${where}`
   );
-  const total = (countResult as any)[0]?.[0]?.total || 0;
+  const total = Number((countResult.rows as DbRow[])?.[0]?.total) || 0;
 
   // 获取列表
   const result = await db.execute(
     sql`SELECT * FROM workers WHERE ${where} ORDER BY created_at DESC LIMIT ${pageSize} OFFSET ${offset}`
   );
   
-  const workers = (result[0] as any[]).map(row => ({
+  const workers = (result.rows as DbRow[]).map(row => ({
     id: row.id,
     employeeCode: row.employee_code,
     name: row.name,
@@ -126,8 +130,8 @@ export async function getWorkers(params: {
     uwbTagId: row.uwb_tag_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  }));
-  
+  })) as unknown as Worker[];
+
   return { workers, total };
 }
 
@@ -140,9 +144,9 @@ export async function getWorkerById(id: number): Promise<Worker | null> {
   const result = await db.execute(
     sql`SELECT * FROM workers WHERE id = ${id}`
   );
-  const rows = result[0] as any[];
+  const rows = result.rows as DbRow[];
   if (rows.length === 0) return null;
-  
+
   const row = rows[0];
   return {
     id: row.id,
@@ -159,7 +163,7 @@ export async function getWorkerById(id: number): Promise<Worker | null> {
     uwbTagId: row.uwb_tag_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  };
+  } as unknown as Worker;
 }
 
 /**
@@ -186,7 +190,7 @@ export async function createWorker(data: {
                 ${data.email || null}, ${data.joinDate || null}, ${data.uwbTagId || null})`
   );
   
-  const insertId = (result[0] as any).insertId;
+  const insertId = (result as unknown as DbResultMeta).insertId;
   return (await getWorkerById(insertId))!;
 }
 
@@ -240,7 +244,7 @@ export async function deleteWorker(id: number): Promise<boolean> {
   const result = await db.execute(
     sql`DELETE FROM workers WHERE id = ${id}`
   );
-  return (result[0] as any).affectedRows > 0;
+  return (result as unknown as DbResultMeta).affectedRows > 0;
 }
 
 /**
@@ -252,7 +256,7 @@ export async function getWorkerRanking(params: {
   department?: string;
   startDate?: string;
   endDate?: string;
-}): Promise<{ rankings: any[]; total: number }> {
+}): Promise<{ rankings: Record<string, unknown>[]; total: number }> {
   const { page = 1, pageSize = 20, department, startDate, endDate } = params;
   const offset = (page - 1) * pageSize;
   
@@ -279,7 +283,7 @@ export async function getWorkerRanking(params: {
     LEFT JOIN worker_efficiency_records e ON w.id = e.worker_id
     WHERE ${where}
   `);
-  const total = (countResult[0] as any[])[0]?.total || 0;
+  const total = (countResult.rows as DbRow[])[0]?.total || 0;
 
   const result = await db.execute(sql`
     SELECT
@@ -299,20 +303,20 @@ export async function getWorkerRanking(params: {
     ORDER BY avgEfficiency DESC, avgQualityScore DESC
     LIMIT ${pageSize} OFFSET ${offset}
   `);
-  const rankings = (result[0] as any[]).map((row, index) => ({
+  const rankings = (result.rows as DbRow[]).map((row, index) => ({
     rank: offset + index + 1,
     id: row.id,
     name: row.name,
     department: row.department,
     position: row.position,
     skillLevel: row.skillLevel,
-    avgEfficiency: parseFloat(row.avgEfficiency) || 100,
-    avgQualityScore: parseFloat(row.avgQualityScore) || 100,
-    totalTasksCompleted: parseInt(row.totalTasksCompleted) || 0,
-    totalHours: parseFloat(row.totalHours) || 0,
+    avgEfficiency: parseFloat(row.avgEfficiency as string) || 100,
+    avgQualityScore: parseFloat(row.avgQualityScore as string) || 100,
+    totalTasksCompleted: parseInt(row.totalTasksCompleted as string) || 0,
+    totalHours: parseFloat(row.totalHours as string) || 0,
   }));
   
-  return { rankings, total };
+  return { rankings, total: total as number };
 }
 
 /**
@@ -352,7 +356,7 @@ export async function getWorkHourAlerts(params: {
   const countResult = await db.execute(
     sql`SELECT COUNT(*) as total FROM work_hour_alerts a WHERE ${where}`
   );
-  const total = (countResult[0] as any[])[0]?.total || 0;
+  const total = (countResult.rows as DbRow[])[0]?.total || 0;
 
   const result = await db.execute(
     sql`
@@ -365,7 +369,7 @@ export async function getWorkHourAlerts(params: {
     `
   );
   
-  const alerts = (result[0] as any[]).map(row => ({
+  const alerts = (result.rows as DbRow[]).map(row => ({
     id: row.id,
     workerId: row.worker_id,
     workerName: row.worker_name,
@@ -380,9 +384,9 @@ export async function getWorkHourAlerts(params: {
     resolvedAt: row.resolved_at,
     resolution: row.resolution,
     createdAt: row.created_at,
-  }));
-  
-  return { alerts, total };
+  })) as unknown as (WorkHourAlert & { workerName?: string })[];
+
+  return { alerts, total: total as number };
 }
 
 /**
@@ -412,24 +416,24 @@ export async function updateAlertStatus(id: number, data: {
   }
   
   const result = await db.execute(sql`SELECT * FROM work_hour_alerts WHERE id = ${id}`);
-  const rows = result[0] as any[];
+  const rows = result.rows as DbRow[];
   if (rows.length === 0) return null;
   
   const row = rows[0];
   return {
-    id: row.id,
-    workerId: row.worker_id,
-    alertType: row.alert_type,
-    alertLevel: row.alert_level,
-    message: row.message,
-    details: row.details,
-    status: row.status,
-    acknowledgedBy: row.acknowledged_by,
-    acknowledgedAt: row.acknowledged_at,
-    resolvedBy: row.resolved_by,
-    resolvedAt: row.resolved_at,
-    resolution: row.resolution,
-    createdAt: row.created_at,
+    id: row.id as number,
+    workerId: row.worker_id as number,
+    alertType: row.alert_type as WorkHourAlert['alertType'],
+    alertLevel: row.alert_level as WorkHourAlert['alertLevel'],
+    message: row.message as string,
+    details: row.details as string | null,
+    status: row.status as WorkHourAlert['status'],
+    acknowledgedBy: row.acknowledged_by as number | null,
+    acknowledgedAt: row.acknowledged_at as string | null,
+    resolvedBy: row.resolved_by as number | null,
+    resolvedAt: row.resolved_at as string | null,
+    resolution: row.resolution as string | null,
+    createdAt: row.created_at as string,
   };
 }
 
@@ -446,7 +450,7 @@ export async function getUserFavorites(userId: number): Promise<UserFavorite[]> 
     sql`SELECT * FROM user_favorites WHERE user_id = ${userId} ORDER BY sort_order ASC, created_at ASC`
   );
   
-  return (result[0] as any[]).map(row => ({
+  return (result.rows as DbRow[]).map(row => ({
     id: row.id,
     userId: row.user_id,
     menuPath: row.menu_path,
@@ -454,7 +458,7 @@ export async function getUserFavorites(userId: number): Promise<UserFavorite[]> 
     menuNameEn: row.menu_name_en,
     sortOrder: row.sort_order,
     createdAt: row.created_at,
-  }));
+  })) as unknown as UserFavorite[];
 }
 
 /**
@@ -474,7 +478,7 @@ export async function addUserFavorite(data: {
     sql`SELECT id FROM user_favorites WHERE user_id = ${data.userId} AND menu_path = ${data.menuPath}`
   );
   
-  if ((existing[0] as any[]).length > 0) {
+  if ((existing.rows as DbRow[]).length > 0) {
     throw new Error('已收藏该菜单');
   }
   
@@ -482,26 +486,26 @@ export async function addUserFavorite(data: {
   const maxOrder = await db.execute(
     sql`SELECT MAX(sort_order) as max_order FROM user_favorites WHERE user_id = ${data.userId}`
   );
-  const nextOrder = ((maxOrder[0] as any[])[0]?.max_order || 0) + 1;
+  const nextOrder = (((maxOrder.rows as DbRow[])[0]?.max_order as number) || 0) + 1;
   
   const result = await db.execute(
     sql`INSERT INTO user_favorites (user_id, menu_path, menu_name, menu_name_en, sort_order)
         VALUES (${data.userId}, ${data.menuPath}, ${data.menuName}, ${data.menuNameEn || null}, ${nextOrder})`
   );
   
-  const insertId = (result[0] as any).insertId;
+  const insertId = (result as unknown as DbResultMeta).insertId;
   
   const newFavorite = await db.execute(sql`SELECT * FROM user_favorites WHERE id = ${insertId}`);
-  const row = (newFavorite[0] as any[])[0];
+  const row = (newFavorite.rows as DbRow[])[0];
   
   return {
-    id: row.id,
-    userId: row.user_id,
-    menuPath: row.menu_path,
-    menuName: row.menu_name,
-    menuNameEn: row.menu_name_en,
-    sortOrder: row.sort_order,
-    createdAt: row.created_at,
+    id: row.id as number,
+    userId: row.user_id as number,
+    menuPath: row.menu_path as string,
+    menuName: row.menu_name as string,
+    menuNameEn: row.menu_name_en as string | null,
+    sortOrder: row.sort_order as number,
+    createdAt: row.created_at as string,
   };
 }
 
@@ -515,7 +519,7 @@ export async function removeUserFavorite(userId: number, menuPath: string): Prom
   const result = await db.execute(
     sql`DELETE FROM user_favorites WHERE user_id = ${userId} AND menu_path = ${menuPath}`
   );
-  return (result[0] as any).affectedRows > 0;
+  return (result as unknown as DbResultMeta).affectedRows > 0;
 }
 
 /**
@@ -528,7 +532,7 @@ export async function updateFavoriteOrder(userId: number, menuPath: string, newO
   const result = await db.execute(
     sql`UPDATE user_favorites SET sort_order = ${newOrder} WHERE user_id = ${userId} AND menu_path = ${menuPath}`
   );
-  return (result[0] as any).affectedRows > 0;
+  return (result as unknown as DbResultMeta).affectedRows > 0;
 }
 
 /**
@@ -541,5 +545,5 @@ export async function isFavorite(userId: number, menuPath: string): Promise<bool
   const result = await db.execute(
     sql`SELECT id FROM user_favorites WHERE user_id = ${userId} AND menu_path = ${menuPath}`
   );
-  return (result[0] as any[]).length > 0;
+  return (result.rows as DbRow[]).length > 0;
 }

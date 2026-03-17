@@ -186,9 +186,9 @@ export const capabilityOsRouter = router({
   getEmployeeCapabilities: protectedProcedure.input(z.object({ employeeId: z.number().optional() }).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
     // Default to current user; managers can view any employee
-    const targetId = input?.employeeId ?? ctx.user.id;
+    const targetId = input?.employeeId ?? ctx.user!.id;
     const MANAGER_ROLES = new Set(["admin", "director", "hr_manager", "dept_manager"]);
-    if (targetId !== ctx.user.id && !MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
+    if (targetId !== ctx.user!.id && !MANAGER_ROLES.has(ctx.user!.role ?? "employee")) {
       return []; // non-managers can only see own capabilities
     }
     const evidences = await db.select().from(capabilityEvidences).where(eq(capabilityEvidences.userId, toNum(targetId))).limit(1000);
@@ -270,8 +270,8 @@ export const capabilityOsRouter = router({
     const [evidence] = await db.insert(capabilityEvidences).values({
       id: Date.now(),
       evidenceId,
-      userId: ctx.user.id,
-      userName: ctx.user.name,
+      userId: ctx.user!.id,
+      userName: ctx.user!.name,
       evidenceType: input.evidenceType || "project_delivery",
       capabilityDomain: input.capabilityDomain || "T",
       title: input.title || "新证据",
@@ -307,8 +307,8 @@ export const capabilityOsRouter = router({
     const status = input.status ?? (input.approved ? "approved" : "rejected");
     await db.update(capabilityEvidences).set({
       status: status as any,
-      reviewerId: ctx.user.id,
-      reviewerName: ctx.user.name ?? `User#${ctx.user.id}`,
+      reviewerId: ctx.user!.id,
+      reviewerName: ctx.user!.name ?? `User#${ctx.user!.id}`,
       reviewComment: input.comment || input.reviewComment,
       reviewedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

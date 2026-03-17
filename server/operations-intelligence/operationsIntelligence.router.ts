@@ -27,7 +27,7 @@ export const operationsIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "OPS_ASSESS_SUPPLIER",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -48,7 +48,7 @@ export const operationsIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "OPS_OPTIMIZE_INVENTORY",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -68,7 +68,7 @@ export const operationsIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "OPS_PREDICT_QUALITY",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -89,7 +89,7 @@ export const operationsIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "OPS_ANALYZE_EFFICIENCY",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),

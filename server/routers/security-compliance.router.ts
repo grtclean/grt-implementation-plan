@@ -167,8 +167,8 @@ export const securityComplianceRouter = router({
       // Fire-and-forget: async insert, never block the caller
       const db = await requireDb();
       db.insert(securityAuditLogs).values({
-        userId: ctx.user.id,
-        userName: ctx.user.name ?? null,
+        userId: ctx.user!.id,
+        userName: ctx.user!.name ?? null,
         actionType: input.actionType,
         resourceType: input.resourceType ?? null,
         resourceId: input.resourceId ?? null,
@@ -177,7 +177,7 @@ export const securityComplianceRouter = router({
         metadata: input.metadata ?? null,
         riskLevel,
       }).then(() => {
-        log.debug({ action: input.actionType, userId: ctx.user.id }, "Audit event logged");
+        log.debug({ action: input.actionType, userId: ctx.user!.id }, "Audit event logged");
       }).catch((err: unknown) => {
         log.error({ err, action: input.actionType }, "Failed to log audit event");
       });
@@ -310,7 +310,7 @@ export const securityComplianceRouter = router({
       const [record] = await db.select()
         .from(complianceCommitments)
         .where(and(
-          eq(complianceCommitments.userId, ctx.user.id),
+          eq(complianceCommitments.userId, ctx.user!.id),
           eq(complianceCommitments.period, period),
           eq(complianceCommitments.isAgreed, true),
         ))
@@ -338,7 +338,7 @@ export const securityComplianceRouter = router({
       const [existing] = await db.select()
         .from(complianceCommitments)
         .where(and(
-          eq(complianceCommitments.userId, ctx.user.id),
+          eq(complianceCommitments.userId, ctx.user!.id),
           eq(complianceCommitments.period, period),
         ))
         .limit(1);
@@ -350,20 +350,20 @@ export const securityComplianceRouter = router({
       if (existing) {
         // Update existing record
         await db.update(complianceCommitments)
-          .set({ isAgreed: true, signedAt: now, userName: ctx.user.name ?? null })
+          .set({ isAgreed: true, signedAt: now, userName: ctx.user!.name ?? null })
           .where(eq(complianceCommitments.id, existing.id));
       } else {
         // Create new record
         await db.insert(complianceCommitments).values({
-          userId: ctx.user.id,
-          userName: ctx.user.name ?? null,
+          userId: ctx.user!.id,
+          userName: ctx.user!.name ?? null,
           period,
           isAgreed: true,
           signedAt: now,
         });
       }
 
-      log.info({ userId: ctx.user.id, period }, "Compliance commitment signed");
+      log.info({ userId: ctx.user!.id, period }, "Compliance commitment signed");
       return { success: true, alreadySigned: false, period };
     }),
 
@@ -416,7 +416,7 @@ export const securityComplianceRouter = router({
         encryptedContent: input.encryptedContent,
         category: input.category,
         isAnonymous: input.isAnonymous,
-        reporterId: input.isAnonymous ? null : ctx.user.id,
+        reporterId: input.isAnonymous ? null : ctx.user!.id,
         targetName: input.targetName ?? null,
         status: "PENDING",
       }).returning();
@@ -482,7 +482,7 @@ export const securityComplianceRouter = router({
         .set({
           status: input.status,
           investigationNotes: input.investigationNotes ?? null,
-          handledBy: ctx.user.name ?? String(ctx.user.id),
+          handledBy: ctx.user!.name ?? String(ctx.user!.id),
           handledAt: new Date().toISOString(),
         })
         .where(eq(whistleblowerReports.id, input.reportId));
@@ -507,10 +507,10 @@ export const securityComplianceRouter = router({
     .mutation(async ({ input, ctx }) => {
       await ensureTables();
 
-      const watermarkText = `${ctx.user.name ?? ctx.user.id} | ${new Date().toISOString()}`;
+      const watermarkText = `${ctx.user!.name ?? ctx.user!.id} | ${new Date().toISOString()}`;
       const watermarkToken = Buffer.from(JSON.stringify({
-        userId: ctx.user.id,
-        userName: ctx.user.name,
+        userId: ctx.user!.id,
+        userName: ctx.user!.name,
         timestamp: new Date().toISOString(),
         documentId: input.documentId,
         documentType: input.documentType,
@@ -519,8 +519,8 @@ export const securityComplianceRouter = router({
       // Fire-and-forget audit log
       const db = await requireDb();
       db.insert(securityAuditLogs).values({
-        userId: ctx.user.id,
-        userName: ctx.user.name ?? null,
+        userId: ctx.user!.id,
+        userName: ctx.user!.name ?? null,
         actionType: input.documentType === "CAD" ? "DOWNLOAD_CAD"
           : input.documentType === "PDF" ? "DOWNLOAD_PDF"
           : "DOWNLOAD_BOM",
@@ -533,7 +533,7 @@ export const securityComplianceRouter = router({
         log.error({ err }, "Failed to log document download audit");
       });
 
-      log.info({ documentId: input.documentId, userId: ctx.user.id }, "Secure document watermark issued");
+      log.info({ documentId: input.documentId, userId: ctx.user!.id }, "Secure document watermark issued");
 
       return {
         watermarkText,

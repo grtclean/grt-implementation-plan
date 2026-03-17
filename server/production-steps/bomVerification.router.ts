@@ -29,8 +29,8 @@ export const bomVerificationRouter = router({
     .mutation(async ({ input, ctx }) => {
       return createBomVerification({
         ...input,
-        verifiedBy: ctx.user.openId,
-        verifiedByName: ctx.user.name,
+        verifiedBy: ctx.user!.openId,
+        verifiedByName: ctx.user!.name as any,
       });
     }),
 
@@ -85,7 +85,7 @@ export const bomVerificationRouter = router({
     .mutation(async ({ input, ctx }) => {
       return updateChecklistItemStatus(input.itemId, {
         ...input,
-        checkedBy: ctx.user.openId,
+        checkedBy: ctx.user!.openId,
       });
     }),
 
@@ -100,7 +100,7 @@ export const bomVerificationRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       return batchUpdateChecklistItems(
-        input.items.map(item => ({ ...item, checkedBy: ctx.user.openId }))
+        input.items.map(item => ({ ...item, checkedBy: ctx.user!.openId }))
       );
     }),
 
@@ -115,8 +115,8 @@ export const bomVerificationRouter = router({
     .mutation(async ({ input, ctx }) => {
       return executeBomVerification({
         ...input,
-        verifiedBy: ctx.user.openId,
-        verifiedByName: ctx.user.name,
+        verifiedBy: ctx.user!.openId,
+        verifiedByName: ctx.user!.name as any,
       });
     }),
 
@@ -128,7 +128,7 @@ export const bomVerificationRouter = router({
     .mutation(async ({ input, ctx }) => {
       return waiveBomVerification({
         verificationId: input.verificationId,
-        waivedBy: ctx.user.name || ctx.user.openId,
+        waivedBy: ctx.user!.name || ctx.user!.openId,
         waivedReason: input.waivedReason,
       });
     }),

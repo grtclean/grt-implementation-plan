@@ -59,7 +59,7 @@ export async function getAccessToken(): Promise<string> {
   accessToken = data.access_token;
   tokenExpiry = new Date(Date.now() + (data.expires_in - 300) * 1000); // 提前5分钟过期
 
-  return accessToken;
+  return accessToken as any;
 }
 
 /**

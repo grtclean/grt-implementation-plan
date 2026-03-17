@@ -89,7 +89,7 @@ export const processStepsRouter = router({
       plannedWorkerId: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return createBomStep({ ...input, createdBy: ctx.user.id, status: 'pending' });
+      return createBomStep({ ...input, createdBy: ctx.user!.id, status: 'pending' });
     }),
 
   updateBomStep: protectedProcedure
@@ -123,8 +123,8 @@ export const processStepsRouter = router({
         input.stepId,
         input.projectId,
         input.processCode,
-        ctx.user.id,
-        ctx.user.name || `用户#${ctx.user.id}`,
+        ctx.user!.id,
+        ctx.user!.name || `用户#${ctx.user!.id}`,
         input.notes
       );
     }),
@@ -196,7 +196,7 @@ export const processStepsRouter = router({
       }).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return confirmAiPresetStep(input.id, ctx.user.id, input.status, input.modifications);
+      return confirmAiPresetStep(input.id, ctx.user!.id, input.status, input.modifications);
     }),
 
   batchConfirmAiPresetSteps: requirePermission('mfg:steps:manage')
@@ -205,19 +205,19 @@ export const processStepsRouter = router({
       status: z.enum(["confirmed", "modified", "rejected"]),
     }))
     .mutation(async ({ input, ctx }) => {
-      return batchConfirmAiPresetSteps(input.ids, ctx.user.id, input.status);
+      return batchConfirmAiPresetSteps(input.ids, ctx.user!.id, input.status);
     }),
 
   adoptAiPresetAsBomStep: requirePermission('mfg:steps:manage')
     .input(z.object({ aiPresetId: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      return adoptAiPresetAsBomStep(input.aiPresetId, ctx.user.id);
+      return adoptAiPresetAsBomStep(input.aiPresetId, ctx.user!.id);
     }),
 
   batchAdoptAiPresets: requirePermission('mfg:steps:manage')
     .input(z.object({ aiPresetIds: z.array(z.number()) }))
     .mutation(async ({ input, ctx }) => {
-      return batchAdoptAiPresets(input.aiPresetIds, ctx.user.id);
+      return batchAdoptAiPresets(input.aiPresetIds, ctx.user!.id);
     }),
 
   // P0: AI预设工步批量采纳（按项目/工序，支持选择性或全量采纳）
@@ -231,7 +231,7 @@ export const processStepsRouter = router({
       return batchAdoptAiPresetsByProject(
         input.projectId,
         input.processCode,
-        ctx.user.id,
+        ctx.user!.id,
         input.presetIds
       );
     }),
@@ -244,7 +244,7 @@ export const processStepsRouter = router({
     .input(z.object({ bomStepId: z.number() }))
     .mutation(async ({ ctx }) => {
       // 使用当前登录用户作为打卡员工
-      return startTimeLog(ctx.user.id, ctx.user.id, ctx.user.name || `员工#${ctx.user.id}`);
+      return startTimeLog(ctx.user!.id, ctx.user!.id, ctx.user!.name || `员工#${ctx.user!.id}`);
     }),
 
   // 允许指定员工（管理员安排）
@@ -276,12 +276,12 @@ export const processStepsRouter = router({
   getMyTimeLogs: protectedProcedure
     .input(z.object({ projectId: z.number().optional() }))
     .query(async ({ input, ctx }) => {
-      return getTimeLogsByWorker(ctx.user.id, input.projectId);
+      return getTimeLogsByWorker(ctx.user!.id, input.projectId);
     }),
 
   getMyActiveTimeLogs: protectedProcedure
     .query(async ({ ctx }) => {
-      return getActiveTimeLogs(ctx.user.id);
+      return getActiveTimeLogs(ctx.user!.id);
     }),
 
   // ============================================================
@@ -298,7 +298,7 @@ export const processStepsRouter = router({
       fileSize: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return addStepAttachment({ ...input, uploadedBy: ctx.user.id });
+      return addStepAttachment({ ...input, uploadedBy: ctx.user!.id });
     }),
 
   getStepAttachments: protectedProcedure
@@ -424,18 +424,18 @@ export const processStepsRouter = router({
 
   getWorkerAssignments: protectedProcedure
     .query(async ({ ctx }) => {
-      return getWorkerAssignments(ctx.user.id);
+      return getWorkerAssignments(ctx.user!.id);
     }),
 
   getWorkerTimeHistory: protectedProcedure
     .input(z.object({ limit: z.number().optional().default(50) }))
     .query(async ({ input, ctx }) => {
-      return getWorkerTimeHistory(ctx.user.id, input.limit);
+      return getWorkerTimeHistory(ctx.user!.id, input.limit);
     }),
 
   getWorkerDailySummary: protectedProcedure
     .query(async ({ ctx }) => {
-      return getWorkerDailySummary(ctx.user.id);
+      return getWorkerDailySummary(ctx.user!.id);
     }),
 
   // ============================================================
@@ -501,7 +501,7 @@ export const processStepsRouter = router({
       reason: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return triggerRework(input.stepId, ctx.user.id, input.reason);
+      return triggerRework(input.stepId, ctx.user!.id, input.reason);
     }),
 
   getReworkHistory: protectedProcedure

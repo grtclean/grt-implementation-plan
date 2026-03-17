@@ -1422,7 +1422,7 @@ function InstallationModeTab() {
                   <TableRow key={key}>
                     <TableCell className="font-medium">{label.name}</TableCell>
                     {(['community', 'customer', 'enterprise'] as const).map((m) => {
-                      const features = modes[m]?.features as Record<string, boolean> | undefined;
+                      const features = modes[m]?.features as any;
                       const enabled = features?.[key];
                       return (
                         <TableCell key={m} className="text-center">

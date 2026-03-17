@@ -457,7 +457,7 @@ export default function AnnualAgenda() {
   });
 
   const agendaItems = agendaData?.items || [];
-  const stats = statsData || { total: 0, completed: 0, pending: 0, cancelled: 0, shifted: 0, synced: 0 };
+  const stats = statsData || { total: 0, completed: 0, pending: 0, cancelled: 0, shifted: 0, synced: 0, delayed: 0, thisMonth: 0 };
 
   const handleCreateEvent = () => {
     if (!newEvent.eventCode || !newEvent.name || !newEvent.scheduledDate) {
@@ -1544,10 +1544,10 @@ export default function AnnualAgenda() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-yellow-600">
-                    {statsData ? `${Math.round((statsData.delayed / (statsData.total || 1)) * 100)}%` : '0%'}
+                    {statsData ? `${Math.round(((statsData as any).delayed / (statsData.total || 1)) * 100)}%` : '0%'}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {statsData ? `${statsData.delayed} ${isZh ? '个日程延期' : 'events delayed'}` : ''}
+                    {statsData ? `${(statsData as any).delayed} ${isZh ? '个日程延期' : 'events delayed'}` : ''}
                   </p>
                 </CardContent>
               </Card>
@@ -1561,7 +1561,7 @@ export default function AnnualAgenda() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-blue-600">
-                    {statsData?.thisMonth || 0}
+                    {(statsData as any)?.thisMonth || 0}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {isZh ? '个待完成日程' : 'events pending'}

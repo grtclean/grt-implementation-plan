@@ -237,7 +237,7 @@ export async function createNamingChangeRequest(data: {
     status: "pending"
   });
   
-  return { id: result[0].insertId, requestCode, ...data };
+  return { id: (result as any)[0].insertId, requestCode, ...data };
 }
 
 /**
@@ -340,7 +340,7 @@ export async function createNamingChangeImplementation(data: {
     status: "in_progress"
   });
   
-  return { id: result[0].insertId, ...data };
+  return { id: (result as any)[0].insertId, ...data };
 }
 
 /**
@@ -395,7 +395,7 @@ export async function createNamingChangeTest(data: {
   if (!db) return null;
   
   const result = await db.insert(namingChangeTests).values(data);
-  return { id: result[0].insertId, ...data };
+  return { id: (result as any)[0].insertId, ...data };
 }
 
 // ============================================
@@ -548,7 +548,7 @@ export async function createEquipmentModel(data: {
   if (!db) return null;
   
   const result = await db.insert(equipmentModels).values(data);
-  return { id: result[0].insertId, ...data };
+  return { id: (result as any)[0].insertId, ...data };
 }
 
 /**

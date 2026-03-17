@@ -96,7 +96,7 @@ export const sopDbRouter = router({
     if (status === "approved") {
       updates.isActive = true;
       updates.approvedAt = new Date();
-      updates.approvedBy = ctx.user.id;
+      updates.approvedBy = ctx.user!.id;
     }
     if (status === "archived") updates.isActive = false;
     const [sop] = await db.update(sopTemplates).set(updates).where(eq(sopTemplates.id, id)).returning();

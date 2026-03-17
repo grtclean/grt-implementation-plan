@@ -215,7 +215,7 @@ export class MenuService {
       .orderBy(menuAccessLogs.accessCount)
       .limit(limit);
 
-    const menuIds = logs.map((l) => l.menuItemId);
+    const menuIds = logs.map((l: any) => l.menuItemId);
 
     if (menuIds.length === 0) {
       return [];

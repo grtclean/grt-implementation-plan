@@ -62,7 +62,7 @@ export default function ExpenseReport() {
 
   // 导出Excel
   const exportMutation = (trpc.expenseReport as any).exportToExcel.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       // 下载文件
       const link = document.createElement('a');
       link.href = `data:text/csv;base64,${data.data}`;
@@ -303,7 +303,7 @@ export default function ExpenseReport() {
                           </tr>
                         </thead>
                         <tbody>
-                          {report.byDimension.map((item, index) => (
+                          {report.byDimension.map((item: any, index: any) => (
                             <tr key={index} className="border-b hover:bg-muted/50">
                               <td className="py-3 px-4 font-medium">{item.dimensionLabel}</td>
                               <td className="text-right py-3 px-4">¥{item.totalBudget.toLocaleString()}</td>
@@ -338,7 +338,7 @@ export default function ExpenseReport() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {report.byExpenseType.map((item, index) => (
+                      {report.byExpenseType.map((item: any, index: any) => (
                         <div key={index} className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span className="font-medium">{item.typeLabel}</span>
@@ -374,7 +374,7 @@ export default function ExpenseReport() {
                           </tr>
                         </thead>
                         <tbody>
-                          {report.trend.map((item, index) => {
+                          {report.trend.map((item: any, index: any) => {
                             const prevActual = index > 0 ? report.trend[index - 1].actual : item.actual;
                             const trend = prevActual > 0 ? ((item.actual - prevActual) / prevActual) * 100 : 0;
                             return (
@@ -412,7 +412,7 @@ export default function ExpenseReport() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {departmentRanking?.map((item) => (
+                      {departmentRanking?.map((item: any) => (
                         <div key={item.department} className="flex items-center gap-4">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                             item.rank === 1 ? 'bg-yellow-100 text-yellow-700' :
@@ -460,7 +460,7 @@ export default function ExpenseReport() {
                       </tr>
                     </thead>
                     <tbody>
-                      {report.topExpenses.map((item, index) => (
+                      {report.topExpenses.map((item: any, index: any) => (
                         <tr key={index} className="border-b hover:bg-muted/50">
                           <td className="py-3 px-4">
                             <Badge variant={index < 3 ? 'default' : 'secondary'}>

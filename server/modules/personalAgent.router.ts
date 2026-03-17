@@ -13,6 +13,24 @@ import { jsonValue } from "@shared/validators";
 import { createChildLogger } from "../lib/logger";
 const log = createChildLogger("personal-agent-mod");
 
+/** Raw SQL execute interface for dynamic query building */
+interface RawExecutor {
+  execute(query: string, params?: unknown[]): Promise<Record<string, unknown>[]>;
+}
+
+interface InsertResult {
+  insertId: number;
+}
+
+interface ExtractedKnowledge {
+  problem_type: string;
+  root_cause: string;
+  solution_steps: string[];
+  key_insights: string[];
+  applicable_scenarios: string[];
+  difficulty_level: string;
+}
+
 // ==================== 个人智能体路由 ====================
 export const personalAgentRouter = router({
   // ==================== 行为探针日志管理 ====================
@@ -72,10 +90,10 @@ export const personalAgentRouter = router({
       query += ` ORDER BY bl.created_at DESC LIMIT ? OFFSET ?`;
       params.push(pageSize, (page - 1) * pageSize);
       
-      const rows = await (db as any).execute(query, params);
+      const rows = await (db as unknown as RawExecutor).execute(query, params);
 
       return {
-        items: rows as any[],
+        items: rows as Record<string, unknown>[],
         page,
         pageSize,
       };
@@ -98,17 +116,17 @@ export const personalAgentRouter = router({
       // 获取用户DID
       let userDid = '';
       if (ctx.user?.id) {
-        const users = await (db as any).execute(
+        const users = await (db as unknown as RawExecutor).execute(
           `SELECT did FROM user WHERE id = ?`,
           [ctx.user.id]
         );
-        userDid = (users as any[])[0]?.did || `DID-${ctx.user.id}`;
+        userDid = (users as { did?: string }[])[0]?.did || `DID-${ctx.user.id}`;
       }
 
       // AI推断技能标签
       const impliedSkill = await inferSkillFromBehavior(context, actionData);
 
-      const result = await (db as any).execute(
+      const result = await (db as unknown as RawExecutor).execute(
         `INSERT INTO behavior_logs
          (user_did, user_id, context, action_type, action_data, implied_skill,
           skill_confidence, source, device_info, session_id)
@@ -119,7 +137,7 @@ export const personalAgentRouter = router({
       );
 
       return {
-        id: (result as any).insertId,
+        id: (result as unknown as InsertResult).insertId,
         impliedSkill: impliedSkill.skill,
         confidence: impliedSkill.confidence,
         success: true
@@ -145,18 +163,18 @@ export const personalAgentRouter = router({
       // 获取用户DID
       let userDid = '';
       if (ctx.user?.id) {
-        const users = await (db as any).execute(
+        const users = await (db as unknown as RawExecutor).execute(
           `SELECT did FROM user WHERE id = ?`,
           [ctx.user.id]
         );
-        userDid = (users as any[])[0]?.did || `DID-${ctx.user.id}`;
+        userDid = (users as { did?: string }[])[0]?.did || `DID-${ctx.user.id}`;
       }
 
       let insertCount = 0;
       for (const log of logs) {
         const impliedSkill = await inferSkillFromBehavior(log.context, log.actionData);
 
-        await (db as any).execute(
+        await (db as unknown as RawExecutor).execute(
           `INSERT INTO behavior_logs
            (user_did, user_id, context, action_type, action_data, implied_skill,
             skill_confidence, source, session_id)
@@ -184,7 +202,7 @@ export const personalAgentRouter = router({
       const targetUserId = userId || ctx.user?.id;
       
       // 统计技能出现频次
-      const skillStats = await (db as any).execute(
+      const skillStats = await (db as unknown as RawExecutor).execute(
         `SELECT implied_skill, COUNT(*) as count, AVG(skill_confidence) as avg_confidence
          FROM behavior_logs
          WHERE user_id = ? AND implied_skill IS NOT NULL
@@ -195,7 +213,7 @@ export const personalAgentRouter = router({
       );
 
       // 获取最近活跃的上下文
-      const recentContexts = await (db as any).execute(
+      const recentContexts = await (db as unknown as RawExecutor).execute(
         `SELECT context, COUNT(*) as count
          FROM behavior_logs
          WHERE user_id = ? AND created_at >= NOW() - INTERVAL '30 days'
@@ -206,7 +224,7 @@ export const personalAgentRouter = router({
       );
 
       // 获取技能成长趋势（按周统计）
-      const growthTrend = await (db as any).execute(
+      const growthTrend = await (db as unknown as RawExecutor).execute(
         `SELECT
            to_char(created_at, 'IYYY-IW') as week,
            COUNT(DISTINCT implied_skill) as unique_skills,
@@ -273,10 +291,10 @@ export const personalAgentRouter = router({
       query += ` ORDER BY pn.created_at DESC LIMIT ? OFFSET ?`;
       params.push(pageSize, (page - 1) * pageSize);
       
-      const rows = await (db as any).execute(query, params);
+      const rows = await (db as unknown as RawExecutor).execute(query, params);
 
       return {
-        items: rows as any[],
+        items: rows as Record<string, unknown>[],
         page,
         pageSize,
       };
@@ -308,19 +326,19 @@ export const personalAgentRouter = router({
         throw new TRPCError({ code: 'BAD_REQUEST', message: '需要提供id或noteId' });
       }
       
-      const rows = await (db as any).execute(query, params);
+      const rows = await (db as unknown as RawExecutor).execute(query, params);
 
-      if ((rows as any[]).length === 0) {
+      if (rows.length === 0) {
         throw new TRPCError({ code: 'NOT_FOUND', message: '过程笔记不存在' });
       }
 
       // 增加浏览次数
-      await (db as any).execute(
+      await (db as unknown as RawExecutor).execute(
         `UPDATE process_notes SET view_count = view_count + 1 WHERE id = ?`,
-        [(rows as any[])[0].id]
+        [rows[0].id]
       );
-      
-      return (rows as any[])[0];
+
+      return rows[0];
     }),
 
   // 创建过程笔记
@@ -346,7 +364,7 @@ export const personalAgentRouter = router({
       // AI提取结构化知识
       const extractedKnowledge = await extractKnowledgeFromNote(problemDesc, solutionDesc);
       
-      const result = await (db as any).execute(
+      const result = await (db as unknown as RawExecutor).execute(
         `INSERT INTO process_notes
          (note_id, title, project_id, project_phase, category, problem_desc, solution_desc,
           ai_extracted_knowledge, tags, related_note_ids, attachments, author_id)
@@ -360,11 +378,11 @@ export const personalAgentRouter = router({
          ctx.user?.id || null]
       );
       
-      return { 
-        id: (result as any).insertId, 
+      return {
+        id: (result as unknown as InsertResult).insertId,
         noteId,
         extractedKnowledge,
-        success: true 
+        success: true
       };
     }),
 
@@ -423,8 +441,8 @@ export const personalAgentRouter = router({
       
       // 如果问题或解决方案更新，重新提取知识
       if (updates.problemDesc !== undefined || updates.solutionDesc !== undefined) {
-        const notes = await (db as any).execute(`SELECT problem_desc, solution_desc FROM process_notes WHERE id = ?`, [id]);
-        const note = (notes as any[])[0];
+        const notes = await (db as unknown as RawExecutor).execute(`SELECT problem_desc, solution_desc FROM process_notes WHERE id = ?`, [id]);
+        const note = notes[0] as { problem_desc: string; solution_desc: string };
         const newProblem = updates.problemDesc || note.problem_desc;
         const newSolution = updates.solutionDesc || note.solution_desc;
         const extractedKnowledge = await extractKnowledgeFromNote(newProblem, newSolution);
@@ -437,7 +455,7 @@ export const personalAgentRouter = router({
       }
       
       params.push(id);
-      await (db as any).execute(
+      await (db as unknown as RawExecutor).execute(
         `UPDATE process_notes SET ${setClauses.join(', ')} WHERE id = ?`,
         params
       );
@@ -466,7 +484,7 @@ export const personalAgentRouter = router({
       const conditions = keywords.map(() => `problem_desc LIKE ?`).join(' OR ');
       const params = keywords.map(k => `%${k}%`);
       
-      const rows = await (db as any).execute(
+      const rows = await (db as unknown as RawExecutor).execute(
         `SELECT id, note_id, title, problem_desc, solution_desc, category, view_count
          FROM process_notes
          WHERE ${conditions}
@@ -474,8 +492,8 @@ export const personalAgentRouter = router({
          LIMIT ?`,
         [...params, limit]
       );
-      
-      return { items: rows as any[] };
+
+      return { items: rows as Record<string, unknown>[] };
     }),
 
   // 获取知识图谱统计
@@ -490,7 +508,7 @@ export const personalAgentRouter = router({
       let whereClause = projectId ? `WHERE project_id = ${projectId}` : '';
       
       // 按类别统计
-      const categoryStats = await (db as any).execute(
+      const categoryStats = await (db as unknown as RawExecutor).execute(
         `SELECT category, COUNT(*) as count
          FROM process_notes ${whereClause}
          GROUP BY category
@@ -498,7 +516,7 @@ export const personalAgentRouter = router({
       );
 
       // 按阶段统计
-      const phaseStats = await (db as any).execute(
+      const phaseStats = await (db as unknown as RawExecutor).execute(
         `SELECT project_phase, COUNT(*) as count
          FROM process_notes ${whereClause}
          GROUP BY project_phase
@@ -506,13 +524,13 @@ export const personalAgentRouter = router({
       );
 
       // 热门标签
-      const tagStats = await (db as any).execute(
+      const tagStats = await (db as unknown as RawExecutor).execute(
         `SELECT tags FROM process_notes ${whereClause} WHERE tags IS NOT NULL`
       );
-      
+
       // 统计标签频次
       const tagCounts: Record<string, number> = {};
-      for (const row of tagStats as any[]) {
+      for (const row of tagStats as { tags: string }[]) {
         const tags = JSON.parse(row.tags);
         for (const tag of tags) {
           tagCounts[tag] = (tagCounts[tag] || 0) + 1;
@@ -543,7 +561,7 @@ export const personalAgentRouter = router({
       const targetUserId = input?.userId || ctx.user?.id;
       
       // 行为日志统计
-      const behaviorStats = await (db as any).execute(
+      const behaviorStats = await (db as unknown as RawExecutor).execute(
         `SELECT
            COUNT(*) as total_logs,
            COUNT(DISTINCT context) as unique_contexts,
@@ -555,7 +573,7 @@ export const personalAgentRouter = router({
       );
 
       // 过程笔记统计
-      const noteStats = await (db as any).execute(
+      const noteStats = await (db as unknown as RawExecutor).execute(
         `SELECT
            COUNT(*) as total_notes,
            SUM(view_count) as total_views,
@@ -566,8 +584,8 @@ export const personalAgentRouter = router({
       );
       
       return {
-        behavior: (behaviorStats as any[])[0],
-        notes: (noteStats as any[])[0],
+        behavior: (behaviorStats as Record<string, unknown>[])[0],
+        notes: (noteStats as Record<string, unknown>[])[0],
       };
     }),
 });
@@ -575,7 +593,7 @@ export const personalAgentRouter = router({
 // ==================== 辅助函数 ====================
 
 // AI推断技能
-async function inferSkillFromBehavior(context: string, actionData: any): Promise<{ skill: string; confidence: number }> {
+async function inferSkillFromBehavior(context: string, actionData: Record<string, unknown>): Promise<{ skill: string; confidence: number }> {
   try {
     const response = await invokeLLM({
       messages: [
@@ -628,7 +646,7 @@ async function inferSkillFromBehavior(context: string, actionData: any): Promise
 }
 
 // AI提取知识
-async function extractKnowledgeFromNote(problemDesc: string, solutionDesc: string): Promise<any> {
+async function extractKnowledgeFromNote(problemDesc: string, solutionDesc: string): Promise<ExtractedKnowledge> {
   try {
     const response = await invokeLLM({
       messages: [

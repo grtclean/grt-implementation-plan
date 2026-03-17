@@ -359,7 +359,7 @@ export const productionRouter = router({
         taskId: 0,
         workOrderId: input.workOrderId,
         inspectionType: input.checkType,
-        inspectorId: ctx.user.id,
+        inspectorId: ctx.user!.id,
         inspectorName: input.inspector,
         inspectionTime: new Date(),
         result: input.result,

@@ -18,6 +18,116 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 
+interface AgendaItem {
+  agendaItemTitle?: string;
+  agenda_item_title?: string;
+  agendaItemCategory?: string;
+  agenda_item_category?: string;
+  plannedDurationMinutes?: number | string;
+  planned_duration_minutes?: number | string;
+  actualDurationMinutes?: number | string;
+  actual_duration_minutes?: number | string;
+  speaker?: string;
+  speakers?: string;
+  decisionsCount?: number;
+  decisions_count?: number;
+  actionsCount?: number;
+  actions_count?: number;
+}
+
+interface AnalysisRow {
+  meeting_id?: string;
+  meetingId?: string;
+  meeting_title?: string;
+  meetingTitle?: string;
+  agenda_items_count?: number;
+  agendaItemsCount?: number;
+  total_planned_minutes?: number;
+  totalPlannedMinutes?: number;
+  total_actual_minutes?: number;
+  totalActualMinutes?: number;
+  overrun_percent?: number;
+  overrunPercent?: number;
+  time_efficiency_score?: number | string;
+  timeEfficiencyScore?: number | string;
+  efficiency_grade?: string;
+  efficiencyGrade?: string;
+}
+
+interface OverrunPattern {
+  topic?: string;
+  agendaItemTitle?: string;
+  occurrences?: number;
+  count?: number;
+  avgPlannedMinutes?: number;
+  avg_planned?: number;
+  avgActualMinutes?: number;
+  avg_actual?: number;
+  avgOverrunPercent?: number;
+  avg_overrun_percent?: number;
+}
+
+interface CategoryDistribution {
+  category: string;
+  overrunRate?: number;
+  overrun_rate?: number;
+  avgActualMinutes?: number;
+  avg_actual_minutes?: number;
+}
+
+interface TrendRow {
+  periodEnd: string;
+  avgTimeEfficiencyScore: number;
+  avgOverrunPercent: number;
+}
+
+interface AnalyzeResult {
+  meetingId: string;
+  agendaItemsFound?: number;
+  totalPlanned?: number;
+  totalActual?: number;
+  overallEfficiency?: string | number;
+}
+
+interface BatchResult {
+  results?: Array<{ success: boolean }>;
+}
+
+interface OptimizationResult {
+  recommendedOrder?: string[];
+  recommendations?: Array<{
+    topic?: string;
+    title?: string;
+    suggestedMinutes?: number;
+    suggested?: number;
+    currentMinutes?: number;
+    current?: number;
+    reason?: string;
+    priority?: string;
+  }>;
+  asyncCandidates?: string[];
+  narrative?: string;
+}
+
+interface SnapshotResult {
+  snapshot?: SnapshotData;
+  totalMeetingsAnalyzed?: number;
+  avgOverrunPercent?: number;
+  overrunRate?: number;
+  avgEngagementScore?: number | string;
+  avgProductivityScore?: number | string;
+  avgTimeEfficiencyScore?: number | string;
+  trendVsPrevious?: string;
+  overallGrade?: string;
+  topOverrunCategories?: string | Array<string | { category: string; count?: number; overrunRate?: number }>;
+  topOverrunTopics?: string | Array<string | { topic?: string; title?: string; count?: number; avgOverrun?: number }>;
+  optimalOrderRecommendation?: string | string[];
+  aiNarrative?: string;
+  recommendations?: string | string[];
+}
+
+type SnapshotData = Omit<SnapshotResult, "snapshot">;
+
 const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 
 const GRADE_COLORS: Record<string, string> = {
@@ -45,7 +155,7 @@ const TREND_LABEL_KEYS: Record<string, string> = {
 function AgendaItemsDetail({ meetingId }: { meetingId: string }) {
   const { t } = useLanguage();
   const { data } = trpc.ime.timeAllocationBreakdown.useQuery({ meetingId });
-  const items = (data?.items ?? []) as any[];
+  const items = (data?.items ?? []) as AgendaItem[];
 
   const categoryLabel = (key: string) => t(CATEGORY_LABEL_KEYS[key] || "meeting.agenda.catOther");
 
@@ -68,7 +178,7 @@ function AgendaItemsDetail({ meetingId }: { meetingId: string }) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {items.map((item: any, idx: number) => {
+        {items.map((item: AgendaItem, idx: number) => {
           const planned = Number(item.plannedDurationMinutes ?? item.planned_duration_minutes ?? 0);
           const actual = Number(item.actualDurationMinutes ?? item.actual_duration_minutes ?? 0);
           const maxVal = Math.max(planned, actual, 1);
@@ -177,12 +287,12 @@ export function AgendaTimeAllocationTab() {
   );
   const trendQuery = trpc.ime.agendaTrendData.useQuery({ limit: 20 });
 
-  const dashboard = (dashboardQuery.data ?? {}) as any;
-  const analysisList = ((analysisListQuery.data as any)?.rows || []) as any[];
-  const breakdownItems = ((breakdownQuery.data as any)?.items || []) as any[];
-  const patterns = ((patternsQuery.data as any)?.patterns || []) as any[];
-  const categories = ((categoryQuery.data as any)?.categories || []) as any[];
-  const trendData = (trendQuery.data || []) as any[];
+  const dashboard = (dashboardQuery.data ?? {}) as Record<string, unknown>;
+  const analysisList = ((analysisListQuery.data as Record<string, unknown> | undefined)?.rows || []) as AnalysisRow[];
+  const breakdownItems = ((breakdownQuery.data as Record<string, unknown> | undefined)?.items || []) as AgendaItem[];
+  const patterns = ((patternsQuery.data as Record<string, unknown> | undefined)?.patterns || []) as OverrunPattern[];
+  const categories = ((categoryQuery.data as Record<string, unknown> | undefined)?.categories || []) as CategoryDistribution[];
+  const trendData = (trendQuery.data || []) as unknown as TrendRow[];
 
   const handleAnalyzePatterns = () => {
     patternsQuery.refetch();
@@ -235,26 +345,28 @@ export function AgendaTimeAllocationTab() {
           </div>
           {analyzeMutation.data && (
             <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-1">
+              {(() => { const analyzeData = analyzeMutation.data as AnalyzeResult; return (<>
               <p>
                 <span className="font-medium">{t("meeting.agenda.meetingIdLabel")}: </span>
-                <span className="text-muted-foreground font-mono">{(analyzeMutation.data as any).meetingId}</span>
+                <span className="text-muted-foreground font-mono">{analyzeData.meetingId}</span>
               </p>
               <p>
                 <span className="font-medium">{t("meeting.agenda.agendaItemsFound")}: </span>
-                {(analyzeMutation.data as any).agendaItemsFound ?? 0}
+                {analyzeData.agendaItemsFound ?? 0}
               </p>
               <p>
                 <span className="font-medium">{t("meeting.agenda.totalPlanned")}: </span>
-                {(analyzeMutation.data as any).totalPlanned ?? 0} {t("meeting.agenda.minutesUnit")}
+                {analyzeData.totalPlanned ?? 0} {t("meeting.agenda.minutesUnit")}
               </p>
               <p>
                 <span className="font-medium">{t("meeting.agenda.totalActual")}: </span>
-                {(analyzeMutation.data as any).totalActual ?? 0} {t("meeting.agenda.minutesUnit")}
+                {analyzeData.totalActual ?? 0} {t("meeting.agenda.minutesUnit")}
               </p>
               <p>
                 <span className="font-medium">{t("meeting.agenda.overallEfficiency")}: </span>
-                {(analyzeMutation.data as any).overallEfficiency ?? "—"}
+                {analyzeData.overallEfficiency ?? "—"}
               </p>
+              </>); })()}
             </div>
           )}
           {analyzeMutation.isError && (
@@ -287,10 +399,11 @@ export function AgendaTimeAllocationTab() {
               </Button>
             </div>
             {batchMutation.data && (() => {
-              const results = ((batchMutation.data as any)?.results ?? []) as any[];
+              const batchData = batchMutation.data as BatchResult;
+              const results = (batchData.results ?? []);
               return (
                 <p className="text-sm text-green-600 mt-2">
-                  {t("meeting.agenda.batchCompleted")} {results.filter((r: any) => r.success).length} {t("meeting.agenda.batchSuccessUnit")}, {t("meeting.agenda.batchFailed")} {results.filter((r: any) => !r.success).length} {t("meeting.agenda.batchSuccessUnit")}
+                  {t("meeting.agenda.batchCompleted")} {results.filter((r) => r.success).length} {t("meeting.agenda.batchSuccessUnit")}, {t("meeting.agenda.batchFailed")} {results.filter((r) => !r.success).length} {t("meeting.agenda.batchSuccessUnit")}
                 </p>
               );
             })()}
@@ -306,26 +419,26 @@ export function AgendaTimeAllocationTab() {
         <StatCard
           icon={BarChart3}
           label={t("meeting.agenda.totalMeetingsAnalyzed")}
-          value={dashboard?.totalMeetingsAnalyzed ?? "..."}
+          value={(dashboard?.totalMeetingsAnalyzed as number) ?? "..."}
         />
         <StatCard
           icon={Target}
           label={t("meeting.agenda.avgEfficiencyScore")}
-          value={dashboard?.avgEfficiencyScore ?? "..."}
+          value={(dashboard?.avgEfficiencyScore as number) ?? "..."}
           iconColor="text-green-600"
           iconBg="bg-green-50"
         />
         <StatCard
           icon={Clock}
           label={t("meeting.agenda.avgOverrunPercent")}
-          value={dashboard?.avgOverrunPercent != null ? `${dashboard.avgOverrunPercent}%` : "..."}
+          value={dashboard?.avgOverrunPercent != null ? `${dashboard.avgOverrunPercent as number}%` : "..."}
           iconColor="text-amber-600"
           iconBg="bg-amber-50"
         />
         <StatCard
           icon={AlertTriangle}
           label={t("meeting.agenda.skippedRate")}
-          value={dashboard?.skippedRate != null ? `${dashboard.skippedRate}%` : "..."}
+          value={dashboard?.skippedRate != null ? `${dashboard.skippedRate as number}%` : "..."}
           iconColor="text-red-600"
           iconBg="bg-red-50"
         />
@@ -354,7 +467,7 @@ export function AgendaTimeAllocationTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {analysisList.map((row: any) => {
+                {analysisList.map((row: AnalysisRow) => {
                   const mid = row.meeting_id || row.meetingId || "";
                   const isExpanded = expandedId === mid;
                   return (
@@ -387,7 +500,7 @@ export function AgendaTimeAllocationTab() {
                         </TableCell>
                         <TableCell className="text-center">
                           {(row.efficiency_grade ?? row.efficiencyGrade) ? (
-                            <Badge className={GRADE_COLORS[row.efficiency_grade ?? row.efficiencyGrade] || ""}>
+                            <Badge className={GRADE_COLORS[row.efficiency_grade! ?? row.efficiencyGrade] || ""}>
                               {row.efficiency_grade ?? row.efficiencyGrade}
                             </Badge>
                           ) : "—"}
@@ -455,7 +568,7 @@ export function AgendaTimeAllocationTab() {
                 <h4 className="text-sm font-medium mb-2">{t("meeting.agenda.plannedVsActual")}</h4>
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart
-                    data={breakdownItems.map((item: any) => ({
+                    data={breakdownItems.map((item: AgendaItem) => ({
                       name: (item.agendaItemTitle ?? item.agenda_item_title ?? "").length > 10
                         ? (item.agendaItemTitle ?? item.agenda_item_title ?? "").slice(0, 10) + "..."
                         : (item.agendaItemTitle ?? item.agenda_item_title ?? "—"),
@@ -488,7 +601,7 @@ export function AgendaTimeAllocationTab() {
                         dataKey="value"
                         label={({ name, value }) => `${name}: ${value}${t("meeting.agenda.minutesUnit")}`}
                       >
-                        {categoryPieData.map((_: any, idx: number) => (
+                        {categoryPieData.map((_: { name: string; value: number }, idx: number) => (
                           <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
                         ))}
                       </Pie>
@@ -562,7 +675,7 @@ export function AgendaTimeAllocationTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {patterns.map((p: any, i: number) => (
+                  {patterns.map((p: OverrunPattern, i: number) => (
                     <TableRow key={i}>
                       <TableCell className="max-w-[200px] truncate">
                         {p.topic ?? p.agendaItemTitle ?? "—"}
@@ -588,7 +701,7 @@ export function AgendaTimeAllocationTab() {
               <h4 className="text-sm font-medium mb-2">{t("meeting.agenda.categoryOverrunRate")}</h4>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart
-                  data={categories.map((c: any) => ({
+                  data={categories.map((c: CategoryDistribution) => ({
                     name: categoryLabel(c.category),
                     overrunRate: Number(c.overrunRate ?? c.overrun_rate ?? 0),
                     avgMinutes: Number(c.avgActualMinutes ?? c.avg_actual_minutes ?? 0),
@@ -641,14 +754,14 @@ export function AgendaTimeAllocationTab() {
               {t("meeting.agenda.generateOptimizationBtn")}
             </Button>
           </div>
-          {optimizeMutation.data && (
+          {optimizeMutation.data && (() => { const optData = optimizeMutation.data as OptimizationResult; return (
             <div className="space-y-4">
               {/* Recommended order */}
-              {((optimizeMutation.data as any).recommendedOrder || []).length > 0 && (
+              {(optData.recommendedOrder || []).length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium mb-2">{t("meeting.agenda.recommendedOrder")}</h4>
                   <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                    {((optimizeMutation.data as any).recommendedOrder as string[]).map((item: string, i: number) => (
+                    {optData.recommendedOrder!.map((item: string, i: number) => (
                       <li key={i}>{item}</li>
                     ))}
                   </ol>
@@ -656,7 +769,7 @@ export function AgendaTimeAllocationTab() {
               )}
 
               {/* Recommendations table */}
-              {((optimizeMutation.data as any).recommendations || []).length > 0 && (
+              {(optData.recommendations || []).length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium mb-2">{t("meeting.agenda.timeAllocationSuggestions")}</h4>
                   <Table>
@@ -670,7 +783,7 @@ export function AgendaTimeAllocationTab() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {((optimizeMutation.data as any).recommendations as any[]).map((rec: any, i: number) => (
+                      {optData.recommendations!.map((rec, i: number) => (
                         <TableRow key={i}>
                           <TableCell className="max-w-[160px] truncate">{rec.topic ?? rec.title ?? "—"}</TableCell>
                           <TableCell className="text-center">{rec.suggestedMinutes ?? rec.suggested ?? "—"} {t("meeting.agenda.minutesUnit")}</TableCell>
@@ -693,11 +806,11 @@ export function AgendaTimeAllocationTab() {
               )}
 
               {/* Async candidates */}
-              {((optimizeMutation.data as any).asyncCandidates || []).length > 0 && (
+              {(optData.asyncCandidates || []).length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium mb-2">{t("meeting.agenda.asyncCandidates")}</h4>
                   <ul className="space-y-1 text-sm">
-                    {((optimizeMutation.data as any).asyncCandidates as string[]).map((c: string, i: number) => (
+                    {optData.asyncCandidates!.map((c: string, i: number) => (
                       <li key={i} className="text-muted-foreground">• {c}</li>
                     ))}
                   </ul>
@@ -705,14 +818,14 @@ export function AgendaTimeAllocationTab() {
               )}
 
               {/* AI narrative */}
-              {(optimizeMutation.data as any).narrative && (
+              {optData.narrative && (
                 <div className="bg-muted/50 rounded-lg p-4">
                   <h4 className="text-sm font-medium mb-1">{t("meeting.agenda.aiAnalysis")}</h4>
-                  <p className="text-sm text-muted-foreground">{(optimizeMutation.data as any).narrative}</p>
+                  <p className="text-sm text-muted-foreground">{optData.narrative}</p>
                 </div>
               )}
             </div>
-          )}
+          ); })()}
           {optimizeMutation.isError && (
             <p className="text-sm text-red-500">{t("meeting.agenda.error")}: {optimizeMutation.error.message}</p>
           )}
@@ -913,7 +1026,8 @@ export function AgendaTimeAllocationTab() {
             </Button>
           </div>
           {snapshotMutation.data && (() => {
-            const snap = (snapshotMutation.data as any)?.snapshot ?? snapshotMutation.data;
+            const snapRaw = snapshotMutation.data as SnapshotResult;
+            const snap: SnapshotData = (snapRaw.snapshot ?? snapRaw) as SnapshotData;
             return (
               <div className="space-y-4">
                 {/* Metrics grid */}
@@ -999,7 +1113,7 @@ export function AgendaTimeAllocationTab() {
                         <div>
                           <h4 className="text-sm font-medium mb-1">{t("meeting.agenda.topOverrunCategories")}</h4>
                           <ul className="space-y-1 text-sm">
-                            {cats.map((c: any, i: number) => (
+                            {cats.map((c: string | { category: string; count?: number; overrunRate?: number }, i: number) => (
                               <li key={i} className="text-muted-foreground">
                                 • {typeof c === "string" ? c : `${categoryLabel(c.category)}: ${c.count ?? c.overrunRate ?? ""}${t("meeting.agenda.timesUnit")}`}
                               </li>
@@ -1025,7 +1139,7 @@ export function AgendaTimeAllocationTab() {
                         <div>
                           <h4 className="text-sm font-medium mb-1">{t("meeting.agenda.topOverrunTopics")}</h4>
                           <ul className="space-y-1 text-sm">
-                            {topics.map((tp: any, i: number) => (
+                            {topics.map((tp: string | { topic?: string; title?: string; count?: number; avgOverrun?: number }, i: number) => (
                               <li key={i} className="text-muted-foreground">
                                 • {typeof tp === "string" ? tp : `${tp.topic ?? tp.title}: ${tp.count ?? tp.avgOverrun ?? ""}${t("meeting.agenda.timesUnit")}`}
                               </li>

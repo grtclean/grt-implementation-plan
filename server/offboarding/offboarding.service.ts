@@ -166,7 +166,7 @@ export async function createOffboarding(input: CreateOffboardingInput) {
     approvalStatus: 'draft',
   });
   
-  const insertId = result[0].insertId;
+  const insertId = (result as any)[0].insertId;
   
   // 自动创建4级审批记录
   await initializeApprovals(insertId);
@@ -358,7 +358,7 @@ export async function addHandoverItem(input: CreateHandoverItemInput) {
     status: 'pending',
   });
 
-  return { id: result[0].insertId, message: '交接项添加成功' };
+  return { id: (result as any)[0].insertId, message: '交接项添加成功' };
 }
 
 /** 批量添加交接项 */
@@ -446,7 +446,7 @@ export async function addPerformanceAttribution(input: CreatePerformanceAttribut
     status: 'pending_confirmation',
   });
 
-  return { id: result[0].insertId, message: '绩效归属记录添加成功' };
+  return { id: (result as any)[0].insertId, message: '绩效归属记录添加成功' };
 }
 
 /** 主管确认绩效归属 */
@@ -558,7 +558,7 @@ export async function addAssetHandover(input: CreateAssetHandoverInput) {
     notes: input.notes || null,
   });
 
-  return { id: result[0].insertId, message: '资产交接项添加成功' };
+  return { id: (result as any)[0].insertId, message: '资产交接项添加成功' };
 }
 
 /** 更新资产交接状态 */
@@ -1118,7 +1118,7 @@ export async function searchExtSyncEmployees(keyword: string) {
       LIMIT 20
     `);
 
-    const employees = (localResults[0] as any[]) || [];
+    const employees = ((localResults as any)[0] as any[]) || [];
 
     // 从外部同步映射表获取数据（本地DB，无需调用外部API）
     let externalSyncMembers: any[] = [];

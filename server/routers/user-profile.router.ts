@@ -11,7 +11,7 @@ import * as emailReminderService from "../services/email-reminder.service";
 export const userProfileRouter = router({
   // 获取当前用户Profile
   getMyProfile: protectedProcedure.query(async ({ ctx }) => {
-    return userProfileService.getUserProfile(ctx.user.openId);
+    return userProfileService.getUserProfile(ctx.user!.openId);
   }),
 
   // 更新当前用户Profile
@@ -36,7 +36,7 @@ export const userProfileRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       return userProfileService.upsertUserProfile({
-        userId: ctx.user.openId,
+        userId: ctx.user!.openId,
         ...input,
       });
     }),
@@ -50,12 +50,12 @@ export const userProfileRouter = router({
       endDate: z.string().optional(),
     }).optional())
     .query(async ({ ctx, input }) => {
-      return userProfileService.getUserTasks(ctx.user.openId, input);
+      return userProfileService.getUserTasks(ctx.user!.openId, input);
     }),
 
   // 获取今日待完成任务
   getTodayTasks: protectedProcedure.query(async ({ ctx }) => {
-    return userProfileService.getTodayTasks(ctx.user.openId);
+    return userProfileService.getTodayTasks(ctx.user!.openId);
   }),
 
   // 创建任务
@@ -72,7 +72,7 @@ export const userProfileRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       return userProfileService.createUserTask({
-        userId: ctx.user.openId,
+        userId: ctx.user!.openId,
         ...input,
         priority: input.priority || 'medium',
         status: 'pending',
@@ -92,7 +92,7 @@ export const userProfileRouter = router({
 
   // 获取逾期任务
   getOverdueTasks: protectedProcedure.query(async ({ ctx }) => {
-    return userProfileService.getOverdueTasks(ctx.user.openId);
+    return userProfileService.getOverdueTasks(ctx.user!.openId);
   }),
 
   // 发送任务提醒（管理员功能）

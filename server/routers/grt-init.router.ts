@@ -68,7 +68,7 @@ export const grtInitRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const scanId = randomUUID();
-      const userName = ctx.user.name || ctx.user.openId || String(ctx.user.id);
+      const userName = ctx.user!.name || ctx.user!.openId || String(ctx.user!.id);
 
       try {
         // Create scan session
@@ -155,7 +155,7 @@ export const grtInitRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const scanId = randomUUID();
-      const userName = ctx.user.name || ctx.user.openId || String(ctx.user.id);
+      const userName = ctx.user!.name || ctx.user!.openId || String(ctx.user!.id);
 
       try {
         const [scan] = await db
@@ -185,7 +185,7 @@ export const grtInitRouter = router({
     .mutation(async ({ ctx }) => {
       const db = await requireDb();
       const scanId = randomUUID();
-      const userName = ctx.user.name || ctx.user.openId || String(ctx.user.id);
+      const userName = ctx.user!.name || ctx.user!.openId || String(ctx.user!.id);
 
       try {
         // Test DB by running a simple query
@@ -233,7 +233,7 @@ export const grtInitRouter = router({
     .input(z.object({ scanId: z.string().uuid() }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const userName = ctx.user.name || ctx.user.openId || String(ctx.user.id);
+      const userName = ctx.user!.name || ctx.user!.openId || String(ctx.user!.id);
 
       try {
         const devices = await db

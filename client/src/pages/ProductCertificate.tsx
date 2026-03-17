@@ -54,7 +54,7 @@ export default function ProductCertificate() {
 
   // Mutation
   const mutation = trpc.qualityAdvanced.generateCertificate.useMutation({
-    onSuccess: (data) => setResult(data as CertificateResult),
+    onSuccess: (data) => setResult(data as any),
   });
 
   const handleSubmit = () => {

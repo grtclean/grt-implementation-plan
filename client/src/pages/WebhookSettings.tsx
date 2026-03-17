@@ -435,12 +435,12 @@ export default function WebhookSettings() {
                     logs.map((log: WebhookLog) => (
                       <TableRow key={log.id}>
                         <TableCell className="text-sm">
-                          {new Date(log.createdAt).toLocaleString("zh-CN")}
+                          {new Date(log.createdAt as any).toLocaleString("zh-CN")}
                         </TableCell>
                         <TableCell>
                           {EVENT_TYPES.find(e => e.value === log.eventType)?.label || log.eventType}
                         </TableCell>
-                        <TableCell>{getStatusBadge(log.status)}</TableCell>
+                        <TableCell>{getStatusBadge(log.status!)}</TableCell>
                         <TableCell>{log.responseStatus}</TableCell>
                         <TableCell>{log.executionTimeMs}ms</TableCell>
                         <TableCell className="text-red-500 text-sm max-w-xs truncate">

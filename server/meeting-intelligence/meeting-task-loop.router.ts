@@ -42,7 +42,7 @@ export const meetingTaskLoopRouter = router({
       transcription: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      return generateMeetingMinutes(input.meetingId, input);
+      return generateMeetingMinutes(input.meetingId, input as any);
     }),
 
   getMinutes: protectedProcedure
@@ -80,7 +80,7 @@ export const meetingTaskLoopRouter = router({
     .mutation(async ({ input, ctx }) => {
       await (await requireDb() as any).execute(
         `UPDATE meeting_minutes_v2 SET status = 'approved', approved_by = ?, approved_at = NOW() WHERE id = ?`,
-        [String(ctx.user.id), input.minutesId]
+        [String(ctx.user!.id), input.minutesId]
       );
       return { success: true };
     }),
@@ -159,7 +159,7 @@ export const meetingTaskLoopRouter = router({
          LEFT JOIN meeting_records mr ON mai.meeting_id = mr.id
          WHERE ta.assignee_id = ? AND ta.assignment_status IN ('pending', 'sent')
          ORDER BY mai.due_date ASC`,
-        [String(ctx.user.id)]
+        [String(ctx.user!.id)]
       ) as any;
 
       return rows.map((row: any) => ({
@@ -182,7 +182,7 @@ export const meetingTaskLoopRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return acceptTaskAssignment(input.assignmentId, String(ctx.user.id), input.notes);
+      return acceptTaskAssignment(input.assignmentId, String(ctx.user!.id), input.notes);
     }),
 
   rejectAssignment: requirePermission('collab:meeting:hub')
@@ -191,7 +191,7 @@ export const meetingTaskLoopRouter = router({
       reason: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
-      await rejectTaskAssignment(input.assignmentId, String(ctx.user.id), input.reason);
+      await rejectTaskAssignment(input.assignmentId, String(ctx.user!.id), input.reason);
       return { success: true };
     }),
 
@@ -207,7 +207,7 @@ export const meetingTaskLoopRouter = router({
       dueDateTo: z.string().optional(),
     }).optional())
     .query(async ({ input, ctx }) => {
-      return getPersonalTasks(String(ctx.user.id), input);
+      return getPersonalTasks(String(ctx.user!.id), input);
     }),
 
   updateTaskStatus: requirePermission('collab:meeting:hub')
@@ -220,7 +220,7 @@ export const meetingTaskLoopRouter = router({
     .mutation(async ({ input, ctx }) => {
       await updatePersonalTaskStatus(
         input.taskId,
-        String(ctx.user.id),
+        String(ctx.user!.id),
         input.status,
         input.completionNotes,
         input.evidenceUrls
@@ -245,8 +245,8 @@ export const meetingTaskLoopRouter = router({
     .mutation(async ({ input, ctx }) => {
       return createCompletionReport({
         ...input,
-        reporterId: String(ctx.user.id),
-        reporterName: ctx.user.name || String(ctx.user.id),
+        reporterId: String(ctx.user!.id),
+        reporterName: ctx.user!.name || String(ctx.user!.id),
       });
     }),
 
@@ -255,7 +255,7 @@ export const meetingTaskLoopRouter = router({
       reportId: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
-      await submitCompletionReport(input.reportId, String(ctx.user.id));
+      await submitCompletionReport(input.reportId, String(ctx.user!.id));
       return { success: true };
     }),
 
@@ -266,7 +266,7 @@ export const meetingTaskLoopRouter = router({
     }).optional())
     .query(async ({ input, ctx }) => {
       let query = `SELECT * FROM task_completion_reports WHERE reporter_id = ?`;
-      const params: unknown[] = [String(ctx.user.id)];
+      const params: unknown[] = [String(ctx.user!.id)];
 
       if (input?.status) {
         query += ` AND status = ?`;
@@ -313,7 +313,7 @@ export const meetingTaskLoopRouter = router({
         `UPDATE task_completion_reports 
          SET status = ?, reviewed_by = ?, reviewed_at = NOW(), review_notes = ?
          WHERE id = ?`,
-        [status, String(ctx.user.id), input.reviewNotes, input.reportId]
+        [status, String(ctx.user!.id), input.reviewNotes, input.reportId]
       );
 
       // 如果批准，更新个人任务的上报状态
@@ -427,8 +427,8 @@ export const meetingTaskLoopRouter = router({
     .mutation(async ({ input, ctx }) => {
       return submitMeetingEffectiveness({
         ...input,
-        evaluatorId: String(ctx.user.id),
-        evaluatorName: ctx.user.name || String(ctx.user.id),
+        evaluatorId: String(ctx.user!.id),
+        evaluatorName: ctx.user!.name || String(ctx.user!.id),
       });
     }),
 
@@ -469,9 +469,9 @@ export const meetingTaskLoopRouter = router({
     .mutation(async ({ input, ctx }) => {
       const id = await createCustomTemplate({
         ...input,
-        createdBy: String(ctx.user.id),
-        createdByName: ctx.user.name || undefined,
-      });
+        createdBy: String(ctx.user!.id),
+        createdByName: ctx.user!.name || undefined,
+      } as any);
       return { id };
     }),
 
@@ -481,7 +481,7 @@ export const meetingTaskLoopRouter = router({
       visibility: z.string().optional(),
     }).optional())
     .query(async ({ input, ctx }) => {
-      return getCustomTemplates(String(ctx.user.id), input);
+      return getCustomTemplates(String(ctx.user!.id), input);
     }),
 
   incrementTemplateUsage: requirePermission('collab:meeting:hub')
@@ -500,7 +500,7 @@ export const meetingTaskLoopRouter = router({
     .mutation(async ({ input, ctx }) => {
       await (await requireDb() as any).execute(
         `UPDATE custom_meeting_templates SET status = 'archived' WHERE id = ? AND created_by = ?`,
-        [input.templateId, String(ctx.user.id)]
+        [input.templateId, String(ctx.user!.id)]
       );
       return { success: true };
     }),

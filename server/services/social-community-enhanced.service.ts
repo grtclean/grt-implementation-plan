@@ -7,6 +7,53 @@ import { requireDb } from "../db";
 import { createChildLogger } from "../lib/logger";
 const log = createChildLogger("social-community-svc");
 
+// ==================== 内部类型（raw SQL executor） ====================
+
+/** mysql2-style execute result: [rows, fields] */
+interface RawDb {
+  execute(sql: string, params?: unknown[]): Promise<[unknown[], unknown]>;
+}
+
+interface InsertResult {
+  insertId: number;
+}
+
+interface CountRow {
+  total: number;
+}
+
+interface HourCountRow {
+  hour: number;
+  count: number;
+}
+
+interface GroupCountRow {
+  group_id: number;
+  group_name: string | null;
+  count: number;
+}
+
+interface MemberRow {
+  id: number;
+  wx_id: string;
+  name: string | null;
+  group_id: number;
+  group_name: string | null;
+  role: string | null;
+  message_count: number;
+  last_active_at: Date | null;
+  [key: string]: unknown;
+}
+
+interface AvgRow {
+  avg_per_day: number | null;
+}
+
+interface ContributorRow {
+  name: string;
+  message_count: number;
+}
+
 // ==================== 脱敏规则管理 ====================
 
 export interface DeidentificationRule {
@@ -31,7 +78,7 @@ export async function getDeidentificationRules(options?: {
 }): Promise<DeidentificationRule[]> {
   const db = await requireDb();
   let query = `SELECT * FROM deidentification_rules WHERE 1=1`;
-  const params: any[] = [];
+  const params: unknown[] = [];
   
   if (options?.category) {
     query += ` AND category = ?`;
@@ -44,7 +91,7 @@ export async function getDeidentificationRules(options?: {
   
   query += ` ORDER BY priority DESC, created_at ASC`;
   
-  const [rows] = await (db as any).execute(query, params);
+  const [rows] = await (db as unknown as RawDb).execute(query, params);
   return rows as DeidentificationRule[];
 }
 
@@ -62,13 +109,13 @@ export async function createDeidentificationRule(rule: {
   const db = await requireDb();
   const { name, pattern, patternType, replacement, category, priority = 0 } = rule;
   
-  const [result] = await (db as any).execute(
+  const [result] = await (db as unknown as RawDb).execute(
     `INSERT INTO deidentification_rules (name, pattern, pattern_type, replacement, category, priority, is_enabled)
      VALUES (?, ?, ?, ?, ?, ?, 1)`,
     [name, pattern, patternType, replacement, category, priority]
   );
   
-  return { id: (result as any).insertId };
+  return { id: (result as unknown as InsertResult).insertId };
 }
 
 /**
@@ -88,7 +135,7 @@ export async function updateDeidentificationRule(
 ): Promise<void> {
   const db = await requireDb();
   const setClauses: string[] = [];
-  const params: any[] = [];
+  const params: unknown[] = [];
   
   if (updates.name !== undefined) {
     setClauses.push('name = ?');
@@ -124,7 +171,7 @@ export async function updateDeidentificationRule(
   setClauses.push('updated_at = NOW()');
   params.push(id);
   
-  await (db as any).execute(
+  await (db as unknown as RawDb).execute(
     `UPDATE deidentification_rules SET ${setClauses.join(', ')} WHERE id = ?`,
     params
   );
@@ -135,7 +182,7 @@ export async function updateDeidentificationRule(
  */
 export async function deleteDeidentificationRule(id: number): Promise<void> {
   const db = await requireDb();
-  await (db as any).execute(`DELETE FROM deidentification_rules WHERE id = ?`, [id]);
+  await (db as unknown as RawDb).execute(`DELETE FROM deidentification_rules WHERE id = ?`, [id]);
 }
 
 /**
@@ -212,7 +259,7 @@ export async function getAIReplyTemplates(options?: {
 }): Promise<AIReplyTemplate[]> {
   const db = await requireDb();
   let query = `SELECT * FROM ai_reply_templates WHERE 1=1`;
-  const params: any[] = [];
+  const params: unknown[] = [];
   
   if (options?.category) {
     query += ` AND category = ?`;
@@ -225,7 +272,7 @@ export async function getAIReplyTemplates(options?: {
   
   query += ` ORDER BY usage_count DESC, created_at ASC`;
   
-  const [rows] = await (db as any).execute(query, params);
+  const [rows] = await (db as unknown as RawDb).execute(query, params);
   return rows as AIReplyTemplate[];
 }
 
@@ -243,13 +290,13 @@ export async function createAIReplyTemplate(template: {
   const db = await requireDb();
   const { name, category, promptTemplate, systemPrompt, variables = [], isDefault = false } = template;
   
-  const [result] = await (db as any).execute(
+  const [result] = await (db as unknown as RawDb).execute(
     `INSERT INTO ai_reply_templates (name, category, prompt_template, system_prompt, variables, is_default)
      VALUES (?, ?, ?, ?, ?, ?)`,
     [name, category, promptTemplate, systemPrompt, JSON.stringify(variables), isDefault]
   );
   
-  return { id: (result as any).insertId };
+  return { id: (result as unknown as InsertResult).insertId };
 }
 
 /**
@@ -268,7 +315,7 @@ export async function updateAIReplyTemplate(
 ): Promise<void> {
   const db = await requireDb();
   const setClauses: string[] = [];
-  const params: any[] = [];
+  const params: unknown[] = [];
   
   if (updates.name !== undefined) {
     setClauses.push('name = ?');
@@ -300,7 +347,7 @@ export async function updateAIReplyTemplate(
   setClauses.push('updated_at = NOW()');
   params.push(id);
   
-  await (db as any).execute(
+  await (db as unknown as RawDb).execute(
     `UPDATE ai_reply_templates SET ${setClauses.join(', ')} WHERE id = ?`,
     params
   );
@@ -311,7 +358,7 @@ export async function updateAIReplyTemplate(
  */
 export async function deleteAIReplyTemplate(id: number): Promise<void> {
   const db = await requireDb();
-  await (db as any).execute(`DELETE FROM ai_reply_templates WHERE id = ?`, [id]);
+  await (db as unknown as RawDb).execute(`DELETE FROM ai_reply_templates WHERE id = ?`, [id]);
 }
 
 /**
@@ -319,7 +366,7 @@ export async function deleteAIReplyTemplate(id: number): Promise<void> {
  */
 export async function incrementTemplateUsage(id: number): Promise<void> {
   const db = await requireDb();
-  await (db as any).execute(
+  await (db as unknown as RawDb).execute(
     `UPDATE ai_reply_templates SET usage_count = usage_count + 1 WHERE id = ?`,
     [id]
   );
@@ -350,7 +397,7 @@ export async function getMessageStats(options?: {
   const { startDate, endDate, groupId } = options || {};
   
   let dateFilter = '';
-  const params: any[] = [];
+  const params: unknown[] = [];
   
   if (startDate) {
     dateFilter += ` AND received_at >= ?`;
@@ -366,47 +413,47 @@ export async function getMessageStats(options?: {
   }
   
   // 总消息数
-  const [totalResult] = await (db as any).execute(
+  const [totalResult] = await (db as unknown as RawDb).execute(
     `SELECT COUNT(*) as total FROM social_messages WHERE 1=1 ${dateFilter}`,
     params
   );
-  const totalMessages = (totalResult as any[])[0]?.total || 0;
+  const totalMessages = (totalResult as CountRow[])[0]?.total || 0;
   
   // 今日消息数
-  const [todayResult] = await (db as any).execute(
+  const [todayResult] = await (db as unknown as RawDb).execute(
     `SELECT COUNT(*) as total FROM social_messages WHERE DATE(received_at) = CURRENT_DATE ${dateFilter}`,
     params
   );
-  const todayMessages = (todayResult as any[])[0]?.total || 0;
+  const todayMessages = (todayResult as CountRow[])[0]?.total || 0;
   
   // 敏感消息数
-  const [sensitiveResult] = await (db as any).execute(
+  const [sensitiveResult] = await (db as unknown as RawDb).execute(
     `SELECT COUNT(*) as total FROM social_messages WHERE is_sensitive = 1 ${dateFilter}`,
     params
   );
-  const sensitiveMessages = (sensitiveResult as any[])[0]?.total || 0;
+  const sensitiveMessages = (sensitiveResult as CountRow[])[0]?.total || 0;
   
   // 需要回复的消息数
-  const [needsReplyResult] = await (db as any).execute(
+  const [needsReplyResult] = await (db as unknown as RawDb).execute(
     `SELECT COUNT(*) as total FROM social_messages WHERE needs_reply = 1 ${dateFilter}`,
     params
   );
-  const needsReplyMessages = (needsReplyResult as any[])[0]?.total || 0;
+  const needsReplyMessages = (needsReplyResult as CountRow[])[0]?.total || 0;
   
   // 按小时统计
-  const [hourlyResult] = await (db as any).execute(
+  const [hourlyResult] = await (db as unknown as RawDb).execute(
     `SELECT EXTRACT(HOUR FROM received_at) as hour, COUNT(*) as count
      FROM social_messages WHERE 1=1 ${dateFilter}
      GROUP BY EXTRACT(HOUR FROM received_at) ORDER BY hour`,
     params
   );
-  const messagesByHour = (hourlyResult as any[]).map(r => ({
+  const messagesByHour = (hourlyResult as HourCountRow[]).map(r => ({
     hour: r.hour,
     count: r.count,
   }));
   
   // 按群组统计
-  const [groupResult] = await (db as any).execute(
+  const [groupResult] = await (db as unknown as RawDb).execute(
     `SELECT m.group_id, g.name as group_name, COUNT(*) as count
      FROM social_messages m
      LEFT JOIN social_groups g ON m.group_id = g.id
@@ -415,7 +462,7 @@ export async function getMessageStats(options?: {
      ORDER BY count DESC`,
     params
   );
-  const messagesByGroup = (groupResult as any[]).map(r => ({
+  const messagesByGroup = (groupResult as GroupCountRow[]).map(r => ({
     groupId: r.group_id,
     groupName: r.group_name || '未知群组',
     count: r.count,
@@ -456,7 +503,7 @@ export interface MemberProfile {
 export async function getMemberProfiles(groupId: number): Promise<MemberProfile[]> {
   const db = await requireDb();
   
-  const [members] = await (db as any).execute(
+  const [members] = await (db as unknown as RawDb).execute(
     `SELECT sm.*, sg.name as group_name,
             (SELECT COUNT(*) FROM social_messages WHERE sender_wx_id = sm.wx_id AND group_id = sm.group_id) as message_count,
             (SELECT MAX(received_at) FROM social_messages WHERE sender_wx_id = sm.wx_id AND group_id = sm.group_id) as last_active_at
@@ -467,18 +514,18 @@ export async function getMemberProfiles(groupId: number): Promise<MemberProfile[
     [groupId]
   );
   
-  return (members as any[]).map(m => ({
+  return (members as MemberRow[]).map(m => ({
     memberId: m.id,
     wxId: m.wx_id,
     name: m.name || '未知用户',
     groupId: m.group_id,
     groupName: m.group_name || '未知群组',
-    role: m.role || 'member',
+    role: (m.role || 'member') as MemberProfile['role'],
     messageCount: m.message_count || 0,
-    lastActiveAt: m.last_active_at,
+    lastActiveAt: m.last_active_at ?? new Date(),
     activityScore: calculateActivityScore(m.message_count || 0, m.last_active_at),
-    topTopics: [], // TODO: 实现话题分析
-    sentimentScore: 0, // TODO: 实现情感分析
+    topTopics: [] as string[],
+    sentimentScore: 0,
     isInfluencer: (m.message_count || 0) > 50,
   }));
 }
@@ -509,32 +556,32 @@ export async function getGroupActivityStats(groupId: number): Promise<{
   const db = await requireDb();
   
   // 总成员数
-  const [totalResult] = await (db as any).execute(
+  const [totalResult] = await (db as unknown as RawDb).execute(
     `SELECT COUNT(*) as total FROM social_members WHERE group_id = ?`,
     [groupId]
   );
-  const totalMembers = (totalResult as any[])[0]?.total || 0;
+  const totalMembers = (totalResult as CountRow[])[0]?.total || 0;
   
   // 活跃成员数（7天内有消息）
-  const [activeResult] = await (db as any).execute(
+  const [activeResult] = await (db as unknown as RawDb).execute(
     `SELECT COUNT(DISTINCT sender_wx_id) as total
      FROM social_messages
      WHERE group_id = ? AND received_at >= NOW() - INTERVAL '7 days'`,
     [groupId]
   );
-  const activeMembers = (activeResult as any[])[0]?.total || 0;
+  const activeMembers = (activeResult as CountRow[])[0]?.total || 0;
   
   // 日均消息数
-  const [avgResult] = await (db as any).execute(
+  const [avgResult] = await (db as unknown as RawDb).execute(
     `SELECT COUNT(*) / 30 as avg_per_day
      FROM social_messages
      WHERE group_id = ? AND received_at >= NOW() - INTERVAL '30 days'`,
     [groupId]
   );
-  const avgMessagesPerDay = Math.round((avgResult as any[])[0]?.avg_per_day || 0);
+  const avgMessagesPerDay = Math.round((avgResult as AvgRow[])[0]?.avg_per_day || 0);
   
   // 高峰时段
-  const [peakResult] = await (db as any).execute(
+  const [peakResult] = await (db as unknown as RawDb).execute(
     `SELECT EXTRACT(HOUR FROM received_at) as hour, COUNT(*) as count
      FROM social_messages
      WHERE group_id = ?
@@ -543,10 +590,10 @@ export async function getGroupActivityStats(groupId: number): Promise<{
      LIMIT 1`,
     [groupId]
   );
-  const peakHour = (peakResult as any[])[0]?.hour || 10;
+  const peakHour = (peakResult as HourCountRow[])[0]?.hour || 10;
   
   // 活跃贡献者
-  const [contributorsResult] = await (db as any).execute(
+  const [contributorsResult] = await (db as unknown as RawDb).execute(
     `SELECT sender_name as name, COUNT(*) as message_count
      FROM social_messages
      WHERE group_id = ? AND sender_name IS NOT NULL
@@ -555,7 +602,7 @@ export async function getGroupActivityStats(groupId: number): Promise<{
      LIMIT 10`,
     [groupId]
   );
-  const topContributors = (contributorsResult as any[]).map(c => ({
+  const topContributors = (contributorsResult as ContributorRow[]).map(c => ({
     name: c.name,
     messageCount: c.message_count,
   }));

@@ -3,7 +3,118 @@ import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
 import { sql, SQL } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
-import { sendNotification, getEnabledChannels } from "../notification-service";
+import { sendNotification, getEnabledChannels, type NotificationChannel } from "../notification-service";
+
+/** Raw row from certifications table */
+interface CertificationRow {
+  id: number;
+  cert_code: string;
+  name: string;
+  name_en: string | null;
+  cert_type: string;
+  status: string;
+  issue_date: string | null;
+  expiry_date: string | null;
+  target_date: string | null;
+  cert_body: string | null;
+  cert_number: string | null;
+  scope: string | null;
+  priority: string;
+  budget: number | null;
+  actual_cost: number | null;
+  progress: number | null;
+  responsible_dept: string | null;
+  responsible_person: string | null;
+  notes: string | null;
+  created_by: number | null;
+  created_at: string;
+  total?: number;
+  valid?: number;
+  expired?: number;
+  pending?: number;
+  planned?: number;
+}
+
+/** Raw row from certification_milestones table */
+interface MilestoneRow {
+  id: number;
+  certification_id: number;
+  milestone_code: string;
+  name: string;
+  target_date: string;
+  completed_date: string | null;
+  status: string;
+  sort_order: number;
+  responsible_person: string | null;
+}
+
+/** Raw row from certification_reminders table */
+interface ReminderRow {
+  id: number;
+  certification_id: number;
+  reminder_type: string;
+  days_before: number;
+  is_enabled: number;
+  notify_channels: string | null;
+  last_sent_at: string | null;
+  created_by: number | null;
+  cert_name?: string;
+  expiry_date?: string | null;
+  target_date?: string | null;
+}
+
+/** Raw row from customer_cert_requirements table */
+interface CustomerCertRequirementRow {
+  id: number;
+  customer_code: string;
+  customer_name: string;
+  customer_type: string;
+  country: string | null;
+  region: string | null;
+  required_certs: string;
+  portal_url: string | null;
+}
+
+/** Raw row from certification_gap_analysis table */
+interface GapAnalysisRow {
+  id: number;
+  analysis_code: string;
+  analysis_date: string;
+  customer_id: number | null;
+  total_required: number;
+  total_met: number;
+  total_planned: number;
+  total_gap: number;
+  coverage_rate: number;
+  gap_details: string | null;
+  created_by: number | null;
+  created_at: string;
+}
+
+/** MySQL insert result with insertId */
+interface MysqlInsertResult {
+  insertId: number;
+}
+
+/** Count result row */
+interface CountRow {
+  total: number;
+}
+
+/** Gap detail for a single cert */
+interface CertGapDetail {
+  certCode: string;
+  status: string;
+  certName: string;
+}
+
+/** Gap detail for a customer */
+interface CustomerGapDetail {
+  customerId: number;
+  customerName: string;
+  customerType: string;
+  gaps: CertGapDetail[];
+}
 
 // 资质类型枚举
 const certTypeEnum = z.enum(['quality', 'environment', 'safety', 'process', 'security', 'energy', 'other']);
@@ -44,8 +155,8 @@ export const certificationRouter = router({
       ]);
 
       return {
-        items: certifications[0] as any[],
-        total: (countResult[0] as any[])[0]?.total || 0,
+        items: (certifications as any)[0] as CertificationRow[],
+        total: ((countResult as any)[0] as CountRow[])[0]?.total || 0,
         page,
         pageSize,
       };
@@ -57,7 +168,7 @@ export const certificationRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const result = await db.execute(sql`SELECT * FROM certifications WHERE id = ${input.id} LIMIT 1000`);
-      return (result[0] as any[])[0] || null;
+      return ((result as any)[0] as CertificationRow[])[0] || null;
     }),
 
   // 创建资质
@@ -86,7 +197,7 @@ export const certificationRouter = router({
         INSERT INTO certifications (cert_code, name, name_en, cert_type, status, issue_date, expiry_date, target_date, cert_body, cert_number, scope, priority, budget, responsible_dept, responsible_person, notes, created_by)
         VALUES (${input.certCode}, ${input.name}, ${input.nameEn ?? null}, ${input.certType}, ${input.status}, ${input.issueDate ?? null}, ${input.expiryDate ?? null}, ${input.targetDate ?? null}, ${input.certBody ?? null}, ${input.certNumber ?? null}, ${input.scope ?? null}, ${input.priority}, ${input.budget ?? null}, ${input.responsibleDept ?? null}, ${input.responsiblePerson ?? null}, ${input.notes ?? null}, ${ctx.user?.id ?? null})
       `);
-      return { success: true, id: (result[0] as any).insertId };
+      return { success: true, id: ((result as any)[0] as MysqlInsertResult).insertId };
     }),
 
   // 更新资质
@@ -128,7 +239,7 @@ export const certificationRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const result = await db.execute(sql`SELECT * FROM certification_milestones WHERE certification_id = ${input.certificationId} ORDER BY sort_order ASC LIMIT 1000`);
-      return result[0] as any[];
+      return (result as any)[0] as MilestoneRow[];
     }),
 
   // 创建里程碑
@@ -147,7 +258,7 @@ export const certificationRouter = router({
         INSERT INTO certification_milestones (certification_id, milestone_code, name, target_date, sort_order, responsible_person)
         VALUES (${input.certificationId}, ${input.milestoneCode}, ${input.name}, ${input.targetDate}, ${input.sortOrder}, ${input.responsiblePerson ?? null})
       `);
-      return { success: true, id: (result[0] as any).insertId };
+      return { success: true, id: ((result as any)[0] as MysqlInsertResult).insertId };
     }),
 
   // 更新里程碑状态
@@ -176,7 +287,7 @@ export const certificationRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const result = await db.execute(sql`SELECT * FROM certification_reminders WHERE certification_id = ${input.certificationId} LIMIT 1000`);
-      return result[0] as any[];
+      return (result as any)[0] as ReminderRow[];
     }),
 
   // 创建提醒配置
@@ -195,7 +306,7 @@ export const certificationRouter = router({
         INSERT INTO certification_reminders (certification_id, reminder_type, days_before, is_enabled, notify_channels, created_by)
         VALUES (${input.certificationId}, ${input.reminderType}, ${input.daysBefore}, ${input.isEnabled ? 1 : 0}, ${channelsJson}, ${ctx.user?.id ?? null})
       `);
-      return { success: true, id: (result[0] as any).insertId };
+      return { success: true, id: ((result as any)[0] as MysqlInsertResult).insertId };
     }),
 
   // 更新提醒配置
@@ -233,7 +344,7 @@ export const certificationRouter = router({
         : sql``;
 
       const result = await db.execute(sql`SELECT * FROM customer_cert_requirements ${whereClause} ORDER BY customer_type, customer_name LIMIT 1000`);
-      return result[0] as any[];
+      return (result as any)[0] as CustomerCertRequirementRow[];
     }),
 
   // 创建客户资质要求
@@ -254,7 +365,7 @@ export const certificationRouter = router({
         INSERT INTO customer_cert_requirements (customer_code, customer_name, customer_type, country, region, required_certs, portal_url)
         VALUES (${input.customerCode}, ${input.customerName}, ${input.customerType}, ${input.country ?? null}, ${input.region ?? null}, ${certsJson}, ${input.portalUrl ?? null})
       `);
-      return { success: true, id: (result[0] as any).insertId };
+      return { success: true, id: ((result as any)[0] as MysqlInsertResult).insertId };
     }),
 
   // 生成差距分析
@@ -263,18 +374,18 @@ export const certificationRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const certifications = await db.execute(sql`SELECT cert_code, name, status FROM certifications LIMIT 1000`);
-      const certMap = new Map((certifications[0] as any[]).map(c => [c.cert_code, c]));
+      const certMap = new Map(((certifications as any)[0] as CertificationRow[]).map(c => [c.cert_code, c]));
 
       const customers = input?.customerId
         ? await db.execute(sql`SELECT * FROM customer_cert_requirements WHERE id = ${input.customerId} LIMIT 1000`)
         : await db.execute(sql`SELECT * FROM customer_cert_requirements LIMIT 1000`);
 
       let totalRequired = 0, totalMet = 0, totalPlanned = 0, totalGap = 0;
-      const gapDetails: any[] = [];
+      const gapDetails: CustomerGapDetail[] = [];
 
-      for (const customer of (customers[0] as any[])) {
-        const requiredCerts = JSON.parse(customer.required_certs || '[]');
-        const customerGaps: any[] = [];
+      for (const customer of ((customers as any)[0] as CustomerCertRequirementRow[])) {
+        const requiredCerts = JSON.parse(customer.required_certs || '[]') as string[];
+        const customerGaps: CertGapDetail[] = [];
 
         for (const certCode of requiredCerts) {
           totalRequired++;
@@ -331,8 +442,8 @@ export const certificationRouter = router({
       ]);
 
       return {
-        items: records[0] as any[],
-        total: (countResult[0] as any[])[0]?.total || 0,
+        items: (records as any)[0] as GapAnalysisRow[],
+        total: ((countResult as any)[0] as CountRow[])[0]?.total || 0,
         page,
         pageSize,
       };
@@ -348,7 +459,7 @@ export const certificationRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const certResult = await db.execute(sql`SELECT name, target_date, expiry_date FROM certifications WHERE id = ${input.certificationId} LIMIT 1000`);
-      const cert = (certResult[0] as any[])[0];
+      const cert = ((certResult as any)[0] as CertificationRow[])[0];
       if (!cert) return { success: false, message: "Certification not found", results: [] };
 
       const title = `资质提醒: ${cert.name}`;
@@ -360,7 +471,7 @@ export const certificationRouter = router({
       // 发送多渠道通知
       const results = await sendNotification(
         { title, content, severity: 'warning' },
-        channels as any[]
+        channels as NotificationChannel[]
       );
 
       // 更新提醒发送时间
@@ -400,10 +511,10 @@ export const certificationRouter = router({
           )
       `);
 
-      const sentReminders: any[] = [];
+      const sentReminders: Array<{ certificationId: number; certName: string; reminderType: string; results: unknown }> = [];
 
-      for (const reminder of (reminders[0] as any[])) {
-        const channels = JSON.parse(reminder.notify_channels || '["system"]');
+      for (const reminder of ((reminders as any)[0] as ReminderRow[])) {
+        const channels = JSON.parse(reminder.notify_channels || '["system"]') as NotificationChannel[];
         const dateField = reminder.reminder_type === 'expiry' ? reminder.expiry_date : reminder.target_date;
         const dateLabel = reminder.reminder_type === 'expiry' ? '到期日期' : '目标日期';
 
@@ -419,7 +530,7 @@ export const certificationRouter = router({
 
         sentReminders.push({
           certificationId: reminder.certification_id,
-          certName: reminder.cert_name,
+          certName: reminder.cert_name as any,
           reminderType: reminder.reminder_type,
           results,
         });
@@ -448,8 +559,8 @@ export const certificationRouter = router({
     `);
 
     return {
-      ...(result[0] as any[])[0],
-      expiringSoon: expiringResult[0] as any[],
+      ...((result as any)[0] as CertificationRow[])[0],
+      expiringSoon: (expiringResult as any)[0] as CertificationRow[],
     };
   }),
 });

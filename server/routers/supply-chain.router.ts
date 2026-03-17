@@ -297,7 +297,7 @@ const incomingInspectionRouter = router({
         dispositionReason: input.dispositionReason,
         defectCount: input.defectCount ?? 0,
         measurementData: input.measurementData,
-        inspectedByName: ctx.user.name ?? `User#${ctx.user.id}`,
+        inspectedByName: ctx.user!.name ?? `User#${ctx.user!.id}`,
         inspectedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }).where(eq(incomingInspectionRecords.id, numId)).returning();
@@ -536,8 +536,8 @@ const assemblyBomScanRouter = router({
         bomMatchResult,
         lotNumber,
         serialNumber,
-        scannedBy: ctx.user.id,
-        scannedByName: ctx.user.name ?? `User#${ctx.user.id}`,
+        scannedBy: ctx.user!.id,
+        scannedByName: ctx.user!.name ?? `User#${ctx.user!.id}`,
       }).returning();
 
       // Create traceability edge
@@ -569,7 +569,7 @@ const assemblyBomScanRouter = router({
       const [updated] = await db.update(assemblyBomScanLogs).set({
         deviationConfirmed: true,
         deviationReason: input.deviationReason,
-        deviationConfirmedBy: ctx.user.id,
+        deviationConfirmedBy: ctx.user!.id,
         deviationConfirmedAt: new Date().toISOString(),
         bomAdjustmentApplied: input.bomAdjustmentApplied ?? false,
       }).where(eq(assemblyBomScanLogs.id, toNum(input.id))).returning();
@@ -663,8 +663,8 @@ const laborConfirmationRouter = router({
       const [record] = await db.insert(assemblyLaborConfirmations).values({
         projectNumber: input.projectNumber,
         processCode: input.processCode,
-        workerId: ctx.user.id,
-        workerName: ctx.user.name ?? `User#${ctx.user.id}`,
+        workerId: ctx.user!.id,
+        workerName: ctx.user!.name ?? `User#${ctx.user!.id}`,
         clockInTime: new Date().toISOString(),
         plannedMinutes: input.plannedMinutes,
       }).returning();
@@ -710,7 +710,7 @@ const laborConfirmationRouter = router({
       const db = await requireDb();
       const [updated] = await db.update(assemblyLaborConfirmations).set({
         confirmedBySupervisor: true,
-        supervisorId: ctx.user.id,
+        supervisorId: ctx.user!.id,
         supervisorConfirmedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }).where(eq(assemblyLaborConfirmations.id, toNum(input.id))).returning();
@@ -1086,8 +1086,8 @@ const scrapDisposalRouter = router({
       const [record] = await db.insert(scrapDisposalRecords).values({
         scrapCode: generateCode("SCR"),
         ...input,
-        authorizedBy: ctx.user.id,
-        authorizedByName: ctx.user.name ?? `User#${ctx.user.id}`,
+        authorizedBy: ctx.user!.id,
+        authorizedByName: ctx.user!.name ?? `User#${ctx.user!.id}`,
         totalScrapCost: String(qty * unitCost),
         authorizedAt: new Date().toISOString(),
       }).returning();
@@ -1191,7 +1191,7 @@ const sparePartsRouter = router({
       let filtered = items.filter(i => i.isActive);
       if (input?.category) filtered = filtered.filter(i => i.category === input.category);
       if (input?.isCritical) filtered = filtered.filter(i => i.isCritical);
-      if (input?.lowStockOnly) filtered = filtered.filter(i => i.currentStock <= i.reorderPoint);
+      if (input?.lowStockOnly) filtered = filtered.filter(i => i.currentStock <= i.reorderPoint!);
       return { items: filtered, total: filtered.length };
     }),
 
@@ -1274,7 +1274,7 @@ const sparePartsRouter = router({
       if (part.currentStock < input.quantityConsumed) throw new Error("库存不足");
 
       const newStock = part.currentStock - input.quantityConsumed;
-      const shouldReorder = part.autoReorderEnabled && newStock <= part.reorderPoint;
+      const shouldReorder = part.autoReorderEnabled && newStock <= part.reorderPoint!;
 
       // Update stock
       await db.update(spareParts).set({
@@ -1338,13 +1338,13 @@ const sparePartsRouter = router({
   lowStockAlerts: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(spareParts).limit(1000);
-    return all.filter(p => p.isActive && p.currentStock <= p.reorderPoint);
+    return all.filter(p => p.isActive && p.currentStock <= p.reorderPoint!);
   }),
 
   stats: protectedProcedure.query(async () => {
     const db = await requireDb();
     const all = await db.select().from(spareParts).where(eq(spareParts.isActive, true)).limit(1000);
-    const lowStock = all.filter(p => p.currentStock <= p.reorderPoint).length;
+    const lowStock = all.filter(p => p.currentStock <= p.reorderPoint!).length;
     const critical = all.filter(p => p.isCritical).length;
     const totalValue = all.reduce((s, p) => s + (p.currentStock * Number(p.unitPrice || 0)), 0);
     return { total: all.length, lowStock, critical, totalValue: Math.round(totalValue) };
@@ -1429,7 +1429,7 @@ const supplierPenaltyRouter = router({
       const [updated] = await db.update(supplierPenalties).set({
         isActive: false,
         resolvedAt: new Date().toISOString(),
-        resolvedBy: ctx.user.id,
+        resolvedBy: ctx.user!.id,
         updatedAt: new Date().toISOString(),
       }).where(eq(supplierPenalties.id, toNum(input.id))).returning();
       return updated;
@@ -1628,7 +1628,7 @@ export const supplyChainRouter = router({
     const activePenalties = penalties.filter(p => p.isActive).length;
     const blacklisted = penalties.filter(p => p.isBlacklisted).length;
 
-    const lowStockParts = parts.filter(p => p.isActive && p.currentStock <= p.reorderPoint).length;
+    const lowStockParts = parts.filter(p => p.isActive && p.currentStock <= p.reorderPoint!).length;
     const totalScrapCost = scraps.reduce((s, r) => s + Number(r.totalScrapCost || 0), 0);
 
     return {

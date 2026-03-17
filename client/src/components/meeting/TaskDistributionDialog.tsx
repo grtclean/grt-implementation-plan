@@ -60,7 +60,7 @@ export default function TaskDistributionDialog({
 
   // 分发任务mutation
   const distributeMutation = (trpc.meetingTaskLoop as any).distributeTasks.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: '任务分发成功',
         description: `已成功分发 ${data.distributedCount} 个任务`,
@@ -69,7 +69,7 @@ export default function TaskDistributionDialog({
       onOpenChange(false);
       setIsDistributing(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: '分发失败',
         description: error.message,

@@ -66,7 +66,7 @@ export default function FormDetailPage() {
 
   // Resolve stage info from template code
   const stageInfo = template?.templateCode
-    ? STAGES.find((s) => s.id === extractStage(template.templateCode)) || STAGES[0]
+    ? STAGES.find((s) => s.id === extractStage(template.templateCode!)) || STAGES[0]
     : null;
 
   const handleSubmit = (values: Record<string, unknown>) => {

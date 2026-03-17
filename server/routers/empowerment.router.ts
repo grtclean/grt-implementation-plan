@@ -38,7 +38,7 @@ const briefingRouter = router({
         .select()
         .from(dailyBriefings)
         .where(and(
-          eq(dailyBriefings.userId, ctx.user.id),
+          eq(dailyBriefings.userId, ctx.user!.id),
           eq(dailyBriefings.briefingDate, today),
         ))
         .limit(1);
@@ -55,7 +55,7 @@ const briefingRouter = router({
         .set({ status: "read", readAt: new Date().toISOString() })
         .where(and(
           eq(dailyBriefings.id, input.id),
-          eq(dailyBriefings.userId, ctx.user.id),
+          eq(dailyBriefings.userId, ctx.user!.id),
         ))
         .returning();
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Briefing not found" });
@@ -73,7 +73,7 @@ const briefingRouter = router({
       return db
         .select()
         .from(dailyBriefings)
-        .where(eq(dailyBriefings.userId, ctx.user.id))
+        .where(eq(dailyBriefings.userId, ctx.user!.id))
         .orderBy(desc(dailyBriefings.briefingDate))
         .limit(input?.limit ?? 30)
         .offset(input?.offset ?? 0);
@@ -88,7 +88,7 @@ const briefingRouter = router({
         .select({ status: dailyBriefings.status, cnt: count() })
         .from(dailyBriefings)
         .where(and(
-          eq(dailyBriefings.userId, ctx.user.id),
+          eq(dailyBriefings.userId, ctx.user!.id),
           gte(dailyBriefings.briefingDate, thirtyDaysAgo),
         ))
         .groupBy(dailyBriefings.status)
@@ -120,7 +120,7 @@ const dailyLogRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [row] = await db.insert(employeeDailyLogs).values({
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         logDate: input.logDate,
         projectId: input.projectId ?? null,
         loggedHours: input.loggedHours,
@@ -142,7 +142,7 @@ const dailyLogRouter = router({
         .select()
         .from(employeeDailyLogs)
         .where(and(
-          eq(employeeDailyLogs.userId, ctx.user.id),
+          eq(employeeDailyLogs.userId, ctx.user!.id),
           eq(employeeDailyLogs.logDate, input.date),
         ))
         .limit(20);
@@ -159,7 +159,7 @@ const dailyLogRouter = router({
         .select()
         .from(employeeDailyLogs)
         .where(and(
-          eq(employeeDailyLogs.userId, ctx.user.id),
+          eq(employeeDailyLogs.userId, ctx.user!.id),
           gte(employeeDailyLogs.logDate, start),
           lte(employeeDailyLogs.logDate, end),
         ))
@@ -186,7 +186,7 @@ const dailyLogRouter = router({
       return db
         .select()
         .from(employeeDailyLogs)
-        .where(eq(employeeDailyLogs.userId, ctx.user.id))
+        .where(eq(employeeDailyLogs.userId, ctx.user!.id))
         .orderBy(desc(employeeDailyLogs.logDate))
         .limit(input?.limit ?? 14);
     }),
@@ -200,7 +200,7 @@ const dailyLogRouter = router({
         .update(employeeDailyLogs)
         .set({
           status: "approved",
-          approvedBy: ctx.user.id,
+          approvedBy: ctx.user!.id,
           approvedAt: new Date().toISOString(),
         })
         .where(eq(employeeDailyLogs.id, input.id))
@@ -246,7 +246,7 @@ const appraisalRouter = router({
         .select()
         .from(monthlyAppraisalReports)
         .where(and(
-          eq(monthlyAppraisalReports.userId, ctx.user.id),
+          eq(monthlyAppraisalReports.userId, ctx.user!.id),
           eq(monthlyAppraisalReports.period, input.period),
         ))
         .limit(1);
@@ -261,7 +261,7 @@ const appraisalRouter = router({
         .select()
         .from(monthlyAppraisalReports)
         .where(and(
-          eq(monthlyAppraisalReports.userId, ctx.user.id),
+          eq(monthlyAppraisalReports.userId, ctx.user!.id),
           eq(monthlyAppraisalReports.status, "generated"),
         ))
         .orderBy(desc(monthlyAppraisalReports.period))
@@ -282,7 +282,7 @@ const appraisalRouter = router({
         })
         .where(and(
           eq(monthlyAppraisalReports.id, input.id),
-          eq(monthlyAppraisalReports.userId, ctx.user.id),
+          eq(monthlyAppraisalReports.userId, ctx.user!.id),
         ))
         .returning();
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
@@ -298,7 +298,7 @@ const appraisalRouter = router({
         .update(monthlyAppraisalReports)
         .set({
           status: "manager_signed",
-          managerSignedBy: ctx.user.id,
+          managerSignedBy: ctx.user!.id,
           managerSignedAt: new Date().toISOString(),
         })
         .where(eq(monthlyAppraisalReports.id, input.id))
@@ -318,7 +318,7 @@ const appraisalRouter = router({
       return db
         .select()
         .from(monthlyAppraisalReports)
-        .where(eq(monthlyAppraisalReports.userId, ctx.user.id))
+        .where(eq(monthlyAppraisalReports.userId, ctx.user!.id))
         .orderBy(desc(monthlyAppraisalReports.period))
         .limit(input?.limit ?? 12)
         .offset(input?.offset ?? 0);
@@ -352,7 +352,7 @@ const appraisalRouter = router({
           tasks: monthlyAppraisalReports.tasksCompleted,
         })
         .from(monthlyAppraisalReports)
-        .where(eq(monthlyAppraisalReports.userId, ctx.user.id))
+        .where(eq(monthlyAppraisalReports.userId, ctx.user!.id))
         .orderBy(desc(monthlyAppraisalReports.period))
         .limit(12);
       return reports;

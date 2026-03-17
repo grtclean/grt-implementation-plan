@@ -13,20 +13,152 @@ import {
   validateCredentials,
 } from "../services/microsoft-graph";
 import { createChildLogger } from "../lib/logger";
+import type { NotificationChannel } from "../notification-service";
 const log = createChildLogger("annual-agenda");
+
+/** Row shape for annual_agenda_events table */
+interface AgendaEventRow {
+  id: number;
+  event_code: string;
+  name: string;
+  name_en: string | null;
+  event_type: string;
+  scheduled_date: string | Date;
+  start_time: string | null;
+  end_time: string | null;
+  department: string;
+  attendee_level: string | null;
+  location: string | null;
+  description: string | null;
+  status: string;
+  is_shifted: number;
+  shift_reason: string | null;
+  recurrence_type: string;
+  recurrence_end_date: string | null;
+  graph_event_id: string | null;
+  graph_sync_status: string | null;
+  graph_synced_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Row shape for agenda_templates table */
+interface AgendaTemplateRow {
+  id: number;
+  template_code: string;
+  name: string;
+  name_en: string | null;
+  event_type: string;
+  frequency: string;
+  day_of_week: number | null;
+  day_of_month: number | null;
+  month_of_year: number | null;
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+  department: string;
+  attendee_level: string | null;
+  location: string | null;
+  description: string | null;
+  is_active: number;
+  created_by: string | null;
+}
+
+/** Row shape for event_attendees table */
+interface EventAttendeeRow {
+  id: number;
+  event_id: number;
+  user_id: number | null;
+  name: string;
+  email: string | null;
+  role: string;
+  response_status: string;
+  responded_at: string | null;
+  notes: string | null;
+  user_name?: string;
+  user_email?: string;
+}
+
+/** MySQL2 insert result */
+interface MysqlInsertResult {
+  insertId: number;
+  affectedRows: number;
+}
+
+/** Aggregate count row */
+interface CountRow {
+  total: number;
+}
+
+/** Stats summary row */
+interface StatsRow {
+  total: number;
+  completed: number;
+  pending: number;
+  cancelled: number;
+  shifted: number;
+  synced: number;
+}
+
+/** Group stats row */
+interface GroupStatsRow {
+  period: string | number;
+  total: number;
+  completed?: number;
+  pending?: number;
+  shifted?: number;
+}
+
+/** Type/department count row */
+interface TypeCountRow {
+  event_type?: string;
+  department?: string;
+  count: number;
+}
+
+/** Participation stats row */
+interface ParticipationRow {
+  department: string;
+  unique_participants: number;
+  total_participations: number;
+  acceptance_rate: number;
+}
+
+/** Year comparison row */
+interface YearComparisonRow {
+  year: number;
+  total: number;
+  completed: number;
+  shifted: number;
+  departments_involved: number;
+}
+
+/** Upcoming event row (with computed columns) */
+interface UpcomingEventRow extends AgendaEventRow {
+  days_until: number;
+  attendee_count: number;
+}
+
+/** Input shape for syncEventToGraph */
+interface SyncEventInput {
+  title?: string;
+  startTime?: string;
+  endTime?: string;
+  description?: string;
+}
 
 /**
  * 同步事件到Microsoft Graph日历
  */
-async function syncEventToGraph(eventId: any, input: any): Promise<{ success: boolean; graphEventId?: string }> {
+async function syncEventToGraph(eventId: number, input: SyncEventInput): Promise<{ success: boolean; graphEventId?: string }> {
   try {
     const result = await createCalendarEvent('me', {
-      subject: input.title,
-      start: input.startTime,
-      end: input.endTime,
-      body: input.description,
-    } as any);
-    return { success: true, graphEventId: (result as any)?.id };
+      subject: input.title ?? '',
+      start: { dateTime: input.startTime ?? '', timeZone: 'Asia/Shanghai' },
+      end: { dateTime: input.endTime ?? '', timeZone: 'Asia/Shanghai' },
+    });
+    return { success: true, graphEventId: result?.id };
   } catch (error) {
     log.error({ err: error }, 'Failed to sync event to Graph:');
     return { success: false };
@@ -79,8 +211,8 @@ export const annualAgendaRouter = router({
       ]);
 
       return {
-        items: events[0] as any[],
-        total: (countResult[0] as any[])[0]?.total || 0,
+        items: events.rows as unknown as AgendaEventRow[],
+        total: (countResult.rows as unknown as CountRow[])[0]?.total || 0,
         page,
         pageSize,
       };
@@ -92,7 +224,7 @@ export const annualAgendaRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const result = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.id} LIMIT 1000`);
-      return (result[0] as any[])[0] || null;
+      return (result.rows as unknown as AgendaEventRow[])[0] || null;
     }),
 
   // 创建日程
@@ -132,7 +264,7 @@ export const annualAgendaRouter = router({
         )
       `);
 
-      const insertId = (result[0] as any).insertId;
+      const insertId = (result as unknown as MysqlInsertResult).insertId;
 
       // 如果需要同步到Microsoft Graph
       if (input.syncToGraph) {
@@ -202,7 +334,7 @@ export const annualAgendaRouter = router({
 
       // 获取日程详情
       const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.id} LIMIT 1000`);
-      const event = (eventResult[0] as any[])[0];
+      const event = (eventResult.rows as unknown as AgendaEventRow[])[0];
       if (!event) return { success: false, error: "Event not found" };
 
       // 检查Graph API配置
@@ -225,7 +357,7 @@ export const annualAgendaRouter = router({
           start: { dateTime: startDateTime, timeZone: "Asia/Shanghai" },
           end: { dateTime: endDateTime, timeZone: "Asia/Shanghai" },
           location: event.location ? { displayName: event.location } : undefined,
-          bodyPreview: event.description,
+          bodyPreview: event.description ?? undefined,
         });
 
         if (graphEvent && graphEvent.id) {
@@ -266,7 +398,7 @@ export const annualAgendaRouter = router({
 
       for (const eventId of input.eventIds) {
         const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${eventId} LIMIT 1000`);
-        const event = (eventResult[0] as any[])[0];
+        const event = (eventResult.rows as unknown as AgendaEventRow[])[0];
 
         if (!event) {
           results.push({ id: eventId, success: false, error: "Event not found" });
@@ -286,7 +418,7 @@ export const annualAgendaRouter = router({
             start: { dateTime: startDateTime, timeZone: "Asia/Shanghai" },
             end: { dateTime: endDateTime, timeZone: "Asia/Shanghai" },
             location: event.location ? { displayName: event.location } : undefined,
-            bodyPreview: event.description,
+            bodyPreview: event.description ?? undefined,
           });
 
           if (graphEvent && graphEvent.id) {
@@ -343,7 +475,7 @@ export const annualAgendaRouter = router({
             SELECT id FROM annual_agenda_events WHERE graph_event_id = ${graphEvent.id}
           `);
 
-          if ((existingResult[0] as any[]).length > 0) continue;
+          if ((existingResult.rows as { id: number }[]).length > 0) continue;
 
           // 提取日期和时间
           const startDate = graphEvent.start?.dateTime?.split('T')[0] || '';
@@ -433,24 +565,25 @@ export const annualAgendaRouter = router({
         AND (graph_sync_status IS NULL OR graph_sync_status = 'pending' OR graph_sync_status = 'failed')
       `);
 
-      const events = eventsResult[0] as any[];
+      const events = eventsResult.rows as unknown as AgendaEventRow[];
       let syncedCount = 0;
 
       for (const event of events) {
         try {
+          const scheduledDateStr = typeof event.scheduled_date === 'string' ? event.scheduled_date.split('T')[0] : event.scheduled_date.toISOString().split('T')[0];
           const startDateTime = event.start_time
-            ? `${event.scheduled_date.toISOString().split('T')[0]}T${event.start_time}`
-            : `${event.scheduled_date.toISOString().split('T')[0]}T09:00:00`;
+            ? `${scheduledDateStr}T${event.start_time}`
+            : `${scheduledDateStr}T09:00:00`;
           const endDateTime = event.end_time
-            ? `${event.scheduled_date.toISOString().split('T')[0]}T${event.end_time}`
-            : `${event.scheduled_date.toISOString().split('T')[0]}T10:00:00`;
+            ? `${scheduledDateStr}T${event.end_time}`
+            : `${scheduledDateStr}T10:00:00`;
 
           const graphEvent = await createCalendarEvent("me", {
             subject: event.name,
             start: { dateTime: startDateTime, timeZone: "Asia/Shanghai" },
             end: { dateTime: endDateTime, timeZone: "Asia/Shanghai" },
             location: event.location ? { displayName: event.location } : undefined,
-            bodyPreview: event.description,
+            bodyPreview: event.description ?? undefined,
           });
 
           if (graphEvent && graphEvent.id) {
@@ -498,7 +631,7 @@ export const annualAgendaRouter = router({
             SELECT id FROM annual_agenda_events WHERE graph_event_id = ${graphEvent.id}
           `);
 
-          if ((existingResult[0] as any[]).length > 0) continue;
+          if ((existingResult.rows as { id: number }[]).length > 0) continue;
 
           // 提取日期和时间
           const startDate = graphEvent.start?.dateTime?.split('T')[0] || '';
@@ -545,10 +678,10 @@ export const annualAgendaRouter = router({
 
       // 获取原日程信息
       const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.id} LIMIT 1000`);
-      const event = (eventResult[0] as any[])[0];
+      const event = (eventResult.rows as unknown as AgendaEventRow[])[0];
       if (!event) return { success: false, error: "日程不存在" };
 
-      const originalDate = event.scheduled_date?.toISOString?.()?.split('T')[0] || event.scheduled_date;
+      const originalDate = typeof event.scheduled_date === 'string' ? event.scheduled_date.split('T')[0] : event.scheduled_date?.toISOString?.()?.split('T')[0] || String(event.scheduled_date);
 
       // 更新日程
       await db.execute(sql`
@@ -587,8 +720,8 @@ export const annualAgendaRouter = router({
         SELECT * FROM annual_agenda_events WHERE ${whereClause} ORDER BY start_time ASC
       `);
 
-      const events = result[0] as any[];
-      const conflicts: any[] = [];
+      const events = result.rows as unknown as AgendaEventRow[];
+      const conflicts: Array<{ type: string; message: string; events: Array<Record<string, unknown>> }> = [];
 
       // 检查重要会议冲突（同一天有多个重要会议）
       const importantTypes = ['Q4_Strategy', 'Q1_Kickoff', 'Monthly_Review'];
@@ -630,7 +763,7 @@ export const annualAgendaRouter = router({
       }
 
       // 检查部门人员冲突（同一部门同一时间多个会议）
-      const deptGroups: Record<string, any[]> = {};
+      const deptGroups: Record<string, AgendaEventRow[]> = {};
       events.forEach(e => {
         if (e.department && e.department !== 'All') {
           if (!deptGroups[e.department]) deptGroups[e.department] = [];
@@ -684,12 +817,12 @@ export const annualAgendaRouter = router({
         SELECT * FROM annual_agenda_events WHERE ${whereClause} ORDER BY scheduled_date ASC
       `);
 
-      const events = (result[0] as any[]).map(e => ({
+      const events = (result.rows as unknown as AgendaEventRow[]).map(e => ({
         eventCode: e.event_code,
         name: e.name,
         nameEn: e.name_en,
         eventType: e.event_type,
-        scheduledDate: e.scheduled_date?.toISOString?.()?.split('T')[0] || e.scheduled_date,
+        scheduledDate: typeof e.scheduled_date === 'string' ? e.scheduled_date.split('T')[0] : e.scheduled_date?.toISOString?.()?.split('T')[0] || String(e.scheduled_date),
         startTime: e.start_time,
         endTime: e.end_time,
         department: e.department,
@@ -753,7 +886,7 @@ export const annualAgendaRouter = router({
         WHERE YEAR(scheduled_date) = ${year}
       `);
 
-      const stats = (result[0] as any[])[0];
+      const stats = (result.rows as unknown as StatsRow[])[0];
 
       // 按类型统计
       const byTypeResult = await db.execute(sql`
@@ -773,8 +906,8 @@ export const annualAgendaRouter = router({
 
       return {
         ...stats,
-        byType: byTypeResult[0] as any[],
-        byDepartment: byDeptResult[0] as any[],
+        byType: byTypeResult.rows as unknown as TypeCountRow[],
+        byDepartment: byDeptResult.rows as unknown as TypeCountRow[],
       };
     }),
 
@@ -847,7 +980,7 @@ export const annualAgendaRouter = router({
         : sql``;
 
       const result = await db.execute(sql`SELECT * FROM agenda_templates ${whereClause} ORDER BY frequency, name LIMIT 1000`);
-      return (result[0] as any[]);
+      return (result.rows as unknown as AgendaTemplateRow[]);
     }),
 
   // 创建模板
@@ -944,7 +1077,7 @@ export const annualAgendaRouter = router({
 
       // 获取模板
       const templateResult = await db.execute(sql`SELECT * FROM agenda_templates WHERE id = ${input.templateId} LIMIT 1000`);
-      const template = (templateResult[0] as any[])[0];
+      const template = (templateResult.rows as unknown as AgendaTemplateRow[])[0];
       if (!template) return { success: false, error: "Template not found", created: 0 };
 
       let createdCount = 0;
@@ -1032,7 +1165,7 @@ export const annualAgendaRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const result = await db.execute(sql`SELECT * FROM event_attendees WHERE event_id = ${input.eventId} ORDER BY role, name LIMIT 1000`);
-      return (result[0] as any[]);
+      return (result.rows as unknown as EventAttendeeRow[]);
     }),
 
   // 添加参与人员
@@ -1118,7 +1251,7 @@ export const annualAgendaRouter = router({
 
       // 获取日程信息
       const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.eventId} LIMIT 1000`);
-      const event = (eventResult[0] as any[])[0];
+      const event = (eventResult.rows as unknown as AgendaEventRow[])[0];
       if (!event) return { success: false, error: "Event not found", sent: 0 };
 
       // 获取参与人员
@@ -1129,7 +1262,7 @@ export const annualAgendaRouter = router({
       }
       const whereClause = sql.join(conditions, sql` AND `);
       const attendeesResult = await db.execute(sql`SELECT * FROM event_attendees WHERE ${whereClause} LIMIT 1000`);
-      const attendees = attendeesResult[0] as any[];
+      const attendees = attendeesResult.rows as unknown as EventAttendeeRow[];
 
       // TODO: 集成邮件/钉钉发送邀请
       // 这里只记录邀请已发送
@@ -1171,7 +1304,7 @@ export const annualAgendaRouter = router({
         ORDER BY e.scheduled_date ASC
       `);
 
-      return (result[0] as any[]).map(event => ({
+      return (result.rows as unknown as UpcomingEventRow[]).map(event => ({
         ...event,
         reminderType: event.days_until === 0 ? 'today'
           : event.days_until === 1 ? 'tomorrow'
@@ -1194,7 +1327,7 @@ export const annualAgendaRouter = router({
 
       // 获取日程详情
       const eventResult = await db.execute(sql`SELECT * FROM annual_agenda_events WHERE id = ${input.eventId} LIMIT 1000`);
-      const event = (eventResult[0] as any[])[0];
+      const event = (eventResult.rows as unknown as AgendaEventRow[])[0];
       if (!event) return { success: false, error: 'Event not found' };
 
       // 获取参与人员
@@ -1204,7 +1337,7 @@ export const annualAgendaRouter = router({
         LEFT JOIN users u ON ea.user_id = u.id
         WHERE ea.event_id = ${input.eventId}
       `);
-      const attendees = attendeesResult[0] as any[];
+      const attendees = attendeesResult.rows as unknown as EventAttendeeRow[];
 
       const reminderTypeText: Record<string, string> = {
         '1day': '明天',
@@ -1233,7 +1366,7 @@ ${reminderTypeText[input.reminderType] ? `此日程将于**${reminderTypeText[in
         timestamp: new Date().toISOString(),
       };
 
-      const results = await sendNotification(message, input.channels as any);
+      const results = await sendNotification(message, input.channels as NotificationChannel[]);
 
       return {
         success: results.some(r => r.success),
@@ -1263,7 +1396,7 @@ ${reminderTypeText[input.reminderType] ? `此日程将于**${reminderTypeText[in
         FROM annual_agenda_events
         WHERE YEAR(scheduled_date) = ${year}
       `);
-      const baseStats = (baseStatsResult[0] as any[])[0];
+      const baseStats = (baseStatsResult.rows as unknown as StatsRow[])[0];
 
       // 分组统计 — groupBy is Zod-validated enum, safe for static SQL selection
       let groupStatsResult;
@@ -1360,8 +1493,8 @@ ${reminderTypeText[input.reminderType] ? `此日程将于**${reminderTypeText[in
           completionRate: baseStats.total > 0 ? Math.round((baseStats.completed / baseStats.total) * 100) : 0,
           shiftRate: baseStats.total > 0 ? Math.round((baseStats.shifted / baseStats.total) * 100) : 0,
         },
-        breakdown: groupStatsResult![0] as any[],
-        participation: participationResult[0] as any[],
+        breakdown: groupStatsResult!.rows as unknown as GroupStatsRow[],
+        participation: participationResult.rows as unknown as ParticipationRow[],
       };
     }),
 
@@ -1386,7 +1519,7 @@ ${reminderTypeText[input.reminderType] ? `此日程将于**${reminderTypeText[in
           FROM annual_agenda_events
           WHERE YEAR(scheduled_date) = ${year}
         `);
-        comparisons.push((result[0] as any[])[0]);
+        comparisons.push((result.rows as unknown as YearComparisonRow[])[0]);
       }
 
       return comparisons;

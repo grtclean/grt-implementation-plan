@@ -110,11 +110,11 @@ export default function GroupNotificationManagement() {
 
   // 初始化默认群组
   const initGroups = (trpc.permission as any).initDefaultGroups.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast.success(`${t("admin.groupNotif.initSuccess")} ${data.created}, ${data.skipped} ${t("admin.groupNotif.initSkipped")}`);
       groups.refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("admin.groupNotif.initFailed")}: ${error.message}`);
     },
   });
@@ -236,7 +236,7 @@ function GroupsTab({
       setNewGroup({ groupCode: "", name: "", type: "custom", description: "" });
       onRefresh();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("admin.groupNotif.createFailed")}: ${error.message}`);
     },
   });
@@ -247,7 +247,7 @@ function GroupsTab({
       onRefresh();
       if (selectedGroupId) onSelectGroup(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("admin.groupNotif.deleteFailed")}: ${error.message}`);
     },
   });
@@ -448,7 +448,7 @@ function GroupMembersPanel({ groupId }: { groupId: number }) {
       setShowAddDialog(false);
       members.refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("admin.groupNotif.addFailed")}: ${error.message}`);
     },
   });
@@ -458,7 +458,7 @@ function GroupMembersPanel({ groupId }: { groupId: number }) {
       toast.success(t("admin.groupNotif.removeSuccess"));
       members.refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("admin.groupNotif.removeFailed")}: ${error.message}`);
     },
   });
@@ -671,7 +671,7 @@ function NotificationConfigsTab({
       setShowCreateDialog(false);
       configs.refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("admin.groupNotif.configCreateFailed")}: ${error.message}`);
     },
   });
@@ -681,7 +681,7 @@ function NotificationConfigsTab({
       toast.success(t("admin.groupNotif.configDeleted"));
       configs.refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("admin.groupNotif.configDeleteFailed")}: ${error.message}`);
     },
   });
@@ -936,7 +936,7 @@ function SendNotificationTab({
   });
 
   const sendNotification = (trpc.permission as any).sendGroupNotification.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast.success(`${t("admin.groupNotif.sendSuccess")} ${data.totalRecipients} ${t("admin.groupNotif.totalRecipients")}`);
       setNotification({
         notificationType: "announcement",
@@ -946,7 +946,7 @@ function SendNotificationTab({
         priority: "normal",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("admin.groupNotif.sendFailed")}: ${error.message}`);
     },
   });

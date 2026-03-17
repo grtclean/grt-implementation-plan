@@ -72,7 +72,7 @@ export const vaultRouter = router({
       fileName: input.fileName,
       fileType: input.fileType,
       version: 1,
-      uploadedBy: ctx.user.id,
+      uploadedBy: ctx.user!.id,
       fileSizeBytes: input.size ?? null,
     } as any).returning();
 
@@ -139,7 +139,7 @@ export const vaultRouter = router({
       ecoNumber: input.ecoNumber,
       title: input.title,
       description: input.description ?? "",
-      requestedBy: ctx.user.id,
+      requestedBy: ctx.user!.id,
       affectedFiles: input.affectedFiles ?? [],
       status: "DRAFT",
     } as any).returning();

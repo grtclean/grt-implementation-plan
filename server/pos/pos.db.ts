@@ -58,7 +58,7 @@ export async function createProject(data: {
   
   const result = await db.insert(projectsV2).values(insertData);
   
-  const projectId = result[0].insertId;
+  const projectId = (result as any)[0].insertId;
   
   // 自动创建M0-M12阶段记录
   const stages = ['M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12'] as const;
@@ -639,7 +639,7 @@ export async function createProjectVersion(data: {
     status: 'Draft',
   });
   
-  return { id: result[0].insertId, ...data };
+  return { id: (result as any)[0].insertId, ...data };
 }
 
 /**
@@ -734,7 +734,7 @@ export async function createStageReview(data: {
   
   const result = await db.insert(stageReviews).values(insertData);
   
-  return { id: result[0].insertId, ...data };
+  return { id: (result as any)[0].insertId, ...data };
 }
 
 /**

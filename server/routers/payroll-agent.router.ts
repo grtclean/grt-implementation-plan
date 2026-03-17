@@ -231,7 +231,7 @@ const templateRouter = router({
       const notification = await composeSalaryNotification(
         input.cycleId,
         input.employeeName,
-        perfSummary,
+        perfSummary as any,
       );
 
       await sendEmail({

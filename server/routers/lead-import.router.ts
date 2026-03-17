@@ -17,7 +17,7 @@ export const leadImportRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [log] = await db.insert(leadImportLogs).values({
-      userId: ctx.user.id,
+      userId: ctx.user!.id,
       fileName: input.fileName,
       totalRows: input.totalRows || 0,
       successCount: 0,
@@ -34,7 +34,7 @@ export const leadImportRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [log] = await db.insert(leadImportLogs).values({
-      userId: ctx.user.id,
+      userId: ctx.user!.id,
       fileName: input.fileName,
       totalRows: input.totalRows || input.data?.length || 0,
       successCount: input.data?.length || 0,

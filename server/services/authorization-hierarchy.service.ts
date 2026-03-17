@@ -21,7 +21,16 @@ import {
   integrityIncentiveRecords,
   authorizationAuditTrail,
   type ThresholdRule,
+  type authDomainEnum,
+  type creditTierEnum,
+  type auditEventTypeEnum,
+  type postFactoStatusEnum,
 } from "../../drizzle/authorization-hierarchy-schema";
+
+type AuthDomain = (typeof authDomainEnum.enumValues)[number];
+type CreditTier = (typeof creditTierEnum.enumValues)[number];
+type AuditEventType = (typeof auditEventTypeEnum.enumValues)[number];
+type PostFactoStatus = (typeof postFactoStatusEnum.enumValues)[number];
 import { createChildLogger } from "../lib/logger";
 
 const log = createChildLogger("authorization-hierarchy");
@@ -59,7 +68,7 @@ export interface GreenChannelEligibility {
 
 export async function listPolicies(domain?: string) {
   const conditions = [];
-  if (domain) conditions.push(eq(authorizationPolicies.domain, domain as any));
+  if (domain) conditions.push(eq(authorizationPolicies.domain, domain as AuthDomain));
   conditions.push(eq(authorizationPolicies.isActive, true));
 
   const rows = await db
@@ -87,7 +96,7 @@ export async function upsertPolicy(data: {
   policyName: string;
   description?: string;
   thresholdRules: ThresholdRule[];
-  durationRules?: any[];
+  durationRules?: Record<string, unknown>[];
   buScope?: string;
   createdBy?: string;
 }) {
@@ -98,7 +107,7 @@ export async function upsertPolicy(data: {
         policyName: data.policyName,
         description: data.description,
         thresholdRules: data.thresholdRules,
-        durationRules: data.durationRules,
+        durationRules: data.durationRules as any,
         buScope: data.buScope,
         version: sql`${authorizationPolicies.version} + 1`,
         updatedAt: new Date(),
@@ -108,11 +117,11 @@ export async function upsertPolicy(data: {
     return updated;
   }
 
-  const [inserted] = await db
-    .insert(authorizationPolicies)
+  const [inserted] = await (db
+    .insert(authorizationPolicies) as any)
     .values({
       policyCode: data.policyCode,
-      domain: data.domain as any,
+      domain: data.domain as AuthDomain,
       policyName: data.policyName,
       description: data.description,
       thresholdRules: data.thresholdRules,
@@ -138,7 +147,7 @@ export async function resolveApprovalChain(
     .from(authorizationPolicies)
     .where(
       and(
-        eq(authorizationPolicies.domain, domain as any),
+        eq(authorizationPolicies.domain, domain as AuthDomain),
         eq(authorizationPolicies.isActive, true),
       ),
     )
@@ -223,7 +232,7 @@ export async function getCreditTier(userId: number) {
 
 export async function listCreditTiers(opts?: { tier?: string; limit?: number; offset?: number }) {
   const conditions = [];
-  if (opts?.tier) conditions.push(eq(employeeCreditTiers.creditTier, opts.tier as any));
+  if (opts?.tier) conditions.push(eq(employeeCreditTiers.creditTier, opts.tier as CreditTier));
 
   const rows = await db
     .select()
@@ -264,7 +273,7 @@ export async function recalculateCreditScore(userId: number) {
     .update(employeeCreditTiers)
     .set({
       creditScore: String(score.toFixed(2)),
-      creditTier: newTier as any,
+      creditTier: newTier as CreditTier,
       greenChannelEligible: gcEligible,
       greenChannelMaxAmount: String(gcMaxAmount),
       tierCalculatedAt: new Date(),
@@ -285,7 +294,7 @@ export async function overrideCreditTier(
     .update(employeeCreditTiers)
     .set({
       creditScore: String(creditScore.toFixed(2)),
-      creditTier: creditTier as any,
+      creditTier: creditTier as CreditTier,
       greenChannelEligible: creditTier === "platinum" || creditTier === "gold",
       lastReviewedBy: reviewerId,
       lastReviewedAt: new Date(),
@@ -321,7 +330,7 @@ export async function checkGreenChannelEligibility(
     .from(greenChannelRules)
     .where(
       and(
-        eq(greenChannelRules.domain, domain as any),
+        eq(greenChannelRules.domain, domain as AuthDomain),
         eq(greenChannelRules.creditTierRequired, tier.creditTier),
         eq(greenChannelRules.isActive, true),
       ),
@@ -382,7 +391,7 @@ export async function checkGreenChannelEligibility(
     .where(
       and(
         eq(greenChannelUsages.userId, userId),
-        eq(greenChannelUsages.domain, domain as any),
+        eq(greenChannelUsages.domain, domain as AuthDomain),
         gte(greenChannelUsages.createdAt, monthStart),
       ),
     );
@@ -434,7 +443,7 @@ export async function useGreenChannel(data: {
     .values({
       userId: data.userId,
       employeeName: data.employeeName,
-      domain: data.domain as any,
+      domain: data.domain as AuthDomain,
       amount: String(data.amount),
       description: data.description,
       approvalInstanceId: data.approvalInstanceId,
@@ -483,7 +492,7 @@ export async function listGreenChannelUsages(userId?: number, limit = 50) {
 
 export async function listGreenChannelRules(domain?: string) {
   const conditions = [eq(greenChannelRules.isActive, true)];
-  if (domain) conditions.push(eq(greenChannelRules.domain, domain as any));
+  if (domain) conditions.push(eq(greenChannelRules.domain, domain as AuthDomain));
 
   return db
     .select()
@@ -501,7 +510,7 @@ export async function updateGreenChannelRule(id: number, data: Partial<{
   postFactoDeadlineDays: number;
   isActive: boolean;
 }>) {
-  const values: Record<string, any> = { updatedAt: new Date() };
+  const values: Record<string, unknown> = { updatedAt: new Date() };
   if (data.maxAmountAllowed !== undefined) values.maxAmountAllowed = String(data.maxAmountAllowed);
   if (data.autoApproveThreshold !== undefined) values.autoApproveThreshold = String(data.autoApproveThreshold);
   if (data.cooldownDays !== undefined) values.cooldownDays = data.cooldownDays;
@@ -528,17 +537,17 @@ export async function submitPostFacto(data: {
   actionDate: Date;
   reason: string;
   urgencyJustification?: string;
-  supportingDocuments?: any[];
+  supportingDocuments?: Record<string, unknown>[];
 }) {
   const deadline = new Date(data.actionDate);
   deadline.setDate(deadline.getDate() + 3);
 
-  const [submission] = await db
-    .insert(postFactoSubmissions)
+  const [submission] = await (db
+    .insert(postFactoSubmissions) as any)
     .values({
       userId: data.userId,
       employeeName: data.employeeName,
-      domain: data.domain as any,
+      domain: data.domain as AuthDomain,
       greenChannelUsageId: data.greenChannelUsageId,
       originalApprovalId: data.originalApprovalId,
       actionDate: data.actionDate,
@@ -603,7 +612,7 @@ export async function reviewPostFacto(
   const [updated] = await db
     .update(postFactoSubmissions)
     .set({
-      status: status as any,
+      status: status as PostFactoStatus,
       reviewerId,
       reviewerName,
       reviewComment: comment,
@@ -639,7 +648,7 @@ export async function reviewPostFacto(
     actorId: reviewerId,
     actorName: reviewerName,
     targetUserId: existing.userId,
-    targetName: existing.employeeName,
+    targetName: existing.employeeName as any,
     decision: status,
     isPostFacto: true,
     metadata: { creditImpact, isOverdue: existing.isOverdue },
@@ -763,12 +772,12 @@ export async function recordAudit(data: {
   creditTierAtTime?: string;
   isGreenChannel?: boolean;
   isPostFacto?: boolean;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   ipAddress?: string;
 }) {
   return db.insert(authorizationAuditTrail).values({
-    eventType: data.eventType as any,
-    domain: (data.domain as any) ?? null,
+    eventType: data.eventType as AuditEventType,
+    domain: (data.domain as AuthDomain | undefined) ?? null,
     instanceId: data.instanceId,
     actorId: data.actorId,
     actorName: data.actorName,
@@ -778,7 +787,7 @@ export async function recordAudit(data: {
     amount: data.amount != null ? String(data.amount) : null,
     decision: data.decision,
     policyApplied: data.policyApplied,
-    creditTierAtTime: (data.creditTierAtTime as any) ?? null,
+    creditTierAtTime: (data.creditTierAtTime as CreditTier | undefined) ?? null,
     isGreenChannel: data.isGreenChannel ?? false,
     isPostFacto: data.isPostFacto ?? false,
     metadata: data.metadata,
@@ -796,8 +805,8 @@ export async function searchAudit(opts: {
   offset?: number;
 }) {
   const conditions = [];
-  if (opts.domain) conditions.push(eq(authorizationAuditTrail.domain, opts.domain as any));
-  if (opts.eventType) conditions.push(eq(authorizationAuditTrail.eventType, opts.eventType as any));
+  if (opts.domain) conditions.push(eq(authorizationAuditTrail.domain, opts.domain as AuthDomain));
+  if (opts.eventType) conditions.push(eq(authorizationAuditTrail.eventType, opts.eventType as AuditEventType));
   if (opts.actorId) conditions.push(eq(authorizationAuditTrail.actorId, opts.actorId));
   if (opts.startDate) conditions.push(gte(authorizationAuditTrail.createdAt, opts.startDate));
   if (opts.endDate) conditions.push(lte(authorizationAuditTrail.createdAt, opts.endDate));

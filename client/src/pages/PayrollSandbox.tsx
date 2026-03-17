@@ -888,7 +888,7 @@ export default function PayrollSandbox() {
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-3">
                   <Button
-                    onClick={() => selectedCycleId && (aiSuggestMut as any).mutate({ cycleId: selectedCycleId })}
+                    onClick={() => selectedCycleId && (aiSuggestMut.mutate as (input: unknown) => void)({ cycleId: selectedCycleId })}
                     disabled={!selectedCycleId || aiSuggestMut.isPending}
                   >
                     {aiSuggestMut.isPending ? (
@@ -958,7 +958,7 @@ export default function PayrollSandbox() {
                               <Button
                                 size="sm" variant="outline"
                                 disabled={row.status === "frozen" || freezeMut.isPending}
-                                onClick={() => (freezeMut as any).mutate({
+                                onClick={() => (freezeMut.mutate as (input: unknown) => void)({
                                   cycleId: selectedCycleId!,
                                   reviewId: row.id,
                                   employeeId: row.employeeId ?? row.id,
@@ -1021,7 +1021,7 @@ export default function PayrollSandbox() {
               disabled={!supervisorScore || supervisorConfirmMut.isPending}
               onClick={() => {
                 if (!selectedCycleId || !confirmDialog.employeeId) return;
-                (supervisorConfirmMut as any).mutate({
+                (supervisorConfirmMut.mutate as (input: unknown) => void)({
                   cycleId: selectedCycleId,
                   reviewId: confirmDialog.employeeId,
                   supervisorScore: Number(supervisorScore),
@@ -1363,7 +1363,7 @@ export default function PayrollSandbox() {
                     ))}
                     {/* Footer totals row */}
                     {calcResultsQuery.data && calcResultsQuery.data.length > 0 && (() => {
-                      const totals = (calcResultsQuery.data as any[]).reduce((acc: any, row: any) => ({
+                      const totals: Record<string, number> = (calcResultsQuery.data as unknown as Record<string, unknown>[]).reduce((acc: Record<string, number>, row: Record<string, unknown>) => ({
                         composite: acc.composite + Number(row.baseSalary ?? row.compositeSalary ?? 0),
                         perf: acc.perf + Number(row.perfWage1 ?? 0) + Number(row.perfWage2 ?? 0) + Number(row.perfWage3 ?? 0),
                         deductions: acc.deductions + Number(row.personalLeaveDeduction ?? row.leaveDeduction ?? 0) + Number(row.sickLeaveDeduction ?? 0),
@@ -1412,8 +1412,8 @@ export default function PayrollSandbox() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {Object.entries(anomalyCategoryLabels).map(([cat, label]) => {
                 const count = Array.isArray(anomalyStatsQuery.data)
-                  ? (anomalyStatsQuery.data as any[]).find((s: any) => s.category === cat)?.count ?? 0
-                  : (anomalyStatsQuery.data as any)?.[cat] ?? 0;
+                  ? (anomalyStatsQuery.data as unknown as Array<Record<string, unknown>>).find((s) => s.category === cat)?.count ?? 0
+                  : (anomalyStatsQuery.data as unknown as Record<string, unknown> | undefined)?.[cat] ?? 0;
                 return (
                   <Card key={cat} className={Number(count) > 0 ? "border-yellow-300" : ""}>
                     <CardContent className="pt-3 pb-3">
@@ -1508,10 +1508,10 @@ export default function PayrollSandbox() {
                 <div className="flex items-center justify-center gap-0 py-4">
                   {(["hr_initial", "finance_review", "dept_manager_confirm", "exec_approve"] as const).map((stage, idx, arr) => {
                     const stageData = Array.isArray(approvalQuery.data)
-                      ? (approvalQuery.data as any[]).find((a: any) => a.stage === stage)
+                      ? (approvalQuery.data as unknown as Array<Record<string, unknown>>).find((a) => a.stage === stage)
                       : null;
-                    const stageStatus = stageData?.status ?? "pending";
-                    const isCurrent = (currentStageQuery.data as any)?.stage === stage;
+                    const stageStatus = (stageData?.status as string) ?? "pending";
+                    const isCurrent = (currentStageQuery.data as unknown as Record<string, unknown> | undefined)?.stage === stage;
 
                     return (
                       <div key={stage} className="flex items-center">
@@ -1560,14 +1560,16 @@ export default function PayrollSandbox() {
                       {initFlowMut.isPending ? "发起中..." : "发起审批流"}
                     </Button>
                   )}
-                  {(currentStageQuery.data as any)?.stage && (
+                  {(() => {
+                    const currentStage = currentStageQuery.data as unknown as Record<string, unknown> | undefined;
+                    return currentStage?.stage ? (
                     <>
                       <Button
                         className="bg-green-600 hover:bg-green-700"
-                        onClick={() => selectedCycleId && (approveMut as any).mutate({
-                          flowId: (currentStageQuery.data as any)?.id,
+                        onClick={() => selectedCycleId && (approveMut.mutate as (input: unknown) => void)({
+                          flowId: currentStage?.id,
                           cycleId: selectedCycleId,
-                          stage: (currentStageQuery.data as any)?.stage,
+                          stage: currentStage?.stage,
                         })}
                         disabled={approveMut.isPending}
                       >
@@ -1576,11 +1578,11 @@ export default function PayrollSandbox() {
                       </Button>
                       <Button
                         variant="destructive"
-                        onClick={() => selectedCycleId && (rejectMut as any).mutate({
-                          flowId: (currentStageQuery.data as any)?.id,
+                        onClick={() => selectedCycleId && (rejectMut.mutate as (input: unknown) => void)({
+                          flowId: currentStage?.id,
                           comment: "驳回",
                           cycleId: selectedCycleId,
-                          stage: (currentStageQuery.data as any)?.stage,
+                          stage: currentStage?.stage,
                         })}
                         disabled={rejectMut.isPending}
                       >
@@ -1588,7 +1590,8 @@ export default function PayrollSandbox() {
                         {rejectMut.isPending ? "驳回中..." : "驳回"}
                       </Button>
                     </>
-                  )}
+                  ) : null;
+                  })()}
                 </div>
 
                 {/* Approval history table */}
@@ -1604,7 +1607,7 @@ export default function PayrollSandbox() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(approvalQuery.data as any[]).map((row: any, i: number) => (
+                      {(approvalQuery.data as unknown as Array<{ stage: string; status: string; approverName?: string; approvedAt?: string; comment?: string }>).map((row, i: number) => (
                         <TableRow key={i}>
                           <TableCell className="font-medium">
                             {approvalStageLabels[row.stage] ?? row.stage}
@@ -1634,7 +1637,7 @@ export default function PayrollSandbox() {
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   {(["performance", "salary", "tax", "adjustment", "full"] as const).map((lockType) => {
                     const lockData = Array.isArray(lockQuery.data)
-                      ? (lockQuery.data as any[]).find((l: any) => l.lockType === lockType)
+                      ? (lockQuery.data as unknown as Array<{ id?: number; lockType: string; isLocked?: boolean; locked?: boolean }>).find((l) => l.lockType === lockType)
                       : null;
                     const isLocked = lockData?.isLocked ?? lockData?.locked ?? false;
 
@@ -1657,7 +1660,7 @@ export default function PayrollSandbox() {
                               <Button
                                 size="sm" variant="outline" className="w-full"
                                 disabled={unlockMut.isPending}
-                                onClick={() => selectedCycleId && (unlockMut as any).mutate({
+                                onClick={() => selectedCycleId && (unlockMut.mutate as (input: unknown) => void)({
                                   lockId: lockData?.id,
                                   cycleId: selectedCycleId,
                                   lockType,

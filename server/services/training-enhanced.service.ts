@@ -7,6 +7,14 @@ import { requireDb } from "../db";
 import { invokeLLM } from "../_core/llm";
 import { randomUUID } from "crypto";
 
+/** Row type for raw MySQL execute results */
+type DbRow = Record<string, unknown>;
+
+/** Raw MySQL db interface for execute-based queries */
+interface RawDb {
+  execute: (sql: string, params?: unknown[]) => Promise<[DbRow[], unknown]>;
+}
+
 // ==================== 证书生成功能 ====================
 
 export interface CertificateTemplate {
@@ -43,7 +51,7 @@ export interface GeneratedCertificate {
 
 export class CertificateService {
   static async saveTemplate(template: CertificateTemplate, userId: number): Promise<{ id: number }> {
-    const db: any = await requireDb();
+    const db = await requireDb() as unknown as RawDb;
     if (template.id) {
       await db.execute(
         `UPDATE certificate_templates SET name=?, type=?, html_template=?, css_styles=?,
@@ -59,38 +67,38 @@ export class CertificateService {
         [template.name, template.type, template.htmlTemplate, template.cssStyles,
          JSON.stringify(template.variables), template.isDefault, userId]
       );
-      return { id: (result as any).insertId };
+      return { id: (result as unknown as { insertId: number }).insertId };
     }
   }
 
   static async getTemplates(type?: string): Promise<CertificateTemplate[]> {
-    const db: any = await requireDb();
+    const db = await requireDb() as unknown as RawDb;
     let query = `SELECT * FROM certificate_templates WHERE 1=1`;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (type) { query += ` AND type = ?`; params.push(type); }
     query += ` ORDER BY is_default DESC, created_at DESC`;
     const [rows] = await db.execute(query, params);
-    return (rows as any[]).map(row => ({
-      id: row.id, name: row.name, type: row.type, htmlTemplate: row.html_template,
-      cssStyles: row.css_styles, variables: JSON.parse(row.variables || "[]"), isDefault: row.is_default,
+    return (rows as DbRow[]).map(row => ({
+      id: row.id as number, name: row.name as string, type: row.type as CertificateTemplate["type"], htmlTemplate: row.html_template as string,
+      cssStyles: row.css_styles as string, variables: JSON.parse((row.variables as string) || "[]"), isDefault: row.is_default as boolean,
     }));
   }
 
   static async generateCertificate(
     userId: number, courseId: number, templateId: number, data: CertificateData
   ): Promise<GeneratedCertificate> {
-    const db: any = await requireDb();
+    const db = await requireDb() as unknown as RawDb;
 
     // 获取模板
     const [templateRows] = await db.execute(`SELECT * FROM certificate_templates WHERE id = ?`, [templateId]);
-    if ((templateRows as any[]).length === 0) throw new Error("模板不存在");
-    const template = (templateRows as any[])[0];
+    if ((templateRows as DbRow[]).length === 0) throw new Error("模板不存在");
+    const template = (templateRows as DbRow[])[0];
 
     // 生成证书编号
     const certificateNumber = `CERT-${Date.now().toString(36).toUpperCase()}-${randomUUID().slice(0, 6).toUpperCase()}`;
 
     // 替换模板变量
-    let htmlContent = template.html_template;
+    let htmlContent = template.html_template as string;
     htmlContent = htmlContent.replace(/\{\{recipientName\}\}/g, data.recipientName);
     htmlContent = htmlContent.replace(/\{\{courseName\}\}/g, data.courseName);
     htmlContent = htmlContent.replace(/\{\{completionDate\}\}/g, data.completionDate);
@@ -107,7 +115,7 @@ export class CertificateService {
     }
 
     // 添加CSS样式
-    const fullHtml = `<!DOCTYPE html><html><head><style>${template.css_styles}</style></head><body>${htmlContent}</body></html>`;
+    const fullHtml = `<!DOCTYPE html><html><head><style>${template.css_styles as string}</style></head><body>${htmlContent}</body></html>`;
 
     // 验证URL
     const verificationUrl = `/verify-certificate/${certificateNumber}`;
@@ -120,7 +128,7 @@ export class CertificateService {
     );
 
     return {
-      id: (result as any).insertId,
+      id: (result as unknown as { insertId: number }).insertId,
       certificateNumber,
       userId,
       courseId,
@@ -132,8 +140,8 @@ export class CertificateService {
     };
   }
 
-  static async verifyCertificate(certificateNumber: string): Promise<{ valid: boolean; certificate?: any; message: string }> {
-    const db: any = await requireDb();
+  static async verifyCertificate(certificateNumber: string): Promise<{ valid: boolean; certificate?: DbRow; message: string }> {
+    const db = await requireDb() as unknown as RawDb;
     const [rows] = await db.execute(
       `SELECT gc.*, u.name as user_name, ct.name as template_name
        FROM generated_certificates gc
@@ -142,25 +150,25 @@ export class CertificateService {
        WHERE gc.certificate_number = ?`,
       [certificateNumber]
     );
-    if ((rows as any[]).length === 0) {
+    if ((rows as DbRow[]).length === 0) {
       return { valid: false, message: "证书不存在" };
     }
-    const cert = (rows as any[])[0];
-    if (cert.valid_until && new Date(cert.valid_until) < new Date()) {
+    const cert = (rows as DbRow[])[0];
+    if (cert.valid_until && new Date(cert.valid_until as string) < new Date()) {
       return { valid: false, certificate: cert, message: "证书已过期" };
     }
     return { valid: true, certificate: cert, message: "证书有效" };
   }
 
-  static async getUserCertificates(userId: number): Promise<any[]> {
-    const db: any = await requireDb();
+  static async getUserCertificates(userId: number): Promise<DbRow[]> {
+    const db = await requireDb() as unknown as RawDb;
     const [rows] = await db.execute(
       `SELECT gc.*, ct.name as template_name FROM generated_certificates gc
        LEFT JOIN certificate_templates ct ON gc.template_id = ct.id
        WHERE gc.user_id = ? ORDER BY gc.issued_at DESC`,
       [userId]
     );
-    return rows as any[];
+    return rows as DbRow[];
   }
 }
 
@@ -209,7 +217,7 @@ export interface LearnerAnalysis {
 
 export class TrainingEffectivenessService {
   static async generateReport(dateFrom: string, dateTo: string): Promise<TrainingEffectivenessReport> {
-    const db: any = await requireDb();
+    const db = await requireDb() as unknown as RawDb;
     const reportId = `RPT-${Date.now().toString(36).toUpperCase()}`;
 
     // 获取汇总数据
@@ -244,7 +252,7 @@ export class TrainingEffectivenessService {
     return report;
   }
 
-  private static async getSummary(db: any, dateFrom: string, dateTo: string): Promise<EffectivenessSummary> {
+  private static async getSummary(db: RawDb, dateFrom: string, dateTo: string): Promise<EffectivenessSummary> {
     const [courseCount] = await db.execute(
       `SELECT COUNT(DISTINCT course_id) as count FROM training_enrollments WHERE created_at BETWEEN ? AND ?`,
       [dateFrom, dateTo]
@@ -266,22 +274,22 @@ export class TrainingEffectivenessService {
       [dateFrom, dateTo]
     );
 
-    const totalCourses = (courseCount as any[])[0]?.count || 0;
-    const totalLearners = (learnerCount as any[])[0]?.count || 0;
-    const totalCompletions = (completionCount as any[])[0]?.count || 0;
+    const totalCourses = ((courseCount as DbRow[])[0]?.count as number) || 0;
+    const totalLearners = ((learnerCount as DbRow[])[0]?.count as number) || 0;
+    const totalCompletions = ((completionCount as DbRow[])[0]?.count as number) || 0;
 
     return {
       totalCourses,
       totalLearners,
       totalCompletions,
       avgCompletionRate: totalLearners > 0 ? Math.round((totalCompletions / totalLearners) * 100) : 0,
-      avgScore: Math.round((avgScore as any[])[0]?.avg || 0),
+      avgScore: Math.round(((avgScore as DbRow[])[0]?.avg as number) || 0),
       avgSatisfaction: 85, // 模拟数据
-      certificatesIssued: (certCount as any[])[0]?.count || 0,
+      certificatesIssued: ((certCount as DbRow[])[0]?.count as number) || 0,
     };
   }
 
-  private static async getCourseAnalysis(db: any, dateFrom: string, dateTo: string): Promise<CourseAnalysis[]> {
+  private static async getCourseAnalysis(db: RawDb, dateFrom: string, dateTo: string): Promise<CourseAnalysis[]> {
     const [rows] = await db.execute(
       `SELECT course_id, course_name,
        COUNT(*) as enrollments,
@@ -296,20 +304,20 @@ export class TrainingEffectivenessService {
       [dateFrom, dateTo]
     );
 
-    return (rows as any[]).map(row => ({
-      courseId: row.course_id,
-      courseName: row.course_name || `课程${row.course_id}`,
-      enrollments: row.enrollments,
-      completions: row.completions,
-      completionRate: row.enrollments > 0 ? Math.round((row.completions / row.enrollments) * 100) : 0,
-      avgScore: Math.round(row.avg_score || 0),
-      avgDuration: Math.round(row.avg_duration || 0),
+    return (rows as DbRow[]).map(row => ({
+      courseId: row.course_id as number,
+      courseName: (row.course_name as string) || `课程${row.course_id}`,
+      enrollments: row.enrollments as number,
+      completions: row.completions as number,
+      completionRate: (row.enrollments as number) > 0 ? Math.round(((row.completions as number) / (row.enrollments as number)) * 100) : 0,
+      avgScore: Math.round((row.avg_score as number) || 0),
+      avgDuration: Math.round((row.avg_duration as number) || 0),
       satisfaction: 85,
       dropoffPoints: [],
     }));
   }
 
-  private static async getLearnerAnalysis(db: any, dateFrom: string, dateTo: string): Promise<LearnerAnalysis> {
+  private static async getLearnerAnalysis(db: RawDb, dateFrom: string, dateTo: string): Promise<LearnerAnalysis> {
     const [activeCount] = await db.execute(
       `SELECT COUNT(DISTINCT user_id) as count FROM training_enrollments WHERE created_at BETWEEN ? AND ?`,
       [dateFrom, dateTo]
@@ -325,15 +333,17 @@ export class TrainingEffectivenessService {
       [dateFrom, dateTo]
     );
 
+    const activeTotal = ((activeCount as DbRow[])[0]?.count as number) || 0;
+
     return {
-      totalActive: (activeCount as any[])[0]?.count || 0,
-      newLearners: Math.round(((activeCount as any[])[0]?.count || 0) * 0.3),
-      returningLearners: Math.round(((activeCount as any[])[0]?.count || 0) * 0.7),
+      totalActive: activeTotal,
+      newLearners: Math.round(activeTotal * 0.3),
+      returningLearners: Math.round(activeTotal * 0.7),
       avgCoursesPerLearner: 2.5,
-      topPerformers: (topPerformers as any[]).map(p => ({
-        userId: p.user_id,
-        name: p.name || `用户${p.user_id}`,
-        score: Math.round(p.avg_score),
+      topPerformers: (topPerformers as DbRow[]).map(p => ({
+        userId: p.user_id as number,
+        name: (p.name as string) || `用户${p.user_id}`,
+        score: Math.round(p.avg_score as number),
       })),
       atRiskLearners: [],
     };
@@ -369,23 +379,23 @@ export class TrainingEffectivenessService {
     return recommendations;
   }
 
-  static async getReportHistory(limit: number = 10): Promise<any[]> {
-    const db: any = await requireDb();
+  static async getReportHistory(limit: number = 10): Promise<DbRow[]> {
+    const db = await requireDb() as unknown as RawDb;
     const [rows] = await db.execute(
       `SELECT report_id, period_from, period_to, created_at FROM training_effectiveness_reports
        ORDER BY created_at DESC LIMIT ?`,
       [limit]
     );
-    return rows as any[];
+    return rows as DbRow[];
   }
 
   static async getReport(reportId: string): Promise<TrainingEffectivenessReport | null> {
-    const db: any = await requireDb();
+    const db = await requireDb() as unknown as RawDb;
     const [rows] = await db.execute(
       `SELECT report_data FROM training_effectiveness_reports WHERE report_id = ?`,
       [reportId]
     );
-    if ((rows as any[]).length === 0) return null;
-    return JSON.parse((rows as any[])[0].report_data);
+    if ((rows as DbRow[]).length === 0) return null;
+    return JSON.parse((rows as DbRow[])[0].report_data as string);
   }
 }

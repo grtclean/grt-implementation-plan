@@ -47,8 +47,8 @@ export const customerTicketRouter = router({
     .mutation(async ({ ctx, input }) => {
       return ticketService.createTicket({
         ...input,
-        createdBy: ctx.user.id,
-        createdByName: ctx.user.name ?? '',
+        createdBy: ctx.user!.id,
+        createdByName: ctx.user!.name ?? '',
       });
     }),
 
@@ -70,7 +70,7 @@ export const customerTicketRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { ticketId, ...rest } = input;
-      return ticketService.updateTicket(ticketId, ctx.user.id, rest);
+      return ticketService.updateTicket(ticketId, ctx.user!.id, rest);
     }),
 
   rate: requirePermission('service:tickets:manage')

@@ -56,9 +56,9 @@ const clockRouter = router({
       customerName: z.string().max(200).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      log.info({ userId: ctx.user.id, lat: input.lat, lng: input.lng }, "Clock-in request");
+      log.info({ userId: ctx.user!.id, lat: input.lat, lng: input.lng }, "Clock-in request");
       const result = await clockIn({
-        employeeId: ctx.user.id,
+        employeeId: ctx.user!.id,
         lat: input.lat,
         lng: input.lng,
         method: input.method,
@@ -75,8 +75,8 @@ const clockRouter = router({
       lng: z.number(),
     }))
     .mutation(async ({ input, ctx }) => {
-      log.info({ userId: ctx.user.id }, "Clock-out request");
-      const result = await clockOut(ctx.user.id, input.lat, input.lng);
+      log.info({ userId: ctx.user!.id }, "Clock-out request");
+      const result = await clockOut(ctx.user!.id, input.lat, input.lng);
       return result;
     }),
 
@@ -87,7 +87,7 @@ const clockRouter = router({
     }).optional())
     .query(async ({ input, ctx }) => {
       const db = await requireDb();
-      const empId = input?.employeeId ?? ctx.user.id;
+      const empId = input?.employeeId ?? ctx.user!.id;
       const today = new Date().toISOString().slice(0, 10);
       const [record] = await db
         .select()
@@ -182,8 +182,8 @@ const excursionRouter = router({
       lng: z.number(),
     }))
     .mutation(async ({ input, ctx }) => {
-      log.info({ userId: ctx.user.id }, "Excursion out report");
-      return recordExcursionOut(ctx.user.id, input.lat, input.lng);
+      log.info({ userId: ctx.user!.id }, "Excursion out report");
+      return recordExcursionOut(ctx.user!.id, input.lat, input.lng);
     }),
 
   /** Report returning to the geofence area */
@@ -193,8 +193,8 @@ const excursionRouter = router({
       lng: z.number(),
     }))
     .mutation(async ({ input, ctx }) => {
-      log.info({ userId: ctx.user.id }, "Excursion return report");
-      return recordExcursionReturn(ctx.user.id, input.lat, input.lng);
+      log.info({ userId: ctx.user!.id }, "Excursion return report");
+      return recordExcursionReturn(ctx.user!.id, input.lat, input.lng);
     }),
 
   /** Get excursions for a specific day */

@@ -10,7 +10,7 @@
  * - Dashboard & compliance statistics
  */
 
-import { eq, and, desc, sql, gte, lte, asc, like, or } from "drizzle-orm";
+import { eq, and, desc, sql, gte, lte, asc, like, or, SQL } from "drizzle-orm";
 import { db } from "../db";
 import {
   deptProcedureCategories,
@@ -19,8 +19,23 @@ import {
   deptProcedureAcknowledgments,
   deptProcedureExceptions,
   deptProcedureKpiLinks,
+  procedureTypeEnum,
+  procedureStatusEnum,
+  procedurePriorityEnum,
+  reviewFrequencyEnum,
+  ackMethodEnum,
+  exceptionSeverityEnum,
+  exceptionStatusEnum,
 } from "../../drizzle/dept-procedures-schema";
 import { createChildLogger } from "../lib/logger";
+
+type ProcedureType = (typeof procedureTypeEnum.enumValues)[number];
+type ProcedureStatus = (typeof procedureStatusEnum.enumValues)[number];
+type ProcedurePriority = (typeof procedurePriorityEnum.enumValues)[number];
+type ReviewFrequency = (typeof reviewFrequencyEnum.enumValues)[number];
+type AckMethod = (typeof ackMethodEnum.enumValues)[number];
+type ExceptionSeverity = (typeof exceptionSeverityEnum.enumValues)[number];
+type ExceptionStatus = (typeof exceptionStatusEnum.enumValues)[number];
 
 const log = createChildLogger("dept-procedure");
 
@@ -53,7 +68,7 @@ export async function listCategories(deptCode?: string, procedureType?: string) 
   if (deptCode) conditions.push(eq(deptProcedureCategories.deptCode, deptCode));
   if (procedureType) {
     conditions.push(
-      eq(deptProcedureCategories.procedureType, procedureType as any),
+      eq(deptProcedureCategories.procedureType, procedureType as ProcedureType),
     );
   }
 
@@ -80,7 +95,7 @@ export async function createCategory(data: {
       deptCode: data.deptCode,
       deptName: data.deptName,
       deptNameEn: data.deptNameEn,
-      procedureType: data.procedureType as any,
+      procedureType: data.procedureType as ProcedureType,
       parentId: data.parentId,
       sortOrder: data.sortOrder ?? 0,
       description: data.description,
@@ -99,16 +114,15 @@ export async function listProcedures(opts: ListProcedureOpts) {
 
   const conditions: ReturnType<typeof eq | typeof like>[] = [];
   if (opts.deptCode) conditions.push(eq(deptProcedures.deptCode, opts.deptCode));
-  if (opts.type) conditions.push(eq(deptProcedures.procedureType, opts.type as any));
-  if (opts.status) conditions.push(eq(deptProcedures.status, opts.status as any));
+  if (opts.type) conditions.push(eq(deptProcedures.procedureType, opts.type as ProcedureType));
+  if (opts.status) conditions.push(eq(deptProcedures.status, opts.status as ProcedureStatus));
   if (opts.search) {
-    conditions.push(
-      or(
-        like(deptProcedures.title, `%${opts.search}%`),
-        like(deptProcedures.procedureCode, `%${opts.search}%`),
-        like(deptProcedures.summary, `%${opts.search}%`),
-      ) as any,
+    const searchCondition = or(
+      like(deptProcedures.title, `%${opts.search}%`),
+      like(deptProcedures.procedureCode, `%${opts.search}%`),
+      like(deptProcedures.summary, `%${opts.search}%`),
     );
+    if (searchCondition) conditions.push(searchCondition);
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -173,8 +187,8 @@ export async function createProcedure(data: {
       titleEn: data.titleEn,
       categoryId: data.categoryId,
       deptCode: data.deptCode,
-      procedureType: data.procedureType as any,
-      priority: (data.priority as any) ?? "standard",
+      procedureType: data.procedureType as ProcedureType,
+      priority: (data.priority ?? "standard") as ProcedurePriority,
       status: "draft",
       currentVersion: "V1.0",
       versionMajor: 1,
@@ -187,7 +201,7 @@ export async function createProcedure(data: {
       legalBasis: data.legalBasis,
       industryStandard: data.industryStandard,
       expiryDate: data.expiryDate,
-      reviewFrequency: (data.reviewFrequency as any) ?? "annual",
+      reviewFrequency: (data.reviewFrequency ?? "annual") as ReviewFrequency,
       nextReviewDate: data.nextReviewDate,
       ownerUserId: data.ownerUserId,
       ownerName: data.ownerName,
@@ -233,9 +247,9 @@ export async function updateProcedure(
     .update(deptProcedures)
     .set({
       ...rest,
-      ...(status !== undefined ? { status: status as any } : {}),
-      ...(priority !== undefined ? { priority: priority as any } : {}),
-      ...(reviewFrequency !== undefined ? { reviewFrequency: reviewFrequency as any } : {}),
+      ...(status !== undefined ? { status: status as ProcedureStatus } : {}),
+      ...(priority !== undefined ? { priority: priority as ProcedurePriority } : {}),
+      ...(reviewFrequency !== undefined ? { reviewFrequency: reviewFrequency as ReviewFrequency } : {}),
       updatedAt: new Date(),
     })
     .where(eq(deptProcedures.id, id))
@@ -363,7 +377,7 @@ export async function acknowledge(
       userId,
       employeeName,
       department,
-      acknowledgmentMethod: method as any,
+      acknowledgmentMethod: method as AckMethod,
       quizScore,
       ipAddress,
       acknowledgedAt: new Date(),
@@ -378,7 +392,7 @@ export async function acknowledge(
       set: {
         acknowledgedAt: new Date(),
         quizScore,
-        acknowledgmentMethod: method as any,
+        acknowledgmentMethod: method as AckMethod,
         isLatestVersion: true,
       },
     })
@@ -496,7 +510,7 @@ export async function createException(data: {
       reportedByName: data.reportedByName,
       department: data.department,
       description: data.description,
-      severity: (data.severity as any) ?? "minor",
+      severity: (data.severity ?? "minor") as ExceptionSeverity,
       status: "open",
       reportedAt: new Date(),
     })
@@ -522,8 +536,8 @@ export async function updateException(
       rootCause: data.rootCause,
       correctiveAction: data.correctiveAction,
       preventiveAction: data.preventiveAction,
-      status: data.status as any,
-      severity: data.severity as any,
+      status: data.status as ExceptionStatus | undefined,
+      severity: data.severity as ExceptionSeverity | undefined,
       kpiImpact: data.kpiImpact,
     })
     .where(eq(deptProcedureExceptions.id, id))
@@ -558,8 +572,8 @@ export async function listExceptions(opts: ListExceptionOpts) {
   const conditions: ReturnType<typeof eq>[] = [];
   if (opts.deptCode) conditions.push(eq(deptProcedureExceptions.department, opts.deptCode));
   if (opts.procedureId) conditions.push(eq(deptProcedureExceptions.procedureId, opts.procedureId));
-  if (opts.severity) conditions.push(eq(deptProcedureExceptions.severity, opts.severity as any));
-  if (opts.status) conditions.push(eq(deptProcedureExceptions.status, opts.status as any));
+  if (opts.severity) conditions.push(eq(deptProcedureExceptions.severity, opts.severity as ExceptionSeverity));
+  if (opts.status) conditions.push(eq(deptProcedureExceptions.status, opts.status as ExceptionStatus));
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -737,9 +751,9 @@ export async function getExpiringProcedures(withinDays = 30) {
 export async function listDueForReview(deptCode?: string) {
   const cutoff = new Date();
 
-  const conditions: ReturnType<typeof eq>[] = [
+  const conditions: SQL[] = [
     eq(deptProcedures.status, "effective"),
-    lte(deptProcedures.nextReviewDate, cutoff) as any,
+    lte(deptProcedures.nextReviewDate, cutoff),
   ];
   if (deptCode) conditions.push(eq(deptProcedures.deptCode, deptCode));
 
@@ -760,7 +774,7 @@ export async function submitReview(
   nextReviewDate?: Date,
 ) {
   // After a review, update status and bump review date
-  const updates: Record<string, any> = {
+  const updates: Partial<typeof deptProcedures.$inferInsert> = {
     updatedAt: new Date(),
     updatedBy: reviewerId,
     approverUserId: reviewerId,

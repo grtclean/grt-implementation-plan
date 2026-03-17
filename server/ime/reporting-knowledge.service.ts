@@ -10,6 +10,30 @@ import { createChildLogger } from "../lib/logger";
 
 const log = createChildLogger("ime:reporting");
 
+/** Generic row type for raw SQL query results */
+type DbRow = Record<string, unknown>;
+
+/** PDFKit document interface for the subset of methods we use */
+interface PdfDoc {
+  fillColor(color: string): PdfDoc;
+  rect(x: number, y: number, w: number, h: number): PdfDoc;
+  fill(): PdfDoc;
+  fontSize(size: number): PdfDoc;
+  text(text: string, x: number, y: number, options?: Record<string, unknown>): PdfDoc;
+  addPage(): PdfDoc;
+  moveTo(x: number, y: number): PdfDoc;
+  lineTo(x: number, y: number): PdfDoc;
+  strokeColor(color: string): PdfDoc;
+  lineWidth(w: number): PdfDoc;
+  stroke(): PdfDoc;
+  circle(x: number, y: number, r: number): PdfDoc;
+  registerFont(name: string, path: string): PdfDoc;
+  font(name: string): PdfDoc;
+  heightOfString(text: string, options?: Record<string, unknown>): number;
+  on(event: string, cb: (...args: unknown[]) => void): PdfDoc;
+  end(): void;
+}
+
 // ============================================================================
 // Phase 6: Report Exports — Excel Dashboard
 // ============================================================================
@@ -49,7 +73,7 @@ export async function generateExecutiveDashboardExcel(filters?: {
      FROM meeting_records mr
      LEFT JOIN meeting_effectiveness_scores mes ON mr.id = mes.meeting_id
      ${whereClause}`);
-  const overview = (meetingCountRes.rows as any[])[0] || {};
+  const overview = (meetingCountRes.rows as DbRow[])[0] || {};
 
   const topContribRes = await db.execute(sql`SELECT mc.employee_name, AVG(mc.contribution_score) as avg_score, COUNT(*) as meetings
      FROM meeting_contributions mc
@@ -64,7 +88,7 @@ export async function generateExecutiveDashboardExcel(filters?: {
   ]);
   overviewSheet.addRow({});
   overviewSheet.addRow({ metric: "Top 贡献者", value: "平均分 / 参会次数" });
-  for (const r of topContribRes.rows as any[]) {
+  for (const r of topContribRes.rows as DbRow[]) {
     overviewSheet.addRow({ metric: r.employee_name, value: `${Math.round(Number(r.avg_score))} / ${r.meetings}次` });
   }
   overviewSheet.getRow(1).eachCell((cell) => { Object.assign(cell, { style: headerStyle }); });
@@ -85,11 +109,11 @@ export async function generateExecutiveDashboardExcel(filters?: {
      ${whereClause}
      LIMIT 1000
      ORDER BY roi.computed_at DESC`);
-  for (const r of roiRes.rows as any[]) {
+  for (const r of roiRes.rows as DbRow[]) {
     const row = roiSheet.addRow({
       meeting: r.title, grade: r.roi_grade, cost: Number(r.total_cost || 0).toFixed(2),
       score: Math.round(Number(r.roi_score) || 0), outcomes: Number(r.tangible_outcome_count) || 0,
-      date: r.computed_at ? new Date(r.computed_at).toLocaleDateString("zh-CN") : "",
+      date: r.computed_at ? new Date(r.computed_at as string).toLocaleDateString("zh-CN") : "",
     });
     const gradeCell = row.getCell("grade");
     const grade = String(r.roi_grade || "");
@@ -114,11 +138,11 @@ export async function generateExecutiveDashboardExcel(filters?: {
      ${whereClause}
      LIMIT 1000
      ORDER BY s.analyzed_at DESC`);
-  for (const r of sentRes.rows as any[]) {
+  for (const r of sentRes.rows as DbRow[]) {
     sentimentSheet.addRow({
       meeting: r.title, sentiment: r.overall_sentiment,
       tension: Number(r.tension_level || 0).toFixed(2), collaboration: Number(r.collaboration_score || 0).toFixed(2),
-      date: r.analyzed_at ? new Date(r.analyzed_at).toLocaleDateString("zh-CN") : "",
+      date: r.analyzed_at ? new Date(r.analyzed_at as string).toLocaleDateString("zh-CN") : "",
     });
   }
   sentimentSheet.getRow(1).eachCell((cell) => { Object.assign(cell, { style: headerStyle }); });
@@ -136,7 +160,7 @@ export async function generateExecutiveDashboardExcel(filters?: {
   const deptRes = await db.execute(sql`SELECT department, meeting_count, avg_effectiveness_score, avg_cost_per_meeting, action_item_completion_rate, period
     LIMIT 1000
      FROM ime_department_rollups ORDER BY avg_effectiveness_score DESC`);
-  for (const r of deptRes.rows as any[]) {
+  for (const r of deptRes.rows as DbRow[]) {
     deptSheet.addRow({
       dept: r.department, count: Number(r.meeting_count) || 0,
       avgEff: Math.round(Number(r.avg_effectiveness_score) || 0),
@@ -163,10 +187,10 @@ export async function generateExecutiveDashboardExcel(filters?: {
      ${whereClause}
      LIMIT 1000
      ORDER BY ai.created_at DESC`);
-  for (const r of actionRes.rows as any[]) {
+  for (const r of actionRes.rows as DbRow[]) {
     const row = actionSheet.addRow({
       content: r.content, owner: r.assigned_to, status: r.status,
-      priority: r.priority, dueDate: r.due_date ? new Date(r.due_date).toLocaleDateString("zh-CN") : "",
+      priority: r.priority, dueDate: r.due_date ? new Date(r.due_date as string).toLocaleDateString("zh-CN") : "",
       meeting: r.title,
     });
     const statusCell = row.getCell("status");
@@ -191,7 +215,7 @@ export async function generateExecutiveDashboardExcel(filters?: {
      JOIN meeting_records mr ON p.meeting_id = mr.id
      LIMIT 1000
      ORDER BY p.predicted_at DESC`);
-  for (const r of predRes.rows as any[]) {
+  for (const r of predRes.rows as DbRow[]) {
     const row = predSheet.addRow({
       meeting: r.title, type: r.prediction_type,
       score: Math.round(Number(r.predicted_score) || 0),
@@ -219,7 +243,7 @@ export async function generateExecutiveDashboardExcel(filters?: {
      JOIN meeting_records mr ON o.meeting_id = mr.id
      LIMIT 1000
      ORDER BY o.estimated_cost_saving DESC`);
-  for (const r of optRes.rows as any[]) {
+  for (const r of optRes.rows as DbRow[]) {
     optSheet.addRow({
       meeting: r.title, current: Number(r.current_count) || 0,
       optimal: Number(r.optimal_count) || 0, overInvited: Number(r.over_invited_count) || 0,
@@ -247,7 +271,7 @@ export async function generateExecutiveDashboardExcel(filters?: {
 // Phase 6: Report Exports — Single Meeting PDF Report
 // ============================================================================
 
-function drawTable(doc: any, headers: string[], rows: string[][], colWidths: number[], startX: number, startY: number): number {
+function drawTable(doc: PdfDoc, headers: string[], rows: string[][], colWidths: number[], startX: number, startY: number): number {
   const rowHeight = 22;
   const padding = 6;
   let y = startY;
@@ -284,7 +308,7 @@ function drawTable(doc: any, headers: string[], rows: string[][], colWidths: num
   return y;
 }
 
-function addSectionTitle(doc: any, title: string, y: number): number {
+function addSectionTitle(doc: PdfDoc, title: string, y: number): number {
   if (y > 700) { doc.addPage(); y = 50; }
   doc.fillColor("#2E5090").fontSize(14).text(title, 50, y);
   y += 25;
@@ -298,7 +322,7 @@ export async function generateMeetingReport(meetingId: string) {
 
   // Fetch data from 8 tables
   const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
-  const meeting = (meetingRes.rows as any[])[0];
+  const meeting = (meetingRes.rows as DbRow[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
   const contribRes = await db.execute(sql`SELECT * FROM meeting_contributions WHERE meeting_id = ${meetingId} ORDER BY contribution_score DESC LIMIT 1000`);
@@ -309,13 +333,13 @@ export async function generateMeetingReport(meetingId: string) {
   const topicRes = await db.execute(sql`SELECT * FROM ime_topic_continuity WHERE meeting_id = ${meetingId} LIMIT 1000`);
   const optRes = await db.execute(sql`SELECT * FROM ime_attendee_optimization WHERE meeting_id = ${meetingId} LIMIT 1`);
 
-  const contributions = contribRes.rows as any[];
-  const effectiveness = (effRes.rows as any[])[0];
-  const sentiment = (sentimentRes.rows as any[])[0];
-  const roi = (roiRes.rows as any[])[0];
-  const actionItems = actionRes.rows as any[];
-  const topics = topicRes.rows as any[];
-  const optimization = (optRes.rows as any[])[0];
+  const contributions = contribRes.rows as DbRow[];
+  const effectiveness = (effRes.rows as DbRow[])[0];
+  const sentiment = (sentimentRes.rows as DbRow[])[0];
+  const roi = (roiRes.rows as DbRow[])[0];
+  const actionItems = actionRes.rows as DbRow[];
+  const topics = topicRes.rows as DbRow[];
+  const optimization = (optRes.rows as DbRow[])[0];
 
   // Create PDF
   const doc = new PDFDocument({ size: "A4", margin: 50 });
@@ -328,8 +352,8 @@ export async function generateMeetingReport(meetingId: string) {
 
   // --- Cover Page ---
   doc.fillColor("#2E5090").fontSize(28).text("GRT智能会议分析报告", 50, 200, { align: "center" });
-  doc.fontSize(16).fillColor("#555555").text(meeting.title || "未命名会议", 50, 260, { align: "center" });
-  doc.fontSize(12).text(`会议日期: ${meeting.meeting_date ? new Date(meeting.meeting_date).toLocaleDateString("zh-CN") : "N/A"}`, 50, 300, { align: "center" });
+  doc.fontSize(16).fillColor("#555555").text((meeting.title as string) || "未命名会议", 50, 260, { align: "center" });
+  doc.fontSize(12).text(`会议日期: ${meeting.meeting_date ? new Date(meeting.meeting_date as string).toLocaleDateString("zh-CN") : "N/A"}`, 50, 300, { align: "center" });
   doc.text(`生成时间: ${new Date().toLocaleString("zh-CN")}`, 50, 320, { align: "center" });
   doc.text(`报告ID: IME-${meetingId.slice(0, 8)}`, 50, 340, { align: "center" });
 
@@ -339,12 +363,12 @@ export async function generateMeetingReport(meetingId: string) {
   y = addSectionTitle(doc, "1. 参会者贡献分析", y);
   if (contributions.length > 0) {
     // Bar visualization
-    const maxScore = Math.max(...contributions.map((c: any) => Number(c.contribution_score) || 0), 1);
+    const maxScore = Math.max(...contributions.map((c: DbRow) => Number(c.contribution_score) || 0), 1);
     for (const c of contributions.slice(0, 10)) {
       if (y > 700) { doc.addPage(); y = 50; }
       const score = Number(c.contribution_score) || 0;
       const barWidth = (score / maxScore) * 300;
-      doc.fillColor("#333333").fontSize(9).text(c.employee_name || "匿名", 50, y + 2, { width: 100 });
+      doc.fillColor("#333333").fontSize(9).text((c.employee_name as string) || "匿名", 50, y + 2, { width: 100 });
       doc.fillColor("#4472C4").rect(160, y, barWidth, 14).fill();
       doc.fillColor("#333333").fontSize(8).text(String(Math.round(score)), 165 + barWidth, y + 2);
       y += 22;
@@ -352,7 +376,7 @@ export async function generateMeetingReport(meetingId: string) {
     y += 10;
     y = drawTable(doc,
       ["姓名", "发言次数", "贡献分数", "角色"],
-      contributions.map((c: any) => [c.employee_name || "匿名", String(Number(c.speaking_count) || 0), String(Math.round(Number(c.contribution_score) || 0)), c.role_in_meeting || ""]),
+      contributions.map((c: DbRow) => [(c.employee_name as string) || "匿名", String(Number(c.speaking_count) || 0), String(Math.round(Number(c.contribution_score) || 0)), (c.role_in_meeting as string) || ""]),
       [140, 80, 80, 195], 50, y
     );
   } else {
@@ -391,10 +415,10 @@ export async function generateMeetingReport(meetingId: string) {
     y = drawTable(doc,
       ["维度", "值"],
       [
-        ["整体情感", sentiment.overall_sentiment || "N/A"],
+        ["整体情感", (sentiment.overall_sentiment as string) || "N/A"],
         ["紧张度", String(Number(sentiment.tension_level || 0).toFixed(2))],
         ["协作度", String(Number(sentiment.collaboration_score || 0).toFixed(2))],
-        ["能量水平", sentiment.energy_level || "N/A"],
+        ["能量水平", (sentiment.energy_level as string) || "N/A"],
       ],
       [200, 295], 50, y
     );
@@ -409,11 +433,11 @@ export async function generateMeetingReport(meetingId: string) {
     y = drawTable(doc,
       ["维度", "值"],
       [
-        ["ROI评级", roi.roi_grade || "N/A"],
+        ["ROI评级", (roi.roi_grade as string) || "N/A"],
         ["ROI分数", String(Math.round(Number(roi.roi_score) || 0))],
         ["总成本", `¥${Number(roi.total_cost || 0).toFixed(2)}`],
         ["有形成果数", String(Number(roi.tangible_outcome_count) || 0)],
-        ["价值评估", roi.value_assessment || "N/A"],
+        ["价值评估", (roi.value_assessment as string) || "N/A"],
       ],
       [200, 295], 50, y
     );
@@ -427,7 +451,7 @@ export async function generateMeetingReport(meetingId: string) {
   if (actionItems.length > 0) {
     y = drawTable(doc,
       ["内容", "负责人", "状态", "优先级"],
-      actionItems.map((a: any) => [a.content || "", a.assigned_to || "", a.status || "", a.priority || ""]),
+      actionItems.map((a: DbRow) => [(a.content as string) || "", (a.assigned_to as string) || "", (a.status as string) || "", (a.priority as string) || ""]),
       [220, 90, 80, 105], 50, y
     );
   } else {
@@ -440,7 +464,7 @@ export async function generateMeetingReport(meetingId: string) {
   if (topics.length > 0) {
     y = drawTable(doc,
       ["议题", "状态", "出现次数"],
-      topics.map((t: any) => [t.topic_name || "", t.status || "", String(Number(t.meeting_appearances) || 0)]),
+      topics.map((t: DbRow) => [(t.topic_name as string) || "", (t.status as string) || "", String(Number(t.meeting_appearances) || 0)]),
       [250, 120, 125], 50, y
     );
   } else {
@@ -463,8 +487,8 @@ export async function generateMeetingReport(meetingId: string) {
     );
     if (optimization.composition_advice) {
       y += 10;
-      doc.fillColor("#333333").fontSize(9).text(optimization.composition_advice, 50, y, { width: 495 });
-      y += doc.heightOfString(optimization.composition_advice, { width: 495 }) + 5;
+      doc.fillColor("#333333").fontSize(9).text(optimization.composition_advice as string, 50, y, { width: 495 });
+      y += doc.heightOfString(optimization.composition_advice as string, { width: 495 }) + 5;
     }
   } else {
     doc.fillColor("#999999").fontSize(10).text("暂无数据", 50, y);
@@ -482,8 +506,8 @@ export async function generateMeetingReport(meetingId: string) {
   if (narratives.length > 0) {
     for (const narrative of narratives) {
       if (y > 700) { doc.addPage(); y = 50; }
-      doc.fillColor("#333333").fontSize(9).text(narrative, 50, y, { width: 495 });
-      y += doc.heightOfString(narrative, { width: 495 }) + 10;
+      doc.fillColor("#333333").fontSize(9).text(narrative as string, 50, y, { width: 495 });
+      y += doc.heightOfString(narrative as string, { width: 495 }) + 10;
     }
   } else {
     doc.fillColor("#999999").fontSize(10).text("暂无数据", 50, y);
@@ -494,8 +518,8 @@ export async function generateMeetingReport(meetingId: string) {
   await new Promise<void>((resolve) => doc.on("end", resolve));
   const pdfBuffer = Buffer.concat(chunks);
   const base64 = pdfBuffer.toString("base64");
-  const titleSlug = (meeting.title || "meeting").slice(0, 30).replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, "-");
-  const dateStr = meeting.meeting_date ? new Date(meeting.meeting_date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+  const titleSlug = ((meeting.title as string) || "meeting").slice(0, 30).replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, "-");
+  const dateStr = meeting.meeting_date ? new Date(meeting.meeting_date as string).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
   const filename = `IME-会议报告-${titleSlug}-${dateStr}.pdf`;
 
   // Record export
@@ -569,11 +593,11 @@ export async function generateBenchmarkReport(
       AND p.fatigue_index IS NOT NULL
     `);
 
-    const ms = (meetingStats.rows as any[])[0] || {};
-    const cs = (costStats.rows as any[])[0] || {};
-    const as_ = (actionStats.rows as any[])[0] || {};
-    const rs = (roiStats.rows as any[])[0] || {};
-    const fs = (fatigueStats.rows as any[])[0] || {};
+    const ms = (meetingStats.rows as DbRow[])[0] || {};
+    const cs = (costStats.rows as DbRow[])[0] || {};
+    const as_ = (actionStats.rows as DbRow[])[0] || {};
+    const rs = (roiStats.rows as DbRow[])[0] || {};
+    const fs = (fatigueStats.rows as DbRow[])[0] || {};
     const total = Number(as_.total) || 0;
     const completed = Number(as_.completed) || 0;
 
@@ -679,8 +703,8 @@ export async function generateBenchmarkReport(
   // --- Best / Worst Meetings ---
   y += 10;
   y = addSectionTitle(doc, "3. 最佳 / 最差会议", y);
-  const best = bestRes.rows as any[];
-  const worst = worstRes.rows as any[];
+  const best = bestRes.rows as DbRow[];
+  const worst = worstRes.rows as DbRow[];
   if (best.length > 0) {
     doc.fillColor("#4CAF50").fontSize(11).text("Top 3 最佳", 50, y);
     y += 18;
@@ -702,7 +726,7 @@ export async function generateBenchmarkReport(
   // --- Recommendations ---
   y += 15;
   y = addSectionTitle(doc, "4. AI建议汇总", y);
-  const recs = recsRes.rows as any[];
+  const recs = recsRes.rows as DbRow[];
   if (recs.length > 0) {
     for (const r of recs) {
       if (y > 720) { doc.addPage(); y = 50; }
@@ -740,13 +764,13 @@ export async function extractKnowledgeEntities(meetingId: string) {
 
   // Fetch meeting + content blocks
   const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
-  const meeting = (meetingRes.rows as any[])[0];
+  const meeting = (meetingRes.rows as DbRow[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
   const blocksRes = await db.execute(sql`SELECT speaker, content, block_type FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY timestamp_start LIMIT 1000`);
-  const blocks = blocksRes.rows as any[];
+  const blocks = blocksRes.rows as DbRow[];
 
-  const transcript = blocks.map((b: any) => `[${b.speaker}] ${b.content}`).join("\n").slice(0, 6000);
+  const transcript = blocks.map((b: DbRow) => `[${b.speaker}] ${b.content}`).join("\n").slice(0, 6000);
 
   // Use LLM to extract entities
   const llmResult = await invokeLLM({
@@ -789,7 +813,7 @@ export async function extractKnowledgeEntities(meetingId: string) {
       VALUES (${meetingId}, ${e.entity_type || "insight"}, ${String(e.entity_value || "")}, ${Number(e.confidence) || 0.8}, ${String(e.related_speaker || "")}, ${String(e.context || "")}, ${String(parsed.narrative || "")}, NOW(), NOW())
       RETURNING id
     `);
-    const row = (res.rows as any[])[0];
+    const row = (res.rows as DbRow[])[0];
     if (row) insertedIds.push(Number(row.id));
   }
 
@@ -805,18 +829,18 @@ export async function buildEntityRelationships(meetingId: string) {
 
   // Get entities from this meeting
   const currentRes = await db.execute(sql`SELECT id, entity_type, entity_value, meeting_id FROM ime_knowledge_entities WHERE meeting_id = ${meetingId} LIMIT 1000`);
-  const currentEntities = currentRes.rows as any[];
+  const currentEntities = currentRes.rows as DbRow[];
   if (currentEntities.length === 0) return { relationships: 0 };
 
   // Get entities from other meetings for linking
   const otherRes = await db.execute(sql`SELECT id, entity_type, entity_value, meeting_id FROM ime_knowledge_entities WHERE meeting_id != ${meetingId} ORDER BY extracted_at DESC LIMIT 200`);
-  const otherEntities = otherRes.rows as any[];
+  const otherEntities = otherRes.rows as DbRow[];
 
   if (otherEntities.length === 0) return { relationships: 0 };
 
   // Use LLM to find relationships
-  const currentSummary = currentEntities.map((e: any) => `[${e.id}] ${e.entity_type}: ${e.entity_value}`).join("\n");
-  const otherSummary = otherEntities.slice(0, 50).map((e: any) => `[${e.id}] ${e.entity_type}: ${e.entity_value}`).join("\n");
+  const currentSummary = currentEntities.map((e: DbRow) => `[${e.id}] ${e.entity_type}: ${e.entity_value}`).join("\n");
+  const otherSummary = otherEntities.slice(0, 50).map((e: DbRow) => `[${e.id}] ${e.entity_type}: ${e.entity_value}`).join("\n");
 
   const llmResult = await invokeLLM({
     system: "你是知识图谱关系分析专家。分析两组实体之间的关系。",
@@ -847,8 +871,8 @@ export async function buildEntityRelationships(meetingId: string) {
   const relationships = parsed.relationships || [];
 
   // Validate entity IDs and insert
-  const validFromIds = new Set(currentEntities.map((e: any) => Number(e.id)));
-  const validToIds = new Set(otherEntities.map((e: any) => Number(e.id)));
+  const validFromIds = new Set(currentEntities.map((e: DbRow) => Number(e.id)));
+  const validToIds = new Set(otherEntities.map((e: DbRow) => Number(e.id)));
   let inserted = 0;
 
   for (const rel of relationships) {
@@ -878,7 +902,7 @@ export async function trackDecisionOutcome(
 
   // Verify entity exists and is a decision
   const entityRes = await db.execute(sql`SELECT id, meeting_id, entity_value FROM ime_knowledge_entities WHERE id = ${entityId} AND entity_type = 'decision' LIMIT 1000`);
-  const entity = (entityRes.rows as any[])[0];
+  const entity = (entityRes.rows as DbRow[])[0];
   if (!entity) throw new Error("Decision entity not found");
 
   // Upsert decision outcome
@@ -900,7 +924,7 @@ export async function generateRetrospective(meetingId: string) {
 
   // Gather data from multiple tables
   const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
-  const meeting = (meetingRes.rows as any[])[0];
+  const meeting = (meetingRes.rows as DbRow[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
   const effRes = await db.execute(sql`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = ${meetingId} LIMIT 1`);
@@ -908,18 +932,18 @@ export async function generateRetrospective(meetingId: string) {
   const actionRes = await db.execute(sql`SELECT content, status, assigned_to FROM ime_action_items WHERE meeting_id = ${meetingId} LIMIT 1000`);
   const entityRes = await db.execute(sql`SELECT entity_type, entity_value FROM ime_knowledge_entities WHERE meeting_id = ${meetingId} LIMIT 1000`);
 
-  const effectiveness = (effRes.rows as any[])[0];
-  const sentiment = (sentRes.rows as any[])[0];
-  const actionItems = actionRes.rows as any[];
-  const entities = entityRes.rows as any[];
+  const effectiveness = (effRes.rows as DbRow[])[0];
+  const sentiment = (sentRes.rows as DbRow[])[0];
+  const actionItems = actionRes.rows as DbRow[];
+  const entities = entityRes.rows as DbRow[];
 
   const contextSummary = [
     `会议: ${meeting.title || "未命名"}`,
     `摘要: ${meeting.summary || "无"}`,
     effectiveness ? `效能评分: ${effectiveness.overall_score}` : "",
     sentiment ? `情感: ${sentiment.overall_sentiment}, 紧张度: ${sentiment.tension_level}` : "",
-    actionItems.length > 0 ? `行动项(${actionItems.length}): ${actionItems.map((a: any) => a.content).join("; ")}` : "",
-    entities.length > 0 ? `知识实体(${entities.length}): ${entities.map((e: any) => `${e.entity_type}:${e.entity_value}`).join("; ")}` : "",
+    actionItems.length > 0 ? `行动项(${actionItems.length}): ${actionItems.map((a: DbRow) => a.content).join("; ")}` : "",
+    entities.length > 0 ? `知识实体(${entities.length}): ${entities.map((e: DbRow) => `${e.entity_type}:${e.entity_value}`).join("; ")}` : "",
   ].filter(Boolean).join("\n");
 
   const llmResult = await invokeLLM({
@@ -983,10 +1007,18 @@ export async function computeExpertProfiles(department?: string) {
     ORDER BY avg_score DESC
     LIMIT 50
   `);
-  const contributors = contribRes.rows as any[];
+  const contributors = contribRes.rows as DbRow[];
 
   // For each contributor, check decision influence
-  const profiles: any[] = [];
+  const profiles: Array<{
+    employeeId: unknown;
+    employeeName: unknown;
+    credibilityScore: number;
+    meetingCount: number;
+    avgContributionScore: number;
+    expertiseAreas: string[];
+    topTopics: unknown[];
+  }> = [];
   for (const c of contributors) {
     const employeeId = String(c.employee_id || "");
     const employeeName = String(c.employee_name || "");
@@ -996,7 +1028,7 @@ export async function computeExpertProfiles(department?: string) {
       SELECT COUNT(*) as cnt FROM ime_knowledge_entities
       WHERE entity_type = 'decision' AND related_speaker = ${employeeName}
     `);
-    const decisionCount = Number((decisionRes.rows as any[])[0]?.cnt) || 0;
+    const decisionCount = Number((decisionRes.rows as DbRow[])[0]?.cnt) || 0;
 
     // Get top topics from their meetings
     const topicRes = await db.execute(sql`
@@ -1005,7 +1037,7 @@ export async function computeExpertProfiles(department?: string) {
       WHERE tc.meeting_id IN (SELECT meeting_id FROM meeting_contributions WHERE employee_id = ${employeeId})
       GROUP BY tc.topic_name ORDER BY cnt DESC LIMIT 5
     `);
-    const topTopics = (topicRes.rows as any[]).map((t: any) => t.topic_name);
+    const topTopics = (topicRes.rows as DbRow[]).map((t: DbRow) => t.topic_name as string);
 
     const meetingCount = Number(c.meeting_count) || 0;
     const avgScore = Number(c.avg_score) || 0;
@@ -1102,34 +1134,34 @@ export async function getKnowledgeDashboard(filters?: {
   `);
 
   // Total counts
-  const totalEntities = (typeStatsRes.rows as any[]).reduce((sum: number, r: any) => sum + Number(r.cnt), 0);
-  const totalRelationships = (relStatsRes.rows as any[]).reduce((sum: number, r: any) => sum + Number(r.cnt), 0);
+  const totalEntities = (typeStatsRes.rows as DbRow[]).reduce((sum: number, r: DbRow) => sum + Number(r.cnt), 0);
+  const totalRelationships = (relStatsRes.rows as DbRow[]).reduce((sum: number, r: DbRow) => sum + Number(r.cnt), 0);
 
   return {
     summary: {
       totalEntities,
       totalRelationships,
-      totalDecisions: (decisionRes.rows as any[]).reduce((sum: number, r: any) => sum + Number(r.cnt), 0),
+      totalDecisions: (decisionRes.rows as DbRow[]).reduce((sum: number, r: DbRow) => sum + Number(r.cnt), 0),
       totalRetrospectives: retroRes.rows.length,
-      totalExperts: (await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_expert_profiles`)).rows[0] as any,
+      totalExperts: ((await db.execute(sql`SELECT COUNT(*) as cnt FROM ime_expert_profiles`)).rows[0] as DbRow)?.cnt ?? 0,
     },
-    entityTypeStats: (typeStatsRes.rows as any[]).map((r: any) => ({
+    entityTypeStats: (typeStatsRes.rows as DbRow[]).map((r: DbRow) => ({
       type: r.entity_type,
       count: Number(r.cnt),
       avgConfidence: Number(Number(r.avg_confidence || 0).toFixed(2)),
     })),
     recentEntities: recentRes.rows,
-    relationshipStats: (relStatsRes.rows as any[]).map((r: any) => ({
+    relationshipStats: (relStatsRes.rows as DbRow[]).map((r: DbRow) => ({
       type: r.relationship_type,
       count: Number(r.cnt),
       avgStrength: Number(Number(r.avg_strength || 0).toFixed(2)),
     })),
     decisionOutcomes: decisionRes.rows,
     recentRetrospectives: retroRes.rows,
-    topExperts: (expertRes.rows as any[]).map((r: any) => ({
+    topExperts: (expertRes.rows as DbRow[]).map((r: DbRow) => ({
       ...r,
-      expertiseAreas: (() => { try { return JSON.parse(r.expertise_areas || "[]"); } catch { return []; } })(),
-      topTopics: (() => { try { return JSON.parse(r.top_topics || "[]"); } catch { return []; } })(),
+      expertiseAreas: (() => { try { return JSON.parse((r.expertise_areas as string) || "[]"); } catch { return []; } })(),
+      topTopics: (() => { try { return JSON.parse((r.top_topics as string) || "[]"); } catch { return []; } })(),
     })),
   };
 }
@@ -1142,7 +1174,7 @@ export async function generateMeetingBrief(meetingId: string) {
   const db = await requireDb();
 
   const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
-  const meeting = (meetingRes.rows as any[])[0];
+  const meeting = (meetingRes.rows as DbRow[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
   // Gather participant history
@@ -1174,10 +1206,10 @@ export async function generateMeetingBrief(meetingId: string) {
   const contextData = [
     `会议: ${meeting.title || "未命名"}`,
     `摘要: ${meeting.summary || "无"}`,
-    `参与者: ${(contribRes.rows as any[]).map((c: any) => c.employee_name).join(", ")}`,
-    `待办行动项: ${(actionRes.rows as any[]).map((a: any) => `${a.content}(${a.assigned_to})`).join("; ")}`,
-    `近期决策: ${(decisionRes.rows as any[]).map((d: any) => d.entity_value).join("; ")}`,
-    `活跃议题: ${(topicRes.rows as any[]).map((t: any) => t.topic_name).join(", ")}`,
+    `参与者: ${(contribRes.rows as DbRow[]).map((c: DbRow) => c.employee_name).join(", ")}`,
+    `待办行动项: ${(actionRes.rows as DbRow[]).map((a: DbRow) => `${a.content}(${a.assigned_to})`).join("; ")}`,
+    `近期决策: ${(decisionRes.rows as DbRow[]).map((d: DbRow) => d.entity_value).join("; ")}`,
+    `活跃议题: ${(topicRes.rows as DbRow[]).map((t: DbRow) => t.topic_name).join(", ")}`,
   ].join("\n");
 
   const llmResult = await invokeLLM({
@@ -1277,7 +1309,7 @@ export async function generateMeetingMinutes(meetingId: string) {
   const db = await requireDb();
 
   const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
-  const meeting = (meetingRes.rows as any[])[0];
+  const meeting = (meetingRes.rows as DbRow[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
   const blocksRes = await db.execute(sql`SELECT speaker, content, block_type FROM meeting_content_blocks WHERE meeting_id = ${meetingId} ORDER BY timestamp_start LIMIT 1000`);
@@ -1285,10 +1317,10 @@ export async function generateMeetingMinutes(meetingId: string) {
   const actionRes = await db.execute(sql`SELECT content, assigned_to, status, priority, due_date FROM ime_action_items WHERE meeting_id = ${meetingId} LIMIT 1000`);
   const entityRes = await db.execute(sql`SELECT entity_type, entity_value FROM ime_knowledge_entities WHERE meeting_id = ${meetingId} AND entity_type = 'decision' LIMIT 1000`);
 
-  const transcript = (blocksRes.rows as any[]).map((b: any) => `[${b.speaker}] ${b.content}`).join("\n").slice(0, 6000);
-  const attendees = (contribRes.rows as any[]).map((c: any) => c.employee_name);
-  const decisions = (entityRes.rows as any[]).map((e: any) => e.entity_value);
-  const actions = (actionRes.rows as any[]).map((a: any) => ({ item: a.content, owner: a.assigned_to, status: a.status }));
+  const transcript = (blocksRes.rows as DbRow[]).map((b: DbRow) => `[${b.speaker}] ${b.content}`).join("\n").slice(0, 6000);
+  const attendees = (contribRes.rows as DbRow[]).map((c: DbRow) => c.employee_name);
+  const decisions = (entityRes.rows as DbRow[]).map((e: DbRow) => e.entity_value);
+  const actions = (actionRes.rows as DbRow[]).map((a: DbRow) => ({ item: a.content, owner: a.assigned_to, status: a.status }));
 
   const llmResult = await invokeLLM({
     system: "你是会议纪要生成专家。基于会议内容生成结构化的会议纪要。",
@@ -1353,7 +1385,7 @@ export async function generateFollowUpPlan(meetingId: string) {
   const db = await requireDb();
 
   const meetingRes = await db.execute(sql`SELECT * FROM meeting_records WHERE id = ${meetingId} LIMIT 1`);
-  const meeting = (meetingRes.rows as any[])[0];
+  const meeting = (meetingRes.rows as DbRow[])[0];
   if (!meeting) throw new Error("Meeting not found");
 
   const actionRes = await db.execute(sql`SELECT * FROM ime_action_items WHERE meeting_id = ${meetingId} LIMIT 1000`);
@@ -1363,10 +1395,10 @@ export async function generateFollowUpPlan(meetingId: string) {
 
   const context = [
     `会议: ${meeting.title}`,
-    `行动项: ${(actionRes.rows as any[]).map((a: any) => `${a.content}→${a.assigned_to}(${a.status})`).join("; ")}`,
-    `关键实体: ${(entityRes.rows as any[]).map((e: any) => `${e.entity_type}:${e.entity_value}`).join("; ")}`,
-    (effRes.rows as any[])[0] ? `效能: ${(effRes.rows as any[])[0].overall_score}分` : "",
-    (retroRes.rows as any[])[0] ? `回顾评级: ${(retroRes.rows as any[])[0].overall_grade}` : "",
+    `行动项: ${(actionRes.rows as DbRow[]).map((a: DbRow) => `${a.content}→${a.assigned_to}(${a.status})`).join("; ")}`,
+    `关键实体: ${(entityRes.rows as DbRow[]).map((e: DbRow) => `${e.entity_type}:${e.entity_value}`).join("; ")}`,
+    (effRes.rows as DbRow[])[0] ? `效能: ${(effRes.rows as DbRow[])[0].overall_score}分` : "",
+    (retroRes.rows as DbRow[])[0] ? `回顾评级: ${(retroRes.rows as DbRow[])[0].overall_grade}` : "",
   ].filter(Boolean).join("\n");
 
   const llmResult = await invokeLLM({
@@ -1419,7 +1451,7 @@ export async function askMeetingAssistant(
   const historyRes = await db.execute(sql`
     SELECT role, content FROM ime_ai_conversations WHERE session_id = ${sessionId} ORDER BY created_at DESC LIMIT 10
   `);
-  const history = (historyRes.rows as any[]).reverse();
+  const history = (historyRes.rows as DbRow[]).reverse();
 
   // Gather relevant meeting data for RAG context
   const recentMeetingsRes = await db.execute(sql`SELECT id, title, summary, meeting_date FROM meeting_records ORDER BY meeting_date DESC LIMIT 10`);
@@ -1431,13 +1463,13 @@ export async function askMeetingAssistant(
   const recentDecisionsRes = await db.execute(sql`SELECT entity_value, related_speaker FROM ime_knowledge_entities WHERE entity_type = 'decision' ORDER BY extracted_at DESC LIMIT 10`);
 
   const ragContext = [
-    `最近会议: ${(recentMeetingsRes.rows as any[]).map((m: any) => `${m.title}(${m.meeting_date ? new Date(m.meeting_date).toLocaleDateString("zh-CN") : ""})`).join(", ")}`,
-    `统计: 总计${(recentStatsRes.rows as any[])[0]?.total_meetings || 0}次会议, 平均效能${Math.round(Number((recentStatsRes.rows as any[])[0]?.avg_effectiveness) || 0)}分`,
-    `待办行动项: ${(recentActionsRes.rows as any[]).filter((a: any) => a.status !== "completed").map((a: any) => `${a.content}(${a.assigned_to})`).join("; ")}`,
-    `近期决策: ${(recentDecisionsRes.rows as any[]).map((d: any) => d.entity_value).join("; ")}`,
+    `最近会议: ${(recentMeetingsRes.rows as DbRow[]).map((m: DbRow) => `${m.title}(${m.meeting_date ? new Date(m.meeting_date as string).toLocaleDateString("zh-CN") : ""})`).join(", ")}`,
+    `统计: 总计${(recentStatsRes.rows as DbRow[])[0]?.total_meetings || 0}次会议, 平均效能${Math.round(Number((recentStatsRes.rows as DbRow[])[0]?.avg_effectiveness) || 0)}分`,
+    `待办行动项: ${(recentActionsRes.rows as DbRow[]).filter((a: DbRow) => a.status !== "completed").map((a: DbRow) => `${a.content}(${a.assigned_to})`).join("; ")}`,
+    `近期决策: ${(recentDecisionsRes.rows as DbRow[]).map((d: DbRow) => d.entity_value).join("; ")}`,
   ].join("\n");
 
-  const conversationMessages = history.map((h: any) => `${h.role === "user" ? "用户" : "助手"}: ${h.content}`).join("\n");
+  const conversationMessages = history.map((h: DbRow) => `${h.role === "user" ? "用户" : "助手"}: ${h.content}`).join("\n");
 
   const llmResult = await invokeLLM({
     system: `你是GRT智能会议助手。基于会议数据回答用户问题。提供准确、有帮助的回答。\n\n可用数据:\n${ragContext}`,
@@ -1482,7 +1514,7 @@ export async function createWorkflowRule(rule: {
   conditionOperator?: string;
   conditionValue?: string;
   actionType: string;
-  actionConfig?: any;
+  actionConfig?: Record<string, unknown>;
   scope?: string;
   scopeId?: string;
   createdBy?: string;
@@ -1503,7 +1535,7 @@ export async function evaluateWorkflowRules(meetingId: string, event: string) {
 
   // Get active rules matching this event
   const rulesRes = await db.execute(sql`SELECT * FROM ime_workflow_rules WHERE trigger_event = ${event} AND is_active = 1 LIMIT 1000`);
-  const rules = rulesRes.rows as any[];
+  const rules = rulesRes.rows as DbRow[];
   if (rules.length === 0) return { executed: 0, results: [] };
 
   // Gather meeting metrics for condition evaluation
@@ -1513,22 +1545,22 @@ export async function evaluateWorkflowRules(meetingId: string, event: string) {
   const effRes = await db.execute(sql`SELECT * FROM meeting_effectiveness_scores WHERE meeting_id = ${meetingId} LIMIT 1`);
 
   const metrics: Record<string, number | string> = {};
-  const health = (healthRes.rows as any[])[0];
-  const roi = (roiRes.rows as any[])[0];
-  const sentiment = (sentimentRes.rows as any[])[0];
-  const eff = (effRes.rows as any[])[0];
+  const health = (healthRes.rows as DbRow[])[0];
+  const roi = (roiRes.rows as DbRow[])[0];
+  const sentiment = (sentimentRes.rows as DbRow[])[0];
+  const eff = (effRes.rows as DbRow[])[0];
 
   if (health) { metrics.health_score = Number(health.health_score); metrics.fatigue_index = Number(health.fatigue_index); }
-  if (roi) { metrics.roi_score = Number(roi.roi_score); metrics.roi_grade = roi.roi_grade; }
+  if (roi) { metrics.roi_score = Number(roi.roi_score); metrics.roi_grade = roi.roi_grade as string | number; }
   if (sentiment) { metrics.overall_sentiment = Number(sentiment.overall_sentiment); metrics.tension_level = Number(sentiment.tension_level); }
   if (eff) { metrics.overall_score = Number(eff.overall_score); }
 
-  const results: any[] = [];
+  const results: Array<{ ruleId: unknown; ruleName: unknown; status: string; actionResult: Record<string, unknown> }> = [];
   for (const rule of rules) {
     let conditionMet = true;
 
     if (rule.condition_field && rule.condition_operator && rule.condition_value !== null) {
-      const actual = metrics[rule.condition_field];
+      const actual = metrics[rule.condition_field as string];
       const threshold = Number(rule.condition_value);
       if (actual !== undefined) {
         const numActual = Number(actual);
@@ -1547,7 +1579,7 @@ export async function evaluateWorkflowRules(meetingId: string, event: string) {
 
     const status = conditionMet ? "success" : "skipped";
     const actionResult = conditionMet
-      ? { triggered: true, actionType: rule.action_type, config: JSON.parse(rule.action_config || "{}"), metricsAtTrigger: metrics }
+      ? { triggered: true, actionType: rule.action_type, config: JSON.parse((rule.action_config as string) || "{}"), metricsAtTrigger: metrics }
       : { triggered: false, reason: "condition_not_met" };
 
     await db.execute(sql`
@@ -1600,9 +1632,9 @@ export async function generateCoachingPlan(scope: string, scopeId?: string, peri
     WHERE analyzed_at >= NOW() - INTERVAL ${sql.raw(`'${periodInterval}'`)}
   `);
 
-  const stats = (meetingStatsRes.rows as any[])[0] || {};
-  const actions = (actionRes.rows as any[])[0] || {};
-  const sentiments = (sentimentRes.rows as any[])[0] || {};
+  const stats = (meetingStatsRes.rows as DbRow[])[0] || {};
+  const actions = (actionRes.rows as DbRow[])[0] || {};
+  const sentiments = (sentimentRes.rows as DbRow[])[0] || {};
 
   const context = [
     `范围: ${scope}${scopeId ? ` (${scopeId})` : ""}, 周期: ${period || "monthly"} (${periodDays}天)`,
@@ -1708,16 +1740,16 @@ export async function getMeetingCultureScore(department?: string, period?: strin
     SELECT COUNT(*) as cnt, AVG(duration_minutes) as avg_duration FROM meeting_records WHERE meeting_date >= NOW() - INTERVAL ${sql.raw(`'${dateInterval}'`)}
   `);
 
-  const eff = (effRes.rows as any[])[0] || {};
-  const hlth = (healthRes.rows as any[])[0] || {};
-  const act = (actionRes.rows as any[])[0] || {};
-  const sent = (sentRes.rows as any[])[0] || {};
-  const roiData = (roiRes.rows as any[])[0] || {};
-  const vol = (volRes.rows as any[])[0] || {};
+  const eff = (effRes.rows as DbRow[])[0] || {};
+  const hlth = (healthRes.rows as DbRow[])[0] || {};
+  const act = (actionRes.rows as DbRow[])[0] || {};
+  const sent = (sentRes.rows as DbRow[])[0] || {};
+  const roiData = (roiRes.rows as DbRow[])[0] || {};
+  const vol = (volRes.rows as DbRow[])[0] || {};
 
   const effectiveness = Math.min(Number(eff.avg || 0), 100);
   const healthScore = Math.min(Number(hlth.avg_health || 0), 100);
-  const followThrough = act.total > 0 ? Math.round((Number(act.completed) / Number(act.total)) * 100) : 50;
+  const followThrough = Number(act.total) > 0 ? Math.round((Number(act.completed) / Number(act.total)) * 100) : 50;
   const sentiment = Math.round(((Number(sent.avg_sent || 0) + 1) / 2) * 100); // normalize -1..1 to 0..100
   const collaboration = Math.round(Number(sent.avg_collab || 50));
   const roi = Math.min(Number(roiData.avg_roi || 0), 100);
@@ -1769,7 +1801,7 @@ export async function getWorkflowDashboard(filters?: { limit?: number }) {
   // Recent coaching plans
   const coachingRes = await db.execute(sql`SELECT * FROM ime_coaching_plans ORDER BY generated_at DESC LIMIT 5`);
 
-  const stats = (statsRes.rows as any[])[0] || {};
+  const stats = (statsRes.rows as DbRow[])[0] || {};
 
   return {
     activeRules: rulesRes.rows,

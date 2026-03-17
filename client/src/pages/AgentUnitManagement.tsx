@@ -148,7 +148,7 @@ export default function AgentUnitManagement() {
   const handleScanInput = (value: string) => {
     setSearchSN(value);
     if (value.length >= 8) {
-      const unit = (unitsQuery.data as any)?.units.find(u => u.serialNumber === value);
+      const unit = (unitsQuery.data as any)?.units.find((u: any) => u.serialNumber === value);
       if (unit) {
         setSelectedUnit(unit);
         toast.success(`${t("hr.agentUnit.deviceFound")}: ${value}`);
@@ -337,7 +337,7 @@ export default function AgentUnitManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(unitsQuery.data as any)?.units.map((unit) => {
+                  {(unitsQuery.data as any)?.units.map((unit: any) => {
                     const statusConfig = STATUS_CONFIG[unit.status as keyof typeof STATUS_CONFIG];
                     const StatusIcon = statusConfig?.icon || Clock;
                     return (

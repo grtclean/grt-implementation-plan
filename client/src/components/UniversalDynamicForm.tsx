@@ -363,7 +363,7 @@ export default function UniversalDynamicForm(props: UniversalDynamicFormProps) {
           )}
         </Label>
 
-        <div className="mt-1.5">{renderInput(field, isDisabled, val)}</div>
+        <div className="mt-1.5">{renderInput(field, isDisabled!, val)}</div>
 
         {field.helpText && !error && (
           <p className="text-xs text-[#a19f9d] mt-1">{field.helpText}</p>

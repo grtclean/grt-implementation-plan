@@ -279,7 +279,7 @@ export const governanceRouter = router({
             | Record<string, unknown>
             | undefined,
           isActive: input.isActive,
-          createdBy: ctx.user.id,
+          createdBy: ctx.user!.id,
         })
         .returning();
       return item;
@@ -486,7 +486,7 @@ export const governanceRouter = router({
           allowedBus: input.allowedBus,
           priority: input.priority,
           isActive: input.isActive,
-          createdBy: ctx.user.id,
+          createdBy: ctx.user!.id,
         })
         .returning();
       return item;
@@ -622,8 +622,8 @@ export const governanceRouter = router({
           entityType: input.entityType,
           entityId: input.entityId,
           action: input.action,
-          actorId: ctx.user.id,
-          actorName: ctx.user.name ?? `User#${ctx.user.id}`,
+          actorId: ctx.user!.id,
+          actorName: ctx.user!.name ?? `User#${ctx.user!.id}`,
           previousData: input.previousData as
             | Record<string, unknown>
             | undefined,

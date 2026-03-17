@@ -157,7 +157,7 @@ export async function interpretKPIContent(content: string): Promise<KPIInterpret
       }
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const result = JSON.parse(response.choices![0].message.content!);
     return result.kpis || [];
   } catch (error) {
     log.error({ err: error }, "error interpreting KPI content");
@@ -222,7 +222,7 @@ export async function interpretOrgStructure(content: string): Promise<OrgStructu
       }
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const result = JSON.parse(response.choices![0].message.content!);
     return result.departments || [];
   } catch (error) {
     log.error({ err: error }, "error interpreting org structure");
@@ -295,7 +295,7 @@ export async function interpretProcessImprovements(content: string): Promise<Pro
       }
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const result = JSON.parse(response.choices![0].message.content!);
     return result.processes || [];
   } catch (error) {
     log.error({ err: error }, "error interpreting process improvements");
@@ -476,7 +476,7 @@ export async function analyzeBusinessLogic(
       }
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const result = JSON.parse(response.choices![0].message.content!);
     return result.insights || [];
   } catch (error) {
     log.error({ err: error }, "error analyzing business logic");
@@ -545,7 +545,7 @@ export async function analyzeSystemImpact(
       }
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const result = JSON.parse(response.choices![0].message.content!);
     return result.impacts || [];
   } catch (error) {
     log.error({ err: error }, "error analyzing system impact");
@@ -716,7 +716,7 @@ export async function generateAIRecommendations(
       ]
     });
 
-    return response.choices[0].message.content;
+    return response.choices[0].message.content as any;
   } catch (error) {
     log.error({ err: error }, "error generating AI recommendations");
     return 'Unable to generate recommendations at this time.';

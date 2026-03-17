@@ -272,7 +272,7 @@ export const sopInterlockRouter = router({
       }
 
       await db.insert(sopAcknowledgments).values({
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         sopTemplateId: input.sopTemplateId,
         versionSigned: sopDoc.version,
         signatureMethod: input.signatureMethod,

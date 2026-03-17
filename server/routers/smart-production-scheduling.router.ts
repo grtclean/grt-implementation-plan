@@ -118,7 +118,7 @@ const bomWorkHoursRouter = router({
         .set({
           adjustedMinutes: input.adjustedMinutes,
           adjustReason: input.adjustReason,
-          adjustedBy: ctx.user.id,
+          adjustedBy: ctx.user!.id,
           adjustedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -713,8 +713,8 @@ const laborReportRouter = router({
       const [inserted] = await db.insert(workLogs).values({
         logCode,
         taskId: input.taskId,
-        workerId: ctx.user.id,
-        workerName: ctx.user.name ?? `User-${ctx.user.id}`,
+        workerId: ctx.user!.id,
+        workerName: ctx.user!.name ?? `User-${ctx.user!.id}`,
         logType: input.logType,
         logTime: new Date(),
         duration: String(input.duration),
@@ -725,7 +725,7 @@ const laborReportRouter = router({
         location: input.location ?? null,
       }).returning({ id: workLogs.id, logCode: workLogs.logCode });
 
-      log.info({ logCode, userId: ctx.user.id, projectId: input.projectId }, "Labor report submitted");
+      log.info({ logCode, userId: ctx.user!.id, projectId: input.projectId }, "Labor report submitted");
       return inserted;
     }),
 
@@ -741,13 +741,13 @@ const laborReportRouter = router({
       const [updated] = await db.update(workLogs)
         .set({
           approvalStatus: input.action,
-          approvedBy: ctx.user.id,
+          approvedBy: ctx.user!.id,
         })
         .where(eq(workLogs.id, input.logId))
         .returning({ id: workLogs.id, approvalStatus: workLogs.approvalStatus });
 
       if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Work log not found" });
-      log.info({ logId: input.logId, action: input.action, userId: ctx.user.id }, "Labor report reviewed");
+      log.info({ logId: input.logId, action: input.action, userId: ctx.user!.id }, "Labor report reviewed");
       return updated;
     }),
 

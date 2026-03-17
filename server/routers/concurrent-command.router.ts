@@ -95,7 +95,7 @@ export const concurrentCommandRouter = router({
       await broadcast(
         "updateSandboxStatus",
         updated.moduleName,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
         { branchStatus: input.branchStatus },
       );
       return updated;
@@ -127,7 +127,7 @@ export const concurrentCommandRouter = router({
         .where(eq(cccSandboxes.id, input.id))
         .returning();
 
-      await broadcast("approveMerge", updated.moduleName, ctx.user.name ?? `User#${ctx.user.id}`);
+      await broadcast("approveMerge", updated.moduleName, ctx.user!.name ?? `User#${ctx.user!.id}`);
       return updated;
     }),
 
@@ -155,7 +155,7 @@ export const concurrentCommandRouter = router({
       if (!room) throw new Error("Room not found");
       if (room.testStatus === "PASSED")
         throw new Error("Cannot claim a sub-system that already passed");
-      const engineerName = ctx.user.name ?? `User#${ctx.user.id}`;
+      const engineerName = ctx.user!.name ?? `User#${ctx.user!.id}`;
       if (room.engineerAssigned && room.engineerAssigned !== engineerName) {
         throw new Error(`Already claimed by ${room.engineerAssigned}`);
       }
@@ -202,7 +202,7 @@ export const concurrentCommandRouter = router({
       await broadcast(
         "updateRoomStatus",
         updated.subSystem,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
         { testStatus: input.testStatus },
       );
       return updated;
@@ -254,11 +254,11 @@ export const concurrentCommandRouter = router({
       await broadcast(
         "approveCommissioningReport",
         "Commissioning Report",
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return {
         success: true,
-        approvedBy: ctx.user.name ?? `User#${ctx.user.id}`,
+        approvedBy: ctx.user!.name ?? `User#${ctx.user!.id}`,
         approvedAt: now,
       };
     }),
@@ -346,7 +346,7 @@ export const concurrentCommandRouter = router({
       const entry = await broadcast(
         "submitImprovement",
         `[${input.role}] ${input.area}: ${input.requirement.slice(0, 60)}`,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
         result,
       );
 
@@ -435,7 +435,7 @@ export const concurrentCommandRouter = router({
         assignedTo,
         dueDate,
         completionPct: 0,
-        createdBy: ctx.user.name ?? `User#${ctx.user.id}`,
+        createdBy: ctx.user!.name ?? `User#${ctx.user!.id}`,
         createdAt: now,
         updatedAt: now,
       }).returning();
@@ -446,14 +446,14 @@ export const concurrentCommandRouter = router({
         stepNumber: 0,
         action: "create",
         content: `创建改进需求: ${input.area} — ${input.requirement.slice(0, 80)}`,
-        userName: ctx.user.name ?? `User#${ctx.user.id}`,
+        userName: ctx.user!.name ?? `User#${ctx.user!.id}`,
       });
 
       // Activity log + broadcast for compatibility
       await broadcast(
         "createImprovement",
         `[${input.role}] ${input.area}: ${input.requirement.slice(0, 60)}`,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
         { improvementId: row.id, priority, area: input.area },
       );
 
@@ -531,13 +531,13 @@ export const concurrentCommandRouter = router({
         stepNumber: input.stepNumber,
         action: "progress",
         content: input.content,
-        userName: ctx.user.name ?? `User#${ctx.user.id}`,
+        userName: ctx.user!.name ?? `User#${ctx.user!.id}`,
       });
 
       await broadcast(
         "updateProgress",
         `[${imp.role}] ${imp.area} — 步骤${input.stepNumber}: ${input.content.slice(0, 40)}`,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
         { improvementId: input.id, completionPct: input.completionPct },
       );
 
@@ -571,13 +571,13 @@ export const concurrentCommandRouter = router({
         action: "submit_result",
         content: input.resultSummary,
         evidenceData: input.resultEvidence ?? null,
-        userName: ctx.user.name ?? `User#${ctx.user.id}`,
+        userName: ctx.user!.name ?? `User#${ctx.user!.id}`,
       });
 
       await broadcast(
         "submitResult",
         `[${imp.role}] ${imp.area} — 已提交改进结果`,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
         { improvementId: input.id },
       );
 
@@ -601,7 +601,7 @@ export const concurrentCommandRouter = router({
       if (input.approved) {
         const [updated] = await db.update(cccImprovements).set({
           status: "verified",
-          verifiedBy: ctx.user.name ?? `User#${ctx.user.id}`,
+          verifiedBy: ctx.user!.name ?? `User#${ctx.user!.id}`,
           verifiedAt: now,
           updatedAt: now,
         }).where(eq(cccImprovements.id, input.id)).returning();
@@ -611,10 +611,10 @@ export const concurrentCommandRouter = router({
           stepNumber: 0,
           action: "verify",
           content: input.comment || "验收通过",
-          userName: ctx.user.name ?? `User#${ctx.user.id}`,
+          userName: ctx.user!.name ?? `User#${ctx.user!.id}`,
         });
 
-        await broadcast("verifyImprovement", `[${imp.role}] ${imp.area} — 验收通过`, ctx.user.name ?? `User#${ctx.user.id}`, { improvementId: input.id });
+        await broadcast("verifyImprovement", `[${imp.role}] ${imp.area} — 验收通过`, ctx.user!.name ?? `User#${ctx.user!.id}`, { improvementId: input.id });
         return updated;
       } else {
         // Reject — back to in_progress
@@ -629,10 +629,10 @@ export const concurrentCommandRouter = router({
           stepNumber: 0,
           action: "reject",
           content: input.comment || "打回修改",
-          userName: ctx.user.name ?? `User#${ctx.user.id}`,
+          userName: ctx.user!.name ?? `User#${ctx.user!.id}`,
         });
 
-        await broadcast("verifyImprovement", `[${imp.role}] ${imp.area} — 打回修改`, ctx.user.name ?? `User#${ctx.user.id}`, { improvementId: input.id });
+        await broadcast("verifyImprovement", `[${imp.role}] ${imp.area} — 打回修改`, ctx.user!.name ?? `User#${ctx.user!.id}`, { improvementId: input.id });
         return updated;
       }
     }),

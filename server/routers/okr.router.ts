@@ -121,8 +121,8 @@ export const okrRouter = router({
           title: input.title,
           description: input.description ?? null,
           level: input.level,
-          ownerId: String(ctx.user.id),
-          ownerName: input.ownerName ?? ctx.user.name ?? null,
+          ownerId: String(ctx.user!.id),
+          ownerName: input.ownerName ?? ctx.user!.name ?? null,
           parentId: input.parentId ?? null,
           period: input.period,
           priority: input.priority,
@@ -203,8 +203,8 @@ export const okrRouter = router({
           targetValue: input.targetValue,
           currentValue: input.startValue,
           unit: input.unit,
-          ownerId: String(ctx.user.id),
-          ownerName: input.ownerName ?? ctx.user.name ?? null,
+          ownerId: String(ctx.user!.id),
+          ownerName: input.ownerName ?? ctx.user!.name ?? null,
           status: "on_track",
           confidence: 0.5,
         }).returning();
@@ -306,8 +306,8 @@ export const okrRouter = router({
           value: input.value,
           confidence: input.confidence ?? 0.5,
           note: input.note ?? null,
-          authorId: String(ctx.user.id),
-          authorName: ctx.user.name ?? null,
+          authorId: String(ctx.user!.id),
+          authorName: ctx.user!.name ?? null,
         });
         // Update KR current value
         await db.update(okrKeyResults).set({
@@ -442,8 +442,8 @@ export const okrRouter = router({
             title: `${buCode} ${input.year}年度销售目标 ${(totalSales / 10000).toFixed(0)}万`,
             description: `来源: BU年度计划 #${plan.id}, 年度销售 ${totalSales.toFixed(0)}, 年度产值 ${totalOutput.toFixed(0)}`,
             level: "bu",
-            ownerId: String(ctx.user.id),
-            ownerName: ctx.user.name ?? null,
+            ownerId: String(ctx.user!.id),
+            ownerName: ctx.user!.name ?? null,
             parentId,
             period,
             priority: "P0",

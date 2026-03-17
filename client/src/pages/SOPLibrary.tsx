@@ -219,7 +219,7 @@ export default function SOPLibrary() {
                             <span className="font-mono text-sm text-muted-foreground">{sop.code}</span>
                             <CardTitle className="text-base">{sop.title}</CardTitle>
                             <Badge className={CATEGORY_COLORS[sop.category] ?? ""}>{({ "清洗工艺": t("quality.sop.categoryCleaning"), "质量检测": t("quality.sop.categoryQuality"), "设备维护": t("quality.sop.categoryMaintenance"), "安全操作": t("quality.sop.categorySafety"), "客户验收": t("quality.sop.categoryAcceptance"), "包装运输": t("quality.sop.categoryPackaging") } as Record<string, string>)[sop.category] ?? sop.category}</Badge>
-                            <StatusBadge color={statusColors[sop.status]}>{statusLabelMap[sop.status]}</StatusBadge>
+                            <StatusBadge color={(statusColors as any)[sop.status]}>{(statusLabelMap as any)[sop.status]}</StatusBadge>
                             <Badge variant="outline">v{sop.version}</Badge>
                           </div>
                           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">

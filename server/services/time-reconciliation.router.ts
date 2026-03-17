@@ -75,7 +75,7 @@ export const timeReconciliationRouter = router({
         discrepancyId: input.discrepancyId,
         resolution: input.resolution,
         adjustedHours: input.adjustedHours,
-        resolvedBy: ctx.user.id,
+        resolvedBy: ctx.user!.id,
       });
       return result;
     }),

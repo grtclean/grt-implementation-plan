@@ -91,7 +91,7 @@ export default function ReportSchedulerManager({
   });
   
   // 查询报表任务列表
-  const { data: schedules, refetch: refetchSchedules } = trpc.reportScheduler.getSchedules.useQuery();
+  const { data: schedules, refetch: refetchSchedules } = trpc.reportScheduler.getSchedules.useQuery() as any;
   
   // 查询发送历史
   const { data: history } = (trpc.reportScheduler.getHistory as any).useQuery({
@@ -150,17 +150,17 @@ export default function ReportSchedulerManager({
 
   // 预览报表
   const previewMutation = (trpc.reportScheduler.previewReport as any).useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       setPreviewContent(result.formatted);
       setShowPreview(true);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`预览失败: ${error.message}`);
     },
   });
   
   // 获取选中的任务
-  const selectedSchedule = schedules?.find(s => s.id === selectedScheduleId);
+  const selectedSchedule = schedules?.find((s: any) => s.id === selectedScheduleId);
   
   // 处理启用/禁用切换
   const handleToggleEnabled = (scheduleId: string, enabled: boolean) => {
@@ -239,7 +239,7 @@ export default function ReportSchedulerManager({
             {/* 任务配置 */}
             <TabsContent value="schedules" className="flex-1 overflow-auto">
               <div className="space-y-4 py-4">
-                {schedules?.map((schedule) => (
+                {schedules?.map((schedule: any) => (
                   <Card
                     key={schedule.id}
                     className={`cursor-pointer transition-colors ${
@@ -303,7 +303,7 @@ export default function ReportSchedulerManager({
                           <span className="text-muted-foreground">报表类型: </span>
                           <span>
                             {schedule.reportTypes
-                              .map((t) => REPORT_TYPE_LABELS[t])
+                              .map((t: any) => REPORT_TYPE_LABELS[t])
                               .join("、")}
                           </span>
                         </div>
@@ -362,7 +362,7 @@ export default function ReportSchedulerManager({
                       <SelectValue placeholder="请选择报表任务" />
                     </SelectTrigger>
                     <SelectContent>
-                      {schedules?.map((schedule) => (
+                      {schedules?.map((schedule: any) => (
                         <SelectItem key={schedule.id} value={schedule.id}>
                           {schedule.name}
                         </SelectItem>
@@ -440,7 +440,7 @@ export default function ReportSchedulerManager({
                           </p>
                         ) : (
                           <div className="space-y-2">
-                            {selectedSchedule.recipients.map((recipient, index) => (
+                            {selectedSchedule.recipients.map((recipient: any, index: any) => (
                               <div
                                 key={index}
                                 className="flex items-center justify-between p-2 bg-muted/30 rounded"
@@ -490,7 +490,7 @@ export default function ReportSchedulerManager({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">全部任务</SelectItem>
-                      {schedules?.map((schedule) => (
+                      {schedules?.map((schedule: any) => (
                         <SelectItem key={schedule.id} value={schedule.id}>
                           {schedule.name}
                         </SelectItem>
@@ -502,7 +502,7 @@ export default function ReportSchedulerManager({
                 {/* 历史列表 */}
                 {history && history.length > 0 ? (
                   <div className="space-y-2">
-                    {history.map((record, index) => (
+                    {history.map((record: any, index: any) => (
                       <Card key={index}>
                         <CardContent className="py-3">
                           <div className="flex items-center justify-between">
@@ -512,7 +512,7 @@ export default function ReportSchedulerManager({
                                 {new Date(record.sentAt).toLocaleString("zh-CN")}
                               </span>
                               <Badge variant="outline">
-                                {schedules?.find((s) => s.id === record.scheduleId)?.name}
+                                {schedules?.find((s: any) => s.id === record.scheduleId)?.name}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-2">

@@ -985,22 +985,22 @@ function ReportViewer({ report }: { report: Record<string, unknown> }) {
       )}
 
       {/* R&P Summary */}
-      {rpSummary && (rpSummary.totalRewards > 0 || rpSummary.totalPenalties > 0) && (
+      {(((rpSummary as any) && ((rpSummary as any).totalRewards > 0 || (rpSummary as any).totalPenalties > 0)) ? (
         <div className="flex items-center gap-4 text-sm">
-          <span className="text-green-600 flex items-center gap-1"><Trophy className="h-3 w-3" />表彰 {rpSummary.totalRewards}次</span>
-          <span className="text-red-600 flex items-center gap-1"><AlertTriangle className="h-3 w-3" />处罚 {rpSummary.totalPenalties}次</span>
+          <span className="text-green-600 flex items-center gap-1"><Trophy className="h-3 w-3" />表彰 {(rpSummary as any).totalRewards}次</span>
+          <span className="text-red-600 flex items-center gap-1"><AlertTriangle className="h-3 w-3" />处罚 {(rpSummary as any).totalPenalties}次</span>
         </div>
-      )}
+      ) : null) as any}
 
       {/* Accomplishments & Challenges */}
-      {accomplishments && accomplishments.length > 0 && (
+      {(((accomplishments as any)?.length > 0) ? (
         <div>
           <h4 className="text-sm font-semibold mb-1">主要成果</h4>
           <ul className="text-sm space-y-1">
-            {accomplishments.map((a, i) => <li key={i} className="flex items-start gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />{a}</li>)}
+            {(accomplishments as any[]).map((a: any, i: number) => <li key={i} className="flex items-start gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />{a}</li>)}
           </ul>
         </div>
-      )}
+      ) : null) as any}
       {challenges && challenges.length > 0 && (
         <div>
           <h4 className="text-sm font-semibold mb-1">挑战与问题</h4>

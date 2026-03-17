@@ -24,8 +24,8 @@ export const interviewAssistantRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       return await analyzeResume({
-        userId: ctx.user.id,
-        userName: ctx.user.name || undefined,
+        userId: ctx.user!.id,
+        userName: ctx.user!.name || undefined,
         sessionId: input.sessionId,
         resumeText: input.resumeText,
         positionId: input.positionId,
@@ -41,8 +41,8 @@ export const interviewAssistantRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       return await generateInterviewStrategy({
-        userId: ctx.user.id,
-        userName: ctx.user.name || undefined,
+        userId: ctx.user!.id,
+        userName: ctx.user!.name || undefined,
         sessionId: input.sessionId,
         candidateId: input.candidateId,
         positionId: input.positionId,
@@ -61,8 +61,8 @@ export const interviewAssistantRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       return await generateInterviewQuestions({
-        userId: ctx.user.id,
-        userName: ctx.user.name || undefined,
+        userId: ctx.user!.id,
+        userName: ctx.user!.name || undefined,
         sessionId: input.sessionId,
         positionId: input.positionId,
         category: input.category,
@@ -82,8 +82,8 @@ export const interviewAssistantRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       return await assessCandidate({
-        userId: ctx.user.id,
-        userName: ctx.user.name || undefined,
+        userId: ctx.user!.id,
+        userName: ctx.user!.name || undefined,
         sessionId: input.sessionId,
         candidateId: input.candidateId,
         interviewNotes: input.interviewNotes,
@@ -100,8 +100,8 @@ export const interviewAssistantRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       return await generateInterviewReport({
-        userId: ctx.user.id,
-        userName: ctx.user.name || undefined,
+        userId: ctx.user!.id,
+        userName: ctx.user!.name || undefined,
         sessionId: input.sessionId,
         candidateId: input.candidateId,
         format: input.format,

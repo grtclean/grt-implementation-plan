@@ -47,7 +47,7 @@ export default function ExternalSyncKnowledgeViewer() {
     const tagSet = new Set<string>();
     for (const doc of docs) {
       if (Array.isArray(doc.tags)) {
-        doc.tags.forEach((t: string) => tagSet.add(t));
+        doc.tags.forEach((t: any) => tagSet.add(t));
       }
     }
     return Array.from(tagSet).slice(0, 30);

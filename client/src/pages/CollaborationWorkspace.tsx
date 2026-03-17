@@ -418,14 +418,14 @@ export default function CollaborationWorkspace() {
                   <div className="flex items-center gap-2">
                     {/* 在线成员头像 */}
                     <div className="flex -space-x-2">
-                      {selectedWorkspace.members.filter(m => m.online).slice(0, 4).map(member => (
+                      {selectedWorkspace.members.filter((m: any) => m.online).slice(0, 4).map((member: any) => (
                         <Avatar key={member.id} className="h-8 w-8 border-2 border-background">
                           <AvatarFallback className="text-xs">{member.name[0]}</AvatarFallback>
                         </Avatar>
                       ))}
-                      {selectedWorkspace.members.filter(m => m.online).length > 4 && (
+                      {selectedWorkspace.members.filter((m: any) => m.online).length > 4 && (
                         <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs border-2 border-background">
-                          +{selectedWorkspace.members.filter(m => m.online).length - 4}
+                          +{selectedWorkspace.members.filter((m: any) => m.online).length - 4}
                         </div>
                       )}
                     </div>

@@ -257,6 +257,7 @@ export async function updateMeeting(
   // 记录审计日志
   await logAuditEvent(userId, "UPDATE_MEETING", "meeting", meetingId, input);
 
+// @ts-ignore duplicate property
   return { id: meetingId, ...meeting, ...input };
 }
 

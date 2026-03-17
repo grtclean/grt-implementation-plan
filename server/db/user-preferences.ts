@@ -43,7 +43,7 @@ export async function getUserPreferences(userId: number): Promise<UserPreference
     sql`SELECT * FROM user_preferences WHERE user_id = ${userId} LIMIT 1`
   );
   
-  const rows = result[0] as any[];
+  const rows = (result as any)[0] as any[];
   if (!rows || rows.length === 0) return null;
   
   const row = rows[0];

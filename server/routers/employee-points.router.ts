@@ -29,7 +29,7 @@ const balanceRouter = router({
   /** Get current point balance for logged-in user */
   getMine: protectedProcedure
     .query(async ({ ctx }) => {
-      return svc.getBalanceDetail(ctx.user.id);
+      return svc.getBalanceDetail(ctx.user!.id);
     }),
 
   /** Get point balance for any employee (HR/manager view) */
@@ -84,7 +84,7 @@ const awardRouter = router({
       sourceId: z.string().max(100).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.awardPoints({ ...input, grantedBy: ctx.user.id });
+      return svc.awardPoints({ ...input, grantedBy: ctx.user!.id });
     }),
 
   /** Manager/CEO manual award with custom points (legacy, no approval flow) */
@@ -101,7 +101,7 @@ const awardRouter = router({
         ruleCode: input.ruleCode,
         pointsOverride: input.points,
         description: input.description,
-        grantedBy: ctx.user.id,
+        grantedBy: ctx.user!.id,
       });
     }),
 
@@ -119,7 +119,7 @@ const awardRouter = router({
       sourceId: z.string().max(100).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.managerReport({ requesterId: ctx.user.id, ...input });
+      return svc.managerReport({ requesterId: ctx.user!.id, ...input });
     }),
 
   /** List pending approvals (for superiors to review) */
@@ -135,7 +135,7 @@ const awardRouter = router({
       notes: z.string().max(500).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.approvePointRequest({ ...input, approverId: ctx.user.id });
+      return svc.approvePointRequest({ ...input, approverId: ctx.user!.id });
     }),
 
   /** Reject a point request */
@@ -145,13 +145,13 @@ const awardRouter = router({
       notes: z.string().max(500).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.rejectPointRequest({ ...input, approverId: ctx.user.id });
+      return svc.rejectPointRequest({ ...input, approverId: ctx.user!.id });
     }),
 
   /** My submitted requests (track status) */
   myRequests: protectedProcedure
     .query(async ({ ctx }) => {
-      return svc.getMyApprovalRequests(ctx.user.id);
+      return svc.getMyApprovalRequests(ctx.user!.id);
     }),
 });
 
@@ -162,28 +162,28 @@ const complianceRouter = router({
   getStatus: protectedProcedure
     .input(z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }).optional())
     .query(async ({ input, ctx }) => {
-      return svc.getComplianceStatus(ctx.user.id, input?.date);
+      return svc.getComplianceStatus(ctx.user!.id, input?.date);
     }),
 
   /** Mark morning plan as completed */
   completeMorningPlan: protectedProcedure
     .input(z.object({ planId: z.string().max(100).optional() }).optional())
     .mutation(async ({ input, ctx }) => {
-      return svc.completeMorningPlanCheck(ctx.user.id, input?.planId);
+      return svc.completeMorningPlanCheck(ctx.user!.id, input?.planId);
     }),
 
   /** Mark evening summary as completed */
   completeEveningSummary: protectedProcedure
     .input(z.object({ logId: z.string().max(100).optional() }).optional())
     .mutation(async ({ input, ctx }) => {
-      return svc.completeEveningSummaryCheck(ctx.user.id, input?.logId);
+      return svc.completeEveningSummaryCheck(ctx.user!.id, input?.logId);
     }),
 
   /** Mark next-day plan as completed (awards 2 bonus points) */
   completeNextDayPlan: protectedProcedure
     .input(z.object({ planId: z.string().max(100).optional() }).optional())
     .mutation(async ({ input, ctx }) => {
-      return svc.completeNextDayPlanCheck(ctx.user.id, input?.planId);
+      return svc.completeNextDayPlanCheck(ctx.user!.id, input?.planId);
     }),
 });
 
@@ -197,7 +197,7 @@ const historyRouter = router({
       limit: z.number().int().min(1).max(200).optional(),
     }).optional())
     .query(async ({ input, ctx }) => {
-      const empId = input?.employeeId ?? ctx.user.id;
+      const empId = input?.employeeId ?? ctx.user!.id;
       return svc.getTransactionHistory(empId, input?.limit);
     }),
 
@@ -208,7 +208,7 @@ const historyRouter = router({
       period: periodSchema,
     }))
     .query(async ({ input, ctx }) => {
-      const empId = input.employeeId ?? ctx.user.id;
+      const empId = input.employeeId ?? ctx.user!.id;
       return svc.getMonthlyStats(empId, input.period);
     }),
 });
@@ -231,13 +231,13 @@ const catalogRouter = router({
       notes: z.string().max(500).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.requestRedemption({ employeeId: ctx.user.id, ...input });
+      return svc.requestRedemption({ employeeId: ctx.user!.id, ...input });
     }),
 
   /** My redemption history */
   myRedemptions: protectedProcedure
     .query(async ({ ctx }) => {
-      return svc.getMyRedemptions(ctx.user.id);
+      return svc.getMyRedemptions(ctx.user!.id);
     }),
 });
 
@@ -257,7 +257,7 @@ const adminRouter = router({
       notes: z.string().max(500).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.approveRedemption(input.redemptionId, ctx.user.id, input.notes);
+      return svc.approveRedemption(input.redemptionId, ctx.user!.id, input.notes);
     }),
 
   /** Reject a redemption */
@@ -267,7 +267,7 @@ const adminRouter = router({
       notes: z.string().max(500).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.rejectRedemption(input.redemptionId, ctx.user.id, input.notes);
+      return svc.rejectRedemption(input.redemptionId, ctx.user!.id, input.notes);
     }),
 
   /** View observation & suspended list */
@@ -317,7 +317,7 @@ const suggestionRouter = router({
       category: z.enum(["process", "quality", "safety", "cost", "innovation", "management"]).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.submitSuggestion({ employeeId: ctx.user.id, ...input });
+      return svc.submitSuggestion({ employeeId: ctx.user!.id, ...input });
     }),
 
   /** List suggestions (own or all for managers) */
@@ -329,7 +329,7 @@ const suggestionRouter = router({
       limit: z.number().int().min(1).max(200).optional(),
     }).optional())
     .query(async ({ input, ctx }) => {
-      return svc.listSuggestions({ employeeId: input?.employeeId ?? ctx.user.id, ...input });
+      return svc.listSuggestions({ employeeId: input?.employeeId ?? ctx.user!.id, ...input });
     }),
 
   /** Get suggestion detail */
@@ -347,7 +347,7 @@ const suggestionRouter = router({
       evaluatorNotes: z.string().max(1000).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.evaluateSuggestion({ ...input, evaluatorId: ctx.user.id });
+      return svc.evaluateSuggestion({ ...input, evaluatorId: ctx.user!.id });
     }),
 
   /** CEO approve outstanding/major suggestion */
@@ -357,7 +357,7 @@ const suggestionRouter = router({
       approvalNotes: z.string().max(1000).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.approveSuggestion({ ...input, approvedBy: ctx.user.id });
+      return svc.approveSuggestion({ ...input, approvedBy: ctx.user!.id });
     }),
 
   /** Stats for dashboard */
@@ -391,7 +391,7 @@ const communityRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       return svc.createCommunityPost({
-        authorId: ctx.user.id,
+        authorId: ctx.user!.id,
         title: input.title,
         content: input.content,
         postType: input.postType ?? "discussion",
@@ -402,7 +402,7 @@ const communityRouter = router({
   acknowledge: protectedProcedure
     .input(z.object({ postId: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
-      return svc.acknowledgeCommunityPost(input.postId, ctx.user.id);
+      return svc.acknowledgeCommunityPost(input.postId, ctx.user!.id);
     }),
 
   /** Like a post */
@@ -451,7 +451,7 @@ const eliteBenefitRouter = router({
   checkEligibility: protectedProcedure
     .input(z.object({ employeeId: z.number().int().positive().optional() }).optional())
     .query(async ({ input, ctx }) => {
-      return svc.checkEliteEligibility(input?.employeeId ?? ctx.user.id);
+      return svc.checkEliteEligibility(input?.employeeId ?? ctx.user!.id);
     }),
 
   /** Apply for an elite benefit */
@@ -460,7 +460,7 @@ const eliteBenefitRouter = router({
       benefitType: z.enum(["alternating_rest", "five_day_week"]),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.applyEliteBenefit({ employeeId: ctx.user.id, benefitType: input.benefitType });
+      return svc.applyEliteBenefit({ employeeId: ctx.user!.id, benefitType: input.benefitType });
     }),
 
   /** Approve an application (HR/Director) */
@@ -470,7 +470,7 @@ const eliteBenefitRouter = router({
       notes: z.string().max(500).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.approveEliteBenefit({ ...input, approverId: ctx.user.id });
+      return svc.approveEliteBenefit({ ...input, approverId: ctx.user!.id });
     }),
 
   /** Reject an application (HR/Director) */
@@ -480,7 +480,7 @@ const eliteBenefitRouter = router({
       reason: z.string().max(500).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.rejectEliteBenefit({ ...input, approverId: ctx.user.id });
+      return svc.rejectEliteBenefit({ ...input, approverId: ctx.user!.id });
     }),
 
   /** List applications (own or all for admin) */
@@ -491,7 +491,7 @@ const eliteBenefitRouter = router({
       limit: z.number().int().min(1).max(100).optional(),
     }).optional())
     .query(async ({ input, ctx }) => {
-      return svc.listEliteBenefitApplications({ employeeId: input?.employeeId ?? ctx.user.id, ...input });
+      return svc.listEliteBenefitApplications({ employeeId: input?.employeeId ?? ctx.user!.id, ...input });
     }),
 
   /** Run monthly review — dynamic evaluation cycle (admin/scheduler) */
@@ -507,14 +507,14 @@ const eliteBenefitRouter = router({
       commitmentContent: z.string().min(10).max(2000),
     }))
     .mutation(async ({ input, ctx }) => {
-      return svc.submitEliteCommitment({ employeeId: ctx.user.id, ...input });
+      return svc.submitEliteCommitment({ employeeId: ctx.user!.id, ...input });
     }),
 
   /** Get review history */
   reviewHistory: protectedProcedure
     .input(z.object({ employeeId: z.number().int().positive().optional() }).optional())
     .query(async ({ input, ctx }) => {
-      return svc.getEliteReviewHistory(input?.employeeId ?? ctx.user.id);
+      return svc.getEliteReviewHistory(input?.employeeId ?? ctx.user!.id);
     }),
 });
 

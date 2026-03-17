@@ -135,7 +135,7 @@ export const analyticsRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const [event] = await db.insert(analyticsEvents).values({
-      userId: ctx.user.id,
+      userId: ctx.user!.id,
       eventType: input.eventType || "page_view",
       eventData: input.eventData ? (typeof input.eventData === "string" ? input.eventData : JSON.stringify(input.eventData)) : undefined,
     }).returning();

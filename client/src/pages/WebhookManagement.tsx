@@ -335,7 +335,7 @@ export default function WebhookManagement() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard icon={Webhook} label={t("admin.webhook.totalWebhooks")} value={webhooks?.length || 0} iconColor="text-primary" iconBg="bg-primary/10" />
-          <StatCard icon={CheckCircle2} label={t("admin.webhook.enabled")} value={webhooks?.filter(w => w.enabled).length || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
+          <StatCard icon={CheckCircle2} label={t("admin.webhook.enabled")} value={webhooks?.filter((w: any) => w.enabled).length || 0} iconColor="text-green-500" iconBg="bg-green-500/10" />
           <StatCard icon={Send} label={t("admin.webhook.sentToday")} value="-" iconColor="text-blue-500" iconBg="bg-blue-500/10" />
           <StatCard icon={AlertCircle} label={t("admin.webhook.failureCount")} value="-" iconColor="text-red-500" iconBg="bg-red-500/10" />
         </div>
@@ -383,7 +383,7 @@ export default function WebhookManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {webhooks.map((webhook) => (
+                      {webhooks.map((webhook: any) => (
                         <TableRow key={webhook.id}>
                           <TableCell className="font-medium">{webhook.name}</TableCell>
                           <TableCell>
@@ -396,7 +396,7 @@ export default function WebhookManagement() {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {(webhook.triggerEvents || "").split(",").filter(Boolean).map((event) => (
+                              {(webhook.triggerEvents || "").split(",").filter(Boolean).map((event: any) => (
                                 <Badge key={event} variant="secondary" className="text-xs">
                                   {t(eventTypeLabelKeys[event as EventType]) || event}
                                 </Badge>
@@ -475,7 +475,7 @@ export default function WebhookManagement() {
                         if (value === "all") {
                           setSelectedWebhook(null);
                         } else {
-                          const webhook = webhooks?.find(w => w.id === parseInt(value));
+                          const webhook = webhooks?.find((w: any) => w.id === parseInt(value));
                           setSelectedWebhook(webhook || null);
                         }
                       }}
@@ -485,7 +485,7 @@ export default function WebhookManagement() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">{t("admin.webhook.allWebhooksOption")}</SelectItem>
-                        {webhooks?.map((webhook) => (
+                        {webhooks?.map((webhook: any) => (
                           <SelectItem key={webhook.id} value={webhook.id.toString()}>
                             {webhook.name}
                           </SelectItem>
@@ -1242,10 +1242,10 @@ function TemplatesTab() {
   });
   
   const previewMutation = (trpc.webhook.previewTemplate as any).useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       setPreviewResult(result);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("admin.webhook.previewFailed")}: ${error.message}`);
     },
   });

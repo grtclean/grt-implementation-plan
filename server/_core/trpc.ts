@@ -250,11 +250,11 @@ export function requirePermission(permissionCode: string) {
   return protectedProcedure.use(
     t.middleware(async ({ ctx, next }) => {
       // Admin fallback: admin role always passes
-      if (ctx.user.role === 'admin') {
+      if (ctx.user!.role === 'admin') {
         return next({ ctx });
       }
 
-      const ok = await safeCheckPermission(ctx.user.openId || String(ctx.user.id), permissionCode);
+      const ok = await safeCheckPermission(ctx.user!.openId || String(ctx.user!.id), permissionCode);
       if (!ok) {
         throw new TRPCError({
           code: "FORBIDDEN",

@@ -31,7 +31,7 @@ export async function createCustomer(data: InsertCrmCustomer) {
       ...data,
       customerCode: code,
     });
-    return { id: result[0].insertId, customerCode: code };
+    return { id: (result as any)[0].insertId, customerCode: code };
   } catch (error) {
     log.error({ err: error }, "Failed to create customer");
     throw error;
@@ -107,7 +107,7 @@ export async function createContact(data: InsertCrmContact) {
 
   try {
     const result = await db.insert(crmContacts).values(data);
-    return { id: result[0].insertId };
+    return { id: (result as any)[0].insertId };
   } catch (error) {
     log.error({ err: error }, "Failed to create contact");
     throw error;
@@ -181,7 +181,7 @@ export async function createOpportunity(data: InsertCrmOpportunity) {
       ...data,
       opportunityCode: code,
     });
-    return { id: result[0].insertId, opportunityCode: code };
+    return { id: (result as any)[0].insertId, opportunityCode: code };
   } catch (error) {
     log.error({ err: error }, "Failed to create opportunity");
     throw error;
@@ -263,7 +263,7 @@ export async function createBantScore(data: InsertCrmBantScore) {
       ...data,
       totalScore,
     });
-    return { id: result[0].insertId };
+    return { id: (result as any)[0].insertId };
   } catch (error) {
     log.error({ err: error }, "Failed to create BANT score");
     throw error;
@@ -300,7 +300,7 @@ export async function createFollowUp(data: InsertCrmFollowUp) {
 
   try {
     const result = await db.insert(crmFollowUps).values(data);
-    return { id: result[0].insertId };
+    return { id: (result as any)[0].insertId };
   } catch (error) {
     log.error({ err: error }, "Failed to create follow-up");
     throw error;

@@ -13,6 +13,39 @@ const log = createChildLogger("qm-perf");
 // 类型定义
 // ============================================================
 
+/** Generic row type for raw SQL query results */
+type DbRow = Record<string, unknown>;
+
+/** Shape returned by db.execute — may have .rows or be the array directly */
+interface DbExecuteResult {
+  rows?: DbRow[];
+  insertId?: number;
+  [key: string]: unknown;
+}
+
+/** Helper to extract rows from db.execute result */
+function extractRows(result: DbExecuteResult | DbRow[]): DbRow[] {
+  if (Array.isArray(result)) return result;
+  return (result.rows ?? []) as DbRow[];
+}
+
+/** Detected bottleneck record */
+interface DetectedBottleneck {
+  processCode: unknown;
+  type: 'time_delay' | 'material_wait' | 'quality_rework';
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  avgDelay?: unknown;
+  affected: unknown;
+  description: string;
+}
+
+/** AI bottleneck suggestion */
+interface BottleneckSuggestion {
+  processCode: string;
+  suggestion: string;
+  priority: string;
+}
+
 // --- 质量检查 ---
 export interface QualityCheckpoint {
   id?: number;
@@ -38,7 +71,7 @@ export interface QualityCheckResult {
   result: 'pass' | 'fail' | 'conditional_pass' | 'pending';
   score?: number;
   ccdImageUrl?: string;
-  ccdAnalysisData?: any;
+  ccdAnalysisData?: Record<string, unknown>;
   defectCount?: number;
   remarks?: string;
 }
@@ -110,8 +143,8 @@ export async function createQualityCheckpoint(data: QualityCheckpoint) {
             ${data.description || null}, ${data.acceptanceCriteria || null},
             ${data.isMandatory !== false}, ${data.sortOrder || 0},
             ${data.createdBy || null}, ${now}, ${now})
-  `) as any;
-  return { id: (result.rows?.[0] ?? result).insertId ?? result.insertId, ...data, createdAt: now };
+  `) as unknown as DbExecuteResult;
+  return { id: ((result.rows?.[0] ?? result) as DbRow).insertId ?? result.insertId, ...data, createdAt: now };
 }
 
 /** 获取项目工序的质量检查点列表 */
@@ -122,15 +155,15 @@ export async function getQualityCheckpoints(projectId: string, processCode?: str
       SELECT * FROM quality_checkpoints
       WHERE project_id = ${projectId} AND process_code = ${processCode}
       ORDER BY sort_order ASC, created_at ASC
-    `) as any;
-    return rows.rows ?? rows;
+    `) as unknown as DbExecuteResult | DbRow[];
+    return extractRows(rows);
   }
   const rows = await db.execute(sql`
     SELECT * FROM quality_checkpoints
     WHERE project_id = ${projectId}
     ORDER BY process_code ASC, sort_order ASC
-  `) as any;
-  return rows.rows ?? rows;
+  `) as unknown as DbExecuteResult | DbRow[];
+  return extractRows(rows);
 }
 
 /** 更新质量检查点 */
@@ -175,8 +208,8 @@ export async function submitCheckResult(data: QualityCheckResult) {
             ${data.result}, ${data.score || null}, ${data.ccdImageUrl || null},
             ${data.ccdAnalysisData ? JSON.stringify(data.ccdAnalysisData) : null},
             ${data.defectCount || 0}, ${data.remarks || null}, ${now}, ${now})
-  `) as any;
-  return { id: (result.rows?.[0] ?? result).insertId ?? result.insertId, ...data, checkedAt: now };
+  `) as unknown as DbExecuteResult;
+  return { id: ((result.rows?.[0] ?? result) as DbRow).insertId ?? result.insertId, ...data, checkedAt: now };
 }
 
 /** 获取检查结果列表 */
@@ -189,8 +222,8 @@ export async function getCheckResults(projectId: string, processCode?: string) {
       JOIN quality_checkpoints c ON r.checkpoint_id = c.id
       WHERE r.project_id = ${projectId} AND r.process_code = ${processCode}
       ORDER BY r.created_at DESC
-    `) as any;
-    return rows.rows ?? rows;
+    `) as unknown as DbExecuteResult | DbRow[];
+    return extractRows(rows);
   }
   const rows = await db.execute(sql`
     SELECT r.*, c.checkpoint_name, c.checkpoint_type, c.acceptance_criteria
@@ -198,8 +231,8 @@ export async function getCheckResults(projectId: string, processCode?: string) {
     JOIN quality_checkpoints c ON r.checkpoint_id = c.id
     WHERE r.project_id = ${projectId}
     ORDER BY r.process_code ASC, r.created_at DESC
-  `) as any;
-  return rows.rows ?? rows;
+  `) as unknown as DbExecuteResult | DbRow[];
+  return extractRows(rows);
 }
 
 /** AI分析CCD视觉检测结果 */
@@ -261,7 +294,7 @@ export async function analyzeCCDImage(imageUrl: string, checkpointName: string, 
       }
     });
     const content = response.choices?.[0]?.message?.content;
-    return content ? JSON.parse(content) : null;
+    return content ? JSON.parse(content) as unknown : null;
   } catch (error) {
     log.error({ err: error }, "CCD analysis error");
     return null;
@@ -286,34 +319,34 @@ export async function createQualityDefect(data: QualityDefect) {
             ${data.imageUrl || null}, ${data.rootCause || null},
             ${data.correctiveAction || null}, ${data.assignedTo || null},
             'open', ${now}, ${now})
-  `) as any;
-  return { id: (result.rows?.[0] ?? result).insertId ?? result.insertId, ...data, status: 'open', createdAt: now };
+  `) as unknown as DbExecuteResult;
+  return { id: ((result.rows?.[0] ?? result) as DbRow).insertId ?? result.insertId, ...data, status: 'open', createdAt: now };
 }
 
 /** 获取缺陷列表 */
 export async function getQualityDefects(projectId: string, processCode?: string, status?: string) {
   const db = await requireDb();
-  let queryResult: any;
+  let queryResult: DbExecuteResult | DbRow[];
   if (processCode && status) {
     queryResult = await db.execute(sql`
       SELECT * FROM quality_defects
       WHERE project_id = ${projectId} AND process_code = ${processCode} AND status = ${status}
       ORDER BY FIELD(severity, 'critical', 'major', 'minor', 'cosmetic'), created_at DESC
-    `) as any;
+    `) as unknown as DbExecuteResult | DbRow[];
   } else if (processCode) {
     queryResult = await db.execute(sql`
       SELECT * FROM quality_defects
       WHERE project_id = ${projectId} AND process_code = ${processCode}
       ORDER BY FIELD(severity, 'critical', 'major', 'minor', 'cosmetic'), created_at DESC
-    `) as any;
+    `) as unknown as DbExecuteResult | DbRow[];
   } else {
     queryResult = await db.execute(sql`
       SELECT * FROM quality_defects
       WHERE project_id = ${projectId}
       ORDER BY FIELD(severity, 'critical', 'major', 'minor', 'cosmetic'), created_at DESC
-    `) as any;
+    `) as unknown as DbExecuteResult | DbRow[];
   }
-  return queryResult.rows ?? queryResult;
+  return extractRows(queryResult);
 }
 
 /** 更新缺陷状态 */
@@ -347,7 +380,7 @@ export async function getQualityDashboardStats(projectId: string) {
       SUM(CASE WHEN result = 'pending' THEN 1 ELSE 0 END) as pending_count,
       AVG(score) as avg_score
     FROM quality_check_results WHERE project_id = ${projectId}
-  `) as any;
+  `) as unknown as DbExecuteResult | DbRow[];
 
   // 缺陷统计
   const defectStats = await db.execute(sql`
@@ -359,7 +392,7 @@ export async function getQualityDashboardStats(projectId: string) {
       SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open_count,
       SUM(CASE WHEN status = 'resolved' OR status = 'closed' THEN 1 ELSE 0 END) as resolved_count
     FROM quality_defects WHERE project_id = ${projectId}
-  `) as any;
+  `) as unknown as DbExecuteResult | DbRow[];
 
   // 按工序统计合格率
   const processStats = await db.execute(sql`
@@ -372,25 +405,25 @@ export async function getQualityDashboardStats(projectId: string) {
     WHERE project_id = ${projectId}
     GROUP BY process_code
     ORDER BY process_code
-  `) as any;
+  `) as unknown as DbExecuteResult | DbRow[];
 
   // 缺陷类型分布
   const defectTypeDistribution = await db.execute(sql`
     SELECT defect_type, COUNT(*) as count
     FROM quality_defects WHERE project_id = ${projectId}
     GROUP BY defect_type ORDER BY count DESC
-  `) as any;
+  `) as unknown as DbExecuteResult | DbRow[];
 
-  const resultStatsRows = resultStats.rows ?? resultStats;
-  const defectStatsRows = defectStats.rows ?? defectStats;
-  const processStatsRows = processStats.rows ?? processStats;
-  const defectTypeRows = defectTypeDistribution.rows ?? defectTypeDistribution;
+  const resultStatsRows = extractRows(resultStats);
+  const defectStatsRows = extractRows(defectStats);
+  const processStatsRows = extractRows(processStats);
+  const defectTypeRows = extractRows(defectTypeDistribution);
 
   return {
-    results: (resultStatsRows as any[])[0] || {},
-    defects: (defectStatsRows as any[])[0] || {},
-    processPassRates: processStatsRows as any[],
-    defectTypeDistribution: defectTypeRows as any[],
+    results: (resultStatsRows as DbRow[])[0] || {},
+    defects: (defectStatsRows as DbRow[])[0] || {},
+    processPassRates: processStatsRows as DbRow[],
+    defectTypeDistribution: defectTypeRows as DbRow[],
   };
 }
 
@@ -410,8 +443,8 @@ export async function createMaterialFlow(data: MaterialFlowRecord) {
             ${data.fromProcess || null}, ${data.toProcess}, ${data.quantity || 1},
             'in_transit', ${data.operatorId || null}, ${data.operatorName || null},
             ${now}, ${data.remarks || null}, ${now})
-  `) as any;
-  return { id: (result.rows?.[0] ?? result).insertId ?? result.insertId, ...data, status: 'in_transit', transitStartTime: now };
+  `) as unknown as DbExecuteResult;
+  return { id: ((result.rows?.[0] ?? result) as DbRow).insertId ?? result.insertId, ...data, status: 'in_transit', transitStartTime: now };
 }
 
 /** 更新物料流转状态 */
@@ -423,9 +456,9 @@ export async function updateMaterialFlowStatus(id: number, status: string) {
     // 计算流转耗时
     const existing = await db.execute(sql`
       SELECT transit_start_time FROM material_flow_records WHERE id = ${id}
-    `) as any;
-    const existingRows = existing.rows ?? existing;
-    const record = (existingRows as any[])[0];
+    `) as unknown as DbExecuteResult | DbRow[];
+    const existingRows = extractRows(existing);
+    const record = (existingRows as DbRow[])[0];
     const duration = record ? (now - Number(record.transit_start_time)) / 60000 : 0;
 
     await db.execute(sql`
@@ -451,15 +484,15 @@ export async function getMaterialFlowRecords(projectId: string, processCode?: st
       SELECT * FROM material_flow_records
       WHERE project_id = ${projectId} AND (from_process = ${processCode} OR to_process = ${processCode})
       ORDER BY created_at DESC
-    `) as any;
-    return rows.rows ?? rows;
+    `) as unknown as DbExecuteResult | DbRow[];
+    return extractRows(rows);
   }
   const rows = await db.execute(sql`
     SELECT * FROM material_flow_records
     WHERE project_id = ${projectId}
     ORDER BY created_at DESC
-  `) as any;
-  return rows.rows ?? rows;
+  `) as unknown as DbExecuteResult | DbRow[];
+  return extractRows(rows);
 }
 
 /** 更新物料UWB位置 */
@@ -470,10 +503,10 @@ export async function updateMaterialLocation(data: MaterialLocation) {
   // Upsert: 如果存在则更新，否则插入
   const existing = await db.execute(sql`
     SELECT id FROM material_locations WHERE material_id = ${data.materialId} LIMIT 1
-  `) as any;
-  const existingRows = existing.rows ?? existing;
+  `) as unknown as DbExecuteResult | DbRow[];
+  const existingRows = extractRows(existing);
 
-  if ((existingRows as any[]).length > 0) {
+  if ((existingRows as DbRow[]).length > 0) {
     await db.execute(sql`
       UPDATE material_locations SET
         project_id = COALESCE(${data.projectId || null}, project_id),
@@ -508,13 +541,13 @@ export async function getMaterialLocations(projectId?: string) {
   if (projectId) {
     const rows = await db.execute(sql`
       SELECT * FROM material_locations WHERE project_id = ${projectId} ORDER BY updated_at DESC
-    `) as any;
-    return rows.rows ?? rows;
+    `) as unknown as DbExecuteResult | DbRow[];
+    return extractRows(rows);
   }
   const rows = await db.execute(sql`
     SELECT * FROM material_locations ORDER BY updated_at DESC
-  `) as any;
-  return rows.rows ?? rows;
+  `) as unknown as DbExecuteResult | DbRow[];
+  return extractRows(rows);
 }
 
 /** 物料流转统计（T1-T15工序间流转图数据） */
@@ -532,7 +565,7 @@ export async function getMaterialFlowStats(projectId: string) {
     WHERE project_id = ${projectId} AND from_process IS NOT NULL
     GROUP BY from_process, to_process
     ORDER BY from_process, to_process
-  `) as any;
+  `) as unknown as DbExecuteResult | DbRow[];
 
   // 各工序物料状态统计
   const processStats = await db.execute(sql`
@@ -546,19 +579,19 @@ export async function getMaterialFlowStats(projectId: string) {
     FROM material_flow_records
     WHERE project_id = ${projectId}
     GROUP BY to_process ORDER BY to_process
-  `) as any;
+  `) as unknown as DbExecuteResult | DbRow[];
 
   // 静止物料（潜在瓶颈）
   const stationaryMaterials = await db.execute(sql`
     SELECT * FROM material_locations
     WHERE project_id = ${projectId} AND is_stationary = TRUE AND stationary_duration_minutes > 30
     ORDER BY stationary_duration_minutes DESC
-  `) as any;
+  `) as unknown as DbExecuteResult | DbRow[];
 
   return {
-    flowBetweenProcesses: (flowStats.rows ?? flowStats) as any[],
-    processStatus: (processStats.rows ?? processStats) as any[],
-    stationaryAlerts: (stationaryMaterials.rows ?? stationaryMaterials) as any[],
+    flowBetweenProcesses: extractRows(flowStats),
+    processStatus: extractRows(processStats),
+    stationaryAlerts: extractRows(stationaryMaterials),
   };
 }
 
@@ -570,7 +603,7 @@ export async function getMaterialFlowStats(projectId: string) {
 export async function detectBottlenecks(projectId: string) {
   const db = await requireDb();
   const now = Date.now();
-  const detectedBottlenecks: any[] = [];
+  const detectedBottlenecks: DetectedBottleneck[] = [];
 
   // 1. 时间延迟瓶颈：平均流转时间超过60分钟的工序
   const timeDelaysResult = await db.execute(sql`
@@ -582,18 +615,19 @@ export async function detectBottlenecks(projectId: string) {
     WHERE project_id = ${projectId} AND transit_duration_minutes > 60
     GROUP BY to_process
     HAVING AVG(transit_duration_minutes) > 60
-  `) as any;
-  const timeDelays = (timeDelaysResult.rows ?? timeDelaysResult) as any[];
+  `) as unknown as DbExecuteResult | DbRow[];
+  const timeDelays = extractRows(timeDelaysResult);
 
   for (const delay of timeDelays) {
-    const severity = delay.avg_delay > 240 ? 'critical' : delay.avg_delay > 120 ? 'high' : 'medium';
+    const avgDelay = Number(delay.avg_delay);
+    const severity = avgDelay > 240 ? 'critical' as const : avgDelay > 120 ? 'high' as const : 'medium' as const;
     detectedBottlenecks.push({
       processCode: delay.process_code,
       type: 'time_delay',
       severity,
       avgDelay: delay.avg_delay,
       affected: delay.affected_count,
-      description: `工序${delay.process_code}平均物料流转耗时${Math.round(delay.avg_delay)}分钟，超出标准阈值`,
+      description: `工序${delay.process_code}平均物料流转耗时${Math.round(avgDelay)}分钟，超出标准阈值`,
     });
   }
 
@@ -603,14 +637,14 @@ export async function detectBottlenecks(projectId: string) {
     FROM material_locations
     WHERE project_id = ${projectId} AND is_stationary = TRUE AND stationary_duration_minutes > 120
     GROUP BY current_process
-  `) as any;
-  const materialWaits = (materialWaitsResult.rows ?? materialWaitsResult) as any[];
+  `) as unknown as DbExecuteResult | DbRow[];
+  const materialWaits = extractRows(materialWaitsResult);
 
   for (const wait of materialWaits) {
     detectedBottlenecks.push({
       processCode: wait.process_code,
       type: 'material_wait',
-      severity: wait.waiting_count > 5 ? 'high' : 'medium',
+      severity: Number(wait.waiting_count) > 5 ? 'high' : 'medium',
       affected: wait.waiting_count,
       description: `工序${wait.process_code}有${wait.waiting_count}个物料等待超过2小时`,
     });
@@ -627,14 +661,15 @@ export async function detectBottlenecks(projectId: string) {
     WHERE project_id = ${projectId}
     GROUP BY process_code
     HAVING fail_rate > 10
-  `) as any;
-  const qualityIssues = (qualityIssuesResult.rows ?? qualityIssuesResult) as any[];
+  `) as unknown as DbExecuteResult | DbRow[];
+  const qualityIssues = extractRows(qualityIssuesResult);
 
   for (const issue of qualityIssues) {
+    const failRate = Number(issue.fail_rate);
     detectedBottlenecks.push({
       processCode: issue.process_code,
       type: 'quality_rework',
-      severity: issue.fail_rate > 30 ? 'critical' : issue.fail_rate > 20 ? 'high' : 'medium',
+      severity: failRate > 30 ? 'critical' : failRate > 20 ? 'high' : 'medium',
       affected: issue.fail_count,
       description: `工序${issue.process_code}质量不合格率${issue.fail_rate}%，需要返工`,
     });
@@ -669,7 +704,7 @@ export async function detectBottlenecks(projectId: string) {
       });
       const content = response.choices?.[0]?.message?.content;
       if (content) {
-        const suggestions = JSON.parse(content);
+        const suggestions = JSON.parse(content) as { suggestions?: BottleneckSuggestion[] };
         // 更新瓶颈记录的建议
         for (const s of suggestions.suggestions || []) {
           await db.execute(sql`
@@ -695,15 +730,15 @@ export async function getBottlenecks(projectId: string, status?: string) {
       SELECT * FROM production_bottlenecks
       WHERE project_id = ${projectId} AND status = ${status}
       ORDER BY FIELD(severity, 'critical', 'high', 'medium', 'low'), detected_at DESC
-    `) as any;
-    return rows.rows ?? rows;
+    `) as unknown as DbExecuteResult | DbRow[];
+    return extractRows(rows);
   }
   const rows = await db.execute(sql`
     SELECT * FROM production_bottlenecks
     WHERE project_id = ${projectId}
     ORDER BY FIELD(severity, 'critical', 'high', 'medium', 'low'), detected_at DESC
-  `) as any;
-  return rows.rows ?? rows;
+  `) as unknown as DbExecuteResult | DbRow[];
+  return extractRows(rows);
 }
 
 /** 更新瓶颈状态 */
@@ -739,8 +774,8 @@ export async function calculateWorkerPerformance(workerId: string, workerName: s
     FROM work_time_records
     WHERE worker_id = ${workerId}
       AND start_time >= ${periodStart} AND start_time <= ${periodEnd}
-  `) as any;
-  const timeRecords = (timeRecordsResult.rows ?? timeRecordsResult) as any[];
+  `) as unknown as DbExecuteResult | DbRow[];
+  const timeRecords = extractRows(timeRecordsResult);
 
   // 获取质量记录
   const qualityRecordsResult = await db.execute(sql`
@@ -751,8 +786,8 @@ export async function calculateWorkerPerformance(workerId: string, workerName: s
     FROM quality_check_results
     WHERE inspector_id = ${workerId}
       AND created_at >= ${periodStart} AND created_at <= ${periodEnd}
-  `) as any;
-  const qualityRecords = (qualityRecordsResult.rows ?? qualityRecordsResult) as any[];
+  `) as unknown as DbExecuteResult | DbRow[];
+  const qualityRecords = extractRows(qualityRecordsResult);
 
   const timeData = timeRecords[0] || {};
   const qualityData = qualityRecords[0] || {};
@@ -780,8 +815,8 @@ export async function calculateWorkerPerformance(workerId: string, workerName: s
     WHERE worker_id = ${workerId} AND period_type = ${periodType}
       AND period_start = ${periodStart} AND period_end = ${periodEnd}
     LIMIT 1
-  `) as any;
-  const existing = (existingResult.rows ?? existingResult) as any[];
+  `) as unknown as DbExecuteResult | DbRow[];
+  const existing = extractRows(existingResult);
 
   if (existing.length > 0) {
     const existingId = existing[0].id;
@@ -823,7 +858,7 @@ export async function getPerformanceLeaderboard(query: WorkerPerformanceQuery) {
   const db = await requireDb();
   const limit = query.limit || 20;
 
-  let rowsResult: any;
+  let rowsResult: DbExecuteResult | DbRow[];
   if (query.periodStart && query.periodEnd) {
     rowsResult = await db.execute(sql`
       SELECT * FROM worker_performance_records
@@ -831,7 +866,7 @@ export async function getPerformanceLeaderboard(query: WorkerPerformanceQuery) {
         AND period_start >= ${query.periodStart} AND period_end <= ${query.periodEnd}
       ORDER BY overall_score DESC
       LIMIT ${limit}
-    `) as any;
+    `) as unknown as DbExecuteResult | DbRow[];
   } else {
     // 获取最新一个周期的排行
     rowsResult = await db.execute(sql`
@@ -839,13 +874,13 @@ export async function getPerformanceLeaderboard(query: WorkerPerformanceQuery) {
       WHERE period_type = ${query.periodType}
       ORDER BY period_start DESC, overall_score DESC
       LIMIT ${limit}
-    `) as any;
+    `) as unknown as DbExecuteResult | DbRow[];
   }
 
-  const rows = (rowsResult.rows ?? rowsResult) as any[];
+  const rows = extractRows(rowsResult);
 
   // 添加排名
-  const ranked = rows.map((row: any, index: number) => ({
+  const ranked = rows.map((row: DbRow, index: number) => ({
     ...row,
     rank: index + 1,
   }));
@@ -861,8 +896,8 @@ export async function getWorkerPerformanceTrend(workerId: string, periodType: 'd
     WHERE worker_id = ${workerId} AND period_type = ${periodType}
     ORDER BY period_start DESC
     LIMIT ${limit || 12}
-  `) as any;
-  const rows = (rowsResult.rows ?? rowsResult) as any[];
+  `) as unknown as DbExecuteResult | DbRow[];
+  const rows = extractRows(rowsResult);
   return rows.reverse(); // 按时间正序返回
 }
 
@@ -883,6 +918,6 @@ export async function getTeamPerformanceComparison(periodType: 'daily' | 'weekly
       AND period_start >= ${periodStart} AND period_end <= ${periodEnd}
     GROUP BY worker_id, worker_name
     ORDER BY avg_score DESC
-  `) as any;
-  return rowsResult.rows ?? rowsResult;
+  `) as unknown as DbExecuteResult | DbRow[];
+  return extractRows(rowsResult);
 }

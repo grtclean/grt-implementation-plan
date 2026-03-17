@@ -22,7 +22,7 @@ export async function createMigrationTask(data: InsertMigrationTask) {
 
   try {
     const result = await db.insert(migrationTasks).values(data);
-    return { id: result[0].insertId };
+    return { id: (result as any)[0].insertId };
   } catch (error) {
     log.error({ err: error }, "Failed to create migration task");
     throw error;

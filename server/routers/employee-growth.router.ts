@@ -104,7 +104,7 @@ const materialRouter = router({
       const db = await requireDb();
       const [row] = await db.insert(trainingMaterials).values({
         ...input,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       }).returning();
       log.info({ materialId: row.id, code: input.code }, "Training material created");
       return row;
@@ -187,7 +187,7 @@ const stagePlanRouter = router({
     .query(async ({ ctx }) => {
       const db = await requireDb();
       return db.select().from(trainingStagePlans)
-        .where(eq(trainingStagePlans.userId, ctx.user.id))
+        .where(eq(trainingStagePlans.userId, ctx.user!.id))
         .orderBy(asc(trainingStagePlans.dueDate));
     }),
 
@@ -225,7 +225,7 @@ const stagePlanRouter = router({
       const db = await requireDb();
       const [row] = await db.insert(trainingStagePlans).values({
         ...input,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       }).returning();
       log.info({ planId: row.id, stage: input.lifecycleStage, employeeId: input.employeeId }, "Stage plan created");
       return row;
@@ -293,7 +293,7 @@ const stagePlanRouter = router({
           userId: input.userId,
           status: "pending" as const,
           completionCriteria: { testRequired: true, minScore: 60, managerApproval: true },
-          createdBy: ctx.user.id,
+          createdBy: ctx.user!.id,
         })),
       ).returning();
 
@@ -326,7 +326,7 @@ const stagePlanRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
       const [plan] = await db.select().from(trainingStagePlans)
-        .where(and(eq(trainingStagePlans.id, input.id), eq(trainingStagePlans.userId, ctx.user.id)))
+        .where(and(eq(trainingStagePlans.id, input.id), eq(trainingStagePlans.userId, ctx.user!.id)))
         .limit(1);
       if (!plan) throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
 
@@ -348,7 +348,7 @@ const stagePlanRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
       const [row] = await db.update(trainingStagePlans).set({
-        supervisorSignoff: ctx.user.id,
+        supervisorSignoff: ctx.user!.id,
         supervisorSignoffAt: new Date(),
         status: "completed",
         completedAt: new Date(),
@@ -403,7 +403,7 @@ const rewardPenaltyRouter = router({
     .query(async ({ ctx, input }) => {
       const db = await requireDb();
       const { type, startDate, endDate, page = 1, pageSize = 20 } = input ?? {};
-      const targetUserId = input?.userId ?? ctx.user.id;
+      const targetUserId = input?.userId ?? ctx.user!.id;
       const conditions = [eq(employeeRewardsPenalties.userId, targetUserId)];
       if (type) conditions.push(eq(employeeRewardsPenalties.type, type));
       if (startDate) conditions.push(gte(employeeRewardsPenalties.issuedAt, startDate));
@@ -438,7 +438,7 @@ const rewardPenaltyRouter = router({
       const db = await requireDb();
       const [row] = await db.insert(employeeRewardsPenalties).values({
         ...input,
-        issuedBy: ctx.user.id,
+        issuedBy: ctx.user!.id,
         period: input.period ?? input.issuedAt.slice(0, 7),
       }).returning();
       log.info({ id: row.id, type: input.type, userId: input.userId }, "Reward/penalty created");
@@ -449,7 +449,7 @@ const rewardPenaltyRouter = router({
     .input(z.object({ userId: z.number().optional() }))
     .query(async ({ ctx, input }) => {
       const db = await requireDb();
-      const targetId = input?.userId ?? ctx.user.id;
+      const targetId = input?.userId ?? ctx.user!.id;
       return db.select().from(employeeRewardsPenalties)
         .where(eq(employeeRewardsPenalties.userId, targetId))
         .orderBy(desc(employeeRewardsPenalties.issuedAt))
@@ -460,7 +460,7 @@ const rewardPenaltyRouter = router({
     .input(z.object({ userId: z.number().optional(), year: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const db = await requireDb();
-      const targetId = input?.userId ?? ctx.user.id;
+      const targetId = input?.userId ?? ctx.user!.id;
       const yearPrefix = input?.year ?? new Date().getFullYear().toString();
       const rows = await db.select().from(employeeRewardsPenalties)
         .where(and(
@@ -488,7 +488,7 @@ const rewardPenaltyRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
       const [row] = await db.select().from(employeeRewardsPenalties)
-        .where(and(eq(employeeRewardsPenalties.id, input.id), eq(employeeRewardsPenalties.userId, ctx.user.id)))
+        .where(and(eq(employeeRewardsPenalties.id, input.id), eq(employeeRewardsPenalties.userId, ctx.user!.id)))
         .limit(1);
       if (!row) throw new TRPCError({ code: "NOT_FOUND" });
       if (row.type !== "penalty") throw new TRPCError({ code: "BAD_REQUEST", message: "Can only appeal penalties" });
@@ -516,7 +516,7 @@ const rewardPenaltyRouter = router({
     .input(z.object({ userId: z.number().optional(), period: z.string() }))
     .query(async ({ ctx, input }) => {
       const db = await requireDb();
-      const targetId = input.userId ?? ctx.user.id;
+      const targetId = input.userId ?? ctx.user!.id;
       return db.select().from(employeeRewardsPenalties)
         .where(and(
           eq(employeeRewardsPenalties.userId, targetId),
@@ -535,7 +535,7 @@ const taskMetricsRouter = router({
     .input(z.object({ userId: z.number().optional(), limit: z.number().default(12) }))
     .query(async ({ ctx, input }) => {
       const db = await requireDb();
-      const targetId = input.userId ?? ctx.user.id;
+      const targetId = input.userId ?? ctx.user!.id;
       return db.select().from(employeeTaskMetrics)
         .where(eq(employeeTaskMetrics.userId, targetId))
         .orderBy(desc(employeeTaskMetrics.period))
@@ -620,7 +620,7 @@ const taskMetricsRouter = router({
     .input(z.object({ userId: z.number().optional(), months: z.number().default(12) }))
     .query(async ({ ctx, input }) => {
       const db = await requireDb();
-      const targetId = input.userId ?? ctx.user.id;
+      const targetId = input.userId ?? ctx.user!.id;
       return db.select().from(employeeTaskMetrics)
         .where(eq(employeeTaskMetrics.userId, targetId))
         .orderBy(asc(employeeTaskMetrics.period))
@@ -644,7 +644,7 @@ const cloudHallAccessRouter = router({
       const db = await requireDb();
       const [existing] = await db.select().from(cloudHallAccessGrants)
         .where(and(
-          eq(cloudHallAccessGrants.userId, ctx.user.id),
+          eq(cloudHallAccessGrants.userId, ctx.user!.id),
           eq(cloudHallAccessGrants.contentId, input.contentId),
         )).limit(1);
 
@@ -663,10 +663,10 @@ const cloudHallAccessRouter = router({
       }
 
       const [row] = await db.insert(cloudHallAccessGrants).values({
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         ...input,
       }).returning();
-      log.info({ userId: ctx.user.id, contentId: input.contentId }, "Cloud hall access requested");
+      log.info({ userId: ctx.user!.id, contentId: input.contentId }, "Cloud hall access requested");
       return row;
     }),
 
@@ -674,7 +674,7 @@ const cloudHallAccessRouter = router({
     .query(async ({ ctx }) => {
       const db = await requireDb();
       return db.select().from(cloudHallAccessGrants)
-        .where(eq(cloudHallAccessGrants.userId, ctx.user.id))
+        .where(eq(cloudHallAccessGrants.userId, ctx.user!.id))
         .orderBy(desc(cloudHallAccessGrants.requestedAt));
     }),
 
@@ -699,7 +699,7 @@ const cloudHallAccessRouter = router({
       until.setDate(until.getDate() + input.validDays);
       const [row] = await db.update(cloudHallAccessGrants).set({
         grantStatus: "approved",
-        approvedBy: ctx.user.id,
+        approvedBy: ctx.user!.id,
         approvedAt: now,
         validFrom: now,
         validUntil: until,
@@ -714,7 +714,7 @@ const cloudHallAccessRouter = router({
       const db = await requireDb();
       const [row] = await db.update(cloudHallAccessGrants).set({
         grantStatus: "rejected",
-        approvedBy: ctx.user.id,
+        approvedBy: ctx.user!.id,
         rejectedReason: input.reason,
         updatedAt: new Date(),
       }).where(eq(cloudHallAccessGrants.id, input.id)).returning();
@@ -737,7 +737,7 @@ const cloudHallAccessRouter = router({
       const db = await requireDb();
       return db.select().from(cloudHallAccessGrants)
         .where(and(
-          eq(cloudHallAccessGrants.userId, ctx.user.id),
+          eq(cloudHallAccessGrants.userId, ctx.user!.id),
           eq(cloudHallAccessGrants.grantStatus, "approved"),
         ))
         .orderBy(desc(cloudHallAccessGrants.approvedAt));
@@ -752,7 +752,7 @@ const cloudHallAccessRouter = router({
         lastAccessedAt: new Date(),
       }).where(and(
         eq(cloudHallAccessGrants.id, input.id),
-        eq(cloudHallAccessGrants.userId, ctx.user.id),
+        eq(cloudHallAccessGrants.userId, ctx.user!.id),
       ));
       return { success: true };
     }),
@@ -772,7 +772,7 @@ const periodicReportRouter = router({
       const db = await requireDb();
       const [existing] = await db.select().from(employeePeriodicReports)
         .where(and(
-          eq(employeePeriodicReports.userId, ctx.user.id),
+          eq(employeePeriodicReports.userId, ctx.user!.id),
           eq(employeePeriodicReports.reportType, input.reportType),
           eq(employeePeriodicReports.period, input.period),
         )).limit(1);
@@ -782,7 +782,7 @@ const periodicReportRouter = router({
       // Auto-create empty report
       const title = generateReportTitle(input.reportType, input.period);
       const [row] = await db.insert(employeePeriodicReports).values({
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         reportType: input.reportType,
         period: input.period,
         title,
@@ -815,7 +815,7 @@ const periodicReportRouter = router({
 
       const [existing] = await db.select().from(employeePeriodicReports)
         .where(and(
-          eq(employeePeriodicReports.userId, ctx.user.id),
+          eq(employeePeriodicReports.userId, ctx.user!.id),
           eq(employeePeriodicReports.reportType, "daily"),
           eq(employeePeriodicReports.period, input.period),
         )).limit(1);
@@ -836,7 +836,7 @@ const periodicReportRouter = router({
       }
 
       const [row] = await db.insert(employeePeriodicReports).values({
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         reportType: "daily",
         period: input.period,
         title: generateReportTitle("daily", input.period),
@@ -856,7 +856,7 @@ const periodicReportRouter = router({
       const db = await requireDb();
       const [existing] = await db.select().from(employeePeriodicReports)
         .where(and(
-          eq(employeePeriodicReports.userId, ctx.user.id),
+          eq(employeePeriodicReports.userId, ctx.user!.id),
           eq(employeePeriodicReports.reportType, "weekly"),
           eq(employeePeriodicReports.period, input.period),
         )).limit(1);
@@ -876,7 +876,7 @@ const periodicReportRouter = router({
       }
 
       const [row] = await db.insert(employeePeriodicReports).values({
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         reportType: "weekly",
         period: input.period,
         title: generateReportTitle("weekly", input.period),
@@ -903,7 +903,7 @@ const periodicReportRouter = router({
         .set({ ...data, updatedAt: new Date() })
         .where(and(
           eq(employeePeriodicReports.id, id),
-          eq(employeePeriodicReports.userId, ctx.user.id),
+          eq(employeePeriodicReports.userId, ctx.user!.id),
         )).returning();
       return row;
     }),
@@ -918,7 +918,7 @@ const periodicReportRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const db = await requireDb();
-      const targetId = input.userId ?? ctx.user.id;
+      const targetId = input.userId ?? ctx.user!.id;
       const conditions = [
         eq(employeePeriodicReports.userId, targetId),
         eq(employeePeriodicReports.reportType, input.reportType),
@@ -945,7 +945,7 @@ const periodicReportRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();
       const [row] = await db.update(employeePeriodicReports).set({
-        reviewedBy: ctx.user.id,
+        reviewedBy: ctx.user!.id,
         reviewedAt: new Date(),
         managerComments: input.comments,
         status: "reviewed",
@@ -958,7 +958,7 @@ const periodicReportRouter = router({
     .input(z.object({ userId: z.number().optional() }))
     .query(async ({ ctx, input }) => {
       const db = await requireDb();
-      const targetId = input?.userId ?? ctx.user.id;
+      const targetId = input?.userId ?? ctx.user!.id;
       const rows = await db.selectDistinct({ period: employeePeriodicReports.period })
         .from(employeePeriodicReports)
         .where(eq(employeePeriodicReports.userId, targetId));
@@ -974,7 +974,7 @@ const periodicReportRouter = router({
     .input(z.object({ period: z.string(), userId: z.number().optional() }))
     .query(async ({ ctx, input }) => {
       const db = await requireDb();
-      const targetId = input.userId ?? ctx.user.id;
+      const targetId = input.userId ?? ctx.user!.id;
 
       // Parallel fetch: report + task metrics + rewards/penalties
       const [report, metrics, rp] = await Promise.all([

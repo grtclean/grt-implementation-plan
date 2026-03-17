@@ -54,7 +54,7 @@ export async function createMeetingType(data: {
   const db = await requireDb();
   if (!db) return null;
   const result = await db.insert(meetingTypes).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function updateMeetingType(id: number, data: Partial<{
@@ -148,7 +148,7 @@ export async function createMeetingSchedule(data: {
     endTime: data.endTime.slice(0, 19).replace('T', ' '),
     isRecurring: data.isRecurring ? 1 : 0,
   });
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function updateMeetingSchedule(id: number, data: Partial<{
@@ -188,7 +188,7 @@ export async function addMeetingAttendee(data: {
   const db = await requireDb();
   if (!db) return null;
   const result = await db.insert(meetingAttendees).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function updateMeetingAttendee(id: number, data: Partial<{
@@ -325,7 +325,7 @@ export async function addTrainingParticipant(data: {
   const db = await requireDb();
   if (!db) return null;
   const result = await db.insert(trainingParticipants).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 /**
@@ -353,7 +353,7 @@ export async function batchAddTrainingParticipants(trainingId: number, userIds: 
       }
       
       const result = await db.insert(trainingParticipants).values({ trainingId, userId });
-      results.push({ userId, success: true, participantId: result[0].insertId });
+      results.push({ userId, success: true, participantId: (result as any)[0].insertId });
     } catch (error) {
       results.push({ userId, success: false, message: String(error) });
     }
@@ -444,7 +444,7 @@ export async function createAnnualPlan(data: {
   const db = await requireDb();
   if (!db) return null;
   const result = await db.insert(annualPlans).values(data);
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 export async function updateAnnualPlan(id: number, data: Partial<{
@@ -534,7 +534,7 @@ export async function createMeetingReminder(data: InsertMeetingReminder) {
   if (!db) return null;
   
   const result = await db.insert(meetingReminders).values(data);
-  return { id: result[0].insertId, ...data };
+  return { id: (result as any)[0].insertId, ...data };
 }
 
 /**
@@ -580,7 +580,7 @@ export async function createTrainingAssessment(data: InsertTrainingAssessment) {
   if (!db) return null;
   
   const result = await db.insert(trainingAssessments).values(data);
-  return { id: result[0].insertId, ...data };
+  return { id: (result as any)[0].insertId, ...data };
 }
 
 /**
@@ -619,7 +619,7 @@ export async function submitAssessmentResult(data: InsertTrainingAssessmentResul
     ...data,
     isPassed,
   });
-  return { id: result[0].insertId, isPassed: isPassed === 1 };
+  return { id: (result as any)[0].insertId, isPassed: isPassed === 1 };
 }
 
 /**
@@ -666,7 +666,7 @@ export async function issueCertificate(data: InsertTrainingCertificate) {
   if (!db) return null;
   
   const result = await db.insert(trainingCertificates).values(data);
-  return { id: result[0].insertId, ...data };
+  return { id: (result as any)[0].insertId, ...data };
 }
 
 /**
@@ -714,7 +714,7 @@ export async function createCostAlertRule(data: InsertCostAlertRule) {
   if (!db) return null;
   
   const result = await db.insert(costAlertRules).values(data);
-  return { id: result[0].insertId, ...data };
+  return { id: (result as any)[0].insertId, ...data };
 }
 
 /**
@@ -792,7 +792,7 @@ export async function createCostAlertLog(data: InsertCostAlertLog) {
   if (!db) return null;
   
   const result = await db.insert(costAlertLogs).values(data);
-  return { id: result[0].insertId, ...data };
+  return { id: (result as any)[0].insertId, ...data };
 }
 
 /**
@@ -1181,5 +1181,5 @@ export async function createMeetingRemindersFromSchedule(meetingId: number, remi
     isSent: 0
   });
   
-  return { id: result[0].insertId, meetingId, reminderMinutes, reminderType };
+  return { id: (result as any)[0].insertId, meetingId, reminderMinutes, reminderType };
 }

@@ -255,12 +255,12 @@ export default function TrainingManagement() {
                       const formData = new FormData(e.currentTarget);
                       createTrainingMutation.mutate({
                         name: formData.get("title") as string,
-                        description: formData.get("description") as string || undefined,
-                        externalTrainer: formData.get("trainer") as string || undefined,
-                        trainingOrg: formData.get("location") as string || undefined,
+                        description: formData.get("description") as string || null,
+                        externalTrainer: formData.get("trainer") as string || null,
+                        trainingOrg: formData.get("location") as string || null,
                         plannedStartDate: new Date(formData.get("startTime") as string).toISOString(),
                         plannedEndDate: new Date(formData.get("endTime") as string).toISOString(),
-                        maxParticipants: parseInt(formData.get("maxParticipants") as string) || undefined,
+                        maxParticipants: parseInt(formData.get("maxParticipants") as string) || null,
                       });
                     }}
                     className="space-y-4"

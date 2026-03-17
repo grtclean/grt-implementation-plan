@@ -172,7 +172,7 @@ const deliverySubRouter = router({
           specialRequirements: input.specialRequirements,
           currentStage: "M7_Pre_Acceptance",
           status: "Pending",
-          createdBy: ctx.user.id,
+          createdBy: ctx.user!.id,
         })
         .returning();
 
@@ -404,8 +404,8 @@ const siteIssueSubRouter = router({
           severity: input.severity,
           title: input.title,
           description: input.description ?? "",
-          reportedById: ctx.user.id,
-          reportedByName: ctx.user.name,
+          reportedById: ctx.user!.id,
+          reportedByName: ctx.user!.name,
           targetResolutionDate: input.targetResolutionDate ? new Date(input.targetResolutionDate) : undefined,
           status: "Open",
         })
@@ -1101,7 +1101,7 @@ const shipmentSubRouter = router({
             totalVolume: input.totalVolume ? String(input.totalVolume) : null,
             packingListItems: JSON.stringify(packingItems),
             status: "preparing",
-            createdBy: ctx.user.id,
+            createdBy: ctx.user!.id,
           })
           .returning();
 
@@ -1194,7 +1194,7 @@ const shipmentSubRouter = router({
       try {
         const db = await requireDb();
         await db.update(deliveryShipments).set({
-          packingListApprovedBy: ctx.user.id,
+          packingListApprovedBy: ctx.user!.id,
           packingListApprovedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }).where(eq(deliveryShipments.id, input.shipmentId));
@@ -1267,8 +1267,8 @@ const shipmentSubRouter = router({
 
         await db.update(deliveryShipments).set({
           status: newStatus,
-          receivedBy: ctx.user.id,
-          receivedByName: ctx.user.name,
+          receivedBy: ctx.user!.id,
+          receivedByName: ctx.user!.name,
           receivedAt: now,
           receivingResult: input.receivingResult,
           receivingNotes: input.receivingNotes ?? null,
@@ -1379,7 +1379,7 @@ const installationSubRouter = router({
             targetCompletionDate: input.targetCompletionDate ?? null,
             startDate: new Date().toISOString(),
             status: "in_progress",
-            createdBy: ctx.user.id,
+            createdBy: ctx.user!.id,
           })
           .returning();
 
@@ -1458,7 +1458,7 @@ const installationSubRouter = router({
           ...checklist[itemIdx],
           result: input.result,
           notes: input.notes ?? checklist[itemIdx].notes,
-          completedBy: ctx.user.name,
+          completedBy: ctx.user!.name,
           completedAt: new Date().toISOString(),
         };
 
@@ -1518,7 +1518,7 @@ const installationSubRouter = router({
               ...checklist[itemIdx],
               result: update.result,
               notes: update.notes ?? checklist[itemIdx].notes,
-              completedBy: ctx.user.name,
+              completedBy: ctx.user!.name,
               completedAt: new Date().toISOString(),
             };
           }
@@ -1862,7 +1862,7 @@ const satSubRouter = router({
             uptimeTarget: input.uptimeTarget ? String(input.uptimeTarget) : null,
             qualityYieldTarget: input.qualityYieldTarget ? String(input.qualityYieldTarget) : null,
             status: "testing",
-            createdBy: ctx.user.id,
+            createdBy: ctx.user!.id,
           })
           .returning();
 
@@ -1943,7 +1943,7 @@ const satSubRouter = router({
           actual: input.actual,
           result: input.result,
           notes: input.notes ?? testItems[itemIdx].notes,
-          testedBy: ctx.user.name,
+          testedBy: ctx.user!.name,
           testedAt: new Date().toISOString(),
         };
 
@@ -2006,7 +2006,7 @@ const satSubRouter = router({
               actual: result.actual,
               result: result.result,
               notes: result.notes ?? testItems[itemIdx].notes,
-              testedBy: ctx.user.name,
+              testedBy: ctx.user!.name,
               testedAt: new Date().toISOString(),
             };
           }
@@ -2349,8 +2349,8 @@ const satSubRouter = router({
 
         const updates: Record<string, any> = {
           approvalStatus: input.approvalStatus,
-          approvedBy: ctx.user.id,
-          approvedByName: ctx.user.name,
+          approvedBy: ctx.user!.id,
+          approvedByName: ctx.user!.name,
           approvedAt: now.toISOString(),
           approvalNotes: input.notes ?? null,
           updatedAt: now.toISOString(),

@@ -186,7 +186,7 @@ export default function AISuggestionPanel({
             <p className="text-xs mt-1">AI正在学习中，稍后再试</p>
           </div>
         ) : (
-          suggestions.map((suggestion) => (
+          suggestions.map((suggestion: any) => (
             <Card
               key={suggestion.id}
               className={cn(
@@ -322,7 +322,7 @@ export default function AISuggestionPanel({
                 <div className="flex items-center gap-2">
                   {suggestions.length > 0 && (
                     <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                      {suggestions.filter((s) => s.status !== "applied").length} 待处理
+                      {suggestions.filter((s: any) => s.status !== "applied").length} 待处理
                     </Badge>
                   )}
                   {isExpanded ? (
@@ -385,7 +385,7 @@ export function AISuggestionBadge({
     { enabled: !!processType && !!processId }
   );
 
-  const count = suggestionsQuery.data?.filter((s) => s.status !== "applied").length || 0;
+  const count = suggestionsQuery.data?.filter((s: any) => s.status !== "applied").length || 0;
 
   if (count === 0) return null;
 

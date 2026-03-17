@@ -112,7 +112,7 @@ export default function CapabilityLeaderboard() {
   // 获取能力域排行榜
   const { data: domainLeaderboard, isLoading: loadingDomain } = 
     trpc.capabilityOs.getDomainLeaderboard.useQuery({ 
-      domainCode: selectedDomain !== "all" ? selectedDomain : undefined,
+      domainCode: (selectedDomain !== "all" ? selectedDomain : undefined) as any,
       limit: 50,
     });
 

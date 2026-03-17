@@ -644,10 +644,10 @@ function ReportGeneratorTab() {
           description: `已生成 ${result.reports.length} 份报告` 
         });
       } else {
-        toast({ 
-          title: "生成失败", 
-          description: result.error, 
-          variant: "destructive" 
+        toast({
+          title: "生成失败",
+          description: result.error ?? undefined,
+          variant: "destructive"
         });
       }
     },
@@ -1016,7 +1016,7 @@ function SignatureTab() {
         });
         utils.afterSales.signature.getPendingLogs.invalidate();
       } else {
-        toast({ title: "生成失败", description: result.error, variant: "destructive" });
+        toast({ title: "生成失败", description: result.error ?? undefined, variant: "destructive" });
       }
     },
   });

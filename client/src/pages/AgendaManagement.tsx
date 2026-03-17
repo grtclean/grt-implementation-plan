@@ -163,14 +163,14 @@ export default function AgendaManagement() {
       name: formData.get("name") as string,
       type: formData.get("type") as any || "internal",
       category: formData.get("category") as any || "technical",
-      description: formData.get("description") as string || undefined,
-      trainerId: formData.get("trainerId") ? parseInt(formData.get("trainerId") as string) : undefined,
-      externalTrainer: formData.get("externalTrainer") as string || undefined,
-      plannedStartDate: formData.get("plannedStartDate") ? new Date(formData.get("plannedStartDate") as string).toISOString() : undefined,
-      plannedEndDate: formData.get("plannedEndDate") ? new Date(formData.get("plannedEndDate") as string).toISOString() : undefined,
-      durationHours: formData.get("durationHours") ? parseInt(formData.get("durationHours") as string) : undefined,
-      location: formData.get("location") as string || undefined,
-      maxParticipants: formData.get("maxParticipants") ? parseInt(formData.get("maxParticipants") as string) : undefined,
+      description: formData.get("description") as string || null,
+      trainerId: formData.get("trainerId") ? parseInt(formData.get("trainerId") as string) : null,
+      externalTrainer: formData.get("externalTrainer") as string || null,
+      plannedStartDate: formData.get("plannedStartDate") ? new Date(formData.get("plannedStartDate") as string).toISOString() : null,
+      plannedEndDate: formData.get("plannedEndDate") ? new Date(formData.get("plannedEndDate") as string).toISOString() : null,
+      durationHours: formData.get("durationHours") ? parseInt(formData.get("durationHours") as string) : null,
+      location: formData.get("location") as string || null,
+      maxParticipants: formData.get("maxParticipants") ? parseInt(formData.get("maxParticipants") as string) : null,
     });
   };
 
@@ -373,7 +373,7 @@ export default function AgendaManagement() {
               </div>
             ) : meetings && meetings.length > 0 ? (
               <div className="grid gap-4">
-                {meetings.map((meeting) => (
+                {meetings.map((meeting: any) => (
                   <Card key={meeting.id} className="bg-card/50 border-border hover:border-primary/30 transition-colors">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">

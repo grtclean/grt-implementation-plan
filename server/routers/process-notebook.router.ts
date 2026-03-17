@@ -33,7 +33,7 @@ export const processNotebookRouter = router({
       processId: input.processId || `proc-${Date.now()}`,
       processStep: input.processStep,
       title: input.title,
-      createdBy: ctx.user.id,
+      createdBy: ctx.user!.id,
       status: "active" as const,
     } as any).returning();
     return { success: true, message: "笔记本已创建", data: notebook };

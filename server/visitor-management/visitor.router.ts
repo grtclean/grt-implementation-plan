@@ -134,9 +134,9 @@ export const visitorRouter = router({
       try {
         await visitorService.approveVisitorRequest(
           input.requestId,
-          String(ctx.user.id),
-          ctx.user.name || 'Unknown',
-          ctx.user.email || 'unknown@example.com',
+          String(ctx.user!.id),
+          ctx.user!.name || 'Unknown',
+          ctx.user!.email || 'unknown@example.com',
           input.comments
         );
         return { success: true };
@@ -163,8 +163,8 @@ export const visitorRouter = router({
       try {
         await visitorService.rejectVisitorRequest(
           input.requestId,
-          String(ctx.user.id),
-          ctx.user.name || 'Unknown',
+          String(ctx.user!.id),
+          ctx.user!.name || 'Unknown',
           input.reason
         );
         return { success: true };
@@ -189,8 +189,8 @@ export const visitorRouter = router({
       try {
         await visitorService.checkInVisitor(
           input.passCode,
-          String(ctx.user.id),
-          ctx.user.name || 'Unknown'
+          String(ctx.user!.id),
+          ctx.user!.name || 'Unknown'
         );
         return { success: true };
       } catch (error: any) {
@@ -214,8 +214,8 @@ export const visitorRouter = router({
       try {
         await visitorService.checkOutVisitor(
           input.passCode,
-          String(ctx.user.id),
-          ctx.user.name || 'Unknown'
+          String(ctx.user!.id),
+          ctx.user!.name || 'Unknown'
         );
         return { success: true };
       } catch (error: any) {

@@ -74,7 +74,7 @@ export const contractRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      return createContract({ ...input, createdBy: ctx.user.id });
+      return createContract({ ...input, createdBy: ctx.user!.id });
     }),
 
   update: protectedProcedure
@@ -170,7 +170,7 @@ export const contractRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      return uploadDocument({ ...input, uploadedBy: ctx.user.id });
+      return uploadDocument({ ...input, uploadedBy: ctx.user!.id });
     }),
 
   getDocuments: protectedProcedure
@@ -215,6 +215,6 @@ export const contractRouter = router({
   applyAnalysis: requirePermission('crm:contracts:manage')
     .input(z.object({ analysisId: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      return applyAnalysis(input.analysisId, ctx.user.id);
+      return applyAnalysis(input.analysisId, ctx.user!.id);
     }),
 });

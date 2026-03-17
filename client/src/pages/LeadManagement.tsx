@@ -131,7 +131,7 @@ export default function LeadManagement() {
 
   // 导入商机
   const importMutation = (trpc.leadImport as any).importFromCSV.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       setImportStatus('done');
       setImportProgress(100);
       setImportResult({
@@ -142,7 +142,7 @@ export default function LeadManagement() {
       toast.success(`${t("crm.lead.importSuccess")} ${result.successCount} ${t("crm.lead.leadsUnit")}`);
       refetchLeads();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       setImportStatus('error');
       toast.error(`${t("crm.lead.importFailed")}: ${error.message}`);
     }
@@ -154,30 +154,30 @@ export default function LeadManagement() {
       toast.success(t("crm.lead.statusUpdateSuccess"));
       refetchLeads();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("crm.lead.updateFailed")}: ${error.message}`);
     }
   });
 
   // 计算销售漏斗数据
   const funnelData = leadsData?.leads ? {
-    new: leadsData.leads.filter(l => l.status === 'new').length,
-    contacted: leadsData.leads.filter(l => l.status === 'contacted').length,
-    qualified: leadsData.leads.filter(l => l.status === 'qualified').length,
-    proposal: leadsData.leads.filter(l => l.status === 'proposal').length,
-    negotiation: leadsData.leads.filter(l => l.status === 'negotiation').length,
-    won: leadsData.leads.filter(l => l.status === 'won').length,
-    lost: leadsData.leads.filter(l => l.status === 'lost').length
+    new: leadsData.leads.filter((l: any) => l.status === 'new').length,
+    contacted: leadsData.leads.filter((l: any) => l.status === 'contacted').length,
+    qualified: leadsData.leads.filter((l: any) => l.status === 'qualified').length,
+    proposal: leadsData.leads.filter((l: any) => l.status === 'proposal').length,
+    negotiation: leadsData.leads.filter((l: any) => l.status === 'negotiation').length,
+    won: leadsData.leads.filter((l: any) => l.status === 'won').length,
+    lost: leadsData.leads.filter((l: any) => l.status === 'lost').length
   } : null;
 
   // 计算统计数据
   const stats = leadsData?.leads ? {
     total: leadsData.total,
-    highPriority: leadsData.leads.filter(l => l.priority === 'high' || l.priority === 'urgent').length,
+    highPriority: leadsData.leads.filter((l: any) => l.priority === 'high' || l.priority === 'urgent').length,
     avgConfidence: leadsData.leads.length > 0
-      ? (leadsData.leads.reduce((sum, l) => sum + l.confidence, 0) / leadsData.leads.length * 100).toFixed(1)
+      ? (leadsData.leads.reduce((sum: any, l: any) => sum + l.confidence, 0) / leadsData.leads.length * 100).toFixed(1)
       : 0,
-    totalValue: leadsData.leads.reduce((sum, l) => sum + (l.estimatedValue || 0), 0)
+    totalValue: leadsData.leads.reduce((sum: any, l: any) => sum + (l.estimatedValue || 0), 0)
   } : null;
 
   const handleStatusChange = (leadId: number, newStatus: LeadStatus) => {
@@ -276,7 +276,7 @@ export default function LeadManagement() {
     csvContent += `\n${t("crm.lead.trendAnalysis")}\n`;
     csvContent += `${t("crm.lead.month")},${t("crm.lead.newLeads")},${t("crm.lead.convertedDeals")}\n`;
     if (trendData) {
-      trendData.forEach(item => {
+      trendData.forEach((item: any) => {
         csvContent += `${item.period},${item.newLeads},${item.convertedLeads}\n`;
       });
     }
@@ -284,8 +284,8 @@ export default function LeadManagement() {
     csvContent += `\n${t("crm.lead.sourceAnalysis")}\n`;
     csvContent += `${t("crm.workbench.source")},${t("crm.lead.quantity")},${t("crm.lead.proportion")}\n`;
     if (sourceAnalysis) {
-      const total = sourceAnalysis.reduce((sum, s) => sum + s.count, 0);
-      sourceAnalysis.forEach(item => {
+      const total = sourceAnalysis.reduce((sum: any, s: any) => sum + s.count, 0);
+      sourceAnalysis.forEach((item: any) => {
         const percentage = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0';
         csvContent += `${SOURCE_LABELS[item.source] || item.source},${item.count},${percentage}%\n`;
       });
@@ -294,7 +294,7 @@ export default function LeadManagement() {
     csvContent += `\n${t("crm.lead.salesPerformance")}\n`;
     csvContent += `${t("crm.lead.salesperson")},${t("crm.lead.totalLeadsLabel")},${t("crm.lead.closedCount")},${t("crm.leads.conversionRate")},${t("crm.lead.totalAmount")}\n`;
     if (salesPerformance) {
-      salesPerformance.forEach(item => {
+      salesPerformance.forEach((item: any) => {
         csvContent += `${item.salesName},${item.totalLeads},${item.wonLeads},${item.conversionRate.toFixed(1)}%,${item.totalValue}\n`;
       });
     }
@@ -357,7 +357,7 @@ export default function LeadManagement() {
 
     htmlContent += `<h2>${t("crm.lead.trendAnalysis")}</h2><table><tr><th>${t("crm.lead.month")}</th><th>${t("crm.lead.newLeads")}</th><th>${t("crm.lead.convertedDeals")}</th></tr>`;
     if (trendData) {
-      trendData.forEach(item => {
+      trendData.forEach((item: any) => {
         htmlContent += `<tr><td>${item.period}</td><td>${item.newLeads}</td><td>${item.convertedLeads}</td></tr>`;
       });
     }
@@ -365,8 +365,8 @@ export default function LeadManagement() {
 
     htmlContent += `<h2>${t("crm.lead.sourceAnalysis")}</h2><table><tr><th>${t("crm.workbench.source")}</th><th>${t("crm.lead.quantity")}</th><th>${t("crm.lead.proportion")}</th></tr>`;
     if (sourceAnalysis) {
-      const total = sourceAnalysis.reduce((sum, s) => sum + s.count, 0);
-      sourceAnalysis.forEach(item => {
+      const total = sourceAnalysis.reduce((sum: any, s: any) => sum + s.count, 0);
+      sourceAnalysis.forEach((item: any) => {
         const percentage = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0';
         htmlContent += `<tr><td>${SOURCE_LABELS[item.source] || item.source}</td><td>${item.count}</td><td>${percentage}%</td></tr>`;
       });
@@ -375,7 +375,7 @@ export default function LeadManagement() {
 
     htmlContent += `<h2>${t("crm.lead.salesRanking")}</h2><table><tr><th>${t("crm.lead.rank")}</th><th>${t("crm.lead.salesperson")}</th><th>${t("crm.lead.totalLeadsLabel")}</th><th>${t("crm.lead.closedCount")}</th><th>${t("crm.leads.conversionRate")}</th><th>${t("crm.lead.totalAmount")}</th></tr>`;
     if (salesPerformance) {
-      salesPerformance.slice(0, 10).forEach((item, index) => {
+      salesPerformance.slice(0, 10).forEach((item: any, index: any) => {
         htmlContent += `<tr><td>${index + 1}</td><td>${item.salesName}</td><td>${item.totalLeads}</td><td>${item.wonLeads}</td><td>${item.conversionRate.toFixed(1)}%</td><td>¥${(item.totalValue / 10000).toFixed(1)}${t("crm.currencyUnit10k")}</td></tr>`;
       });
     }
@@ -479,7 +479,7 @@ export default function LeadManagement() {
               <div className="text-center py-8 text-muted-foreground">{t("crm.lead.loading")}</div>
             ) : leadsData?.leads && leadsData.leads.length > 0 ? (
               <div className="grid gap-4">
-                {leadsData.leads.map((lead) => (
+                {leadsData.leads.map((lead: any) => (
                   <Card key={lead.id} className="bg-card/50 border-border hover:border-primary/50 transition-colors cursor-pointer" onClick={() => openLeadDetail(lead as Lead)}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
@@ -512,7 +512,7 @@ export default function LeadManagement() {
                           <p className="text-sm text-muted-foreground line-clamp-2">{lead.originalContent}</p>
                           {lead.productInterest && lead.productInterest.length > 0 && (
                             <div className="flex gap-2 mt-2">
-                              {lead.productInterest.map((product, i) => (
+                              {lead.productInterest.map((product: any, i: any) => (
                                 <Badge key={i} variant="secondary" className="text-xs">{product}</Badge>
                               ))}
                             </div>
@@ -548,11 +548,11 @@ export default function LeadManagement() {
                   <CardTitle className="text-base flex items-center gap-2">
                     <Clock className="w-4 h-4 text-yellow-500" />
                     {t("crm.lead.pending")}
-                    <Badge variant="secondary">{tasksData?.filter(t => t.status === 'pending').length || 0}</Badge>
+                    <Badge variant="secondary">{tasksData?.filter((t: any) => t.status === 'pending').length || 0}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {tasksData?.filter(t => t.status === 'pending').map((task) => (
+                  {tasksData?.filter((t: any) => t.status === 'pending').map((task: any) => (
                     <div key={task.id} className="p-3 bg-muted/30 rounded-lg">
                       <p className="font-medium text-sm">{task.title}</p>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -560,7 +560,7 @@ export default function LeadManagement() {
                       </p>
                     </div>
                   ))}
-                  {(!tasksData || tasksData.filter(t => t.status === 'pending').length === 0) && (
+                  {(!tasksData || tasksData.filter((t: any) => t.status === 'pending').length === 0) && (
                     <p className="text-sm text-muted-foreground text-center py-4">{t("crm.lead.noPendingTasks")}</p>
                   )}
                 </CardContent>
@@ -584,16 +584,16 @@ export default function LeadManagement() {
                   <CardTitle className="text-base flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-green-500" />
                     {t("crm.lead.completedTasks")}
-                    <Badge variant="secondary">{tasksData?.filter(t => t.status === 'completed').length || 0}</Badge>
+                    <Badge variant="secondary">{tasksData?.filter((t: any) => t.status === 'completed').length || 0}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {tasksData?.filter(t => t.status === 'completed').map((task) => (
+                  {tasksData?.filter((t: any) => t.status === 'completed').map((task: any) => (
                     <div key={task.id} className="p-3 bg-muted/30 rounded-lg opacity-60">
                       <p className="font-medium text-sm line-through">{task.title}</p>
                     </div>
                   ))}
-                  {(!tasksData || tasksData.filter(t => t.status === 'completed').length === 0) && (
+                  {(!tasksData || tasksData.filter((t: any) => t.status === 'completed').length === 0) && (
                     <p className="text-sm text-muted-foreground text-center py-4">{t("crm.lead.noCompletedTasks")}</p>
                   )}
                 </CardContent>
@@ -702,8 +702,8 @@ export default function LeadManagement() {
                   {trendData && trendData.length > 0 ? (
                     <div className="space-y-4">
                       <div className="h-48 flex items-end justify-between gap-2">
-                        {trendData.map((item, index) => {
-                          const maxValue = Math.max(...trendData.map(d => d.newLeads + d.convertedLeads));
+                        {trendData.map((item: any, index: any) => {
+                          const maxValue = Math.max(...trendData.map((d: any) => d.newLeads + d.convertedLeads));
                           const newHeight = maxValue > 0 ? (item.newLeads / maxValue) * 100 : 0;
                           const convertedHeight = maxValue > 0 ? (item.convertedLeads / maxValue) * 100 : 0;
 
@@ -757,8 +757,8 @@ export default function LeadManagement() {
                 <CardContent>
                   {sourceAnalysis && sourceAnalysis.length > 0 ? (
                     <div className="space-y-3">
-                      {sourceAnalysis.map((item, index) => {
-                        const total = sourceAnalysis.reduce((sum, s) => sum + s.count, 0);
+                      {sourceAnalysis.map((item: any, index: any) => {
+                        const total = sourceAnalysis.reduce((sum: any, s: any) => sum + s.count, 0);
                         const percentage = total > 0 ? (item.count / total) * 100 : 0;
                         const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-purple-500', 'bg-cyan-500', 'bg-pink-500'];
 
@@ -798,7 +798,7 @@ export default function LeadManagement() {
                 <CardContent>
                   {salesPerformance && salesPerformance.length > 0 ? (
                     <div className="space-y-4">
-                      {salesPerformance.slice(0, 5).map((item, index) => (
+                      {salesPerformance.slice(0, 5).map((item: any, index: any) => (
                         <div key={index} className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${
                             index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : index === 2 ? 'bg-orange-600' : 'bg-muted-foreground'

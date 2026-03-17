@@ -208,7 +208,7 @@ export default function GateChecklistSettings() {
       resetForm();
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`创建失败: ${error.message}`);
     },
   });
@@ -220,7 +220,7 @@ export default function GateChecklistSettings() {
       setIsEditDialogOpen(false);
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`更新失败: ${error.message}`);
     },
   });
@@ -231,18 +231,18 @@ export default function GateChecklistSettings() {
       toast.success("检查项删除成功");
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`删除失败: ${error.message}`);
     },
   });
 
   // 批量导入模板
   const importTemplateMutation = (trpc.m7m9.gateCheck as any).importTemplate.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       toast.success(`成功导入 ${result.imported} 个检查项`);
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`导入失败: ${error.message}`);
     },
   });

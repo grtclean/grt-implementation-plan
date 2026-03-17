@@ -228,7 +228,7 @@ export default function Feedback360() {
 
           {aggregated.data && aggregated.data.length > 0 ? (
             <div className="space-y-2">
-              {aggregated.data.map((a, i) => {
+              {aggregated.data.map((a: any, i: any) => {
                 const pct = Math.min(100, a.avgScore);
                 return (
                   <div key={i} className="flex items-center gap-3">

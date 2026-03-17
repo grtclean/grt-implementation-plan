@@ -258,7 +258,7 @@ export const cultureRouter = router({
         location: input.location,
         feedMessage: input.feedMessage,
         feedType: input.feedType,
-        reportedBy: ctx.user.name ?? String(ctx.user.id),
+        reportedBy: ctx.user!.name ?? String(ctx.user!.id),
         importance: input.importance,
       }).returning();
 
@@ -286,7 +286,7 @@ export const cultureRouter = router({
         achievementTitle: input.achievementTitle,
         medalLevel: input.medalLevel,
         storySummary: input.storySummary ?? null,
-        awardedBy: ctx.user.name ?? String(ctx.user.id),
+        awardedBy: ctx.user!.name ?? String(ctx.user!.id),
         buCode: input.buCode ?? null,
       }).returning();
 

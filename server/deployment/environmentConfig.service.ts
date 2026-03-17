@@ -51,7 +51,7 @@ export async function getEnvironmentConfigs(environment: Environment): Promise<E
     ORDER BY config_key
   `);
 
-  return (result[0] as any[]) || [];
+  return ((result as any)[0] as any[]) || [];
 }
 
 /**
@@ -79,7 +79,7 @@ export async function getEnvironmentConfig(
     LIMIT 1
   `);
 
-  const rows = result[0] as any[];
+  const rows = (result as any)[0] as any[];
   return rows.length > 0 ? rows[0] : null;
 }
 

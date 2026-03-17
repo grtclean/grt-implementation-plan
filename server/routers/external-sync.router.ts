@@ -17,6 +17,86 @@ const log = createChildLogger("external-sync-router");
 import { requireDb } from "../db";
 import { sql as drizzleSql } from "drizzle-orm";
 
+/** Drizzle execute() result: [rows[], metadata] */
+type DrizzleResult<T = Record<string, unknown>> = [T[], unknown];
+
+/** DB row interfaces for external-sync queries */
+interface CountRow { cnt: number | string }
+interface DeptMappingRow {
+  id: number;
+  jdy_dept_no: string | number | null;
+  jdy_dept_name: string;
+  jdy_parent_no: string | number | null;
+  jdy_dept_type: string;
+  jdy_dept_status: string;
+}
+interface UserMappingRow {
+  jdy_username: string;
+  jdy_name: string;
+  jdy_departments: unknown;
+  jdy_status: number | string | null;
+  jdy_integrate_id: string;
+}
+interface RoleMappingRow {
+  id: number;
+  jdy_role_no: string | number | null;
+  jdy_group_no: string | number | null;
+  jdy_role_name: string;
+  jdy_role_type: string;
+  jdy_role_status: string;
+}
+interface RoleMemberRow {
+  jdy_username: string;
+  jdy_name: string;
+  jdy_departments_range: unknown;
+  jdy_has_child: boolean;
+}
+interface FormMappingRow {
+  jdy_app_id: string;
+  jdy_app_name: string;
+  jdy_form_id: string;
+  jdy_form_name: string;
+  field_schema: unknown;
+  [key: string]: unknown;
+}
+interface FormDataRow {
+  record_data: string | Record<string, unknown>;
+  jdy_record_id: string;
+  ext_creator: string;
+  ext_created_at: string;
+  ext_updated_at: string;
+  synced_at: string;
+}
+interface ApprovalTemplateRow {
+  id: number;
+  steps: string | unknown[];
+  instance_count: number | string;
+  [key: string]: unknown;
+}
+interface ApprovalInstanceRow {
+  [key: string]: unknown;
+}
+interface StatusCountRow {
+  status: string;
+  cnt: number | string;
+}
+interface TemplateCountRow {
+  template_name: string;
+  cnt: number | string;
+}
+interface AvgTimeRow {
+  avg_minutes: number | string | null;
+}
+interface KnowledgeDocRow {
+  tags: string | unknown[];
+  category: string;
+  [key: string]: unknown;
+}
+interface CategoryCountRow {
+  category: string;
+  cnt: number | string;
+}
+
 export const externalSyncRouter = router({
   /**
    * 获取配置状态
@@ -47,9 +127,9 @@ export const externalSyncRouter = router({
         mode: 'local',
         message: '本地模式 — 使用已同步的本地数据',
         localStats: {
-          departments: Number((deptCount as any)[0]?.[0]?.cnt || 0),
-          users: Number((userCount as any)[0]?.[0]?.cnt || 0),
-          roles: Number((roleCount as any)[0]?.[0]?.cnt || 0),
+          departments: Number((deptCount as unknown as DrizzleResult<CountRow>)[0]?.[0]?.cnt || 0),
+          users: Number((userCount as unknown as DrizzleResult<CountRow>)[0]?.[0]?.cnt || 0),
+          roles: Number((roleCount as unknown as DrizzleResult<CountRow>)[0]?.[0]?.cnt || 0),
         },
       };
     }
@@ -65,7 +145,7 @@ export const externalSyncRouter = router({
       drizzleSql`SELECT DISTINCT jdy_app_id as app_id, jdy_app_name as app_name
                  FROM jiandaoyun_form_mappings ORDER BY jdy_app_name LIMIT 500`
     );
-    const rows = (result as any)[0] || [];
+    const rows = (result as unknown as DrizzleResult<{ app_id: string; app_name: string }>)[0] || [];
     return { apps: rows, error: null, source: 'local' };
   }),
 
@@ -80,7 +160,7 @@ export const externalSyncRouter = router({
         drizzleSql`SELECT * FROM jiandaoyun_form_mappings
                    WHERE jdy_app_id = ${input.appId} ORDER BY jdy_form_name LIMIT 500`
       );
-      const rows = (result as any)[0] || [];
+      const rows = (result as unknown as DrizzleResult<FormMappingRow>)[0] || [];
       return { forms: rows, error: null, source: 'local' };
     }),
 
@@ -95,7 +175,7 @@ export const externalSyncRouter = router({
         drizzleSql`SELECT field_schema FROM jiandaoyun_form_mappings
                    WHERE jdy_app_id = ${input.appId} AND jdy_form_id = ${input.formId} LIMIT 1`
       );
-      const row = (result as any)[0]?.[0];
+      const row = (result as unknown as DrizzleResult<{ field_schema: unknown }>)[0]?.[0];
       const fields = row?.field_schema || [];
       return { fields: Array.isArray(fields) ? fields : (typeof fields === 'string' ? JSON.parse(fields) : []), error: null, source: 'local' };
     }),
@@ -118,10 +198,10 @@ export const externalSyncRouter = router({
                    WHERE jdy_app_id = ${input.appId} AND jdy_form_id = ${input.formId}
                    ORDER BY id DESC LIMIT ${input.limit}`
       );
-      const rows = (result as any)[0] || [];
+      const rows = (result as unknown as DrizzleResult<FormDataRow>)[0] || [];
       return {
-        data: rows.map((r: any) => ({
-          ...(typeof r.record_data === 'string' ? JSON.parse(r.record_data) : r.record_data),
+        data: rows.map((r: FormDataRow) => ({
+          ...(typeof r.record_data === 'string' ? JSON.parse(r.record_data) as Record<string, unknown> : r.record_data),
           _id: r.jdy_record_id,
           _synced_at: r.synced_at,
         })),
@@ -141,7 +221,7 @@ export const externalSyncRouter = router({
         drizzleSql`SELECT COUNT(*) as cnt FROM jiandaoyun_form_data_cache
                    WHERE jdy_app_id = ${input.appId} AND jdy_form_id = ${input.formId}`
       );
-      return { count: Number((result as any)[0]?.[0]?.cnt || 0), error: null, source: 'local' };
+      return { count: Number((result as unknown as DrizzleResult<CountRow>)[0]?.[0]?.cnt || 0), error: null, source: 'local' };
     }),
 
   /**
@@ -154,9 +234,9 @@ export const externalSyncRouter = router({
       const result = await db.execute(
         drizzleSql`SELECT * FROM jiandaoyun_dept_mappings ORDER BY jdy_dept_name LIMIT 1000`
       );
-      const rows = (result as any)[0] || [];
+      const rows = (result as unknown as DrizzleResult<DeptMappingRow>)[0] || [];
       return {
-        departments: rows.map((r: any) => ({
+        departments: rows.map((r: DeptMappingRow) => ({
           dept_no: Number(r.jdy_dept_no || r.id),
           name: r.jdy_dept_name,
           parent_no: r.jdy_parent_no ? Number(r.jdy_parent_no) : null,
@@ -178,9 +258,9 @@ export const externalSyncRouter = router({
       const result = await db.execute(
         drizzleSql`SELECT * FROM jiandaoyun_user_mappings ORDER BY jdy_name LIMIT 5000`
       );
-      const rows = (result as any)[0] || [];
+      const rows = (result as unknown as DrizzleResult<UserMappingRow>)[0] || [];
       return {
-        members: rows.map((r: any) => ({
+        members: rows.map((r: UserMappingRow) => ({
           username: r.jdy_username,
           name: r.jdy_name,
           departments: r.jdy_departments,
@@ -200,9 +280,9 @@ export const externalSyncRouter = router({
     const result = await db.execute(
       drizzleSql`SELECT * FROM jiandaoyun_role_mappings ORDER BY jdy_role_name LIMIT 500`
     );
-    const rows = (result as any)[0] || [];
+    const rows = (result as unknown as DrizzleResult<RoleMappingRow>)[0] || [];
     return {
-      roles: rows.map((r: any) => ({
+      roles: rows.map((r: RoleMappingRow) => ({
         role_no: Number(r.jdy_role_no || r.id),
         group_no: Number(r.jdy_group_no || 0),
         name: r.jdy_role_name,
@@ -231,8 +311,8 @@ export const externalSyncRouter = router({
         formCounts: result.formCounts,
         error: null,
       };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -246,8 +326,8 @@ export const externalSyncRouter = router({
     try {
       const result = await userSyncService.syncMembers();
       return { success: true, ...result };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -259,8 +339,8 @@ export const externalSyncRouter = router({
     try {
       const result = await userSyncService.syncDepartments();
       return { success: true, ...result };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -272,8 +352,8 @@ export const externalSyncRouter = router({
     try {
       const result = await userSyncService.syncRoles();
       return { success: true, ...result };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -285,8 +365,8 @@ export const externalSyncRouter = router({
     try {
       const mappings = await userSyncService.getUserMappings();
       return { mappings, error: null };
-    } catch (error: any) {
-      return { mappings: [], error: error.message };
+    } catch (error: unknown) {
+      return { mappings: [], error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -298,8 +378,8 @@ export const externalSyncRouter = router({
     try {
       const mappings = await userSyncService.getDeptMappings();
       return { mappings, error: null };
-    } catch (error: any) {
-      return { mappings: [], error: error.message };
+    } catch (error: unknown) {
+      return { mappings: [], error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -311,8 +391,8 @@ export const externalSyncRouter = router({
     try {
       const mappings = await userSyncService.getRoleMappings();
       return { mappings, error: null };
-    } catch (error: any) {
-      return { mappings: [], error: error.message };
+    } catch (error: unknown) {
+      return { mappings: [], error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -334,8 +414,8 @@ export const externalSyncRouter = router({
           input.grtOpenId
         );
         return { success };
-      } catch (error: any) {
-        return { success: false, error: error.message };
+      } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     }),
 
@@ -359,8 +439,8 @@ export const externalSyncRouter = router({
           input.permissionMapping
         );
         return { success };
-      } catch (error: any) {
-        return { success: false, error: error.message };
+      } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     }),
 
@@ -372,8 +452,8 @@ export const externalSyncRouter = router({
     try {
       const result = await userSyncService.syncRoleMembers();
       return { success: true, ...result };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -387,8 +467,8 @@ export const externalSyncRouter = router({
       try {
         const mappings = await userSyncService.getRoleMemberMappings(input.roleNo);
         return { mappings, error: null };
-      } catch (error: any) {
-        return { mappings: [], error: error.message };
+      } catch (error: unknown) {
+        return { mappings: [], error: error instanceof Error ? error.message : String(error) };
       }
     }),
 
@@ -403,9 +483,9 @@ export const externalSyncRouter = router({
         drizzleSql`SELECT * FROM jiandaoyun_role_members
                    WHERE jdy_role_no = ${input.roleNo} LIMIT 1000`
       );
-      const rows = (result as any)[0] || [];
+      const rows = (result as unknown as DrizzleResult<RoleMemberRow>)[0] || [];
       return {
-        members: rows.map((r: any) => ({
+        members: rows.map((r: RoleMemberRow) => ({
           username: r.jdy_username,
           name: r.jdy_name,
           departments_range: r.jdy_departments_range,
@@ -426,8 +506,8 @@ export const externalSyncRouter = router({
     try {
       const tasks = await scheduler.getTasks();
       return { tasks, error: null };
-    } catch (error: any) {
-      return { tasks: [], error: error.message };
+    } catch (error: unknown) {
+      return { tasks: [], error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -449,10 +529,10 @@ export const externalSyncRouter = router({
     .mutation(async ({ input }) => {
       const scheduler = getExternalSyncScheduler();
       try {
-        const taskId = await scheduler.createTask(input as any);
+        const taskId = await scheduler.createTask(input as unknown as import("../services/external-sync-scheduler.service").SyncTaskConfig);
         return { success: true, taskId };
-      } catch (error: any) {
-        return { success: false, error: error.message };
+      } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     }),
 
@@ -469,8 +549,8 @@ export const externalSyncRouter = router({
       try {
         await scheduler.updateTaskStatus(input.taskId, input.enabled);
         return { success: true };
-      } catch (error: any) {
-        return { success: false, error: error.message };
+      } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     }),
 
@@ -484,8 +564,8 @@ export const externalSyncRouter = router({
       try {
         await scheduler.deleteTask(input.taskId);
         return { success: true };
-      } catch (error: any) {
-        return { success: false, error: error.message };
+      } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     }),
 
@@ -499,8 +579,8 @@ export const externalSyncRouter = router({
       try {
         const result = await scheduler.executeTask(input.taskId, 'manual', ctx.user?.id);
         return { success: result.status !== 'failed', ...result };
-      } catch (error: any) {
-        return { success: false, error: error.message };
+      } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     }),
 
@@ -517,8 +597,8 @@ export const externalSyncRouter = router({
       try {
         const logs = await scheduler.getTaskLogs(input.taskId, input.limit);
         return { logs, error: null };
-      } catch (error: any) {
-        return { logs: [], error: error.message };
+      } catch (error: unknown) {
+        return { logs: [], error: error instanceof Error ? error.message : String(error) };
       }
     }),
 
@@ -530,8 +610,8 @@ export const externalSyncRouter = router({
     try {
       const stats = await scheduler.getStats();
       return { stats, error: null };
-    } catch (error: any) {
-      return { stats: null, error: error.message };
+    } catch (error: unknown) {
+      return { stats: null, error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -543,8 +623,8 @@ export const externalSyncRouter = router({
     try {
       const taskIds = await scheduler.createDefaultTasks();
       return { success: true, taskIds };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -597,8 +677,8 @@ export const externalSyncRouter = router({
       try {
         const permissions = await permissionService.getUserPermissions(input.userId);
         return { permissions, error: null };
-      } catch (error: any) {
-        return { permissions: [], error: error.message };
+      } catch (error: unknown) {
+        return { permissions: [], error: error instanceof Error ? error.message : String(error) };
       }
     }),
 
@@ -615,8 +695,8 @@ export const externalSyncRouter = router({
       try {
         const hasPermission = await permissionService.checkUserPermission(input.userId, input.permission);
         return { hasPermission, error: null };
-      } catch (error: any) {
-        return { hasPermission: false, error: error.message };
+      } catch (error: unknown) {
+        return { hasPermission: false, error: error instanceof Error ? error.message : String(error) };
       }
     }),
 
@@ -628,8 +708,8 @@ export const externalSyncRouter = router({
     try {
       const result = await permissionService.autoMapRoles();
       return { success: true, ...result };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -641,8 +721,8 @@ export const externalSyncRouter = router({
     try {
       const stats = await permissionService.getMappingStats();
       return { stats, error: null };
-    } catch (error: any) {
-      return { stats: null, error: error.message };
+    } catch (error: unknown) {
+      return { stats: null, error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -673,11 +753,15 @@ export const externalSyncRouter = router({
         db.execute(drizzleSql`SELECT jdy_dept_no, jdy_dept_name FROM jiandaoyun_dept_mappings LIMIT 1000`),
         db.execute(drizzleSql`SELECT jdy_username, jdy_name, jdy_departments, jdy_status FROM jiandaoyun_user_mappings LIMIT 5000`),
       ]);
-      const departments = ((deptResult as any)[0] || []).map((r: any) => ({
+      interface BuDept { dept_no: number; name: string }
+      interface BuMember { username: string; name: string; departments: unknown; status: number }
+      interface BuDeptData { deptNo: number; deptName: string; members: { username: string; name: string; status: number }[] }
+
+      const departments: BuDept[] = ((deptResult as unknown as DrizzleResult<{ jdy_dept_no: string | number | null; jdy_dept_name: string }>)[0] || []).map((r) => ({
         dept_no: Number(r.jdy_dept_no || 0),
         name: r.jdy_dept_name || '',
       }));
-      const allMembers = ((memberResult as any)[0] || []).map((r: any) => ({
+      const allMembers: BuMember[] = ((memberResult as unknown as DrizzleResult<{ jdy_username: string; jdy_name: string; jdy_departments: unknown; jdy_status: number | string | null }>)[0] || []).map((r) => ({
         username: r.jdy_username || '',
         name: r.jdy_name || '',
         departments: r.jdy_departments,
@@ -701,7 +785,7 @@ export const externalSyncRouter = router({
         'BU5': 'BU5 - 工业通用事业部',
       };
 
-      const buMembers: Array<{
+      const buMembersResult: Array<{
         buCode: string;
         buName: string;
         departments: Array<{
@@ -713,23 +797,23 @@ export const externalSyncRouter = router({
       }> = [];
 
       for (const [buCode, keywords] of Object.entries(buKeywords)) {
-        const matchedDepts = departments.filter((dept: any) =>
+        const matchedDepts = departments.filter((dept: BuDept) =>
           keywords.some(kw => dept.name.toLowerCase().includes(kw.toLowerCase()))
         );
 
-        const deptData = matchedDepts.map((dept: any) => {
-          const deptMembers = allMembers.filter((m: any) => {
+        const deptData: BuDeptData[] = matchedDepts.map((dept: BuDept) => {
+          const deptMembers = allMembers.filter((m: BuMember) => {
             const depts = m.departments;
             if (Array.isArray(depts)) return depts.includes(dept.dept_no);
             if (typeof depts === 'string') {
-              try { return JSON.parse(depts).includes(dept.dept_no); } catch { return false; }
+              try { return (JSON.parse(depts) as number[]).includes(dept.dept_no); } catch { return false; }
             }
             return false;
           });
           return {
             deptNo: dept.dept_no,
             deptName: dept.name,
-            members: deptMembers.map((m: any) => ({
+            members: deptMembers.map((m: BuMember) => ({
               username: m.username,
               name: m.name,
               status: m.status,
@@ -737,8 +821,8 @@ export const externalSyncRouter = router({
           };
         });
 
-        const totalMembers = deptData.reduce((sum: number, d: any) => sum + d.members.length, 0);
-        buMembers.push({
+        const totalMembers = deptData.reduce((sum: number, d: BuDeptData) => sum + d.members.length, 0);
+        buMembersResult.push({
           buCode,
           buName: buNames[buCode] || buCode,
           departments: deptData,
@@ -746,9 +830,9 @@ export const externalSyncRouter = router({
         });
       }
 
-      return { buMembers, error: null, source: 'local' };
-    } catch (error: any) {
-      return { buMembers: [], error: error.message };
+      return { buMembers: buMembersResult, error: null, source: 'local' };
+    } catch (error: unknown) {
+      return { buMembers: [], error: error instanceof Error ? error.message : String(error) };
     }
   }),
 
@@ -895,10 +979,10 @@ export const externalSyncRouter = router({
         FROM grt_approval_templates t
         ORDER BY t.created_at DESC`
       );
-      const rows = (result as any)[0] || [];
-      return rows.map((r: any) => ({
+      const rows = (result as unknown as DrizzleResult<ApprovalTemplateRow>)[0] || [];
+      return rows.map((r: ApprovalTemplateRow) => ({
         ...r,
-        steps: typeof r.steps === 'string' ? JSON.parse(r.steps) : (r.steps || []),
+        steps: typeof r.steps === 'string' ? JSON.parse(r.steps) as unknown[] : (r.steps || []),
         instance_count: Number(r.instance_count || 0),
       }));
     }),
@@ -946,8 +1030,8 @@ export const externalSyncRouter = router({
       ]);
 
       return {
-        instances: (dataResult as any)[0] || [],
-        total: Number((countResult as any)[0]?.[0]?.cnt || 0),
+        instances: (dataResult as unknown as DrizzleResult<ApprovalInstanceRow>)[0] || [],
+        total: Number((countResult as unknown as DrizzleResult<CountRow>)[0]?.[0]?.cnt || 0),
       };
     }),
 
@@ -963,7 +1047,7 @@ export const externalSyncRouter = router({
           WHERE instance_id = ${input.instanceId}
           ORDER BY step_number ASC`
       );
-      return (result as any)[0] || [];
+      return (result as unknown as DrizzleResult<Record<string, unknown>>)[0] || [];
     }),
 
   /**
@@ -984,17 +1068,17 @@ export const externalSyncRouter = router({
       ]);
 
       const statusMap: Record<string, number> = {};
-      for (const row of ((statusStats as any)[0] || [])) {
+      for (const row of ((statusStats as unknown as DrizzleResult<StatusCountRow>)[0] || [])) {
         statusMap[row.status] = Number(row.cnt);
       }
 
       return {
         statusDistribution: statusMap,
-        topTemplates: ((templateStats as any)[0] || []).map((r: any) => ({
+        topTemplates: ((templateStats as unknown as DrizzleResult<TemplateCountRow>)[0] || []).map((r: TemplateCountRow) => ({
           name: r.template_name,
           count: Number(r.cnt),
         })),
-        avgProcessingMinutes: Number(((avgTime as any)[0]?.[0]?.avg_minutes || 0).toFixed(1)),
+        avgProcessingMinutes: Number((((avgTime as unknown as DrizzleResult<AvgTimeRow>)[0]?.[0]?.avg_minutes || 0) as any).toFixed(1)),
         totalInstances: Object.values(statusMap).reduce((a, b) => a + b, 0),
         pendingCount: statusMap['pending'] || 0,
         approvedCount: statusMap['approved'] || 0,
@@ -1038,16 +1122,16 @@ export const externalSyncRouter = router({
       ]);
 
       const catStats: Record<string, number> = {};
-      for (const row of ((statsResult as any)[0] || [])) {
+      for (const row of ((statsResult as unknown as DrizzleResult<CategoryCountRow>)[0] || [])) {
         catStats[row.category] = Number(row.cnt);
       }
 
       return {
-        documents: ((dataResult as any)[0] || []).map((d: any) => ({
+        documents: ((dataResult as unknown as DrizzleResult<KnowledgeDocRow>)[0] || []).map((d: KnowledgeDocRow) => ({
           ...d,
-          tags: typeof d.tags === 'string' ? (() => { try { return JSON.parse(d.tags); } catch { return []; } })() : (d.tags || []),
+          tags: typeof d.tags === 'string' ? (() => { try { return JSON.parse(d.tags) as unknown[]; } catch { return []; } })() : (d.tags || []),
         })),
-        total: Number((countResult as any)[0]?.[0]?.cnt || 0),
+        total: Number((countResult as unknown as DrizzleResult<CountRow>)[0]?.[0]?.cnt || 0),
         categoryStats: catStats,
       };
     }),
@@ -1091,7 +1175,7 @@ export const externalSyncRouter = router({
 
       const { triggerExternalSyncWorker } = await import("../workers/externalSyncWorker");
       triggerExternalSyncWorker(task.id, {
-        phases: input.phases as any[],
+        phases: input.phases as string[] as any,
         dryRun: input.dryRun,
       }).catch((err) => {
         // Fire-and-forget — errors tracked in ai_tasks table

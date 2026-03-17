@@ -224,8 +224,8 @@ export const redBlueRouter = router({
           triggerConditions: input.triggerConditions,
 
           status: "draft",
-          createdBy: ctx.user.id,
-          createdByName: ctx.user.name,
+          createdBy: ctx.user!.id,
+          createdByName: ctx.user!.name,
         })
         .returning();
 

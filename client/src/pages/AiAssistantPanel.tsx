@@ -84,7 +84,7 @@ export default function AiAssistantPanel() {
         {/* 功能型AI助手标签页 */}
         <TabsContent value="functional" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {functionalAssistants?.map((assistant) => (
+            {functionalAssistants?.map((assistant: any) => (
               <Card key={assistant.id} className="cursor-pointer hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">

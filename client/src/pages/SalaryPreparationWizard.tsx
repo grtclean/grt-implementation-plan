@@ -523,7 +523,7 @@ export default function SalaryPreparationWizard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {alignment.data.employees.slice(0, 50).map((emp) => (
+                  {alignment.data.employees.slice(0, 50).map((emp: any) => (
                     <tr key={emp.employeeId} className="border-b hover:bg-muted/50">
                       <td className="py-1.5 px-2">{emp.employeeName}</td>
                       <td className="py-1.5 px-2 text-muted-foreground">{emp.department}</td>

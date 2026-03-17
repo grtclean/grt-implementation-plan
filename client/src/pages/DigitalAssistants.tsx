@@ -96,8 +96,8 @@ export default function DigitalAssistants() {
   });
 
   // API调用
-  const employeeDAs = trpc.employeeDA.list.useQuery();
-  const functionalAssistants = trpc.employeeDA.listFunctional.useQuery();
+  const employeeDAs = trpc.employeeDA.list.useQuery() as any;
+  const functionalAssistants = trpc.employeeDA.listFunctional.useQuery() as any;
   const employees = trpc.hrm.getEmployees.useQuery();
   
   const createDA = trpc.employeeDA.create.useMutation({
@@ -225,7 +225,7 @@ export default function DigitalAssistants() {
   };
 
   // 过滤DA列表
-  const filteredDAs = employeeDAs.data?.filter(da => 
+  const filteredDAs = employeeDAs.data?.filter((da: any) => 
     da.assistantCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     da.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     da.employeeId?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -255,7 +255,7 @@ export default function DigitalAssistants() {
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard icon={User} label={t("ai.digitalAssistant.totalDAs")} value={employeeDAs.data?.length || 0} iconColor="text-blue-600" iconBg="bg-blue-100" />
-          <StatCard icon={CheckCircle2} label={t("ai.digitalAssistant.activated")} value={employeeDAs.data?.filter(da => da.isActive === 1).length || 0} iconColor="text-green-600" iconBg="bg-green-100" />
+          <StatCard icon={CheckCircle2} label={t("ai.digitalAssistant.activated")} value={employeeDAs.data?.filter((da: any) => da.isActive === 1).length || 0} iconColor="text-green-600" iconBg="bg-green-100" />
           <StatCard icon={Sparkles} label={t("ai.digitalAssistant.functionalAssistants")} value={functionalAssistants.data?.length || 0} iconColor="text-orange-600" iconBg="bg-orange-100" />
           <StatCard icon={Zap} label={t("ai.digitalAssistant.todayInteractions")} value={0} iconColor="text-purple-600" iconBg="bg-purple-100" />
         </div>
@@ -290,7 +290,7 @@ export default function DigitalAssistants() {
 
             {/* DA列表 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredDAs.map((da) => (
+              {filteredDAs.map((da: any) => (
                 <Card key={da.id} className="bg-card/50 border-border hover:border-primary/50 transition-colors">
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
@@ -415,7 +415,7 @@ export default function DigitalAssistants() {
           {/* 功能型AI助手Tab */}
           <TabsContent value="functional-ai" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {functionalAssistants.data?.map((assistant) => (
+              {functionalAssistants.data?.map((assistant: any) => (
                 <Card key={assistant.id} className="bg-card/50 border-border hover:border-primary/50 transition-colors">
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">

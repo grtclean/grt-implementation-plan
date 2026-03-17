@@ -270,16 +270,16 @@ export default function RoleBasedAIAgent({
             {isZh ? "最近动态" : "Recent Activity"}
           </h3>
           <div className="space-y-1">
-            {activities.map((a) => (
+            {activities.map((a: any) => (
               <div key={a.id} className="flex items-start gap-2.5 px-2 py-1.5 rounded text-xs">
-                <div className="mt-0.5">{activityIcon(a.type)}</div>
+                <div className="mt-0.5">{activityIcon(a.type) as any}</div>
                 <div className="flex-1 min-w-0">
                   <span className="text-foreground/80 leading-relaxed">
-                    {isZh ? a.text : a.textEn}
+                    {isZh ? a.text : a.textEn as any}
                   </span>
                 </div>
                 <span className="text-muted-foreground/60 text-[10px] shrink-0 mt-0.5">
-                  {isZh ? a.timeZh : a.time}
+                  {isZh ? a.timeZh : a.time as any}
                 </span>
               </div>
             ))}

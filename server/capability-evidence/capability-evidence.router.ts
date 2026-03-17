@@ -92,8 +92,8 @@ export const capabilityEvidenceRouter = router({
       // TODO: 保存到数据库
       const evidence = {
         evidenceId,
-        userId: ctx.user.id,
-        userName: ctx.user.name,
+        userId: ctx.user!.id,
+        userName: ctx.user!.name,
         evidenceType: input.evidenceType,
         capabilityDomain: input.capabilityDomain,
         title: input.title,
@@ -244,7 +244,7 @@ export const capabilityEvidenceRouter = router({
       userId: z.string().optional(),
     }))
     .query(async ({ input, ctx }) => {
-      const targetUserId = input.userId || ctx.user.id;
+      const targetUserId = input.userId || ctx.user!.id;
       
       // TODO: 从数据库统计
       return {

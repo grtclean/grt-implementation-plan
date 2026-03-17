@@ -31,7 +31,20 @@ import {
 // ─── Types (aligned to tRPC inferred shapes) ────────────────────────
 type TabKey = "annual" | "quality" | "exhibition" | "assets" | "broadcast";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+interface MktPlan { id: number; title: string; year: number; [k: string]: unknown }
+interface MktKpi { id: number; name: string; target: string | number; actual: string | number; unit: string; status: "red" | "amber" | "green"; currentValue?: string | number; [k: string]: unknown }
+interface MktBudgetDash { totalBudget?: number; spentBudget?: number; burnRate?: number; [k: string]: unknown }
+interface MktSpec { id: number; name: string; category: string; standard: string; updatedAt: string; [k: string]: unknown }
+interface MktReview { id: number; assetName: string; submitter: string; type: string; status: string; submittedAt: string; [k: string]: unknown }
+interface MktExhibitionDash { totalExhibitions?: number; totalLeads?: number; totalBudget?: number; averageROI?: number; [k: string]: unknown }
+interface MktExhibition { id: number; stage: string; name: string; location: string; startDate: string; leadCount: number; [k: string]: unknown }
+interface MktTask { id: number; completed: boolean; title: string; assignee: string; [k: string]: unknown }
+interface MktLead { id: number; company: string; contact: string; email?: string; phone?: string; notes?: string; [k: string]: unknown }
+interface MktAsset { id: number; title: string; year: number; region: string; industry: string; type: string; vectorized: boolean; [k: string]: unknown }
+interface MktAssetStats { total?: number; vectorized?: number; pending?: number; [k: string]: unknown }
+interface MktChannel { id: number; name: string; type: string; online: boolean; [k: string]: unknown }
+interface MktSchedule { id: number; contentTitle: string; scheduledAt: string; status: string; [k: string]: unknown }
+interface MktBroadcastDash { totalChannels?: number; onlineChannels?: number; scheduledItems?: number; publishedToday?: number; [k: string]: unknown }
 
 // ─── RAG Badge helper ────────────────────────────────────────────────
 function RagDot({ status }: { status: "red" | "amber" | "green" }) {
@@ -56,7 +69,7 @@ function AnnualTargetsTab() {
   const { data: plans = [], isLoading: plansLoading } =
     trpc.marketingPlatform.annualPlan.listPlans.useQuery();
 
-  const activePlanId = selectedPlanId ?? (plans as any[])[0]?.id ?? null;
+  const activePlanId = selectedPlanId ?? (plans as unknown as MktPlan[])[0]?.id ?? null;
 
   const { data: kpis = [] } =
     trpc.marketingPlatform.annualPlan.listKpiTargets.useQuery(
@@ -88,9 +101,9 @@ function AnnualTargetsTab() {
     onError: (err) => toast.error("更新失败:" + err.message),
   });
 
-  const typedPlans = plans as any[];
-  const typedKpis = kpis as any[];
-  const budget = budgetData as any;
+  const typedPlans = plans as unknown as MktPlan[];
+  const typedKpis = kpis as unknown as MktKpi[];
+  const budget = budgetData as unknown as MktBudgetDash | undefined;
 
   return (
     <div className="space-y-6">
@@ -256,9 +269,9 @@ function QualityRedLineTab() {
     onError: (err) => toast.error("审核失败:" + err.message),
   });
 
-  const typedSpecs = specs as any[];
-  const typedReviews = reviews as any[];
-  const dash = dashboard as any;
+  const typedSpecs = specs as unknown as MktSpec[];
+  const typedReviews = reviews as unknown as MktReview[];
+  const dash = dashboard as unknown as Record<string, number> | undefined;
 
   return (
     <div className="space-y-6">
@@ -478,7 +491,7 @@ function ExhibitionCampaignTab() {
     trpc.marketingPlatform.exhibition.exhibitionDashboard.useQuery();
 
   const activeExhibitionId =
-    selectedExhibitionId ?? (exhibitions as any[])[0]?.id ?? null;
+    selectedExhibitionId ?? (exhibitions as unknown as MktExhibition[])[0]?.id ?? null;
 
   const { data: tasks = [] } =
     trpc.marketingPlatform.exhibition.listTasks.useQuery(
@@ -513,10 +526,10 @@ function ExhibitionCampaignTab() {
     onError: (err) => toast.error("录入失败:" + err.message),
   });
 
-  const typedExhibitions = exhibitions as any[];
-  const typedTasks = tasks as any[];
-  const typedLeads = leads as any[];
-  const dash = dashboard as any;
+  const typedExhibitions = exhibitions as unknown as MktExhibition[];
+  const typedTasks = tasks as unknown as MktTask[];
+  const typedLeads = leads as unknown as MktLead[];
+  const dash = dashboard as unknown as MktExhibitionDash | undefined;
 
   const stages = ["E0", "E1", "E2", "E3"] as const;
   const stageLabels: Record<string, string> = {
@@ -831,8 +844,8 @@ function HistoricalAssetsTab() {
     onError: (err) => toast.error("向量化失败:" + err.message),
   });
 
-  const typedAssets = assets as any[];
-  const typedStats = stats as any;
+  const typedAssets = assets as unknown as MktAsset[];
+  const typedStats = stats as unknown as MktAssetStats | undefined;
 
   // Client-side filtering
   const filtered = typedAssets.filter((a) => {
@@ -1009,7 +1022,7 @@ function BroadcastMatrixTab() {
     trpc.marketingPlatform.broadcast.broadcastDashboard.useQuery();
 
   const activeChannelId =
-    selectedChannelId ?? (channels as any[])[0]?.id ?? null;
+    selectedChannelId ?? (channels as unknown as MktChannel[])[0]?.id ?? null;
 
   const { data: schedules = [] } =
     trpc.marketingPlatform.broadcast.listSchedules.useQuery(
@@ -1026,9 +1039,9 @@ function BroadcastMatrixTab() {
     onError: (err) => toast.error("分发失败:" + err.message),
   });
 
-  const typedChannels = channels as any[];
-  const typedSchedules = schedules as any[];
-  const dash = dashboard as any;
+  const typedChannels = channels as unknown as MktChannel[];
+  const typedSchedules = schedules as unknown as MktSchedule[];
+  const dash = dashboard as unknown as MktBroadcastDash | undefined;
 
   return (
     <div className="space-y-6">

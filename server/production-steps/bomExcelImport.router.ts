@@ -84,7 +84,7 @@ export const bomExcelImportRouter = router({
         fileBuffer: buffer,
         fileName: input.fileName,
         importedBy: ctx.user?.openId,
-        importedByName: ctx.user?.name,
+        importedByName: ctx.user?.name as any,
         skipDuplicates: input.skipDuplicates,
       });
     }),

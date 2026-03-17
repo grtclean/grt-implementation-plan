@@ -47,13 +47,13 @@ export const expenseReportRouter = router({
   // 报销列表 — scoped by user role + BU isolation
   list: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
 
     const conditions: any[] = [];
     // Role-based scoping: non-finance users only see their own claims
     if (!isFinance) {
-      conditions.push(eq(expenseClaims.submitterId, ctx.user.id));
+      conditions.push(eq(expenseClaims.submitterId, ctx.user!.id));
     }
     // BU isolation: restrict to expenses for projects in user's BU
     const scopedIds = await buScopedProjectIds(ctx);
@@ -73,7 +73,7 @@ export const expenseReportRouter = router({
   getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
-    await assertClaimOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+    await assertClaimOwnership(db, id, ctx.user!.id, ctx.user!.role ?? "employee");
 
     const [claim] = await db.select().from(expenseClaims).where(eq(expenseClaims.id, id)).limit(1000);
     if (!claim) return null;
@@ -103,7 +103,7 @@ export const expenseReportRouter = router({
     const code = `EC-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Date.now().toString(36).toUpperCase().slice(-3)}`;
     const [claim] = await db.insert(expenseClaims).values({
       claimCode: code,
-      submitterId: ctx.user.id,
+      submitterId: ctx.user!.id,
       travelRecordId: input.travelRecordId,
       tripRequestId: input.tripRequestId,
       projectId: input.projectId,
@@ -130,7 +130,7 @@ export const expenseReportRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
-    await assertClaimOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+    await assertClaimOwnership(db, id, ctx.user!.id, ctx.user!.role ?? "employee");
     await checkExpenseVersion(db, id, input.expectedVersion);
     const updates: Record<string, unknown> = {
       updatedAt: new Date().toISOString(),
@@ -152,7 +152,7 @@ export const expenseReportRouter = router({
   delete: requirePermission('finance:expense:create').input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = parseInt(input.id);
-    await assertClaimOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+    await assertClaimOwnership(db, id, ctx.user!.id, ctx.user!.role ?? "employee");
 
     // Only draft claims can be deleted
     const [claim] = await db.select({ status: expenseClaims.status }).from(expenseClaims).where(eq(expenseClaims.id, id))
@@ -173,7 +173,7 @@ export const expenseReportRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
-    await assertClaimOwnership(db, id, ctx.user.id, ctx.user.role ?? "employee");
+    await assertClaimOwnership(db, id, ctx.user!.id, ctx.user!.role ?? "employee");
     await checkExpenseVersion(db, id, input.expectedVersion);
     const [claim] = await db.update(expenseClaims)
       .set({
@@ -196,7 +196,7 @@ export const expenseReportRouter = router({
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
 
     // Role gate: only finance/management roles can approve
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     if (!FINANCE_ROLES.has(role)) {
       throw new TRPCError({ code: "FORBIDDEN", message: "仅财务/管理角色可审批报销单" });
     }
@@ -207,7 +207,7 @@ export const expenseReportRouter = router({
     const [existing] = await db.select({ submitterId: expenseClaims.submitterId, status: expenseClaims.status })
       .from(expenseClaims).where(eq(expenseClaims.id, id));
     if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: `报销单 #${id} 不存在` });
-    if (existing.submitterId === ctx.user.id) {
+    if (existing.submitterId === ctx.user!.id) {
       throw new TRPCError({ code: "FORBIDDEN", message: "不能审批自己提交的报销单" });
     }
     if (existing.status !== "submitted" && existing.status !== "pending_review") {
@@ -218,7 +218,7 @@ export const expenseReportRouter = router({
       .set({
         status: "approved",
         managerApprovedAt: new Date().toISOString(),
-        managerApprovedBy: ctx.user.id,
+        managerApprovedBy: ctx.user!.id,
         updatedAt: new Date().toISOString(),
         version: sql`${expenseClaims.version} + 1`,
       })
@@ -238,7 +238,7 @@ export const expenseReportRouter = router({
     const id = typeof input.id === "string" ? parseInt(input.id) : input.id;
 
     // Role gate: only finance/management roles can reject
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     if (!FINANCE_ROLES.has(role)) {
       throw new TRPCError({ code: "FORBIDDEN", message: "仅财务/管理角色可驳回报销单" });
     }
@@ -249,7 +249,7 @@ export const expenseReportRouter = router({
       .from(expenseClaims).where(eq(expenseClaims.id, id));
     if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: `报销单 #${id} 不存在` });
     // Prevent self-rejection
-    if (existing.submitterId === ctx.user.id) {
+    if (existing.submitterId === ctx.user!.id) {
       throw new TRPCError({ code: "FORBIDDEN", message: "不能驳回自己提交的报销单" });
     }
     if (existing.status !== "submitted" && existing.status !== "pending_review") {
@@ -271,12 +271,12 @@ export const expenseReportRouter = router({
   // 生成报表 — scoped by role + BU isolation
   generateReport: protectedProcedure.input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
 
     const conditions: any[] = [];
     if (!isFinance) {
-      conditions.push(eq(expenseClaims.submitterId, ctx.user.id));
+      conditions.push(eq(expenseClaims.submitterId, ctx.user!.id));
     }
     // BU isolation
     const scopedIds = await buScopedProjectIds(ctx);
@@ -318,12 +318,12 @@ export const expenseReportRouter = router({
   // 导出Excel — scoped by role + BU isolation
   exportToExcel: requirePermission('finance:expense:create').input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional()).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
 
     const conditions: any[] = [];
     if (!isFinance) {
-      conditions.push(eq(expenseClaims.submitterId, ctx.user.id));
+      conditions.push(eq(expenseClaims.submitterId, ctx.user!.id));
     }
     // BU isolation
     const scopedIds = await buScopedProjectIds(ctx);
@@ -346,7 +346,7 @@ export const expenseReportRouter = router({
 
   // 部门排名 — finance roles only + BU isolation
   getDepartmentRanking: protectedProcedure.input(z.object({ limit: z.number().optional() }).optional()).query(async ({ input, ctx }) => {
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     if (!FINANCE_ROLES.has(role)) {
       throw new TRPCError({ code: "FORBIDDEN", message: "仅财务/管理角色可查看部门排名" });
     }

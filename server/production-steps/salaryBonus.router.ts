@@ -55,7 +55,7 @@ export const salaryBonusRouter = router({
       criticalDefectPenalty: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      return createSalaryRule({ ...input, createdBy: ctx.user.openId });
+      return createSalaryRule({ ...input, createdBy: ctx.user!.openId });
     }),
 
   updateRule: requirePermission("hrm_salary_detail")
@@ -141,8 +141,8 @@ export const salaryBonusRouter = router({
     .mutation(async ({ input, ctx }) => {
       return updateSalaryBonusStatus(input.recordId, {
         status: input.status,
-        reviewedBy: input.status === 'reviewed' ? (ctx.user.name || ctx.user.openId) : undefined,
-        approvedBy: input.status === 'approved' ? (ctx.user.name || ctx.user.openId) : undefined,
+        reviewedBy: input.status === 'reviewed' ? (ctx.user!.name || ctx.user!.openId) : undefined,
+        approvedBy: input.status === 'approved' ? (ctx.user!.name || ctx.user!.openId) : undefined,
         notes: input.notes,
       });
     }),

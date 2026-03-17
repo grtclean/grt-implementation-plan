@@ -72,7 +72,7 @@ export function ProcessNotebook({
     },
   });
 
-  const notebook = notebooks?.[0];
+  const notebook = (notebooks as any)?.[0];
 
   // 获取笔记本条目
   const { data: notebookData, refetch: refetchEntries } = trpc.processNotebook.getNotebookWithEntries.useQuery(
@@ -366,8 +366,8 @@ export function ProcessNotebook({
   }
 
   const entries = notebookData?.entries || [];
-  const pendingSuggestions = suggestions?.filter(s => s.status === 'pending') || [];
-  const processedSuggestions = suggestions?.filter(s => s.status !== 'pending') || [];
+  const pendingSuggestions = suggestions?.filter((s: any) => s.status === 'pending') || [];
+  const processedSuggestions = suggestions?.filter((s: any) => s.status !== 'pending') || [];
 
   return (
     <div className={cn("grid grid-cols-1 lg:grid-cols-2 gap-4", className)}>
@@ -488,7 +488,7 @@ export function ProcessNotebook({
                     <ChevronRight className="w-4 h-4" />
                     待处理建议 ({pendingSuggestions.length})
                   </div>
-                  {pendingSuggestions.map(s => renderSuggestion(s as AiSuggestion))}
+                  {pendingSuggestions.map((s: any) => renderSuggestion(s as AiSuggestion))}
                 </div>
               )}
 
@@ -499,7 +499,7 @@ export function ProcessNotebook({
                     <ChevronRight className="w-4 h-4" />
                     历史建议 ({processedSuggestions.length})
                   </div>
-                  {processedSuggestions.map(s => renderSuggestion(s as AiSuggestion))}
+                  {processedSuggestions.map((s: any) => renderSuggestion(s as AiSuggestion))}
                 </div>
               )}
 

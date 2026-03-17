@@ -73,7 +73,7 @@ export default function IoTDashboard() {
               <CardContent>
                 {twin?.telemetry?.length ? (
                   <div className="space-y-3">
-                    {twin.telemetry.slice(0, 10).map((t: { id: number; metricType: string; value: number; unit: string | null; isAlert: boolean | null; recordedAt: string | null }) => {
+                    {twin.telemetry.slice(0, 10).map((t: any) => {
                       const MetricIcon = METRIC_ICONS[t.metricType] ?? Activity;
                       return (
                         <div key={t.id} className={"flex items-center justify-between p-3 rounded-lg " + (t.isAlert ? "bg-red-500/10" : "bg-muted/50")}>
@@ -126,7 +126,7 @@ export default function IoTDashboard() {
               <CardContent>
                 {twin?.predictions?.length ? (
                   <div className="space-y-2">
-                    {twin.predictions.map((p: { id: number; predictedIssue: string | null; confidence: number | null; recommendedAction: string | null; predictedDate: string | null }) => (
+                    {twin.predictions.map((p: any) => (
                       <div key={p.id} className="p-2 border rounded">
                         <div className="font-medium text-sm">{p.predictedIssue}</div>
                         <div className="text-xs text-muted-foreground">{p.recommendedAction}</div>

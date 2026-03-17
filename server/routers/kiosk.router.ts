@@ -193,7 +193,7 @@ export const kioskRouter = router({
           (checkpoint_id, project_id, process_code, inspector_id, inspector_name,
            result, score, defect_count, remarks, checked_at, created_at)
           VALUES (${input.checkpointId || 0}, ${input.projectId}, ${input.processCode},
-                  ${String(ctx.user.id)}, ${ctx.user?.name || "kiosk"},
+                  ${String(ctx.user!.id)}, ${ctx.user!?.name || "kiosk"},
                   ${input.result}, ${null}, ${input.result === "fail" ? 1 : 0},
                   ${input.remark || null}, ${now}, ${now})
         `)) as any;
@@ -258,7 +258,7 @@ export const kioskRouter = router({
               projectNumber: input.projectId,
               batchId: input.batchId || null,
               materialBarcode: input.materialBarcode,
-              operatorId: String(ctx.user.id),
+              operatorId: String(ctx.user!.id),
               stationId: stationFkId,
               equipmentParams: null,
               aiCcdResult: null,
@@ -277,7 +277,7 @@ export const kioskRouter = router({
               (project_number, batch_id, material_barcode, operator_id, station_id,
                human_final_result, cycle_time_seconds, remarks, created_at, updated_at)
               VALUES (${input.projectId}, ${input.batchId || null}, ${input.materialBarcode},
-                      ${String(ctx.user.id)}, ${0},
+                      ${String(ctx.user!.id)}, ${0},
                       ${humanFinalResult}, ${input.clientTimestamp ? Math.round((Date.now() - new Date(input.clientTimestamp).getTime()) / 1000) : null},
                       ${input.remark || null}, NOW(), NOW())
             `);
@@ -289,7 +289,7 @@ export const kioskRouter = router({
         }
 
         log.info(
-          { projectId: input.projectId, processCode: input.processCode, result: input.result, operatorId: ctx.user.id, stationId: input.stationId, barcode: input.materialBarcode },
+          { projectId: input.projectId, processCode: input.processCode, result: input.result, operatorId: ctx.user!.id, stationId: input.stationId, barcode: input.materialBarcode },
           "inspection submitted"
         );
 
@@ -450,7 +450,7 @@ export const kioskRouter = router({
         }
 
         log.info(
-          { operatorId: ctx.user.id, stationId: input.stationId, processCode: input.processCode },
+          { operatorId: ctx.user!.id, stationId: input.stationId, processCode: input.processCode },
           "operator punched in"
         );
 

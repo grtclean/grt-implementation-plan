@@ -16,6 +16,99 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { useLanguage } from "@/contexts/LanguageContext";
+import type { ComponentType } from "react";
+
+// ==================== Data Types ====================
+
+interface RecurringSeries {
+  id: number;
+  series_title: string;
+  frequency: string;
+  occurrence_count: number;
+  avg_participant_count: number;
+  avg_effectiveness_score: number;
+  effectiveness_trend: string;
+  value_score: number;
+  value_grade: string;
+  recommendation: string;
+  status: string;
+  core_participants: string;
+  total_cumulative_minutes: number;
+  total_cumulative_cost: number;
+  meeting_ids: string;
+  trend_slope: number;
+  avg_roi_grade: string | null;
+  recommendation_rationale: string | null;
+  ai_narrative: string | null;
+  meeting_count?: number;
+}
+
+interface DashboardData {
+  totalSeries: number;
+  avgValueScore: number;
+  decliningCount: number;
+  totalWeeklyMinutesSaved: number;
+}
+
+interface SummaryData {
+  frequencyDistribution: { frequency: string; count: number }[];
+  gradeDistribution: { value_grade: string; count: number }[];
+  potentialSavings?: {
+    dfSeriesCount: number;
+    totalMinutes: number;
+    totalCost: number;
+    estimatedWeeklySavings: number;
+  };
+  worstSeries?: RecurringSeries[];
+}
+
+interface ComparisonEntry {
+  series_title: string;
+  value_score: number;
+  value_grade: string;
+}
+
+interface ValueTrendData {
+  meetings: { meeting_date: string; effectiveness_score: number; participant_count: number }[];
+}
+
+interface OptimizationResult {
+  recommendation: string;
+  rationale: string;
+  estimated_weekly_savings_minutes: number;
+  specific_actions: string[];
+  narrative?: string;
+}
+
+interface BatchOptimizationResult {
+  optimized: number;
+  errors: number;
+}
+
+interface DetectResult {
+  detected: number;
+}
+
+interface RecordActionResult {
+  actionTaken: string;
+  minutesSaved: number;
+}
+
+interface OutcomeEntry {
+  id: number;
+  series_title: string;
+  action_taken: string;
+  pre_action_weekly_minutes: number;
+  post_action_weekly_minutes: number;
+  minutes_saved_per_week: number;
+  cost_saved_per_week: number;
+  productivity_impact: string;
+}
+
+interface PieEntry {
+  name: string;
+  value: number;
+}
 
 const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 
@@ -29,7 +122,7 @@ const GRADE_COLORS: Record<string, string> = {
 const GRADE_BAR_COLORS: Record<string, string> = {
   A: "#22c55e", B: "#3b82f6", C: "#eab308", D: "#f97316", F: "#ef4444",
 };
-const TREND_ICONS: Record<string, any> = {
+const TREND_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   improving: TrendingUp,
   declining: TrendingDown,
   stable: Minus,
@@ -124,12 +217,12 @@ export function RecurringMeetingValueTab() {
     },
   });
 
-  const dashboard = dashboardQuery.data as any;
-  const seriesList = (seriesListQuery.data || []) as any[];
-  const outcomes = (outcomesQuery.data || []) as any[];
-  const summary = summaryQuery.data as any;
-  const comparison = (comparisonQuery.data || []) as any[];
-  const valueTrend = valueTrendQuery.data as any;
+  const dashboard = dashboardQuery.data as DashboardData | undefined;
+  const seriesList = (seriesListQuery.data || []) as unknown as RecurringSeries[];
+  const outcomes = (outcomesQuery.data || []) as unknown as OutcomeEntry[];
+  const summary = summaryQuery.data as unknown as SummaryData | undefined;
+  const comparison = (comparisonQuery.data || []) as unknown as ComparisonEntry[];
+  const valueTrend = valueTrendQuery.data as ValueTrendData | undefined;
 
   // Outcome action distribution for pie chart
   const actionDistMap: Record<string, number> = {};
@@ -140,11 +233,11 @@ export function RecurringMeetingValueTab() {
   const actionPieData = Object.entries(actionDistMap).map(([name, value]) => ({ name: t(ACTION_LABEL_KEYS[name] || "meeting.recurring.actionNoChange"), value }));
 
   // Summary pie data
-  const freqDist = ((summary?.frequencyDistribution || []) as any[]).map((r: any) => ({
+  const freqDist: PieEntry[] = (summary?.frequencyDistribution || []).map((r) => ({
     name: t(FREQ_LABEL_KEYS[r.frequency] || "meeting.recurring.freqIrregular"),
     value: Number(r.count),
   }));
-  const gradeDist = ((summary?.gradeDistribution || []) as any[]).map((r: any) => ({
+  const gradeDist: PieEntry[] = (summary?.gradeDistribution || []).map((r) => ({
     name: r.value_grade,
     value: Number(r.count),
   }));
@@ -190,7 +283,7 @@ export function RecurringMeetingValueTab() {
           </div>
           {detectMut.data && (
             <p className="text-sm text-green-600">
-              {t("meeting.recurring.detectDone")} {(detectMut.data as any).detected} {t("meeting.recurring.seriesUnit")}
+              {t("meeting.recurring.detectDone")} {(detectMut.data as DetectResult).detected} {t("meeting.recurring.seriesUnit")}
             </p>
           )}
           {detectMut.isError && (
@@ -259,7 +352,7 @@ export function RecurringMeetingValueTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {seriesList.map((s: any) => (
+                {seriesList.map((s) => (
                   <>
                     <TableRow
                       key={s.id}
@@ -355,7 +448,7 @@ export function RecurringMeetingValueTab() {
                 <SelectValue placeholder={t("meeting.recurring.selectSeries")} />
               </SelectTrigger>
               <SelectContent>
-                {seriesList.map((s: any) => (
+                {seriesList.map((s) => (
                   <SelectItem key={s.id} value={String(s.id)}>
                     [{s.value_grade}] {s.series_title}
                   </SelectItem>
@@ -363,9 +456,9 @@ export function RecurringMeetingValueTab() {
               </SelectContent>
             </Select>
           </div>
-          {valueTrend?.meetings?.length > 0 ? (
+          {(valueTrend?.meetings?.length ?? 0) > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={valueTrend.meetings}>
+              <LineChart data={valueTrend!.meetings}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="meeting_date"
@@ -408,7 +501,7 @@ export function RecurringMeetingValueTab() {
                 />
                 <Tooltip />
                 <Bar dataKey="value_score" name={t("meeting.recurring.valueScoreLabel")}>
-                  {comparison.map((entry: any, idx: number) => (
+                  {comparison.map((entry, idx) => (
                     <Cell
                       key={idx}
                       fill={GRADE_BAR_COLORS[entry.value_grade] || COLORS[idx % COLORS.length]}
@@ -451,27 +544,34 @@ export function RecurringMeetingValueTab() {
           </div>
           {optimizeMut.data && (
             <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{t("meeting.recurring.recommendation")}:</span>
-                <Badge className={REC_COLORS[(optimizeMut.data as any).recommendation] || ""}>
-                  {t(REC_LABEL_KEYS[(optimizeMut.data as any).recommendation] || "meeting.recurring.recContinue")}
-                </Badge>
-              </div>
-              <div><span className="font-medium">{t("meeting.recurring.rationale")}: </span>{(optimizeMut.data as any).rationale}</div>
-              <div><span className="font-medium">{t("meeting.recurring.estimatedWeeklySavings")}: </span>{(optimizeMut.data as any).estimated_weekly_savings_minutes} {t("meeting.recurring.minutesUnit")}</div>
-              {(optimizeMut.data as any).specific_actions?.length > 0 && (
-                <div>
-                  <span className="font-medium">{t("meeting.recurring.specificActions")}:</span>
-                  <ul className="mt-1 space-y-1">
-                    {(optimizeMut.data as any).specific_actions.map((a: string, i: number) => (
-                      <li key={i} className="text-muted-foreground">{"\u2022"} {a}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {(optimizeMut.data as any).narrative && (
-                <div><span className="font-medium">{t("meeting.recurring.aiNarrative")}: </span><span className="text-muted-foreground">{(optimizeMut.data as any).narrative}</span></div>
-              )}
+              {(() => {
+                const optData = optimizeMut.data as OptimizationResult;
+                return (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{t("meeting.recurring.recommendation")}:</span>
+                      <Badge className={REC_COLORS[optData.recommendation] || ""}>
+                        {t(REC_LABEL_KEYS[optData.recommendation] || "meeting.recurring.recContinue")}
+                      </Badge>
+                    </div>
+                    <div><span className="font-medium">{t("meeting.recurring.rationale")}: </span>{optData.rationale}</div>
+                    <div><span className="font-medium">{t("meeting.recurring.estimatedWeeklySavings")}: </span>{optData.estimated_weekly_savings_minutes} {t("meeting.recurring.minutesUnit")}</div>
+                    {optData.specific_actions?.length > 0 && (
+                      <div>
+                        <span className="font-medium">{t("meeting.recurring.specificActions")}:</span>
+                        <ul className="mt-1 space-y-1">
+                          {optData.specific_actions.map((a: string, i: number) => (
+                            <li key={i} className="text-muted-foreground">{"\u2022"} {a}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {optData.narrative && (
+                      <div><span className="font-medium">{t("meeting.recurring.aiNarrative")}: </span><span className="text-muted-foreground">{optData.narrative}</span></div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           )}
           {optimizeMut.isError && (
@@ -501,7 +601,7 @@ export function RecurringMeetingValueTab() {
             </div>
             {batchOptimizeMut.data && (
               <p className="text-sm text-green-600 mt-2">
-                {t("meeting.recurring.batchDone")} {(batchOptimizeMut.data as any).optimized} {t("meeting.recurring.batchDoneUnit")}, {t("meeting.recurring.batchFailed")} {(batchOptimizeMut.data as any).errors} {t("meeting.recurring.batchFailedUnit")}
+                {t("meeting.recurring.batchDone")} {(batchOptimizeMut.data as BatchOptimizationResult).optimized} {t("meeting.recurring.batchDoneUnit")}, {t("meeting.recurring.batchFailed")} {(batchOptimizeMut.data as BatchOptimizationResult).errors} {t("meeting.recurring.batchFailedUnit")}
               </p>
             )}
           </div>
@@ -544,7 +644,7 @@ export function RecurringMeetingValueTab() {
           </div>
           {recordActionMut.data && (
             <p className="text-sm text-green-600">
-              {t("meeting.recurring.actionRecorded")}: {t(ACTION_LABEL_KEYS[(recordActionMut.data as any).actionTaken] || "meeting.recurring.actionNoChange")} — {t("meeting.recurring.weeklySaved")} {(recordActionMut.data as any).minutesSaved} {t("meeting.recurring.minutesUnit")}
+              {t("meeting.recurring.actionRecorded")}: {t(ACTION_LABEL_KEYS[(recordActionMut.data as RecordActionResult).actionTaken] || "meeting.recurring.actionNoChange")} — {t("meeting.recurring.weeklySaved")} {(recordActionMut.data as RecordActionResult).minutesSaved} {t("meeting.recurring.minutesUnit")}
             </p>
           )}
           {recordActionMut.isError && (
@@ -574,7 +674,7 @@ export function RecurringMeetingValueTab() {
                       dataKey="value"
                       label={({ name, value }) => `${name}: ${value}`}
                     >
-                      {actionPieData.map((_: any, idx: number) => (
+                      {actionPieData.map((_: PieEntry, idx: number) => (
                         <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
                       ))}
                     </Pie>
@@ -596,7 +696,7 @@ export function RecurringMeetingValueTab() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {outcomes.map((o: any) => (
+                    {outcomes.map((o) => (
                       <TableRow key={o.id}>
                         <TableCell className="font-medium max-w-[150px] truncate">{o.series_title}</TableCell>
                         <TableCell className="text-center">
@@ -646,7 +746,7 @@ export function RecurringMeetingValueTab() {
                       dataKey="value"
                       label={({ name, value }) => `${name}: ${value}`}
                     >
-                      {gradeDist.map((entry: any, idx: number) => (
+                      {gradeDist.map((entry: PieEntry, idx: number) => (
                         <Cell key={idx} fill={GRADE_BAR_COLORS[entry.name] || COLORS[idx % COLORS.length]} />
                       ))}
                     </Pie>
@@ -672,7 +772,7 @@ export function RecurringMeetingValueTab() {
                       dataKey="value"
                       label={({ name, value }) => `${name}: ${value}`}
                     >
-                      {freqDist.map((_: any, idx: number) => (
+                      {freqDist.map((_: PieEntry, idx: number) => (
                         <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
                       ))}
                     </Pie>
@@ -730,7 +830,7 @@ export function RecurringMeetingValueTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(summary.worstSeries as any[]).map((s: any) => (
+                  {(summary!.worstSeries as RecurringSeries[]).map((s) => (
                     <TableRow key={s.id}>
                       <TableCell className="font-medium max-w-[200px] truncate">{s.series_title}</TableCell>
                       <TableCell className="text-center">

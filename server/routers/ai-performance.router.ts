@@ -36,9 +36,9 @@ export const aiPerformanceRouter = router({
       try {
         const db = await requireDb();
         const HR_ROLES = new Set(["admin", "director", "hr_manager", "dept_manager"]);
-        const targetUserId = input?.userId ?? ctx.user.id;
+        const targetUserId = input?.userId ?? ctx.user!.id;
         // Non-HR roles can only see own data
-        if (targetUserId !== ctx.user.id && !HR_ROLES.has(ctx.user.role ?? "employee")) {
+        if (targetUserId !== ctx.user!.id && !HR_ROLES.has(ctx.user!.role ?? "employee")) {
           return { items: [], total: 0 };
         }
         const rows = await db.select().from(hrAiPerformance)
@@ -202,7 +202,7 @@ export const aiPerformanceRouter = router({
       try {
         const HR_ROLES = new Set(["admin", "director", "hr_manager", "dept_manager"]);
         // Non-HR roles can only see own data
-        if (input.userId !== ctx.user.id && !HR_ROLES.has(ctx.user.role ?? "employee")) {
+        if (input.userId !== ctx.user!.id && !HR_ROLES.has(ctx.user!.role ?? "employee")) {
           return { history: [], actionItems: [] };
         }
         const db = await requireDb();
@@ -240,11 +240,11 @@ export const aiPerformanceRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         const HR_ROLES = new Set(["admin", "director", "hr_manager", "dept_manager"]);
-        if (input.userId !== ctx.user.id && !HR_ROLES.has(ctx.user.role ?? "employee")) {
+        if (input.userId !== ctx.user!.id && !HR_ROLES.has(ctx.user!.role ?? "employee")) {
           return { ok: false, message: "Insufficient permissions" };
         }
         const db = await requireDb();
-        const userName = input.userName || ctx.user.name || `User#${input.userId}`;
+        const userName = input.userName || ctx.user!.name || `User#${input.userId}`;
         await calculateMonthlyScore(db as any, input.userId, userName, input.month);
         // Fetch the updated record to return
         const [updated] = await db.select().from(hrAiPerformance)
@@ -281,7 +281,7 @@ export const aiPerformanceRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         const ADMIN_ROLES = new Set(["admin", "director", "hr_manager"]);
-        if (!ADMIN_ROLES.has(ctx.user.role ?? "employee")) {
+        if (!ADMIN_ROLES.has(ctx.user!.role ?? "employee")) {
           return { ok: false, message: "Admin/HR role required", processed: 0 };
         }
         const db = await requireDb();

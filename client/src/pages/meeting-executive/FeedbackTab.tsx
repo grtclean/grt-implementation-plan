@@ -9,6 +9,43 @@ import { MessageCircle, Star, TrendingUp, Lightbulb, Send, BarChart3, ThumbsUp, 
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+interface FeedbackDashboardData {
+  stats: {
+    totalResponses: number;
+    avgRating: number;
+    npsScore: number;
+  };
+}
+
+interface MeetingFeedbackData {
+  totalResponses: number;
+  avgOverall: number;
+  npsScore: number;
+  avgContent: number;
+  avgTime: number;
+  avgFacilitation: number;
+  avgAction: number;
+}
+
+interface FeedbackTrendsData {
+  totalResponses: number;
+  avgOverall: number;
+  npsScore: number;
+  trend: "up" | "down" | "stable";
+  topHighlights: string[];
+  topImprovements: string[];
+}
+
+interface ImprovementItem {
+  id: number;
+  title: string;
+  description?: string;
+  category: string;
+  priority: string;
+  source: string;
+  status: string;
+}
+
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
     <div className="flex gap-1">
@@ -62,8 +99,8 @@ export function FeedbackTab() {
     onSuccess: () => improvementsQuery.refetch(),
   });
 
-  const dashboard = dashboardQuery.data as any;
-  const improvements = (improvementsQuery.data || []) as any[];
+  const dashboard = dashboardQuery.data as FeedbackDashboardData | undefined;
+  const improvements = (improvementsQuery.data || []) as unknown as ImprovementItem[];
 
   return (
     <div className="space-y-6">
@@ -93,7 +130,7 @@ export function FeedbackTab() {
         <Card>
           <CardContent className="pt-4 text-center">
             <Lightbulb className="h-8 w-8 mx-auto text-orange-500 mb-1" />
-            <div className="text-3xl font-bold">{improvements.filter((i: any) => i.status === "proposed" || i.status === "in_progress").length}</div>
+            <div className="text-3xl font-bold">{improvements.filter((i: ImprovementItem) => i.status === "proposed" || i.status === "in_progress").length}</div>
             <div className="text-sm text-muted-foreground">{t("meeting.feedback.activeImprovements")}</div>
           </CardContent>
         </Card>
@@ -182,21 +219,24 @@ export function FeedbackTab() {
           <div className="flex gap-2">
             <Input placeholder={t("meeting.feedback.meetingIdPlaceholder")} value={lookupMeetingId} onChange={e => setLookupMeetingId(e.target.value)} className="flex-1" />
           </div>
-          {lookupMut.data && (
+          {lookupMut.data && (() => {
+            const fb = lookupMut.data as unknown as MeetingFeedbackData;
+            return (
             <div className="p-3 bg-muted rounded space-y-2">
               <div className="flex items-center gap-4 text-sm">
-                <span>{t("meeting.feedback.responseCount")}: <strong>{(lookupMut.data as any).totalResponses}</strong></span>
-                <span>{t("meeting.feedback.avgOverall")}: <strong>{(lookupMut.data as any).avgOverall}</strong>/5</span>
-                <span>NPS: <strong>{(lookupMut.data as any).npsScore}</strong></span>
+                <span>{t("meeting.feedback.responseCount")}: <strong>{fb.totalResponses}</strong></span>
+                <span>{t("meeting.feedback.avgOverall")}: <strong>{fb.avgOverall}</strong>/5</span>
+                <span>NPS: <strong>{fb.npsScore}</strong></span>
               </div>
               <div className="grid grid-cols-4 gap-2 text-xs">
-                <div>{t("meeting.feedback.content")}: <strong>{(lookupMut.data as any).avgContent}</strong></div>
-                <div>{t("meeting.feedback.time")}: <strong>{(lookupMut.data as any).avgTime}</strong></div>
-                <div>{t("meeting.feedback.facilitation")}: <strong>{(lookupMut.data as any).avgFacilitation}</strong></div>
-                <div>{t("meeting.feedback.action")}: <strong>{(lookupMut.data as any).avgAction}</strong></div>
+                <div>{t("meeting.feedback.content")}: <strong>{fb.avgContent}</strong></div>
+                <div>{t("meeting.feedback.time")}: <strong>{fb.avgTime}</strong></div>
+                <div>{t("meeting.feedback.facilitation")}: <strong>{fb.avgFacilitation}</strong></div>
+                <div>{t("meeting.feedback.action")}: <strong>{fb.avgAction}</strong></div>
               </div>
             </div>
-          )}
+            );
+          })()}
         </CardContent>
       </Card>
 
@@ -222,34 +262,37 @@ export function FeedbackTab() {
               {trendsMut.isPending ? t("meeting.feedback.analyzing") : t("meeting.feedback.analyzeTrends")}
             </Button>
           </div>
-          {trendsMut.data && (
+          {trendsMut.data && (() => {
+            const trends = trendsMut.data as unknown as FeedbackTrendsData;
+            return (
             <div className="p-4 bg-muted rounded space-y-3">
               <div className="flex items-center gap-6 text-sm">
-                <span>{t("meeting.feedback.responseCount")}: <strong>{(trendsMut.data as any).totalResponses}</strong></span>
-                <span>{t("meeting.feedback.avgOverall")}: <strong>{(trendsMut.data as any).avgOverall}</strong>/5</span>
-                <span>NPS: <strong>{(trendsMut.data as any).npsScore}</strong></span>
-                <Badge variant={(trendsMut.data as any).trend === "up" ? "default" : (trendsMut.data as any).trend === "down" ? "destructive" : "secondary"}>
-                  {(trendsMut.data as any).trend === "up" ? `↑ ${t("meeting.feedback.trendUp")}` : (trendsMut.data as any).trend === "down" ? `↓ ${t("meeting.feedback.trendDown")}` : `→ ${t("meeting.feedback.trendStable")}`}
+                <span>{t("meeting.feedback.responseCount")}: <strong>{trends.totalResponses}</strong></span>
+                <span>{t("meeting.feedback.avgOverall")}: <strong>{trends.avgOverall}</strong>/5</span>
+                <span>NPS: <strong>{trends.npsScore}</strong></span>
+                <Badge variant={trends.trend === "up" ? "default" : trends.trend === "down" ? "destructive" : "secondary"}>
+                  {trends.trend === "up" ? `↑ ${t("meeting.feedback.trendUp")}` : trends.trend === "down" ? `↓ ${t("meeting.feedback.trendDown")}` : `→ ${t("meeting.feedback.trendStable")}`}
                 </Badge>
               </div>
-              {(trendsMut.data as any).topHighlights?.length > 0 && (
+              {trends.topHighlights?.length > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold mb-1">{t("meeting.feedback.commonHighlights")}</h4>
                   <ul className="list-disc list-inside text-sm space-y-1">
-                    {(trendsMut.data as any).topHighlights.map((h: string, i: number) => <li key={i}>{h}</li>)}
+                    {trends.topHighlights.map((h: string, i: number) => <li key={i}>{h}</li>)}
                   </ul>
                 </div>
               )}
-              {(trendsMut.data as any).topImprovements?.length > 0 && (
+              {trends.topImprovements?.length > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold mb-1">{t("meeting.feedback.commonImprovements")}</h4>
                   <ul className="list-disc list-inside text-sm space-y-1">
-                    {(trendsMut.data as any).topImprovements.map((h: string, i: number) => <li key={i}>{h}</li>)}
+                    {trends.topImprovements.map((h: string, i: number) => <li key={i}>{h}</li>)}
                   </ul>
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
         </CardContent>
       </Card>
 
@@ -288,7 +331,7 @@ export function FeedbackTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {improvements.map((init: any) => (
+                {improvements.map((init: ImprovementItem) => (
                   <TableRow key={init.id}>
                     <TableCell>
                       <div>

@@ -21,6 +21,37 @@ const log = createChildLogger("process-steps");
 // 类型定义
 // ============================================================
 
+/** MySQL-style db.execute result: [rows[], fields[]] */
+type DbExecuteResult = [Array<Record<string, any>> & { insertId?: number }, unknown];
+
+/** Row from a DB query with string-keyed columns */
+type DbRow = Record<string, unknown>;
+
+/** Rows accessor — works with both MySQL tuple and PG-style .rows */
+type DbRowsResult = { rows?: DbRow[] };
+
+/** AI accuracy stats raw row from aggregate query */
+interface AccuracyRow {
+  process_code?: string;
+  project_id?: number;
+  total?: number | string;
+  confirmed?: number | string;
+  modified?: number | string;
+  rejected?: number | string;
+  pending?: number | string;
+  adopted?: number | string;
+  period?: string;
+}
+
+/** Modification analysis raw row */
+interface ModificationRow {
+  total_modified?: number | string;
+  name_changes?: number | string;
+  req_changes?: number | string;
+  desc_changes?: number | string;
+  hours_changes?: number | string;
+}
+
 export interface BomStep {
   id?: number;
   processInstanceId: number;
@@ -177,7 +208,7 @@ export async function createBomStep(data: BomStep) {
             ${data.plannedWorkerId || null}, ${data.status || 'pending'},
             ${data.createdBy || null})
   `);
-  return { id: (result as any)[0]?.insertId };
+  return { id: (result as unknown as DbExecuteResult)[0]?.insertId as unknown as number | undefined };
 }
 
 export async function updateBomStep(id: number, data: Partial<BomStep>) {
@@ -215,7 +246,7 @@ export async function getBomSteps(processInstanceId: number) {
     WHERE process_instance_id = ${processInstanceId}
     ORDER BY step_number ASC
   `);
-  return (result as any)[0] || [];
+  return (result as unknown as DbExecuteResult)[0] || [];
 }
 
 export async function getBomStepsByProject(projectId: number, processCode?: string) {
@@ -226,14 +257,14 @@ export async function getBomStepsByProject(projectId: number, processCode?: stri
       WHERE project_id = ${projectId} AND process_code = ${processCode}
       ORDER BY step_number ASC
     `);
-    return (result as any)[0] || [];
+    return (result as unknown as DbExecuteResult)[0] || [];
   }
   const result = await db.execute(sql`
-    SELECT * FROM process_bom_steps 
+    SELECT * FROM process_bom_steps
     WHERE project_id = ${projectId}
     ORDER BY process_code ASC, step_number ASC
   `);
-  return (result as any)[0] || [];
+  return (result as unknown as DbExecuteResult)[0] || [];
 }
 
 export async function getBomStepById(id: number) {
@@ -241,7 +272,7 @@ export async function getBomStepById(id: number) {
   const result = await db.execute(sql`
     SELECT * FROM process_bom_steps WHERE id = ${id}
   `);
-  const rows = (result as any)[0];
+  const rows = (result as unknown as DbExecuteResult)[0];
   return rows?.[0] || null;
 }
 
@@ -275,7 +306,7 @@ export async function createAiPresetStep(data: AiPresetStep) {
             ${data.sourceProjectName || null}, ${data.matchScore || null},
             ${data.confirmStatus || 'pending'}, ${data.confirmedBy || null})
   `);
-  return { id: (result as any)[0]?.insertId };
+  return { id: (result as unknown as DbExecuteResult)[0]?.insertId as unknown as number | undefined };
 }
 
 export async function getAiPresetSteps(processInstanceId: number) {
@@ -285,7 +316,7 @@ export async function getAiPresetSteps(processInstanceId: number) {
     WHERE process_instance_id = ${processInstanceId}
     ORDER BY step_number ASC
   `);
-  return (result as any)[0] || [];
+  return (result as unknown as DbExecuteResult)[0] || [];
 }
 
 export async function getAiPresetStepsByProject(projectId: number, processCode?: string) {
@@ -296,14 +327,14 @@ export async function getAiPresetStepsByProject(projectId: number, processCode?:
       WHERE project_id = ${projectId} AND process_code = ${processCode}
       ORDER BY step_number ASC
     `);
-    return (result as any)[0] || [];
+    return (result as unknown as DbExecuteResult)[0] || [];
   }
   const result = await db.execute(sql`
-    SELECT * FROM process_ai_preset_steps 
+    SELECT * FROM process_ai_preset_steps
     WHERE project_id = ${projectId}
     ORDER BY process_code ASC, step_number ASC
   `);
-  return (result as any)[0] || [];
+  return (result as unknown as DbExecuteResult)[0] || [];
 }
 
 export async function confirmAiPresetStep(id: number, userId: number, status: string, modifications?: Partial<AiPresetStep>) {
@@ -350,7 +381,7 @@ export async function adoptAiPresetAsBomStep(aiPresetId: number, userId: number)
   const presetResult = await db.execute(sql`
     SELECT * FROM process_ai_preset_steps WHERE id = ${aiPresetId}
   `);
-  const preset = (presetResult as any)[0]?.[0];
+  const preset = (presetResult as unknown as DbExecuteResult)[0]?.[0];
   if (!preset) return null;
 
   // 获取当前最大步骤号
@@ -358,7 +389,7 @@ export async function adoptAiPresetAsBomStep(aiPresetId: number, userId: number)
     SELECT MAX(step_number) as max_step FROM process_bom_steps 
     WHERE process_instance_id = ${preset.process_instance_id}
   `);
-  const maxStep = (maxResult as any)[0]?.[0]?.max_step || 0;
+  const maxStep = (maxResult as unknown as DbExecuteResult)[0]?.[0]?.max_step as unknown as number || 0;
 
   // 创建BOM步骤
   const bomResult = await db.execute(sql`
@@ -375,7 +406,7 @@ export async function adoptAiPresetAsBomStep(aiPresetId: number, userId: number)
   // 标记AI预设为已确认
   await confirmAiPresetStep(aiPresetId, userId, 'confirmed');
 
-  return { bomStepId: (bomResult as any)[0]?.insertId, success: true };
+  return { bomStepId: (bomResult as unknown as DbExecuteResult)[0]?.insertId as unknown as number | undefined, success: true };
 }
 
 // 批量采纳AI预设步骤
@@ -401,7 +432,7 @@ export async function startTimeLog(bomStepId: number, workerId: number, workerNa
     WHERE bom_step_id = ${bomStepId} AND worker_id = ${workerId} AND end_time IS NULL
     LIMIT 1
   `);
-  const existing = (existingResult as any)[0];
+  const existing = (existingResult as unknown as DbExecuteResult)[0] as unknown as DbRow[];
   if (existing && existing.length > 0) {
     return { error: "已有未结束的工时记录，请先结束当前工时", existingId: existing[0].id };
   }
@@ -419,7 +450,7 @@ export async function startTimeLog(bomStepId: number, workerId: number, workerNa
     WHERE id = ${bomStepId} AND status = 'pending'
   `);
 
-  return { id: (result as any)[0]?.insertId, startTime: now };
+  return { id: (result as unknown as DbExecuteResult)[0]?.insertId as unknown as number | undefined, startTime: now };
 }
 
 export async function endTimeLog(timeLogId: number, notes?: string) {
@@ -430,7 +461,7 @@ export async function endTimeLog(timeLogId: number, notes?: string) {
   const logResult = await db.execute(sql`
     SELECT * FROM process_step_time_logs WHERE id = ${timeLogId}
   `);
-  const log = (logResult as any)[0]?.[0];
+  const log = (logResult as unknown as DbExecuteResult)[0]?.[0];
   if (!log) return { error: "工时记录不存在" };
   if (log.end_time) return { error: "该工时记录已结束" };
 
@@ -454,7 +485,7 @@ export async function getTimeLogs(bomStepId: number) {
     WHERE bom_step_id = ${bomStepId}
     ORDER BY start_time DESC
   `);
-  return (result as any)[0] || [];
+  return (result as unknown as DbExecuteResult)[0] || [];
 }
 
 export async function getTimeLogsByWorker(workerId: number, projectId?: number) {
@@ -467,7 +498,7 @@ export async function getTimeLogsByWorker(workerId: number, projectId?: number) 
       WHERE t.worker_id = ${workerId} AND b.project_id = ${projectId}
       ORDER BY t.start_time DESC
     `);
-    return (result as any)[0] || [];
+    return (result as unknown as DbExecuteResult)[0] || [];
   }
   const result = await db.execute(sql`
     SELECT t.*, b.step_name, b.process_code, b.project_id
@@ -476,7 +507,7 @@ export async function getTimeLogsByWorker(workerId: number, projectId?: number) 
     WHERE t.worker_id = ${workerId}
     ORDER BY t.start_time DESC
   `);
-  return (result as any)[0] || [];
+  return (result as unknown as DbExecuteResult)[0] || [];
 }
 
 export async function getActiveTimeLogs(workerId: number) {
@@ -488,7 +519,7 @@ export async function getActiveTimeLogs(workerId: number) {
     WHERE t.worker_id = ${workerId} AND t.end_time IS NULL
     ORDER BY t.start_time DESC
   `);
-  return (result as any)[0] || [];
+  return (result as unknown as DbExecuteResult)[0] || [];
 }
 
 // ============================================================
@@ -503,7 +534,7 @@ export async function addStepAttachment(data: StepAttachment) {
     VALUES (${data.stepId}, ${data.stepType}, ${data.fileName}, ${data.fileUrl},
             ${data.fileType || null}, ${data.fileSize || null}, ${data.uploadedBy || null})
   `);
-  return { id: (result as any)[0]?.insertId };
+  return { id: (result as unknown as DbExecuteResult)[0]?.insertId as unknown as number | undefined };
 }
 
 export async function getStepAttachments(stepId: number, stepType: string) {
@@ -513,7 +544,7 @@ export async function getStepAttachments(stepId: number, stepType: string) {
     WHERE step_id = ${stepId} AND step_type = ${stepType}
     ORDER BY created_at DESC
   `);
-  return (result as any)[0] || [];
+  return (result as unknown as DbExecuteResult)[0] || [];
 }
 
 export async function deleteStepAttachment(id: number) {
@@ -537,7 +568,7 @@ export async function createHistoricalReference(data: HistoricalReference) {
             ${data.matchAlgorithm || 'bom_similarity'}, ${data.matchScore || null},
             ${data.status || 'active'})
   `);
-  return { id: (result as any)[0]?.insertId };
+  return { id: (result as unknown as DbExecuteResult)[0]?.insertId as unknown as number | undefined };
 }
 
 export async function getHistoricalReferences(targetProjectId: number) {
@@ -547,7 +578,7 @@ export async function getHistoricalReferences(targetProjectId: number) {
     WHERE target_project_id = ${targetProjectId}
     ORDER BY match_score DESC
   `);
-  return (result as any)[0] || [];
+  return (result as unknown as DbExecuteResult)[0] || [];
 }
 
 /**
@@ -570,7 +601,7 @@ export async function generateAiPresetSteps(
     WHERE project_id = ${sourceProjectId} AND process_code = ${processCode}
     ORDER BY step_number ASC
   `);
-  const sourceSteps = (sourceStepsResult as any)[0] || [];
+  const sourceSteps = ((sourceStepsResult as unknown as DbExecuteResult)[0] || []) as unknown as DbRow[];
 
   if (sourceSteps.length === 0) {
     return { steps: [], message: "源项目在该工序下没有历史步骤数据" };
@@ -580,10 +611,10 @@ export async function generateAiPresetSteps(
   const sourceProjectResult = await db.execute(sql`
     SELECT project_name FROM grt_projects WHERE id = ${sourceProjectId} LIMIT 1
   `);
-  const sourceProjectName = (sourceProjectResult as any)[0]?.[0]?.project_name || `项目#${sourceProjectId}`;
+  const sourceProjectName = (sourceProjectResult as unknown as DbExecuteResult)[0]?.[0]?.project_name as string || `项目#${sourceProjectId}`;
 
   // 3. 使用AI分析并生成预设步骤
-  const sourceStepsText = sourceSteps.map((s: any, i: number) => 
+  const sourceStepsText = sourceSteps.map((s: DbRow) =>
     `步骤${s.step_number}: ${s.step_name}\n  工艺要求: ${s.process_requirements || '无'}\n  工艺描述: ${s.process_description || '无'}\n  BOM参照: ${s.bom_item_reference || '无'}\n  理论工时: ${s.theoretical_hours || '未设定'}小时`
   ).join("\n\n");
 
@@ -663,7 +694,7 @@ ${currentBomItems ? `## 当前项目BOM清单\n${currentBomItems}` : ''}
     if (!content) return { steps: [], message: "AI未返回有效内容" };
 
     const parsed = JSON.parse(content);
-    const createdSteps: any[] = [];
+    const createdSteps: Array<Record<string, unknown>> = [];
 
     // 4. 将AI生成的步骤保存到数据库
     for (const step of parsed.steps) {
@@ -706,8 +737,8 @@ ${currentBomItems ? `## 当前项目BOM清单\n${currentBomItems}` : ''}
     log.error({ err: error }, "[AI Preset] Error generating preset steps:");
     
     // 降级方案：直接复制历史步骤
-    const fallbackSteps: any[] = [];
-    for (const step of sourceSteps) {
+    const fallbackSteps: Array<Record<string, unknown>> = [];
+    for (const step of sourceSteps as any[]) {
       const result = await createAiPresetStep({
         processInstanceId,
         projectId: targetProjectId,
@@ -763,8 +794,8 @@ export async function generateAiPresetsForRange(
     SELECT id, process_code FROM project_process_instances 
     WHERE project_id = ${targetProjectId} AND process_code IN (${sql.join(targetCodes.map(c => sql`${c}`), sql`, `)})
   `);
-  const instances = (instancesResult as any)[0] || [];
-  const instanceMap = new Map<string, number>(instances.map((i: any) => [i.process_code, i.id]));
+  const instances = ((instancesResult as unknown as DbExecuteResult)[0] || []) as unknown as DbRow[];
+  const instanceMap = new Map<string, number>(instances.map((i: DbRow) => [i.process_code as string, i.id as number]));
 
   for (const code of targetCodes) {
     const instanceId = instanceMap.get(code);
@@ -802,7 +833,7 @@ export async function findSimilarProjects(projectId: number, limit: number = 10)
   const projectResult = await db.execute(sql`
     SELECT * FROM grt_projects WHERE id = ${projectId} LIMIT 1
   `);
-  const project = (projectResult as any)[0]?.[0];
+  const project = (projectResult as unknown as DbExecuteResult)[0]?.[0];
   if (!project) return [];
 
   // 查找有BOM步骤的历史项目
@@ -817,7 +848,7 @@ export async function findSimilarProjects(projectId: number, limit: number = 10)
     ORDER BY step_count DESC
     LIMIT ${limit}
   `);
-  return (result as any)[0] || [];
+  return (result as unknown as DbExecuteResult)[0] || [];
 }
 
 // ============================================================
@@ -841,7 +872,7 @@ export async function getProjectProcessOverview(projectId: number) {
     WHERE project_id = ${projectId}
     ORDER BY process_code ASC
   `);
-  const instances = (instancesResult as any)[0] || [];
+  const instances = ((instancesResult as unknown as DbExecuteResult)[0] || []) as unknown as DbRow[];
 
   // 获取每个工序的BOM步骤统计
   const stepsResult = await db.execute(sql`
@@ -854,8 +885,8 @@ export async function getProjectProcessOverview(projectId: number) {
     WHERE project_id = ${projectId}
     GROUP BY process_code
   `);
-  const stepsStats = (stepsResult as any)[0] || [];
-  const stepsMap = new Map(stepsStats.map((s: any) => [s.process_code, s]));
+  const stepsStats = ((stepsResult as unknown as DbExecuteResult)[0] || []) as unknown as DbRow[];
+  const stepsMap = new Map(stepsStats.map((s: DbRow) => [s.process_code as string, s]));
 
   // 获取AI预设步骤统计
   const aiResult = await db.execute(sql`
@@ -867,8 +898,8 @@ export async function getProjectProcessOverview(projectId: number) {
     WHERE project_id = ${projectId}
     GROUP BY process_code
   `);
-  const aiStats = (aiResult as any)[0] || [];
-  const aiMap = new Map(aiStats.map((a: any) => [a.process_code, a]));
+  const aiStats = ((aiResult as unknown as DbExecuteResult)[0] || []) as unknown as DbRow[];
+  const aiMap = new Map(aiStats.map((a: DbRow) => [a.process_code as string, a]));
 
   // 获取工时统计
   const timeResult = await db.execute(sql`
@@ -880,15 +911,15 @@ export async function getProjectProcessOverview(projectId: number) {
     WHERE b.project_id = ${projectId} AND t.status = 'completed'
     GROUP BY b.process_code
   `);
-  const timeStats = (timeResult as any)[0] || [];
-  const timeMap = new Map(timeStats.map((t: any) => [t.process_code, t]));
+  const timeStats = ((timeResult as unknown as DbExecuteResult)[0] || []) as unknown as DbRow[];
+  const timeMap = new Map(timeStats.map((t: DbRow) => [t.process_code as string, t]));
 
-  return instances.map((inst: any) => ({
+  return instances.map((inst: DbRow) => ({
     ...inst,
-    milestones: T_TO_M_MAPPING[inst.process_code] || [],
-    bomSteps: stepsMap.get(inst.process_code) || { total_steps: 0, completed_steps: 0, in_progress_steps: 0, total_theoretical_hours: 0 },
-    aiPresets: aiMap.get(inst.process_code) || { total_presets: 0, confirmed_presets: 0, pending_presets: 0 },
-    timeStats: timeMap.get(inst.process_code) || { total_actual_hours: 0, worker_count: 0 }
+    milestones: T_TO_M_MAPPING[inst.process_code as string] || [],
+    bomSteps: stepsMap.get(inst.process_code as string) || { total_steps: 0, completed_steps: 0, in_progress_steps: 0, total_theoretical_hours: 0 },
+    aiPresets: aiMap.get(inst.process_code as string) || { total_presets: 0, confirmed_presets: 0, pending_presets: 0 },
+    timeStats: timeMap.get(inst.process_code as string) || { total_actual_hours: 0, worker_count: 0 }
   }));
 }
 
@@ -907,7 +938,7 @@ export async function getProcessStepStats(projectId: number) {
            SUM(COALESCE(theoretical_hours, 0)) as total_theoretical_hours
     FROM process_bom_steps WHERE project_id = ${projectId}
   `);
-  const bomStats = (bomResult as any)[0]?.[0] || {};
+  const bomStats = (bomResult as unknown as DbExecuteResult)[0]?.[0] as unknown as DbRow || {};
 
   const aiResult = await db.execute(sql`
     SELECT COUNT(*) as total,
@@ -917,7 +948,7 @@ export async function getProcessStepStats(projectId: number) {
            SUM(CASE WHEN confirm_status = 'rejected' THEN 1 ELSE 0 END) as rejected
     FROM process_ai_preset_steps WHERE project_id = ${projectId}
   `);
-  const aiStats = (aiResult as any)[0]?.[0] || {};
+  const aiStats = (aiResult as unknown as DbExecuteResult)[0]?.[0] as unknown as DbRow || {};
 
   const timeResult = await db.execute(sql`
     SELECT SUM(t.actual_hours) as total_actual_hours,
@@ -927,7 +958,7 @@ export async function getProcessStepStats(projectId: number) {
     JOIN process_bom_steps b ON t.bom_step_id = b.id
     WHERE b.project_id = ${projectId} AND t.status = 'completed'
   `);
-  const timeStats = (timeResult as any)[0]?.[0] || {};
+  const timeStats = (timeResult as unknown as DbExecuteResult)[0]?.[0] as unknown as DbRow || {};
 
   return {
     bomSteps: {
@@ -1022,8 +1053,8 @@ export async function getProjectProgressDashboard(projectId: number): Promise<Pr
   `)).rows;
 
   const timeByProcess = new Map<string, number>();
-  (timeStats as any[]).forEach((row: any) => {
-    timeByProcess.set(row.process_code, Number(row.total_actual_hours || 0));
+  (timeStats as DbRow[]).forEach((row: DbRow) => {
+    timeByProcess.set(row.process_code as string, Number(row.total_actual_hours || 0));
   });
 
   const processDetails: ProcessProgressItem[] = [];
@@ -1034,9 +1065,9 @@ export async function getProjectProgressDashboard(projectId: number): Promise<Pr
 
   // 构建所有T1-T15的进度数据
   const processCodeOrder = ["T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12","T13","T14","T15"];
-  const stepStatsMap = new Map<string, any>();
-  (stepStats as any[]).forEach((row: any) => {
-    stepStatsMap.set(row.process_code, row);
+  const stepStatsMap = new Map<string, DbRow>();
+  (stepStats as DbRow[]).forEach((row: DbRow) => {
+    stepStatsMap.set(row.process_code as string, row);
   });
 
   for (const code of processCodeOrder) {
@@ -1143,19 +1174,19 @@ export async function getWorkerAssignments(workerId: number): Promise<WorkerAssi
     ORDER BY bs.process_code ASC, bs.step_number ASC
   `)).rows;
 
-  return (rows as any[]).map((row: any) => ({
-    bomStepId: row.bom_step_id,
-    stepNumber: row.step_number,
-    stepName: row.step_name,
-    processCode: row.process_code,
-    processName: PROCESS_NAMES[row.process_code] || row.process_code,
-    projectId: row.project_id,
-    processRequirements: row.process_requirements,
-    processDescription: row.process_description,
-    bomItemReference: row.bom_item_reference,
+  return (rows as DbRow[]).map((row: DbRow) => ({
+    bomStepId: row.bom_step_id as number,
+    stepNumber: row.step_number as number,
+    stepName: row.step_name as string,
+    processCode: row.process_code as string,
+    processName: PROCESS_NAMES[row.process_code as string] || row.process_code as string,
+    projectId: row.project_id as number,
+    processRequirements: row.process_requirements as string | null,
+    processDescription: row.process_description as string | null,
+    bomItemReference: row.bom_item_reference as string | null,
     theoreticalHours: row.theoretical_hours ? Number(row.theoretical_hours) : null,
-    status: row.status,
-    activeTimeLogId: row.active_time_log_id || null,
+    status: row.status as string,
+    activeTimeLogId: (row.active_time_log_id as number) || null,
     activeStartTime: row.active_start_time ? Number(row.active_start_time) : null,
   }));
 }
@@ -1181,16 +1212,16 @@ export async function getWorkerTimeHistory(workerId: number, limit: number = 50)
     LIMIT ${limit}
   `)).rows;
 
-  return (rows as any[]).map((row: any) => ({
-    id: row.id,
-    bomStepId: row.bom_step_id,
-    stepName: row.step_name,
-    processCode: row.process_code,
-    projectId: row.project_id,
+  return (rows as DbRow[]).map((row: DbRow) => ({
+    id: row.id as number,
+    bomStepId: row.bom_step_id as number,
+    stepName: row.step_name as string,
+    processCode: row.process_code as string,
+    projectId: row.project_id as number,
     startTime: Number(row.start_time),
     endTime: row.end_time ? Number(row.end_time) : null,
     actualHours: row.actual_hours ? Number(row.actual_hours) : null,
-    notes: row.notes,
+    notes: row.notes as string | null,
   }));
 }
 
@@ -1228,8 +1259,8 @@ export async function getWorkerDailySummary(workerId: number): Promise<{
   const assignments = await getWorkerAssignments(workerId);
   const activeTask = assignments.find(a => a.activeTimeLogId !== null) || null;
 
-  const today = (todayStats as any[])[0] || {};
-  const week = (weekStats as any[])[0] || {};
+  const today = (todayStats as DbRow[])[0] || {};
+  const week = (weekStats as DbRow[])[0] || {};
 
   return {
     todayHours: Number(today.total_hours || 0),
@@ -1279,7 +1310,7 @@ export interface AiAccuracyDashboard {
   };
 }
 
-function calculateAccuracyStats(rows: any[]): AiAccuracyStats {
+function calculateAccuracyStats(rows: AccuracyRow[]): AiAccuracyStats {
   const total = rows.reduce((sum, r) => sum + Number(r.total || 0), 0);
   const confirmed = rows.reduce((sum, r) => sum + Number(r.confirmed || 0), 0);
   const modified = rows.reduce((sum, r) => sum + Number(r.modified || 0), 0);
@@ -1316,7 +1347,7 @@ export async function getAiAccuracyDashboard(projectId?: number): Promise<AiAccu
     ${projectFilter}
   `)).rows;
 
-  const overall = calculateAccuracyStats(overallRows as any[]);
+  const overall = calculateAccuracyStats(overallRows as AccuracyRow[]);
 
   // 按工序统计
   const byProcessRows = (await db.execute(sql`
@@ -1333,9 +1364,9 @@ export async function getAiAccuracyDashboard(projectId?: number): Promise<AiAccu
     ORDER BY process_code
   `)).rows;
 
-  const byProcess: AiAccuracyByProcess[] = (byProcessRows as any[]).map((row: any) => ({
-    processCode: row.process_code,
-    processName: PROCESS_NAMES[row.process_code] || row.process_code,
+  const byProcess: AiAccuracyByProcess[] = (byProcessRows as AccuracyRow[]).map((row: AccuracyRow) => ({
+    processCode: row.process_code as string,
+    processName: PROCESS_NAMES[row.process_code as string] || row.process_code as string,
     stats: calculateAccuracyStats([row]),
   }));
 
@@ -1354,7 +1385,7 @@ export async function getAiAccuracyDashboard(projectId?: number): Promise<AiAccu
     ORDER BY project_id
   `)).rows;
 
-  const byProject: AiAccuracyByProject[] = (byProjectRows as any[]).map((row: any) => ({
+  const byProject: AiAccuracyByProject[] = (byProjectRows as AccuracyRow[]).map((row: AccuracyRow) => ({
     projectId: Number(row.project_id),
     projectName: `项目#${row.project_id}`,
     stats: calculateAccuracyStats([row]),
@@ -1374,8 +1405,8 @@ export async function getAiAccuracyDashboard(projectId?: number): Promise<AiAccu
     ORDER BY period
   `)).rows;
 
-  const trend = (trendRows as any[]).map((row: any) => ({
-    period: row.period,
+  const trend = (trendRows as AccuracyRow[]).map((row: AccuracyRow) => ({
+    period: row.period as string,
     adoptionRate: Number(row.total) > 0 ? (Number(row.adopted) / Number(row.total)) * 100 : 0,
     totalPresets: Number(row.total),
   }));
@@ -1393,7 +1424,7 @@ export async function getAiAccuracyDashboard(projectId?: number): Promise<AiAccu
     ${projectId ? sql`AND project_id = ${projectId}` : sql``}
   `)).rows;
 
-  const modData = (modRows as any[])[0] || {};
+  const modData = (modRows as ModificationRow[])[0] || {} as ModificationRow;
   const totalModified = Number(modData.total_modified || 0);
   const fieldChanges = [
     { field: "步骤名称", count: Number(modData.name_changes || 0) },
@@ -1434,7 +1465,7 @@ export async function completeStepWithAutoTime(
   const stepResult = await db.execute(sql`
     SELECT * FROM process_bom_steps WHERE id = ${stepId}
   `);
-  const step = (stepResult as any)[0]?.[0];
+  const step = (stepResult as unknown as DbExecuteResult)[0]?.[0];
   if (!step) throw new Error("BOM步骤不存在");
   if (step.status === 'completed') throw new Error("该步骤已完成");
 
@@ -1450,7 +1481,7 @@ export async function completeStepWithAutoTime(
     ORDER BY start_time ASC
     LIMIT 1
   `);
-  const activeLog = (activeLogResult as any)[0]?.[0];
+  const activeLog = (activeLogResult as unknown as DbExecuteResult)[0]?.[0];
 
   if (activeLog) {
     // 有活跃的打卡记录，使用实际start_time计算
@@ -1515,14 +1546,14 @@ export async function batchAdoptAiPresetsByProject(
   const db = await requireDb();
 
   // 1. 获取要采纳的AI预设步骤
-  let presets: any[];
+  let presets: DbRow[];
   if (presetIds && presetIds.length > 0) {
     // 只采纳指定的预设
     const idPlaceholders = presetIds.map(id => sql`${Number(id)}`);
     const result = await db.execute(sql`
       SELECT * FROM process_ai_preset_steps WHERE id IN (${sql.join(idPlaceholders, sql`, `)}) AND project_id = ${Number(projectId)} AND process_code = ${String(processCode)}
     `);
-    presets = (result as any)[0] || [];
+    presets = ((result as unknown as DbExecuteResult)[0] || []) as unknown as DbRow[];
   } else {
     // 采纳该项目/工序下所有未确认的AI预设
     const result = await db.execute(sql`
@@ -1531,7 +1562,7 @@ export async function batchAdoptAiPresetsByProject(
         AND confirm_status = 'pending'
       ORDER BY step_number ASC
     `);
-    presets = (result as any)[0] || [];
+    presets = ((result as unknown as DbExecuteResult)[0] || []) as unknown as DbRow[];
   }
 
   if (presets.length === 0) {
@@ -1543,7 +1574,7 @@ export async function batchAdoptAiPresetsByProject(
     SELECT MAX(step_number) as max_step FROM process_bom_steps
     WHERE project_id = ${projectId} AND process_code = ${processCode}
   `);
-  let nextStep = ((maxResult as any)[0]?.[0]?.max_step || 0) + 1;
+  let nextStep = ((maxResult as unknown as DbExecuteResult)[0]?.[0]?.max_step as unknown as number || 0) + 1;
 
   // 3. 逐个创建BOM步骤
   const adoptedSteps: Array<{ id: number; name: string }> = [];
@@ -1560,8 +1591,8 @@ export async function batchAdoptAiPresetsByProject(
               ${preset.theoretical_hours}, 'pending', ${userId})
     `);
 
-    const bomStepId = (bomResult as any)[0]?.insertId;
-    adoptedSteps.push({ id: bomStepId, name: preset.step_name });
+    const bomStepId = (bomResult as unknown as DbExecuteResult)[0]?.insertId as unknown as number;
+    adoptedSteps.push({ id: bomStepId, name: preset.step_name as string });
 
     // 标记AI预设为已确认
     await db.execute(sql`
@@ -1598,7 +1629,7 @@ export async function linkMaterialToStep(
     VALUES (${bomStepId}, ${materialCode}, ${materialName}, ${requiredQty}, ${unit || 'pcs'})
     RETURNING id
   `);
-  return { id: (result as any).rows?.[0]?.id };
+  return { id: (result as DbRowsResult).rows?.[0]?.id as number | undefined };
 }
 
 export async function getStepMaterials(bomStepId: number) {
@@ -1608,7 +1639,7 @@ export async function getStepMaterials(bomStepId: number) {
     WHERE bom_step_id = ${bomStepId}
     ORDER BY id ASC
   `);
-  return (result as any).rows || [];
+  return (result as DbRowsResult).rows || [];
 }
 
 export async function checkMaterialReadiness(bomStepId: number) {
@@ -1618,11 +1649,11 @@ export async function checkMaterialReadiness(bomStepId: number) {
     WHERE bom_step_id = ${bomStepId}
     ORDER BY id ASC
   `);
-  const materials = (result as any).rows || [];
-  const missing = materials.filter((m: any) => !m.is_ready || Number(m.available_qty) < Number(m.required_qty));
+  const materials = ((result as DbRowsResult).rows || []) as DbRow[];
+  const missing = materials.filter((m: DbRow) => !m.is_ready || Number(m.available_qty) < Number(m.required_qty));
   return {
     ready: missing.length === 0 && materials.length > 0,
-    missing: missing.map((m: any) => ({
+    missing: missing.map((m: DbRow) => ({
       id: m.id,
       materialCode: m.material_code,
       materialName: m.material_name,
@@ -1640,7 +1671,7 @@ export async function updateMaterialAvailability(stepMaterialId: number, availab
   const existing = await db.execute(sql`
     SELECT required_qty FROM step_materials WHERE id = ${stepMaterialId}
   `);
-  const row = (existing as any).rows?.[0];
+  const row = (existing as DbRowsResult).rows?.[0];
   if (!row) return { error: "物料记录不存在" };
 
   const isReady = availableQty >= Number(row.required_qty);
@@ -1664,7 +1695,7 @@ export async function triggerRework(stepId: number, userId: number, reason: stri
   const stepResult = await db.execute(sql`
     SELECT * FROM process_bom_steps WHERE id = ${stepId}
   `);
-  const step = (stepResult as any)[0]?.[0] ?? (stepResult as any).rows?.[0];
+  const step = (stepResult as unknown as DbExecuteResult)[0]?.[0] ?? (stepResult as unknown as unknown as DbRowsResult).rows?.[0];
   if (!step) throw new Error("BOM步骤不存在");
   if (step.status !== 'completed') throw new Error("只有已完成的步骤才能发起返工");
 
@@ -1672,7 +1703,7 @@ export async function triggerRework(stepId: number, userId: number, reason: stri
   const countResult = await db.execute(sql`
     SELECT COUNT(*) as cnt FROM step_rework_history WHERE bom_step_id = ${stepId}
   `);
-  const countRow = (countResult as any)[0]?.[0] ?? (countResult as any).rows?.[0];
+  const countRow = (countResult as unknown as DbExecuteResult)[0]?.[0] ?? (countResult as unknown as unknown as DbRowsResult).rows?.[0];
   const newReworkCount = Number(countRow?.cnt || 0) + 1;
 
   // 3. Change step status to 'rework'
@@ -1693,7 +1724,7 @@ export async function triggerRework(stepId: number, userId: number, reason: stri
   const updatedResult = await db.execute(sql`
     SELECT * FROM process_bom_steps WHERE id = ${stepId}
   `);
-  const updatedStep = (updatedResult as any)[0]?.[0] ?? (updatedResult as any).rows?.[0];
+  const updatedStep = (updatedResult as unknown as DbExecuteResult)[0]?.[0] ?? (updatedResult as unknown as unknown as DbRowsResult).rows?.[0];
   return updatedStep;
 }
 
@@ -1704,5 +1735,5 @@ export async function getReworkHistory(stepId: number) {
     WHERE bom_step_id = ${stepId}
     ORDER BY rework_count ASC
   `);
-  return (result as any).rows || (result as any)[0] || [];
+  return (result as DbRowsResult).rows || (result as unknown as DbExecuteResult)[0] || [];
 }

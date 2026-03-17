@@ -38,7 +38,7 @@ export const importHistoryRouter = router({
       totalRows: input.totalRows || 0,
       fieldMapping: input.fieldMapping ? JSON.stringify(input.fieldMapping) : undefined,
       status: "pending",
-      createdBy: ctx.user.id,
+      createdBy: ctx.user!.id,
     } as any).returning();
     return { success: true, message: "导入记录已创建", data: record };
   }),
@@ -131,7 +131,7 @@ export const importHistoryRouter = router({
     if (item.rollbackAt) return { success: false, message: "已经回滚过" };
 
     const [updated] = await db.update(importHistory)
-      .set({ rollbackAt: new Date(), rollbackBy: ctx.user.id, status: "rolled_back" } as any)
+      .set({ rollbackAt: new Date(), rollbackBy: ctx.user!.id, status: "rolled_back" } as any)
       .where(eq(importHistory.id, id))
       .returning();
     return { success: true, message: "回滚成功", data: updated };

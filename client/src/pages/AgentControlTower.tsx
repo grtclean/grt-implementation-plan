@@ -647,12 +647,12 @@ function InvocationHistoryTab() {
       </div>
 
       {/* Loading state */}
-      {eventsQuery.isLoading && (
+      {(eventsQuery.isLoading ? (
         <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" />
           <span className="text-sm">加载事件日志...</span>
         </div>
-      )}
+      ) : null) as any}
 
       {/* Error state */}
       {eventsQuery.error && (

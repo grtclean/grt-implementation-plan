@@ -10,9 +10,9 @@ const TRAVEL_ADMIN_ROLES = new Set(["admin", "director", "finance_manager", "hr_
 export const travelDashboardRouter = router({
   getData: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     const isAdmin = TRAVEL_ADMIN_ROLES.has(role);
-    const whereCondition = isAdmin ? undefined : eq(travelRecords.employeeId, ctx.user.id);
+    const whereCondition = isAdmin ? undefined : eq(travelRecords.employeeId, ctx.user!.id);
 
     const records = await db.select().from(travelRecords).where(whereCondition).orderBy(desc(travelRecords.createdAt)).limit(100);
     const [totalResult] = await db.select({ count: count() }).from(travelRecords).where(whereCondition);

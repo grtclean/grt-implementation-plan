@@ -256,7 +256,7 @@ export const namingRouter = router({
         description: input.description,
         reason: input.reason,
         impactScope: input.impactScope,
-        requestorId: ctx.user.id,
+        requestorId: ctx.user!.id,
       }).returning();
       return { success: true, message: "变更请求已创建", data: request };
     }),

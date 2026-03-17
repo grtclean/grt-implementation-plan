@@ -97,7 +97,7 @@ export const salaryApprovalRouter = router({
       return submitSalaryApproval({
         ...input,
         submittedBy: ctx.user?.openId,
-        submittedByName: ctx.user?.name,
+        submittedByName: ctx.user?.name as any,
       });
     }),
 
@@ -113,7 +113,7 @@ export const salaryApprovalRouter = router({
         recordId: input.recordId,
         action: input.action,
         approver: ctx.user?.openId || 'unknown',
-        approverName: ctx.user?.name,
+        approverName: ctx.user?.name as any,
         comment: input.comment,
       });
     }),

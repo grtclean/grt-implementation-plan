@@ -258,7 +258,7 @@ const meetingRouter = router({
           meetingTitle: meeting.title,
           transcript,
         },
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
 
       return { success: true, taskId, status: "processing" as const, questions: null };
@@ -373,8 +373,8 @@ const attendanceRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const userId = ctx.user.id;
-      const userName = ctx.user.name ?? `User#${userId}`;
+      const userId = ctx.user!.id;
+      const userName = ctx.user!.name ?? `User#${userId}`;
       // Upsert: if user already has a record, update it
       const existing = await db
         .select()
@@ -424,7 +424,7 @@ const attendanceRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const userId = ctx.user.id;
+      const userId = ctx.user!.id;
       const existing = await db
         .select()
         .from(meetingAttendance)
@@ -475,8 +475,8 @@ const attendanceRouter = router({
         .insert(meetingAttendance)
         .values({
           meetingId: toNum(input.meetingId),
-          userId: ctx.user.id,
-          userName: ctx.user.name ?? null,
+          userId: ctx.user!.id,
+          userName: ctx.user!.name ?? null,
           status: "ABSENT",
         })
         .returning();
@@ -520,8 +520,8 @@ const interactionRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const userId = ctx.user.id;
-      const userName = ctx.user.name ?? `User#${userId}`;
+      const userId = ctx.user!.id;
+      const userName = ctx.user!.name ?? `User#${userId}`;
       const existing = await db
         .select()
         .from(meetingInteractions)
@@ -573,8 +573,8 @@ const interactionRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const userId = ctx.user.id;
-      const userName = ctx.user.name ?? `User#${userId}`;
+      const userId = ctx.user!.id;
+      const userName = ctx.user!.name ?? `User#${userId}`;
       const existing = await db
         .select()
         .from(meetingInteractions)
@@ -621,7 +621,7 @@ const interactionRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const userId = ctx.user.id;
+      const userId = ctx.user!.id;
       const existing = await db
         .select()
         .from(meetingInteractions)
@@ -738,8 +738,8 @@ const chatRouter = router({
     )
     .mutation(({ input, ctx }) => {
       const meetingId = toNum(input.meetingId);
-      const userId = ctx.user.id;
-      const userName = ctx.user.name ?? `User#${userId}`;
+      const userId = ctx.user!.id;
+      const userName = ctx.user!.name ?? `User#${userId}`;
       if (!chatStore.has(meetingId)) chatStore.set(meetingId, []);
       const msg = {
         userId,
@@ -1043,8 +1043,8 @@ const reviewRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const evaluatorId = ctx.user.id;
-      const evaluatorName = ctx.user.name ?? `User#${evaluatorId}`;
+      const evaluatorId = ctx.user!.id;
+      const evaluatorName = ctx.user!.name ?? `User#${evaluatorId}`;
       // Upsert: delete existing then insert
       await db
         .delete(meetingReviewEvaluations)

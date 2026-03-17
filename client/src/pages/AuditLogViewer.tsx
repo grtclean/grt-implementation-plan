@@ -148,7 +148,7 @@ export default function AuditLogViewer() {
         new Date(log.accessTime).toLocaleString(),
       ]);
 
-      const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+      const csv = [headers.join(","), ...rows.map((row: any) => row.join(","))].join("\n");
       const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

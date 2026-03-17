@@ -73,12 +73,12 @@ export default function SchedulerManagement() {
   
   // 触发任务
   const triggerMutation = (trpc.scheduler as any).triggerTask.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast.success(`${t("admin.scheduler.taskTriggered")} "${data?.taskId}"`);
       refetchTasks();
       refetchLogs();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("admin.scheduler.triggerFailed")}: ${error.message}`);
     }
   });
@@ -89,7 +89,7 @@ export default function SchedulerManagement() {
       toast.success(t("admin.scheduler.taskStatusUpdated"));
       refetchTasks();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("admin.scheduler.updateFailed")}: ${error.message}`);
     }
   });
@@ -99,7 +99,7 @@ export default function SchedulerManagement() {
     onSuccess: () => {
       toast.success(t("admin.scheduler.configSaved"));
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("admin.scheduler.saveFailed")}: ${error.message}`);
     }
   });

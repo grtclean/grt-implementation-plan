@@ -12,6 +12,143 @@ import { transcribeAudio } from '../_core/voiceTranscription';
 import { storagePut } from '../storage';
 
 // ============================================================================
+// 内部类型（raw SQL executor）
+// ============================================================================
+
+/** Shape returned by drizzle's underlying execute for raw SQL queries */
+interface RawQueryResult {
+  rows: Record<string, unknown>[];
+}
+
+interface RawDb {
+  execute(query: { sql: string; args: unknown[] }): Promise<RawQueryResult>;
+}
+
+/** Row shape for solution_cases table */
+interface SolutionCaseRow {
+  id: string;
+  case_number: string;
+  case_name: string;
+  product_type: string | null;
+  part_material: string | null;
+  cleanliness_level: string | null;
+  customer_industry: string | null;
+  cycle_time: number | null;
+  success_rate: number;
+  customer_satisfaction: number;
+  solution_summary: string | null;
+  equipment_config: string | null;
+  process_flow: string | null;
+  [key: string]: unknown;
+}
+
+/** Row shape for customer_uploads table */
+interface CustomerUploadRow {
+  id: string;
+  meeting_id: string;
+  file_name: string;
+  file_type: string;
+  file_category: string | null;
+  file_url: string;
+  file_size: number;
+  mime_type: string;
+  description: string | null;
+  tags: string | null;
+  ai_analysis_status: string;
+  ai_extracted_text: string | null;
+  ai_identified_specs: string | null;
+  ai_suggested_cases: string | null;
+  version: number;
+  uploaded_by: string;
+  uploaded_at: string;
+  is_latest: boolean;
+  [key: string]: unknown;
+}
+
+/** Row shape for customer_solution_meetings table */
+interface MeetingRow {
+  id: string;
+  title: string;
+  meeting_type: string;
+  meeting_mode: string;
+  status: string;
+  customer_id: string | null;
+  customer_name: string | null;
+  customer_contact: string | null;
+  customer_requirements: string | null;
+  cleanliness_level: string | null;
+  cleanliness_standard: string | null;
+  cleanliness_details: string | null;
+  product_type: string | null;
+  part_name: string | null;
+  part_material: string | null;
+  part_dimensions: string | null;
+  cycle_time: number | null;
+  loading_form: string | null;
+  scheduled_start: string | null;
+  scheduled_end: string | null;
+  organizer_id: string;
+  organizer_name: string;
+  internal_participants: string | null;
+  external_participants: string | null;
+  ai_case_matching_enabled: boolean;
+  ai_solution_suggestion_enabled: boolean;
+  ai_voice_recognition_enabled: boolean;
+  related_project_id: string | null;
+  related_opportunity_id: string | null;
+  created_by: string;
+  [key: string]: unknown;
+}
+
+/** Row shape for solution_versions table */
+interface SolutionVersionRow {
+  id: string;
+  meeting_id: string;
+  version_number: number;
+  version_name: string | null;
+  version_status: string;
+  solution_title: string;
+  solution_summary: string | null;
+  solution_content: string | null;
+  equipment_config: string | null;
+  process_flow: string | null;
+  process_steps: string | null;
+  project_phases: string | null;
+  estimated_cost: number | null;
+  quoted_price: number | null;
+  delivery_time: number | null;
+  ai_generated: boolean;
+  ai_confidence: number | null;
+  reference_cases: string | null;
+  reviewer_id: string | null;
+  reviewer_name: string | null;
+  review_comments: string | null;
+  reviewed_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  [key: string]: unknown;
+}
+
+/** Row shape for technical_docs_index table */
+interface TechnicalDocRow {
+  id: string;
+  doc_number: string;
+  doc_title: string;
+  doc_type: string;
+  doc_category: string | null;
+  project_phase: string | null;
+  process_step: string | null;
+  doc_summary: string | null;
+  doc_url: string;
+  keywords: string | null;
+  tags: string | null;
+  view_count: number;
+  reference_count: number;
+  [key: string]: unknown;
+}
+
+// ============================================================================
 // 类型定义
 // ============================================================================
 
@@ -103,7 +240,7 @@ export async function createCustomerSolutionMeeting(
   const db = await requireDb();
   const id = uuidv4();
   
-  await (db as any).execute({
+  await (db as unknown as RawDb).execute({
     sql: `INSERT INTO customer_solution_meetings (
       id, title, meeting_type, meeting_mode, status,
       customer_id, customer_name, customer_contact, customer_requirements,
@@ -134,35 +271,35 @@ export async function createCustomerSolutionMeeting(
  */
 export async function getCustomerSolutionMeeting(meetingId: string): Promise<CustomerSolutionMeeting | null> {
   const db = await requireDb();
-  const result = await (db as any).execute({
+  const result = await (db as unknown as RawDb).execute({
     sql: `SELECT * FROM customer_solution_meetings WHERE id = ?`,
     args: [meetingId]
   });
   
   if (result.rows.length === 0) return null;
   
-  const row = result.rows[0] as any;
+  const row = result.rows[0] as MeetingRow;
   return {
     id: row.id,
     title: row.title,
-    meetingType: row.meeting_type,
-    meetingMode: row.meeting_mode,
-    status: row.status,
-    customerId: row.customer_id,
-    customerName: row.customer_name,
-    customerContact: row.customer_contact,
-    customerRequirements: row.customer_requirements,
-    cleanlinessLevel: row.cleanliness_level,
-    cleanlinessStandard: row.cleanliness_standard,
-    cleanlinessDetails: row.cleanliness_details ? JSON.parse(row.cleanliness_details) : null,
-    productType: row.product_type,
-    partName: row.part_name,
-    partMaterial: row.part_material,
-    partDimensions: row.part_dimensions ? JSON.parse(row.part_dimensions) : null,
-    cycleTime: row.cycle_time,
-    loadingForm: row.loading_form,
-    scheduledStart: row.scheduled_start,
-    scheduledEnd: row.scheduled_end,
+    meetingType: row.meeting_type as CustomerSolutionMeeting['meetingType'],
+    meetingMode: row.meeting_mode as CustomerSolutionMeeting['meetingMode'],
+    status: row.status as CustomerSolutionMeeting['status'],
+    customerId: row.customer_id ?? undefined,
+    customerName: row.customer_name ?? undefined,
+    customerContact: row.customer_contact ?? undefined,
+    customerRequirements: row.customer_requirements ?? undefined,
+    cleanlinessLevel: row.cleanliness_level ?? undefined,
+    cleanlinessStandard: row.cleanliness_standard ?? undefined,
+    cleanlinessDetails: row.cleanliness_details ? JSON.parse(row.cleanliness_details) : undefined,
+    productType: row.product_type ?? undefined,
+    partName: row.part_name ?? undefined,
+    partMaterial: row.part_material ?? undefined,
+    partDimensions: row.part_dimensions ? JSON.parse(row.part_dimensions) : undefined,
+    cycleTime: row.cycle_time ?? undefined,
+    loadingForm: row.loading_form ?? undefined,
+    scheduledStart: row.scheduled_start ? new Date(row.scheduled_start) : undefined,
+    scheduledEnd: row.scheduled_end ? new Date(row.scheduled_end) : undefined,
     organizerId: row.organizer_id,
     organizerName: row.organizer_name,
     internalParticipants: row.internal_participants ? JSON.parse(row.internal_participants) : [],
@@ -170,8 +307,8 @@ export async function getCustomerSolutionMeeting(meetingId: string): Promise<Cus
     aiCaseMatchingEnabled: row.ai_case_matching_enabled,
     aiSolutionSuggestionEnabled: row.ai_solution_suggestion_enabled,
     aiVoiceRecognitionEnabled: row.ai_voice_recognition_enabled,
-    relatedProjectId: row.related_project_id,
-    relatedOpportunityId: row.related_opportunity_id,
+    relatedProjectId: row.related_project_id ?? undefined,
+    relatedOpportunityId: row.related_opportunity_id ?? undefined,
     createdBy: row.created_by
   };
 }
@@ -195,7 +332,7 @@ export async function listCustomerSolutionMeetings(params: {
   const offset = (page - 1) * pageSize;
   
   let whereClause = '1=1';
-  const args: any[] = [];
+  const args: unknown[] = [];
   
   if (params.meetingType) {
     whereClause += ' AND meeting_type = ?';
@@ -223,19 +360,19 @@ export async function listCustomerSolutionMeetings(params: {
   }
   
   // 获取总数
-  const countResult = await (db as any).execute({
+  const countResult = await (db as unknown as RawDb).execute({
     sql: `SELECT COUNT(*) as total FROM customer_solution_meetings WHERE ${whereClause}`,
     args
   });
-  const total = (countResult.rows[0] as any).total;
+  const total = (countResult.rows[0] as { total: number }).total;
   
   // 获取列表
-  const result = await (db as any).execute({
+  const result = await (db as unknown as RawDb).execute({
     sql: `SELECT * FROM customer_solution_meetings WHERE ${whereClause} ORDER BY scheduled_start DESC LIMIT ? OFFSET ?`,
     args: [...args, pageSize, offset]
   });
   
-  const meetings = result.rows.map((row: any) => ({
+  const meetings = (result.rows as MeetingRow[]).map((row) => ({
     id: row.id,
     title: row.title,
     meetingType: row.meeting_type,
@@ -266,8 +403,8 @@ export async function listCustomerSolutionMeetings(params: {
     relatedProjectId: row.related_project_id,
     relatedOpportunityId: row.related_opportunity_id,
     createdBy: row.created_by
-  }));
-  
+  })) as unknown as CustomerSolutionMeeting[];
+
   return { meetings, total };
 }
 
@@ -296,7 +433,7 @@ export async function uploadCustomerFile(params: {
   const fileKey = `customer-uploads/${params.meetingId}/${id}-${params.fileName}`;
   const { url: fileUrl } = await storagePut(fileKey, params.fileBuffer, params.mimeType);
   
-  await (db as any).execute({
+  await (db as unknown as RawDb).execute({
     sql: `INSERT INTO customer_uploads (
       id, meeting_id, file_name, file_type, file_category, file_url, file_size, mime_type,
       description, tags, ai_analysis_status, uploaded_by
@@ -316,12 +453,12 @@ export async function uploadCustomerFile(params: {
  */
 export async function getCustomerUploads(meetingId: string): Promise<any[]> {
   const db = await requireDb();
-  const result = await (db as any).execute({
+  const result = await (db as unknown as RawDb).execute({
     sql: `SELECT * FROM customer_uploads WHERE meeting_id = ? AND is_latest = TRUE ORDER BY uploaded_at DESC`,
     args: [meetingId]
   });
   
-  return result.rows.map((row: any) => ({
+  return (result.rows as CustomerUploadRow[]).map((row) => ({
     id: row.id,
     meetingId: row.meeting_id,
     fileName: row.file_name,
@@ -353,7 +490,7 @@ export async function analyzeUploadedFile(fileId: string): Promise<{
   const db = await requireDb();
   
   // 获取文件信息
-  const fileResult = await (db as any).execute({
+  const fileResult = await (db as unknown as RawDb).execute({
     sql: `SELECT * FROM customer_uploads WHERE id = ?`,
     args: [fileId]
   });
@@ -362,10 +499,10 @@ export async function analyzeUploadedFile(fileId: string): Promise<{
     throw new Error('File not found');
   }
   
-  const file = fileResult.rows[0] as any;
+  const file = fileResult.rows[0] as CustomerUploadRow;
   
   // 更新状态为处理中
-  await (db as any).execute({
+  await (db as unknown as RawDb).execute({
     sql: `UPDATE customer_uploads SET ai_analysis_status = 'processing' WHERE id = ?`,
     args: [fileId]
   });
@@ -419,7 +556,7 @@ export async function analyzeUploadedFile(fileId: string): Promise<{
     const analysisResult = JSON.parse(response.choices[0].message.content || '{}');
     
     // 更新分析结果
-    await (db as any).execute({
+    await (db as unknown as RawDb).execute({
       sql: `UPDATE customer_uploads SET 
         ai_analysis_status = 'completed',
         ai_extracted_text = ?,
@@ -434,7 +571,7 @@ export async function analyzeUploadedFile(fileId: string): Promise<{
       suggestedCases: []
     };
   } catch (error) {
-    await (db as any).execute({
+    await (db as unknown as RawDb).execute({
       sql: `UPDATE customer_uploads SET ai_analysis_status = 'failed' WHERE id = ?`,
       args: [fileId]
     });
@@ -458,7 +595,7 @@ export async function matchCases(request: CaseMatchRequest): Promise<{
   
   // 构建查询条件
   let whereClause = 'case_status = "active"';
-  const args: any[] = [];
+  const args: unknown[] = [];
   
   if (request.productType) {
     whereClause += ' AND (product_type = ? OR product_type LIKE ?)';
@@ -478,13 +615,13 @@ export async function matchCases(request: CaseMatchRequest): Promise<{
   }
   
   // 查询匹配的案例
-  const casesResult = await (db as any).execute({
+  const casesResult = await (db as unknown as RawDb).execute({
     sql: `SELECT * FROM solution_cases WHERE ${whereClause} ORDER BY success_rate DESC, created_at DESC LIMIT 20`,
     args
   });
   
   // 计算相似度分数
-  const matchedCases: MatchedCase[] = casesResult.rows.map((row: any) => {
+  const matchedCases: MatchedCase[] = (casesResult.rows as SolutionCaseRow[]).map((row) => {
     const matchDimensions = calculateSimilarity(request, row);
     return {
       caseId: row.id,
@@ -504,7 +641,7 @@ export async function matchCases(request: CaseMatchRequest): Promise<{
   
   // 保存匹配记录
   const matchRecordId = uuidv4();
-  await (db as any).execute({
+  await (db as unknown as RawDb).execute({
     sql: `INSERT INTO case_match_records (
       id, meeting_id, match_request, matched_cases, total_matches,
       similarity_scores, ai_analysis, ai_recommendations, created_by
@@ -528,7 +665,7 @@ export async function matchCases(request: CaseMatchRequest): Promise<{
 /**
  * 计算案例相似度
  */
-function calculateSimilarity(request: CaseMatchRequest, caseRow: any): {
+function calculateSimilarity(request: CaseMatchRequest, caseRow: SolutionCaseRow): {
   productType: number;
   material: number;
   cleanliness: number;
@@ -589,7 +726,7 @@ function calculateSimilarity(request: CaseMatchRequest, caseRow: any): {
 /**
  * 生成匹配亮点
  */
-function generateHighlights(request: CaseMatchRequest, caseRow: any): string[] {
+function generateHighlights(request: CaseMatchRequest, caseRow: SolutionCaseRow): string[] {
   const highlights: string[] = [];
   
   if (request.productType === caseRow.product_type) {
@@ -685,12 +822,12 @@ export async function generateSolutionSuggestion(params: {
   // 获取参考案例详情
   let referenceCasesInfo = '';
   if (params.referenceCaseIds && params.referenceCaseIds.length > 0) {
-    const casesResult = await (db as any).execute({
+    const casesResult = await (db as unknown as RawDb).execute({
       sql: `SELECT * FROM solution_cases WHERE id IN (${params.referenceCaseIds.map(() => '?').join(',')})`,
       args: params.referenceCaseIds
     });
     
-    referenceCasesInfo = casesResult.rows.map((row: any) => `
+    referenceCasesInfo = (casesResult.rows as SolutionCaseRow[]).map((row) => `
 案例：${row.case_name}
 方案摘要：${row.solution_summary}
 设备配置：${row.equipment_config}
@@ -840,7 +977,7 @@ export async function searchTechnicalDocs(params: {
   const limit = params.limit || 10;
   
   let whereClause = '1=1';
-  const args: any[] = [];
+  const args: unknown[] = [];
   
   if (params.projectPhase) {
     whereClause += ' AND project_phase = ?';
@@ -862,12 +999,12 @@ export async function searchTechnicalDocs(params: {
     args.push(searchTerm, searchTerm, searchTerm);
   }
   
-  const result = await (db as any).execute({
+  const result = await (db as unknown as RawDb).execute({
     sql: `SELECT * FROM technical_docs_index WHERE ${whereClause} ORDER BY reference_count DESC, view_count DESC LIMIT ?`,
     args: [...args, limit]
   });
   
-  return result.rows.map((row: any) => ({
+  return (result.rows as TechnicalDocRow[]).map((row) => ({
     id: row.id,
     docNumber: row.doc_number,
     docTitle: row.doc_title,
@@ -927,7 +1064,7 @@ export async function transcribeMeetingRecording(params: {
   const { url: recordingUrl } = await storagePut(fileKey, params.audioBuffer, `audio/${params.audioFormat}`);
   
   // 创建录音记录
-  await (db as any).execute({
+  await (db as unknown as RawDb).execute({
     sql: `INSERT INTO meeting_voice_records (
       id, meeting_id, recording_url, recording_size, recording_format,
       transcription_status, transcription_language, recorded_at, created_by
@@ -952,7 +1089,7 @@ export async function transcribeMeetingRecording(params: {
     const analysisResult = await analyzeMeetingTranscription(transcriptionResult.text);
 
     // 更新转写结果
-    await (db as any).execute({
+    await (db as unknown as RawDb).execute({
       sql: `UPDATE meeting_voice_records SET
         transcription_status = 'completed',
         transcription_text = ?,
@@ -981,7 +1118,7 @@ export async function transcribeMeetingRecording(params: {
       aiActionItems: analysisResult.actionItems
     };
   } catch (error) {
-    await (db as any).execute({
+    await (db as unknown as RawDb).execute({
       sql: `UPDATE meeting_voice_records SET transcription_status = 'failed' WHERE id = ?`,
       args: [recordId]
     });
@@ -1085,7 +1222,7 @@ export async function aiDocRetrieval(params: {
   const retrievalTime = Date.now() - startTime;
   
   // 保存检索日志
-  await (db as any).execute({
+  await (db as unknown as RawDb).execute({
     sql: `INSERT INTO ai_doc_retrieval_logs (
       id, meeting_id, query_text, query_type, query_filters,
       retrieved_docs, total_results, retrieval_time_ms,
@@ -1222,14 +1359,14 @@ export async function createSolutionVersion(params: {
   const id = uuidv4();
   
   // 获取当前最大版本号
-  const versionResult = await (db as any).execute({
+  const versionResult = await (db as unknown as RawDb).execute({
     sql: `SELECT MAX(version_number) as max_version FROM solution_versions WHERE meeting_id = ?`,
     args: [params.meetingId]
   });
-  const maxVersion = (versionResult.rows[0] as any).max_version || 0;
+  const maxVersion = (versionResult.rows[0] as { max_version: number | null }).max_version || 0;
   const versionNumber = maxVersion + 1;
   
-  await (db as any).execute({
+  await (db as unknown as RawDb).execute({
     sql: `INSERT INTO solution_versions (
       id, meeting_id, version_number, version_status,
       solution_title, solution_summary, solution_content,
@@ -1257,12 +1394,12 @@ export async function createSolutionVersion(params: {
  */
 export async function getSolutionVersions(meetingId: string): Promise<any[]> {
   const db = await requireDb();
-  const result = await (db as any).execute({
+  const result = await (db as unknown as RawDb).execute({
     sql: `SELECT * FROM solution_versions WHERE meeting_id = ? ORDER BY version_number DESC`,
     args: [meetingId]
   });
   
-  return result.rows.map((row: any) => ({
+  return (result.rows as SolutionVersionRow[]).map((row) => ({
     id: row.id,
     meetingId: row.meeting_id,
     versionNumber: row.version_number,
@@ -1301,11 +1438,11 @@ export async function compareSolutionVersions(versionId1: string, versionId2: st
 }> {
   const db = await requireDb();
   
-  const result1 = await (db as any).execute({
+  const result1 = await (db as unknown as RawDb).execute({
     sql: `SELECT * FROM solution_versions WHERE id = ?`,
     args: [versionId1]
   });
-  const result2 = await (db as any).execute({
+  const result2 = await (db as unknown as RawDb).execute({
     sql: `SELECT * FROM solution_versions WHERE id = ?`,
     args: [versionId2]
   });
@@ -1314,8 +1451,8 @@ export async function compareSolutionVersions(versionId1: string, versionId2: st
     throw new Error('Version not found');
   }
   
-  const v1 = result1.rows[0] as any;
-  const v2 = result2.rows[0] as any;
+  const v1 = result1.rows[0] as SolutionVersionRow;
+  const v2 = result2.rows[0] as SolutionVersionRow;
   
   // 比较差异
   const differences: any[] = [];
@@ -1362,7 +1499,7 @@ export async function reviewSolutionVersion(params: {
 }): Promise<void> {
   const db = await requireDb();
   
-  await (db as any).execute({
+  await (db as unknown as RawDb).execute({
     sql: `UPDATE solution_versions SET
       version_status = ?,
       reviewer_id = ?,
@@ -1375,14 +1512,14 @@ export async function reviewSolutionVersion(params: {
   
   // 如果审批通过，将之前的版本标记为superseded
   if (params.status === 'approved') {
-    const versionResult = await (db as any).execute({
+    const versionResult = await (db as unknown as RawDb).execute({
       sql: `SELECT meeting_id, version_number FROM solution_versions WHERE id = ?`,
       args: [params.versionId]
     });
     
     if (versionResult.rows.length > 0) {
-      const { meeting_id, version_number } = versionResult.rows[0] as any;
-      await (db as any).execute({
+      const { meeting_id, version_number } = versionResult.rows[0] as { meeting_id: string; version_number: number };
+      await (db as unknown as RawDb).execute({
         sql: `UPDATE solution_versions SET version_status = 'superseded' 
               WHERE meeting_id = ? AND version_number < ? AND version_status = 'approved'`,
         args: [meeting_id, version_number]

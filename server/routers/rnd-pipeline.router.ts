@@ -16,6 +16,12 @@ import { createChildLogger } from "../lib/logger";
 
 const log = createChildLogger("rnd-pipeline");
 
+/** Row shape returned by raw `db.execute(sql`...`)` queries */
+type DbRow = Record<string, unknown>;
+
+/** Cache flags for bootstrap functions */
+const _bootstrapDone: Record<string, boolean> = {};
+
 // ---------------------------------------------------------------------------
 // Table bootstrap helpers
 // ---------------------------------------------------------------------------
@@ -43,7 +49,7 @@ async function ensureQuotationTable() {
     `);
     // Seed if empty
     const cnt = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM rnd_quotations`);
-    if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
+    if (Number((cnt.rows as DbRow[])[0]?.cnt) === 0) {
       await db.execute(sql`
         INSERT INTO rnd_quotations (quote_number, customer, project, bu_code, amount, currency, status, version, created_at) VALUES
           ('QT-2026-001', '上海大众', '缸体清洗线升级', 'BU3', '2850000', 'CNY', 'quoted', 'V2', '2026-02-08'),
@@ -52,7 +58,7 @@ async function ensureQuotationTable() {
           ('QT-2026-004', '潍柴动力', '柴油机零部件清洗', 'BU2', '1680000', 'CNY', 'draft', 'V1', '2026-02-11')
       `);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     log.warn({ err: e }, "quotation table bootstrap failed");
   }
 }
@@ -76,7 +82,7 @@ async function ensureRequirementTable() {
       )
     `);
     const cnt = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM rnd_requirements`);
-    if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
+    if (Number((cnt.rows as DbRow[])[0]?.cnt) === 0) {
       await db.execute(sql`
         INSERT INTO rnd_requirements (req_number, customer, title, status, priority, bu_code, assignee, created_at) VALUES
           ('REQ-2026-001', '上海大众', '缸体清洗线需求', 'approved', 'high', 'BU3', '洪香龙', '2026-02-05'),
@@ -85,7 +91,7 @@ async function ensureRequirementTable() {
           ('REQ-2026-004', '潍柴动力', '柴油机零部件清洗系统', 'draft', 'medium', 'BU2', '洪小东', '2026-02-10')
       `);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     log.warn({ err: e }, "requirement table bootstrap failed");
   }
 }
@@ -109,7 +115,7 @@ async function ensureSolutionTable() {
       )
     `);
     const cnt = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM rnd_solutions`);
-    if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
+    if (Number((cnt.rows as DbRow[])[0]?.cnt) === 0) {
       await db.execute(sql`
         INSERT INTO rnd_solutions (sol_number, project, customer, status, bu_code, version, engineer, created_at) VALUES
           ('SOL-001', '缸体清洗线', '上海大众', '设计中', 'BU3', 'V2.1', '洪香龙', '2026-02-06'),
@@ -117,7 +123,7 @@ async function ensureSolutionTable() {
           ('SOL-003', '晶圆清洗设备', '英飞凌', '修改中', 'BU4', 'V3.2', '孙国祥', '2026-02-02')
       `);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     log.warn({ err: e }, "solution table bootstrap failed");
   }
 }
@@ -184,17 +190,17 @@ const quotationRouter = router({
         `);
       }
 
-      const items = ((result.rows as any[]) || []).map((r: any) => ({
+      const items = ((result.rows as DbRow[]) || []).map((r: DbRow) => ({
         ...r,
-        formattedAmount: formatAmount(r.amount, r.currency),
-        date: r.date ? new Date(r.date).toISOString().slice(0, 10) : "",
+        formattedAmount: formatAmount(String(r.amount ?? ""), String(r.currency ?? "")),
+        date: r.date ? new Date(r.date as string).toISOString().slice(0, 10) : "",
       }));
 
       // Aggregate stats
       const total = items.length;
-      const totalAmount = items.reduce((s: number, r: any) => s + (Number(r.amount) || 0), 0);
-      const won = items.filter((r: any) => r.status === "won").length;
-      const pending = items.filter((r: any) => r.status === "approving").length;
+      const totalAmount = items.reduce((s: number, r: DbRow) => s + (Number(r.amount) || 0), 0);
+      const won = items.filter((r: DbRow) => r.status === "won").length;
+      const pending = items.filter((r: DbRow) => r.status === "approving").length;
       const winRate = total > 0 ? Math.round((won / total) * 100) : 0;
 
       return {
@@ -225,7 +231,7 @@ const quotationRouter = router({
         VALUES (${quoteNumber}, ${input.customer}, ${input.project}, ${input.bu ?? "BU3"}, ${input.amount ?? "0"}, ${input.currency ?? "CNY"}, 'draft', 'V1')
         RETURNING id, quote_number AS "quoteNumber"
       `);
-      return (result.rows as any[])[0];
+      return (result.rows as DbRow[])[0];
     }),
 });
 
@@ -254,9 +260,9 @@ const requirementRouter = router({
         ORDER BY created_at DESC
       `);
 
-      const items = ((result.rows as any[]) || []).map((r: any) => ({
+      const items = ((result.rows as DbRow[]) || []).map((r: DbRow) => ({
         ...r,
-        date: r.date ? new Date(r.date).toISOString().slice(0, 10) : "",
+        date: r.date ? new Date(r.date as string).toISOString().slice(0, 10) : "",
       }));
 
       return { items };
@@ -279,7 +285,7 @@ const requirementRouter = router({
         VALUES (${reqNumber}, ${input.customer}, ${input.title}, 'draft', ${input.priority ?? "medium"}, ${input.bu ?? "BU3"}, ${input.assignee})
         RETURNING id, req_number AS "reqNumber"
       `);
-      return (result.rows as any[])[0];
+      return (result.rows as DbRow[])[0];
     }),
 
   updateStatus: requirePermission('rnd:requirements:manage')
@@ -316,9 +322,9 @@ const solutionRouter = router({
       }
 
       return {
-        items: ((result.rows as any[]) || []).map((r: any) => ({
+        items: ((result.rows as DbRow[]) || []).map((r: DbRow) => ({
           ...r,
-          date: r.date ? new Date(r.date).toISOString().slice(0, 10) : "",
+          date: r.date ? new Date(r.date as string).toISOString().slice(0, 10) : "",
         })),
       };
     }),
@@ -339,7 +345,7 @@ const solutionRouter = router({
         VALUES (${solNumber}, ${input.project}, ${input.customer}, '设计中', ${input.bu ?? "BU3"}, 'V1.0', ${input.engineer})
         RETURNING id, sol_number AS "solNumber"
       `);
-      return (result.rows as any[])[0];
+      return (result.rows as DbRow[])[0];
     }),
 });
 
@@ -358,8 +364,8 @@ const MECH_STATUSES = ["设计中", "自检完成", "审核中", "已审核", "�
 const ELEC_STATUSES = ["编程中", "仿真测试", "审核中", "已完成", "变更中"] as const;
 
 async function ensureDesignTaskTable() {
-  if ((ensureDesignTaskTable as any)._done) return;
-  (ensureDesignTaskTable as any)._done = true;
+  if (_bootstrapDone["designTask"]) return;
+  _bootstrapDone["designTask"] = true;
   try {
     const db = await requireDb();
     await db.execute(sql`
@@ -407,7 +413,7 @@ async function ensureDesignTaskTable() {
     await addCol("updated_at", "TIMESTAMP", "DEFAULT NOW() NOT NULL");
 
     const cnt = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM rnd_design_tasks`);
-    if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
+    if (Number((cnt.rows as DbRow[])[0]?.cnt) === 0) {
       await db.execute(sql`
         INSERT INTO rnd_design_tasks (task_number, name, project, discipline, design_type, status, bu_code, revision, engineer, reviewer, priority, progress, description, due_date, created_at) VALUES
           ('MD-001', '清洗槽体结构设计', '缸体清洗线', 'mechanical', '结构设计', '设计中', 'BU3', 'R3', '洪香龙', '杨勇', 'high', 75, '主清洗槽体SUS316L材质，含溢流槽、加热系统安装座、超声换能器安装孔位', '2026-03-15', '2026-02-06'),
@@ -424,7 +430,7 @@ async function ensureDesignTaskTable() {
           ('ED-006', '电气布线图', '变速箱清洗', 'electrical', '电气布线', '编程中', 'BU1', 'R1', '钱绍辉', '', 'medium', 45, '现场电气布线路径规划，桥架布局、线缆选型', '2026-03-28', '2026-02-16')
       `);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     log.warn({ err: e }, "design-task table bootstrap failed");
   }
 }
@@ -467,12 +473,12 @@ function makeDesignRouter(discipline: "mechanical" | "electrical") {
         }
         const where = sql`WHERE ${sql.join(conditions, sql` AND `)}`;
         const result = await db.execute(sql`SELECT ${DESIGN_TASK_COLS} FROM rnd_design_tasks ${where} ORDER BY created_at DESC LIMIT 500`);
-        const items = ((result.rows as any[]) || []).map((r: any) => ({
+        const items = ((result.rows as DbRow[]) || []).map((r: DbRow) => ({
           ...r,
-          dueDate: r.dueDate ? new Date(r.dueDate).toISOString().slice(0, 10) : null,
-          createdAt: r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : "",
-          checklist: typeof r.checklist === "string" ? JSON.parse(r.checklist) : (r.checklist || []),
-          attachments: typeof r.attachments === "string" ? JSON.parse(r.attachments) : (r.attachments || []),
+          dueDate: r.dueDate ? new Date(r.dueDate as string).toISOString().slice(0, 10) : null,
+          createdAt: r.createdAt ? new Date(r.createdAt as string).toISOString().slice(0, 10) : "",
+          checklist: typeof r.checklist === "string" ? JSON.parse(r.checklist) as unknown[] : ((r.checklist as unknown[]) || []),
+          attachments: typeof r.attachments === "string" ? JSON.parse(r.attachments) as unknown[] : ((r.attachments as unknown[]) || []),
         }));
         return { items, designTypes: [...designTypes] };
       }),
@@ -484,14 +490,14 @@ function makeDesignRouter(discipline: "mechanical" | "electrical") {
         await ensureDesignTaskTable();
         const db = await requireDb();
         const result = await db.execute(sql`SELECT ${DESIGN_TASK_COLS} FROM rnd_design_tasks WHERE id = ${input.id} AND discipline = ${discipline} LIMIT 1`);
-        const row = (result.rows as any[])[0];
+        const row = (result.rows as DbRow[])[0];
         if (!row) return null;
         return {
           ...row,
-          dueDate: row.dueDate ? new Date(row.dueDate).toISOString().slice(0, 10) : null,
-          createdAt: row.createdAt ? new Date(row.createdAt).toISOString().slice(0, 10) : "",
-          checklist: typeof row.checklist === "string" ? JSON.parse(row.checklist) : (row.checklist || []),
-          attachments: typeof row.attachments === "string" ? JSON.parse(row.attachments) : (row.attachments || []),
+          dueDate: row.dueDate ? new Date(row.dueDate as string).toISOString().slice(0, 10) : null,
+          createdAt: row.createdAt ? new Date(row.createdAt as string).toISOString().slice(0, 10) : "",
+          checklist: typeof row.checklist === "string" ? JSON.parse(row.checklist) as unknown[] : ((row.checklist as unknown[]) || []),
+          attachments: typeof row.attachments === "string" ? JSON.parse(row.attachments) as unknown[] : ((row.attachments as unknown[]) || []),
         };
       }),
 
@@ -517,7 +523,7 @@ function makeDesignRouter(discipline: "mechanical" | "electrical") {
           VALUES (${taskNumber}, ${input.name}, ${input.project}, ${discipline}, ${input.designType ?? ""}, ${defaultStatus}, ${input.bu ?? "BU3"}, 'R1', ${input.engineer}, ${input.reviewer ?? ""}, ${input.priority ?? "medium"}, 0, ${input.description ?? ""}, ${input.dueDate ? sql`${input.dueDate}::date` : sql`NULL`}, NOW())
           RETURNING id, task_number AS "taskNumber"
         `);
-        return (result.rows as any[])[0];
+        return (result.rows as DbRow[])[0];
       }),
 
     // Update task details
@@ -596,7 +602,7 @@ function makeDesignRouter(discipline: "mechanical" | "electrical") {
         const db = await requireDb();
         // Get current revision
         const cur = await db.execute(sql`SELECT revision FROM rnd_design_tasks WHERE id = ${input.id} LIMIT 1`);
-        const curRev = (cur.rows as any[])[0]?.revision || "R1";
+        const curRev = String((cur.rows as DbRow[])[0]?.revision ?? "R1");
         const revNum = parseInt(curRev.replace("R", "")) || 1;
         const newRev = `R${revNum + 1}`;
         await db.execute(sql`UPDATE rnd_design_tasks SET revision = ${newRev}, status = ${defaultStatus}, progress = 0, completed_at = NULL, updated_at = NOW() WHERE id = ${input.id}`);
@@ -633,7 +639,7 @@ function makeDesignRouter(discipline: "mechanical" | "electrical") {
             COUNT(*) FILTER (WHERE status = '审核中') AS reviewing
           FROM rnd_design_tasks ${where}
         `);
-        const row = (result.rows as any[])[0] || {};
+        const row = (result.rows as DbRow[])[0] || {};
         return {
           total: Number(row.total) || 0,
           overdue: Number(row.overdue) || 0,
@@ -654,8 +660,8 @@ const electricalRouter = makeDesignRouter("electrical");
 // ---------------------------------------------------------------------------
 
 async function ensureInstallationTable() {
-  if ((ensureInstallationTable as any)._done) return;
-  (ensureInstallationTable as any)._done = true;
+  if (_bootstrapDone["installation"]) return;
+  _bootstrapDone["installation"] = true;
   try {
     const db = await requireDb();
     await db.execute(sql`
@@ -675,7 +681,7 @@ async function ensureInstallationTable() {
       )
     `);
     const cnt = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM rnd_installations`);
-    if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
+    if (Number((cnt.rows as DbRow[])[0]?.cnt) === 0) {
       await db.execute(sql`
         INSERT INTO rnd_installations (inst_number, project, customer, location, status, bu_code, team, progress, start_date, end_date) VALUES
           ('INS-001', '缸体清洗线', '上海大众', '上海安亭工厂', '安装中', 'BU3', '安装A组', 65, '2026-02-01', '2026-02-28'),
@@ -683,7 +689,7 @@ async function ensureInstallationTable() {
           ('INS-003', '半导体清洗', '英飞凌', '德累斯顿工厂', '已完成', 'BU4', '安装C组', 100, '2026-01-10', '2026-01-25')
       `);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     log.warn({ err: e }, "installation table bootstrap failed");
   }
 }
@@ -709,10 +715,10 @@ const installationRouter = router({
           FROM rnd_installations ORDER BY created_at DESC
         `);
       }
-      const items = ((result.rows as any[]) || []).map((r: any) => ({
+      const items = ((result.rows as DbRow[]) || []).map((r: DbRow) => ({
         ...r,
-        startDate: r.startDate ? new Date(r.startDate).toISOString().slice(0, 10) : "",
-        endDate: r.endDate ? new Date(r.endDate).toISOString().slice(0, 10) : "",
+        startDate: r.startDate ? new Date(r.startDate as string).toISOString().slice(0, 10) : "",
+        endDate: r.endDate ? new Date(r.endDate as string).toISOString().slice(0, 10) : "",
       }));
       return { items };
     }),
@@ -735,7 +741,7 @@ const installationRouter = router({
         VALUES (${instNumber}, ${input.project}, ${input.customer}, ${input.location}, '待出发', ${input.bu ?? "BU3"}, ${input.team}, 0, ${input.startDate}::date, ${input.endDate}::date)
         RETURNING id, inst_number AS "instNumber"
       `);
-      return (result.rows as any[])[0];
+      return (result.rows as DbRow[])[0];
     }),
 });
 
@@ -744,8 +750,8 @@ const installationRouter = router({
 // ---------------------------------------------------------------------------
 
 async function ensureSatTestTable() {
-  if ((ensureSatTestTable as any)._done) return;
-  (ensureSatTestTable as any)._done = true;
+  if (_bootstrapDone["satTest"]) return;
+  _bootstrapDone["satTest"] = true;
   try {
     const db = await requireDb();
     await db.execute(sql`
@@ -765,7 +771,7 @@ async function ensureSatTestTable() {
       )
     `);
     const cnt = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM rnd_sat_tests`);
-    if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
+    if (Number((cnt.rows as DbRow[])[0]?.cnt) === 0) {
       await db.execute(sql`
         INSERT INTO rnd_sat_tests (sat_number, project, customer, bu_code, status, pass_rate, total_items, passed, failed, pending) VALUES
           ('SAT-001', '缸体清洗线', '上海大众', 'BU3', '测试中', 85, 48, 41, 3, 4),
@@ -773,7 +779,7 @@ async function ensureSatTestTable() {
           ('SAT-003', '商用车清洗', '潍柴动力', 'BU2', '待测试', 0, 36, 0, 0, 36)
       `);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     log.warn({ err: e }, "sat-test table bootstrap failed");
   }
 }
@@ -801,7 +807,7 @@ const satTestRouter = router({
           FROM rnd_sat_tests ORDER BY created_at DESC
         `);
       }
-      return { items: (result.rows as any[]) || [] };
+      return { items: (result.rows as DbRow[]) || [] };
     }),
   create: requirePermission('rnd:requirements:manage')
     .input(z.object({
@@ -819,7 +825,7 @@ const satTestRouter = router({
         VALUES (${satNumber}, ${input.project}, ${input.customer}, ${input.bu ?? "BU3"}, '待测试', 0, ${input.totalItems}, 0, 0, ${input.totalItems})
         RETURNING id, sat_number AS "satNumber"
       `);
-      return (result.rows as any[])[0];
+      return (result.rows as DbRow[])[0];
     }),
 });
 
@@ -828,8 +834,8 @@ const satTestRouter = router({
 // ---------------------------------------------------------------------------
 
 async function ensureAcceptanceTable() {
-  if ((ensureAcceptanceTable as any)._done) return;
-  (ensureAcceptanceTable as any)._done = true;
+  if (_bootstrapDone["acceptance"]) return;
+  _bootstrapDone["acceptance"] = true;
   try {
     const db = await requireDb();
     await db.execute(sql`
@@ -847,7 +853,7 @@ async function ensureAcceptanceTable() {
       )
     `);
     const cnt = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM rnd_acceptances`);
-    if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
+    if (Number((cnt.rows as DbRow[])[0]?.cnt) === 0) {
       await db.execute(sql`
         INSERT INTO rnd_acceptances (acc_number, project, customer, bu_code, status, acceptance_date, signed_by, score) VALUES
           ('ACC-001', '半导体清洗设备', '英飞凌', 'BU4', '已验收', '2026-01-25', 'Dr. Mueller', 98),
@@ -855,7 +861,7 @@ async function ensureAcceptanceTable() {
           ('ACC-003', '商用车清洗线', '潍柴动力', 'BU2', '待验收', '2026-03-10', '-', 0)
       `);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     log.warn({ err: e }, "acceptance table bootstrap failed");
   }
 }
@@ -881,9 +887,9 @@ const acceptanceRouter = router({
           FROM rnd_acceptances ORDER BY created_at DESC
         `);
       }
-      const items = ((result.rows as any[]) || []).map((r: any) => ({
+      const items = ((result.rows as DbRow[]) || []).map((r: DbRow) => ({
         ...r,
-        date: r.date ? new Date(r.date).toISOString().slice(0, 10) : "",
+        date: r.date ? new Date(r.date as string).toISOString().slice(0, 10) : "",
       }));
       return { items };
     }),
@@ -903,7 +909,7 @@ const acceptanceRouter = router({
         VALUES (${accNumber}, ${input.project}, ${input.customer}, ${input.bu ?? "BU3"}, '待验收', ${input.date}::date, '-', 0)
         RETURNING id, acc_number AS "accNumber"
       `);
-      return (result.rows as any[])[0];
+      return (result.rows as DbRow[])[0];
     }),
 });
 
@@ -912,8 +918,8 @@ const acceptanceRouter = router({
 // ---------------------------------------------------------------------------
 
 async function ensureRfqCardTable() {
-  if ((ensureRfqCardTable as any)._done) return;
-  (ensureRfqCardTable as any)._done = true;
+  if (_bootstrapDone["rfqCard"]) return;
+  _bootstrapDone["rfqCard"] = true;
   try {
     const db = await requireDb();
     await db.execute(sql`
@@ -930,7 +936,7 @@ async function ensureRfqCardTable() {
       )
     `);
     const cnt = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM rnd_rfq_cards`);
-    if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
+    if (Number((cnt.rows as DbRow[])[0]?.cnt) === 0) {
       await db.execute(sql`
         INSERT INTO rnd_rfq_cards (rfq_code, title_zh, title_en, supplier, amount, due_date, status) VALUES
           ('RFQ-001', '超声换能器 ×50', 'Ultrasonic Transducer ×50', '供应商A', '¥85,000', '03-05', 'draft'),
@@ -946,7 +952,7 @@ async function ensureRfqCardTable() {
           ('RFQ-011', '触摸屏HMI ×8', 'HMI Touchscreen ×8', '供应商I', '¥56,000', '03-15', 'sent')
       `);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     log.warn({ err: e }, "rfq-card table bootstrap failed");
   }
 }
@@ -962,7 +968,7 @@ const rfqKanbanRouter = router({
                supplier, amount, due_date AS "dueDate", status
         FROM rnd_rfq_cards ORDER BY created_at DESC
       `);
-      return { items: (result.rows as any[]) || [] };
+      return { items: (result.rows as DbRow[]) || [] };
     }),
   create: requirePermission('rnd:requirements:manage')
     .input(z.object({
@@ -981,7 +987,7 @@ const rfqKanbanRouter = router({
         VALUES (${rfqCode}, ${input.titleZh}, ${input.titleEn ?? ""}, ${input.supplier}, ${input.amount ?? "¥0"}, ${input.dueDate ?? ""}, 'draft')
         RETURNING id, rfq_code AS "rfqCode"
       `);
-      return (result.rows as any[])[0];
+      return (result.rows as DbRow[])[0];
     }),
 });
 

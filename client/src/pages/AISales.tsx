@@ -90,7 +90,7 @@ export default function AISales() {
   });
 
   const advanceNegotiationMutation = (trpc.aiSales as any).advanceNegotiation.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (data.status === "deal_reached") {
         toast.success(t("ai.sales.dealReachedToast"));
       } else if (data.status === "walk_away") {
@@ -100,7 +100,7 @@ export default function AISales() {
       }
       refetchSessions();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("ai.sales.negotiationFailed")}: ${error.message}`);
     },
   });
@@ -110,7 +110,7 @@ export default function AISales() {
       toast.success(t("ai.sales.zkpGenerated"));
       setShowZkpDialog(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("ai.sales.generateFailed")}: ${error.message}`);
     },
   });

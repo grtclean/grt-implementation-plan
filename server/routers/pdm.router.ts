@@ -110,8 +110,8 @@ const productRouter = router({
         .insert(pdmProducts)
         .values({
           ...input,
-          createdBy: ctx.user.id,
-          updatedBy: ctx.user.id,
+          createdBy: ctx.user!.id,
+          updatedBy: ctx.user!.id,
         })
         .returning();
       log.info({ productId: inserted.id, productCode: input.productCode }, "product created");
@@ -137,7 +137,7 @@ const productRouter = router({
       const { id, ...updates } = input;
       const [updated] = await db
         .update(pdmProducts)
-        .set({ ...updates, updatedBy: ctx.user.id, updatedAt: new Date().toISOString() })
+        .set({ ...updates, updatedBy: ctx.user!.id, updatedAt: new Date().toISOString() })
         .where(eq(pdmProducts.id, id))
         .returning();
       if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
@@ -157,7 +157,7 @@ const productRouter = router({
         .update(pdmProducts)
         .set({
           lifecycleStatus: input.status,
-          updatedBy: ctx.user.id,
+          updatedBy: ctx.user!.id,
           updatedAt: new Date().toISOString(),
         })
         .where(eq(pdmProducts.id, input.id))
@@ -175,7 +175,7 @@ const productRouter = router({
         .update(pdmProducts)
         .set({
           defaultProjectId: input.projectId,
-          updatedBy: ctx.user.id,
+          updatedBy: ctx.user!.id,
           updatedAt: new Date().toISOString(),
         })
         .where(eq(pdmProducts.id, input.id))
@@ -273,7 +273,7 @@ const baselineRouter = router({
     .mutation(async ({ input, ctx }) => {
       const result = await captureBaselineSvc({
         ...input,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       });
       return result;
     }),
@@ -304,7 +304,7 @@ const baselineRouter = router({
         .update(pdmBaselines)
         .set({
           status: "approved",
-          approvedBy: ctx.user.id,
+          approvedBy: ctx.user!.id,
           approvedAt: new Date().toISOString(),
           notes: input.notes ?? baseline.notes,
           updatedAt: new Date().toISOString(),
@@ -385,7 +385,7 @@ const ecoRouter = router({
         type: "design_change",
         title: input.title,
         description: input.description,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       });
 
       // Create 7 workflow steps
@@ -394,8 +394,8 @@ const ecoRouter = router({
         stepType: stepType as typeof ECO_STEPS[number],
         stepOrder: idx + 1,
         status: idx === 0 ? ("in_progress" as const) : ("pending" as const),
-        assigneeId: idx === 0 ? ctx.user.id : null,
-        assigneeName: idx === 0 ? (ctx.user.name ?? null) : null,
+        assigneeId: idx === 0 ? ctx.user!.id : null,
+        assigneeName: idx === 0 ? (ctx.user!.name ?? null) : null,
         impactedBomIds: input.impactedBomIds ?? null,
         impactedDocIds: input.impactedDocIds ?? null,
         impactedStationIds: input.impactedStationIds ?? null,
@@ -444,7 +444,7 @@ const ecoRouter = router({
           decision: input.decision ?? "approved",
           decisionNotes: input.decisionNotes,
           completedAt: new Date().toISOString(),
-          completedBy: ctx.user.id,
+          completedBy: ctx.user!.id,
           updatedAt: new Date().toISOString(),
         })
         .where(eq(pdmEcoWorkflow.id, input.stepId));
@@ -540,7 +540,7 @@ const ecoRouter = router({
             decision: input.approved ? "approved" : "rejected",
             decisionNotes: input.notes,
             completedAt: new Date().toISOString(),
-            completedBy: ctx.user.id,
+            completedBy: ctx.user!.id,
             updatedAt: new Date().toISOString(),
           })
           .where(eq(pdmEcoWorkflow.id, approvalStep.id));
@@ -555,7 +555,7 @@ const ecoRouter = router({
             title: `ECO-${input.ecoId} BOM cascade`,
             description: input.notes,
             sourceChangeId: input.ecoId,
-            createdBy: ctx.user.id,
+            createdBy: ctx.user!.id,
           });
         } catch (err) {
           log.warn({ ecoId: input.ecoId, err }, "cascade event creation failed (non-blocking)");
@@ -587,7 +587,7 @@ const ecoRouter = router({
           .set({
             status: "completed",
             completedAt: new Date().toISOString(),
-            completedBy: ctx.user.id,
+            completedBy: ctx.user!.id,
             updatedAt: new Date().toISOString(),
           })
           .where(eq(pdmEcoWorkflow.id, execStep.id));
@@ -688,7 +688,7 @@ const requirementRouter = router({
       const db = await requireDb();
       const [inserted] = await db
         .insert(pdmRequirements)
-        .values({ ...input, createdBy: ctx.user.id })
+        .values({ ...input, createdBy: ctx.user!.id })
         .returning();
       return inserted;
     }),
@@ -856,7 +856,7 @@ const readinessRouter = router({
         .update(pdmReadinessChecks)
         .set({
           status: "waived",
-          waiverApprovedBy: ctx.user.id,
+          waiverApprovedBy: ctx.user!.id,
           waiverReason: input.waiverReason,
           waivedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -948,7 +948,7 @@ const asBuiltRouter = router({
       const db = await requireDb();
       const [inserted] = await db
         .insert(pdmAsBuiltDeviations)
-        .values({ ...input, createdBy: ctx.user.id })
+        .values({ ...input, createdBy: ctx.user!.id })
         .returning();
       log.info({ deviationId: inserted.id, type: input.deviationType }, "as-built deviation created");
       return inserted;
@@ -967,7 +967,7 @@ const asBuiltRouter = router({
         .update(pdmAsBuiltDeviations)
         .set({
           approvalStatus: input.approved ? "approved" : "rejected",
-          approvedBy: ctx.user.id,
+          approvedBy: ctx.user!.id,
           approvedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -1060,7 +1060,7 @@ const fieldInsightRouter = router({
       const db = await requireDb();
       const [inserted] = await db
         .insert(pdmFieldInsights)
-        .values({ ...input, createdBy: ctx.user.id })
+        .values({ ...input, createdBy: ctx.user!.id })
         .returning();
       log.info({ insightId: inserted.id, type: input.insightType }, "field insight created");
       return inserted;
@@ -1071,7 +1071,7 @@ const fieldInsightRouter = router({
     .mutation(async ({ input, ctx }) => {
       const result = await detectFieldInsightsSvc({
         productId: input.productId,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       });
       return result;
     }),
@@ -1092,7 +1092,7 @@ const fieldInsightRouter = router({
         type: "design_change",
         title: `Field Insight: ${insight.title}`,
         description: insight.description ?? undefined,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       });
 
       await db
@@ -1117,7 +1117,7 @@ const fieldInsightRouter = router({
         .set({
           status: "resolved",
           resolvedAt: new Date().toISOString(),
-          resolvedBy: ctx.user.id,
+          resolvedBy: ctx.user!.id,
           updatedAt: new Date().toISOString(),
         })
         .where(eq(pdmFieldInsights.id, input.id))

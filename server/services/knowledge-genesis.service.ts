@@ -620,7 +620,7 @@ export async function updateProposalStatus(
   }
 
   // 2. Validate transition
-  const allowedNextStatuses = VALID_TRANSITIONS[proposal.status];
+  const allowedNextStatuses = VALID_TRANSITIONS[proposal.status as string];
   if (!allowedNextStatuses || !allowedNextStatuses.includes(status)) {
     throw new Error(
       `Invalid status transition: ${proposal.status} -> ${status}. ` +

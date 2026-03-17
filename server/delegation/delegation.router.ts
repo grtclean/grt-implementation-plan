@@ -9,12 +9,12 @@ import * as delegationService from "./delegation.service";
 export const delegationRouter = router({
   myDelegations: protectedProcedure
     .query(async ({ ctx }) => {
-      return delegationService.getMyDelegations(ctx.user.id);
+      return delegationService.getMyDelegations(ctx.user!.id);
     }),
 
   delegationsToMe: protectedProcedure
     .query(async ({ ctx }) => {
-      return delegationService.getDelegationsToMe(ctx.user.id);
+      return delegationService.getDelegationsToMe(ctx.user!.id);
     }),
 
   create: requirePermission('hr:delegation:manage')
@@ -28,8 +28,8 @@ export const delegationRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       return delegationService.createDelegation({
-        delegatorId: ctx.user.id,
-        delegatorName: ctx.user.name ?? '',
+        delegatorId: ctx.user!.id,
+        delegatorName: ctx.user!.name ?? '',
         ...input,
       });
     }),
@@ -37,12 +37,12 @@ export const delegationRouter = router({
   revoke: requirePermission('hr:delegation:manage')
     .input(z.object({ delegationId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      return delegationService.revokeDelegation(input.delegationId, ctx.user.id);
+      return delegationService.revokeDelegation(input.delegationId, ctx.user!.id);
     }),
 
   searchEmployees: protectedProcedure
     .input(z.object({ keyword: z.string() }))
     .query(async ({ ctx, input }) => {
-      return delegationService.searchEmployees(input.keyword, ctx.user.id);
+      return delegationService.searchEmployees(input.keyword, ctx.user!.id);
     }),
 });

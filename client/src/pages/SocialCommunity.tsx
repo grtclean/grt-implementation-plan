@@ -91,7 +91,7 @@ export default function SocialCommunity() {
       toast.success(t("common.social.aiReplyGenerated"));
       refetchDrafts();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("common.social.generateFailed")}: ${error.message}`);
     },
   });
@@ -113,7 +113,7 @@ export default function SocialCommunity() {
       toast.success(t("common.social.messagePublished"));
       refetchQueue();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`${t("common.social.publishFailed")}: ${error.message}`);
     },
   });

@@ -23,10 +23,10 @@ export abstract class BaseRobotAdapter implements IRobotAdapter {
   protected connected = false;
   protected config: ProtocolConfig | null = null;
   protected lastHeartbeat: string = "";
-  protected log;
+  protected log: any;
 
   constructor(loggerName: string) {
-    this.log = createChildLogger(loggerName);
+    this.log = createChildLogger(loggerName) as any;
   }
 
   async connect(config: ProtocolConfig): Promise<RobotConnectionStatus> {

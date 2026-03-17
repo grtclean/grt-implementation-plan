@@ -120,7 +120,7 @@ export default function Gamification() {
               <CardHeader><CardTitle>{isZh ? "XP历史" : "XP History"}</CardTitle></CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {profile?.recentXP?.map((xp: { id: number; action: string; points: number; awardedAt: string | null }) => (
+                  {profile?.recentXP?.map((xp: any) => (
                     <div key={xp.id} className="flex justify-between items-center p-2 border-b">
                       <div>
                         <span className="font-medium">{xp.action.replace(/_/g, " ")}</span>

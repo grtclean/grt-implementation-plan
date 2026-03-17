@@ -124,7 +124,7 @@ export const alertRuleRouter = router({
       status: "acknowledged" as any,
       handleNote: input.handleNote || input.note,
       handledAt: new Date().toISOString(),
-      handledBy: ctx.user.id,
+      handledBy: ctx.user!.id,
     } as any).where(eq(costAlertLogs.id, id));
     return { success: true, message: "已确认" };
   }),

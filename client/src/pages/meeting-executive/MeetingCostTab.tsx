@@ -52,7 +52,7 @@ export function MeetingCostTab() {
   const monthlyTrend = (dashboard?.monthlyTrend ?? []) as any[];
   const scatterData = (dashboard?.scatterData ?? []) as any[];
 
-  const singleResult = computeMutation.data;
+  const singleResult = computeMutation.data as Record<string, any> | undefined;
   const breakdown = (singleResult?.breakdown ?? []) as any[];
 
   const handleCompute = () => {

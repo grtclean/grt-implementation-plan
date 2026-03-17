@@ -143,7 +143,7 @@ export default function QCManagement() {
   };
 
   // 过滤记录
-  const filteredRecords = qcRecords?.filter(record => {
+  const filteredRecords = qcRecords?.filter((record: any) => {
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       return (
@@ -407,7 +407,7 @@ export default function QCManagement() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
-                        {filteredRecords.map((record) => (
+                        {filteredRecords.map((record: any) => (
                           <tr key={record.id} className="hover:bg-secondary/20">
                             <td className="px-4 py-3">
                               <span className="font-mono text-sm">{record.inspectionCode}</span>
@@ -566,7 +566,7 @@ export default function QCManagement() {
               </CardHeader>
               <CardContent>
                 {/* 筛选不通过的质检记录 */}
-                {filteredRecords.filter(r => r.result === "Fail" || r.result === "Conditional_Pass").length === 0 ? (
+                {filteredRecords.filter((r: any) => r.result === "Fail" || r.result === "Conditional_Pass").length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
                     <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500" />
                     <p>暂无需要返工的任务</p>
@@ -574,8 +574,8 @@ export default function QCManagement() {
                 ) : (
                   <div className="space-y-4">
                     {filteredRecords
-                      .filter(r => r.result === "Fail" || r.result === "Conditional_Pass")
-                      .map((record) => (
+                      .filter((r: any) => r.result === "Fail" || r.result === "Conditional_Pass")
+                      .map((record: any) => (
                         <div 
                           key={record.id} 
                           className="p-4 rounded-lg border border-border bg-card/50 hover:bg-card/80 transition-colors"

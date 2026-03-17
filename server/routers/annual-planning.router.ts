@@ -60,7 +60,7 @@ export const annualPlanningRouter = router({
     status: z.string().optional(),
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
-    await db.insert(annualPlans).values({
+    await (db.insert(annualPlans) as any).values({
       year: input.year ?? new Date().getFullYear(),
       type: input.type ?? "company",
       departmentId: input.departmentId,
@@ -75,8 +75,8 @@ export const annualPlanningRouter = router({
       keyInitiatives: typeof input.keyInitiatives === 'string' ? input.keyInitiatives : JSON.stringify(input.keyInitiatives),
       risksAndChallenges: typeof input.risksAndChallenges === 'string' ? input.risksAndChallenges : JSON.stringify(input.risksAndChallenges),
       status: input.status ?? "draft",
-      creatorId: ctx.user.id,
-    } as any);
+      creatorId: ctx.user!.id,
+    });
     return successResponse;
   }),
 
@@ -103,7 +103,7 @@ export const annualPlanningRouter = router({
     const { id: _id, ...data } = input;
     if (data.keyInitiatives && typeof data.keyInitiatives !== 'string') data.keyInitiatives = JSON.stringify(data.keyInitiatives);
     if (data.risksAndChallenges && typeof data.risksAndChallenges !== 'string') data.risksAndChallenges = JSON.stringify(data.risksAndChallenges);
-    await db.update(annualPlans).set({ ...data, updatedAt: new Date().toISOString() } as any).where(eq(annualPlans.id, id));
+    await db.update(annualPlans).set({ ...data, updatedAt: new Date().toISOString() } as Record<string, unknown>).where(eq(annualPlans.id, id));
     return successResponse;
   }),
 
@@ -175,15 +175,15 @@ export const annualPlanningRouter = router({
     notes: z.string().optional(),
   })).mutation(async ({ input, ctx }) => {
     const db = await requireDb();
-    const result = await db.insert(annualPlanningConfigs).values({
+    const result = await (db.insert(annualPlanningConfigs) as any).values({
       year: input.year ?? new Date().getFullYear(),
       version: input.version ?? "V1.0",
       versionName: input.versionName ?? `${input.year ?? new Date().getFullYear()} Annual Plan`,
       status: input.status ?? "draft",
       basedOnId: input.basedOnId,
-      creatorId: ctx.user.id,
+      creatorId: ctx.user!.id,
       notes: input.notes,
-    } as any).returning();
+    }).returning();
     return { success: true, message: "Config created", id: result[0]?.id };
   }),
 
@@ -216,7 +216,7 @@ export const annualPlanningRouter = router({
         description: `Config ${config.versionName} activated`,
         beforeData: JSON.stringify({ status: config.status }),
         afterData: JSON.stringify({ status: "active" }),
-        operatorId: ctx.user.id,
+        operatorId: ctx.user!.id,
       });
     });
 
@@ -247,7 +247,7 @@ export const annualPlanningRouter = router({
         versionName: `${targetYear} Annual Plan (copied from ${sourceConfig.versionName})`,
         status: "draft",
         basedOnId: sourceConfigId,
-        creatorId: ctx.user.id,
+        creatorId: ctx.user!.id,
         notes: `Copied from ${sourceConfig.year} ${sourceConfig.versionName}`,
       }).returning();
 
@@ -275,7 +275,7 @@ export const annualPlanningRouter = router({
         configId: newConfig.id,
         updateType: "create",
         description: `Copied ${sourceItems.length} items from config #${sourceConfigId} (${sourceConfig.year}) to ${targetYear}`,
-        operatorId: ctx.user.id,
+        operatorId: ctx.user!.id,
       });
     });
 
@@ -321,7 +321,7 @@ export const annualPlanningRouter = router({
       input.configId = activeConfig.id;
     }
 
-    await db.insert(annualPlanningItems).values({
+    await (db.insert(annualPlanningItems) as any).values({
       configId: input.configId,
       category: input.category ?? "other",
       name: input.name,
@@ -337,10 +337,10 @@ export const annualPlanningRouter = router({
       participantIds: input.participantIds ? (typeof input.participantIds === 'string' ? input.participantIds : JSON.stringify(input.participantIds)) : null,
       status: input.status ?? "pending",
       sortOrder: input.sortOrder ?? 0,
-    } as any);
+    });
 
     // Log the creation
-    await db.insert(annualPlanningUpdateLogs).values({
+    await (db.insert(annualPlanningUpdateLogs) as any).values({
       configId: input.configId,
       updateType: "create",
       description: `Created item: ${input.name}`,
@@ -381,7 +381,7 @@ export const annualPlanningRouter = router({
     if (data.tasks && typeof data.tasks !== 'string') data.tasks = JSON.stringify(data.tasks);
     if (data.participantIds && typeof data.participantIds !== 'string') data.participantIds = JSON.stringify(data.participantIds);
 
-    await db.update(annualPlanningItems).set({ ...data, updatedAt: new Date().toISOString() } as any).where(eq(annualPlanningItems.id, id));
+    await db.update(annualPlanningItems).set({ ...data, updatedAt: new Date().toISOString() } as Record<string, unknown>).where(eq(annualPlanningItems.id, id));
 
     // Log update
     if (before) {
@@ -411,9 +411,9 @@ export const annualPlanningRouter = router({
       await db.delete(annualPlanningItems).where(eq(annualPlanningItems.id, id));
 
       if (before) {
-        await db.insert(annualPlanningUpdateLogs).values({
+        await (db.insert(annualPlanningUpdateLogs) as any).values({
           configId: before.configId,
-          updateType: "delete" as any,
+          updateType: "delete" as string,
           description: `Deleted item: ${before.name}`,
           beforeData: JSON.stringify(before),
           operatorId: 1,
@@ -461,7 +461,7 @@ export const annualPlanningRouter = router({
         versionName: `${input.year} 年度KPI配置`,
         status: "active",
         effectiveDate: new Date().toISOString(),
-        creatorId: ctx.user.id,
+        creatorId: ctx.user!.id,
         notes: "Auto-created for KPI input",
       }).returning();
       activeConfig = newConfig;
@@ -471,13 +471,13 @@ export const annualPlanningRouter = router({
 
     // Delete existing KPI items for this config, then re-insert
     await db.delete(annualPlanningItems)
-      .where(and(eq(annualPlanningItems.configId, configId), eq(annualPlanningItems.category, "kpi" as any)));
+      .where(and(eq(annualPlanningItems.configId, configId), eq(annualPlanningItems.category as any, "kpi")));
 
     for (let i = 0; i < input.kpis.length; i++) {
       const kpi = input.kpis[i];
-      await db.insert(annualPlanningItems).values({
+      await (db.insert(annualPlanningItems) as any).values({
         configId,
-        category: "kpi" as any,
+        category: "kpi" as string,
         name: kpi.name,
         description: kpi.description ?? "",
         tasks: JSON.stringify({
@@ -489,20 +489,20 @@ export const annualPlanningRouter = router({
           dataSource: kpi.dataSource,
           reviewFrequency: kpi.reviewFrequency,
         }),
-        frequency: (kpi.reviewFrequency?.toLowerCase() ?? "monthly") as any,
+        frequency: (kpi.reviewFrequency?.toLowerCase() ?? "monthly") as string,
         responsibleUserName: kpi.owner,
         status: "pending",
         sortOrder: i + 1,
-      } as any);
+      });
     }
 
     // Audit log
-    await db.insert(annualPlanningUpdateLogs).values({
+    await (db.insert(annualPlanningUpdateLogs) as any).values({
       configId,
       updateType: "update",
       description: `Saved ${input.kpis.length} KPIs for ${input.year}`,
       afterData: JSON.stringify(input.kpis),
-      operatorId: ctx.user.id,
+      operatorId: ctx.user!.id,
     });
 
     return { success: true, message: `${input.kpis.length} KPIs saved`, configId };
@@ -520,7 +520,7 @@ export const annualPlanningRouter = router({
     if (!activeConfig) return { kpis: [], configId: null };
 
     const items = await db.select().from(annualPlanningItems)
-      .where(and(eq(annualPlanningItems.configId, activeConfig.id), eq(annualPlanningItems.category, "kpi" as any)))
+      .where(and(eq(annualPlanningItems.configId, activeConfig.id), eq(annualPlanningItems.category as any, "kpi")))
       .orderBy(annualPlanningItems.sortOrder).limit(500);
 
     const kpis = items.map((item) => {
@@ -713,7 +713,7 @@ export const annualPlanningRouter = router({
         sourceModule: "annual-planning",
         targetModules: ["performance-points", "payroll-attendance"],
         payload: { year, kpiCount: kpis.length, score, grade: overallGrade },
-        userId: ctx.user.id,
+        userId: ctx.user!.id,
         timestamp: new Date(),
       });
     } catch { /* event bus optional */ }
@@ -745,15 +745,15 @@ export const annualPlanningRouter = router({
 
     // Mark all KPI items as approved
     await db.update(annualPlanningItems)
-      .set({ status: "completed" } as any)
-      .where(and(eq(annualPlanningItems.configId, config.id), eq(annualPlanningItems.category, "kpi" as any)));
+      .set({ status: "completed" } as Record<string, unknown>)
+      .where(and(eq(annualPlanningItems.configId, config.id), eq(annualPlanningItems.category as any, "kpi")));
 
     // Log
-    await db.insert(annualPlanningUpdateLogs).values({
+    await (db.insert(annualPlanningUpdateLogs) as any).values({
       configId: config.id,
       updateType: "update",
-      description: `${input.year} KPIs approved by user ${ctx.user.id}`,
-      operatorId: ctx.user.id,
+      description: `${input.year} KPIs approved by user ${ctx.user!.id}`,
+      operatorId: ctx.user!.id,
     });
 
     // Emit event bus
@@ -763,8 +763,8 @@ export const annualPlanningRouter = router({
         type: SANDBOX_EVENTS.PLANNING_BUDGET_APPROVED,
         sourceModule: "annual-planning",
         targetModules: ["payroll-attendance", "project-lifecycle"],
-        payload: { year: input.year, configId: config.id, approvedBy: ctx.user.id },
-        userId: ctx.user.id,
+        payload: { year: input.year, configId: config.id, approvedBy: ctx.user!.id },
+        userId: ctx.user!.id,
         timestamp: new Date(),
       });
     } catch { /* event bus optional */ }
@@ -796,19 +796,19 @@ export const annualPlanningRouter = router({
 
     // Create items
     const items = [
-      { configId: config.id, category: "sales" as any, name: "Q1 销售目标达成", description: "完成Q1销售额 500万", frequency: "quarterly" as any, month: 3, sortOrder: 1 },
-      { configId: config.id, category: "production" as any, name: "新产线投产", description: "清洗线新产线调试并投产", frequency: "once" as any, month: 6, sortOrder: 2 },
-      { configId: config.id, category: "rd" as any, name: "新产品研发", description: "完成2款新型清洗设备研发", frequency: "once" as any, month: 9, sortOrder: 3 },
-      { configId: config.id, category: "hr" as any, name: "年度培训计划", description: "完成全员质量管理培训", frequency: "quarterly" as any, month: 12, sortOrder: 4 },
-      { configId: config.id, category: "finance" as any, name: "成本优化", description: "整体成本降低5%", frequency: "monthly" as any, sortOrder: 5 },
+      { configId: config.id, category: "sales" as string, name: "Q1 销售目标达成", description: "完成Q1销售额 500万", frequency: "quarterly" as string, month: 3, sortOrder: 1 },
+      { configId: config.id, category: "production" as string, name: "新产线投产", description: "清洗线新产线调试并投产", frequency: "once" as string, month: 6, sortOrder: 2 },
+      { configId: config.id, category: "rd" as string, name: "新产品研发", description: "完成2款新型清洗设备研发", frequency: "once" as string, month: 9, sortOrder: 3 },
+      { configId: config.id, category: "hr" as string, name: "年度培训计划", description: "完成全员质量管理培训", frequency: "quarterly" as string, month: 12, sortOrder: 4 },
+      { configId: config.id, category: "finance" as string, name: "成本优化", description: "整体成本降低5%", frequency: "monthly" as string, sortOrder: 5 },
     ];
 
     for (const item of items) {
-      await db.insert(annualPlanningItems).values({ ...item, status: "pending" });
+      await (db.insert(annualPlanningItems) as any).values({ ...item, status: "pending" });
     }
 
     // Create annual plan
-    await db.insert(annualPlans).values({
+    await (db.insert(annualPlans) as any).values({
       year: currentYear,
       type: "company",
       name: `${currentYear} 年度经营计划`,
@@ -826,7 +826,7 @@ export const annualPlanningRouter = router({
     });
 
     // Log
-    await db.insert(annualPlanningUpdateLogs).values({
+    await (db.insert(annualPlanningUpdateLogs) as any).values({
       configId: config.id,
       updateType: "create",
       description: `Sample data initialized: 1 config + ${items.length} items + 1 annual plan`,

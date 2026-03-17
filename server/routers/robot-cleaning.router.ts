@@ -78,7 +78,7 @@ const robotCleaningSubRouter = router({
           hasAlert,
           alertType,
           alertMessage,
-          operatorId: ctx.user.id,
+          operatorId: ctx.user!.id,
         })
         .returning();
       log.info({ id: result.id, robotCode: input.robotCode, verdict: cleanlinessVerdict }, "Cleaning action recorded");
@@ -131,7 +131,7 @@ const robotCleaningSubRouter = router({
           alertMessage: cleanlinessVerdict === "FAIL"
             ? `Adaptive iteration ${input.iteration} still failing: ${input.cleanlinessAfterMg}mg`
             : undefined,
-          operatorId: ctx.user.id,
+          operatorId: ctx.user!.id,
         })
         .returning();
       log.info({ id: result.id, iteration: input.iteration, verdict: cleanlinessVerdict }, "Adaptive cleaning recorded");
@@ -272,7 +272,7 @@ const oilingTorqueSubRouter = router({
           verdict,
           alertTriggered,
           alertMessage,
-          operatorId: ctx.user.id,
+          operatorId: ctx.user!.id,
           notes: input.notes,
         })
         .returning();
@@ -378,7 +378,7 @@ const techPerformanceSubRouter = router({
         .insert(techPerformanceEntries)
         .values({
           ...input,
-          userId: ctx.user.id,
+          userId: ctx.user!.id,
           cycleTimeSeconds: input.cycleTimeSeconds?.toString(),
           standardCycleTimeSeconds: input.standardCycleTimeSeconds?.toString(),
           cycleEfficiency,
@@ -428,7 +428,7 @@ const techPerformanceSubRouter = router({
     .input(z.object({ userId: z.number().optional(), startDate: z.string().optional(), endDate: z.string().optional() }))
     .query(async ({ input, ctx }) => {
       const db = await requireDb();
-      const uid = input.userId ?? ctx.user.id;
+      const uid = input.userId ?? ctx.user!.id;
       const conditions: SQL[] = [eq(techPerformanceEntries.userId, uid)];
       if (input.startDate) conditions.push(gte(techPerformanceEntries.workDate, input.startDate));
       if (input.endDate) conditions.push(lte(techPerformanceEntries.workDate, input.endDate));

@@ -50,8 +50,8 @@ export const performanceRecordRouter = router({
 
       const conditions: SQL[] = [];
       // Non-manager roles can only see their own records
-      if (!PERF_MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
-        conditions.push(eq(performanceRecords.userId, ctx.user.id));
+      if (!PERF_MANAGER_ROLES.has(ctx.user!.role ?? "employee")) {
+        conditions.push(eq(performanceRecords.userId, ctx.user!.id));
       } else {
         if (input.userId) conditions.push(eq(performanceRecords.userId, input.userId));
       }
@@ -95,7 +95,7 @@ export const performanceRecordRouter = router({
       const [row] = await db.select().from(performanceRecords).where(eq(performanceRecords.id, input.id)).limit(1000);
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Performance record not found" });
       // Non-manager roles can only view their own records
-      if (!PERF_MANAGER_ROLES.has(ctx.user.role ?? "employee") && row.userId !== ctx.user.id) {
+      if (!PERF_MANAGER_ROLES.has(ctx.user!.role ?? "employee") && row.userId !== ctx.user!.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Cannot view other users' performance records" });
       }
       return row;
@@ -128,8 +128,8 @@ export const performanceRecordRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       // Non-managers can only create their own records
-      const targetUserId = input.userId ?? ctx.user.id;
-      if (targetUserId !== ctx.user.id && !PERF_MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
+      const targetUserId = input.userId ?? ctx.user!.id;
+      if (targetUserId !== ctx.user!.id && !PERF_MANAGER_ROLES.has(ctx.user!.role ?? "employee")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "无权为他人创建绩效记录" });
       }
       const db = await requireDb();
@@ -139,7 +139,7 @@ export const performanceRecordRouter = router({
         status: "draft",
         isFrozen: false,
         version: 1,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       }).returning();
       return record;
     }),
@@ -214,7 +214,7 @@ export const performanceRecordRouter = router({
         .set({
           isFrozen: true,
           frozenAt: new Date().toISOString(),
-          frozenBy: ctx.user.name ?? `User#${ctx.user.id}`,
+          frozenBy: ctx.user!.name ?? `User#${ctx.user!.id}`,
           frozenReason: input.reason,
           updatedAt: new Date().toISOString(),
         })
@@ -239,7 +239,7 @@ export const performanceRecordRouter = router({
       const [updated] = await db.update(performanceRecords)
         .set({
           isFrozen: false,
-          frozenReason: input.reason ? `解冻(${ctx.user.name}): ${input.reason}` : null,
+          frozenReason: input.reason ? `解冻(${ctx.user!.name}): ${input.reason}` : null,
           updatedAt: new Date().toISOString(),
         })
         .where(and(eq(performanceRecords.id, input.id), eq(performanceRecords.isFrozen, true)))

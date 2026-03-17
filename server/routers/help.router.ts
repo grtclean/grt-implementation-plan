@@ -474,8 +474,8 @@ export const helpRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
-      const [item] = await db
-        .insert(helpArticles)
+      const [item] = await (db
+        .insert(helpArticles) as any)
         .values({
           routePath: input.routePath,
           featureKey: input.featureKey,
@@ -489,7 +489,7 @@ export const helpRouter = router({
           videoUrl: input.videoUrl,
           sortOrder: input.sortOrder,
           isActive: input.isActive,
-          createdBy: ctx.user.id,
+          createdBy: ctx.user!.id,
         })
         .returning();
       return item;

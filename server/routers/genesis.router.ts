@@ -176,7 +176,7 @@ export const genesisRouter = router({
         filePath: input.filePath ?? `uploads/${Date.now()}_${input.fileName}`,
         fileSizeBytes: input.fileSizeBytes ?? 0,
         mimeType: input.mimeType ?? "application/octet-stream",
-        uploadedBy: ctx.user.id,
+        uploadedBy: ctx.user!.id,
         extractedText: input.extractedText,
       });
     }),
@@ -409,7 +409,7 @@ export const genesisRouter = router({
     .mutation(async ({ input, ctx }) => {
       return generateProposalFromDocument(
         toNum(input.documentId),
-        ctx.user.id
+        ctx.user!.id
       );
     }),
 
@@ -428,7 +428,7 @@ export const genesisRouter = router({
       return updateProposalStatusSvc(
         toNum(pid),
         input.status,
-        ctx.user.id,
+        ctx.user!.id,
         input.reviewComment
       );
     }),
@@ -445,7 +445,7 @@ export const genesisRouter = router({
       if (!pid) throw new Error("Either id or proposalId is required");
       return commitProposalToControlTower(
         toNum(pid),
-        ctx.user.id
+        ctx.user!.id
       );
     }),
 
@@ -663,7 +663,7 @@ export const genesisRouter = router({
 
     const documentsByStatus: Record<string, number> = {};
     for (const row of docStatusRows) {
-      documentsByStatus[row.status] = Number(row.count);
+      documentsByStatus[row.status as string] = Number(row.count);
     }
 
     // Proposal counts by status
@@ -677,7 +677,7 @@ export const genesisRouter = router({
 
     const proposalsByStatus: Record<string, number> = {};
     for (const row of proposalStatusRows) {
-      proposalsByStatus[row.status] = Number(row.count);
+      proposalsByStatus[row.status as string] = Number(row.count);
     }
 
     // Totals

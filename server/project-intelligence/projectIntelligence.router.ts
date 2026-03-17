@@ -29,7 +29,7 @@ export const projectIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "PROJECT_ASK_KNOWLEDGE",
         { question: input.question, history: input.history },
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -50,7 +50,7 @@ export const projectIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "PROJECT_FIND_SIMILAR",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -69,7 +69,7 @@ export const projectIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "PROJECT_CHANGE_IMPACT",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -91,7 +91,7 @@ export const projectIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "PROJECT_RISK_PREDICT",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),

@@ -10,7 +10,7 @@
  */
 
 import { requireDb } from "../db";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, sql, desc, type SQL } from "drizzle-orm";
 import {
   pointRules,
   pointTransactions,
@@ -538,7 +538,7 @@ export async function runEndOfDayPenalties() {
   `);
 
   let penalized = 0;
-  for (const row of missingPlans.rows as any[]) {
+  for (const row of missingPlans.rows as { employee_id: number }[]) {
     await awardPoints({
       employeeId: row.employee_id,
       ruleCode: "morning_plan_missing",
@@ -561,7 +561,7 @@ export async function runEndOfDayPenalties() {
     LIMIT 500
   `);
 
-  for (const row of missingSummaries.rows as any[]) {
+  for (const row of missingSummaries.rows as { employee_id: number }[]) {
     await awardPoints({
       employeeId: row.employee_id,
       ruleCode: "evening_summary_missing",
@@ -717,7 +717,7 @@ export async function getLeaderboard(limit = 50) {
     ORDER BY pb.ytd_points DESC
     LIMIT ${limit}
   `);
-  return (rows.rows as any[]).map((r, idx) => ({
+  return (rows.rows as { employee_id: number; employee_name: string; department: string; current_balance: number; total_earned: number; ytd_points: number; is_on_observation: boolean; is_excellence_suspended: boolean }[]).map((r, idx) => ({
     rank: idx + 1,
     employeeId: r.employee_id,
     employeeName: r.employee_name,
@@ -867,7 +867,7 @@ export async function evaluateMonthlyPerformancePoints(period: string) {
   `);
 
   let processed = 0;
-  for (const row of scores.rows as any[]) {
+  for (const row of scores.rows as { employee_id: number; composite_score: number; role: string }[]) {
     const employeeId = Number(row.employee_id);
     const score = Number(row.composite_score);
     const role = String(row.role || "employee");
@@ -913,7 +913,7 @@ export async function evaluateMonthlyPerformancePoints(period: string) {
       LIMIT 3
     `);
 
-    const histRows = history.rows as any[];
+    const histRows = history.rows as { period: string; composite_score: number }[];
     if (histRows.length === 3) {
       const s0 = Number(histRows[0].composite_score);
       const s1 = Number(histRows[1].composite_score);
@@ -1024,12 +1024,12 @@ interface AnnouncementTemplate {
 }
 
 /** Look up employee info for announcement content */
-async function getEmployeeInfo(db: any, employeeId: number) {
+async function getEmployeeInfo(db: { execute: (query: SQL) => Promise<{ rows: unknown[] }> }, employeeId: number) {
   const rows = await db.execute(sql`
     SELECT id, name, department, role, bu_id
     FROM employees WHERE id = ${employeeId} LIMIT 1
   `);
-  const emp = (rows.rows as any[])[0];
+  const emp = (rows.rows as { name?: string; department?: string; role?: string; bu_id?: number | null }[])[0];
   return {
     name: emp?.name ?? `员工#${employeeId}`,
     department: emp?.department ?? "未知部门",
@@ -1191,7 +1191,7 @@ function resolveScenario(action: string, threshold: number): string {
 
 /** Publish milestone announcement with full template */
 async function publishMilestoneAnnouncement(
-  db: any,
+  db: { execute: (query: SQL) => Promise<{ rows: unknown[] }> },
   employeeId: number,
   currentBalance: number,
   threshold: number,
@@ -1243,15 +1243,15 @@ async function publishMilestoneAnnouncement(
   // Also post to company community feed
   try {
     await postToCommunity({
-      postType: (tpl.priority as string) === "critical" || tpl.priority === "high" ? "announcement" : "notice",
+      postType: tpl.priority === "urgent" || tpl.priority === "high" ? "announcement" : "notice",
       title: tpl.title,
       content: tpl.message,
       scope: tpl.scope,
       priority: tpl.priority,
       sourceType: "milestone_announcement",
       sourceId: `emp_${employeeId}_threshold_${threshold}`,
-      isPinned: (tpl.priority as string) === "critical",
-      requiresAck: (tpl.priority as string) === "critical" || tpl.priority === "high",
+      isPinned: tpl.priority === "urgent",
+      requiresAck: tpl.priority === "urgent" || tpl.priority === "high",
     });
   } catch (e) {
     log.warn({ employeeId, scenario, error: e }, "Failed to post milestone to community (non-fatal)");
@@ -1313,9 +1313,9 @@ export async function listSuggestions(filters?: {
   limit?: number;
 }) {
   const db = await requireDb();
-  const conditions: any[] = [];
+  const conditions: (SQL | undefined)[] = [];
   if (filters?.employeeId) conditions.push(eq(suggestionSubmissions.employeeId, filters.employeeId));
-  if (filters?.status) conditions.push(eq(suggestionSubmissions.status, filters.status as any));
+  if (filters?.status) conditions.push(sql`${suggestionSubmissions.status} = ${filters.status}`);
   if (filters?.category) conditions.push(eq(suggestionSubmissions.category, filters.category));
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -1347,16 +1347,14 @@ export async function evaluateSuggestion(input: {
     ? "under_review" as const // outstanding/major need CEO approval
     : "effective" as const;   // effective → auto-approved by manager
 
-  const updates: Record<string, unknown> = {
-    status,
-    evaluatorId: input.evaluatorId,
-    evaluatorNotes: input.evaluatorNotes,
-    evaluatedAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
   const [updated] = await db.update(suggestionSubmissions)
-    .set(updates as any)
+    .set({
+      status,
+      evaluatorId: input.evaluatorId,
+      evaluatorNotes: input.evaluatorNotes,
+      evaluatedAt: new Date(),
+      updatedAt: new Date(),
+    })
     .where(eq(suggestionSubmissions.id, input.id))
     .returning();
 
@@ -1385,22 +1383,22 @@ export async function approveSuggestion(input: {
   if (suggestion.status !== "under_review") throw new Error("Suggestion not in under_review status");
 
   // Determine tier from evaluator's assessment
-  const tier = suggestion.evaluatorNotes?.includes("重大") ? "major" : "outstanding";
+  const tier: "major" | "outstanding" = suggestion.evaluatorNotes?.includes("重大") ? "major" : "outstanding";
 
   const [updated] = await db.update(suggestionSubmissions)
     .set({
-      status: tier as any,
+      status: tier,
       approvedBy: input.approvedBy,
-      approvedAt: new Date().toISOString(),
+      approvedAt: new Date(),
       approvalNotes: input.approvalNotes,
-      updatedAt: new Date().toISOString(),
-    } as any)
+      updatedAt: new Date(),
+    })
     .where(eq(suggestionSubmissions.id, input.id))
     .returning();
 
   // Award points + announce
   if (updated) {
-    await awardSuggestionPoints(updated.id, updated.employeeId, tier as any);
+    await awardSuggestionPoints(updated.id, updated.employeeId, tier);
     await publishSuggestionAnnouncement(updated.id);
   }
 
@@ -1429,7 +1427,7 @@ async function awardSuggestionPoints(
     // Update suggestion with points awarded
     const db = await requireDb();
     await db.update(suggestionSubmissions)
-      .set({ pointsAwarded: result.points, updatedAt: new Date().toISOString() } as any)
+      .set({ pointsAwarded: result.points, updatedAt: new Date() })
       .where(eq(suggestionSubmissions.id, suggestionId));
 
     return result;
@@ -1495,7 +1493,7 @@ async function publishSuggestionAnnouncement(suggestionId: number) {
     `);
 
     await db.update(suggestionSubmissions)
-      .set({ announcementPublished: true, updatedAt: new Date().toISOString() } as any)
+      .set({ announcementPublished: true, updatedAt: new Date() })
       .where(eq(suggestionSubmissions.id, suggestionId));
 
     // Also post to company community feed
@@ -1632,13 +1630,13 @@ export async function approvePointRequest(input: {
   // Update request status
   const [updated] = await db.update(pointApprovalRequests)
     .set({
-      status: "approved" as any,
+      status: "approved",
       approvedBy: input.approverId,
-      approvedAt: new Date().toISOString(),
+      approvedAt: new Date(),
       approvalNotes: input.notes,
       pointsApplied: true,
-      updatedAt: new Date().toISOString(),
-    } as any)
+      updatedAt: new Date(),
+    })
     .where(eq(pointApprovalRequests.id, input.requestId))
     .returning();
 
@@ -1656,12 +1654,12 @@ export async function rejectPointRequest(input: {
 
   const [updated] = await db.update(pointApprovalRequests)
     .set({
-      status: "rejected" as any,
+      status: "rejected",
       approvedBy: input.approverId,
-      approvedAt: new Date().toISOString(),
+      approvedAt: new Date(),
       approvalNotes: input.notes,
-      updatedAt: new Date().toISOString(),
-    } as any)
+      updatedAt: new Date(),
+    })
     .where(eq(pointApprovalRequests.id, input.requestId))
     .returning();
 
@@ -1688,7 +1686,7 @@ export async function evaluateSalesM2Pipeline(period: string) {
   `);
 
   let processed = 0;
-  for (const emp of salesStaff.rows as any[]) {
+  for (const emp of salesStaff.rows as { employee_id: number; role: string }[]) {
     const employeeId = emp.employee_id;
 
     // Count new customers reaching M2 stage this month
@@ -1698,7 +1696,7 @@ export async function evaluateSalesM2Pipeline(period: string) {
       WHERE owner_id = ${employeeId}
         AND stage = 'M2'
         AND TO_CHAR(updated_at, 'YYYY-MM') = ${period}
-    `).then(r => r.rows as any[]);
+    `).then(r => r.rows as { m2_count: number }[]);
 
     const m2Count = Number(result?.m2_count ?? 0);
 
@@ -1719,7 +1717,7 @@ export async function evaluateSalesM2Pipeline(period: string) {
         WHERE owner_id = ${employeeId}
           AND stage = 'M2'
           AND TO_CHAR(updated_at, 'YYYY-MM') = ${checkPeriod}
-      `).then(r => r.rows as any[]);
+      `).then(r => r.rows as { m2_count: number }[]);
 
       if (Number(prev?.m2_count ?? 0) >= 3) break;
       consecutiveMonths++;
@@ -1854,7 +1852,7 @@ export async function createCommunityPost(input: {
 
   const [post] = await db.insert(communityPosts).values({
     authorId: input.authorId,
-    postType: input.postType as any,
+    postType: input.postType as "announcement" | "notice" | "discussion" | "achievement" | "suggestion_share" | "knowledge",
     title: titleCheck.filteredText,
     content: contentCheck.filteredText,
     contentClean: titleCheck.clean && contentCheck.clean,
@@ -1889,7 +1887,7 @@ export async function postToCommunity(input: {
   const db = await requireDb();
   const [post] = await db.insert(communityPosts).values({
     authorId: 0, // system
-    postType: input.postType as any,
+    postType: input.postType as "announcement" | "notice" | "discussion" | "achievement" | "suggestion_share" | "knowledge",
     title: input.title,
     content: input.content,
     contentClean: true,
@@ -1913,8 +1911,8 @@ export async function listCommunityPosts(filters?: {
   offset?: number;
 }) {
   const db = await requireDb();
-  const conditions: any[] = [eq(communityPosts.isActive, true)];
-  if (filters?.postType) conditions.push(eq(communityPosts.postType, filters.postType as any));
+  const conditions: (SQL | undefined)[] = [eq(communityPosts.isActive, true)];
+  if (filters?.postType) conditions.push(sql`${communityPosts.postType} = ${filters.postType}`);
   if (filters?.scope) conditions.push(eq(communityPosts.scope, filters.scope));
 
   return db.select().from(communityPosts)
@@ -1929,7 +1927,7 @@ export async function acknowledgeCommunityPost(postId: number, employeeId: numbe
   const db = await requireDb();
   await db.insert(communityAcks).values({ postId, employeeId });
   await db.update(communityPosts)
-    .set({ ackCount: sql`ack_count + 1` } as any)
+    .set({ ackCount: sql`ack_count + 1` })
     .where(eq(communityPosts.id, postId));
   return { success: true };
 }
@@ -1938,7 +1936,7 @@ export async function acknowledgeCommunityPost(postId: number, employeeId: numbe
 export async function likeCommunityPost(postId: number) {
   const db = await requireDb();
   await db.update(communityPosts)
-    .set({ likeCount: sql`like_count + 1` } as any)
+    .set({ likeCount: sql`like_count + 1` })
     .where(eq(communityPosts.id, postId));
   return { success: true };
 }
@@ -2063,7 +2061,7 @@ export async function checkEliteEligibility(employeeId: number) {
       WHERE employee_id = ${employeeId}
       ORDER BY period DESC LIMIT 6
     `));
-    const scores = (kpiRows as any).rows?.map((r: any) => Number(r.score)) ?? [];
+    const scores = (kpiRows as unknown as { rows: { score: number }[] }).rows?.map((r: { score: number }) => Number(r.score)) ?? [];
     if (scores.length > 0) {
       kpiAvg6m = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
       kpiMonthsAbove83 = scores.filter((s: number) => s >= ELITE_THRESHOLDS.minKpiAvg6m).length;
@@ -2079,7 +2077,8 @@ export async function checkEliteEligibility(employeeId: number) {
     const result = await db.execute(sql.raw(`
       SELECT skill_level FROM employees WHERE id = ${employeeId} LIMIT 1
     `));
-    const emp = (result as any).rows?.[0] ?? (result as any)[0];
+    const empResult = result as { rows?: { skill_level?: string }[] };
+    const emp = empResult.rows?.[0];
     skillLevel = emp?.skill_level ?? null;
   } catch { /* ignore */ }
   const skillOk = isSkillLevelEligible(skillLevel);
@@ -2092,7 +2091,7 @@ export async function checkEliteEligibility(employeeId: number) {
       WHERE employee_id = ${employeeId}
       ORDER BY rated_at DESC LIMIT 10
     `));
-    const ratings = (deliveryRows as any).rows?.map((r: any) => Number(r.quality_score)) ?? [];
+    const ratings = (deliveryRows as unknown as { rows: { quality_score: number }[] }).rows?.map((r: { quality_score: number }) => Number(r.quality_score)) ?? [];
     // Count consecutive from most recent
     for (const score of ratings) {
       if (score >= 85) highDeliveryCount++;
@@ -2104,7 +2103,7 @@ export async function checkEliteEligibility(employeeId: number) {
   const activeBenefits = await db.select().from(eliteBenefitApplications)
     .where(and(
       eq(eliteBenefitApplications.employeeId, employeeId),
-      eq(eliteBenefitApplications.status, "active" as any),
+      sql`${eliteBenefitApplications.status} = 'active'`,
     )).limit(5);
 
   const hasAlternatingRest = activeBenefits.some(b => b.benefitType === "alternating_rest");
@@ -2119,7 +2118,7 @@ export async function checkEliteEligibility(employeeId: number) {
     const revokedHistory = await db.select().from(eliteBenefitApplications)
       .where(and(
         eq(eliteBenefitApplications.employeeId, employeeId),
-        eq(eliteBenefitApplications.status, "revoked" as any),
+        sql`${eliteBenefitApplications.status} = 'revoked'`,
       )).limit(50);
     totalRevocations = revokedHistory.length;
     // Find most recent cooldown_until
@@ -2199,12 +2198,12 @@ export async function applyEliteBenefit(input: {
 
   const [application] = await db.insert(eliteBenefitApplications).values({
     employeeId: input.employeeId,
-    benefitType: input.benefitType as any,
+    benefitType: input.benefitType,
     pointBalance: eligibility.currentPoints,
     kpiAvg6m: String(eligibility.kpiAvg6m),
     skillLevel: eligibility.skillLevel,
     highDeliveryCount: eligibility.highDeliveryCount,
-    eligibilityDetails: eligibility as any,
+    eligibilityDetails: eligibility as Record<string, unknown>,
     startDate: today,
     endDate,
     durationMonths: input.benefitType === "alternating_rest" ? ELITE_THRESHOLDS.alternatingRestDurationMonths : null,
@@ -2230,7 +2229,7 @@ export async function approveEliteBenefit(input: {
   const db = await requireDb();
   const [updated] = await db.update(eliteBenefitApplications)
     .set({
-      status: "active" as any,
+      status: "active",
       approvedBy: input.approverId,
       approvalNotes: input.notes,
       approvedAt: new Date(),
@@ -2238,7 +2237,7 @@ export async function approveEliteBenefit(input: {
     })
     .where(and(
       eq(eliteBenefitApplications.id, input.applicationId),
-      eq(eliteBenefitApplications.status, "pending" as any),
+      sql`${eliteBenefitApplications.status} = 'pending'`,
     ))
     .returning();
 
@@ -2274,14 +2273,14 @@ export async function rejectEliteBenefit(input: {
   const db = await requireDb();
   const [updated] = await db.update(eliteBenefitApplications)
     .set({
-      status: "rejected" as any,
+      status: "rejected",
       approvedBy: input.approverId,
       rejectedReason: input.reason,
       updatedAt: new Date(),
     })
     .where(and(
       eq(eliteBenefitApplications.id, input.applicationId),
-      eq(eliteBenefitApplications.status, "pending" as any),
+      sql`${eliteBenefitApplications.status} = 'pending'`,
     ))
     .returning();
 
@@ -2296,9 +2295,9 @@ export async function listEliteBenefitApplications(filters?: {
   limit?: number;
 }) {
   const db = await requireDb();
-  const conditions: any[] = [];
+  const conditions: (SQL | undefined)[] = [];
   if (filters?.employeeId) conditions.push(eq(eliteBenefitApplications.employeeId, filters.employeeId));
-  if (filters?.status) conditions.push(eq(eliteBenefitApplications.status, filters.status as any));
+  if (filters?.status) conditions.push(sql`${eliteBenefitApplications.status} = ${filters.status}`);
 
   return db.select().from(eliteBenefitApplications)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -2325,17 +2324,17 @@ export async function runMonthlyEliteReview(period: string) {
 
   // 1. Expire alternating_rest that passed endDate
   const expired = await db.update(eliteBenefitApplications)
-    .set({ status: "expired" as any, updatedAt: new Date() } as any)
+    .set({ status: "expired", updatedAt: new Date() })
     .where(and(
-      eq(eliteBenefitApplications.status, "active" as any),
-      eq(eliteBenefitApplications.benefitType, "alternating_rest" as any),
+      sql`${eliteBenefitApplications.status} = 'active'`,
+      eq(eliteBenefitApplications.benefitType, "alternating_rest"),
       sql`end_date <= ${today}`,
     ))
     .returning();
 
   // 2. Get all active benefit holders
   const activeHolders = await db.select().from(eliteBenefitApplications)
-    .where(eq(eliteBenefitApplications.status, "active" as any))
+    .where(sql`${eliteBenefitApplications.status} = 'active'`)
     .limit(500);
 
   let reviewed = 0, warned = 0, revoked = 0, passed = 0;
@@ -2351,7 +2350,7 @@ export async function runMonthlyEliteReview(period: string) {
         WHERE employee_id = ${holder.employeeId} AND period = '${period}'
         LIMIT 1
       `));
-      kpiScore = Number((kpiRows as any).rows?.[0]?.score) || 0;
+      kpiScore = Number((kpiRows as unknown as { rows: { score: number }[] }).rows?.[0]?.score) || 0;
     } catch { /* ignore */ }
 
     // Get current point balance
@@ -2365,7 +2364,8 @@ export async function runMonthlyEliteReview(period: string) {
       const result = await db.execute(sql.raw(
         `SELECT skill_level FROM employees WHERE id = ${holder.employeeId} LIMIT 1`
       ));
-      const emp = (result as any).rows?.[0] ?? (result as any)[0];
+      const empResult = result as { rows?: { skill_level?: string }[] };
+      const emp = empResult.rows?.[0];
       skillLevel = emp?.skill_level ?? null;
     } catch { /* ignore */ }
 
@@ -2454,13 +2454,13 @@ export async function runMonthlyEliteReview(period: string) {
 
       await db.update(eliteBenefitApplications)
         .set({
-          status: "revoked" as any,
+          status: "revoked",
           revokedAt: new Date(),
           revocationReason,
           revocationCount: prevRevocations + 1,
           cooldownUntil: cooldownDate.toISOString().slice(0, 10),
           updatedAt: new Date(),
-        } as any)
+        })
         .where(eq(eliteBenefitApplications.id, holder.id));
 
       // Notify via community
@@ -2516,7 +2516,7 @@ export async function submitEliteCommitment(input: {
       outcome: "commitment",
       commitmentContent: input.commitmentContent,
       commitmentResult: "pending",
-    } as any)
+    })
     .where(eq(eliteBenefitReviews.id, latestWarning.id));
 
   log.info({

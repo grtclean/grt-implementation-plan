@@ -308,7 +308,7 @@ export const buSalesTargetRouter = router({
         .update(buSalesPlans)
         .set({
           status: "submitted",
-          submittedBy: ctx.user.name ?? `User#${ctx.user.id}`,
+          submittedBy: ctx.user!.name ?? `User#${ctx.user!.id}`,
           submittedAt: new Date().toISOString(),
         })
         .where(eq(buSalesPlans.id, input.planId))
@@ -396,7 +396,7 @@ export const buSalesTargetRouter = router({
       if (!db) throw new Error("Database not available");
       await ensureTables();
 
-      const reviewerName = ctx.user.name ?? `User#${ctx.user.id}`;
+      const reviewerName = ctx.user!.name ?? `User#${ctx.user!.id}`;
       const finStatus = input.approved ? "approved" : "rejected";
 
       const updateData: Record<string, unknown> = {
@@ -444,7 +444,7 @@ export const buSalesTargetRouter = router({
       if (!db) throw new Error("Database not available");
       await ensureTables();
 
-      const reviewerName = ctx.user.name ?? `User#${ctx.user.id}`;
+      const reviewerName = ctx.user!.name ?? `User#${ctx.user!.id}`;
       const ceoStatus = input.approved ? "approved" : "rejected";
 
       const [adj] = await db
@@ -517,7 +517,7 @@ export const buSalesTargetRouter = router({
       await ensureTables();
 
       const newStatus = input.approved ? "approved" : "rejected";
-      const approverName = ctx.user.name ?? `User#${ctx.user.id}`;
+      const approverName = ctx.user!.name ?? `User#${ctx.user!.id}`;
 
       const [adj] = await db
         .update(buSalesPlanAdjustments)

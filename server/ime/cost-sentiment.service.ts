@@ -11,6 +11,9 @@ import { analyzeContributions, scoreMeetingEffectiveness } from "./contribution-
 
 const log = createChildLogger("ime:cost-sentiment");
 
+/** Generic DB row from raw SQL execute() — a plain key-value record */
+type DbRow = Record<string, unknown>;
+
 // ============================================================================
 // Phase 2 — Sprint 4: Real-time Assistant
 // ============================================================================
@@ -24,8 +27,8 @@ export async function startLiveSession(meetingId: string, userId: string) {
     WHERE meeting_id = ${meetingId} AND session_status = 'active'
     LIMIT 1
   `);
-  if ((existing.rows as any[]).length > 0) {
-    return { sessionId: (existing.rows as any[])[0].id, status: "already_active" };
+  if ((existing.rows as DbRow[]).length > 0) {
+    return { sessionId: (existing.rows as DbRow[])[0].id, status: "already_active" };
   }
 
   const result = await db.execute(sql`
@@ -33,7 +36,7 @@ export async function startLiveSession(meetingId: string, userId: string) {
     VALUES (${meetingId}, ${userId})
     RETURNING id
   `);
-  const sessionId = (result.rows as any[])[0]?.id;
+  const sessionId = (result.rows as DbRow[])[0]?.id;
 
   return {
     sessionId,
@@ -52,12 +55,12 @@ export async function processLiveSegment(
   const sessionResult = await db.execute(sql`
     SELECT * FROM ime_live_sessions WHERE id = ${sessionId} AND session_status = 'active'
   `);
-  const session = (sessionResult.rows as any[])[0];
+  const session = (sessionResult.rows as DbRow[])[0];
   if (!session) throw new Error(`Live session ${sessionId} not found or not active`);
 
   // Update contribution snapshot
   const snapshot: Record<string, { speakingTime: number; segments: number; lastText: string }> =
-    JSON.parse(session.live_contribution_snapshot || "{}");
+    JSON.parse((session.live_contribution_snapshot as string) || "{}");
 
   if (!snapshot[segment.speaker]) {
     snapshot[segment.speaker] = { speakingTime: 0, segments: 0, lastText: "" };
@@ -68,7 +71,7 @@ export async function processLiveSegment(
     snapshot[segment.speaker].speakingTime += Math.max(0, segment.end - segment.start);
   }
 
-  const totalSegments = (session.total_segments_processed || 0) + 1;
+  const totalSegments = ((session.total_segments_processed as number) || 0) + 1;
 
   // Check if we should generate a suggestion (every 10 segments)
   let suggestion: string | null = null;
@@ -92,7 +95,7 @@ export async function processLiveSegment(
   }
 
   // Update session
-  const suggestions: string[] = JSON.parse(session.live_suggestions || "[]");
+  const suggestions: string[] = JSON.parse((session.live_suggestions as string) || "[]");
   if (suggestion) {
     suggestions.push(suggestion);
   }
@@ -114,7 +117,7 @@ export async function endLiveSession(sessionId: number) {
   const sessionResult = await db.execute(sql`
     SELECT * FROM ime_live_sessions WHERE id = ${sessionId}
   `);
-  const session = (sessionResult.rows as any[])[0];
+  const session = (sessionResult.rows as DbRow[])[0];
   if (!session) throw new Error(`Live session ${sessionId} not found`);
 
   // End the session
@@ -127,8 +130,8 @@ export async function endLiveSession(sessionId: number) {
   // Trigger post-session analysis
   let analysisResult = null;
   try {
-    const contributions = await analyzeContributions(session.meeting_id);
-    const effectiveness = await scoreMeetingEffectiveness(session.meeting_id);
+    const contributions = await analyzeContributions(session.meeting_id as string);
+    const effectiveness = await scoreMeetingEffectiveness(session.meeting_id as string);
     analysisResult = { contributions, effectiveness };
   } catch (e) {
     log.error({ err: e }, "Post-session analysis failed");
@@ -154,7 +157,7 @@ export async function computeMeetingCost(meetingId: string) {
   const meetingResult = await db.execute(sql`
     SELECT id, title, meeting_date FROM meeting_records WHERE id = ${meetingId}
   `);
-  const meeting = (meetingResult.rows as any[])[0];
+  const meeting = (meetingResult.rows as DbRow[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   // 2. Compute duration from content blocks timestamps
@@ -167,7 +170,7 @@ export async function computeMeetingCost(meetingId: string) {
       AND timestamp_start IS NOT NULL
       AND timestamp_end IS NOT NULL
   `);
-  const dRow = (durationResult.rows as any[])[0];
+  const dRow = (durationResult.rows as DbRow[])[0];
   let durationMinutes = 60; // fallback
   if (dRow?.min_start != null && dRow?.max_end != null) {
     durationMinutes = Math.max(1, (Number(dRow.max_end) - Number(dRow.min_start)) / 60);
@@ -179,7 +182,7 @@ export async function computeMeetingCost(meetingId: string) {
     SELECT employee_id, employee_name FROM meeting_contributions
     WHERE meeting_id = ${meetingId}
   `);
-  const participants = contribResult.rows as any[];
+  const participants = contribResult.rows as DbRow[];
   const participantCount = participants.length || 1;
 
   // 4. Resolve hourly rates
@@ -196,7 +199,7 @@ export async function computeMeetingCost(meetingId: string) {
         WHERE "employeeCode" = ${p.employee_id || ''}
         ORDER BY "calculatedAt" DESC LIMIT 1
       `);
-      const salRow = (salaryResult.rows as any[])[0];
+      const salRow = (salaryResult.rows as DbRow[])[0];
       if (salRow?.annualTotal) {
         hourlyRate = Number(salRow.annualTotal) / 2080;
       } else {
@@ -204,7 +207,7 @@ export async function computeMeetingCost(meetingId: string) {
         const structResult = await db.execute(sql`
           SELECT "midPoint" FROM hrm_salary_structures LIMIT 1
         `);
-        const structRow = (structResult.rows as any[])[0];
+        const structRow = (structResult.rows as DbRow[])[0];
         if (structRow?.midPoint) {
           hourlyRate = Number(structRow.midPoint) / 2080;
         }
@@ -215,7 +218,7 @@ export async function computeMeetingCost(meetingId: string) {
 
     const cost = hourlyRate * durationHours;
     breakdown.push({
-      name: p.employee_name || p.employee_id,
+      name: (p.employee_name || p.employee_id) as string,
       hourlyRate: Math.round(hourlyRate * 100) / 100,
       cost: Math.round(cost * 100) / 100,
     });
@@ -230,8 +233,8 @@ export async function computeMeetingCost(meetingId: string) {
     GROUP BY block_type
   `);
   const blockCounts: Record<string, number> = {};
-  for (const row of blockCountResult.rows as any[]) {
-    blockCounts[row.block_type] = Number(row.cnt);
+  for (const row of blockCountResult.rows as DbRow[]) {
+    blockCounts[row.block_type as string] = Number(row.cnt);
   }
   const decisionCount = blockCounts["decision"] || 0;
   const actionItemCount = blockCounts["action_item"] || 0;
@@ -246,7 +249,7 @@ export async function computeMeetingCost(meetingId: string) {
       SELECT overall_score FROM meeting_effectiveness_scores
       WHERE meeting_id = ${meetingId} LIMIT 1
     `);
-    const effRow = (effResult.rows as any[])[0];
+    const effRow = (effResult.rows as DbRow[])[0];
     if (effRow?.overall_score && totalCost > 0) {
       roiScore = Math.round((Number(effRow.overall_score) / (totalCost / 1000)) * 100) / 100;
     }
@@ -303,7 +306,7 @@ export async function getCostDashboard(filters: { channelId?: string; dateFrom?:
     JOIN meeting_records mr ON mc.meeting_id = mr.id
     WHERE ${where}
   `);
-  const stats = (statsResult.rows as any[])[0] || {};
+  const stats = (statsResult.rows as DbRow[])[0] || {};
 
   // Top 5 most expensive
   const topResult = await db.execute(sql`
@@ -354,7 +357,7 @@ export async function getCostDashboard(filters: { channelId?: string; dateFrom?:
       avgDuration: Math.round(Number(stats.avg_duration)),
     },
     topExpensive: topResult.rows,
-    monthlyTrend: (trendResult.rows as any[]).reverse(),
+    monthlyTrend: (trendResult.rows as DbRow[]).reverse(),
     scatterData: scatterResult.rows,
   };
 }
@@ -365,8 +368,8 @@ export async function batchComputeCosts(meetingIds: string[]) {
     try {
       const result = await computeMeetingCost(meetingId);
       results.push({ meetingId, success: true, totalCost: result.totalCost });
-    } catch (e: any) {
-      results.push({ meetingId, success: false, error: e.message });
+    } catch (e: unknown) {
+      results.push({ meetingId, success: false, error: (e as Error).message });
     }
   }
   return results;
@@ -386,7 +389,7 @@ export async function extractAndTrackActionItems(meetingId: string) {
     WHERE meeting_id = ${meetingId} AND block_type = 'action_item'
     ORDER BY sort_order ASC
   `);
-  const newBlocks = blocksResult.rows as any[];
+  const newBlocks = blocksResult.rows as DbRow[];
 
   if (newBlocks.length === 0) {
     return { meetingId, matched: 0, created: 0, message: "No action items found in this meeting" };
@@ -400,19 +403,19 @@ export async function extractAndTrackActionItems(meetingId: string) {
     ORDER BY created_at DESC
     LIMIT 200
   `);
-  const existingItems = existingResult.rows as any[];
+  const existingItems = existingResult.rows as DbRow[];
 
   // 3. LLM fuzzy-match
   let matches: { newIndex: number; existingId: number; confidence: number }[] = [];
   let newItems: { index: number; content: string; owner: string }[] = [];
 
-  const newItemsSummary = newBlocks.map((b: any, i: number) => ({
+  const newItemsSummary = newBlocks.map((b: DbRow, i: number) => ({
     index: i,
     content: b.content,
     speaker: b.speaker,
   }));
 
-  const existingSummary = existingItems.map((item: any) => ({
+  const existingSummary = existingItems.map((item: DbRow) => ({
     id: item.id,
     content: item.content,
     owner: item.owner,
@@ -480,19 +483,19 @@ export async function extractAndTrackActionItems(meetingId: string) {
     // Heuristic fallback: exact content substring matching
     const matchedIndices = new Set<number>();
     for (let i = 0; i < newBlocks.length; i++) {
-      const content = (newBlocks[i].content || "").toLowerCase();
+      const content = ((newBlocks[i].content as string) || "").toLowerCase();
       let found = false;
       for (const existing of existingItems) {
-        const existingContent = (existing.content || "").toLowerCase();
+        const existingContent = ((existing.content as string) || "").toLowerCase();
         if (content.includes(existingContent.substring(0, 30)) || existingContent.includes(content.substring(0, 30))) {
-          matches.push({ newIndex: i, existingId: existing.id, confidence: 0.6 });
+          matches.push({ newIndex: i, existingId: existing.id as number, confidence: 0.6 });
           matchedIndices.add(i);
           found = true;
           break;
         }
       }
       if (!found) {
-        newItems.push({ index: i, content: newBlocks[i].content, owner: newBlocks[i].speaker || "" });
+        newItems.push({ index: i, content: newBlocks[i].content as string, owner: (newBlocks[i].speaker as string) || "" });
       }
     }
   }
@@ -500,10 +503,10 @@ export async function extractAndTrackActionItems(meetingId: string) {
   // 4. Process matches: append meetingId to appearances, increment count
   let matchedCount = 0;
   for (const match of matches) {
-    const existing = existingItems.find((e: any) => e.id === match.existingId);
+    const existing = existingItems.find((e: DbRow) => e.id === match.existingId);
     if (!existing) continue;
 
-    const appearances = JSON.parse(existing.meeting_appearances || "[]");
+    const appearances = JSON.parse((existing.meeting_appearances as string) || "[]");
     if (!appearances.includes(meetingId)) {
       appearances.push(meetingId);
     }
@@ -561,8 +564,8 @@ export async function getActionItemDashboard(filters: { status?: string; owner?:
     SELECT status, COUNT(*) as cnt FROM ime_action_items GROUP BY status
   `);
   const statusCounts: Record<string, number> = {};
-  for (const row of statusResult.rows as any[]) {
-    statusCounts[row.status] = Number(row.cnt);
+  for (const row of statusResult.rows as DbRow[]) {
+    statusCounts[row.status as string] = Number(row.cnt);
   }
 
   const total = Object.values(statusCounts).reduce((a, b) => a + b, 0);
@@ -575,7 +578,7 @@ export async function getActionItemDashboard(filters: { status?: string; owner?:
     FROM ime_action_items
     WHERE status = 'completed' AND resolved_date IS NOT NULL
   `);
-  const avgResolutionDays = Math.round(Number((avgResult.rows as any[])[0]?.avg_days) || 0);
+  const avgResolutionDays = Math.round(Number((avgResult.rows as DbRow[])[0]?.avg_days) || 0);
 
   // Stale items (top 20)
   const staleResult = await db.execute(sql`
@@ -640,7 +643,7 @@ export async function extractAndTrackTopics(meetingId: string) {
   const meetingResult = await db.execute(sql`
     SELECT id, title, objective, summary, meeting_date FROM meeting_records WHERE id = ${meetingId}
   `);
-  const meeting = (meetingResult.rows as any[])[0];
+  const meeting = (meetingResult.rows as DbRow[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   const blocksResult = await db.execute(sql`
@@ -649,7 +652,7 @@ export async function extractAndTrackTopics(meetingId: string) {
     WHERE meeting_id = ${meetingId}
     ORDER BY sort_order ASC
   `);
-  const blocks = blocksResult.rows as any[];
+  const blocks = blocksResult.rows as DbRow[];
 
   // 2. Get existing non-closed topics
   const existingResult = await db.execute(sql`
@@ -659,7 +662,7 @@ export async function extractAndTrackTopics(meetingId: string) {
     ORDER BY last_seen_date DESC
     LIMIT 100
   `);
-  const existingTopics = existingResult.rows as any[];
+  const existingTopics = existingResult.rows as DbRow[];
 
   // 3. LLM extracts topics
   let topicResults: {
@@ -667,8 +670,8 @@ export async function extractAndTrackTopics(meetingId: string) {
     newTopics: { topicName: string; description: string; status: string; summary: string }[];
   } = { matched: [], newTopics: [] };
 
-  const blockSummary = blocks.slice(0, 50).map((b: any) => `[${b.block_type}] ${b.speaker}: ${(b.content || "").substring(0, 200)}`).join("\n");
-  const existingSummary = existingTopics.map((t: any) => ({
+  const blockSummary = blocks.slice(0, 50).map((b: DbRow) => `[${b.block_type}] ${b.speaker}: ${((b.content as string) || "").substring(0, 200)}`).join("\n");
+  const existingSummary = existingTopics.map((t: DbRow) => ({
     id: t.id,
     topicName: t.topic_name,
     status: t.status,
@@ -736,14 +739,14 @@ export async function extractAndTrackTopics(meetingId: string) {
   } catch (e) {
     log.error({ err: e }, "Topic extraction LLM failed, using heuristic");
     // Heuristic fallback: extract from decision/insight blocks
-    const decisionBlocks = blocks.filter((b: any) => b.block_type === "decision" || b.block_type === "insight");
+    const decisionBlocks = blocks.filter((b: DbRow) => b.block_type === "decision" || b.block_type === "insight");
     for (const block of decisionBlocks.slice(0, 5)) {
-      const topicName = (block.content || "").substring(0, 100);
+      const topicName = ((block.content as string) || "").substring(0, 100);
       topicResults.newTopics.push({
         topicName,
-        description: block.content || "",
-        status: block.block_type === "decision" ? "decided" : "introduced",
-        summary: block.content || "",
+        description: (block.content as string) || "",
+        status: (block.block_type as string) === "decision" ? "decided" : "introduced",
+        summary: (block.content as string) || "",
       });
     }
   }
@@ -751,10 +754,10 @@ export async function extractAndTrackTopics(meetingId: string) {
   // 4. Process matched topics
   let matchedCount = 0;
   for (const match of topicResults.matched) {
-    const existing = existingTopics.find((t: any) => t.id === match.existingId);
+    const existing = existingTopics.find((t: DbRow) => t.id === match.existingId);
     if (!existing) continue;
 
-    const appearances = JSON.parse(existing.meeting_appearances || "[]");
+    const appearances = JSON.parse((existing.meeting_appearances as string) || "[]");
     appearances.push({
       meetingId,
       date: meeting.meeting_date,
@@ -836,8 +839,8 @@ export async function getTopicContinuityDashboard(filters: { status?: string }) 
     SELECT status, COUNT(*) as cnt FROM ime_topic_continuity GROUP BY status
   `);
   const statusCounts: Record<string, number> = {};
-  for (const row of statusResult.rows as any[]) {
-    statusCounts[row.status] = Number(row.cnt);
+  for (const row of statusResult.rows as DbRow[]) {
+    statusCounts[row.status as string] = Number(row.cnt);
   }
 
   // Stalled topics (top 20)
@@ -856,7 +859,7 @@ export async function getTopicContinuityDashboard(filters: { status?: string }) 
     FROM ime_topic_continuity
     WHERE status IN ('decided', 'closed') AND resolved_date IS NOT NULL
   `);
-  const resStats = (resResult.rows as any[])[0] || {};
+  const resStats = (resResult.rows as DbRow[])[0] || {};
 
   // Topic timeline (last 50)
   const timelineResult = await db.execute(sql`
@@ -899,7 +902,7 @@ export async function analyzeMeetingSentiment(meetingId: string) {
   const meetingResult = await db.execute(sql`
     SELECT id, title, objective, summary FROM meeting_records WHERE id = ${meetingId}
   `);
-  const meeting = (meetingResult.rows as any[])[0];
+  const meeting = (meetingResult.rows as DbRow[])[0];
   if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
   // 2. Get content blocks ordered by sort_order
@@ -910,15 +913,27 @@ export async function analyzeMeetingSentiment(meetingId: string) {
     ORDER BY sort_order ASC
     LIMIT 80
   `);
-  const blocks = blocksResult.rows as any[];
+  const blocks = blocksResult.rows as DbRow[];
 
   // 3. Build conversation flow text
   const conversationFlow = blocks
-    .map((b: any) => `[${b.speaker || "unknown"}] ${b.content}`)
+    .map((b: DbRow) => `[${b.speaker || "unknown"}] ${b.content}`)
     .join("\n");
 
   // 4. LLM analysis
-  let sentimentData: any = null;
+  interface SentimentData {
+    overallSentiment: string;
+    sentimentScore: number;
+    tensionLevel: number;
+    collaborationTone: number;
+    frustrationIndicators: number;
+    consensusReached: boolean;
+    speakerSentiments: Array<{ speaker: string; sentiment: string; tensionLevel: number; keyEmotionalMoments: string }>;
+    emotionalArc: Array<{ phase: string; sentiment: string; description: string }>;
+    conflictTopics: string[];
+    narrative: string;
+  }
+  let sentimentData: SentimentData | null = null;
   try {
     const llmResult = await invokeLLM({
       messages: [
@@ -985,7 +1000,7 @@ export async function analyzeMeetingSentiment(meetingId: string) {
         },
       },
     });
-    sentimentData = JSON.parse(llmResult.content);
+    sentimentData = JSON.parse(llmResult.content || "{}") as SentimentData;
   } catch {
     // Heuristic fallback
     const text = conversationFlow;
@@ -1052,7 +1067,7 @@ export async function getSentimentDashboard(filters: { channelId?: string; dateF
     LEFT JOIN meeting_records mr ON ms.meeting_id = mr.id
     WHERE ${where}
   `);
-  const agg = (aggResult.rows as any[])[0] || {};
+  const agg = (aggResult.rows as DbRow[])[0] || {};
 
   // Sentiment distribution
   const distResult = await db.execute(sql`
@@ -1063,8 +1078,8 @@ export async function getSentimentDashboard(filters: { channelId?: string; dateF
     GROUP BY ms.overall_sentiment
   `);
   const distribution: Record<string, number> = {};
-  for (const row of distResult.rows as any[]) {
-    distribution[row.overall_sentiment] = Number(row.cnt);
+  for (const row of distResult.rows as DbRow[]) {
+    distribution[row.overall_sentiment as string] = Number(row.cnt);
   }
 
   // Tension trend (last 30 meetings)
@@ -1098,9 +1113,9 @@ export async function getSentimentDashboard(filters: { channelId?: string; dateF
     LIMIT 50
   `);
   const speakerMap = new Map<string, { totalSentiment: number; count: number }>();
-  for (const row of speakerResult.rows as any[]) {
+  for (const row of speakerResult.rows as DbRow[]) {
     try {
-      const speakers = JSON.parse(row.speaker_sentiments);
+      const speakers = JSON.parse(row.speaker_sentiments as string);
       for (const s of speakers) {
         const entry = speakerMap.get(s.speaker) || { totalSentiment: 0, count: 0 };
         const sentVal = s.sentiment === "positive" ? 1 : s.sentiment === "negative" ? -1 : 0;
@@ -1123,7 +1138,7 @@ export async function getSentimentDashboard(filters: { channelId?: string; dateF
       avgCollaboration: Number(Number(agg.avg_collaboration).toFixed(1)) || 0,
     },
     distribution,
-    tensionTrend: (trendResult.rows as any[]).reverse(),
+    tensionTrend: (trendResult.rows as DbRow[]).reverse(),
     highTensionMeetings: highTensionResult.rows,
     speakerRankings,
   };
@@ -1135,8 +1150,8 @@ export async function batchAnalyzeSentiment(meetingIds: string[]) {
     try {
       await analyzeMeetingSentiment(meetingId);
       results.push({ meetingId, success: true });
-    } catch (e: any) {
-      results.push({ meetingId, success: false, error: e.message });
+    } catch (e: unknown) {
+      results.push({ meetingId, success: false, error: (e as Error).message });
     }
   }
   return results;

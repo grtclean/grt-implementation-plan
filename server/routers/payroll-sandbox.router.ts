@@ -347,7 +347,7 @@ function createInputRouter<T extends typeof psAttendanceInput | typeof psPerform
         const db = await requireDb();
         if (input.id) {
           const rows = await db.update(table).set(input.data as any).where(eq((table as any).id, input.id)).returning();
-          return rows[0];
+          return (rows as any)[0];
         }
         const rows = await db.insert(table).values(input.data as any).returning();
         return rows[0];

@@ -53,7 +53,7 @@ export const workstationPresetRouter = router({
   /** Get my workstation preset */
   getMyPreset: protectedProcedure
     .query(async ({ ctx }) => {
-      return svc.getMyPreset(ctx.user.id);
+      return svc.getMyPreset(ctx.user!.id);
     }),
 
   /** Get preset by employee code (admin) */
@@ -96,7 +96,7 @@ export const workstationPresetRouter = router({
       widgetConfig: z.array(widgetSchema).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      return svc.updateMyPreset(ctx.user.id, input);
+      return svc.updateMyPreset(ctx.user!.id, input);
     }),
 
   /** Preset summary statistics (admin) */

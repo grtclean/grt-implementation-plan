@@ -44,8 +44,8 @@ export function createAsyncAgentProcedures<TInput extends z.ZodTypeAny>(
         const { taskId } = await submitTask(
           taskType,
           input as Record<string, unknown>,
-          ctx.user.name ?? `user-${ctx.user.id}`,
-          { submittedById: ctx.user.id },
+          ctx.user!.name ?? `user-${ctx.user!.id}`,
+          { submittedById: ctx.user!.id },
         );
         return { taskId };
       }),

@@ -205,7 +205,7 @@ export function useCopilot() {
         const assistantMsg: ConversationMessage = {
           id: `a-${Date.now()}`,
           role: "assistant",
-          content: result.answer,
+          content: result.answer ?? "",
           sources: result.sources,
           suggestedActions: result.suggestedActions,
         };

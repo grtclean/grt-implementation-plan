@@ -22,6 +22,13 @@ import {
   assessmentTriggerLog,
   skillEnforcementActions,
   positionBenchmarkScores,
+  type InsertAssessmentTriggerRule,
+  type InsertAssessmentWorkflow,
+  type InsertAssessmentWorkflowRound,
+  type InsertAssessmentTriggerLogEntry,
+  type InsertSkillEnforcementAction,
+  type InsertPositionBenchmarkScore,
+  type AssessmentWorkflowRound,
 } from "../../drizzle/assessment-lifecycle-schema";
 import { createChildLogger } from "../lib/logger";
 
@@ -35,7 +42,7 @@ export async function listTriggerRules(opts?: { triggerType?: string; activeOnly
   const db = await requireDb();
   let query = db.select().from(assessmentTriggerRules);
   if (opts?.triggerType) {
-    query = query.where(eq(assessmentTriggerRules.triggerType, opts.triggerType as any)) as typeof query;
+    query = query.where(eq(assessmentTriggerRules.triggerType, opts.triggerType as typeof assessmentTriggerRules.triggerType.enumValues[number])) as typeof query;
   }
   if (opts?.activeOnly !== false) {
     query = query.where(eq(assessmentTriggerRules.isActive, true)) as typeof query;
@@ -74,13 +81,13 @@ export async function upsertTriggerRule(data: {
 
   if (existing.length > 0) {
     await db.update(assessmentTriggerRules)
-      .set({ ...data, updatedAt: new Date() } as any)
+      .set({ ...data, updatedAt: new Date() } as Partial<InsertAssessmentTriggerRule>)
       .where(eq(assessmentTriggerRules.ruleCode, data.ruleCode));
     log.info({ ruleCode: data.ruleCode }, "trigger rule updated");
     return { success: true, ruleCode: data.ruleCode, action: "updated" };
   }
 
-  await db.insert(assessmentTriggerRules).values(data as any);
+  await db.insert(assessmentTriggerRules).values(data as InsertAssessmentTriggerRule);
   log.info({ ruleCode: data.ruleCode }, "trigger rule created");
   return { success: true, ruleCode: data.ruleCode, action: "created" };
 }
@@ -115,7 +122,7 @@ export async function evaluateTrigger(params: {
   // Find matching active rules
   const rules = await db.select().from(assessmentTriggerRules)
     .where(and(
-      eq(assessmentTriggerRules.triggerType, triggerType as any),
+      eq(assessmentTriggerRules.triggerType, triggerType as typeof assessmentTriggerRules.triggerType.enumValues[number]),
       eq(assessmentTriggerRules.isActive, true),
     ))
     .orderBy(desc(assessmentTriggerRules.priority))
@@ -184,7 +191,7 @@ export async function evaluateTrigger(params: {
     lifecycleStage: lifecycleStage ?? null,
     dueDate: dueDateStr,
     outcome: "pending",
-  } as any).returning();
+  } as InsertAssessmentTriggerLogEntry).returning();
 
   let workflowId: number | undefined;
   let sessionId: number | undefined;
@@ -281,7 +288,7 @@ export async function createUpgradeWorkflow(params: {
     lifecycleStageAtTrigger: params.lifecycleStage ?? null,
     deadline: params.deadline ?? null,
     scheduledStartDate: new Date().toISOString().slice(0, 10),
-  } as any).returning();
+  } as InsertAssessmentWorkflow).returning();
 
   // Create the 3 rounds
   const rounds = [
@@ -321,7 +328,7 @@ export async function createUpgradeWorkflow(params: {
     },
   ];
 
-  await db.insert(assessmentWorkflowRounds).values(rounds as any);
+  await db.insert(assessmentWorkflowRounds).values(rounds as InsertAssessmentWorkflowRound[]);
 
   log.info({
     workflowId: workflow.id, employeeId: params.employeeId,
@@ -347,7 +354,7 @@ export async function listWorkflows(opts?: {
     query = query.where(eq(assessmentWorkflows.positionKey, opts.positionKey)) as typeof query;
   }
   if (opts?.status) {
-    query = query.where(eq(assessmentWorkflows.status, opts.status as any)) as typeof query;
+    query = query.where(eq(assessmentWorkflows.status, opts.status as typeof assessmentWorkflows.status.enumValues[number])) as typeof query;
   }
   if (opts?.purpose) {
     query = query.where(eq(assessmentWorkflows.purpose, opts.purpose)) as typeof query;
@@ -402,7 +409,7 @@ export async function updateRound(roundId: number, updates: {
   }
 
   await db.update(assessmentWorkflowRounds)
-    .set(updateData as any)
+    .set(updateData as Partial<InsertAssessmentWorkflowRound>)
     .where(eq(assessmentWorkflowRounds.id, roundId));
 
   return { success: true };
@@ -436,7 +443,7 @@ export async function completeRound(workflowId: number, roundNumber: number, res
       score: String(result.score),
       completedAt: new Date(),
       notes: result.notes ?? null,
-    } as any)
+    } as Partial<InsertAssessmentWorkflowRound>)
     .where(eq(assessmentWorkflowRounds.id, round.id));
 
   // Get all rounds
@@ -459,7 +466,7 @@ export async function completeRound(workflowId: number, roundNumber: number, res
         decidedAt: new Date(),
         completedAt: new Date(),
         updatedAt: new Date(),
-      } as any)
+      } as Partial<InsertAssessmentWorkflow>)
       .where(eq(assessmentWorkflows.id, workflowId));
 
     // Apply failure consequences
@@ -491,7 +498,7 @@ export async function completeRound(workflowId: number, roundNumber: number, res
         decidedAt: new Date(),
         completedAt: new Date(),
         updatedAt: new Date(),
-      } as any)
+      } as Partial<InsertAssessmentWorkflow>)
       .where(eq(assessmentWorkflows.id, workflowId));
 
     if (finalStatus === "failed") {
@@ -501,7 +508,7 @@ export async function completeRound(workflowId: number, roundNumber: number, res
     // Update trigger log
     if (workflow.triggerLogId) {
       await db.update(assessmentTriggerLog)
-        .set({ outcome: finalStatus, outcomeAt: new Date() } as any)
+        .set({ outcome: finalStatus, outcomeAt: new Date() } as Partial<InsertAssessmentTriggerLogEntry>)
         .where(eq(assessmentTriggerLog.id, workflow.triggerLogId));
     }
 
@@ -512,18 +519,18 @@ export async function completeRound(workflowId: number, roundNumber: number, res
   // Advance to next round
   const nextRound = roundNumber + 1;
   await db.update(assessmentWorkflows)
-    .set({ currentRound: nextRound, status: "round_completed", updatedAt: new Date() } as any)
+    .set({ currentRound: nextRound, status: "round_completed", updatedAt: new Date() } as Partial<InsertAssessmentWorkflow>)
     .where(eq(assessmentWorkflows.id, workflowId));
 
   return { workflowStatus: "round_completed", nextRound };
 }
 
-function calculateOverallScore(rounds: any[], weights: Record<string, number>): number {
+function calculateOverallScore(rounds: AssessmentWorkflowRound[], weights: Record<string, number>): number {
   let totalWeight = 0;
   let weightedSum = 0;
   for (const r of rounds) {
     const w = weights[String(r.roundNumber)] ?? 0;
-    const s = parseFloat(r.score) || 0;
+    const s = parseFloat(r.score!) || 0;
     if (r.status !== "waived") {
       weightedSum += s * w;
       totalWeight += w;
@@ -568,7 +575,7 @@ async function applyWorkflowConsequences(workflowId: number) {
       employeeId: workflow.employeeId,
       triggerLogId: workflow.triggerLogId ?? null,
       workflowId,
-      enforcementType: c.type as any,
+      enforcementType: c.type as typeof skillEnforcementActions.enforcementType.enumValues[number],
       description: c.description ?? `${c.type} enforcement`,
       enforcementData: {
         triggerRuleCode: rule.ruleCode,
@@ -578,7 +585,7 @@ async function applyWorkflowConsequences(workflowId: number) {
       },
       startDate: today,
       endDate,
-    } as any);
+    } as InsertSkillEnforcementAction);
 
     log.info({
       employeeId: workflow.employeeId,
@@ -590,7 +597,7 @@ async function applyWorkflowConsequences(workflowId: number) {
   // Mark trigger log
   if (workflow.triggerLogId) {
     await db.update(assessmentTriggerLog)
-      .set({ enforcementApplied: true } as any)
+      .set({ enforcementApplied: true } as Partial<InsertAssessmentTriggerLogEntry>)
       .where(eq(assessmentTriggerLog.id, workflow.triggerLogId));
   }
 }
@@ -607,10 +614,10 @@ export async function listEnforcements(opts?: {
     query = query.where(eq(skillEnforcementActions.employeeId, opts.employeeId)) as typeof query;
   }
   if (opts?.status) {
-    query = query.where(eq(skillEnforcementActions.status, opts.status as any)) as typeof query;
+    query = query.where(eq(skillEnforcementActions.status, opts.status as typeof skillEnforcementActions.status.enumValues[number])) as typeof query;
   }
   if (opts?.enforcementType) {
-    query = query.where(eq(skillEnforcementActions.enforcementType, opts.enforcementType as any)) as typeof query;
+    query = query.where(eq(skillEnforcementActions.enforcementType, opts.enforcementType as typeof skillEnforcementActions.enforcementType.enumValues[number])) as typeof query;
   }
   return query.orderBy(desc(skillEnforcementActions.createdAt)).limit(opts?.limit ?? 100);
 }
@@ -631,7 +638,7 @@ export async function liftEnforcement(enforcementId: number, params: {
       reassessmentPassed: params.reassessmentPassed ?? null,
       reassessmentSessionId: params.reassessmentSessionId ?? null,
       updatedAt: new Date(),
-    } as any)
+    } as Partial<InsertSkillEnforcementAction>)
     .where(eq(skillEnforcementActions.id, enforcementId));
 
   log.info({ enforcementId, liftedBy: params.liftedBy }, "enforcement lifted");
@@ -676,7 +683,7 @@ export async function listTriggerLogs(opts?: {
 export async function updateTriggerLogOutcome(logId: number, outcome: string) {
   const db = await requireDb();
   await db.update(assessmentTriggerLog)
-    .set({ outcome, outcomeAt: new Date() } as any)
+    .set({ outcome, outcomeAt: new Date() } as Partial<InsertAssessmentTriggerLogEntry>)
     .where(eq(assessmentTriggerLog.id, logId));
   return { success: true };
 }
@@ -717,12 +724,12 @@ export async function upsertBenchmark(data: {
 
   if (existing.length > 0) {
     await db.update(positionBenchmarkScores)
-      .set({ ...data, updatedAt: new Date() } as any)
+      .set({ ...data, updatedAt: new Date() } as Partial<InsertPositionBenchmarkScore>)
       .where(eq(positionBenchmarkScores.id, existing[0].id));
     return { success: true, action: "updated" };
   }
 
-  await db.insert(positionBenchmarkScores).values(data as any);
+  await db.insert(positionBenchmarkScores).values(data as InsertPositionBenchmarkScore);
   return { success: true, action: "created" };
 }
 

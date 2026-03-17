@@ -60,7 +60,7 @@ export default function UWBPositioningMap({ selectedAgentUnitId, onSelectAgentUn
   );
 
   const overview = overviewQuery.data;
-  const tags = tagsQuery.data || [];
+  const tags: any[] = tagsQuery.data || [];
 
   // 地图尺寸
   const mapWidth = 600;
@@ -178,7 +178,7 @@ export default function UWBPositioningMap({ selectedAgentUnitId, onSelectAgentUn
         {/* 位置历史轨迹 */}
         {showHistory && historyQuery.data && historyQuery.data.length > 1 && (
           <polyline
-            points={historyQuery.data.map(p => `${p.position.x * scale},${p.position.y * scale}`).join(" ")}
+            points={historyQuery.data.map((p: any) => `${p.position.x * scale},${p.position.y * scale}`).join(" ")}
             fill="none"
             stroke="#f59e0b"
             strokeWidth={2}
@@ -396,7 +396,7 @@ export default function UWBPositioningMap({ selectedAgentUnitId, onSelectAgentUn
                 <div className="border rounded-lg p-4">
                   <h4 className="font-medium mb-3">区域分布</h4>
                   <div className="space-y-2">
-                    {(overview as any).zoneDistribution.map(({ zone, count }) => (
+                    {(overview as any).zoneDistribution.map(({ zone, count }: any) => (
                       <div key={zone.id} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded" style={{ backgroundColor: zone.color }} />
@@ -412,7 +412,7 @@ export default function UWBPositioningMap({ selectedAgentUnitId, onSelectAgentUn
                   <div className="border rounded-lg p-4">
                     <h4 className="font-medium mb-3">最近移动</h4>
                     <div className="space-y-2 max-h-48 overflow-auto">
-                      {(overview as any).recentMovements.map((movement, i) => (
+                      {(overview as any).recentMovements.map((movement: any, i: any) => (
                         <div key={i} className="flex items-center justify-between text-sm">
                           <span className="font-medium">{movement.serialNumber}</span>
                           <span className="text-muted-foreground">

@@ -26,7 +26,7 @@ export const salesFinanceIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "SF_FORECAST_SALES",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -48,7 +48,7 @@ export const salesFinanceIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "SF_PREDICT_CHURN",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -69,7 +69,7 @@ export const salesFinanceIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "SF_ANALYZE_BUDGET",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -90,7 +90,7 @@ export const salesFinanceIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "SF_OPTIMIZE_COST",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),

@@ -758,7 +758,7 @@ const readinessRouter = router({
       // If permissions table is empty or missing (first-time setup), allow any authenticated user.
       // Once permissions are seeded, enforce system:config:manage.
       // Admin role always passes.
-      if (ctx.user.role !== "admin") {
+      if (ctx.user!.role !== "admin") {
         let permN = 0;
         try {
           const [permCount] = await db.select({ value: count() }).from(permissionsTable).limit(1);
@@ -772,7 +772,7 @@ const readinessRouter = router({
           try {
             const { permissionService } = await import("../permission-management/permission.service");
             ok = await permissionService.checkPermission(
-              ctx.user.openId || String(ctx.user.id),
+              ctx.user!.openId || String(ctx.user!.id),
               "system:config:manage"
             );
           } catch { /* DB error → deny */ }
@@ -783,7 +783,7 @@ const readinessRouter = router({
         // permN < 100 → bootstrap mode, allow through
       }
 
-      log.info({ userId: ctx.user.id }, "Seeding foundation data for go-live readiness");
+      log.info({ userId: ctx.user!.id }, "Seeding foundation data for go-live readiness");
 
       const stepErrors: Array<{ step: number; name: string; error: string }> = [];
       let employeesSeeded = 0, salarySeeded = 0, projectsSeeded = 0, oeeSeeded = 0, fmeaSeeded = 0;
@@ -1019,7 +1019,7 @@ const readinessRouter = router({
         ];
         for (const mat of SEED_MATERIALS) {
           try {
-            await db.insert(materials).values({ ...mat, status: "active", isApproved: "yes", createdBy: ctx.user.id, version: 1 });
+            await db.insert(materials).values({ ...mat, status: "active", isApproved: "yes", createdBy: ctx.user!.id, version: 1 });
             materialsSeeded++;
           } catch { /* duplicate */ }
         }
@@ -1042,7 +1042,7 @@ const readinessRouter = router({
         ];
         for (const doc of SEED_PLM) {
           try {
-            await db.insert(plmDocuments).values({ ...doc, currentVersionString: "V1.0", totalVersions: 1, createdBy: ctx.user.id });
+            await db.insert(plmDocuments).values({ ...doc, currentVersionString: "V1.0", totalVersions: 1, createdBy: ctx.user!.id });
             plmSeeded++;
           } catch { /* duplicate */ }
         }
@@ -1063,7 +1063,7 @@ const readinessRouter = router({
         ];
         for (const eco of SEED_ECO) {
           try {
-            await db.insert(engineeringChangeOrders).values({ ...eco, requestedBy: ctx.user.id });
+            await db.insert(engineeringChangeOrders).values({ ...eco, requestedBy: ctx.user!.id });
             ecoSeeded++;
           } catch { /* duplicate */ }
         }
@@ -1084,7 +1084,7 @@ const readinessRouter = router({
         ];
         for (const bom of SEED_BOM) {
           try {
-            await db.insert(bomMasters).values({ ...bom, createdBy: ctx.user.id });
+            await db.insert(bomMasters).values({ ...bom, createdBy: ctx.user!.id });
             bomSeeded++;
           } catch { /* duplicate */ }
         }
@@ -1207,7 +1207,7 @@ const readinessRouter = router({
             failedCount: 0,
             status: "completed",
             importedData: JSON.stringify({ type: "foundation_seed", timestamp: Date.now() }),
-            createdById: ctx.user.id,
+            createdById: ctx.user!.id,
           });
           importSeeded = 1;
         } catch { /* duplicate */ }
@@ -1282,7 +1282,7 @@ const readinessRouter = router({
               probability: opp.probability,
               expectedAmount: opp.expectedAmount,
               expectedCloseDate: opp.expectedCloseDate,
-              assignedTo: assignedTo ?? ctx.user.id,
+              assignedTo: assignedTo ?? ctx.user!.id,
             });
             oppsSeeded++;
           } catch { /* dup */ }
@@ -1327,7 +1327,7 @@ const readinessRouter = router({
         ];
         for (const sup of SEED_SUPPLIERS) {
           try {
-            await db.insert(suppliers).values({ ...sup, createdBy: ctx.user.id });
+            await db.insert(suppliers).values({ ...sup, createdBy: ctx.user!.id });
             suppliersSeeded++;
           } catch { /* dup */ }
         }
@@ -1340,11 +1340,11 @@ const readinessRouter = router({
       const [okrCount] = await db.select({ value: count() }).from(okrObjectives).limit(1);
       if (force || Number(okrCount?.value || 0) < 3) {
         const SEED_OKR = [
-          { title: "2026年产值突破3亿", description: "全年产值目标3亿人民币，同比增长25%", level: "company", period: "2026-Q1", ownerId: String(ctx.user.id), ownerName: "CTO", status: "active", progress: 35 },
-          { title: "海外市场收入占比提升至30%", description: "拓展东南亚和欧洲市场", level: "company", period: "2026-Q1", ownerId: String(ctx.user.id), ownerName: "CTO", status: "active", progress: 20 },
-          { title: "客户满意度提升至95分", description: "通过数字化服务提升客户体验", level: "department", period: "2026-Q1", ownerId: String(ctx.user.id), ownerName: "销售部", status: "active", progress: 60 },
-          { title: "新品研发周期缩短20%", description: "应用AI辅助设计和仿真", level: "department", period: "2026-Q2", ownerId: String(ctx.user.id), ownerName: "研发部", status: "draft", progress: 0 },
-          { title: "数字化系统覆盖率达100%", description: "GRT系统全模块上线，实现全流程数字化管理", level: "company", period: "2026-Q2", ownerId: String(ctx.user.id), ownerName: "CTO", status: "active", progress: 85 },
+          { title: "2026年产值突破3亿", description: "全年产值目标3亿人民币，同比增长25%", level: "company", period: "2026-Q1", ownerId: String(ctx.user!.id), ownerName: "CTO", status: "active", progress: 35 },
+          { title: "海外市场收入占比提升至30%", description: "拓展东南亚和欧洲市场", level: "company", period: "2026-Q1", ownerId: String(ctx.user!.id), ownerName: "CTO", status: "active", progress: 20 },
+          { title: "客户满意度提升至95分", description: "通过数字化服务提升客户体验", level: "department", period: "2026-Q1", ownerId: String(ctx.user!.id), ownerName: "销售部", status: "active", progress: 60 },
+          { title: "新品研发周期缩短20%", description: "应用AI辅助设计和仿真", level: "department", period: "2026-Q2", ownerId: String(ctx.user!.id), ownerName: "研发部", status: "draft", progress: 0 },
+          { title: "数字化系统覆盖率达100%", description: "GRT系统全模块上线，实现全流程数字化管理", level: "company", period: "2026-Q2", ownerId: String(ctx.user!.id), ownerName: "CTO", status: "active", progress: 85 },
         ];
         for (const okr of SEED_OKR) {
           try {
@@ -1368,7 +1368,7 @@ const readinessRouter = router({
         ];
         for (const cp of SEED_CP) {
           try {
-            await db.insert(controlPlans).values({ ...cp, createdBy: ctx.user.id });
+            await db.insert(controlPlans).values({ ...cp, createdBy: ctx.user!.id });
             controlPlansSeeded++;
           } catch { /* dup */ }
         }
@@ -1420,7 +1420,7 @@ const readinessRouter = router({
         ];
         for (const tpl of SEED_APPROVALS) {
           try {
-            await db.insert(approvalTemplates).values({ ...tpl, isActive: true, createdBy: ctx.user.id });
+            await db.insert(approvalTemplates).values({ ...tpl, isActive: true, createdBy: ctx.user!.id });
             approvalSeeded++;
           } catch { /* dup */ }
         }
@@ -1439,7 +1439,7 @@ const readinessRouter = router({
         ];
         for (const rnd of SEED_RND) {
           try {
-            await db.insert(rndProjects).values({ ...rnd, createdBy: ctx.user.id });
+            await db.insert(rndProjects).values({ ...rnd, createdBy: ctx.user!.id });
             rndSeeded++;
           } catch { /* dup */ }
         }
@@ -1473,7 +1473,7 @@ const readinessRouter = router({
               ursStatus: dp.ursStatus,
               mechanicalBomStatus: dp.mechanicalBomStatus,
               designReviewStatus: dp.designReviewStatus,
-              createdBy: ctx.user.id,
+              createdBy: ctx.user!.id,
             });
             designPkgSeeded++;
           } catch { /* dup */ }
@@ -1504,7 +1504,7 @@ const readinessRouter = router({
               content: `${trainingData[i].name}课程内容`,
               status: "in_progress",
               completionRate: 30 + i * 15,
-              createdById: ctx.user.id,
+              createdById: ctx.user!.id,
             });
             trainingSeeded++;
           } catch { /* dup */ }
@@ -1526,7 +1526,7 @@ const readinessRouter = router({
               versionLabel: "v0.1",
               status: "draft",
               totalComponents: 15 + Math.round(Math.random() * 20),
-              createdBy: ctx.user.id,
+              createdBy: ctx.user!.id,
             });
             rndBomSeeded++;
           } catch { /* dup */ }
@@ -1563,7 +1563,7 @@ const readinessRouter = router({
                 businessId: inst.businessId,
                 businessTable: inst.businessTable,
                 businessTitle: inst.businessTitle,
-                applicantId: ctx.user.id,
+                applicantId: ctx.user!.id,
                 applicantName: "系统管理员",
                 summary: inst.summary,
                 amount: inst.amount,
@@ -1600,8 +1600,8 @@ const readinessRouter = router({
               status: task.status,
               inputData: task.inputData,
               resultData: task.resultData as Record<string, unknown> | null,
-              createdBy: String(ctx.user.id),
-              submittedById: ctx.user.id,
+              createdBy: String(ctx.user!.id),
+              submittedById: ctx.user!.id,
             });
             aiTasksSeeded++;
           } catch { /* dup */ }
@@ -1640,7 +1640,7 @@ const readinessRouter = router({
                 totalAmount: po.totalAmount,
                 expectedDeliveryDate: po.expectedDeliveryDate,
                 status: "confirmed",
-                createdBy: ctx.user.id,
+                createdBy: ctx.user!.id,
               });
               poSeeded++;
             } catch { /* dup */ }
@@ -1935,7 +1935,7 @@ const readinessRouter = router({
                     importType: "salary_excel", fileName: "boost-seed-salary.json",
                     totalRows: c, successCount: c, failedCount: 0, status: "completed",
                     importedData: JSON.stringify({ type: "boost_seed", timestamp: Date.now() }),
-                    createdById: ctx.user.id,
+                    createdById: ctx.user!.id,
                   });
                   seeded.importHistory = 1;
                 } catch { /* dup */ }
@@ -2001,7 +2001,7 @@ const readinessRouter = router({
                 ];
                 for (const t of tasks) {
                   try {
-                    await db.insert(aiTasks).values({ ...t, resultData: t.resultData as Record<string, unknown> | null, createdBy: String(ctx.user.id), submittedById: ctx.user.id });
+                    await db.insert(aiTasks).values({ ...t, resultData: t.resultData as Record<string, unknown> | null, createdBy: String(ctx.user!.id), submittedById: ctx.user!.id });
                     c++;
                   } catch { /* dup */ }
                 }
@@ -2050,7 +2050,7 @@ const readinessRouter = router({
                 { materialCode: "MAT-AX-012", materialName: "激光打标墨水 (Laser Marking Ink)", categoryCode: "AX", subcategoryCode: "002", materialType: "consumable", manufacturer: "大族激光", standardCost: "580.00" },
               ];
               for (const mat of SEED_MATS_MFG) {
-                try { await db.insert(materials).values({ ...mat, status: "active", isApproved: "yes", createdBy: ctx.user.id, version: 1 }); c++; } catch { /* dup */ }
+                try { await db.insert(materials).values({ ...mat, status: "active", isApproved: "yes", createdBy: ctx.user!.id, version: 1 }); c++; } catch { /* dup */ }
               }
               seeded.materials = c;
             }
@@ -2107,7 +2107,7 @@ const readinessRouter = router({
                 { productCode: "BOM-TOOLING-V1", productName: "工装模具组 (Tooling & Die Set)", bomType: "engineering", status: "approved", buCode: "industrial", productCategory: "模具", maxLevel: 3, totalMaterialCost: "85000.00", totalLaborCost: "25000.00" },
               ];
               for (const b of boms) {
-                try { await db.insert(bomMasters).values({ ...b, createdBy: ctx.user.id }); c++; } catch { /* dup */ }
+                try { await db.insert(bomMasters).values({ ...b, createdBy: ctx.user!.id }); c++; } catch { /* dup */ }
               }
               seeded.bom = c;
             }
@@ -2183,7 +2183,7 @@ const readinessRouter = router({
                 const customerId = custMap.get(o.customerCode);
                 if (!customerId) continue;
                 try {
-                  await db.insert(crmOpportunitiesV2).values({ ...o, customerId, assignedTo: ctx.user.id });
+                  await db.insert(crmOpportunitiesV2).values({ ...o, customerId, assignedTo: ctx.user!.id });
                   c++;
                 } catch { /* dup */ }
               }
@@ -2233,7 +2233,7 @@ const readinessRouter = router({
                     ...plans[i], employeeId: emp.id,
                     startDate: "2026-03-01T00:00:00.000Z", endDate: "2026-06-30T00:00:00.000Z",
                     content: `${plans[i].name}课程内容`, status: "in_progress",
-                    completionRate: 30 + i * 15, createdById: ctx.user.id,
+                    completionRate: 30 + i * 15, createdById: ctx.user!.id,
                   });
                   c++;
                 } catch { /* dup */ }
@@ -2282,7 +2282,7 @@ const readinessRouter = router({
                 { materialCode: "MAT-AX-012", materialName: "激光打标墨水 (Laser Marking Ink)", categoryCode: "AX", subcategoryCode: "002", materialType: "consumable", manufacturer: "大族激光", standardCost: "580.00" },
               ];
               for (const mat of SEED_MATS_SC) {
-                try { await db.insert(materials).values({ ...mat, status: "active", isApproved: "yes", createdBy: ctx.user.id, version: 1 }); c++; } catch { /* dup */ }
+                try { await db.insert(materials).values({ ...mat, status: "active", isApproved: "yes", createdBy: ctx.user!.id, version: 1 }); c++; } catch { /* dup */ }
               }
               seeded.materials = c;
             }
@@ -2297,7 +2297,7 @@ const readinessRouter = router({
                 { productCode: "BOM-TOOLING-V1", productName: "工装模具组 (Tooling & Die Set)", bomType: "engineering", status: "approved", buCode: "industrial", productCategory: "模具", maxLevel: 3, totalMaterialCost: "85000.00", totalLaborCost: "25000.00" },
               ];
               for (const b of boms) {
-                try { await db.insert(bomMasters).values({ ...b, createdBy: ctx.user.id }); c++; } catch { /* dup */ }
+                try { await db.insert(bomMasters).values({ ...b, createdBy: ctx.user!.id }); c++; } catch { /* dup */ }
               }
               seeded.bom = c;
             }
@@ -2314,7 +2314,7 @@ const readinessRouter = router({
                 { supplierCode: "SUP-006", supplierName: "嘉实多(中国) (Castrol China)", supplierCategory: "consumable", contactPerson: "李经理", contactPhone: "13800100006", status: "active" },
               ];
               for (const s of sups) {
-                try { await db.insert(suppliers).values({ ...s, createdBy: ctx.user.id }); c++; } catch { /* dup */ }
+                try { await db.insert(suppliers).values({ ...s, createdBy: ctx.user!.id }); c++; } catch { /* dup */ }
               }
               seeded.suppliers = c;
             }
@@ -2339,7 +2339,7 @@ const readinessRouter = router({
                       poNumber: po.poNumber, supplierId: sup.id, supplierCode: sup.supplierCode, supplierName: sup.supplierName,
                       materialId: mat.id, materialCode: mat.materialCode, materialName: mat.materialName,
                       quantity: po.quantity, unitPrice: po.unitPrice, totalAmount: po.totalAmount,
-                      expectedDeliveryDate: po.expectedDeliveryDate, status: "confirmed", createdBy: ctx.user.id,
+                      expectedDeliveryDate: po.expectedDeliveryDate, status: "confirmed", createdBy: ctx.user!.id,
                     });
                     c++;
                   } catch { /* dup */ }
@@ -2361,7 +2361,7 @@ const readinessRouter = router({
                 { planCode: "CP-CLEAN-001", title: "清洁度通用控制计划 (Cleanliness General Control Plan)", phase: "production" as const, revision: 3, status: "active" as const },
               ];
               for (const cp of cps) {
-                try { await db.insert(controlPlans).values({ ...cp, createdBy: ctx.user.id }); c++; } catch { /* dup */ }
+                try { await db.insert(controlPlans).values({ ...cp, createdBy: ctx.user!.id }); c++; } catch { /* dup */ }
               }
               seeded.controlPlans = c;
             }
@@ -2389,7 +2389,7 @@ const readinessRouter = router({
                 { ecoNumber: "ECO-QUAL-003", title: "清洁度标准提升 (Cleanliness Standard Upgrade)", status: "IN_REVIEW", priority: "HIGH" },
                 { ecoNumber: "ECO-QUAL-004", title: "模具寿命优化 (Die Life Optimization)", status: "APPROVED", priority: "LOW" },
               ]) {
-                try { await db.insert(engineeringChangeOrders).values({ ...eco, requestedBy: ctx.user.id }); c++; } catch { /* dup */ }
+                try { await db.insert(engineeringChangeOrders).values({ ...eco, requestedBy: ctx.user!.id }); c++; } catch { /* dup */ }
               }
               seeded.eco = c;
             }
@@ -2437,7 +2437,7 @@ const readinessRouter = router({
                 { materialCode: "MAT-AX-012", materialName: "激光打标墨水 (Laser Marking Ink)", categoryCode: "AX", subcategoryCode: "002", materialType: "consumable", manufacturer: "大族激光", standardCost: "580.00" },
               ];
               for (const mat of SEED_MATS_ENC) {
-                try { await db.insert(materials).values({ ...mat, status: "active", isApproved: "yes", createdBy: ctx.user.id, version: 1 }); c++; } catch { /* dup */ }
+                try { await db.insert(materials).values({ ...mat, status: "active", isApproved: "yes", createdBy: ctx.user!.id, version: 1 }); c++; } catch { /* dup */ }
               }
               seeded.materials = c;
             }
@@ -2453,7 +2453,7 @@ const readinessRouter = router({
                 { docNumber: "DWG-ENC-ASM-003", title: "CVJ内星轮加工工艺图 (CVJ Process Drawing)", docType: "mechanical" as const, currentStatus: "released" as const, projectCode: "GRT-2026-003" },
                 { docNumber: "DWG-ENC-DET-002", title: "清洁度检测工装图 (Cleanliness Fixture Drawing)", docType: "mechanical" as const, currentStatus: "draft" as const, projectCode: "GRT-2026-003" },
               ]) {
-                try { await db.insert(plmDocuments).values({ ...doc, currentVersionString: "V1.0", totalVersions: 1, createdBy: ctx.user.id }); c++; } catch { /* dup */ }
+                try { await db.insert(plmDocuments).values({ ...doc, currentVersionString: "V1.0", totalVersions: 1, createdBy: ctx.user!.id }); c++; } catch { /* dup */ }
               }
               seeded.plm = c;
             }
@@ -2467,7 +2467,7 @@ const readinessRouter = router({
                 { ecoNumber: "ECO-ENC-001", title: "主轴锻造参数执行 (Shaft Forging Param Execution)", status: "COMPLETED", priority: "HIGH" },
                 { ecoNumber: "ECO-ENC-002", title: "模具SKD11→DC53材料升级 (Die Material Upgrade)", status: "APPROVED", priority: "LOW" },
               ]) {
-                try { await db.insert(engineeringChangeOrders).values({ ...eco, requestedBy: ctx.user.id }); c++; } catch { /* dup */ }
+                try { await db.insert(engineeringChangeOrders).values({ ...eco, requestedBy: ctx.user!.id }); c++; } catch { /* dup */ }
               }
               seeded.eco = c;
             }
@@ -2494,11 +2494,11 @@ const readinessRouter = router({
             if (force || okrN < 3) {
               let c = 0;
               for (const okr of [
-                { title: "2026年产值突破3亿", description: "全年产值目标3亿", level: "company", period: "2026-Q1", ownerId: String(ctx.user.id), ownerName: "CTO", status: "active", progress: 35 },
-                { title: "海外市场占比提升至30%", description: "拓展东南亚和欧洲", level: "company", period: "2026-Q1", ownerId: String(ctx.user.id), ownerName: "CTO", status: "active", progress: 20 },
-                { title: "客户满意度提升至95分", description: "数字化服务提升体验", level: "department", period: "2026-Q1", ownerId: String(ctx.user.id), ownerName: "销售部", status: "active", progress: 60 },
-                { title: "新品研发周期缩短20%", description: "应用AI辅助设计和仿真", level: "department", period: "2026-Q2", ownerId: String(ctx.user.id), ownerName: "研发部", status: "draft", progress: 0 },
-                { title: "数字化系统覆盖率达100%", description: "GRT系统全模块上线", level: "company", period: "2026-Q2", ownerId: String(ctx.user.id), ownerName: "CTO", status: "active", progress: 85 },
+                { title: "2026年产值突破3亿", description: "全年产值目标3亿", level: "company", period: "2026-Q1", ownerId: String(ctx.user!.id), ownerName: "CTO", status: "active", progress: 35 },
+                { title: "海外市场占比提升至30%", description: "拓展东南亚和欧洲", level: "company", period: "2026-Q1", ownerId: String(ctx.user!.id), ownerName: "CTO", status: "active", progress: 20 },
+                { title: "客户满意度提升至95分", description: "数字化服务提升体验", level: "department", period: "2026-Q1", ownerId: String(ctx.user!.id), ownerName: "销售部", status: "active", progress: 60 },
+                { title: "新品研发周期缩短20%", description: "应用AI辅助设计和仿真", level: "department", period: "2026-Q2", ownerId: String(ctx.user!.id), ownerName: "研发部", status: "draft", progress: 0 },
+                { title: "数字化系统覆盖率达100%", description: "GRT系统全模块上线", level: "company", period: "2026-Q2", ownerId: String(ctx.user!.id), ownerName: "CTO", status: "active", progress: 85 },
               ]) {
                 try { await db.insert(okrObjectives).values(okr); c++; } catch { /* dup */ }
               }
@@ -2520,7 +2520,7 @@ const readinessRouter = router({
                 const projectId = projMap.get(dp.projectCode);
                 if (!projectId) continue;
                 try {
-                  await db.insert(designPackages).values({ packageCode: dp.packageCode, projectId, projectNo: dp.projectCode, ursStatus: dp.ursStatus, mechanicalBomStatus: dp.mechanicalBomStatus, designReviewStatus: dp.designReviewStatus, createdBy: ctx.user.id });
+                  await db.insert(designPackages).values({ packageCode: dp.packageCode, projectId, projectNo: dp.projectCode, ursStatus: dp.ursStatus, mechanicalBomStatus: dp.mechanicalBomStatus, designReviewStatus: dp.designReviewStatus, createdBy: ctx.user!.id });
                   c++;
                 } catch { /* dup */ }
               }
@@ -2537,7 +2537,7 @@ const readinessRouter = router({
                 { projectCode: "RND-BOOST-002", name: "AGV视觉导航升级", category: "vision_ai" as const, currentStage: "evt" as const, status: "active" as const },
                 { projectCode: "RND-BOOST-003", name: "半导体晶圆传输2.0", category: "mechatronics" as const, currentStage: "concept" as const, status: "active" as const },
               ]) {
-                try { await db.insert(rndProjects).values({ ...rnd, createdBy: ctx.user.id }); c++; } catch { /* dup */ }
+                try { await db.insert(rndProjects).values({ ...rnd, createdBy: ctx.user!.id }); c++; } catch { /* dup */ }
               }
               seeded.rndProjects = c;
             }
@@ -2548,7 +2548,7 @@ const readinessRouter = router({
                 { docNumber: "DWG-RND-001", title: "RW3000概念设计图", docType: "mechanical" as const, currentStatus: "draft" as const, projectCode: "RND-BOOST-001" },
                 { docNumber: "DWG-RND-002", title: "AGV导航系统图", docType: "electrical" as const, currentStatus: "in_review" as const, projectCode: "RND-BOOST-002" },
               ]) {
-                try { await db.insert(plmDocuments).values({ ...doc, currentVersionString: "V0.1", totalVersions: 1, createdBy: ctx.user.id }); c++; } catch { /* dup */ }
+                try { await db.insert(plmDocuments).values({ ...doc, currentVersionString: "V0.1", totalVersions: 1, createdBy: ctx.user!.id }); c++; } catch { /* dup */ }
               }
               seeded.plm = c;
             }
@@ -2565,7 +2565,7 @@ const readinessRouter = router({
                 const projectId = projMap.get(dp.projectCode);
                 if (!projectId) continue;
                 try {
-                  await db.insert(designPackages).values({ packageCode: dp.packageCode, projectId, projectNo: dp.projectCode, ursStatus: dp.ursStatus, mechanicalBomStatus: dp.mechanicalBomStatus, designReviewStatus: dp.designReviewStatus, createdBy: ctx.user.id });
+                  await db.insert(designPackages).values({ packageCode: dp.packageCode, projectId, projectNo: dp.projectCode, ursStatus: dp.ursStatus, mechanicalBomStatus: dp.mechanicalBomStatus, designReviewStatus: dp.designReviewStatus, createdBy: ctx.user!.id });
                   c++;
                 } catch { /* dup */ }
               }
@@ -2577,7 +2577,7 @@ const readinessRouter = router({
               let c = 0;
               for (const rp of rndProjList.slice(0, 3)) {
                 try {
-                  await db.insert(rndSandboxBoms).values({ rndProjectId: rp.id, bomCode: `SBOM-BOOST-${rp.projectCode}`, versionLabel: "v0.1", status: "draft", totalComponents: 15 + Math.round(Math.random() * 20), createdBy: ctx.user.id });
+                  await db.insert(rndSandboxBoms).values({ rndProjectId: rp.id, bomCode: `SBOM-BOOST-${rp.projectCode}`, versionLabel: "v0.1", status: "draft", totalComponents: 15 + Math.round(Math.random() * 20), createdBy: ctx.user!.id });
                   c++;
                 } catch { /* dup */ }
               }
@@ -2601,7 +2601,7 @@ const readinessRouter = router({
                 { templateCode: "APR-ECO", templateName: "工程变更审批", businessType: "engineering", description: "ECR/ECO变更审批", steps: defaultSteps },
                 { templateCode: "APR-WORKORDER", templateName: "工单签发审批", businessType: "manufacturing", description: "生产工单签发审批流程", steps: [...defaultSteps, { stepNumber: 3, stepName: "生产总监审批", approverRole: "production_director", approverType: "role" }] },
               ]) {
-                try { await db.insert(approvalTemplates).values({ ...tpl, isActive: true, createdBy: ctx.user.id }); c++; } catch { /* dup */ }
+                try { await db.insert(approvalTemplates).values({ ...tpl, isActive: true, createdBy: ctx.user!.id }); c++; } catch { /* dup */ }
               }
               seeded.approvalTemplates = c;
             }
@@ -2625,7 +2625,7 @@ const readinessRouter = router({
                     await db.insert(approvalInstances).values({
                       instanceCode: inst.instanceCode, templateId: tpl.id, templateCode: tpl.templateCode,
                       businessType: tpl.businessType, businessId: inst.businessId, businessTable: inst.businessTable,
-                      businessTitle: inst.businessTitle, applicantId: ctx.user.id, applicantName: "系统管理员",
+                      businessTitle: inst.businessTitle, applicantId: ctx.user!.id, applicantName: "系统管理员",
                       summary: inst.summary, amount: (inst as any).amount, status: inst.status,
                       totalSteps: 2, currentStep: inst.status === "approved" ? 2 : 1,
                     });
@@ -2983,7 +2983,7 @@ const salaryImportRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      log.info({ count: input.employees.length, userId: ctx.user.id }, "Starting salary import");
+      log.info({ count: input.employees.length, userId: ctx.user!.id }, "Starting salary import");
 
       const result = await batchSalarySimulation({
         employees: input.employees,
@@ -3004,7 +3004,7 @@ const salaryImportRouter = router({
           status: result.failureCount === 0 ? "completed" : "partial",
           importedData: JSON.stringify(result.calculations.filter((c) => c.status === "success").map((c) => c.employeeId)),
           errorLog: result.failureCount > 0 ? JSON.stringify(result.calculations.filter((c) => c.status === "failed")) : null,
-          createdById: ctx.user.id,
+          createdById: ctx.user!.id,
         });
       } catch (err) {
         log.warn({ err }, "Failed to record import history");
@@ -3129,7 +3129,7 @@ const encodingRouter = router({
 const simulationRouter = router({
   runLegionSimulation: requirePermission("system:config:manage")
     .mutation(async ({ ctx }) => {
-      log.info({ userId: ctx.user.id }, "Running legion simulation");
+      log.info({ userId: ctx.user!.id }, "Running legion simulation");
 
       let mappings: Awaited<ReturnType<typeof getEmployeeSkillMappings>> = [];
       try {
@@ -3177,7 +3177,7 @@ const simulationRouter = router({
           failedCount: 0,
           status: "completed",
           importedData: JSON.stringify({ levelDistribution, projectedGTokens, machineCapacity, avgSkill }),
-          createdById: ctx.user.id,
+          createdById: ctx.user!.id,
         });
       } catch (err) {
         log.warn({ err }, "Failed to record simulation result");
@@ -3314,9 +3314,9 @@ const scenarioRouter = router({
       const db = await requireDb();
       const [row] = await db.insert(sandboxScenarios).values({
         ...input,
-        createdById: ctx.user.id,
+        createdById: ctx.user!.id,
       }).returning();
-      log.info({ scenarioId: row.id, userId: ctx.user.id }, "Sandbox scenario created");
+      log.info({ scenarioId: row.id, userId: ctx.user!.id }, "Sandbox scenario created");
       return row;
     }),
 
@@ -3346,7 +3346,7 @@ const scenarioRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [row] = await db.update(sandboxScenarios).set({ status: input.status, updatedAt: new Date() }).where(eq(sandboxScenarios.id, input.id)).returning();
-      log.info({ scenarioId: input.id, status: input.status, userId: ctx.user.id }, "Scenario status updated");
+      log.info({ scenarioId: input.id, status: input.status, userId: ctx.user!.id }, "Scenario status updated");
       return row;
     }),
 
@@ -3361,7 +3361,7 @@ const scenarioRouter = router({
       const db = await requireDb();
       const [row] = await db.insert(sandboxKnowledgeLinks).values({
         ...input,
-        addedById: ctx.user.id,
+        addedById: ctx.user!.id,
       }).returning();
       return row;
     }),
@@ -3379,7 +3379,7 @@ const scenarioRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
       const [row] = await db.update(sandboxScenarios).set({ status: "archived", updatedAt: new Date() }).where(eq(sandboxScenarios.id, input.id)).returning();
-      log.info({ scenarioId: input.id, userId: ctx.user.id }, "Scenario archived");
+      log.info({ scenarioId: input.id, userId: ctx.user!.id }, "Scenario archived");
       return row;
     }),
 });
@@ -3417,7 +3417,7 @@ const sandboxRunRouter = router({
       const db = await requireDb();
       const [scenario] = await db.select().from(sandboxScenarios).where(eq(sandboxScenarios.id, input.scenarioId)).limit(1);
       if (!scenario) throw new Error("Scenario not found");
-      return generateProposal(scenario, ctx.user.id);
+      return generateProposal(scenario, ctx.user!.id);
     }),
 
   executeImplementation: requirePermission("goLive:sandbox:execute")
@@ -3439,7 +3439,7 @@ const sandboxRunRouter = router({
         throw new Error("Valid completed proposal run required");
       }
 
-      return executeImplementation(scenario, proposalRun.aiOutput as any, ctx.user.id, input.proposalRunId);
+      return executeImplementation(scenario, proposalRun.aiOutput as any, ctx.user!.id, input.proposalRunId);
     }),
 
   runRedTeamReview: requirePermission("goLive:sandbox:execute")
@@ -3457,7 +3457,7 @@ const sandboxRunRouter = router({
       const [implRun] = await db.select().from(sandboxRuns).where(eq(sandboxRuns.id, input.implementationRunId)).limit(1);
       if (!proposalRun?.aiOutput || !implRun?.aiOutput) throw new Error("Both proposal and implementation runs required");
 
-      return runRedTeamReview(scenario, proposalRun.aiOutput as any, implRun.aiOutput as any, ctx.user.id, input.implementationRunId);
+      return runRedTeamReview(scenario, proposalRun.aiOutput as any, implRun.aiOutput as any, ctx.user!.id, input.implementationRunId);
     }),
 
   runDryRun: requirePermission("goLive:sandbox:execute")
@@ -3498,7 +3498,7 @@ const sandboxRunRouter = router({
         aiOutput: dryRunOutput,
         status: "completed",
         durationMs: 0,
-        triggeredById: ctx.user.id,
+        triggeredById: ctx.user!.id,
       }).returning();
 
       return { runId: row.id, dryRun: dryRunOutput };
@@ -3552,7 +3552,7 @@ const gateRouter = router({
         created.push(row);
       }
 
-      log.info({ scenarioId: input.scenarioId, gates: created.length, userId: ctx.user.id }, "Release gates initialized");
+      log.info({ scenarioId: input.scenarioId, gates: created.length, userId: ctx.user!.id }, "Release gates initialized");
       return created;
     }),
 
@@ -3586,14 +3586,14 @@ const gateRouter = router({
 
       const [row] = await db.update(releaseGates).set({
         status: input.status,
-        reviewerId: ctx.user.id,
+        reviewerId: ctx.user!.id,
         reviewComment: input.comment,
         checklist: input.checklist,
         passedAt: input.status === "passed" ? new Date() : null,
         updatedAt: new Date(),
       }).where(eq(releaseGates.id, input.gateId)).returning();
 
-      log.info({ gateId: input.gateId, status: input.status, userId: ctx.user.id }, "Gate reviewed");
+      log.info({ gateId: input.gateId, status: input.status, userId: ctx.user!.id }, "Gate reviewed");
       return row;
     }),
 
@@ -3606,13 +3606,13 @@ const gateRouter = router({
       const db = await requireDb();
       const [row] = await db.update(releaseGates).set({
         status: "overridden",
-        reviewerId: ctx.user.id,
+        reviewerId: ctx.user!.id,
         reviewComment: `[OVERRIDE] ${input.comment}`,
         passedAt: new Date(),
         updatedAt: new Date(),
       }).where(eq(releaseGates.id, input.gateId)).returning();
 
-      log.info({ gateId: input.gateId, userId: ctx.user.id }, "Gate overridden by admin");
+      log.info({ gateId: input.gateId, userId: ctx.user!.id }, "Gate overridden by admin");
       return row;
     }),
 

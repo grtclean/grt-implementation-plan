@@ -78,10 +78,10 @@ export default function CcdIntegration() {
       bridgeConfigsQuery.refetch();
       setShowConfigDialog(false);
     },
-    onError: (err) => toast({ title: t("manufacturing.ccd.error"), description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast({ title: t("manufacturing.ccd.error"), description: err.message, variant: "destructive" }),
   });
   const submitResultMutation = (trpc.ccdIntegration as any).submitInspectionResult.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       const msg = data.interlockTriggered
         ? `${t("manufacturing.ccd.interlockMsg")}${data.lockedProcesses?.join(', ')}`
         : t("manufacturing.ccd.noInterlockMsg");
@@ -90,14 +90,14 @@ export default function CcdIntegration() {
       statsQuery.refetch();
       setShowSubmitDialog(false);
     },
-    onError: (err) => toast({ title: t("manufacturing.ccd.error"), description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast({ title: t("manufacturing.ccd.error"), description: err.message, variant: "destructive" }),
   });
   const toggleConfigMutation = (trpc.ccdIntegration as any).toggleBridgeConfig.useMutation({
     onSuccess: () => {
       toast({ title: t("manufacturing.ccd.success"), description: t("manufacturing.ccd.configUpdated") });
       bridgeConfigsQuery.refetch();
     },
-    onError: (err) => toast({ title: t("manufacturing.ccd.error"), description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast({ title: t("manufacturing.ccd.error"), description: err.message, variant: "destructive" }),
   });
 
   const configs = (bridgeConfigsQuery.data ?? []) as any[];

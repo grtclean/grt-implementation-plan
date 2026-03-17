@@ -596,7 +596,7 @@ const paymentRouter = router({
       const now = new Date().toISOString();
       const [item] = await db.update(paymentWorkflows)
         .set({
-          buApprovedBy: ctx.user.id,
+          buApprovedBy: ctx.user!.id,
           buApprovedAt: now,
           currentStep: "quality_prod_approval",
           updatedAt: now,
@@ -615,7 +615,7 @@ const paymentRouter = router({
       const now = new Date().toISOString();
       const [item] = await db.update(paymentWorkflows)
         .set({
-          qualityApprovedBy: ctx.user.id,
+          qualityApprovedBy: ctx.user!.id,
           qualityApprovedAt: now,
           currentStep: "payment_approved",
           updatedAt: now,
@@ -634,7 +634,7 @@ const paymentRouter = router({
       const now = new Date().toISOString();
       const [item] = await db.update(paymentWorkflows)
         .set({
-          paymentApprovedBy: ctx.user.id,
+          paymentApprovedBy: ctx.user!.id,
           paymentApprovedAt: now,
           currentStep: "procurement_confirmed",
           updatedAt: now,
@@ -656,7 +656,7 @@ const paymentRouter = router({
       const net = Number(wf?.paymentAmount || 0) - Number(wf?.qualityDeductionAmount || 0);
       const [item] = await db.update(paymentWorkflows)
         .set({
-          procurementConfirmedBy: ctx.user.id,
+          procurementConfirmedBy: ctx.user!.id,
           procurementConfirmedAt: now,
           netPaymentAmount: net.toFixed(2),
           currentStep: "supplier_confirmed",

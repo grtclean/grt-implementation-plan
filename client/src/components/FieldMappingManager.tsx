@@ -121,7 +121,7 @@ export default function FieldMappingManager({
       toast.success("已设为默认配置");
       refetch();
     },
-    onError: (err) => {
+    onError: (err: any) => {
       toast.error("设置失败: " + err.message);
     },
   });
@@ -132,7 +132,7 @@ export default function FieldMappingManager({
       toast.success("配置已复制");
       refetch();
     },
-    onError: (err) => {
+    onError: (err: any) => {
       toast.error("复制失败: " + err.message);
     },
   });
@@ -300,7 +300,7 @@ export default function FieldMappingManager({
                           <div className="mt-4 pt-4 border-t">
                             <div className="text-sm font-medium mb-2">映射详情</div>
                             <div className="space-y-1">
-                              {config.mappings.slice(0, 5).map((mapping, index) => (
+                              {config.mappings.slice(0, 5).map((mapping: any, index: any) => (
                                 <div
                                   key={index}
                                   className="flex items-center gap-2 text-sm"
@@ -310,7 +310,7 @@ export default function FieldMappingManager({
                                   </span>
                                   <ArrowRight className="w-3 h-3" />
                                   <span className="font-medium">
-                                    {targetFields?.find(f => f.field === mapping.targetField)?.label || mapping.targetField}
+                                    {targetFields?.find((f: any) => f.field === mapping.targetField)?.label || mapping.targetField}
                                   </span>
                                   {mapping.required && (
                                     <Badge variant="outline" className="text-xs">
@@ -379,7 +379,7 @@ export default function FieldMappingManager({
                               </span>
                               <ArrowRight className="w-3 h-3" />
                               <span className="font-medium">
-                                {targetFields?.find(f => f.field === mapping.targetField)?.label || mapping.targetField}
+                                {targetFields?.find((f: any) => f.field === mapping.targetField)?.label || mapping.targetField}
                               </span>
                             </div>
                           ))}

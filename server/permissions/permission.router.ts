@@ -29,7 +29,7 @@ export const permissionRouter = router({
    * 获取当前用户的权限列表
    */
   getMyPermissions: protectedProcedure.query(({ ctx }) => {
-    const userRole = (ctx.user.role || 'user') as UserRole;
+    const userRole = (ctx.user!.role || 'user') as UserRole;
     return {
       role: userRole,
       permissions: getUserPermissions(userRole),
@@ -44,7 +44,7 @@ export const permissionRouter = router({
       permission: z.string(),
     }))
     .query(({ ctx, input }) => {
-      const userRole = (ctx.user.role || 'user') as UserRole;
+      const userRole = (ctx.user!.role || 'user') as UserRole;
       return {
         hasPermission: hasPermission(userRole, input.permission as Permission),
       };
@@ -58,7 +58,7 @@ export const permissionRouter = router({
       pagePath: z.string(),
     }))
     .query(({ ctx, input }) => {
-      const userRole = (ctx.user.role || 'user') as UserRole;
+      const userRole = (ctx.user!.role || 'user') as UserRole;
       const pageConfig = HUB_PAGE_PERMISSIONS[input.pagePath];
       
       return {
@@ -96,7 +96,7 @@ export const permissionRouter = router({
    * 获取可访问的菜单项
    */
   getAccessibleMenuItems: protectedProcedure.query(({ ctx }) => {
-    const userRole = (ctx.user.role || 'user') as UserRole;
+    const userRole = (ctx.user!.role || 'user') as UserRole;
     
     const accessiblePages = Object.entries(HUB_PAGE_PERMISSIONS)
       .filter(([path]) => canAccessPage(userRole, path))
@@ -119,7 +119,7 @@ export const permissionRouter = router({
       requiredRole: z.enum(['admin', 'manager', 'user', 'viewer']),
     }))
     .query(({ ctx, input }) => {
-      const userRole = (ctx.user.role || 'user') as UserRole;
+      const userRole = (ctx.user!.role || 'user') as UserRole;
       return {
         hasRequiredRole: isRoleAtLeast(userRole, input.requiredRole),
         currentRole: userRole,

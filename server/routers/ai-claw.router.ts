@@ -102,9 +102,9 @@ const registryRouter = router({
       const db = await requireDb();
       const [row] = await db.insert(aiToolsRegistry).values({
         ...input,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
       }).returning();
-      log.info({ toolCode: input.toolCode, userId: ctx.user.id }, "Tool registered");
+      log.info({ toolCode: input.toolCode, userId: ctx.user!.id }, "Tool registered");
       return row;
     }),
 
@@ -192,7 +192,7 @@ const accessRouter = router({
       const db = await requireDb();
       const [row] = await db
         .insert(roleToolMappings)
-        .values({ ...input, grantedBy: ctx.user.id })
+        .values({ ...input, grantedBy: ctx.user!.id })
         .returning();
       return row;
     }),
@@ -239,18 +239,18 @@ const executionRouter = router({
       }
 
       // 2. Check role-tool access
-      const access = await checkRoleToolAccess(ctx.user.role ?? "employee", tool.id);
+      const access = await checkRoleToolAccess(ctx.user!.role ?? "employee", tool.id);
       if (!access.canExecute) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: `Role '${ctx.user.role}' does not have execute access to tool '${input.toolCode}'`,
+          message: `Role '${ctx.user!.role}' does not have execute access to tool '${input.toolCode}'`,
         });
       }
 
       // 3. Audit
       logClawAudit({
-        userId: ctx.user.id,
-        userName: ctx.user.name ?? "unknown",
+        userId: ctx.user!.id,
+        userName: ctx.user!.name ?? "unknown",
         toolCode: input.toolCode,
         action: "CREATE",
         metadata: { params },
@@ -261,13 +261,13 @@ const executionRouter = router({
         toolCode: input.toolCode,
         toolId: tool.id,
         inputParams: params,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
         requiresApproval: tool.requiresApproval ?? false,
       });
 
       // 5. Fire worker (if no approval needed)
       if (!tool.requiresApproval) {
-        triggerClawWorker(taskId, tool, input.params, ctx.user.id).catch((err) => {
+        triggerClawWorker(taskId, tool, input.params!, ctx.user!.id).catch((err) => {
           log.error({ err, taskId }, "Worker fire-and-forget error");
         });
       }
@@ -318,15 +318,15 @@ const executionRouter = router({
       await db.update(aiTasks).set({ status: "pending" }).where(eq(aiTasks.id, input.taskId));
 
       logClawAudit({
-        userId: ctx.user.id,
-        userName: ctx.user.name ?? "unknown",
+        userId: ctx.user!.id,
+        userName: ctx.user!.name ?? "unknown",
         toolCode,
         action: "APPROVE",
         taskId: input.taskId,
       });
 
       const params = (inputData?.params as Record<string, unknown>) ?? {};
-      triggerClawWorker(input.taskId, tool, params, ctx.user.id).catch((err) => {
+      triggerClawWorker(input.taskId, tool, params, ctx.user!.id).catch((err) => {
         log.error({ err, taskId: input.taskId }, "Worker fire-and-forget error after approval");
       });
 
@@ -362,8 +362,8 @@ const executionRouter = router({
       }).where(eq(aiTasks.id, input.taskId));
 
       logClawAudit({
-        userId: ctx.user.id,
-        userName: ctx.user.name ?? "unknown",
+        userId: ctx.user!.id,
+        userName: ctx.user!.name ?? "unknown",
         toolCode,
         action: "REJECT",
         taskId: input.taskId,

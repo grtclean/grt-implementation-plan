@@ -91,8 +91,8 @@ export const testEngineRouter = router({
       tags: input.tags,
       estimatedTotalHours: input.estimatedTotalHours,
       passingScorePercent: input.passingScorePercent,
-      createdBy: ctx.user.id,
-      updatedBy: ctx.user.id,
+      createdBy: ctx.user!.id,
+      updatedBy: ctx.user!.id,
     }).returning();
     return created;
   }),
@@ -112,7 +112,7 @@ export const testEngineRouter = router({
     const db = await requireDb();
     const { id, ...data } = input;
     const [updated] = await db.update(testTemplates)
-      .set({ ...data, updatedBy: ctx.user.id, updatedAt: new Date().toISOString() })
+      .set({ ...data, updatedBy: ctx.user!.id, updatedAt: new Date().toISOString() })
       .where(eq(testTemplates.id, toNum(id)))
       .returning();
     return updated;
@@ -141,8 +141,8 @@ export const testEngineRouter = router({
       tags: source.tags,
       estimatedTotalHours: source.estimatedTotalHours,
       passingScorePercent: source.passingScorePercent,
-      createdBy: ctx.user.id,
-      updatedBy: ctx.user.id,
+      createdBy: ctx.user!.id,
+      updatedBy: ctx.user!.id,
     }).returning();
 
     const cases = await db.select().from(testCases)
@@ -335,7 +335,7 @@ export const testEngineRouter = router({
       teamUserIds: input.teamUserIds,
       totalCases: cases.length,
       notes: input.notes,
-      createdBy: ctx.user.id,
+      createdBy: ctx.user!.id,
     }).returning();
 
     // Pre-create result entries for all active cases
@@ -423,7 +423,7 @@ export const testEngineRouter = router({
       const [updated] = await db.update(testResults)
         .set({
           status: input.status,
-          executedBy: ctx.user.id,
+          executedBy: ctx.user!.id,
           executedAt: new Date().toISOString(),
           actualHours: input.actualHours,
           bugSeverity: input.bugSeverity,
@@ -442,7 +442,7 @@ export const testEngineRouter = router({
         executionId,
         testCaseId,
         status: input.status,
-        executedBy: ctx.user.id,
+        executedBy: ctx.user!.id,
         executedAt: new Date().toISOString(),
         actualHours: input.actualHours,
         bugSeverity: input.bugSeverity,
@@ -475,7 +475,7 @@ export const testEngineRouter = router({
     const resultId = toNum(id);
 
     const [updated] = await db.update(testResults)
-      .set({ ...data, executedBy: ctx.user.id, updatedAt: new Date().toISOString() })
+      .set({ ...data, executedBy: ctx.user!.id, updatedAt: new Date().toISOString() })
       .where(eq(testResults.id, resultId))
       .returning();
 
@@ -534,7 +534,7 @@ export const testEngineRouter = router({
       confidenceScore: input.confidenceScore,
       userAccepted: input.userAccepted,
       userModifications: input.userModifications,
-      generatedBy: ctx.user.id,
+      generatedBy: ctx.user!.id,
     }).returning();
     return created;
   }),

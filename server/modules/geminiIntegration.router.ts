@@ -32,8 +32,8 @@ export const liquidWorkforceRouter = router({
           SELECT COUNT(*) as total FROM grt_skill_capsules ${whereClause}
         `);
         return {
-          items: result[0] as any[],
-          total: (countResult[0] as any[])[0]?.total || 0
+          items: (result as any)[0] as Record<string, unknown>[],
+          total: ((countResult as any)[0] as Record<string, unknown>[])[0]?.total || 0
         };
       }),
 
@@ -83,7 +83,7 @@ export const liquidWorkforceRouter = router({
           SELECT * FROM grt_task_bids ${whereClause}
           ORDER BY ai_judge_score DESC, bid_price ASC
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       }),
 
     submit: requirePermission('devops:gemini:view')
@@ -128,7 +128,7 @@ export const liquidWorkforceRouter = router({
           SELECT * FROM grt_smart_contracts ${whereClause}
           ORDER BY created_at DESC
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       }),
 
     create: requirePermission('devops:gemini:view')
@@ -180,7 +180,7 @@ export const autonomousSalesRouter = router({
           SELECT * FROM grt_negotiation_sessions ${whereClause}
           ORDER BY updated_at DESC
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       }),
 
     create: requirePermission('devops:gemini:view')
@@ -258,7 +258,7 @@ export const autonomousSalesRouter = router({
           SELECT * FROM grt_zkp_registry ${whereClause}
           ORDER BY created_at DESC
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       }),
 
     register: requirePermission('devops:gemini:view')
@@ -309,7 +309,7 @@ export const stageGateRouter = router({
           WHERE ${sql.join(whereConditions, sql` AND `)}
           ORDER BY gate_stage, is_mandatory DESC
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       }),
 
     create: requirePermission('devops:gemini:view')
@@ -334,7 +334,7 @@ export const stageGateRouter = router({
         status: z.enum(['pending', 'pass', 'fail']),
       }))
       .mutation(async ({ input, ctx }) => {
-        const verifiedBy = ctx.user.name ?? `User#${ctx.user.id}`;
+        const verifiedBy = ctx.user!.name ?? `User#${ctx.user!.id}`;
         await (await requireDb()).execute(sql`
           UPDATE grt_gate_checklists
           SET status = ${input.status}, verified_by = ${verifiedBy}, verified_at = NOW()
@@ -357,7 +357,7 @@ export const stageGateRouter = router({
           FROM grt_gate_checklists 
           WHERE project_id = ${input.projectId} AND gate_stage = ${input.gateStage}
         `);
-        const stats = (result[0] as any[])[0];
+        const stats = ((result as any)[0] as Record<string, unknown>[])[0];
         return {
           total: stats.total || 0,
           passed: stats.passed || 0,
@@ -387,7 +387,7 @@ export const stageGateRouter = router({
           SELECT * FROM grt_production_pull_signals ${whereClause}
           ORDER BY created_at DESC
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       }),
 
     create: requirePermission('devops:gemini:view')
@@ -473,7 +473,7 @@ export const personalAgentRouter = router({
           ORDER BY timestamp DESC
           LIMIT 100
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       }),
 
     getSkillInference: protectedProcedure
@@ -487,7 +487,7 @@ export const personalAgentRouter = router({
           ORDER BY count DESC
           LIMIT 10
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       })
   }),
 
@@ -511,7 +511,7 @@ export const personalAgentRouter = router({
           SELECT * FROM grt_process_notes ${whereClause}
           ORDER BY created_at DESC
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       }),
 
     create: requirePermission('devops:gemini:view')
@@ -529,7 +529,7 @@ export const personalAgentRouter = router({
           category: 'technical',
           confidence: 0.85
         };
-        const createdBy = ctx.user.name ?? `User#${ctx.user.id}`;
+        const createdBy = ctx.user!.name ?? `User#${ctx.user!.id}`;
 
         await (await requireDb()).execute(sql`
           INSERT INTO grt_process_notes (note_id, project_id, project_phase, problem_desc, solution_desc, ai_extracted_knowledge, created_by)
@@ -547,7 +547,7 @@ export const personalAgentRouter = router({
           ORDER BY created_at DESC
           LIMIT 20
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       })
   })
 });
@@ -576,14 +576,14 @@ export const coreBusinessRouter = router({
           SELECT * FROM grt_projects ${whereClause}
           ORDER BY updated_at DESC
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       }),
 
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         const result = await (await requireDb()).execute(sql`SELECT * FROM grt_projects WHERE id = ${input.id}`);
-        return (result[0] as any[])[0] || null;
+        return ((result as any)[0] as Record<string, unknown>[])[0] || null;
       }),
 
     create: protectedProcedure
@@ -623,7 +623,7 @@ export const coreBusinessRouter = router({
       .input(z.object({ projectId: z.number() }))
       .query(async ({ input }) => {
         const result = await (await requireDb()).execute(sql`SELECT * FROM grt_project_requirements WHERE project_id = ${input.projectId}`);
-        return (result[0] as any[])[0] || null;
+        return ((result as any)[0] as Record<string, unknown>[])[0] || null;
       }),
 
     upsert: protectedProcedure
@@ -643,7 +643,7 @@ export const coreBusinessRouter = router({
         // 检查是否存在
         const existing = await (await requireDb()).execute(sql`SELECT id FROM grt_project_requirements WHERE project_id = ${input.projectId}`);
         
-        if ((existing[0] as any[]).length > 0) {
+        if (((existing as any)[0] as Record<string, unknown>[]).length > 0) {
           await (await requireDb()).execute(sql`
             UPDATE grt_project_requirements SET
               part_material = ${input.partMaterial || null},
@@ -685,7 +685,7 @@ export const coreBusinessRouter = router({
           WHERE ${sql.join(whereConditions, sql` AND `)}
           ORDER BY phase, type
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       }),
 
     create: requirePermission('devops:gemini:view')
@@ -708,7 +708,7 @@ export const coreBusinessRouter = router({
         deliverableId: z.number(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const approvedBy = ctx.user.name ?? `User#${ctx.user.id}`;
+        const approvedBy = ctx.user!.name ?? `User#${ctx.user!.id}`;
         await (await requireDb()).execute(sql`
           UPDATE grt_project_deliverables
           SET status = 'approved', approved_by = ${approvedBy}, approved_at = NOW()
@@ -734,7 +734,7 @@ export const coreBusinessRouter = router({
           WHERE ${sql.join(whereConditions, sql` AND `)}
           ORDER BY timestamp DESC
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       }),
 
     record: requirePermission('devops:gemini:view')
@@ -784,7 +784,7 @@ export const socialCommunityRouter = router({
           ORDER BY created_at DESC
           LIMIT ${input.pageSize} OFFSET ${offset}
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       }),
 
     ingest: protectedProcedure
@@ -836,7 +836,7 @@ export const socialCommunityRouter = router({
         approvedReply: z.string(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const approvedBy = ctx.user.name ?? `User#${ctx.user.id}`;
+        const approvedBy = ctx.user!.name ?? `User#${ctx.user!.id}`;
         await (await requireDb()).execute(sql`
           UPDATE grt_social_messages
           SET approved_reply = ${input.approvedReply}, reply_status = 'approved', approved_by = ${approvedBy}, approved_at = NOW()
@@ -873,7 +873,7 @@ export const socialCommunityRouter = router({
           ${whereClause}
           ORDER BY q.created_at DESC
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       }),
 
     review: requirePermission('devops:gemini:view')
@@ -884,7 +884,7 @@ export const socialCommunityRouter = router({
         reviewNotes: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const reviewerId = String(ctx.user.id);
+        const reviewerId = String(ctx.user!.id);
         await (await requireDb()).execute(sql`
           UPDATE grt_social_reply_queue
           SET review_status = ${input.reviewStatus}, final_reply = ${input.finalReply || null}, review_notes = ${input.reviewNotes || null}, reviewer_id = ${reviewerId}, reviewed_at = NOW()
@@ -902,7 +902,7 @@ export const erpConnectionRouter = router({
   connections: router({
     list: protectedProcedure.query(async () => {
       const result = await (await requireDb()).execute(sql`SELECT * FROM grt_erp_connections ORDER BY created_at DESC`);
-      return result[0] as any[];
+      return (result as any)[0] as Record<string, unknown>[];
     }),
 
     create: requirePermission('devops:gemini:view')
@@ -1009,7 +1009,7 @@ export const erpConnectionRouter = router({
           ORDER BY started_at DESC
           LIMIT 50
         `);
-        return result[0] as any[];
+        return (result as any)[0] as Record<string, unknown>[];
       })
   })
 });

@@ -1,7 +1,7 @@
 /**
  * 会议任务闭环管理服务
  * Meeting Task Loop Management Service
- * 
+ *
  * 实现完整的会议→纪要→任务→执行→上报→归档闭环
  */
 
@@ -18,6 +18,66 @@ const log = createChildLogger("meeting-task-loop");
 // ============================================================================
 // 类型定义
 // ============================================================================
+
+/** Generic row returned from raw SQL execute */
+type DbRow = Record<string, unknown>;
+
+/** SQL parameter value */
+type SqlParam = string | number | boolean | null | undefined;
+
+/** Raw-SQL executor interface (mysql2-compatible .execute) exposed by the underlying connection */
+interface RawExecutor {
+  execute(sql: string, params?: SqlParam[]): Promise<[DbRow[], unknown]>;
+}
+
+/** Agenda item in meeting data */
+interface AgendaItem {
+  title: string;
+  [key: string]: unknown;
+}
+
+/** AI prompt configuration */
+interface AiPromptConfig {
+  summary?: string;
+  [key: string]: unknown;
+}
+
+/** Template output definition */
+interface TemplateOutput {
+  type: string;
+  label?: string;
+  [key: string]: unknown;
+}
+
+/** Custom template shape returned by getCustomTemplates */
+interface CustomTemplateResult {
+  id: string;
+  name: string;
+  nameEn: string | null;
+  description: string | null;
+  category: string;
+  subcategory: string | null;
+  createdBy: string;
+  createdByName: string | null;
+  visibility: string;
+  icon: string;
+  color: string;
+  defaultDuration: number;
+  agenda: unknown[];
+  participants: Record<string, unknown>;
+  outputs: unknown[];
+  bestPractices: string[];
+  followUpActions: string[];
+  aiPrompts: Record<string, unknown>;
+  usageCount: number;
+  basedOnTemplateId: string | null;
+  createdAt: string;
+}
+
+/** Helper: get the DB connection cast to raw executor interface */
+async function rawDb(): Promise<RawExecutor> {
+  return (await requireDb()) as unknown as RawExecutor;
+}
 
 export interface MeetingMinutes {
   id: string;
@@ -134,7 +194,7 @@ export async function generateMeetingMinutes(
   meetingData: {
     title: string;
     templateId?: string;
-    agenda?: any[];
+    agenda?: AgendaItem[];
     participants?: string[];
     notes?: string;
     transcription?: string;
@@ -148,7 +208,7 @@ export async function generateMeetingMinutes(
 
   // 构建AI提示词
   const systemPrompt = template?.aiPrompts?.summary || `你是一个专业的会议纪要生成助手。请根据提供的会议信息生成结构化的会议纪要。`;
-  
+
   const userPrompt = `
 请为以下会议生成专业的会议纪要：
 
@@ -248,7 +308,7 @@ ${meetingData.transcription ? `会议转写：\n${meetingData.transcription}` : 
     };
 
     // 保存到数据库
-    await (await requireDb() as any).execute(
+    await (await rawDb()).execute(
       `INSERT INTO meeting_minutes_v2 (id, meeting_id, title, summary, key_decisions, discussion_points, ai_generated, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -273,7 +333,7 @@ ${meetingData.transcription ? `会议转写：\n${meetingData.transcription}` : 
           description: item.description,
           ownerName: item.ownerName,
           dueDate: item.dueDate,
-          priority: item.priority as any
+          priority: item.priority as ActionItem['priority']
         });
       }
     }
@@ -318,8 +378,8 @@ export async function createActionItem(data: {
     progressPercent: 0
   };
 
-  await (await requireDb() as any).execute(
-    `INSERT INTO meeting_action_items 
+  await (await rawDb()).execute(
+    `INSERT INTO meeting_action_items
      (id, meeting_id, minutes_id, title, description, priority, owner_id, owner_name, supporter_ids, supporter_names, due_date, status, progress_percent)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
@@ -350,11 +410,11 @@ export async function distributeActionItems(
 
   for (const actionItemId of actionItemIds) {
     // 获取任务详情
-    const [rows] = await (await requireDb() as any).execute(
+    const [rows] = await (await rawDb()).execute(
       `SELECT * FROM meeting_action_items WHERE id = ?`,
       [actionItemId]
-    ) as any;
-    
+    );
+
     if (!rows.length) continue;
     const actionItem = rows[0];
 
@@ -362,13 +422,13 @@ export async function distributeActionItems(
     const ownerAssignment: TaskAssignment = {
       id: uuidv4(),
       actionItemId,
-      assigneeId: actionItem.owner_id,
-      assigneeName: actionItem.owner_name,
+      assigneeId: actionItem.owner_id as string,
+      assigneeName: actionItem.owner_name as string,
       assigneeRole: 'owner',
       assignmentStatus: 'pending'
     };
 
-    await (await requireDb() as any).execute(
+    await (await rawDb()).execute(
       `INSERT INTO task_assignments (id, action_item_id, assignee_id, assignee_name, assignee_role, assignment_status)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [ownerAssignment.id, ownerAssignment.actionItemId, ownerAssignment.assigneeId, ownerAssignment.assigneeName, ownerAssignment.assigneeRole, ownerAssignment.assignmentStatus]
@@ -376,9 +436,9 @@ export async function distributeActionItems(
     assignments.push(ownerAssignment);
 
     // 为支持人创建分发记录
-    const supporterIds = JSON.parse(actionItem.supporter_ids || '[]');
-    const supporterNames = JSON.parse(actionItem.supporter_names || '[]');
-    
+    const supporterIds = JSON.parse((actionItem.supporter_ids as string) || '[]') as string[];
+    const supporterNames = JSON.parse((actionItem.supporter_names as string) || '[]') as string[];
+
     for (let i = 0; i < supporterIds.length; i++) {
       const supporterAssignment: TaskAssignment = {
         id: uuidv4(),
@@ -389,7 +449,7 @@ export async function distributeActionItems(
         assignmentStatus: 'pending'
       };
 
-      await (await requireDb() as any).execute(
+      await (await rawDb()).execute(
         `INSERT INTO task_assignments (id, action_item_id, assignee_id, assignee_name, assignee_role, assignment_status)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [supporterAssignment.id, supporterAssignment.actionItemId, supporterAssignment.assigneeId, supporterAssignment.assigneeName, supporterAssignment.assigneeRole, supporterAssignment.assignmentStatus]
@@ -398,7 +458,7 @@ export async function distributeActionItems(
     }
 
     // 更新任务状态为已分发
-    await (await requireDb() as any).execute(
+    await (await rawDb()).execute(
       `UPDATE meeting_action_items SET status = 'assigned' WHERE id = ?`,
       [actionItemId]
     );
@@ -410,17 +470,17 @@ export async function distributeActionItems(
         const targetPlan = plans[0];
         if (targetPlan) {
           const buckets = await plannerService.getBuckets(targetPlan.id);
-          const todoBucket = buckets.find((b: any) => b.name === "待办") ?? buckets[0];
+          const todoBucket = buckets.find((b) => b.name === "待办") ?? buckets[0];
           if (todoBucket) {
             const plannerTask = await plannerService.createTask({
               planId: targetPlan.id,
               bucketId: todoBucket.id,
-              title: `[会议] ${(actionItem.title as string)?.substring(0, 200) ?? "Action Item"}`,
-              dueDateTime: actionItem.due_date ?? undefined,
+              title: `[会议] ${String(actionItem.title ?? "").substring(0, 200) || "Action Item"}`,
+              dueDateTime: (actionItem.due_date as string | undefined) ?? undefined,
               priority: 5,
             });
             if (plannerTask) {
-              await (await requireDb() as any).execute(
+              await (await rawDb()).execute(
                 `UPDATE meeting_action_items SET planner_task_id = ? WHERE id = ?`,
                 [plannerTask.id, actionItemId]
               );
@@ -439,7 +499,8 @@ export async function distributeActionItems(
             }
           }
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : "Planner sync failed";
         log.warn({ err: e, actionItemId }, "Planner sync failed for action item");
         await departmentMappingService.logSync({
           deptCode: "OPS",
@@ -448,7 +509,7 @@ export async function distributeActionItems(
           sourcePath: `meeting_action_items/${actionItemId}`,
           targetPath: null,
           status: "error",
-          errorMessage: e?.message ?? "Planner sync failed",
+          errorMessage,
           fileCount: 0,
           bytesTransferred: 0,
           triggeredBy: "system",
@@ -470,21 +531,21 @@ export async function acceptTaskAssignment(
   notes?: string
 ): Promise<{ assignment: TaskAssignment; personalTask: PersonalTask }> {
   // 更新分发记录状态
-  await (await requireDb() as any).execute(
-    `UPDATE task_assignments 
+  await (await rawDb()).execute(
+    `UPDATE task_assignments
      SET assignment_status = 'accepted', responded_at = NOW(), acceptance_notes = ?
      WHERE id = ? AND assignee_id = ?`,
     [notes, assignmentId, userId]
   );
 
   // 获取分发记录和任务详情
-  const [assignmentRows] = await (await requireDb() as any).execute(
-    `SELECT ta.*, mai.* 
-     FROM task_assignments ta 
-     JOIN meeting_action_items mai ON ta.action_item_id = mai.id 
+  const [assignmentRows] = await (await rawDb()).execute(
+    `SELECT ta.*, mai.*
+     FROM task_assignments ta
+     JOIN meeting_action_items mai ON ta.action_item_id = mai.id
      WHERE ta.id = ?`,
     [assignmentId]
-  ) as any;
+  );
 
   if (!assignmentRows.length) {
     throw new Error('任务分发记录不存在');
@@ -498,18 +559,18 @@ export async function acceptTaskAssignment(
     id: personalTaskId,
     userId,
     sourceType: 'meeting',
-    sourceMeetingId: row.meeting_id,
-    sourceActionItemId: row.action_item_id,
-    title: row.title,
-    description: row.description,
-    priority: row.priority,
-    dueDate: row.due_date,
+    sourceMeetingId: row.meeting_id as string,
+    sourceActionItemId: row.action_item_id as string,
+    title: row.title as string,
+    description: row.description as string | undefined,
+    priority: row.priority as PersonalTask['priority'],
+    dueDate: row.due_date as string | undefined,
     status: 'todo',
     reportStatus: 'pending' // 来自会议的任务需要上报
   };
 
-  await (await requireDb() as any).execute(
-    `INSERT INTO personal_tasks 
+  await (await rawDb()).execute(
+    `INSERT INTO personal_tasks
      (id, user_id, source_type, source_meeting_id, source_action_item_id, title, description, priority, due_date, status, report_status)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
@@ -528,18 +589,18 @@ export async function acceptTaskAssignment(
   );
 
   // 更新原任务状态
-  await (await requireDb() as any).execute(
+  await (await rawDb()).execute(
     `UPDATE meeting_action_items SET status = 'accepted' WHERE id = ?`,
-    [row.action_item_id]
+    [row.action_item_id as string]
   );
 
   return {
     assignment: {
       id: assignmentId,
-      actionItemId: row.action_item_id,
+      actionItemId: row.action_item_id as string,
       assigneeId: userId,
-      assigneeName: row.assignee_name,
-      assigneeRole: row.assignee_role,
+      assigneeName: row.assignee_name as string,
+      assigneeRole: row.assignee_role as TaskAssignment['assigneeRole'],
       assignmentStatus: 'accepted'
     },
     personalTask
@@ -551,8 +612,8 @@ export async function rejectTaskAssignment(
   userId: string,
   reason: string
 ): Promise<void> {
-  await (await requireDb() as any).execute(
-    `UPDATE task_assignments 
+  await (await rawDb()).execute(
+    `UPDATE task_assignments
      SET assignment_status = 'rejected', responded_at = NOW(), rejection_reason = ?
      WHERE id = ? AND assignee_id = ?`,
     [reason, assignmentId, userId]
@@ -573,7 +634,7 @@ export async function getPersonalTasks(
   }
 ): Promise<PersonalTask[]> {
   let query = `SELECT * FROM personal_tasks WHERE user_id = ?`;
-  const params: any[] = [userId];
+  const params: SqlParam[] = [userId];
 
   if (filters?.status) {
     query += ` AND status = ?`;
@@ -594,19 +655,19 @@ export async function getPersonalTasks(
 
   query += ` ORDER BY due_date ASC, priority DESC`;
 
-  const [rows] = await (await requireDb() as any).execute(query, params) as any;
-  return rows.map((row: any) => ({
-    id: row.id,
-    userId: row.user_id,
-    sourceType: row.source_type,
-    sourceMeetingId: row.source_meeting_id,
-    sourceActionItemId: row.source_action_item_id,
-    title: row.title,
-    description: row.description,
-    priority: row.priority,
-    dueDate: row.due_date,
-    status: row.status,
-    reportStatus: row.report_status
+  const [rows] = await (await rawDb()).execute(query, params);
+  return rows.map((row: DbRow) => ({
+    id: row.id as string,
+    userId: row.user_id as string,
+    sourceType: row.source_type as PersonalTask['sourceType'],
+    sourceMeetingId: row.source_meeting_id as string | undefined,
+    sourceActionItemId: row.source_action_item_id as string | undefined,
+    title: row.title as string,
+    description: row.description as string | undefined,
+    priority: row.priority as PersonalTask['priority'],
+    dueDate: row.due_date as string | undefined,
+    status: row.status as PersonalTask['status'],
+    reportStatus: row.report_status as PersonalTask['reportStatus']
   }));
 }
 
@@ -618,7 +679,7 @@ export async function updatePersonalTaskStatus(
   evidenceUrls?: string[]
 ): Promise<void> {
   const updates: string[] = ['status = ?'];
-  const params: any[] = [status];
+  const params: SqlParam[] = [status];
 
   if (status === 'completed') {
     updates.push('completed_at = NOW()');
@@ -634,23 +695,23 @@ export async function updatePersonalTaskStatus(
 
   params.push(taskId, userId);
 
-  await (await requireDb() as any).execute(
+  await (await rawDb()).execute(
     `UPDATE personal_tasks SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`,
     params
   );
 
   // 如果任务完成且需要上报，更新关联的会议任务状态
   if (status === 'completed') {
-    const [rows] = await (await requireDb() as any).execute(
+    const [rows] = await (await rawDb()).execute(
       `SELECT source_action_item_id FROM personal_tasks WHERE id = ?`,
       [taskId]
-    ) as any;
-    
+    );
+
     if (rows.length && rows[0].source_action_item_id) {
-      await (await requireDb() as any).execute(
+      await (await rawDb()).execute(
         `UPDATE meeting_action_items SET status = 'completed', completed_at = NOW(), completion_notes = ?, evidence_urls = ?
          WHERE id = ?`,
-        [completionNotes, JSON.stringify(evidenceUrls || []), rows[0].source_action_item_id]
+        [completionNotes, JSON.stringify(evidenceUrls || []), rows[0].source_action_item_id as string]
       );
     }
   }
@@ -672,10 +733,10 @@ export async function createCompletionReport(data: {
   autoUploadEnabled?: boolean;
 }): Promise<CompletionReport> {
   // 获取任务信息
-  const [taskRows] = await (await requireDb() as any).execute(
+  const [taskRows] = await (await rawDb()).execute(
     `SELECT * FROM personal_tasks WHERE id = ?`,
     [data.personalTaskId]
-  ) as any;
+  );
 
   if (!taskRows.length) {
     throw new Error('任务不存在');
@@ -687,8 +748,8 @@ export async function createCompletionReport(data: {
   const report: CompletionReport = {
     id,
     personalTaskId: data.personalTaskId,
-    actionItemId: task.source_action_item_id,
-    sourceMeetingId: task.source_meeting_id,
+    actionItemId: task.source_action_item_id as string | undefined,
+    sourceMeetingId: task.source_meeting_id as string | undefined,
     targetMeetingId: data.targetMeetingId,
     reporterId: data.reporterId,
     reporterName: data.reporterName,
@@ -700,8 +761,8 @@ export async function createCompletionReport(data: {
     autoUploadEnabled: data.autoUploadEnabled || false
   };
 
-  await (await requireDb() as any).execute(
-    `INSERT INTO task_completion_reports 
+  await (await rawDb()).execute(
+    `INSERT INTO task_completion_reports
      (id, personal_task_id, action_item_id, source_meeting_id, target_meeting_id, reporter_id, reporter_name, report_title, report_summary, completion_details, evidence_urls, status, auto_upload_enabled)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
@@ -728,23 +789,23 @@ export async function submitCompletionReport(
   reportId: string,
   userId: string
 ): Promise<void> {
-  await (await requireDb() as any).execute(
-    `UPDATE task_completion_reports 
+  await (await rawDb()).execute(
+    `UPDATE task_completion_reports
      SET status = 'submitted', submitted_at = NOW()
      WHERE id = ? AND reporter_id = ?`,
     [reportId, userId]
   );
 
   // 更新个人任务的上报状态
-  const [rows] = await (await requireDb() as any).execute(
+  const [rows] = await (await rawDb()).execute(
     `SELECT personal_task_id FROM task_completion_reports WHERE id = ?`,
     [reportId]
-  ) as any;
+  );
 
   if (rows.length) {
-    await (await requireDb() as any).execute(
+    await (await rawDb()).execute(
       `UPDATE personal_tasks SET report_status = 'reported', reported_at = NOW() WHERE id = ?`,
-      [rows[0].personal_task_id]
+      [rows[0].personal_task_id as string]
     );
   }
 
@@ -780,8 +841,8 @@ export async function assignMeetingOwner(data: {
     status: 'active'
   };
 
-  await (await requireDb() as any).execute(
-    `INSERT INTO meeting_owners 
+  await (await rawDb()).execute(
+    `INSERT INTO meeting_owners
      (id, user_id, user_name, meeting_type_id, meeting_type_name, scope, scope_id, scope_name, responsibilities, status)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE user_name = VALUES(user_name), responsibilities = VALUES(responsibilities), status = 'active'`,
@@ -808,47 +869,47 @@ export async function getMeetingOwner(
   scopeId?: string
 ): Promise<MeetingOwner | null> {
   let query = `SELECT * FROM meeting_owners WHERE meeting_type_id = ? AND scope = ? AND status = 'active'`;
-  const params: any[] = [meetingTypeId, scope];
+  const params: SqlParam[] = [meetingTypeId, scope];
 
   if (scopeId) {
     query += ` AND scope_id = ?`;
     params.push(scopeId);
   }
 
-  const [rows] = await (await requireDb() as any).execute(query, params) as any;
-  
+  const [rows] = await (await rawDb()).execute(query, params);
+
   if (!rows.length) return null;
 
   const row = rows[0];
   return {
-    id: row.id,
-    userId: row.user_id,
-    userName: row.user_name,
-    meetingTypeId: row.meeting_type_id,
-    meetingTypeName: row.meeting_type_name,
-    scope: row.scope,
-    scopeId: row.scope_id,
-    scopeName: row.scope_name,
-    responsibilities: JSON.parse(row.responsibilities || '[]'),
-    status: row.status
+    id: row.id as string,
+    userId: row.user_id as string,
+    userName: row.user_name as string,
+    meetingTypeId: row.meeting_type_id as string,
+    meetingTypeName: row.meeting_type_name as string,
+    scope: row.scope as MeetingOwner['scope'],
+    scopeId: row.scope_id as string | undefined,
+    scopeName: row.scope_name as string | undefined,
+    responsibilities: JSON.parse((row.responsibilities as string) || '[]') as string[],
+    status: row.status as MeetingOwner['status']
   };
 }
 
 async function notifyMeetingOwnerForReview(reportId: string): Promise<void> {
   // 获取报告详情
-  const [reportRows] = await (await requireDb() as any).execute(
-    `SELECT tcr.*, mr.metadata 
+  const [reportRows] = await (await rawDb()).execute(
+    `SELECT tcr.*, mr.metadata
      FROM task_completion_reports tcr
      LEFT JOIN meeting_records mr ON tcr.source_meeting_id = mr.id
      WHERE tcr.id = ?`,
     [reportId]
-  ) as any;
+  );
 
   if (!reportRows.length) return;
 
   const report = reportRows[0];
-  const metadata = JSON.parse(report.metadata || '{}');
-  const meetingTypeId = metadata.templateId;
+  const metadata = JSON.parse((report.metadata as string) || '{}') as Record<string, unknown>;
+  const meetingTypeId = metadata.templateId as string | undefined;
 
   if (!meetingTypeId) return;
 
@@ -887,11 +948,11 @@ export async function submitMeetingEffectiveness(data: {
 }): Promise<MeetingEffectiveness> {
   const id = uuidv4();
 
-  await (await requireDb() as any).execute(
-    `INSERT INTO meeting_effectiveness 
+  await (await rawDb()).execute(
+    `INSERT INTO meeting_effectiveness
      (id, meeting_id, evaluator_id, evaluator_name, evaluator_role, punctuality_score, agenda_completion_score, decision_quality_score, participation_score, time_efficiency_score, overall_rating, strengths, improvements, suggestions, actual_start_time, actual_end_time, agenda_items_completed, agenda_items_total, decisions_made, action_items_created)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE 
+     ON DUPLICATE KEY UPDATE
      punctuality_score = VALUES(punctuality_score),
      agenda_completion_score = VALUES(agenda_completion_score),
      decision_quality_score = VALUES(decision_quality_score),
@@ -948,8 +1009,8 @@ export async function getMeetingEffectivenessStats(meetingId: string): Promise<{
   ratingDistribution: Record<string, number>;
   evaluatorCount: number;
 }> {
-  const [rows] = await (await requireDb() as any).execute(
-    `SELECT 
+  const [rows] = await (await rawDb()).execute(
+    `SELECT
        AVG(punctuality_score) as avg_punctuality,
        AVG(agenda_completion_score) as avg_agenda,
        AVG(decision_quality_score) as avg_decision,
@@ -958,38 +1019,38 @@ export async function getMeetingEffectivenessStats(meetingId: string): Promise<{
        COUNT(*) as evaluator_count
      FROM meeting_effectiveness WHERE meeting_id = ?`,
     [meetingId]
-  ) as any;
+  );
 
-  const [ratingRows] = await (await requireDb() as any).execute(
-    `SELECT overall_rating, COUNT(*) as count 
-     FROM meeting_effectiveness WHERE meeting_id = ? 
+  const [ratingRows] = await (await rawDb()).execute(
+    `SELECT overall_rating, COUNT(*) as count
+     FROM meeting_effectiveness WHERE meeting_id = ?
      GROUP BY overall_rating`,
     [meetingId]
-  ) as any;
+  );
 
   const ratingDistribution: Record<string, number> = {};
   for (const row of ratingRows) {
-    ratingDistribution[row.overall_rating] = row.count;
+    ratingDistribution[row.overall_rating as string] = row.count as number;
   }
 
   const stats = rows[0];
   return {
     averageScores: {
-      punctuality: parseFloat(stats.avg_punctuality) || 0,
-      agendaCompletion: parseFloat(stats.avg_agenda) || 0,
-      decisionQuality: parseFloat(stats.avg_decision) || 0,
-      participation: parseFloat(stats.avg_participation) || 0,
-      timeEfficiency: parseFloat(stats.avg_efficiency) || 0,
+      punctuality: parseFloat(String(stats.avg_punctuality)) || 0,
+      agendaCompletion: parseFloat(String(stats.avg_agenda)) || 0,
+      decisionQuality: parseFloat(String(stats.avg_decision)) || 0,
+      participation: parseFloat(String(stats.avg_participation)) || 0,
+      timeEfficiency: parseFloat(String(stats.avg_efficiency)) || 0,
       overall: (
-        (parseFloat(stats.avg_punctuality) || 0) +
-        (parseFloat(stats.avg_agenda) || 0) +
-        (parseFloat(stats.avg_decision) || 0) +
-        (parseFloat(stats.avg_participation) || 0) +
-        (parseFloat(stats.avg_efficiency) || 0)
+        (parseFloat(String(stats.avg_punctuality)) || 0) +
+        (parseFloat(String(stats.avg_agenda)) || 0) +
+        (parseFloat(String(stats.avg_decision)) || 0) +
+        (parseFloat(String(stats.avg_participation)) || 0) +
+        (parseFloat(String(stats.avg_efficiency)) || 0)
       ) / 5
     },
     ratingDistribution,
-    evaluatorCount: stats.evaluator_count
+    evaluatorCount: stats.evaluator_count as number
   };
 }
 
@@ -1009,18 +1070,18 @@ export async function createCustomTemplate(data: {
   icon?: string;
   color?: string;
   defaultDuration?: number;
-  agenda?: any[];
+  agenda?: AgendaItem[];
   participants?: { required: string[]; optional: string[] };
-  outputs?: any[];
+  outputs?: TemplateOutput[];
   bestPractices?: string[];
   followUpActions?: string[];
-  aiPrompts?: any;
+  aiPrompts?: AiPromptConfig;
   basedOnTemplateId?: string;
 }): Promise<string> {
   const id = uuidv4();
 
-  await (await requireDb() as any).execute(
-    `INSERT INTO custom_meeting_templates 
+  await (await rawDb()).execute(
+    `INSERT INTO custom_meeting_templates
      (id, name, name_en, description, category, subcategory, created_by, created_by_name, visibility, icon, color, default_duration, agenda, participants, outputs, best_practices, follow_up_actions, ai_prompts, based_on_template_id, status)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
     [
@@ -1055,13 +1116,13 @@ export async function getCustomTemplates(
     category?: string;
     visibility?: string;
   }
-): Promise<any[]> {
+): Promise<CustomTemplateResult[]> {
   let query = `
-    SELECT * FROM custom_meeting_templates 
-    WHERE status = 'active' 
+    SELECT * FROM custom_meeting_templates
+    WHERE status = 'active'
     AND (created_by = ? OR visibility IN ('team', 'department', 'company'))
   `;
-  const params: any[] = [userId];
+  const params: SqlParam[] = [userId];
 
   if (filters?.category) {
     query += ` AND category = ?`;
@@ -1074,34 +1135,34 @@ export async function getCustomTemplates(
 
   query += ` ORDER BY usage_count DESC, created_at DESC`;
 
-  const [rows] = await (await requireDb() as any).execute(query, params) as any;
-  return rows.map((row: any) => ({
-    id: row.id,
-    name: row.name,
-    nameEn: row.name_en,
-    description: row.description,
-    category: row.category,
-    subcategory: row.subcategory,
-    createdBy: row.created_by,
-    createdByName: row.created_by_name,
-    visibility: row.visibility,
-    icon: row.icon,
-    color: row.color,
-    defaultDuration: row.default_duration,
-    agenda: JSON.parse(row.agenda || '[]'),
-    participants: JSON.parse(row.participants || '{}'),
-    outputs: JSON.parse(row.outputs || '[]'),
-    bestPractices: JSON.parse(row.best_practices || '[]'),
-    followUpActions: JSON.parse(row.follow_up_actions || '[]'),
-    aiPrompts: JSON.parse(row.ai_prompts || '{}'),
-    usageCount: row.usage_count,
-    basedOnTemplateId: row.based_on_template_id,
-    createdAt: row.created_at
+  const [rows] = await (await rawDb()).execute(query, params);
+  return rows.map((row: DbRow) => ({
+    id: row.id as string,
+    name: row.name as string,
+    nameEn: row.name_en as string | null,
+    description: row.description as string | null,
+    category: row.category as string,
+    subcategory: row.subcategory as string | null,
+    createdBy: row.created_by as string,
+    createdByName: row.created_by_name as string | null,
+    visibility: row.visibility as string,
+    icon: row.icon as string,
+    color: row.color as string,
+    defaultDuration: row.default_duration as number,
+    agenda: JSON.parse((row.agenda as string) || '[]') as unknown[],
+    participants: JSON.parse((row.participants as string) || '{}') as Record<string, unknown>,
+    outputs: JSON.parse((row.outputs as string) || '[]') as unknown[],
+    bestPractices: JSON.parse((row.best_practices as string) || '[]') as string[],
+    followUpActions: JSON.parse((row.follow_up_actions as string) || '[]') as string[],
+    aiPrompts: JSON.parse((row.ai_prompts as string) || '{}') as Record<string, unknown>,
+    usageCount: row.usage_count as number,
+    basedOnTemplateId: row.based_on_template_id as string | null,
+    createdAt: row.created_at as string
   }));
 }
 
 export async function incrementTemplateUsage(templateId: string): Promise<void> {
-  await (await requireDb() as any).execute(
+  await (await rawDb()).execute(
     `UPDATE custom_meeting_templates SET usage_count = usage_count + 1, last_used_at = NOW() WHERE id = ?`,
     [templateId]
   );

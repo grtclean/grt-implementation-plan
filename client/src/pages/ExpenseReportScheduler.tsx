@@ -59,7 +59,7 @@ export default function ExpenseReportScheduler() {
   });
 
   // 获取所有任务
-  const { data: schedules, isLoading, refetch } = trpc.expenseReportScheduler.getSchedules.useQuery();
+  const { data: schedules, isLoading, refetch } = trpc.expenseReportScheduler.getSchedules.useQuery() as any;
   
   // 获取统计信息
   const { data: stats } = (trpc.expenseReportScheduler as any).getStats.useQuery();
@@ -89,7 +89,7 @@ export default function ExpenseReportScheduler() {
       setNewRecipient({ type: 'notification', target: '', name: '' });
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(t("finance.scheduler.addFailed"), { description: error.message });
     },
   });
@@ -100,24 +100,24 @@ export default function ExpenseReportScheduler() {
       toast.success(t("finance.scheduler.recipientRemoved"));
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(t("finance.scheduler.removeFailed"), { description: error.message });
     },
   });
 
   // 手动触发发送
   const triggerMutation = (trpc.expenseReportScheduler as any).triggerSend.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       if (result.success) {
         toast.success(t("finance.scheduler.reportSent"), {
-          description: tpl("finance.scheduler.sentToCount", { count: result.results?.filter(r => r.success).length || 0 }),
+          description: tpl("finance.scheduler.sentToCount", { count: result.results?.filter((r: any) => r.success).length || 0 }),
         });
       } else {
         toast.error(t("finance.scheduler.sendFailed"), { description: result.error });
       }
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(t("finance.scheduler.sendFailed"), { description: error.message });
     },
   });
@@ -146,7 +146,7 @@ export default function ExpenseReportScheduler() {
   };
 
   const getFrequencyLabel = (frequency: string) => {
-    return options?.frequencies.find(f => f.id === frequency)?.name || frequency;
+    return options?.frequencies.find((f: any) => f.id === frequency)?.name || frequency;
   };
 
   const getRecipientTypeIcon = (type: string) => {
@@ -230,7 +230,7 @@ export default function ExpenseReportScheduler() {
           </TabsList>
 
           <TabsContent value="schedules" className="space-y-4">
-            {schedules?.map((schedule) => (
+            {schedules?.map((schedule: any) => (
               <Card key={schedule.id} className="bg-card/50 border-border">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
@@ -260,13 +260,13 @@ export default function ExpenseReportScheduler() {
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">{t("finance.scheduler.comparisonType")}</p>
                       <p className="text-sm font-medium">
-                        {options?.comparisonTypes.find(c => c.id === schedule.reportConfig.comparisonType)?.name}
+                        {options?.comparisonTypes.find((c: any) => c.id === schedule.reportConfig.comparisonType)?.name}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">{t("finance.scheduler.analysisDimension")}</p>
                       <p className="text-sm font-medium">
-                        {options?.dimensions.find(d => d.id === schedule.reportConfig.dimension)?.name}
+                        {options?.dimensions.find((d: any) => d.id === schedule.reportConfig.dimension)?.name}
                       </p>
                     </div>
                     <div>
@@ -306,7 +306,7 @@ export default function ExpenseReportScheduler() {
                       </p>
                     ) : (
                       <div className="space-y-2">
-                        {schedule.recipients.map((recipient) => (
+                        {schedule.recipients.map((recipient: any) => (
                           <div
                             key={recipient.id}
                             className="flex items-center justify-between p-3 bg-background rounded-lg border"
@@ -316,7 +316,7 @@ export default function ExpenseReportScheduler() {
                               <div>
                                 <p className="text-sm font-medium">{recipient.name || recipient.target}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {options?.recipientTypes.find(t => t.id === recipient.type)?.name}
+                                  {options?.recipientTypes.find((t: any) => t.id === recipient.type)?.name}
                                 </p>
                               </div>
                             </div>
@@ -376,7 +376,7 @@ export default function ExpenseReportScheduler() {
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {history.map((record) => (
+                    {history.map((record: any) => (
                       <div
                         key={record.id}
                         className="flex items-center justify-between p-4 bg-background rounded-lg border"
@@ -387,7 +387,7 @@ export default function ExpenseReportScheduler() {
                           </div>
                           <div>
                             <p className="text-sm font-medium">
-                              {schedules?.find(s => s.id === record.scheduleId)?.name || record.scheduleId}
+                              {schedules?.find((s: any) => s.id === record.scheduleId)?.name || record.scheduleId}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {new Date(record.sentAt).toLocaleString()}
@@ -439,7 +439,7 @@ export default function ExpenseReportScheduler() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {options?.recipientTypes.map((type) => (
+                    {options?.recipientTypes.map((type: any) => (
                       <SelectItem key={type.id} value={type.id}>
                         <div className="flex items-center gap-2">
                           {getRecipientTypeIcon(type.id)}
@@ -450,7 +450,7 @@ export default function ExpenseReportScheduler() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  {options?.recipientTypes.find(t => t.id === newRecipient.type)?.description}
+                  {options?.recipientTypes.find((t: any) => t.id === newRecipient.type)?.description}
                 </p>
               </div>
               <div className="space-y-2">

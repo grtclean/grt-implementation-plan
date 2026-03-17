@@ -114,7 +114,7 @@ export const materialRouter = router({
         createdBy: ctx.user?.id ?? 0,
       });
 
-      const insertId = result[0].insertId;
+      const insertId = (result as any)[0].insertId;
       const rows = await db.select().from(materials).where(eq(materials.id, insertId)).limit(1000);
       return rows[0];
     }),
@@ -313,7 +313,7 @@ export const materialRouter = router({
         description: input.description ?? null,
       });
 
-      const insertId = result[0].insertId;
+      const insertId = (result as any)[0].insertId;
       const rows = await db.select().from(materialCategories).where(eq(materialCategories.id, insertId)).limit(1000);
       return rows[0];
     }),
@@ -337,7 +337,7 @@ export const materialRouter = router({
             INNER JOIN inventory i ON i.material_id = m.id
             WHERE i.quantity_on_hand < m.min_stock_level AND m.min_stock_level > 0`
       );
-      const lowStockRows = lowStockResult[0] as Array<{ cnt: number }>;
+      const lowStockRows = (lowStockResult as any)[0] as Array<{ cnt: number }>;
       const lowStockMaterials = lowStockRows[0]?.cnt ?? 0;
 
       // Out of stock: materials with no inventory or quantity = 0
@@ -346,7 +346,7 @@ export const materialRouter = router({
             LEFT JOIN inventory i ON i.material_id = m.id
             WHERE i.id IS NULL OR i.quantity_on_hand = 0`
       );
-      const outOfStockRows = outOfStockResult[0] as Array<{ cnt: number }>;
+      const outOfStockRows = (outOfStockResult as any)[0] as Array<{ cnt: number }>;
       const outOfStockMaterials = outOfStockRows[0]?.cnt ?? 0;
 
       // Total inventory value
@@ -355,7 +355,7 @@ export const materialRouter = router({
             FROM inventory i
             INNER JOIN materials m ON m.id = i.material_id`
       );
-      const valueRows = valueResult[0] as Array<{ total_value: number }>;
+      const valueRows = (valueResult as any)[0] as Array<{ total_value: number }>;
       const totalInventoryValue = valueRows[0]?.total_value ?? 0;
 
       return {

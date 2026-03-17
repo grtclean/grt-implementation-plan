@@ -240,7 +240,7 @@ export default function AnnualPlanning() {
       toast.success("依赖关系添加成功");
       refetchDependencies();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`添加失败: ${error.message}`);
     },
   });
@@ -250,7 +250,7 @@ export default function AnnualPlanning() {
       toast.success("依赖关系已删除");
       refetchDependencies();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`删除失败: ${error.message}`);
     },
   });
@@ -278,7 +278,7 @@ export default function AnnualPlanning() {
 
   // Set selected config when configs load
   if (configs && configs.length > 0 && !selectedConfigId) {
-    const active = configs.find(c => c.status === "active");
+    const active = configs.find((c: any) => c.status === "active");
     if (active) {
       setSelectedConfigId(active.id);
     } else {
@@ -287,7 +287,7 @@ export default function AnnualPlanning() {
   }
 
   // Group items by month
-  const itemsByMonth = items?.reduce((acc, item) => {
+  const itemsByMonth = items?.reduce((acc: any, item: any) => {
     const month = item.month || 0;
     if (!acc[month]) acc[month] = [];
     acc[month].push(item);
@@ -297,15 +297,15 @@ export default function AnnualPlanning() {
   // Statistics
   const stats = {
     total: items?.length || 0,
-    pending: items?.filter(i => i.status === "pending").length || 0,
-    inProgress: items?.filter(i => i.status === "in_progress").length || 0,
-    completed: items?.filter(i => i.status === "completed").length || 0,
+    pending: items?.filter((i: any) => i.status === "pending").length || 0,
+    inProgress: items?.filter((i: any) => i.status === "in_progress").length || 0,
+    completed: items?.filter((i: any) => i.status === "completed").length || 0,
     byCategory: {
-      culture: items?.filter(i => i.category === "culture").length || 0,
-      training: items?.filter(i => i.category === "training").length || 0,
-      meeting: items?.filter(i => i.category === "meeting").length || 0,
-      event: items?.filter(i => i.category === "event").length || 0,
-      other: items?.filter(i => i.category === "other").length || 0,
+      culture: items?.filter((i: any) => i.category === "culture").length || 0,
+      training: items?.filter((i: any) => i.category === "training").length || 0,
+      meeting: items?.filter((i: any) => i.category === "meeting").length || 0,
+      event: items?.filter((i: any) => i.category === "event").length || 0,
+      other: items?.filter((i: any) => i.category === "other").length || 0,
     },
   };
 
@@ -545,7 +545,7 @@ export default function AnnualPlanning() {
                 <SelectValue placeholder="选择配置版本" />
               </SelectTrigger>
               <SelectContent>
-                {configs.map(config => (
+                {configs.map((config: any) => (
                   <SelectItem key={config.id} value={config.id.toString()}>
                     {config.versionName || `${config.year}年 ${config.version}`}
                     {config.status === "active" && " (当前激活)"}
@@ -553,7 +553,7 @@ export default function AnnualPlanning() {
                 ))}
               </SelectContent>
             </Select>
-            {selectedConfigId && configs.find(c => c.id === selectedConfigId)?.status !== "active" && (
+            {selectedConfigId && configs.find((c: any) => c.id === selectedConfigId)?.status !== "active" && (
               <Button 
                 variant="outline" 
                 size="sm"
@@ -690,7 +690,7 @@ export default function AnnualPlanning() {
                   </div>
                 ) : items && items.length > 0 ? (
                   <div className="space-y-3">
-                    {items.slice(0, 5).map(item => {
+                    {items.slice(0, 5).map((item: any) => {
                       const catConfig = categoryConfig[item.category as keyof typeof categoryConfig];
                       const statConfig = statusConfig[item.status as keyof typeof statusConfig];
                       const Icon = catConfig?.icon || FileText;
@@ -928,7 +928,7 @@ export default function AnnualPlanning() {
                   {/* Gantt Bars */}
                   <div className="space-y-1 min-w-[1000px]">
                     {items && items.length > 0 ? (
-                      items.map((item, index) => {
+                      items.map((item: any, index: any) => {
                         const catConfig = categoryConfig[item.category as keyof typeof categoryConfig];
                         const statConfig = statusConfig[item.status as keyof typeof statusConfig];
                         const Icon = catConfig?.icon || FileText;
@@ -949,7 +949,7 @@ export default function AnnualPlanning() {
                         
                         // Check if item is on critical path
                         const isOnCriticalPath = showCriticalPath && criticalPathData?.criticalPath?.includes(item.id);
-                        const criticalPathItem = criticalPathData?.items?.find(cp => cp.id === item.id);
+                        const criticalPathItem = criticalPathData?.items?.find((cp: any) => cp.id === item.id);
                         
                         return (
                           <div key={item.id} className="flex items-center group hover:bg-muted/30 rounded-sm transition-colors">
@@ -1196,7 +1196,7 @@ export default function AnnualPlanning() {
                   {/* Timeline Bars */}
                   <div className="space-y-2">
                     {Object.entries(categoryConfig).map(([category, config]) => {
-                      const categoryItems = items?.filter(item => item.category === category) || [];
+                      const categoryItems = items?.filter((item: any) => item.category === category) || [];
                       if (categoryItems.length === 0) return null;
                       
                       const Icon = config.icon;
@@ -1209,9 +1209,9 @@ export default function AnnualPlanning() {
                           </div>
                           <div className="grid grid-cols-12 gap-1 h-8 bg-muted/30 rounded-sm">
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => {
-                              const monthItems = categoryItems.filter(item => item.month === month);
+                              const monthItems = categoryItems.filter((item: any) => item.month === month);
                               const hasItems = monthItems.length > 0;
-                              const completedCount = monthItems.filter(item => item.status === "completed").length;
+                              const completedCount = monthItems.filter((item: any) => item.status === "completed").length;
                               const allCompleted = hasItems && completedCount === monthItems.length;
                               
                               return (
@@ -1224,7 +1224,7 @@ export default function AnnualPlanning() {
                                         : `${config.color.split(" ")[0]} hover:opacity-80`
                                       : "hover:bg-muted/50"
                                   }`}
-                                  title={hasItems ? `${monthNames[month]}: ${monthItems.map(i => i.name).join(", ")}` : monthNames[month]}
+                                  title={hasItems ? `${monthNames[month]}: ${monthItems.map((i: any) => i.name).join(", ")}` : monthNames[month]}
                                 >
                                   {hasItems && (
                                     <div className="absolute inset-0 flex items-center justify-center">
@@ -1263,7 +1263,7 @@ export default function AnnualPlanning() {
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => {
                 const monthItems = itemsByMonth[month] || [];
-                const completedCount = monthItems.filter(i => i.status === "completed").length;
+                const completedCount = monthItems.filter((i: any) => i.status === "completed").length;
                 const currentMonth = new Date().getMonth() + 1;
                 const isCurrentMonth = month === currentMonth && selectedYear === new Date().getFullYear();
                 
@@ -1297,7 +1297,7 @@ export default function AnnualPlanning() {
                     <CardContent>
                       {monthItems.length > 0 ? (
                         <div className="space-y-2">
-                          {monthItems.slice(0, 4).map(item => {
+                          {monthItems.slice(0, 4).map((item: any) => {
                             const catConfig = categoryConfig[item.category as keyof typeof categoryConfig];
                             const statConfig = statusConfig[item.status as keyof typeof statusConfig];
                             const Icon = catConfig?.icon || FileText;
@@ -1475,7 +1475,7 @@ export default function AnnualPlanning() {
               </div>
             ) : items && items.length > 0 ? (
               <div className="space-y-3">
-                {items.map(item => {
+                {items.map((item: any) => {
                   const catConfig = categoryConfig[item.category as keyof typeof categoryConfig];
                   const statConfig = statusConfig[item.status as keyof typeof statusConfig];
                   const Icon = catConfig?.icon || FileText;
@@ -1539,7 +1539,7 @@ export default function AnnualPlanning() {
               <CardContent>
                 {updateLogs && updateLogs.length > 0 ? (
                   <div className="space-y-4">
-                    {updateLogs.map(log => (
+                    {updateLogs.map((log: any) => (
                       <div key={log.id} className="flex items-start gap-4 p-4 rounded-lg bg-background/50">
                         <div className="p-2 rounded-full bg-primary/10">
                           <Settings className="w-4 h-4 text-primary" />

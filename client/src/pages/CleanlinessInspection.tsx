@@ -116,7 +116,7 @@ export default function CleanlinessInspection() {
     if (!batchNumber.trim() || !workpieceType.trim() || !particleData.trim() || inspectMutation.isPending) return;
     inspectMutation.mutate({
       batchNumber, workpieceType, cleaningMethod, standard,
-      cleanlinessClass: cleanlinessClass === "__none__" ? undefined : cleanlinessClass,
+      cleanlinessClass: (cleanlinessClass === "__none__" ? undefined : cleanlinessClass) as any,
       particleData,
       residualMass: residualMass ? Number(residualMass) : undefined,
       maxParticleSize: maxParticleSize ? Number(maxParticleSize) : undefined,
@@ -127,7 +127,7 @@ export default function CleanlinessInspection() {
   const handleJudge = () => {
     if (!batchNumber.trim() || !particleData.trim() || cleanlinessClass === "__none__" || judgeMutation.isPending) return;
     judgeMutation.mutate({
-      batchNumber, standard, cleanlinessClass: cleanlinessClass === "__none__" ? undefined : cleanlinessClass, particleData,
+      batchNumber, standard, cleanlinessClass: (cleanlinessClass === "__none__" ? undefined : cleanlinessClass) as any, particleData,
       residualMass: residualMass ? Number(residualMass) : undefined,
       maxParticleSize: maxParticleSize ? Number(maxParticleSize) : undefined,
     });
@@ -189,7 +189,7 @@ export default function CleanlinessInspection() {
       projectPhase: savePhase,
       batchNumber,
       standard,
-      cleanlinessClass: cleanlinessClass === "__none__" ? undefined : cleanlinessClass,
+      cleanlinessClass: (cleanlinessClass === "__none__" ? undefined : cleanlinessClass) as any,
       inspectionData: inspectResult ? JSON.stringify(inspectResult) : undefined,
       judgmentData: judgeResult ? JSON.stringify(judgeResult) : undefined,
       reportContent: reportResult ? JSON.stringify(reportResult) : undefined,

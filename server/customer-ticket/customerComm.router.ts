@@ -47,8 +47,8 @@ export const customerCommRouter = router({
     .mutation(async ({ ctx, input }) => {
       return commService.createCommRecord({
         ...input,
-        createdBy: ctx.user.id,
-        createdByName: ctx.user.name ?? '',
+        createdBy: ctx.user!.id,
+        createdByName: ctx.user!.name ?? '',
       });
     }),
 

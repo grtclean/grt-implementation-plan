@@ -98,7 +98,7 @@ const positionsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      return createKpiPosition({ ...input, createdBy: ctx.user.id });
+      return createKpiPosition({ ...input, createdBy: ctx.user!.id });
     }),
 
   update: protectedProcedure
@@ -178,7 +178,7 @@ const libraryRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      return createKpiLibraryItem({ ...input, createdBy: ctx.user.id });
+      return createKpiLibraryItem({ ...input, createdBy: ctx.user!.id });
     }),
 
   update: protectedProcedure
@@ -257,7 +257,7 @@ const targetsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      return createPositionKpiTarget({ ...input, createdBy: ctx.user.id });
+      return createPositionKpiTarget({ ...input, createdBy: ctx.user!.id });
     }),
 
   update: protectedProcedure
@@ -312,8 +312,8 @@ const skillsRouter = router({
     .query(async ({ input, ctx }) => {
       const params = input ?? {};
       // Non-HR roles can only see their own skills
-      if (!HR_MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
-        params.userId = ctx.user.id;
+      if (!HR_MANAGER_ROLES.has(ctx.user!.role ?? "employee")) {
+        params.userId = ctx.user!.id;
       }
       return listUserSkills(params);
     }),
@@ -342,11 +342,11 @@ const skillsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       // Non-HR can only create skills for themselves
-      const targetUserId = input.userId ?? ctx.user.id;
-      if (targetUserId !== ctx.user.id && !HR_MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
+      const targetUserId = input.userId ?? ctx.user!.id;
+      if (targetUserId !== ctx.user!.id && !HR_MANAGER_ROLES.has(ctx.user!.role ?? "employee")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "无权为他人创建技能记录" });
       }
-      return createUserSkill({ ...input, userId: targetUserId, assessedBy: ctx.user.id });
+      return createUserSkill({ ...input, userId: targetUserId, assessedBy: ctx.user!.id });
     }),
 
   update: protectedProcedure
@@ -400,8 +400,8 @@ const reviewsRouter = router({
     .query(async ({ input, ctx }) => {
       const params = input ?? {};
       // Non-HR roles can only see their own reviews
-      if (!HR_MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
-        params.userId = ctx.user.id;
+      if (!HR_MANAGER_ROLES.has(ctx.user!.role ?? "employee")) {
+        params.userId = ctx.user!.id;
       }
       return listMonthlyReviews(params);
     }),
@@ -429,19 +429,19 @@ const reviewsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       // Only HR/managers can create reviews for others; force draft status
-      const targetUserId = input.userId ?? ctx.user.id;
-      if (targetUserId !== ctx.user.id && !HR_MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
+      const targetUserId = input.userId ?? ctx.user!.id;
+      if (targetUserId !== ctx.user!.id && !HR_MANAGER_ROLES.has(ctx.user!.role ?? "employee")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "无权为他人创建绩效评审" });
       }
       // Self-review prevention for managers
-      if (targetUserId === ctx.user.id && input.overallKpiScore) {
+      if (targetUserId === ctx.user!.id && input.overallKpiScore) {
         throw new TRPCError({ code: "FORBIDDEN", message: "不能给自己打绩效分数" });
       }
       return createMonthlyReview({
         ...input,
         userId: targetUserId,
-        reviewedBy: ctx.user.id,
-        createdBy: ctx.user.id,
+        reviewedBy: ctx.user!.id,
+        createdBy: ctx.user!.id,
         status: "draft", // Always start as draft — cannot skip to finalized
       });
     }),
@@ -466,10 +466,10 @@ const reviewsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const { id, ...data } = input;
       // Only HR/managers can update reviews
-      if (!HR_MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
+      if (!HR_MANAGER_ROLES.has(ctx.user!.role ?? "employee")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "无权修改绩效评审" });
       }
-      return updateMonthlyReview(id, { ...data, reviewedBy: ctx.user.id });
+      return updateMonthlyReview(id, { ...data, reviewedBy: ctx.user!.id });
     }),
 
   delete: requirePermission('hr:performance:manage')
@@ -502,8 +502,8 @@ const militaryOrdersRouter = router({
     .query(async ({ input, ctx }) => {
       const params = input ?? {};
       // Non-HR roles can only see their own military orders
-      if (!HR_MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
-        params.userId = ctx.user.id;
+      if (!HR_MANAGER_ROLES.has(ctx.user!.role ?? "employee")) {
+        params.userId = ctx.user!.id;
       }
       return listMilitaryOrders(params);
     }),
@@ -531,14 +531,14 @@ const militaryOrdersRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       // Only HR/managers can create military orders for others
-      const targetUserId = input.userId ?? ctx.user.id;
-      if (targetUserId !== ctx.user.id && !HR_MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
+      const targetUserId = input.userId ?? ctx.user!.id;
+      if (targetUserId !== ctx.user!.id && !HR_MANAGER_ROLES.has(ctx.user!.role ?? "employee")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "无权为他人创建军令状" });
       }
       return createMilitaryOrder({
         ...input,
         userId: targetUserId,
-        createdBy: ctx.user.id,
+        createdBy: ctx.user!.id,
         signatureStatus: "pending", // Always start as pending — cannot create pre-signed
         status: "active",
       });
@@ -569,7 +569,7 @@ const militaryOrdersRouter = router({
       // Verify the signer is the order's target user
       const order = await getMilitaryOrderById(input.id);
       if (!order) throw new TRPCError({ code: "NOT_FOUND", message: `军令状 #${input.id} 不存在` });
-      if (order.userId !== ctx.user.id) {
+      if (order.userId !== ctx.user!.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "只能签署自己的军令状" });
       }
       if (order.signatureStatus !== "pending") {
@@ -582,18 +582,18 @@ const militaryOrdersRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       // Witness must be a manager/HR role, and cannot witness their own order
-      if (!HR_MANAGER_ROLES.has(ctx.user.role ?? "employee")) {
+      if (!HR_MANAGER_ROLES.has(ctx.user!.role ?? "employee")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "仅管理层可见证军令状" });
       }
       const order = await getMilitaryOrderById(input.id);
       if (!order) throw new TRPCError({ code: "NOT_FOUND", message: `军令状 #${input.id} 不存在` });
-      if (order.userId === ctx.user.id) {
+      if (order.userId === ctx.user!.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "不能见证自己的军令状" });
       }
       if (order.signatureStatus !== "signed") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "军令状必须先签署才能见证" });
       }
-      return witnessMilitaryOrder(input.id, ctx.user.id);
+      return witnessMilitaryOrder(input.id, ctx.user!.id);
     }),
 
   delete: requirePermission('hr:performance:manage')

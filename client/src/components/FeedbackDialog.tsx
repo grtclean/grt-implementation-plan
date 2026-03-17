@@ -25,7 +25,7 @@ export default function FeedbackDialog() {
       setType("suggestion");
       toast.success(t("feedback.success"));
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(error.message || "Failed to submit feedback");
     },
   });

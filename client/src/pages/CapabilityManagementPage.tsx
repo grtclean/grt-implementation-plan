@@ -34,12 +34,12 @@ export default function CapabilityManagementPage() {
       toast({ title: t("hr.capMgmt.upgradeSuccess") });
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: t("hr.capMgmt.error"), description: error.message, variant: "destructive" });
     },
   });
 
-  const filteredCapabilities = capabilities?.filter((capability) =>
+  const filteredCapabilities = capabilities?.filter((capability: any) =>
     capability.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
@@ -54,9 +54,9 @@ export default function CapabilityManagementPage() {
       {/* 快速统计 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard icon={Award} label={t("hr.capMgmt.totalCapabilities")} value={capabilities?.length || 0} iconColor="text-purple-500" iconBg="bg-purple-50" />
-        <StatCard icon={TrendingUp} label={t("hr.capMgmt.pendingUpgrade")} value={capabilities?.filter((c) => c.status === "pending_upgrade").length || 0} iconColor="text-green-500" iconBg="bg-green-50" />
-        <StatCard icon={Award} label={t("hr.capMgmt.certified")} value={capabilities?.filter((c) => c.status === "certified").length || 0} iconColor="text-blue-500" iconBg="bg-blue-50" />
-        <StatCard icon={Users} label={t("hr.capMgmt.involvedPersonnel")} value={new Set(capabilities?.map((c) => c.employeeId)).size || 0} iconColor="text-orange-500" iconBg="bg-orange-50" />
+        <StatCard icon={TrendingUp} label={t("hr.capMgmt.pendingUpgrade")} value={capabilities?.filter((c: any) => c.status === "pending_upgrade").length || 0} iconColor="text-green-500" iconBg="bg-green-50" />
+        <StatCard icon={Award} label={t("hr.capMgmt.certified")} value={capabilities?.filter((c: any) => c.status === "certified").length || 0} iconColor="text-blue-500" iconBg="bg-blue-50" />
+        <StatCard icon={Users} label={t("hr.capMgmt.involvedPersonnel")} value={new Set(capabilities?.map((c: any) => c.employeeId)).size || 0} iconColor="text-orange-500" iconBg="bg-orange-50" />
       </div>
 
       {/* 搜索和操作 */}
@@ -99,7 +99,7 @@ export default function CapabilityManagementPage() {
                 </CardContent>
               </Card>
             ) : (
-              filteredCapabilities.map((capability) => (
+              filteredCapabilities.map((capability: any) => (
                 <Card key={capability.id} className="hover:shadow-lg transition-shadow">
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">
@@ -160,7 +160,7 @@ export default function CapabilityManagementPage() {
 
         <TabsContent value="pending">
           <div className="space-y-2">
-            {filteredCapabilities.filter((c) => c.status === "pending_upgrade").length === 0 ? (
+            {filteredCapabilities.filter((c: any) => c.status === "pending_upgrade").length === 0 ? (
               <Card>
                 <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
                   <AlertCircle className="w-4 h-4 mr-2" />
@@ -169,8 +169,8 @@ export default function CapabilityManagementPage() {
               </Card>
             ) : (
               filteredCapabilities
-                .filter((c) => c.status === "pending_upgrade")
-                .map((capability) => (
+                .filter((c: any) => c.status === "pending_upgrade")
+                .map((capability: any) => (
                   <Card key={capability.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between">
@@ -191,7 +191,7 @@ export default function CapabilityManagementPage() {
 
         <TabsContent value="certified">
           <div className="space-y-2">
-            {filteredCapabilities.filter((c) => c.status === "certified").length === 0 ? (
+            {filteredCapabilities.filter((c: any) => c.status === "certified").length === 0 ? (
               <Card>
                 <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
                   <AlertCircle className="w-4 h-4 mr-2" />
@@ -200,8 +200,8 @@ export default function CapabilityManagementPage() {
               </Card>
             ) : (
               filteredCapabilities
-                .filter((c) => c.status === "certified")
-                .map((capability) => (
+                .filter((c: any) => c.status === "certified")
+                .map((capability: any) => (
                   <Card key={capability.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between">

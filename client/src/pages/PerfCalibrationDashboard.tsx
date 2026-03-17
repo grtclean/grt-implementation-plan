@@ -53,7 +53,7 @@ function OverviewTab({ period }: { period: string }) {
   const cockpit = trpc.perfCalibration.dashboard.ceoCockpit.useQuery({ period });
 
   const distData = distribution.data ?? [];
-  const total = distData.reduce((s, d) => s + d.count, 0);
+  const total = distData.reduce((s: any, d: any) => s + d.count, 0);
 
   return (
     <div className="space-y-6">
@@ -84,7 +84,7 @@ function OverviewTab({ period }: { period: string }) {
         <Card>
           <CardContent className="pt-4">
             <div className="text-2xl font-bold">
-              {distData.find((d) => d.grade === "S")?.count ?? 0}
+              {distData.find((d: any) => d.grade === "S")?.count ?? 0}
             </div>
             <div className="text-sm text-muted-foreground">卓越(S)人数</div>
           </CardContent>
@@ -101,7 +101,7 @@ function OverviewTab({ period }: { period: string }) {
         <CardContent>
           <div className="flex items-end gap-2 h-40">
             {["S", "A", "B", "C", "D"].map((g) => {
-              const cnt = distData.find((d) => d.grade === g)?.count ?? 0;
+              const cnt = distData.find((d: any) => d.grade === g)?.count ?? 0;
               const pct = total > 0 ? (cnt / total) * 100 : 0;
               return (
                 <div key={g} className="flex-1 flex flex-col items-center">
@@ -138,7 +138,7 @@ function OverviewTab({ period }: { period: string }) {
                 </tr>
               </thead>
               <tbody>
-                {(cockpit.data?.departments ?? []).map((d, i) => (
+                {(cockpit.data?.departments ?? []).map((d: any, i: any) => (
                   <tr key={i} className="border-b last:border-0">
                     <td className="py-2">{d.department}</td>
                     <td className="text-right">{d.headcount}</td>
@@ -364,12 +364,12 @@ function CalibrationSessionsTab({ period }: { period: string }) {
                   )}
                 </div>
               </div>
-              {s.distributionSnapshot && (
+              {!!s.distributionSnapshot && (
                 <div className="mt-3 text-xs text-muted-foreground">
                   起始分布: {JSON.stringify(s.distributionSnapshot)}
                 </div>
               )}
-              {s.finalDistribution && (
+              {!!s.finalDistribution && (
                 <div className="mt-1 text-xs text-muted-foreground">
                   最终分布: {JSON.stringify(s.finalDistribution)}
                 </div>
@@ -613,7 +613,7 @@ function AIRecommendationsTab({ period }: { period: string }) {
             <div className="text-center text-muted-foreground py-8">暂无异常建议</div>
           ) : (
             <div className="space-y-3">
-              {(recommendations.data ?? []).map((r, i) => (
+              {(recommendations.data ?? []).map((r: any, i: any) => (
                 <div key={i} className={`p-3 rounded border ${r.gap > 10 ? "border-orange-300 bg-orange-50" : "border-gray-200"}`}>
                   <div className="flex items-center justify-between">
                     <div>

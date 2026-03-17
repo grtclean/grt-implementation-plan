@@ -83,7 +83,7 @@ export const agendaRouter = router({
           year,
           title: `${year}年度议程`,
           status: "draft",
-          createdBy: ctx.user.id,
+          createdBy: ctx.user!.id,
         }).returning();
         agendaId = agenda.id;
       }

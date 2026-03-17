@@ -46,7 +46,7 @@ export async function checkRoleToolAccess(
     .from(roleToolMappings)
     .where(and(eq(roleToolMappings.roleCode, roleCode), eq(roleToolMappings.toolId, toolId)))
     .limit(1);
-  return mapping ?? { canExecute: false, canApprove: false };
+  return mapping ? { canExecute: !!mapping.canExecute, canApprove: !!mapping.canApprove } : { canExecute: false, canApprove: false };
 }
 
 // ── 3. Audit logging (fire-and-forget) ─────────────────────────

@@ -285,7 +285,7 @@ export default function FieldMappingRecommender({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__">不映射</SelectItem>
-                          {targetFields?.map((field) => (
+                          {targetFields?.map((field: any) => (
                             <SelectItem key={field.field} value={field.field}>
                               {field.label}
                               {field.required && (

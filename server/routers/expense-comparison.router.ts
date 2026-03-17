@@ -12,9 +12,9 @@ export const expenseComparisonRouter = router({
   // 费用列表
   list: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
-    const whereCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user.id);
+    const whereCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user!.id);
     const items = await db.select().from(expenseClaims).where(whereCondition).orderBy(desc(expenseClaims.createdAt)).limit(100);
     return { items, total: items.length, page: 1, pageSize: items.length };
   }),
@@ -22,9 +22,9 @@ export const expenseComparisonRouter = router({
   // 对比查询
   compare: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
-    const whereCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user.id);
+    const whereCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user!.id);
     const items = await db.select().from(expenseClaims).where(whereCondition).orderBy(desc(expenseClaims.createdAt)).limit(200);
     return items;
   }),
@@ -32,9 +32,9 @@ export const expenseComparisonRouter = router({
   // 获取对比数据
   getComparison: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
-    const whereCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user.id);
+    const whereCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user!.id);
     const [totalResult] = await db.select({
       totalExpense: sql<string>`COALESCE(SUM(CAST(${expenseClaims.totalAmount} AS NUMERIC)), 0)`,
       tripCount: count(),
@@ -57,9 +57,9 @@ export const expenseComparisonRouter = router({
   // 月度趋势
   getMonthlyTrend: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
-    const whereCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user.id);
+    const whereCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user!.id);
     const results = await db.select({
       month: sql<string>`TO_CHAR(${expenseClaims.createdAt}, 'YYYY-MM')`,
       total: sql<string>`COALESCE(SUM(CAST(${expenseClaims.totalAmount} AS NUMERIC)), 0)`,
@@ -80,9 +80,9 @@ export const expenseComparisonRouter = router({
   // 季度对比
   getQuarterComparison: protectedProcedure.input(z.record(z.string(), jsonValue).optional()).query(async ({ input, ctx }) => {
     const db = await requireDb();
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
-    const whereCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user.id);
+    const whereCondition = isFinance ? undefined : eq(expenseClaims.submitterId, ctx.user!.id);
     const results = await db.select({
       quarter: sql<string>`TO_CHAR(${expenseClaims.createdAt}, 'YYYY-Q')`,
       total: sql<string>`COALESCE(SUM(CAST(${expenseClaims.totalAmount} AS NUMERIC)), 0)`,

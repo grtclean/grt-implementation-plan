@@ -86,7 +86,7 @@ export const employeeRouter = router({
     const byDepartment: Record<string, number> = {};
 
     employees.forEach(e => {
-      byBU[e.buCode] = (byBU[e.buCode] || 0) + 1;
+      byBU[e.buCode as string] = (byBU[e.buCode as string] || 0) + 1;
       byDepartment[e.department] = (byDepartment[e.department] || 0) + 1;
     });
 

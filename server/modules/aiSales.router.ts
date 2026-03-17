@@ -14,6 +14,75 @@ import { createHash } from "crypto";
 import { createChildLogger } from "../lib/logger";
 const log = createChildLogger("ai-sales-mod");
 
+/** Row shape returned by raw MySQL execute() for negotiation_sessions */
+interface NegotiationSessionRow {
+  id: number;
+  session_id: string;
+  opportunity_id: number | null;
+  client_agent_id: string;
+  client_company: string | null;
+  product_id: number | null;
+  product_name: string | null;
+  our_offer_price: number;
+  our_bottom_price: number;
+  our_target_price: number;
+  client_counter_offer: number | null;
+  final_price: number | null;
+  max_rounds: number;
+  current_round: number;
+  status: string;
+  strategy_used: string | null;
+  zopa_range: string | null;
+  sentiment_analysis: string | null;
+  negotiation_history: string | null;
+  human_override_required: number;
+  human_override_reason: string | null;
+  closed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Row shape returned by raw MySQL execute() for zkp_registry */
+interface ZkpRegistryRow {
+  id: number;
+  proof_id: string;
+  proof_type: string;
+  entity_type: string;
+  entity_id: number;
+  entity_name: string | null;
+  public_inputs: string;
+  proof_hash: string;
+  proof_data: string;
+  verification_circuit: string;
+  generated_by: string;
+  verified_by_client: number;
+  verifier_client_id: string | null;
+  verification_count: number;
+  verified_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+}
+
+/** MySQL2 insert result */
+interface MysqlInsertResult {
+  insertId: number;
+  affectedRows: number;
+}
+
+/** Sentiment analysis result from LLM */
+interface SentimentAnalysis {
+  sentiment: string;
+  urgency: string;
+  flexibility: string;
+  intent: string;
+  confidence: number;
+}
+
+/** DB with raw execute method (MySQL2 compatible) */
+interface DbWithExecute {
+  execute(query: string, params?: unknown[]): Promise<[unknown[], unknown]>;
+}
+
 // ==================== AI销售路由 ====================
 export const aiSalesRouter = router({
   // ==================== AI谈判会话管理 ====================
@@ -50,10 +119,10 @@ export const aiSalesRouter = router({
       query += ` ORDER BY updated_at DESC LIMIT ? OFFSET ?`;
       params.push(pageSize, (page - 1) * pageSize);
       
-      const [rows] = await (db as any).execute(query, params);
+      const [rows] = await (db as unknown as DbWithExecute).execute(query, params);
 
       return {
-        items: rows as any[],
+        items: rows as NegotiationSessionRow[],
         page,
         pageSize,
       };
@@ -68,10 +137,10 @@ export const aiSalesRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       const { id, sessionId } = input;
-      
+
       let query = `SELECT * FROM negotiation_sessions WHERE `;
       const params: unknown[] = [];
-      
+
       if (id) {
         query += `id = ?`;
         params.push(id);
@@ -81,14 +150,14 @@ export const aiSalesRouter = router({
       } else {
         throw new TRPCError({ code: 'BAD_REQUEST', message: '需要提供id或sessionId' });
       }
-      
-      const [rows] = await (db as any).execute(query, params);
 
-      if ((rows as any[]).length === 0) {
+      const [rows] = await (db as unknown as DbWithExecute).execute(query, params);
+
+      if ((rows as NegotiationSessionRow[]).length === 0) {
         throw new TRPCError({ code: 'NOT_FOUND', message: '谈判会话不存在' });
       }
 
-      return (rows as any[])[0];
+      return (rows as NegotiationSessionRow[])[0];
     }),
 
   // 创建谈判会话
@@ -121,8 +190,8 @@ export const aiSalesRouter = router({
         estimated_client_max: ourTargetPrice * 1.1, // 估计客户最高接受价
       };
       
-      const [result] = await (db as any).execute(
-        `INSERT INTO negotiation_sessions 
+      const [result] = await (db as unknown as DbWithExecute).execute(
+        `INSERT INTO negotiation_sessions
          (session_id, opportunity_id, client_agent_id, client_company, product_id, product_name,
           our_offer_price, our_bottom_price, our_target_price, max_rounds, zopa_range, strategy_used, status)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'initializing')`,
@@ -130,9 +199,9 @@ export const aiSalesRouter = router({
          productId || null, productName || null, initialOffer, ourBottomPrice,
          ourTargetPrice, maxRounds, JSON.stringify(zopaRange), strategyUsed || 'balanced']
       );
-      
-      return { 
-        id: (result as any).insertId, 
+
+      return {
+        id: (result as unknown as MysqlInsertResult).insertId,
         sessionId,
         initialOffer,
         success: true 
@@ -151,16 +220,16 @@ export const aiSalesRouter = router({
       const { sessionId, clientCounterOffer, clientMessage } = input;
       
       // 获取当前会话
-      const [sessions] = await (db as any).execute(
+      const [sessions] = await (db as unknown as DbWithExecute).execute(
         `SELECT * FROM negotiation_sessions WHERE session_id = ?`,
         [sessionId]
       );
-      
-      if ((sessions as any[]).length === 0) {
+
+      if ((sessions as NegotiationSessionRow[]).length === 0) {
         throw new TRPCError({ code: 'NOT_FOUND', message: '谈判会话不存在' });
       }
-      
-      const session = (sessions as any[])[0];
+
+      const session = (sessions as NegotiationSessionRow[])[0];
       
       if (session.status !== 'initializing' && session.status !== 'negotiating') {
         throw new TRPCError({ code: 'BAD_REQUEST', message: '谈判会话已结束' });
@@ -170,7 +239,7 @@ export const aiSalesRouter = router({
       
       // 检查是否超过最大轮次
       if (currentRound > session.max_rounds) {
-        await (db as any).execute(
+        await (db as unknown as DbWithExecute).execute(
           `UPDATE negotiation_sessions SET status = 'expired', closed_at = NOW() WHERE session_id = ?`,
           [sessionId]
         );
@@ -201,7 +270,7 @@ export const aiSalesRouter = router({
       
       // 根据决策更新会话
       if (decision.action === 'accept') {
-        await (db as any).execute(
+        await (db as unknown as DbWithExecute).execute(
           `UPDATE negotiation_sessions SET 
            status = 'deal_reached', client_counter_offer = ?, final_price = ?,
            sentiment_analysis = ?, negotiation_history = ?, current_round = ?, closed_at = NOW()
@@ -217,7 +286,7 @@ export const aiSalesRouter = router({
           success: true,
         };
       } else if (decision.action === 'walk_away') {
-        await (db as any).execute(
+        await (db as unknown as DbWithExecute).execute(
           `UPDATE negotiation_sessions SET 
            status = 'walk_away', client_counter_offer = ?,
            sentiment_analysis = ?, negotiation_history = ?, current_round = ?, closed_at = NOW()
@@ -232,7 +301,7 @@ export const aiSalesRouter = router({
           success: false,
         };
       } else if (decision.action === 'human_override') {
-        await (db as any).execute(
+        await (db as unknown as DbWithExecute).execute(
           `UPDATE negotiation_sessions SET 
            status = 'paused', client_counter_offer = ?, human_override_required = 1,
            human_override_reason = ?, sentiment_analysis = ?, negotiation_history = ?, current_round = ?
@@ -248,7 +317,7 @@ export const aiSalesRouter = router({
         };
       } else {
         // counter_offer
-        await (db as any).execute(
+        await (db as unknown as DbWithExecute).execute(
           `UPDATE negotiation_sessions SET 
            status = 'negotiating', client_counter_offer = ?, our_offer_price = ?,
            sentiment_analysis = ?, negotiation_history = ?, current_round = ?
@@ -280,13 +349,13 @@ export const aiSalesRouter = router({
       const { sessionId, action, newOffer, message } = input;
       
       if (action === 'accept') {
-        const [sessions] = await (db as any).execute(
+        const [sessions] = await (db as unknown as DbWithExecute).execute(
           `SELECT client_counter_offer FROM negotiation_sessions WHERE session_id = ?`,
           [sessionId]
         );
-        const finalPrice = (sessions as any[])[0]?.client_counter_offer;
+        const finalPrice = (sessions as NegotiationSessionRow[])[0]?.client_counter_offer;
         
-        await (db as any).execute(
+        await (db as unknown as DbWithExecute).execute(
           `UPDATE negotiation_sessions SET 
            status = 'deal_reached', final_price = ?, human_override_required = 0, closed_at = NOW()
            WHERE session_id = ?`,
@@ -295,7 +364,7 @@ export const aiSalesRouter = router({
         
         return { status: 'deal_reached', finalPrice, success: true };
       } else if (action === 'walk_away') {
-        await (db as any).execute(
+        await (db as unknown as DbWithExecute).execute(
           `UPDATE negotiation_sessions SET 
            status = 'walk_away', human_override_required = 0, closed_at = NOW()
            WHERE session_id = ?`,
@@ -304,7 +373,7 @@ export const aiSalesRouter = router({
         
         return { status: 'walk_away', success: true };
       } else {
-        await (db as any).execute(
+        await (db as unknown as DbWithExecute).execute(
           `UPDATE negotiation_sessions SET 
            status = 'negotiating', our_offer_price = ?, human_override_required = 0
            WHERE session_id = ?`,
@@ -354,10 +423,10 @@ export const aiSalesRouter = router({
       query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
       params.push(pageSize, (page - 1) * pageSize);
       
-      const [rows] = await (db as any).execute(query, params);
+      const [rows] = await (db as unknown as DbWithExecute).execute(query, params);
       
       return {
-        items: rows as any[],
+        items: rows as ZkpRegistryRow[],
         page,
         pageSize,
       };
@@ -390,7 +459,7 @@ export const aiSalesRouter = router({
       
       const proofHash = createHash('sha256').update(proofData).digest('hex');
       
-      const [result] = await (db as any).execute(
+      const [result] = await (db as unknown as DbWithExecute).execute(
         `INSERT INTO zkp_registry 
          (proof_id, proof_type, entity_type, entity_id, entity_name, public_inputs, 
           proof_hash, proof_data, verification_circuit, generated_by, expires_at)
@@ -400,7 +469,7 @@ export const aiSalesRouter = router({
       );
       
       return { 
-        id: (result as any).insertId, 
+        id: (result as unknown as MysqlInsertResult).insertId,
         proofId,
         proofHash,
         success: true 
@@ -418,16 +487,16 @@ export const aiSalesRouter = router({
       const { proofId, verifierClientId } = input;
       
       // 获取证明
-      const [proofs] = await (db as any).execute(
+      const [proofs] = await (db as unknown as DbWithExecute).execute(
         `SELECT * FROM zkp_registry WHERE proof_id = ?`,
         [proofId]
       );
       
-      if ((proofs as any[]).length === 0) {
+      if ((proofs as ZkpRegistryRow[]).length === 0) {
         throw new TRPCError({ code: 'NOT_FOUND', message: '证明不存在' });
       }
-      
-      const proof = (proofs as any[])[0];
+
+      const proof = (proofs as ZkpRegistryRow[])[0];
       
       // 检查是否过期
       if (proof.expires_at && new Date(proof.expires_at) < new Date()) {
@@ -442,7 +511,7 @@ export const aiSalesRouter = router({
       }
       
       // 更新验证状态
-      await (db as any).execute(
+      await (db as unknown as DbWithExecute).execute(
         `UPDATE zkp_registry SET 
          verified_by_client = 1, verifier_client_id = ?, verification_count = verification_count + 1, verified_at = NOW()
          WHERE proof_id = ?`,
@@ -465,7 +534,7 @@ export const aiSalesRouter = router({
       const db = await requireDb();
       
       // 谈判会话统计
-      const [sessionStats] = await (db as any).execute(
+      const [sessionStats] = await (db as unknown as DbWithExecute).execute(
         `SELECT status, COUNT(*) as count, 
                 AVG(final_price) as avg_final_price,
                 AVG(current_round) as avg_rounds
@@ -473,7 +542,7 @@ export const aiSalesRouter = router({
       );
       
       // 成功率
-      const [successRate] = await (db as any).execute(
+      const [successRate] = await (db as unknown as DbWithExecute).execute(
         `SELECT 
            COUNT(CASE WHEN status = 'deal_reached' THEN 1 END) as deals,
            COUNT(*) as total
@@ -481,7 +550,7 @@ export const aiSalesRouter = router({
       );
       
       // ZKP统计
-      const [zkpStats] = await (db as any).execute(
+      const [zkpStats] = await (db as unknown as DbWithExecute).execute(
         `SELECT proof_type, COUNT(*) as count, 
                 SUM(CASE WHEN verified_by_client = 1 THEN 1 ELSE 0 END) as verified_count
          FROM zkp_registry GROUP BY proof_type`
@@ -499,10 +568,10 @@ export const aiSalesRouter = router({
 
 // 分析客户情绪
 async function analyzeClientSentiment(
-  message: string, 
-  counterOffer: number, 
-  session: any
-): Promise<any> {
+  message: string,
+  counterOffer: number,
+  session: NegotiationSessionRow
+): Promise<SentimentAnalysis> {
   try {
     const priceGap = ((session.our_offer_price - counterOffer) / session.our_offer_price) * 100;
     
@@ -550,7 +619,7 @@ async function analyzeClientSentiment(
       }
     });
     
-    return JSON.parse(response.choices[0]?.message?.content || '{}');
+    return JSON.parse(response.choices[0]?.message?.content || '{}') as SentimentAnalysis;
   } catch (error) {
     log.error({ err: error }, '情绪分析失败:');
     return {
@@ -565,9 +634,9 @@ async function analyzeClientSentiment(
 
 // AI谈判决策
 async function makeNegotiationDecision(
-  session: any,
+  session: NegotiationSessionRow,
   clientCounterOffer: number,
-  sentiment: any,
+  sentiment: SentimentAnalysis,
   currentRound: number
 ): Promise<{ action: string; newOffer?: number; message: string }> {
   const bottomPrice = session.our_bottom_price;

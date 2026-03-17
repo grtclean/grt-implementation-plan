@@ -7,11 +7,14 @@
 import { router, protectedProcedure, requirePermission } from "../_core/trpc";
 import { eventBus, SANDBOX_EVENTS } from "../events/event-bus";
 import { createChildLogger } from "../lib/logger";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+
+type Db = NodePgDatabase;
 
 const log = createChildLogger("scenario-init");
 
 // ── Helper: Check if seed data exists for a sandbox ────────
-async function hasSeedData(db: any, sandboxId: string): Promise<boolean> {
+async function hasSeedData(db: Db, sandboxId: string): Promise<boolean> {
   try {
     const { sandboxEventLog } = await import("../../drizzle/sandbox-event-schema");
     const { and, like } = await import("drizzle-orm");
@@ -47,7 +50,7 @@ async function markInitialized(sandboxId: string, userId: number, details: Recor
 // ══════════════════════════════════════════════════════════════
 
 /** Starter 1: ⑤ Project M0-M12 — uses `projects` + `projectGates` from schema.ts */
-async function initProjectLifecycle(db: any, userId: number) {
+async function initProjectLifecycle(db: Db, userId: number) {
   if (await hasSeedData(db, "project-lifecycle")) return { skipped: true };
   const { projects, projectGates } = await import("../../drizzle/schema");
 
@@ -111,7 +114,7 @@ async function initProjectLifecycle(db: any, userId: number) {
 }
 
 /** Starter 2: ④ HR Lifecycle — uses `workLogs` as closest HR table proxy */
-async function initHrLifecycle(db: any, userId: number) {
+async function initHrLifecycle(db: Db, userId: number) {
   if (await hasSeedData(db, "hr-lifecycle")) return { skipped: true };
   // No dedicated hrWorkflows table exists; seed via event log to record HR scenarios
   // The HR lifecycle sandbox page handles workflows in-memory / via its own UI state
@@ -136,7 +139,7 @@ async function initHrLifecycle(db: any, userId: number) {
 }
 
 /** Starter 3: ⑫ Production Scheduling — uses `schedulingBomWorkHours` + `workLogs` */
-async function initProductionScheduling(db: any, userId: number, projectId?: number) {
+async function initProductionScheduling(db: Db, userId: number, projectId?: number) {
   if (await hasSeedData(db, "production-scheduling")) return { skipped: true };
   const { schedulingBomWorkHours } = await import("../../drizzle/smart-scheduling-schema");
   const { workLogs } = await import("../../drizzle/schema");
@@ -192,7 +195,7 @@ async function initProductionScheduling(db: any, userId: number, projectId?: num
 }
 
 /** Starter 4: ③ Performance Points — uses `psPerfReview` + `psPerfEvidence` */
-async function initPerformancePoints(db: any, userId: number) {
+async function initPerformancePoints(db: Db, userId: number) {
   if (await hasSeedData(db, "performance-points")) return { skipped: true };
   const { psPerfReview, psPerfEvidence } = await import("../../drizzle/perf-evidence-schema");
 
@@ -256,7 +259,7 @@ async function initPerformancePoints(db: any, userId: number) {
 }
 
 /** Starter 5: ② Payroll — uses `payrollSandboxCycles` + `psAttendanceInput` + `psAllowanceInput` */
-async function initPayrollAttendance(db: any, userId: number) {
+async function initPayrollAttendance(db: Db, userId: number) {
   if (await hasSeedData(db, "payroll-attendance")) return { skipped: true };
   const { payrollSandboxCycles, psAttendanceInput, psAllowanceInput } = await import("../../drizzle/payroll-sandbox-schema");
 
@@ -314,7 +317,7 @@ async function initPayrollAttendance(db: any, userId: number) {
 }
 
 /** Starter 6: ① Annual Planning — uses `annualPlanningConfigs` + `annualPlanningItems` + `annualPlans` */
-async function initAnnualPlanning(db: any, userId: number) {
+async function initAnnualPlanning(db: Db, userId: number) {
   if (await hasSeedData(db, "annual-planning")) return { skipped: true };
   const { annualPlanningConfigs, annualPlanningItems, annualPlans } = await import("../../drizzle/schema");
   const { count } = await import("drizzle-orm");
@@ -376,7 +379,7 @@ async function initAnnualPlanning(db: any, userId: number) {
 }
 
 /** Starter 7: ⑥ Quoting & BOM — uses `historicalQuotations` + `bomItems` */
-async function initQuotingBom(db: any, userId: number) {
+async function initQuotingBom(db: Db, userId: number) {
   if (await hasSeedData(db, "quoting-bom")) return { skipped: true };
   const { historicalQuotations } = await import("../../drizzle/schema");
   const { bomItems } = await import("../../drizzle/bom-schema");
@@ -431,7 +434,7 @@ async function initQuotingBom(db: any, userId: number) {
 }
 
 /** Starter 8: ⑨ Customer Config — uses `strategicCustomerProfiles` + `customerBrandAesthetics` + `customerReadingChannels` */
-async function initCustomerConfig(db: any, userId: number) {
+async function initCustomerConfig(db: Db, userId: number) {
   if (await hasSeedData(db, "customer-config")) return { skipped: true };
   const { strategicCustomerProfiles, customerBrandAesthetics, customerReadingChannels } = await import("../../drizzle/customer-profile-schema");
 
@@ -492,7 +495,7 @@ async function initCustomerConfig(db: any, userId: number) {
 }
 
 /** Starter 9: ⑦ Mechanical Standards — uses `mechanicalStandards` from mechanical-config-schema */
-async function initMechanicalStandards(db: any, userId: number) {
+async function initMechanicalStandards(db: Db, userId: number) {
   if (await hasSeedData(db, "mechanical-standards")) return { skipped: true };
   const { mechanicalStandards } = await import("../../drizzle/mechanical-config-schema");
 
@@ -533,7 +536,7 @@ async function initMechanicalStandards(db: any, userId: number) {
 }
 
 /** Starter 10: ⑧ Electrical Standards — uses `electricalStandards` from electrical-standards-schema */
-async function initElectricalStandards(db: any, userId: number) {
+async function initElectricalStandards(db: Db, userId: number) {
   if (await hasSeedData(db, "electrical-standards")) return { skipped: true };
   const { electricalStandards } = await import("../../drizzle/electrical-standards-schema");
 
@@ -570,7 +573,7 @@ async function initElectricalStandards(db: any, userId: number) {
 }
 
 /** Starter 11: ⑩ Acceptance Tracking — uses `mechAcceptanceRecords` */
-async function initAcceptanceTracking(db: any, userId: number) {
+async function initAcceptanceTracking(db: Db, userId: number) {
   if (await hasSeedData(db, "acceptance-tracking")) return { skipped: true };
   const { mechAcceptanceRecords } = await import("../../drizzle/mechanical-config-schema");
 
@@ -609,7 +612,7 @@ async function initAcceptanceTracking(db: any, userId: number) {
 }
 
 /** Starter 12: ⑪ Site Delivery — uses `deliveryExecutions` + `deliveryInstallations` */
-async function initSiteDelivery(db: any, userId: number) {
+async function initSiteDelivery(db: Db, userId: number) {
   if (await hasSeedData(db, "site-delivery")) return { skipped: true };
   const { deliveryExecutions, deliveryInstallations } = await import("../../drizzle/schema");
 
@@ -655,7 +658,7 @@ async function initSiteDelivery(db: any, userId: number) {
 }
 
 /** Starter 13: ⑬ AI Process Twin — uses `fmeaDocuments` + `fmeaItems` + `sopTemplates` */
-async function initAiProcessTwin(db: any, userId: number) {
+async function initAiProcessTwin(db: Db, userId: number) {
   if (await hasSeedData(db, "ai-process-twin")) return { skipped: true };
   const { fmeaDocuments, fmeaItems } = await import("../../drizzle/schema");
   const { sopTemplates } = await import("../../drizzle/production-process-schema");
@@ -741,7 +744,7 @@ export const scenarioInitRouter = router({
       const { requireDb } = await import("../db");
       const { sandboxEventLog } = await import("../../drizzle/sandbox-event-schema");
       const { like } = await import("drizzle-orm");
-      const db = await requireDb();
+      const db = await requireDb() as any;
 
       const rows = await db
         .select({ eventType: sandboxEventLog.eventType })
@@ -749,7 +752,7 @@ export const scenarioInitRouter = router({
         .where(like(sandboxEventLog.eventType, "scenario.init.%"))
         .limit(20);
 
-      const initialized = rows.map((r) =>
+      const initialized = rows.map((r: any) =>
         r.eventType.replace("scenario.init.", "")
       );
 
@@ -762,8 +765,8 @@ export const scenarioInitRouter = router({
   /** Launch Batch 1: Project → HR → Production → Performance → Payroll */
   launchBatch1: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    const userId = (ctx as any).userId ?? 1;
+    const db = await requireDb() as any;
+    const userId = ((ctx as Record<string, unknown>).userId as number) ?? 1;
     let initialized = 0;
     let skipped = 0;
 
@@ -775,7 +778,7 @@ export const scenarioInitRouter = router({
     const r2 = await initHrLifecycle(db, userId);
     r2.skipped ? skipped++ : initialized++;
 
-    const projectId = (r1 as any).projectIds?.[0];
+    const projectId = "projectIds" in r1 ? (r1.projectIds as number[])[0] : undefined;
     const r3 = await initProductionScheduling(db, userId, projectId);
     r3.skipped ? skipped++ : initialized++;
 
@@ -792,8 +795,8 @@ export const scenarioInitRouter = router({
   /** Launch Batch 2: Annual Planning → Quoting → Customer → Mechanical → Electrical */
   launchBatch2: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    const userId = (ctx as any).userId ?? 1;
+    const db = await requireDb() as any;
+    const userId = ((ctx as Record<string, unknown>).userId as number) ?? 1;
     let initialized = 0;
     let skipped = 0;
 
@@ -821,8 +824,8 @@ export const scenarioInitRouter = router({
   /** Launch Batch 3: Acceptance → Site Delivery → AI Process Twin */
   launchBatch3: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    const userId = (ctx as any).userId ?? 1;
+    const db = await requireDb() as any;
+    const userId = ((ctx as Record<string, unknown>).userId as number) ?? 1;
     let initialized = 0;
     let skipped = 0;
 
@@ -844,67 +847,67 @@ export const scenarioInitRouter = router({
   // ── Individual inits (for selective re-initialization) ──
   initProjectLifecycle: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    return initProjectLifecycle(db, (ctx as any).userId ?? 1);
+    const db = await requireDb() as any;
+    return initProjectLifecycle(db, ((ctx as Record<string, unknown>).userId as number) ?? 1);
   }),
   initHrLifecycle: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    return initHrLifecycle(db, (ctx as any).userId ?? 1);
+    const db = await requireDb() as any;
+    return initHrLifecycle(db, ((ctx as Record<string, unknown>).userId as number) ?? 1);
   }),
   initProductionScheduling: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    return initProductionScheduling(db, (ctx as any).userId ?? 1);
+    const db = await requireDb() as any;
+    return initProductionScheduling(db, ((ctx as Record<string, unknown>).userId as number) ?? 1);
   }),
   initPerformancePoints: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    return initPerformancePoints(db, (ctx as any).userId ?? 1);
+    const db = await requireDb() as any;
+    return initPerformancePoints(db, ((ctx as Record<string, unknown>).userId as number) ?? 1);
   }),
   initPayrollAttendance: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    return initPayrollAttendance(db, (ctx as any).userId ?? 1);
+    const db = await requireDb() as any;
+    return initPayrollAttendance(db, ((ctx as Record<string, unknown>).userId as number) ?? 1);
   }),
   initAnnualPlanning: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    return initAnnualPlanning(db, (ctx as any).userId ?? 1);
+    const db = await requireDb() as any;
+    return initAnnualPlanning(db, ((ctx as Record<string, unknown>).userId as number) ?? 1);
   }),
   initQuotingBom: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    return initQuotingBom(db, (ctx as any).userId ?? 1);
+    const db = await requireDb() as any;
+    return initQuotingBom(db, ((ctx as Record<string, unknown>).userId as number) ?? 1);
   }),
   initCustomerConfig: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    return initCustomerConfig(db, (ctx as any).userId ?? 1);
+    const db = await requireDb() as any;
+    return initCustomerConfig(db, ((ctx as Record<string, unknown>).userId as number) ?? 1);
   }),
   initMechanicalStandards: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    return initMechanicalStandards(db, (ctx as any).userId ?? 1);
+    const db = await requireDb() as any;
+    return initMechanicalStandards(db, ((ctx as Record<string, unknown>).userId as number) ?? 1);
   }),
   initElectricalStandards: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    return initElectricalStandards(db, (ctx as any).userId ?? 1);
+    const db = await requireDb() as any;
+    return initElectricalStandards(db, ((ctx as Record<string, unknown>).userId as number) ?? 1);
   }),
   initAcceptanceTracking: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    return initAcceptanceTracking(db, (ctx as any).userId ?? 1);
+    const db = await requireDb() as any;
+    return initAcceptanceTracking(db, ((ctx as Record<string, unknown>).userId as number) ?? 1);
   }),
   initSiteDelivery: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    return initSiteDelivery(db, (ctx as any).userId ?? 1);
+    const db = await requireDb() as any;
+    return initSiteDelivery(db, ((ctx as Record<string, unknown>).userId as number) ?? 1);
   }),
   initAiProcessTwin: managePerm.mutation(async ({ ctx }) => {
     const { requireDb } = await import("../db");
-    const db = await requireDb();
-    return initAiProcessTwin(db, (ctx as any).userId ?? 1);
+    const db = await requireDb() as any;
+    return initAiProcessTwin(db, ((ctx as Record<string, unknown>).userId as number) ?? 1);
   }),
 });

@@ -41,7 +41,7 @@ export async function createSession(params: {
     status: "active",
   });
 
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 /**
@@ -194,7 +194,7 @@ export async function addMessage(params: {
     await updateSession(params.sessionId, { title });
   }
 
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 /**
@@ -362,7 +362,7 @@ export async function createTemplate(params: {
     isPublic: params.isPublic ? 1 : 0,
   });
 
-  return { id: result[0].insertId };
+  return { id: (result as any)[0].insertId };
 }
 
 /**

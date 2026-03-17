@@ -26,7 +26,7 @@ export const hrIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "HR_ASSESS_TALENT",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -46,7 +46,7 @@ export const hrIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "HR_RECOMMEND_TRAINING",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -67,7 +67,7 @@ export const hrIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "HR_ANALYZE_COMPENSATION",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),
@@ -88,7 +88,7 @@ export const hrIntelligenceRouter = router({
       const { taskId } = await submitTask(
         "HR_PLAN_WORKFORCE",
         input as Record<string, unknown>,
-        ctx.user.name ?? `User#${ctx.user.id}`,
+        ctx.user!.name ?? `User#${ctx.user!.id}`,
       );
       return { taskId, status: "processing" as const };
     }),

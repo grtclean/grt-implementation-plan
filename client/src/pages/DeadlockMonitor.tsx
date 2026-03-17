@@ -99,7 +99,7 @@ export default function DeadlockMonitor() {
     severity: r.severity
   }));
   
-  const dailyStats: DailyStats[] = (statsQuery.data?.dailyStats ?? []).map(s => ({
+  const dailyStats: DailyStats[] = (statsQuery.data?.dailyStats ?? []).map((s: any) => ({
     date: s.date,
     detected: s.detected,
     resolved: s.resolved,

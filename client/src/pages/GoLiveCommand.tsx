@@ -342,7 +342,7 @@ function ReadinessTab() {
         <CardContent>
           {blockersData?.blockers.length === 0 && <p className="text-sm text-green-600 flex items-center gap-1"><CheckCircle className="h-4 w-4" /> 无阻塞项 — 系统已就绪</p>}
           <div className="space-y-2">
-            {(blockersData?.blockers ?? []).map((b, i) => (
+            {(blockersData?.blockers ?? []).map((b: any, i: any) => (
               <div key={i} className={`flex items-start gap-2 p-3 rounded text-sm ${b.severity === "critical" ? "bg-red-50 border-red-200 border" : b.severity === "warning" ? "bg-yellow-50 border-yellow-200 border" : "bg-blue-50 border-blue-200 border"}`}>
                 {b.severity === "critical" ? <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" /> : b.severity === "warning" ? <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" /> : <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />}
                 <div className="flex-1">
@@ -1170,7 +1170,7 @@ function SimulationTab() {
               {(results.data ?? []).map((r) => (
                 <div key={r.id} className="flex items-center justify-between p-2 border rounded text-sm">
                   <span>{r.totalEmployees} 员工</span>
-                  <span className="text-xs text-muted-foreground">{r.simulatedAt}</span>
+                  <span className="text-xs text-muted-foreground">{r.simulatedAt ? String(r.simulatedAt) : ""}</span>
                 </div>
               ))}
             </div>

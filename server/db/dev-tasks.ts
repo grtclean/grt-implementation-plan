@@ -28,7 +28,7 @@ export async function createDevTask(data: InsertDevTask) {
       ...data,
       taskCode: code,
     });
-    return { id: result[0].insertId, taskCode: code };
+    return { id: (result as any)[0].insertId, taskCode: code };
   } catch (error) {
     log.error({ err: error }, "Failed to create dev task");
     throw error;

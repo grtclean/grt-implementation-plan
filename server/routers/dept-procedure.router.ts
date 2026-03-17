@@ -97,7 +97,7 @@ const categoriesRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      log.info({ deptCode: input.deptCode, userId: ctx.user.id }, "Category create");
+      log.info({ deptCode: input.deptCode, userId: ctx.user!.id }, "Category create");
       return svc.createCategory(input);
     }),
 });
@@ -192,8 +192,8 @@ const proceduresRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      log.info({ code: input.procedureCode, userId: ctx.user.id }, "Procedure create");
-      return svc.createProcedure({ ...input, createdBy: ctx.user.id });
+      log.info({ code: input.procedureCode, userId: ctx.user!.id }, "Procedure create");
+      return svc.createProcedure({ ...input, createdBy: ctx.user!.id });
     }),
 
   /** Update procedure fields (manager+) */
@@ -224,8 +224,8 @@ const proceduresRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const { id, ...data } = input;
-      log.info({ id, userId: ctx.user.id }, "Procedure update");
-      return svc.updateProcedure(id, { ...data, updatedBy: ctx.user.id });
+      log.info({ id, userId: ctx.user!.id }, "Procedure update");
+      return svc.updateProcedure(id, { ...data, updatedBy: ctx.user!.id });
     }),
 
   /** Publish procedure → effective (manager+) */
@@ -237,16 +237,16 @@ const proceduresRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const approverName = input.approverName ?? ctx.user.name ?? "Unknown";
-      log.info({ id: input.id, approverId: ctx.user.id }, "Procedure publish");
-      return svc.publishProcedure(input.id, ctx.user.id, approverName);
+      const approverName = input.approverName ?? ctx.user!.name ?? "Unknown";
+      log.info({ id: input.id, approverId: ctx.user!.id }, "Procedure publish");
+      return svc.publishProcedure(input.id, ctx.user!.id, approverName);
     }),
 
   /** Archive procedure (admin only) */
   archive: requirePermission("admin:system:manage")
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
-      log.info({ id: input.id, userId: ctx.user.id }, "Procedure archive");
+      log.info({ id: input.id, userId: ctx.user!.id }, "Procedure archive");
       return svc.archiveProcedure(input.id);
     }),
 });
@@ -273,7 +273,7 @@ const versionsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       log.info(
-        { procedureId: input.procedureId, changeType: input.changeType, userId: ctx.user.id },
+        { procedureId: input.procedureId, changeType: input.changeType, userId: ctx.user!.id },
         "Version created",
       );
       return svc.createNewVersion(
@@ -281,7 +281,7 @@ const versionsRouter = router({
         input.changeType,
         input.changeSummary,
         input.content,
-        ctx.user.id,
+        ctx.user!.id,
       );
     }),
 });
@@ -304,8 +304,8 @@ const acknowledgementsRouter = router({
       return svc.acknowledge(
         input.procedureId,
         input.version,
-        ctx.user.id,
-        ctx.user.name ?? "Unknown",
+        ctx.user!.id,
+        ctx.user!.name ?? "Unknown",
         (ctx.user as any).department ?? "",
         input.method,
         input.quizScore,
@@ -317,7 +317,7 @@ const acknowledgementsRouter = router({
   myPending: protectedProcedure.query(async ({ ctx }) => {
     const userRole = (ctx.user as any).role ?? "employee";
     const userDept = (ctx.user as any).department ?? "";
-    return svc.getMyPendingAcks(ctx.user.id, userRole, userDept);
+    return svc.getMyPendingAcks(ctx.user!.id, userRole, userDept);
   }),
 
   /** All acknowledgments for a procedure (manager+) */
@@ -377,8 +377,8 @@ const exceptionsRouter = router({
       return svc.createException({
         procedureId: input.procedureId,
         exceptionCode: input.exceptionCode,
-        reportedBy: ctx.user.id,
-        reportedByName: input.reportedByName ?? ctx.user.name ?? "Unknown",
+        reportedBy: ctx.user!.id,
+        reportedByName: input.reportedByName ?? ctx.user!.name ?? "Unknown",
         department: input.department,
         description: input.description,
         severity: input.severity,
@@ -406,7 +406,7 @@ const exceptionsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const { id, ...data } = input;
-      log.info({ id, userId: ctx.user.id }, "Exception update");
+      log.info({ id, userId: ctx.user!.id }, "Exception update");
       return svc.updateException(id, data);
     }),
 
@@ -419,9 +419,9 @@ const exceptionsRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const resolvedByName = input.resolvedByName ?? ctx.user.name ?? "Unknown";
-      log.info({ id: input.id, userId: ctx.user.id }, "Exception resolve");
-      return svc.resolveException(input.id, ctx.user.id, resolvedByName);
+      const resolvedByName = input.resolvedByName ?? ctx.user!.name ?? "Unknown";
+      log.info({ id: input.id, userId: ctx.user!.id }, "Exception resolve");
+      return svc.resolveException(input.id, ctx.user!.id, resolvedByName);
     }),
 
   /** Exceptions dashboard view (open/critical counts per dept) */
@@ -475,7 +475,7 @@ const kpiLinksRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      log.info({ procedureId: input.procedureId, kpiCode: input.kpiCode, userId: ctx.user.id }, "KPI link");
+      log.info({ procedureId: input.procedureId, kpiCode: input.kpiCode, userId: ctx.user!.id }, "KPI link");
       return svc.linkKpi(
         input.procedureId,
         input.kpiCode,
@@ -491,7 +491,7 @@ const kpiLinksRouter = router({
   unlink: requirePermission("hr:employee:manage")
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
-      log.info({ id: input.id, userId: ctx.user.id }, "KPI unlink");
+      log.info({ id: input.id, userId: ctx.user!.id }, "KPI unlink");
       return svc.unlinkKpi(input.id);
     }),
 });
@@ -541,14 +541,14 @@ const reviewRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const reviewerName = input.reviewerName ?? ctx.user.name ?? "Unknown";
+      const reviewerName = input.reviewerName ?? ctx.user!.name ?? "Unknown";
       log.info(
-        { procedureId: input.procedureId, outcome: input.outcome, userId: ctx.user.id },
+        { procedureId: input.procedureId, outcome: input.outcome, userId: ctx.user!.id },
         "Review submitted",
       );
       return svc.submitReview(
         input.procedureId,
-        ctx.user.id,
+        ctx.user!.id,
         reviewerName,
         input.outcome,
         input.notes,

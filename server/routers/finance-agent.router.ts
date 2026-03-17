@@ -43,7 +43,7 @@ export const financeAgentRouter = router({
       if (!claim) throw new TRPCError({ code: "NOT_FOUND", message: "报销单不存在" });
 
       // Ownership check: only submitter can trigger AI review
-      if (claim.submitterId !== ctx.user.id && !FINANCE_ROLES.has(ctx.user.role ?? "")) {
+      if (claim.submitterId !== ctx.user!.id && !FINANCE_ROLES.has(ctx.user!.role ?? "")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "只能提交自己的报销单进行AI审核" });
       }
 
@@ -145,7 +145,7 @@ export const financeAgentRouter = router({
       if (!claim) throw new TRPCError({ code: "NOT_FOUND", message: "报销单不存在" });
 
       // Ownership check: only submitter or finance roles can view diagnostic report
-      if (claim.submitterId !== ctx.user.id && !FINANCE_ROLES.has(ctx.user.role ?? "")) {
+      if (claim.submitterId !== ctx.user!.id && !FINANCE_ROLES.has(ctx.user!.role ?? "")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "无权查看该报销单的AI诊断报告" });
       }
 
@@ -180,7 +180,7 @@ export const financeAgentRouter = router({
       if (!claim) throw new TRPCError({ code: "NOT_FOUND", message: "报销单不存在" });
 
       // Prevent submitter from overriding their own claim
-      if (claim.submitterId === ctx.user.id) {
+      if (claim.submitterId === ctx.user!.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "不能对自己的报销单进行例外审批" });
       }
 
@@ -229,14 +229,14 @@ export const financeAgentRouter = router({
     .query(async ({ input, ctx }) => {
       const db = await requireDb();
       const offset = (input.page - 1) * input.pageSize;
-      const role = ctx.user.role ?? "employee";
+      const role = ctx.user!.role ?? "employee";
       const isFinance = FINANCE_ROLES.has(role);
 
       // Non-finance users only see their own pending reviews
       const statusCondition = inArray(expenseClaims.status, ["ai_reviewing", "pending_review"]);
       const conditions = isFinance
         ? statusCondition
-        : and(statusCondition, eq(expenseClaims.submitterId, ctx.user.id));
+        : and(statusCondition, eq(expenseClaims.submitterId, ctx.user!.id));
 
       const rows = await db
         .select({
@@ -285,14 +285,14 @@ export const financeAgentRouter = router({
    */
   recentReviews: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
-    const role = ctx.user.role ?? "employee";
+    const role = ctx.user!.role ?? "employee";
     const isFinance = FINANCE_ROLES.has(role);
 
     // Non-finance users only see their own reviewed claims
     const auditCondition = sql`${expenseClaims.aiAuditResult} IS NOT NULL`;
     const conditions = isFinance
       ? auditCondition
-      : and(auditCondition, eq(expenseClaims.submitterId, ctx.user.id));
+      : and(auditCondition, eq(expenseClaims.submitterId, ctx.user!.id));
 
     const rows = await db
       .select({

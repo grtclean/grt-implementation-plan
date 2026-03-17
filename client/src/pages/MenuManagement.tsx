@@ -56,13 +56,13 @@ export default function MenuManagement() {
       toast({ title: t("admin.menuMgmt.visibilityUpdated") });
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: t("admin.menuMgmt.error"), description: error.message, variant: "destructive" });
     },
   });
 
   // 筛选菜单项
-  const filteredMenus = menuData?.filter((menu) => {
+  const filteredMenus = menuData?.filter((menu: any) => {
     const matchesSearch = menu.label.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLevel =
       selectedLevel === "all" ||
@@ -71,8 +71,8 @@ export default function MenuManagement() {
     return matchesSearch && matchesLevel;
   }) || [];
 
-  const primaryMenus = filteredMenus.filter((m) => !m.parentId);
-  const secondaryMenus = filteredMenus.filter((m) => m.parentId);
+  const primaryMenus = filteredMenus.filter((m: any) => !m.parentId);
+  const secondaryMenus = filteredMenus.filter((m: any) => m.parentId);
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">{t("admin.menuMgmt.loading")}</div>;
@@ -175,7 +175,7 @@ export default function MenuManagement() {
                     {t("admin.menuMgmt.noMatchingMenuItems")}
                   </div>
                 ) : (
-                  filteredMenus.map((menu) => (
+                  filteredMenus.map((menu: any) => (
                     <div
                       key={menu.id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent"
@@ -246,7 +246,7 @@ export default function MenuManagement() {
                     {t("admin.menuMgmt.noPrimaryMenuItems")}
                   </div>
                 ) : (
-                  primaryMenus.map((menu) => (
+                  primaryMenus.map((menu: any) => (
                     <div
                       key={menu.id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent"
@@ -287,7 +287,7 @@ export default function MenuManagement() {
                     {t("admin.menuMgmt.noSecondaryMenuItems")}
                   </div>
                 ) : (
-                  secondaryMenus.map((menu) => (
+                  secondaryMenus.map((menu: any) => (
                     <div
                       key={menu.id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent"

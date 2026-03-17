@@ -126,7 +126,7 @@ export const productionExecutionRouter = router({
         input.stageId,
         input.status,
         ctx.user?.id,
-        ctx.user?.name,
+        ctx.user?.name as any,
         input.reason
       );
       return {
@@ -204,7 +204,7 @@ export const productionExecutionRouter = router({
       const recordId = await db.createTimeRecord({
         ...input,
         userId: ctx.user?.id || 0,
-        userName: ctx.user?.name,
+        userName: ctx.user?.name as any,
       });
       return {
         success: true,
@@ -324,7 +324,7 @@ export const productionExecutionRouter = router({
       const approvalId = await db.createApprovalRequest({
         ...input,
         requestedBy: ctx.user?.id || 0,
-        requestedByName: ctx.user?.name,
+        requestedByName: ctx.user?.name as any,
       });
       return {
         success: true,
@@ -760,8 +760,8 @@ export const productionExecutionRouter = router({
           },
         },
         [{
-          userId: ctx.user.id,
-          userName: ctx.user.name,
+          userId: ctx.user!.id,
+          userName: ctx.user!.name as any,
         }],
         [input.channel]
       );

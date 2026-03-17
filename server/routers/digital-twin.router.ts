@@ -119,7 +119,7 @@ export const digitalTwinRouter = router({
     thumbnailUrl: z.string().optional(),
     metadata: z.record(z.string(), jsonValue).optional(),
   })).mutation(async ({ input, ctx }) => {
-    return createAsset({ ...input, createdBy: ctx.user.id });
+    return createAsset({ ...input, createdBy: ctx.user!.id });
   }),
 
   updateAsset: requirePermission('rnd:digital-twin:view').input(z.object({
@@ -151,7 +151,7 @@ export const digitalTwinRouter = router({
 
     const { id, ...data } = input;
     const [updated] = await db.update(dtAssets)
-      .set({ ...data, updatedBy: ctx.user.id, updatedAt: new Date().toISOString() })
+      .set({ ...data, updatedBy: ctx.user!.id, updatedAt: new Date().toISOString() })
       .where(eq(dtAssets.id, assetId))
       .returning();
     return updated;
@@ -171,7 +171,7 @@ export const digitalTwinRouter = router({
     }
 
     const [updated] = await db.update(dtAssets)
-      .set({ status: "pending_review", updatedBy: ctx.user.id, updatedAt: new Date().toISOString() })
+      .set({ status: "pending_review", updatedBy: ctx.user!.id, updatedAt: new Date().toISOString() })
       .where(eq(dtAssets.id, assetId))
       .returning();
 
@@ -179,8 +179,8 @@ export const digitalTwinRouter = router({
     await db.insert(iatfAuditLogs).values({
       assetId,
       action: "upload",
-      actorId: ctx.user.id,
-      actorName: ctx.user.name ?? `User#${ctx.user.id}`,
+      actorId: ctx.user!.id,
+      actorName: ctx.user!.name ?? `User#${ctx.user!.id}`,
       hashAtAction: asset.sha256Hash,
       previousStatus: "draft",
       newStatus: "pending_review",
@@ -213,8 +213,8 @@ export const digitalTwinRouter = router({
     return publishAssetVersion({
       ...input,
       previousAssetId: toNum(input.previousAssetId),
-      uploadedBy: ctx.user.id,
-      uploadedByName: ctx.user.name ?? `User#${ctx.user.id}`,
+      uploadedBy: ctx.user!.id,
+      uploadedByName: ctx.user!.name ?? `User#${ctx.user!.id}`,
     });
   }),
 
@@ -226,8 +226,8 @@ export const digitalTwinRouter = router({
     return approveAsset({
       ...input,
       assetId: toNum(input.assetId),
-      approvedBy: ctx.user.id,
-      approvedByName: ctx.user.name ?? `User#${ctx.user.id}`,
+      approvedBy: ctx.user!.id,
+      approvedByName: ctx.user!.name ?? `User#${ctx.user!.id}`,
     });
   }),
 
@@ -238,8 +238,8 @@ export const digitalTwinRouter = router({
     return freezeAsset({
       ...input,
       assetId: toNum(input.assetId),
-      frozenBy: ctx.user.id,
-      frozenByName: ctx.user.name ?? `User#${ctx.user.id}`,
+      frozenBy: ctx.user!.id,
+      frozenByName: ctx.user!.name ?? `User#${ctx.user!.id}`,
     });
   }),
 
@@ -251,8 +251,8 @@ export const digitalTwinRouter = router({
     return verifyHash({
       ...input,
       assetId: toNum(input.assetId),
-      verifiedBy: ctx.user.id,
-      verifiedByName: ctx.user.name ?? `User#${ctx.user.id}`,
+      verifiedBy: ctx.user!.id,
+      verifiedByName: ctx.user!.name ?? `User#${ctx.user!.id}`,
     });
   }),
 
@@ -310,7 +310,7 @@ export const digitalTwinRouter = router({
       safetyClearanceMm: input.safetyClearanceMm,
       nodeType: input.nodeType,
       instructions: input.instructions,
-      createdBy: ctx.user.id,
+      createdBy: ctx.user!.id,
     }).returning();
     return node;
   }),

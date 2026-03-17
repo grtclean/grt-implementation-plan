@@ -89,13 +89,13 @@ export async function createAnnualPlanningConfig(data: {
   
   // Log the creation
   await createAnnualPlanningUpdateLog({
-    configId: result[0].insertId,
+    configId: (result as any)[0].insertId,
     updateType: "create",
     description: `创建年度规划配置: ${data.versionName}`,
     operatorId: data.creatorId
   });
   
-  return { id: result[0].insertId, ...data };
+  return { id: (result as any)[0].insertId, ...data };
 }
 
 /**
@@ -230,7 +230,7 @@ export async function createAnnualPlanningItem(data: {
   if (!db) return null;
   
   const result = await db.insert(annualPlanningItems).values(data);
-  return { id: result[0].insertId, ...data };
+  return { id: (result as any)[0].insertId, ...data };
 }
 
 /**
@@ -287,7 +287,7 @@ export async function createAnnualPlanningUpdateLog(data: {
   if (!db) return null;
   
   const result = await db.insert(annualPlanningUpdateLogs).values(data);
-  return { id: result[0].insertId, ...data };
+  return { id: (result as any)[0].insertId, ...data };
 }
 
 /**

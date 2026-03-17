@@ -34,7 +34,7 @@ export default function CertificateVerify() {
   const { data: verificationResult, isLoading, refetch } = trpc.capabilityOs.verifyCertificateByQR.useQuery(
     { certificateNumber: verifyNumber },
     { enabled: !!verifyNumber }
-  );
+  ) as any;
 
   // 如果URL中有证书编号，自动验证
   useEffect(() => {

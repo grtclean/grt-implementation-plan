@@ -71,8 +71,8 @@ const policyRouter = router({
       buScope: z.string().max(20).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      log.info({ policyCode: input.policyCode, userId: ctx.user.id }, "Policy upsert");
-      return svc.upsertPolicy({ ...input, createdBy: ctx.user.name ?? undefined });
+      log.info({ policyCode: input.policyCode, userId: ctx.user!.id }, "Policy upsert");
+      return svc.upsertPolicy({ ...input, createdBy: ctx.user!.name ?? undefined });
     }),
 
   /** Get threshold matrix for a domain (for display) */
@@ -94,7 +94,7 @@ const policyRouter = router({
 const creditTierRouter = router({
   /** Get my credit tier */
   getMy: protectedProcedure.query(async ({ ctx }) => {
-    return svc.getCreditTier(ctx.user.id);
+    return svc.getCreditTier(ctx.user!.id);
   }),
 
   /** Get any employee's credit tier (manager+) */
@@ -144,13 +144,13 @@ const creditTierRouter = router({
     .mutation(async ({ input, ctx }) => {
       log.info({ targetUserId: input.userId, newTier: input.creditTier }, "Credit tier override");
       const result = await svc.overrideCreditTier(
-        input.userId, input.creditTier, input.creditScore, ctx.user.id,
+        input.userId, input.creditTier, input.creditScore, ctx.user!.id,
       );
 
       await svc.recordAudit({
         eventType: "credit_change",
-        actorId: ctx.user.id,
-        actorName: ctx.user.name ?? undefined,
+        actorId: ctx.user!.id,
+        actorName: ctx.user!.name ?? undefined,
         targetUserId: input.userId,
         decision: `override_to_${input.creditTier}`,
         metadata: { newScore: input.creditScore },
@@ -168,7 +168,7 @@ const greenChannelRouter = router({
       amount: z.number().min(0),
     }))
     .query(async ({ input, ctx }) => {
-      return svc.checkGreenChannelEligibility(ctx.user.id, input.domain, input.amount);
+      return svc.checkGreenChannelEligibility(ctx.user!.id, input.domain, input.amount);
     }),
 
   /** Use green channel for a request */
@@ -181,8 +181,8 @@ const greenChannelRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       return svc.useGreenChannel({
-        userId: ctx.user.id,
-        employeeName: ctx.user.name ?? "Unknown",
+        userId: ctx.user!.id,
+        employeeName: ctx.user!.name ?? "Unknown",
         domain: input.domain,
         amount: input.amount,
         description: input.description,
@@ -194,7 +194,7 @@ const greenChannelRouter = router({
   getMyUsages: protectedProcedure
     .input(z.object({ limit: z.number().min(1).max(100).default(20) }).optional())
     .query(async ({ ctx, input }) => {
-      return svc.listGreenChannelUsages(ctx.user.id, input?.limit ?? 20);
+      return svc.listGreenChannelUsages(ctx.user!.id, input?.limit ?? 20);
     }),
 
   /** All usages (admin audit) */
@@ -227,7 +227,7 @@ const greenChannelRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { id, ...data } = input;
-      log.info({ ruleId: id, userId: ctx.user.id }, "GC rule updated");
+      log.info({ ruleId: id, userId: ctx.user!.id }, "GC rule updated");
       return svc.updateGreenChannelRule(id, data);
     }),
 });
@@ -251,8 +251,8 @@ const postFactoRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       return svc.submitPostFacto({
-        userId: ctx.user.id,
-        employeeName: ctx.user.name ?? "Unknown",
+        userId: ctx.user!.id,
+        employeeName: ctx.user!.name ?? "Unknown",
         domain: input.domain,
         greenChannelUsageId: input.greenChannelUsageId,
         originalApprovalId: input.originalApprovalId,
@@ -265,7 +265,7 @@ const postFactoRouter = router({
 
   /** My pending post-facto submissions */
   getMyPending: protectedProcedure.query(async ({ ctx }) => {
-    return svc.getMyPendingPostFacto(ctx.user.id);
+    return svc.getMyPendingPostFacto(ctx.user!.id);
   }),
 
   /** Review a post-facto submission (manager+) */
@@ -277,7 +277,7 @@ const postFactoRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       return svc.reviewPostFacto(
-        input.id, ctx.user.id, ctx.user.name ?? "Unknown", input.status, input.comment,
+        input.id, ctx.user!.id, ctx.user!.name ?? "Unknown", input.status, input.comment,
       );
     }),
 
@@ -293,7 +293,7 @@ const integrityRouter = router({
   getMyScore: protectedProcedure
     .input(z.object({ period: z.string().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      return svc.getIntegrityScore(ctx.user.id, input?.period);
+      return svc.getIntegrityScore(ctx.user!.id, input?.period);
     }),
 
   /** Integrity leaderboard */
@@ -319,7 +319,7 @@ const integrityRouter = router({
       log.info({ targetUserId: input.userId, type: input.recognitionType }, "Employee recognized");
       return svc.recognizeEmployee(
         input.userId, input.employeeName, input.period,
-        input.recognitionType, input.note, ctx.user.id,
+        input.recognitionType, input.note, ctx.user!.id,
       );
     }),
 
@@ -368,7 +368,7 @@ const resolveRouter = router({
     }))
     .query(async ({ input, ctx }) => {
       return svc.resolveApprovalChain(
-        input.domain, input.amount, ctx.user.id, input.buCode,
+        input.domain, input.amount, ctx.user!.id, input.buCode,
       );
     }),
 });

@@ -107,7 +107,7 @@ export default function CrmCustomers() {
 
   // Seed data mutation (admin only)
   const seedDataMutation = (trpc.crm as any).seedData.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       if (result.counts) {
         toast.success(`测试数据生成成功！已创建 ${result.counts.customers} 个客户、${result.counts.opportunities} 个商机、${result.counts.contacts} 个联系人`);
       } else {
@@ -116,7 +116,7 @@ export default function CrmCustomers() {
       refetch();
       setIsSeedingData(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`生成失败: ${error.message}`);
       setIsSeedingData(false);
     },

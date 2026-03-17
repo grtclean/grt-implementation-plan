@@ -68,14 +68,14 @@ export const customerSolutionMeetingRouter = router({
         ...rest,
         meetingMode: meetingMode || 'online',
         status: 'scheduled',
-        organizerId: String(ctx.user.id),
-        organizerName: ctx.user.name || String(ctx.user.id),
+        organizerId: String(ctx.user!.id),
+        organizerName: ctx.user!.name || String(ctx.user!.id),
         scheduledStart: scheduledStart ? new Date(scheduledStart) : undefined,
         scheduledEnd: scheduledEnd ? new Date(scheduledEnd) : undefined,
         aiCaseMatchingEnabled: input.aiCaseMatchingEnabled ?? true,
         aiSolutionSuggestionEnabled: input.aiSolutionSuggestionEnabled ?? true,
         aiVoiceRecognitionEnabled: input.aiVoiceRecognitionEnabled ?? true,
-        createdBy: String(ctx.user.id)
+        createdBy: String(ctx.user!.id)
       });
     }),
   
@@ -137,7 +137,7 @@ export const customerSolutionMeetingRouter = router({
         mimeType: input.mimeType,
         description: input.description,
         tags: input.tags,
-        uploadedBy: String(ctx.user.id)
+        uploadedBy: String(ctx.user!.id)
       });
     }),
   
@@ -255,7 +255,7 @@ export const customerSolutionMeetingRouter = router({
         audioBuffer,
         audioFormat: input.audioFormat,
         language: input.language,
-        createdBy: String(ctx.user.id)
+        createdBy: String(ctx.user!.id)
       });
     }),
 
@@ -279,7 +279,7 @@ export const customerSolutionMeetingRouter = router({
     .mutation(async ({ input, ctx }) => {
       return aiDocRetrieval({
         ...input,
-        createdBy: String(ctx.user.id)
+        createdBy: String(ctx.user!.id)
       });
     }),
 
@@ -325,7 +325,7 @@ export const customerSolutionMeetingRouter = router({
         aiPrompt: input.aiPrompt,
         aiConfidence: input.aiConfidence,
         referenceCases: input.referenceCases,
-        createdBy: String(ctx.user.id)
+        createdBy: String(ctx.user!.id)
       });
     }),
   
@@ -363,8 +363,8 @@ export const customerSolutionMeetingRouter = router({
       await reviewSolutionVersion({
         versionId: input.versionId,
         status: input.status,
-        reviewerId: String(ctx.user.id),
-        reviewerName: ctx.user.name || String(ctx.user.id),
+        reviewerId: String(ctx.user!.id),
+        reviewerName: ctx.user!.name || String(ctx.user!.id),
         reviewComments: input.reviewComments
       });
 

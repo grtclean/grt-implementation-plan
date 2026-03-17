@@ -383,11 +383,11 @@ export function searchEntities(
         const value = entity.properties[filter.field];
         if (value === undefined) return false;
         switch (filter.operator) {
-          case 'gt': return value > filter.value;
-          case 'lt': return value < filter.value;
+          case 'gt': return value! > filter.value;
+          case 'lt': return value! < filter.value;
           case 'eq': return value === filter.value;
-          case 'gte': return value >= filter.value;
-          case 'lte': return value <= filter.value;
+          case 'gte': return value! >= filter.value;
+          case 'lte': return value! <= filter.value;
           default: return true;
         }
       });

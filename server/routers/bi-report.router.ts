@@ -92,7 +92,7 @@ const periodRouter = router({
       // Trigger AI executive summary generation
       const result = await submitTask("BI_EXECUTIVE_SUMMARY", {
         reportPeriodId: input.id,
-      }, String(ctx.user.id));
+      }, String(ctx.user!.id));
 
       const [row] = await db.update(biReportPeriods)
         .set({ status: "generating", generationTaskId: result.taskId, updatedAt: new Date().toISOString() })
@@ -255,7 +255,7 @@ const departmentRouter = router({
       const result = await submitTask("BI_DEPT_AI_EVAL", {
         reportPeriodId: input.reportPeriodId,
         departmentCode: input.departmentCode,
-      }, String(ctx.user.id));
+      }, String(ctx.user!.id));
       log.info({ ...input, taskId: result.taskId }, "BI department AI evaluation triggered");
       return { taskId: result.taskId, status: "generating" };
     }),
@@ -419,7 +419,7 @@ const individualRouter = router({
       const result = await submitTask("BI_INDIVIDUAL_AI_EVAL", {
         reportPeriodId: input.reportPeriodId,
         userId: input.userId,
-      }, String(ctx.user.id));
+      }, String(ctx.user!.id));
       log.info({ ...input, taskId: result.taskId }, "BI individual AI evaluation triggered");
       return { taskId: result.taskId, status: "generating" };
     }),

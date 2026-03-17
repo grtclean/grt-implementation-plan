@@ -14,7 +14,7 @@ export const aiNotebookRouter = router({
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
     let items = await db.select().from(aiNotebookSuggestions).orderBy(desc(aiNotebookSuggestions.createdAt)).limit(1000);
-    if (input?.entryId) items = items.filter(s => s.entryId === toNum(input.entryId));
+    if (input?.entryId) items = items.filter(s => s.entryId === toNum(input.entryId!));
     if (input?.status) items = items.filter(s => s.status === input.status);
     return items;
   }),
@@ -38,7 +38,7 @@ export const aiNotebookRouter = router({
     const { taskId } = await submitTask(
       "AI_NOTEBOOK_ANALYZE",
       { entryId: toNum(entryId), content, processType, processId },
-      ctx.user.name ?? `User#${ctx.user.id}`,
+      ctx.user!.name ?? `User#${ctx.user!.id}`,
     );
 
     return { success: true, message: "分析任务已提交", suggestions: [], taskId };
@@ -77,7 +77,7 @@ export const aiNotebookRouter = router({
     const [item] = await db.update(aiNotebookSuggestions).set({
       status: "accepted",
       acceptedValue: input.acceptedValue,
-      acceptedBy: ctx.user.id,
+      acceptedBy: ctx.user!.id,
       acceptedAt: new Date().toISOString(),
     }).where(eq(aiNotebookSuggestions.id, numId)).returning();
     return { success: true, data: item };
@@ -91,7 +91,7 @@ export const aiNotebookRouter = router({
     const numId = toNum(input.id || input.suggestionId || 0);
     const [item] = await db.update(aiNotebookSuggestions).set({
       status: "rejected",
-      acceptedBy: ctx.user.id,
+      acceptedBy: ctx.user!.id,
     }).where(eq(aiNotebookSuggestions.id, numId)).returning();
     return { success: true, data: item };
   }),

@@ -122,7 +122,7 @@ const structuresRouter = router({
 
       const [row] = await db.insert(salaryStructures).values({
         ...input,
-        createdById: ctx.user.id,
+        createdById: ctx.user!.id,
       }).returning();
       log.info({ employeeId: input.employeeId, action: "create" }, "Salary structure created");
       return { id: row.id, action: "created" };
@@ -311,7 +311,7 @@ const ledgerRouter = router({
         taskType: "payroll_batch_calculation",
         status: "pending",
         inputData: { period: input.period, employeeIds: input.employeeIds },
-        createdBy: String(ctx.user.id),
+        createdBy: String(ctx.user!.id),
       }).returning();
 
       log.info({ taskId: task.id, period: input.period }, "Batch payroll task queued");
@@ -457,9 +457,9 @@ const ledgerRouter = router({
       for (const ledger of drafts) {
         await db.update(payrollLedgers).set({
           status: "HR_VERIFIED",
-          submittedById: ctx.user.id,
+          submittedById: ctx.user!.id,
           submittedAt: new Date().toISOString(),
-          hrVerifiedById: ctx.user.id,
+          hrVerifiedById: ctx.user!.id,
           hrVerifiedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }).where(eq(payrollLedgers.id, ledger.id));
@@ -468,14 +468,14 @@ const ledgerRouter = router({
           ledgerId: ledger.id,
           fromStatus: "DRAFT",
           toStatus: "HR_VERIFIED",
-          operatorId: ctx.user.id,
-          operatorRole: ctx.user.role,
+          operatorId: ctx.user!.id,
+          operatorRole: ctx.user!.role,
           reason: input.reason || "HR verification submitted",
         });
         updated++;
       }
 
-      log.info({ period: input.period, updated, userId: ctx.user.id }, "Payroll submitted for approval");
+      log.info({ period: input.period, updated, userId: ctx.user!.id }, "Payroll submitted for approval");
       return { updated, message: `${updated} records submitted for HR verification` };
     }),
 
@@ -493,8 +493,8 @@ const ledgerRouter = router({
       }
 
       // Role check (admin can always approve)
-      if (ctx.user.role !== "admin" && !transition.requiredRole.includes(ctx.user.role)) {
-        return { updated: 0, error: `Role ${ctx.user.role} cannot approve ${input.fromStatus} → ${transition.next}` };
+      if (ctx.user!.role !== "admin" && !transition.requiredRole.includes(ctx.user!.role)) {
+        return { updated: 0, error: `Role ${ctx.user!.role} cannot approve ${input.fromStatus} → ${transition.next}` };
       }
 
       const db = await requireDb();
@@ -517,13 +517,13 @@ const ledgerRouter = router({
 
       // Set approval fields based on transition
       if (transition.next === "HR_VERIFIED") {
-        updateFields.hrVerifiedById = ctx.user.id;
+        updateFields.hrVerifiedById = ctx.user!.id;
         updateFields.hrVerifiedAt = now;
       } else if (transition.next === "FINANCE_APPROVED") {
-        updateFields.financeApprovedById = ctx.user.id;
+        updateFields.financeApprovedById = ctx.user!.id;
         updateFields.financeApprovedAt = now;
       } else if (transition.next === "CEO_APPROVED") {
-        updateFields.ceoApprovedById = ctx.user.id;
+        updateFields.ceoApprovedById = ctx.user!.id;
         updateFields.ceoApprovedAt = now;
       }
 
@@ -536,8 +536,8 @@ const ledgerRouter = router({
           ledgerId: ledger.id,
           fromStatus: input.fromStatus,
           toStatus: transition.next,
-          operatorId: ctx.user.id,
-          operatorRole: ctx.user.role,
+          operatorId: ctx.user!.id,
+          operatorRole: ctx.user!.role,
           reason: input.reason || `Approved: ${input.fromStatus} → ${transition.next}`,
         } as any);
         updated++;
@@ -556,7 +556,7 @@ const ledgerRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       // Only admin/finance_manager with CEO_APPROVED records
-      if (!["admin", "finance_manager"].includes(ctx.user.role)) {
+      if (!["admin", "finance_manager"].includes(ctx.user!.role)) {
         return { success: false, error: "Only admin or finance_manager can execute payout" };
       }
 
@@ -589,14 +589,14 @@ const ledgerRouter = router({
           ledgerId: ledger.id,
           fromStatus: "CEO_APPROVED",
           toStatus: "PAID",
-          operatorId: ctx.user.id,
-          operatorRole: ctx.user.role,
+          operatorId: ctx.user!.id,
+          operatorRole: ctx.user!.role,
           reason: `Payout executed. Confirmation: ${input.confirmationCode}`,
         });
         paid++;
       }
 
-      log.info({ period: input.period, paid, userId: ctx.user.id }, "Payout executed");
+      log.info({ period: input.period, paid, userId: ctx.user!.id }, "Payout executed");
       return {
         success: true,
         paid,
@@ -622,8 +622,8 @@ const awardsRouter = router({
       const db = await requireDb();
       const [row] = await db.insert(payrollExcellenceAwards).values({
         ...input,
-        nominatedById: ctx.user.id,
-        approvedById: ctx.user.id,
+        nominatedById: ctx.user!.id,
+        approvedById: ctx.user!.id,
       }).returning();
       log.info({ employeeId: input.employeeId, awardType: input.awardType }, "Excellence award created");
       return row;
@@ -673,7 +673,7 @@ const confidentialityRouter = router({
       const db = await requireDb();
       const [access] = await db.select().from(payrollAccessControl)
         .where(and(
-          eq(payrollAccessControl.userId, ctx.user.id),
+          eq(payrollAccessControl.userId, ctx.user!.id),
           eq(payrollAccessControl.isActive, true),
         ))
         .limit(1);
@@ -725,9 +725,9 @@ const confidentialityRouter = router({
       const db = await requireDb();
       const [row] = await db.insert(payrollAccessControl).values({
         ...input,
-        grantedById: ctx.user.id,
+        grantedById: ctx.user!.id,
       }).returning();
-      log.info({ userId: input.userId, grtId: input.employeeGrtId, grantedBy: ctx.user.id }, "Payroll access granted");
+      log.info({ userId: input.userId, grtId: input.employeeGrtId, grantedBy: ctx.user!.id }, "Payroll access granted");
       return row;
     }),
 
@@ -764,13 +764,13 @@ const perfWageOverrideRouter = router({
       // Verify caller has canOverridePerf permission
       const [access] = await db.select().from(payrollAccessControl)
         .where(and(
-          eq(payrollAccessControl.userId, ctx.user.id),
+          eq(payrollAccessControl.userId, ctx.user!.id),
           eq(payrollAccessControl.isActive, true),
           eq(payrollAccessControl.canOverridePerf, true),
         ))
         .limit(1);
 
-      if (!access && ctx.user.role !== "admin") {
+      if (!access && ctx.user!.role !== "admin") {
         return { success: false, error: "无绩效工资调整权限。仅CEO及授权人员可执行此操作。" };
       }
 
@@ -795,15 +795,15 @@ const perfWageOverrideRouter = router({
         calculatedValue: String(currentCalc),
         overrideValue: input.overrideValue,
         reason: input.reason,
-        operatorId: ctx.user.id,
-        operatorName: ctx.user.name ?? null,
-        approvedById: ctx.user.id,
+        operatorId: ctx.user!.id,
+        operatorName: ctx.user!.name ?? null,
+        approvedById: ctx.user!.id,
         approvedAt: new Date().toISOString(),
       });
 
       // Apply override to ledger
       const updateFields: Record<string, unknown> = {
-        overrideApprovedById: ctx.user.id,
+        overrideApprovedById: ctx.user!.id,
         overrideApprovedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -827,7 +827,7 @@ const perfWageOverrideRouter = router({
         wageSlot: input.wageSlot,
         from: String(currentCalc),
         to: input.overrideValue,
-        operatorId: ctx.user.id,
+        operatorId: ctx.user!.id,
       }, "Performance wage overridden");
 
       return { success: true, ledgerId: input.ledgerId, wageSlot: input.wageSlot };

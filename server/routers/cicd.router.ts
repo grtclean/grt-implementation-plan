@@ -389,7 +389,7 @@ export const cicdRouter = router({
           ? { ceoApprovedDev: true }
           : { ceoApprovedTest: true };
 
-      const approverName = ctx.user.name ?? `User#${ctx.user.id}`;
+      const approverName = ctx.user!.name ?? `User#${ctx.user!.id}`;
       const [updated] = await db
         .update(cicdTasks)
         .set({
@@ -891,7 +891,7 @@ Always respond in the same language as the user's prompt.`;
       // Log the interaction in the DB audit trail
       try {
         const db = await requireDb();
-        await db.insert(cicdStageLogs).values({
+        await (db.insert(cicdStageLogs) as any).values({
           taskId: input.taskId,
           fromStage: null,
           toStage: null,

@@ -19,20 +19,20 @@ import { eq, and, count, desc } from 'drizzle-orm';
 /**
  * 创建员工数字助手
  */
-export async function createEmployeeDA(data: any) {
+export async function createEmployeeDA(data: InsertEmployeeDigitalAssistant) {
   const db = await requireDb();
   if (!db) throw new Error('Database not available');
-  
+
   // 生成助手代码
   const assistantCode = `${data.employeeId}-DA`;
-  
+
   const result = await db.insert(employeeDigitalAssistants).values({
     ...data,
     assistantCode,
-  } as any);
+  } as InsertEmployeeDigitalAssistant);
 
   return {
-    id: (result as any).insertId,
+    id: (result as unknown as { insertId: number }).insertId,
     assistantCode,
   };
 }
@@ -42,12 +42,12 @@ export async function createEmployeeDA(data: any) {
  */
 export async function getEmployeeDA(employeeId: string) {
   const db = await requireDb();
-  
+
   const [da] = await db.select()
     .from(employeeDigitalAssistants)
     .where(eq(employeeDigitalAssistants.employeeId, employeeId))
     .limit(1);
-  
+
   return da || null;
 }
 
@@ -59,11 +59,11 @@ export async function updateEmployeeDA(
   data: Partial<InsertEmployeeDigitalAssistant>
 ) {
   const db = await requireDb();
-  
+
   await db.update(employeeDigitalAssistants)
     .set(data)
     .where(eq(employeeDigitalAssistants.id, id));
-  
+
   return { success: true };
 }
 
@@ -73,10 +73,10 @@ export async function updateEmployeeDA(
 export async function createFunctionalAssistant(data: InsertFunctionalAiAssistant) {
   const db = await requireDb();
 
-  const result = await db.insert(functionalAiAssistants).values(data as any);
+  const result = await db.insert(functionalAiAssistants).values(data as InsertFunctionalAiAssistant);
 
   return {
-    id: (result as any).insertId,
+    id: (result as unknown as { insertId: number }).insertId,
     assistantCode: data.assistantCode,
   };
 }
@@ -86,17 +86,17 @@ export async function createFunctionalAssistant(data: InsertFunctionalAiAssistan
  */
 export async function getFunctionalAssistant(assistantType: string) {
   const db = await requireDb();
-  
+
   const [assistant] = await db.select()
     .from(functionalAiAssistants)
     .where(
       and(
-        eq(functionalAiAssistants.assistantType, assistantType as any),
-        eq(functionalAiAssistants.isActive, 1 as any)
+        eq(functionalAiAssistants.assistantType, assistantType as typeof functionalAiAssistants.assistantType._.data),
+        eq(functionalAiAssistants.isActive, 1 as unknown as typeof functionalAiAssistants.isActive._.data)
       )
     )
     .limit(1);
-  
+
   return assistant || null;
 }
 
@@ -105,10 +105,10 @@ export async function getFunctionalAssistant(assistantType: string) {
  */
 export async function getActiveFunctionalAssistants() {
   const db = await requireDb();
-  
+
   return db.select()
     .from(functionalAiAssistants)
-    .where(eq(functionalAiAssistants.isActive, 1 as any))
+    .where(eq(functionalAiAssistants.isActive, 1 as unknown as typeof functionalAiAssistants.isActive._.data))
     .limit(1000);
 }
 
@@ -118,13 +118,13 @@ export async function getActiveFunctionalAssistants() {
 export async function getExecutionModeConfig(assistantId: number, mode: 'internal' | 'generative') {
   const db = await requireDb();
 
-  const configsTable = aiAssistantConfigs as any;
-  const [config] = await (db as any).select()
+  const configsTable = aiAssistantConfigs;
+  const [config] = await db.select()
     .from(configsTable)
     .where(
       and(
-        eq(configsTable.assistantId, assistantId as any),
-        eq(configsTable.configKey, mode as any)
+        eq(configsTable.assistantId, assistantId as unknown as typeof configsTable.assistantId._.data),
+        eq((configsTable as any).configKey, mode)
       )
     )
     .limit(1);
@@ -138,10 +138,10 @@ export async function getExecutionModeConfig(assistantId: number, mode: 'interna
 export async function logAiSuggestionExecution(data: InsertAiSuggestionExecutionLog) {
   const db = await requireDb();
 
-  const result = await db.insert(aiSuggestionExecutionLogs).values(data as any);
+  const result = await db.insert(aiSuggestionExecutionLogs).values(data as InsertAiSuggestionExecutionLog);
 
   return {
-    id: (result as any).insertId,
+    id: (result as unknown as { insertId: number }).insertId,
   };
 }
 
@@ -154,17 +154,17 @@ export async function getAiSuggestionLogs(
   limit: number = 10
 ) {
   const db = await requireDb();
-  
-  const logsTable = aiSuggestionExecutionLogs as any;
+
+  const logsTable = aiSuggestionExecutionLogs;
   return db.select()
     .from(logsTable)
     .where(
       and(
-        eq(logsTable.processType, processType as any),
-        eq(logsTable.processId, processId as any)
+        eq((logsTable as any).processType, processType),
+        eq((logsTable as any).processId, processId)
       )
     )
-    .orderBy(desc(logsTable.createdAt as any))
+    .orderBy(desc(logsTable.createdAt))
     .limit(limit);
 }
 
@@ -174,27 +174,27 @@ export async function getAiSuggestionLogs(
 export async function updateAiSuggestionStatus(
   logId: number,
   status: 'pending' | 'running' | 'success' | 'partial_success' | 'failed',
-  result?: any,
+  result?: Record<string, unknown>,
   error?: string
 ) {
   const db = await requireDb();
-  
-  const updateData: any = {
+
+  const updateData: Record<string, unknown> = {
     executionStatus: status,
   };
-  
+
   if (result) {
     updateData.executionResult = result;
   }
-  
+
   if (error) {
     updateData.errorMessage = error;
   }
-  
+
   await db.update(aiSuggestionExecutionLogs)
     .set(updateData)
     .where(eq(aiSuggestionExecutionLogs.id, logId));
-  
+
   return { success: true };
 }
 
@@ -207,14 +207,14 @@ export async function recordUserFeedback(
   notes?: string
 ) {
   const db = await requireDb();
-  
+
   await db.update(aiSuggestionExecutionLogs)
     .set({
       userFeedback: feedback,
       feedbackNotes: notes,
-    } as any)
+    } as Partial<InsertAiSuggestionExecutionLog>)
     .where(eq(aiSuggestionExecutionLogs.id, logId));
-  
+
   return { success: true };
 }
 
@@ -224,11 +224,11 @@ export async function recordUserFeedback(
 export async function generateAiSuggestion(
   assistantType: string,
   mode: 'internal' | 'generative',
-  context: any
+  context: Record<string, unknown>
 ) {
   // 这里应该调用实际的LLM服务
   // 当前返回模拟数据
-  
+
   const suggestion = {
     type: 'recommendation',
     summary: `${assistantType}助手的建议`,
@@ -242,7 +242,7 @@ export async function generateAiSuggestion(
       }
     ],
   };
-  
+
   return suggestion;
 }
 
@@ -265,8 +265,8 @@ export async function executeSingleAiAction(
     processId,
     stepCode,
     executionStatus: 'running',
-  } as any);
-  
+  } as unknown as InsertAiSuggestionExecutionLog);
+
   try {
     // 执行任务
     const result = {
@@ -275,11 +275,11 @@ export async function executeSingleAiAction(
       message: '任务执行成功',
       timestamp: new Date().toISOString(),
     };
-    
+
     // 更新执行状态
     await updateAiSuggestionStatus(logId.id, 'success', result);
-    
-    return result as any;
+
+    return result;
   } catch (error) {
     await updateAiSuggestionStatus(
       logId.id,
@@ -287,7 +287,7 @@ export async function executeSingleAiAction(
       undefined,
       error instanceof Error ? error.message : '未知错误'
     );
-    
+
     throw error;
   }
 }
@@ -297,18 +297,18 @@ export async function executeSingleAiAction(
  */
 export async function getAiAssistantStats() {
   const db = await requireDb();
-  
+
   const [daCount] = await db.select({ count: count() })
     .from(employeeDigitalAssistants)
-    .where(eq(employeeDigitalAssistants.isActive, 1 as any));
+    .where(eq(employeeDigitalAssistants.isActive, 1 as unknown as typeof employeeDigitalAssistants.isActive._.data));
 
   const [faCount] = await db.select({ count: count() })
     .from(functionalAiAssistants)
-    .where(eq(functionalAiAssistants.isActive, 1 as any));
+    .where(eq(functionalAiAssistants.isActive, 1 as unknown as typeof functionalAiAssistants.isActive._.data));
 
   const [executionCount] = await db.select({ count: count() })
     .from(aiSuggestionExecutionLogs);
-  
+
   return {
     employeeDigitalAssistants: daCount?.count || 0,
     functionalAssistants: faCount?.count || 0,

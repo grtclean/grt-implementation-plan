@@ -80,7 +80,7 @@ async function resolveBuContext(
         WHERE is_active = 1
         LIMIT 1
       `);
-      const rows = result[0] as any[];
+      const rows = (result as any)[0] as any[];
       if (rows.length > 0) {
         const row = rows[0];
         const buMap: Record<string, number> = {

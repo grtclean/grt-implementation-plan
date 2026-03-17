@@ -136,7 +136,7 @@ export const plmRouter = router({
     mimeType: z.string().optional(),
     tags: z.array(z.string()).optional(),
   })).mutation(async ({ input, ctx }) => {
-    return createDocument({ ...input, createdBy: ctx.user.id });
+    return createDocument({ ...input, createdBy: ctx.user!.id });
   }),
 
   updateDocument: requirePermission('rnd:plm:access').input(z.object({
@@ -160,7 +160,7 @@ export const plmRouter = router({
 
     const { id, ...data } = input;
     const [updated] = await db.update(plmDocuments)
-      .set({ ...data, updatedBy: ctx.user.id, updatedAt: new Date().toISOString() })
+      .set({ ...data, updatedBy: ctx.user!.id, updatedAt: new Date().toISOString() })
       .where(eq(plmDocuments.id, toNum(id)))
       .returning();
     return updated;
@@ -181,8 +181,8 @@ export const plmRouter = router({
     return uploadNewVersion({
       ...input,
       documentId: toNum(input.documentId),
-      uploadedBy: ctx.user.id,
-      uploadedByName: ctx.user.name ?? `User#${ctx.user.id}`,
+      uploadedBy: ctx.user!.id,
+      uploadedByName: ctx.user!.name ?? `User#${ctx.user!.id}`,
     });
   }),
 
@@ -193,8 +193,8 @@ export const plmRouter = router({
     return promoteToMajorVersion(
       toNum(input.documentId),
       input.fileUrlPath,
-      ctx.user.id,
-      ctx.user.name ?? `User#${ctx.user.id}`,
+      ctx.user!.id,
+      ctx.user!.name ?? `User#${ctx.user!.id}`,
     );
   }),
 
@@ -220,13 +220,13 @@ export const plmRouter = router({
     dueDate: z.string().optional(),
     isDesignFreezeReview: z.boolean().optional(),
   })).mutation(async ({ input, ctx }) => {
-    if (input.reviewerUserId === ctx.user.id) {
+    if (input.reviewerUserId === ctx.user!.id) {
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'Cannot review your own document' });
     }
     return submitForReview({
       ...input,
       documentVersionId: toNum(input.documentVersionId),
-      requestedBy: ctx.user.id,
+      requestedBy: ctx.user!.id,
     });
   }),
 

@@ -181,7 +181,7 @@ function OrgStructureTab() {
                       </Badge>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {member.departments.map((deptNo) => (
+                      {(Array.isArray(member.departments) ? member.departments : []).map((deptNo: any) => (
                         <Badge key={deptNo} variant="outline" className="text-xs">
                           {t("admin.extSyncInteg.deptPrefix")}{deptNo}
                         </Badge>
@@ -413,7 +413,7 @@ function SyncTasksTab() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t("admin.extSyncInteg.successExec")}</p>
-              <p className="text-lg font-semibold">{statsData?.stats?.successfulExecutions || 0}</p>
+              <p className="text-lg font-semibold">{(statsData?.stats as any)?.successfulExecutions || 0}</p>
             </div>
           </CardContent>
         </Card>
@@ -424,7 +424,7 @@ function SyncTasksTab() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t("admin.extSyncInteg.failedExec")}</p>
-              <p className="text-lg font-semibold">{statsData?.stats?.failedExecutions || 0}</p>
+              <p className="text-lg font-semibold">{(statsData?.stats as any)?.failedExecutions || 0}</p>
             </div>
           </CardContent>
         </Card>
@@ -1167,7 +1167,7 @@ export default function ExternalSyncIntegration() {
                             <div className="flex items-center gap-3">
                               <FolderOpen className="w-5 h-5 text-primary" />
                               <div>
-                                <p className="font-medium">{app.name}</p>
+                                <p className="font-medium">{app.app_name}</p>
                                 <p className="text-xs text-muted-foreground font-mono">{app.app_id}</p>
                               </div>
                             </div>
@@ -1209,17 +1209,17 @@ export default function ExternalSyncIntegration() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {formsData?.forms.map((form) => (
                       <div
-                        key={form.entry_id}
+                        key={String(form.entry_id ?? form.jdy_form_id)}
                         className={`p-4 rounded-lg border cursor-pointer transition-colors hover:bg-accent ${
-                          selectedForm?.formId === form.entry_id ? 'border-primary bg-primary/5' : 'border-border'
+                          selectedForm?.formId === (form.entry_id ?? form.jdy_form_id) ? 'border-primary bg-primary/5' : 'border-border'
                         }`}
-                        onClick={() => setSelectedForm({ appId: selectedApp!, formId: form.entry_id })}
+                        onClick={() => setSelectedForm({ appId: selectedApp!, formId: String(form.entry_id ?? form.jdy_form_id) })}
                       >
                         <div className="flex items-center gap-3">
                           <FileText className="w-5 h-5 text-blue-500" />
                           <div>
-                            <p className="font-medium">{form.name}</p>
-                            <p className="text-xs text-muted-foreground font-mono">{form.entry_id}</p>
+                            <p className="font-medium">{String(form.name ?? form.jdy_form_name)}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{String(form.entry_id ?? form.jdy_form_id)}</p>
                           </div>
                         </div>
                       </div>
@@ -1240,7 +1240,7 @@ export default function ExternalSyncIntegration() {
                     <Skeleton className="h-32 w-full" />
                   ) : (
                     <div className="space-y-2">
-                      {fieldsData?.fields?.map((field, index) => (
+                      {fieldsData?.fields?.map((field: any, index: any) => (
                         <div key={index} className="flex items-center gap-3 p-2 rounded bg-muted/50">
                           <Badge variant="outline">{field.type}</Badge>
                           <span className="font-medium">{field.label}</span>

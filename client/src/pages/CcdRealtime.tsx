@@ -68,13 +68,13 @@ export default function CcdRealtime() {
 
   // 手动推送测试
   const pushTestMutation = (trpc.ccdWebSocket as any).pushDetectionResult.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: "推送成功",
         description: `已向 ${data.subscriberCount} 个订阅者推送检测结果`,
       });
     },
-    onError: (err) => {
+    onError: (err: any) => {
       toast({
         title: "推送失败",
         description: err.message,

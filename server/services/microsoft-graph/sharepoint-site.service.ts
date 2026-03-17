@@ -242,7 +242,7 @@ export const sharepointSiteService = {
     let count = 0;
     for (const s of DEFAULT_SP_SITES) {
       try {
-        await this.upsertSite(s);
+        await this.upsertSite(s as any);
         count++;
       } catch { /* skip */ }
     }

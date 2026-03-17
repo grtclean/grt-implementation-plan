@@ -9,6 +9,66 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Shield, Plus, Trash2, Search, FileText, AlertTriangle, CheckCircle, XCircle, BarChart3 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
+interface CompliancePolicy {
+  id: number;
+  name: string;
+  policy_type: string;
+  check_field: string;
+  operator: string;
+  threshold: string;
+  severity: string;
+  scope: string;
+}
+
+interface ComplianceOverview {
+  stats?: {
+    complianceRate?: number;
+    meetingsAudited?: number;
+    passed?: number;
+    failed?: number;
+    critical?: number;
+  };
+  topViolations?: Array<{
+    policy_name: string;
+    policy_type: string;
+    severity: string;
+    cnt: number;
+  }>;
+}
+
+interface AuditResult {
+  meetingTitle: string;
+  totalPolicies: number;
+  passed: number;
+  failed: number;
+  complianceRate: number;
+  results: Array<{
+    policyName: string;
+    result: string;
+    severity: string;
+    actual: string | number;
+    expected: string | number;
+  }>;
+}
+
+interface GovernanceReport {
+  meetingsAudited: number;
+  complianceRate: number;
+  totalViolations: number;
+  riskAreas?: string[];
+  recommendations?: string[];
+  narrative?: string;
+}
+
+interface ComplianceHistoryRow {
+  id: number;
+  period: string;
+  compliance_rate: string | number;
+  total_meetings_audited: number;
+  total_violations: number;
+  generated_at?: string;
+}
+
 export function ComplianceTab() {
   const { t } = useLanguage();
   // Policy form
@@ -42,9 +102,9 @@ export function ComplianceTab() {
     onSuccess: () => historyQuery.refetch(),
   });
 
-  const policies = (policiesQuery.data || []) as any[];
-  const overview = overviewQuery.data as any;
-  const history = (historyQuery.data || []) as any[];
+  const policies = (policiesQuery.data || []) as unknown as CompliancePolicy[];
+  const overview = overviewQuery.data as unknown as ComplianceOverview | undefined;
+  const history = (historyQuery.data || []) as unknown as ComplianceHistoryRow[];
 
   const severityColor = (s: string) => {
     switch (s) {
@@ -156,7 +216,7 @@ export function ComplianceTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {policies.map((p: any) => (
+                {policies.map((p: CompliancePolicy) => (
                   <TableRow key={p.id}>
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell><Badge variant="outline">{p.policy_type}</Badge></TableCell>
@@ -193,13 +253,14 @@ export function ComplianceTab() {
           </div>
           {auditMut.data && (
             <div className="p-4 bg-muted rounded space-y-3">
+              {(() => { const auditData = auditMut.data as AuditResult; return (<>
               <div className="flex items-center gap-4 text-sm">
-                <span>{t("meeting.compliance.meeting")}: <strong>{(auditMut.data as any).meetingTitle}</strong></span>
-                <span>{t("meeting.compliance.policyChecks")}: <strong>{(auditMut.data as any).totalPolicies}</strong></span>
-                <span>{t("meeting.compliance.passed")}: <strong className="text-green-600">{(auditMut.data as any).passed}</strong></span>
-                <span>{t("meeting.compliance.failed")}: <strong className="text-red-600">{(auditMut.data as any).failed}</strong></span>
-                <Badge variant={(auditMut.data as any).complianceRate >= 80 ? "default" : "destructive"}>
-                  {t("meeting.compliance.complianceRateLabel")} {(auditMut.data as any).complianceRate}%
+                <span>{t("meeting.compliance.meeting")}: <strong>{auditData.meetingTitle}</strong></span>
+                <span>{t("meeting.compliance.policyChecks")}: <strong>{auditData.totalPolicies}</strong></span>
+                <span>{t("meeting.compliance.passed")}: <strong className="text-green-600">{auditData.passed}</strong></span>
+                <span>{t("meeting.compliance.failed")}: <strong className="text-red-600">{auditData.failed}</strong></span>
+                <Badge variant={auditData.complianceRate >= 80 ? "default" : "destructive"}>
+                  {t("meeting.compliance.complianceRateLabel")} {auditData.complianceRate}%
                 </Badge>
               </div>
               <Table>
@@ -213,7 +274,7 @@ export function ComplianceTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {((auditMut.data as any).results || []).map((r: any, i: number) => (
+                  {(auditData.results || []).map((r: AuditResult["results"][number], i: number) => (
                     <TableRow key={i}>
                       <TableCell className="font-medium">{r.policyName}</TableCell>
                       <TableCell>
@@ -228,13 +289,14 @@ export function ComplianceTab() {
                   ))}
                 </TableBody>
               </Table>
+              </>); })()}
             </div>
           )}
         </CardContent>
       </Card>
 
       {/* Top Violations */}
-      {overview?.topViolations?.length > 0 && (
+      {(overview?.topViolations?.length ?? 0) > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -253,7 +315,7 @@ export function ComplianceTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(overview.topViolations as any[]).map((v: any, i: number) => (
+                {(overview!.topViolations as NonNullable<ComplianceOverview["topViolations"]>).map((v, i: number) => (
                   <TableRow key={i}>
                     <TableCell className="font-medium">{v.policy_name}</TableCell>
                     <TableCell><Badge variant="outline">{v.policy_type}</Badge></TableCell>
@@ -291,35 +353,37 @@ export function ComplianceTab() {
           </div>
           {govMut.data && (
             <div className="p-4 bg-muted rounded space-y-3">
+              {(() => { const govData = govMut.data as GovernanceReport; return (<>
               <div className="flex items-center gap-4 text-sm">
-                <span>{t("meeting.compliance.auditedMeetings")}: <strong>{(govMut.data as any).meetingsAudited}</strong></span>
-                <span>{t("meeting.compliance.complianceRateLabel")}: <strong>{(govMut.data as any).complianceRate}%</strong></span>
-                <span>{t("meeting.compliance.violationCount")}: <strong className="text-red-600">{(govMut.data as any).totalViolations}</strong></span>
+                <span>{t("meeting.compliance.auditedMeetings")}: <strong>{govData.meetingsAudited}</strong></span>
+                <span>{t("meeting.compliance.complianceRateLabel")}: <strong>{govData.complianceRate}%</strong></span>
+                <span>{t("meeting.compliance.violationCount")}: <strong className="text-red-600">{govData.totalViolations}</strong></span>
               </div>
-              {(govMut.data as any).riskAreas?.length > 0 && (
+              {(govData.riskAreas?.length ?? 0) > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold mb-1">{t("meeting.compliance.riskAreas")}</h4>
                   <ul className="list-disc list-inside text-sm space-y-1">
-                    {(govMut.data as any).riskAreas.map((r: string, i: number) => <li key={i}>{r}</li>)}
+                    {govData.riskAreas!.map((r: string, i: number) => <li key={i}>{r}</li>)}
                   </ul>
                 </div>
               )}
-              {(govMut.data as any).recommendations?.length > 0 && (
+              {(govData.recommendations?.length ?? 0) > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold mb-1">{t("meeting.compliance.improvementSuggestions")}</h4>
                   <ul className="list-disc list-inside text-sm space-y-1">
-                    {(govMut.data as any).recommendations.map((r: string, i: number) => <li key={i}>{r}</li>)}
+                    {govData.recommendations!.map((r: string, i: number) => <li key={i}>{r}</li>)}
                   </ul>
                 </div>
               )}
-              {(govMut.data as any).narrative && (
-                <p className="text-sm text-muted-foreground italic">{(govMut.data as any).narrative}</p>
+              {govData.narrative && (
+                <p className="text-sm text-muted-foreground italic">{govData.narrative}</p>
               )}
+              </>); })()}
             </div>
           )}
 
           {/* Report History */}
-          {history.length > 0 && (history as any[])[0]?.compliance_rate !== undefined && (
+          {history.length > 0 && history[0]?.compliance_rate !== undefined && (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -331,7 +395,7 @@ export function ComplianceTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(history as any[]).map((r: any) => (
+                {history.map((r: ComplianceHistoryRow) => (
                   <TableRow key={r.id}>
                     <TableCell>{r.period}</TableCell>
                     <TableCell><Badge variant={Number(r.compliance_rate) >= 80 ? "default" : "destructive"}>{r.compliance_rate}%</Badge></TableCell>

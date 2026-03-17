@@ -43,7 +43,7 @@ export const fileUploadRouter = router({
       try {
         const sessionId = randomUUID();
         const totalChunks = Math.ceil(input.fileSizeBytes / input.chunkSizeBytes);
-        const userName = ctx.user.name || ctx.user.openId || String(ctx.user.id);
+        const userName = ctx.user!.name || ctx.user!.openId || String(ctx.user!.id);
 
         const [session] = await db
           .insert(fileUploadSessions)
@@ -209,7 +209,7 @@ export const fileUploadRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await requireDb();
-      const userName = ctx.user.name || ctx.user.openId || String(ctx.user.id);
+      const userName = ctx.user!.name || ctx.user!.openId || String(ctx.user!.id);
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
 

@@ -80,7 +80,7 @@ export default function HRLifecycle() {
     onSuccess: () => {
       toast.success('销售与项目工程师岗位画像初始化成功');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`初始化失败: ${error.message}`);
     }
   });

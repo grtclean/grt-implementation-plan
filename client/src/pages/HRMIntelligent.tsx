@@ -271,16 +271,16 @@ export default function HRMIntelligent() {
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-green-500">
-                          {candidates && candidates.data.filter(c => c.status === 'interviewing').length > 0 && candidates.data.filter(c => c.status !== 'new').length > 0
-                            ? Math.round((candidates.data.filter(c => c.status === 'interviewing').length / candidates.data.filter(c => c.status !== 'new').length) * 100)
+                          {candidates && candidates.data!.filter(c => c.status === 'interviewing').length > 0 && candidates.data!.filter(c => c.status !== 'new').length > 0
+                            ? Math.round((candidates.data!.filter(c => c.status === 'interviewing').length / candidates.data!.filter(c => c.status !== 'new').length) * 100)
                             : 0}%
                         </p>
                         <p className="text-xs text-muted-foreground">面试通过率</p>
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-yellow-500">
-                          {candidates && candidates.data.filter(c => c.status === 'offer' || c.status === 'hired').length > 0 && candidates.data.filter(c => c.status === 'interviewing' || c.status === 'offer' || c.status === 'hired').length > 0
-                            ? Math.round((candidates.data.filter(c => c.status === 'offer' || c.status === 'hired').length / candidates.data.filter(c => c.status === 'interviewing' || c.status === 'offer' || c.status === 'hired').length) * 100)
+                          {candidates && candidates.data!.filter(c => c.status === 'offer' || c.status === 'hired').length > 0 && candidates.data!.filter(c => c.status === 'interviewing' || c.status === 'offer' || c.status === 'hired').length > 0
+                            ? Math.round((candidates.data!.filter(c => c.status === 'offer' || c.status === 'hired').length / candidates.data!.filter(c => c.status === 'interviewing' || c.status === 'offer' || c.status === 'hired').length) * 100)
                             : 0}%
                         </p>
                         <p className="text-xs text-muted-foreground">Offer接受率</p>
@@ -492,7 +492,7 @@ export default function HRMIntelligent() {
                       </div>
                     </div>
                   ))}
-                  {(!candidates || candidates.data.length === 0) && (
+                  {(!candidates || candidates.data!.length === 0) && (
                     <div className="text-center py-8 text-muted-foreground">
                       暂无候选人数据
                     </div>
@@ -859,7 +859,7 @@ export default function HRMIntelligent() {
                 </Card>
               ))}
 
-              {(!candidates || candidates.data.length === 0) && (
+              {(!candidates || candidates.data!.length === 0) && (
                 <Card className="bg-card/50">
                   <CardContent className="p-12 text-center">
                     <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />

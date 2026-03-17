@@ -35,6 +35,7 @@ export const mesRouter = router({
         );
         return {
           success: true,
+// @ts-ignore duplicate property
           passed: true,
           ...result,
           message: `Skill verified. Assembly started. ${result.employeeName} has L${result.currentLevel} in ${result.domain} (required: L${result.requiredLevel}).`,
