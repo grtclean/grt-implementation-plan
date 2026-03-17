@@ -757,8 +757,9 @@ const readinessRouter = router({
       // Bootstrap-safe permission check:
       // If permissions table is empty or missing (first-time setup), allow any authenticated user.
       // Once permissions are seeded, enforce system:config:manage.
-      // Admin role always passes.
-      if (ctx.user!.role !== "admin") {
+      // Admin and C-level roles always pass.
+      const superRoles = ["admin", "ceo", "cto", "cfo", "director"];
+      if (!superRoles.includes(ctx.user!.role || "")) {
         let permN = 0;
         try {
           const [permCount] = await db.select({ value: count() }).from(permissionsTable).limit(1);
