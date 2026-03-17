@@ -58,7 +58,35 @@ export async function verifyToken(token: string | undefined | null) {
   }
 }
 
+// ── Auto-bootstrap admin user on startup ──────────────────────────────
+// Creates admin/Gerry123 if no users exist yet (first-time setup).
+// Idempotent: does nothing if any user already exists.
+async function bootstrapAdminUser() {
+  try {
+    const { db, users } = await getDbAndSchema();
+    const existing = await db.select({ id: users.id }).from(users).limit(1);
+    if (existing.length > 0) return; // Users exist — skip
+
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash("Gerry123", salt);
+    await db.insert(users).values({
+      openId: "admin",
+      name: "系统管理员",
+      email: "admin@grt.com",
+      loginMethod: `local:${hash}`,
+      role: "admin",
+      lastSignedIn: new Date().toISOString(),
+    });
+    log.info("Bootstrap: admin user created (admin / Gerry123)");
+  } catch (err) {
+    log.warn({ err }, "Bootstrap admin user skipped (DB may not be ready yet)");
+  }
+}
+
 export function registerLocalAuthRoutes(app: Express) {
+  // Auto-create admin user if DB is empty (non-blocking)
+  bootstrapAdminUser();
+
   // Register
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
@@ -128,7 +156,27 @@ export function registerLocalAuthRoutes(app: Express) {
       }
 
       const { db, users } = await getDbAndSchema();
-      const result = await db.select().from(users).where(eq(users.openId, username)).limit(1);
+      let result = await db.select().from(users).where(eq(users.openId, username)).limit(1);
+
+      // Auto-bootstrap: if user "admin" not found and DB has no users at all,
+      // create admin account on-the-fly so first login always works.
+      if (result.length === 0 && username === "admin") {
+        const allUsers = await db.select({ id: users.id }).from(users).limit(1);
+        if (allUsers.length === 0) {
+          log.info("Auto-creating admin user on first login attempt");
+          const salt = await bcrypt.genSalt(10);
+          const hash = await bcrypt.hash(password, salt);
+          await db.insert(users).values({
+            openId: "admin",
+            name: "系统管理员",
+            email: "admin@grt.com",
+            loginMethod: `local:${hash}`,
+            role: "admin",
+            lastSignedIn: new Date().toISOString(),
+          });
+          result = await db.select().from(users).where(eq(users.openId, "admin")).limit(1);
+        }
+      }
 
       if (result.length === 0) {
         res.status(401).json({ error: "用户名或密码错误" });
