@@ -908,7 +908,7 @@ export const erpConnectionRouter = router({
     create: requirePermission('devops:gemini:view')
       .input(z.object({
         name: z.string(),
-        erpType: z.enum(['SAP', 'Oracle', 'Kingdee', 'Custom']),
+        erpType: z.enum(['SAP', 'Oracle', 'Kingdee', 'TianSi', 'Custom']),
         connectionUrl: z.string(),
         authConfig: jsonValue,
         syncConfig: jsonValue.optional()
@@ -961,9 +961,62 @@ export const erpConnectionRouter = router({
     testConnection: requirePermission('devops:gemini:view')
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
-        // 模拟连接测试
-        const success = Math.random() > 0.2;
-        return { success, message: success ? '连接成功' : '连接失败：无法访问ERP服务器' };
+        const db = await requireDb();
+        // Fetch connection config from DB
+        const rows = await db.execute(sql`SELECT * FROM grt_erp_connections WHERE id = ${input.id} LIMIT 1`);
+        const conn = ((rows as any).rows ?? (rows as any)[0])?.[0] ?? (rows as any)[0];
+        if (!conn) return { success: false, message: '连接配置不存在' };
+
+        const authConfig = typeof conn.auth_config === 'string' ? JSON.parse(conn.auth_config) : (conn.auth_config ?? {});
+        const erpType = conn.erp_type ?? conn.erpType ?? 'Custom';
+
+        // For MSSQL-based ERPs (TianSi, Custom with host), try real TCP connection
+        if ((erpType === 'TianSi' || erpType === 'Custom') && authConfig.host) {
+          try {
+            const net = await import('net');
+            const host = authConfig.host;
+            const port = authConfig.port || 1433;
+            const result = await new Promise<{ success: boolean; message: string }>((resolve) => {
+              const socket = new net.default.Socket();
+              const timeout = setTimeout(() => {
+                socket.destroy();
+                resolve({ success: false, message: `连接超时: ${host}:${port} (5秒)` });
+              }, 5000);
+              socket.connect(port, host, () => {
+                clearTimeout(timeout);
+                socket.destroy();
+                resolve({ success: true, message: `TCP连接成功: ${host}:${port} | DB: ${authConfig.database || 'N/A'} | 用户: ${authConfig.username || 'N/A'}` });
+              });
+              socket.on('error', (err) => {
+                clearTimeout(timeout);
+                socket.destroy();
+                resolve({ success: false, message: `连接失败: ${err.message} (${host}:${port})` });
+              });
+            });
+
+            // Update connection status in DB
+            await db.execute(sql`UPDATE grt_erp_connections SET last_sync_status = ${result.success ? 'connected' : 'failed'}, updated_at = NOW() WHERE id = ${input.id}`);
+            return result;
+          } catch (err: any) {
+            return { success: false, message: `测试异常: ${err?.message ?? String(err)}` };
+          }
+        }
+
+        // For other ERP types, basic HTTP connectivity check
+        const connUrl = conn.connection_url ?? conn.connectionUrl ?? '';
+        if (connUrl && connUrl.startsWith('http')) {
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
+            await fetch(connUrl, { method: 'HEAD', signal: controller.signal });
+            clearTimeout(timeout);
+            return { success: true, message: `HTTP连接成功: ${connUrl}` };
+          } catch (err: any) {
+            return { success: false, message: `HTTP连接失败: ${err?.message ?? String(err)}` };
+          }
+        }
+
+        return { success: false, message: '无法确定连接方式，请检查配置' };
       }),
 
     sync: requirePermission('devops:gemini:view')

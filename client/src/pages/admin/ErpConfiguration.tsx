@@ -23,8 +23,10 @@ export default function ErpConfiguration() {
   const [selectedConnection, setSelectedConnection] = useState<number | null>(null);
   const [newConnection, setNewConnection] = useState({
     name: "",
-    erpType: "SAP" as "SAP" | "Oracle" | "Kingdee" | "Custom",
+    erpType: "Custom" as "SAP" | "Oracle" | "Kingdee" | "TianSi" | "Custom",
     connectionUrl: "",
+    host: "",
+    port: "1433",
     username: "",
     password: "",
     database: ""
@@ -45,7 +47,7 @@ export default function ErpConfiguration() {
       toast.success("ERP连接创建成功");
       setIsAddDialogOpen(false);
       refetch();
-      setNewConnection({ name: "", erpType: "SAP", connectionUrl: "", username: "", password: "", database: "" });
+      setNewConnection({ name: "", erpType: "Custom", connectionUrl: "", host: "", port: "1433", username: "", password: "", database: "" });
     },
     onError: (error) => toast.error(`创建失败: ${error.message}`)
   });
@@ -79,14 +81,21 @@ export default function ErpConfiguration() {
   });
 
   const handleCreateConnection = () => {
+    // Build connectionUrl from host/port for MSSQL-based ERPs (TianSi, Custom)
+    const connUrl = newConnection.host
+      ? `mssql://${newConnection.host}:${newConnection.port || "1433"}`
+      : newConnection.connectionUrl;
+
     createMutation.mutate({
       name: newConnection.name,
       erpType: newConnection.erpType,
-      connectionUrl: newConnection.connectionUrl,
+      connectionUrl: connUrl,
       authConfig: {
+        host: newConnection.host || undefined,
+        port: parseInt(newConnection.port || "1433"),
         username: newConnection.username,
         password: newConnection.password,
-        database: newConnection.database
+        database: newConnection.database,
       }
     });
   };
@@ -161,6 +170,7 @@ export default function ErpConfiguration() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="TianSi">天思 ERP (MSSQL)</SelectItem>
                     <SelectItem value="SAP">SAP</SelectItem>
                     <SelectItem value="Oracle">Oracle</SelectItem>
                     <SelectItem value="Kingdee">金蝶</SelectItem>
@@ -168,18 +178,41 @@ export default function ErpConfiguration() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>连接地址</Label>
-                <Input
-                  placeholder="例如：https://sap.company.com:8443"
-                  value={newConnection.connectionUrl}
-                  onChange={(e) => setNewConnection({ ...newConnection, connectionUrl: e.target.value })}
-                />
-              </div>
+              {/* MSSQL host/port fields for TianSi and Custom */}
+              {(newConnection.erpType === "TianSi" || newConnection.erpType === "Custom") ? (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2 space-y-2">
+                    <Label>服务器IP地址</Label>
+                    <Input
+                      placeholder="例如：10.2.1.230"
+                      value={newConnection.host}
+                      onChange={(e) => setNewConnection({ ...newConnection, host: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>端口</Label>
+                    <Input
+                      placeholder="1433"
+                      value={newConnection.port}
+                      onChange={(e) => setNewConnection({ ...newConnection, port: e.target.value })}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>连接地址</Label>
+                  <Input
+                    placeholder="例如：https://sap.company.com:8443"
+                    value={newConnection.connectionUrl}
+                    onChange={(e) => setNewConnection({ ...newConnection, connectionUrl: e.target.value })}
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>用户名</Label>
                   <Input
+                    placeholder={newConnection.erpType === "TianSi" ? "sa" : ""}
                     value={newConnection.username}
                     onChange={(e) => setNewConnection({ ...newConnection, username: e.target.value })}
                   />
@@ -196,7 +229,7 @@ export default function ErpConfiguration() {
               <div className="space-y-2">
                 <Label>数据库名称</Label>
                 <Input
-                  placeholder="可选"
+                  placeholder={newConnection.erpType === "TianSi" ? "DB_GRT" : "可选"}
                   value={newConnection.database}
                   onChange={(e) => setNewConnection({ ...newConnection, database: e.target.value })}
                 />
