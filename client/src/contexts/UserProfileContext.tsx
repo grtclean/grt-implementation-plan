@@ -356,6 +356,10 @@ export function getDataScopeByRole(role: UserRole): DataScope {
   switch (role) {
     case "admin":
     case "director":
+    case "ceo":
+    case "cto":
+    case "cfo":
+    case "hr_director":
       return "global";
     case "bu_gm":
       return "bu";
@@ -374,8 +378,8 @@ export function getDataScopeByRole(role: UserRole): DataScope {
 // 根据角色获取权限
 export function getPermissionsByRole(role: UserRole): Permissions {
   const level = ROLE_HIERARCHY[role] || 0;
-  const isAdmin = role === "admin";
-  const isDirector = role === "director" || isAdmin;
+  const isAdmin = role === "admin" || role === "ceo" || role === "cto" || role === "cfo";
+  const isDirector = role === "director" || role === "hr_director" || isAdmin;
   const isBUGM = role === "bu_gm" || isDirector;
   const isDeptManager = role === "dept_manager" || isBUGM;
   const isTeamLead = role === "team_lead" || isDeptManager;

@@ -84,7 +84,11 @@ const ROLE_GROUPS: RoleGroup[] = [
     labelKey: "common.roleGroup.system",
     roles: [
       { role: "admin", labelKey: "common.role.admin" },
+      { role: "ceo", labelKey: "common.role.ceo" },
+      { role: "cto", labelKey: "common.role.cto" },
+      { role: "cfo", labelKey: "common.role.cfo" },
       { role: "director", labelKey: "common.role.director" },
+      { role: "hr_director", labelKey: "common.role.hr_director" },
     ],
   },
   {
@@ -97,6 +101,7 @@ const ROLE_GROUPS: RoleGroup[] = [
       { role: "bu_elec", labelKey: "common.role.bu_elec" },
       { role: "procurement_eng", labelKey: "common.role.procurement_eng" },
       { role: "cs_engineer", labelKey: "common.role.cs_engineer" },
+      { role: "quality_eng", labelKey: "common.role.quality_eng" },
     ],
   },
   {

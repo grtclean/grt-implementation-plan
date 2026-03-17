@@ -85,16 +85,19 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   }, [resolvedDisplayName]);
 
   // ── RBAC filtering ──
+  // C-level roles (ceo/cto/cfo) and admin bypass allowedRoles — they see everything
+  const isSuperRole = currentUserRole === "admin" || currentUserRole === "ceo" || currentUserRole === "cto" || currentUserRole === "cfo";
+
   const canAccessItem = useCallback((item: MenuItem): boolean => {
-    if (item.allowedRoles && item.allowedRoles.length > 0) {
+    if (!isSuperRole && item.allowedRoles && item.allowedRoles.length > 0) {
       if (!item.allowedRoles.includes(currentUserRole)) return false;
     }
     if (item.minLevel != null && currentLevel < item.minLevel) return false;
     return true;
-  }, [currentUserRole, currentLevel]);
+  }, [currentUserRole, currentLevel, isSuperRole]);
 
   const canAccessGroup = useCallback((group: MenuGroup): boolean => {
-    if (group.allowedRoles && group.allowedRoles.length > 0) {
+    if (!isSuperRole && group.allowedRoles && group.allowedRoles.length > 0) {
       if (!group.allowedRoles.includes(currentUserRole)) return false;
     }
     if (group.minLevel != null && currentLevel < group.minLevel) return false;
@@ -103,7 +106,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       if (key in permissions && !permissions[key]) return false;
     }
     return true;
-  }, [currentUserRole, currentLevel, permissions]);
+  }, [currentUserRole, currentLevel, permissions, isSuperRole]);
 
   const filteredMenuConfig = useMemo(() => {
     return menuConfig
