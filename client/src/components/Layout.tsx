@@ -1,15 +1,16 @@
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, Suspense, lazy } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { menuConfig, type MenuGroup, type MenuItem } from "@/config/menuConfig";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
-const AIConversationPanel = React.lazy(() => import("@/components/AIConversationPanel"));
-const AIFloatingButton = React.lazy(() => import("@/components/AIConversationPanel").then(m => ({ default: m.AIFloatingButton })));
-const HelpOverlay = React.lazy(() => import("@/components/HelpOverlay"));
-const HelpColumn = React.lazy(() => import("@/components/HelpColumn"));
-const CopilotBar = React.lazy(() => import("@/components/CopilotBar"));
-const AiCanvas = React.lazy(() => import("@/components/AiCanvas"));
-const RoleBasedAIAgent = React.lazy(() => import("@/components/RoleBasedAIAgent"));
-const GuidedWalkthrough = React.lazy(() => import("@/components/GuidedWalkthrough"));
+const AIConversationPanel = lazy(() => import("@/components/AIConversationPanel"));
+const AIFloatingButton = lazy(() => import("@/components/AIConversationPanel").then(m => ({ default: m.AIFloatingButton })));
+const HelpOverlay = lazy(() => import("@/components/HelpOverlay"));
+const HelpColumn = lazy(() => import("@/components/HelpColumn"));
+const CopilotBar = lazy(() => import("@/components/CopilotBar"));
+const AiCanvas = lazy(() => import("@/components/AiCanvas"));
+const RoleBasedAIAgent = lazy(() => import("@/components/RoleBasedAIAgent"));
+const GuidedWalkthrough = lazy(() => import("@/components/GuidedWalkthrough"));
 import { GlobalMenuSearch } from "@/components/GlobalMenuSearch";
 import { useMenuFavorites } from "@/hooks/useMenuFavorites";
 import { useActiveApp } from "@/hooks/useActiveApp";
@@ -22,7 +23,7 @@ import MobileSidebarDrawer from "@/components/Layout/MobileSidebarDrawer";
 import IdleTimeoutOverlay from "@/components/IdleTimeoutOverlay";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, Suspense } from "react";
+// React imported at top of file (line 1)
 import { useLocation } from "wouter";
 
 // Context to prevent double-rendering of Layout (e.g., Suspense fallback + lazy page)
