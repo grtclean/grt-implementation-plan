@@ -88,6 +88,20 @@ const readinessRouter = router({
     // Empty DB → 70/100 = 70%. Full data → 100/100 = 100%.
     const categories: Array<{ id: string; name: string; nameEn: string; score: number; maxScore: number; items: Array<{ name: string; score: number; max: number; detail: string }> }> = [];
 
+    // Safe count helper — individual query failures won't cascade to other items
+    async function safeCount(table: any): Promise<number> {
+      try {
+        const [r] = await db.select({ value: count() }).from(table).limit(1);
+        return Number(r?.value ?? 0);
+      } catch { return 0; }
+    }
+    async function safeGroupCount(table: any, col: any): Promise<number> {
+      try {
+        const rows = await db.select({ g: col }).from(table).groupBy(col).limit(100);
+        return rows.length;
+      } catch { return 0; }
+    }
+
     // ── 1. Infrastructure ──
     const infraItems: Array<{ name: string; score: number; max: number; detail: string }> = [];
     // Capability (70 pts — always full)
@@ -219,26 +233,22 @@ const readinessRouter = router({
     legionItems.push({ name: "11沙盘引擎", score: 15, max: 15, detail: "沙盘体系已部署" });
     legionItems.push({ name: "Agent控制塔", score: 15, max: 15, detail: "13个Agent已注册" });
     legionItems.push({ name: "异步任务队列", score: 10, max: 10, detail: "4层架构已部署" });
-    // Data (30 pts)
-    try {
-      const overview = await getLegionOverview();
+    // Data (30 pts) — per-item isolation
+    {
+      let overview = { withMaster: 0, totalGTokens: 0, totalAgents: 0 };
+      try { overview = await getLegionOverview(); } catch { /* table may not exist */ }
       legionItems.push({ name: "AI师傅配置", score: overview.withMaster >= 10 ? 6 : overview.withMaster >= 5 ? 4 : overview.withMaster > 0 ? 2 : 0, max: 6, detail: `${overview.withMaster} 名已配` });
 
-      const [fleetCount] = await db.select({ value: count() }).from(aiAgentFleet).limit(1);
-      const fleetN = Number(fleetCount?.value || 0);
+      const fleetN = await safeCount(aiAgentFleet);
       legionItems.push({ name: "Agent舰队", score: fleetN >= 20 ? 6 : fleetN >= 10 ? 4 : fleetN > 0 ? 2 : 0, max: 6, detail: `${fleetN} 个Agent` });
 
       legionItems.push({ name: "G-Token", score: overview.totalGTokens > 0 ? 6 : 0, max: 6, detail: `${overview.totalGTokens} tokens` });
 
-      const [compCount] = await db.select({ value: count() }).from(employeeCompetenceAssessments).limit(1);
-      const compN = Number(compCount?.value || 0);
+      const compN = await safeCount(employeeCompetenceAssessments);
       legionItems.push({ name: "能力评估", score: compN >= 10 ? 6 : compN >= 5 ? 4 : compN > 0 ? 2 : 0, max: 6, detail: `${compN} 条评估` });
 
-      const [taskCount] = await db.select({ value: count() }).from(aiTasks).limit(1);
-      const taskN = Number(taskCount?.value || 0);
+      const taskN = await safeCount(aiTasks);
       legionItems.push({ name: "AI任务", score: taskN >= 5 ? 6 : taskN > 0 ? 3 : 0, max: 6, detail: `${taskN} 个任务` });
-    } catch {
-      legionItems.push({ name: "军团数据查询", score: 0, max: 30, detail: "查询失败" });
     }
     const legionTotal = legionItems.reduce((s, i) => s + i.score, 0);
     const legionMax = legionItems.reduce((s, i) => s + i.max, 0);
@@ -252,29 +262,22 @@ const readinessRouter = router({
     mfgItems.push({ name: "生产排程模块", score: 15, max: 15, detail: "排程调度已部署" });
     mfgItems.push({ name: "工单管理CRUD", score: 10, max: 10, detail: "工单全流程" });
     mfgItems.push({ name: "质量联锁", score: 10, max: 10, detail: "质量检查互锁" });
-    // Data (30 pts)
-    try {
-      const [oeeCount] = await db.select({ value: count() }).from(oeeSnapshots).limit(1);
-      const oeeN = Number(oeeCount?.value || 0);
+    // Data (30 pts) — per-item isolation
+    {
+      const oeeN = await safeCount(oeeSnapshots);
       mfgItems.push({ name: "OEE快照", score: oeeN >= 10 ? 6 : oeeN >= 5 ? 4 : oeeN > 0 ? 2 : 0, max: 6, detail: `${oeeN} 条快照` });
 
-      const [fmeaCount] = await db.select({ value: count() }).from(fmeaDocuments).limit(1);
-      const fmeaN = Number(fmeaCount?.value || 0);
+      const fmeaN = await safeCount(fmeaDocuments);
       mfgItems.push({ name: "FMEA文件", score: fmeaN >= 3 ? 6 : fmeaN > 0 ? 3 : 0, max: 6, detail: `${fmeaN} 份文件` });
 
-      const [bomCount] = await db.select({ value: count() }).from(bomMasters).limit(1);
-      const bomN = Number(bomCount?.value || 0);
+      const bomN = await safeCount(bomMasters);
       mfgItems.push({ name: "BOM数据", score: bomN >= 3 ? 6 : bomN > 0 ? 3 : 0, max: 6, detail: `${bomN} 个BOM` });
 
-      const [wlCount] = await db.select({ value: count() }).from(workLogs).limit(1);
-      const wlN = Number(wlCount?.value || 0);
+      const wlN = await safeCount(workLogs);
       mfgItems.push({ name: "工时记录", score: wlN >= 10 ? 6 : wlN > 0 ? 3 : 0, max: 6, detail: `${wlN} 条工时` });
 
-      const [mfgProjCount] = await db.select({ value: count() }).from(projects).limit(1);
-      const mfgProjN = Number(mfgProjCount?.value || 0);
+      const mfgProjN = await safeCount(projects);
       mfgItems.push({ name: "生产项目", score: mfgProjN >= 3 ? 6 : mfgProjN > 0 ? 3 : 0, max: 6, detail: `${mfgProjN} 个项目` });
-    } catch {
-      mfgItems.push({ name: "制造数据查询", score: 0, max: 30, detail: "查询失败" });
     }
     const mfgTotal = mfgItems.reduce((s, i) => s + i.score, 0);
     const mfgMax = mfgItems.reduce((s, i) => s + i.max, 0);
@@ -288,29 +291,22 @@ const readinessRouter = router({
     projItems.push({ name: "甘特图/里程碑", score: 15, max: 15, detail: "可视化排程" });
     projItems.push({ name: "Gate审批", score: 10, max: 10, detail: "阶段门审批流" });
     projItems.push({ name: "团队管理", score: 10, max: 10, detail: "项目团队配置" });
-    // Data (30 pts)
-    try {
-      const [pCount] = await db.select({ value: count() }).from(projects).limit(1);
-      const pN = Number(pCount?.value || 0);
+    // Data (30 pts) — per-item isolation
+    {
+      const pN = await safeCount(projects);
       projItems.push({ name: "项目记录", score: pN >= 5 ? 6 : pN >= 3 ? 4 : pN > 0 ? 2 : 0, max: 6, detail: `${pN} 个项目` });
 
-      const [qCount] = await db.select({ value: count() }).from(historicalQuotations).limit(1);
-      const qN = Number(qCount?.value || 0);
+      const qN = await safeCount(historicalQuotations);
       projItems.push({ name: "报价记录", score: qN >= 5 ? 6 : qN > 0 ? 3 : 0, max: 6, detail: `${qN} 条报价` });
 
-      const [okrCount] = await db.select({ value: count() }).from(okrObjectives).limit(1);
-      const okrN = Number(okrCount?.value || 0);
+      const okrN = await safeCount(okrObjectives);
       projItems.push({ name: "OKR目标", score: okrN >= 3 ? 6 : okrN > 0 ? 3 : 0, max: 6, detail: `${okrN} 个目标` });
 
-      const [dpCount] = await db.select({ value: count() }).from(designPackages).limit(1);
-      const dpN = Number(dpCount?.value || 0);
+      const dpN = await safeCount(designPackages);
       projItems.push({ name: "设计包", score: dpN >= 3 ? 6 : dpN > 0 ? 3 : 0, max: 6, detail: `${dpN} 个设计包` });
 
-      const [wlCount] = await db.select({ value: count() }).from(workLogs).limit(1);
-      const wlN = Number(wlCount?.value || 0);
+      const wlN = await safeCount(workLogs);
       projItems.push({ name: "工时数据", score: wlN >= 10 ? 6 : wlN > 0 ? 3 : 0, max: 6, detail: `${wlN} 条工时` });
-    } catch {
-      projItems.push({ name: "项目数据查询", score: 0, max: 30, detail: "查询失败" });
     }
     const projTotal = projItems.reduce((s, i) => s + i.score, 0);
     const projMax = projItems.reduce((s, i) => s + i.max, 0);
@@ -360,28 +356,22 @@ const readinessRouter = router({
     hrItems.push({ name: "培训模块", score: 15, max: 15, detail: "培训计划管理" });
     hrItems.push({ name: "考勤打卡", score: 10, max: 10, detail: "打卡记录系统" });
     hrItems.push({ name: "能力雷达", score: 10, max: 10, detail: "员工能力评估" });
-    // Data (30 pts)
-    try {
-      const [empCount] = await db.select({ value: count() }).from(hrmEmployees).limit(1);
-      const empN = Number(empCount?.value || 0);
+    // Data (30 pts) — per-item isolation
+    {
+      const empN = await safeCount(hrmEmployees);
       hrItems.push({ name: "员工档案", score: empN >= 20 ? 6 : empN >= 10 ? 4 : empN > 0 ? 2 : 0, max: 6, detail: `${empN} 名员工` });
 
-      const [attCount] = await db.select({ value: count() }).from(attendanceClockRecords).limit(1);
-      const attN = Number(attCount?.value || 0);
+      const attN = await safeCount(attendanceClockRecords);
       hrItems.push({ name: "考勤记录", score: attN >= 20 ? 6 : attN > 0 ? 3 : 0, max: 6, detail: `${attN} 条打卡` });
 
-      const [trainCount] = await db.select({ value: count() }).from(hrmTrainingPlans).limit(1);
-      const trainN = Number(trainCount?.value || 0);
+      const trainN = await safeCount(hrmTrainingPlans);
       hrItems.push({ name: "培训计划", score: trainN >= 3 ? 6 : trainN > 0 ? 3 : 0, max: 6, detail: `${trainN} 个计划` });
 
-      const [compCount] = await db.select({ value: count() }).from(employeeCompetenceAssessments).limit(1);
-      const compN = Number(compCount?.value || 0);
+      const compN = await safeCount(employeeCompetenceAssessments);
       hrItems.push({ name: "能力评估", score: compN >= 10 ? 6 : compN >= 5 ? 4 : compN > 0 ? 2 : 0, max: 6, detail: `${compN} 条评估` });
 
-      const deptResult = await db.select({ dept: hrmEmployees.department }).from(hrmEmployees).groupBy(hrmEmployees.department).limit(20);
-      hrItems.push({ name: "部门覆盖", score: deptResult.length >= 5 ? 6 : deptResult.length >= 3 ? 4 : deptResult.length > 0 ? 2 : 0, max: 6, detail: `${deptResult.length} 个部门` });
-    } catch {
-      hrItems.push({ name: "HR数据查询", score: 0, max: 30, detail: "查询失败" });
+      const deptN = await safeGroupCount(hrmEmployees, hrmEmployees.department);
+      hrItems.push({ name: "部门覆盖", score: deptN >= 5 ? 6 : deptN >= 3 ? 4 : deptN > 0 ? 2 : 0, max: 6, detail: `${deptN} 个部门` });
     }
     const hrTotal = hrItems.reduce((s, i) => s + i.score, 0);
     const hrMax = hrItems.reduce((s, i) => s + i.max, 0);
@@ -431,29 +421,22 @@ const readinessRouter = router({
     qualItems.push({ name: "OEE看板", score: 15, max: 15, detail: "设备效率监控" });
     qualItems.push({ name: "SPC合规", score: 10, max: 10, detail: "统计过程控制" });
     qualItems.push({ name: "缺陷跟踪", score: 10, max: 10, detail: "缺陷管理闭环" });
-    // Data (30 pts)
-    try {
-      const [fmeaN] = await db.select({ value: count() }).from(fmeaDocuments).limit(1);
-      const fN = Number(fmeaN?.value || 0);
+    // Data (30 pts) — per-item isolation
+    {
+      const fN = await safeCount(fmeaDocuments);
       qualItems.push({ name: "FMEA文件", score: fN >= 3 ? 6 : fN > 0 ? 3 : 0, max: 6, detail: `${fN} 份FMEA` });
 
-      const [cpCount] = await db.select({ value: count() }).from(controlPlans).limit(1);
-      const cpN = Number(cpCount?.value || 0);
+      const cpN = await safeCount(controlPlans);
       qualItems.push({ name: "控制计划数据", score: cpN >= 3 ? 6 : cpN > 0 ? 3 : 0, max: 6, detail: `${cpN} 个计划` });
 
-      const [ecoCount] = await db.select({ value: count() }).from(engineeringChangeOrders).limit(1);
-      const ecoN = Number(ecoCount?.value || 0);
+      const ecoN = await safeCount(engineeringChangeOrders);
       qualItems.push({ name: "工程变更", score: ecoN >= 3 ? 6 : ecoN > 0 ? 3 : 0, max: 6, detail: `${ecoN} 条ECR/ECO` });
 
-      const [oeeN] = await db.select({ value: count() }).from(oeeSnapshots).limit(1);
-      const oN = Number(oeeN?.value || 0);
+      const oN = await safeCount(oeeSnapshots);
       qualItems.push({ name: "OEE数据", score: oN >= 10 ? 6 : oN > 0 ? 3 : 0, max: 6, detail: `${oN} 条快照` });
 
-      const [matCount] = await db.select({ value: count() }).from(materials).limit(1);
-      const matN = Number(matCount?.value || 0);
+      const matN = await safeCount(materials);
       qualItems.push({ name: "物料质量数据", score: matN >= 10 ? 6 : matN > 0 ? 3 : 0, max: 6, detail: `${matN} 种物料` });
-    } catch {
-      qualItems.push({ name: "质量数据查询", score: 0, max: 30, detail: "查询失败" });
     }
     const qualTotal = qualItems.reduce((s, i) => s + i.score, 0);
     const qualMax = qualItems.reduce((s, i) => s + i.max, 0);
@@ -539,28 +522,23 @@ const readinessRouter = router({
     aiItems.push({ name: "Agent注册表", score: 15, max: 15, detail: "13个Agent已注册" });
     aiItems.push({ name: "AI任务队列", score: 15, max: 15, detail: "异步推理管道" });
     aiItems.push({ name: "决策智能", score: 10, max: 10, detail: "AI辅助决策" });
-    // Data (30 pts)
-    try {
-      const [taskN] = await db.select({ value: count() }).from(aiTasks).limit(1);
-      const tN = Number(taskN?.value || 0);
+    // Data (30 pts) — per-item isolation
+    {
+      const tN = await safeCount(aiTasks);
       aiItems.push({ name: "AI任务数据", score: tN >= 5 ? 6 : tN > 0 ? 3 : 0, max: 6, detail: `${tN} 个任务` });
 
-      const [fleetN] = await db.select({ value: count() }).from(aiAgentFleet).limit(1);
-      const fN = Number(fleetN?.value || 0);
+      const fN = await safeCount(aiAgentFleet);
       aiItems.push({ name: "Agent舰队", score: fN >= 20 ? 6 : fN >= 10 ? 4 : fN > 0 ? 2 : 0, max: 6, detail: `${fN} 个Agent` });
 
-      const [masterN] = await db.select({ value: count() }).from(employeeAiAssistants).limit(1);
-      const mN = Number(masterN?.value || 0);
+      const mN = await safeCount(employeeAiAssistants);
       aiItems.push({ name: "AI师傅", score: mN >= 10 ? 6 : mN >= 5 ? 4 : mN > 0 ? 2 : 0, max: 6, detail: `${mN} 名师傅` });
 
-      const [compCount] = await db.select({ value: count() }).from(employeeCompetenceAssessments).limit(1);
-      const compN = Number(compCount?.value || 0);
+      const compN = await safeCount(employeeCompetenceAssessments);
       aiItems.push({ name: "能力评估", score: compN >= 10 ? 6 : compN >= 5 ? 4 : compN > 0 ? 2 : 0, max: 6, detail: `${compN} 条评估` });
 
-      const overview = await getLegionOverview();
-      aiItems.push({ name: "G-Token流通", score: overview.totalGTokens > 0 ? 6 : 0, max: 6, detail: `${overview.totalGTokens} tokens` });
-    } catch {
-      aiItems.push({ name: "AI数据查询", score: 0, max: 30, detail: "查询失败" });
+      let gTokens = 0;
+      try { const ov = await getLegionOverview(); gTokens = ov.totalGTokens; } catch { /* table may not exist */ }
+      aiItems.push({ name: "G-Token流通", score: gTokens > 0 ? 6 : 0, max: 6, detail: `${gTokens} tokens` });
     }
     const aiTotal = aiItems.reduce((s, i) => s + i.score, 0);
     const aiMax = aiItems.reduce((s, i) => s + i.max, 0);
