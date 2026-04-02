@@ -182,7 +182,7 @@ const DEMO_STEPS: SopStep[] = [
         label: "试产辅料与物料齐套",
         details: ["特定真空泵油、清洗剂、滤芯入库", "首批试产毛坯件及配套夹具调拨到线", "耗材型号核实"],
         customerCommander: { role: "生产/物料主管", name: "", phone: "", title: "物料主管", isGrt: false },
-        grtCommander: { role: "工艺规划师", name: "张工", phone: "137-xxxx-xxxx", title: "工艺规划师", isGrt: true },
+        grtCommander: { role: "工艺规划师", name: "洪香龙", phone: "137-xxxx-xxxx", title: "工艺规划师", isGrt: true },
         reportTo: "生产副总 / 采购总监",
         deliverable: "《辅料与试产物料入库清单》",
         safeguard: "辅料未齐套，联调计划自动延期预警",
@@ -204,7 +204,7 @@ const DEMO_STEPS: SopStep[] = [
         label: "卸货就位与安全合规",
         details: ["卸货就位、九位找平打表", "危险源共识、拉设警戒线", "EHS 安全宣誓与合规确认"],
         customerCommander: { role: "车间调度/现场安全员(EHS)", name: "", phone: "", title: "安全员", isGrt: false },
-        grtCommander: { role: "装配督导", name: "王工", phone: "139-xxxx-xxxx", title: "装配督导", isGrt: true },
+        grtCommander: { role: "装配督导", name: "朱宇浩", phone: "139-xxxx-xxxx", title: "装配督导", isGrt: true },
         reportTo: "EHS安全总监 / 车间主任",
         deliverable: "《设备 IQ 静态就位与安全告知确权书》",
         safeguard: "高压危险工况验证中，系统自动全员推送安全弹窗",
@@ -226,7 +226,7 @@ const DEMO_STEPS: SopStep[] = [
         label: "非标深水区联调与参数打靶",
         details: ["黑匣子参数寻优记录", "清洁度达成要素逐项签批", "工艺参数优化轨迹及责任共担", "消灭单方面指责"],
         customerCommander: { role: "现场工艺员/质量检验员", name: "", phone: "", title: "工艺员", isGrt: false },
-        grtCommander: { role: "资深工艺专家", name: "赵博", phone: "136-xxxx-xxxx", title: "工艺专家", isGrt: true },
+        grtCommander: { role: "资深工艺专家", name: "匡凯旋", phone: "136-xxxx-xxxx", title: "售后主管", isGrt: true },
         reportTo: "质量总监(QA) — 每天推送调机轨迹，把暗箱变透明",
         deliverable: "《工艺寻优轨迹曲线 & 首件打靶报告》",
         safeguard: "让最挑剔的人，提前在系统内签批认可当前参数基线",
@@ -284,7 +284,7 @@ const DEMO_STEPS: SopStep[] = [
 const DEMO_AGENT_MESSAGES: AgentMessage[] = [
   { id: 1, type: "alert", text: "尊敬的客户，距离设备进场仅剩 3 天，系统检测到【真空泵油型号 LVO130】尚未确认入库。为避免停工待料，请尽快核实。", time: "10:30" },
   { id: 2, type: "safety", text: "高压危险工况验证中，请确认已拉设警戒线并穿戴防护服。Step 2 安全宣誓待签核。", time: "09:15" },
-  { id: 3, type: "remind", text: "Step 1 厂务主管尚未在系统内确认 380V 电源接通。请提醒张三主管尽快操作，否则发货计划将自动延期。", time: "昨天" },
+  { id: 3, type: "remind", text: "Step 1 厂务主管尚未在系统内确认 380V 电源接通。请提醒胡杨主管尽快操作，否则发货计划将自动延期。", time: "昨天" },
   { id: 4, type: "info", text: "《场地与动线具备发货条件确认书》已由 GRT 李建国签核，等待客户侧确认。", time: "3天前" },
 ];
 

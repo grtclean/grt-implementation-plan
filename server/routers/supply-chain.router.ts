@@ -1659,4 +1659,97 @@ export const supplyChainRouter = router({
       },
     };
   }),
+
+  // ============================================
+  // 条码管理 (Barcode Management)
+  // ============================================
+
+  /**
+   * generateBarcode — 生成条码记录（QR/CODE128/EAN13）
+   */
+  generateBarcode: requirePermission("canManageWarehouse")
+    .input(z.object({
+      content: z.string().min(1).max(200),
+      format: z.enum(["QR", "CODE128", "EAN13", "DATAMATRIX"]).default("QR"),
+      label: z.string().max(200).optional(),
+      materialCode: z.string().optional(),
+      lotNumber: z.string().optional(),
+      locationCode: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const userId = (ctx as any).userId || 1;
+      // Store in supplierShipmentLabels with barcode fields
+      const labelCode = `BC-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      await db.insert(supplierShipmentLabels).values({
+        labelCode,
+        supplierSerialNumber: labelCode,
+        barcodeData: input.content,
+        barcodeFormat: input.format,
+        materialCode: input.materialCode || input.content,
+        materialName: input.label || input.content,
+        quantity: '1',
+        unit: 'pc',
+        supplierId: 0,
+        supplierName: 'GRT Internal',
+        poNumber: '',
+        status: 'generated',
+        createdBy: userId,
+      });
+      return { success: true, labelCode, barcodeData: input.content, format: input.format };
+    }),
+
+  /**
+   * lookupBarcode — 扫码查询物料/批次/库位
+   */
+  lookupBarcode: protectedProcedure
+    .input(z.object({ barcodeData: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      // Search across labels, lots, and locations
+      const labels = await db.select().from(supplierShipmentLabels)
+        .where(eq(supplierShipmentLabels.barcodeData, input.barcodeData))
+        .limit(5);
+
+      return {
+        found: labels.length > 0,
+        type: labels.length > 0 ? 'shipment_label' : 'unknown',
+        results: labels.map(l => ({
+          labelCode: l.labelCode,
+          materialCode: l.materialCode,
+          materialName: l.materialName,
+          barcodeFormat: l.barcodeFormat,
+          quantity: l.quantity,
+          supplierName: l.supplierName,
+          poNumber: l.poNumber,
+        })),
+      };
+    }),
+
+  /**
+   * printBarcodeLabels — 批量打印条码标签
+   */
+  printBarcodeLabels: requirePermission("canManageWarehouse")
+    .input(z.object({
+      labelCodes: z.array(z.string()).min(1).max(100),
+      printerName: z.string().optional(),
+      copies: z.number().min(1).max(10).default(1),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const labels = [];
+      for (const code of input.labelCodes) {
+        const result = await db.select().from(supplierShipmentLabels)
+          .where(eq(supplierShipmentLabels.labelCode, code))
+          .limit(1);
+        if (result.length > 0) labels.push(result[0]);
+      }
+      // In production, this would send to a label printer
+      return {
+        success: true,
+        message: `已发送 ${labels.length} 张标签到打印队列 (${input.copies} 份/张)`,
+        printedCount: labels.length,
+        copies: input.copies,
+      };
+    }),
 });

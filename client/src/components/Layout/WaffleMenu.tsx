@@ -73,7 +73,7 @@ export default function WaffleMenu({
     <div
       ref={panelRef}
       className="absolute top-12 left-0 z-[60] bg-white border border-[#edebe9] rounded-lg shadow-xl p-3 waffle-enter"
-      style={{ width: 288 }}
+      style={{ width: 'min(288px, calc(100vw - 1rem))' }}
     >
       <div className="grid grid-cols-4 gap-1">
         {visibleApps.map((app) => {

@@ -1804,9 +1804,9 @@ export default function AnnualAgenda() {
                 <div className="space-y-2 max-h-[200px] overflow-y-auto">
                   {/* 示例参与人员 */}
                   {[
-                    { name: '张三', email: 'zhangsan@grt.com', role: 'organizer', status: 'accepted' },
-                    { name: '李四', email: 'lisi@grt.com', role: 'required', status: 'pending' },
-                    { name: '王五', email: 'wangwu@grt.com', role: 'optional', status: 'declined' },
+                    { name: '胡杨', email: 'zhangsan@grt.com', role: 'organizer', status: 'accepted' },
+                    { name: '刘健康', email: 'lisi@grt.com', role: 'required', status: 'pending' },
+                    { name: '杨勇', email: 'wangwu@grt.com', role: 'optional', status: 'declined' },
                   ].map((attendee, idx) => (
                     <div key={idx} className="flex items-center justify-between p-2 border rounded-md">
                       <div className="flex items-center gap-3">

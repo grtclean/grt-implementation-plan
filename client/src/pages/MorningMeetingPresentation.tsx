@@ -6,6 +6,7 @@
  * Keyboard navigation: ← → arrows, Escape exits fullscreen.
  */
 import { useState, useEffect, useCallback, useRef } from "react";
+import FloatingNav from '@/components/FloatingNav';
 import {
   Maximize, Minimize, ChevronLeft, ChevronRight,
   Rocket, GitBranch, ShieldCheck, Lock, Brain,
@@ -286,6 +287,7 @@ export default function MorningMeetingPresentation() {
           {t("manufacturing.morningPresent.keyboardHint")}
         </div>
       )}
+      <FloatingNav />
     </div>
   );
 }

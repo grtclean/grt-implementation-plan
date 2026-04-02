@@ -995,26 +995,26 @@ const readinessRouter = router({
 
       if (force || Number(empCount?.value || 0) < 10) {
         const SEED_EMPLOYEES = [
-          { employeeCode: "GRT-E001", name: "张伟", englishName: "Wei Zhang", gender: "male" as const, department: "技术部", position: "高级工程师", level: "P7", phone: "13800000001", email: "zhangwei@grt.com" },
-          { employeeCode: "GRT-E002", name: "李娜", englishName: "Na Li", gender: "female" as const, department: "技术部", position: "软件工程师", level: "P5", phone: "13800000002", email: "lina@grt.com" },
-          { employeeCode: "GRT-E003", name: "王强", englishName: "Qiang Wang", gender: "male" as const, department: "销售部", position: "销售经理", level: "M4", phone: "13800000003", email: "wangqiang@grt.com" },
-          { employeeCode: "GRT-E004", name: "刘芳", englishName: "Fang Liu", gender: "female" as const, department: "销售部", position: "客户经理", level: "P5", phone: "13800000004", email: "liufang@grt.com" },
-          { employeeCode: "GRT-E005", name: "陈明", englishName: "Ming Chen", gender: "male" as const, department: "生产部", position: "生产主管", level: "M5", phone: "13800000005", email: "chenming@grt.com" },
-          { employeeCode: "GRT-E006", name: "赵秀英", englishName: "Xiuying Zhao", gender: "female" as const, department: "生产部", position: "质量工程师", level: "P6", phone: "13800000006", email: "zhaoxy@grt.com" },
-          { employeeCode: "GRT-E007", name: "孙磊", englishName: "Lei Sun", gender: "male" as const, department: "财务部", position: "财务经理", level: "M4", phone: "13800000007", email: "sunlei@grt.com" },
-          { employeeCode: "GRT-E008", name: "周洋", englishName: "Yang Zhou", gender: "male" as const, department: "人力资源部", position: "HR经理", level: "M4", phone: "13800000008", email: "zhouyang@grt.com" },
-          { employeeCode: "GRT-E009", name: "吴丽", englishName: "Li Wu", gender: "female" as const, department: "采购部", position: "采购工程师", level: "P5", phone: "13800000009", email: "wuli@grt.com" },
-          { employeeCode: "GRT-E010", name: "郑浩", englishName: "Hao Zheng", gender: "male" as const, department: "研发部", position: "研发总监", level: "M6", phone: "13800000010", email: "zhenghao@grt.com" },
-          { employeeCode: "GRT-E011", name: "黄晓兰", englishName: "Xiaolan Huang", gender: "female" as const, department: "技术部", position: "测试工程师", level: "P4", phone: "13800000011", email: "huangxl@grt.com" },
-          { employeeCode: "GRT-E012", name: "林峰", englishName: "Feng Lin", gender: "male" as const, department: "生产部", position: "车间班长", level: "P6", phone: "13800000012", email: "linfeng@grt.com" },
-          { employeeCode: "GRT-E013", name: "杨梅", englishName: "Mei Yang", gender: "female" as const, department: "人力资源部", position: "薪酬专员", level: "P4", phone: "13800000013", email: "yangmei@grt.com" },
-          { employeeCode: "GRT-E014", name: "徐刚", englishName: "Gang Xu", gender: "male" as const, department: "销售部", position: "区域总监", level: "M5", phone: "13800000014", email: "xugang@grt.com" },
-          { employeeCode: "GRT-E015", name: "马丽华", englishName: "Lihua Ma", gender: "female" as const, department: "财务部", position: "会计", level: "P4", phone: "13800000015", email: "malh@grt.com" },
-          { employeeCode: "GRT-E016", name: "朱建国", englishName: "Jianguo Zhu", gender: "male" as const, department: "生产部", position: "设备工程师", level: "P6", phone: "13800000016", email: "zhujg@grt.com" },
-          { employeeCode: "GRT-E017", name: "何静", englishName: "Jing He", gender: "female" as const, department: "技术部", position: "前端工程师", level: "P5", phone: "13800000017", email: "hejing@grt.com" },
-          { employeeCode: "GRT-E018", name: "罗勇", englishName: "Yong Luo", gender: "male" as const, department: "采购部", position: "供应链主管", level: "M4", phone: "13800000018", email: "luoyong@grt.com" },
-          { employeeCode: "GRT-E019", name: "谢芳菲", englishName: "Fangfei Xie", gender: "female" as const, department: "研发部", position: "机械工程师", level: "P6", phone: "13800000019", email: "xieff@grt.com" },
-          { employeeCode: "GRT-E020", name: "唐志强", englishName: "Zhiqiang Tang", gender: "male" as const, department: "技术部", position: "架构师", level: "P8", phone: "13800000020", email: "tangzq@grt.com" },
+          { employeeCode: "GRT022", name: "李大鹏", englishName: "Dapeng Li", gender: "male" as const, department: "事业一部", position: "电气工程师", level: "P7", phone: "13800000001", email: "lidapeng@grt.com" },
+          { employeeCode: "GRT105", name: "倪微薇", englishName: "Weiwei Ni", gender: "female" as const, department: "AI数智部", position: "AI数智&人事行政部经理", level: "M5", phone: "13800000002", email: "niweiwei@grt.com" },
+          { employeeCode: "GRT004", name: "戴晓燕", englishName: "Xiaoyan Dai", gender: "female" as const, department: "事业一部", position: "高级销售经理", level: "M4", phone: "13800000003", email: "daixy@grt.com" },
+          { employeeCode: "GRT063", name: "刘健康", englishName: "Jiankang Liu", gender: "male" as const, department: "事业一部", position: "销售与项目工程师", level: "P5", phone: "13800000004", email: "liujk@grt.com" },
+          { employeeCode: "GRT045", name: "杨勇", englishName: "Yong Yang", gender: "male" as const, department: "事业三部", position: "生产工程师兼项目经理", level: "M5", phone: "13800000005", email: "yangyong@grt.com" },
+          { employeeCode: "GRT005", name: "金晓锋", englishName: "Xiaofeng Jin", gender: "male" as const, department: "事业一部", position: "制造质量经理", level: "M4", phone: "13800000006", email: "jinxf@grt.com" },
+          { employeeCode: "GRT054", name: "王秀萍", englishName: "Xiuping Wang", gender: "female" as const, department: "财务部", position: "总账会计", level: "P5", phone: "13800000007", email: "wangxp@grt.com" },
+          { employeeCode: "GRT067", name: "沙建梅", englishName: "Jianmei Sha", gender: "female" as const, department: "人事行政部", position: "人事行政主管", level: "M4", phone: "13800000008", email: "shajm@grt.com" },
+          { employeeCode: "GRT020", name: "张洵", englishName: "Xun Zhang", gender: "male" as const, department: "事业一部", position: "采购与项目工程师", level: "P5", phone: "13800000009", email: "zhangxun@grt.com" },
+          { employeeCode: "GRT006", name: "洪香龙", englishName: "Xianglong Hong", gender: "male" as const, department: "事业二部", position: "机械设计经理", level: "M6", phone: "13800000010", email: "hongxl@grt.com" },
+          { employeeCode: "GRT002", name: "黄晓兰", englishName: "Xiaolan Huang", gender: "female" as const, department: "财务部", position: "出纳", level: "P4", phone: "13800000011", email: "huangxl@grt.com" },
+          { employeeCode: "GRT044", name: "洪小东", englishName: "Xiaodong Hong", gender: "male" as const, department: "事业二部", position: "机械研发工程师", level: "P6", phone: "13800000012", email: "hongxd@grt.com" },
+          { employeeCode: "GRT105", name: "倪微薇", englishName: "Weiwei Ni", gender: "female" as const, department: "AI数智部", position: "AI数智&人事行政部经理", level: "M4", phone: "13800000013", email: "niww@grt.com" },
+          { employeeCode: "GRT058", name: "周辉", englishName: "Hui Zhou", gender: "male" as const, department: "事业三部", position: "事业三部经理", level: "M5", phone: "13800000014", email: "zhouhui@grt.com" },
+          { employeeCode: "GRT101", name: "王汝月", englishName: "Ruyue Wang", gender: "female" as const, department: "财务部", position: "财务专员", level: "P4", phone: "13800000015", email: "wangry@grt.com" },
+          { employeeCode: "GRT007", name: "孙坚", englishName: "Jian Sun", gender: "male" as const, department: "事业三部", position: "电气主管", level: "M4", phone: "13800000016", email: "sunjian@grt.com" },
+          { employeeCode: "GRT097", name: "钱佳奇", englishName: "Jiaqi Qian", gender: "male" as const, department: "事业二部", position: "电气工程师", level: "P5", phone: "13800000017", email: "qianjq@grt.com" },
+          { employeeCode: "GRT055", name: "沈迎凤", englishName: "Yingfeng Shen", gender: "female" as const, department: "事业三部", position: "采购经理", level: "M4", phone: "13800000018", email: "shenyf@grt.com" },
+          { employeeCode: "GRT019", name: "冯艳", englishName: "Yan Feng", gender: "female" as const, department: "事业三部", position: "销售与项目工程师", level: "P6", phone: "13800000019", email: "fengyan@grt.com" },
+          { employeeCode: "GRT080", name: "刘奥运", englishName: "Aoyun Liu", gender: "male" as const, department: "AI数智部", position: "董事长助理", level: "M6", phone: "13800000020", email: "liuay@grt.com" },
         ];
 
         const hireDate = new Date("2024-01-15").toISOString();
@@ -1159,7 +1159,7 @@ const readinessRouter = router({
         ];
         for (const fmea of SEED_FMEA) {
           try {
-            await db.insert(fmeaDocuments).values({ ...fmea, scope: "全流程", revision: 1, teamMembers: JSON.stringify(["张伟", "陈明", "赵秀英"]) });
+            await db.insert(fmeaDocuments).values({ ...fmea, scope: "全流程", revision: 1, teamMembers: JSON.stringify(["李大鹏", "杨勇", "金晓锋"]) });
             fmeaSeeded++;
           } catch { /* duplicate */ }
         }
@@ -1435,9 +1435,9 @@ const readinessRouter = router({
         const empMap = new Map(salesEmps.map(e => [e.name, e.id]));
 
         const SEED_OPPS = [
-          { name: "明志RW2000机器人清洗机", customerCode: "CUST-001", stage: "negotiation", probability: 80, expectedAmount: "2800000", expectedCloseDate: "2026-06-30", ownerName: "王强" },
-          { name: "上汽AGV搬运系统", customerCode: "CUST-002", stage: "proposal", probability: 60, expectedAmount: "4500000", expectedCloseDate: "2026-09-30", ownerName: "徐刚" },
-          { name: "台积电晶圆传输系统", customerCode: "CUST-004", stage: "qualification", probability: 40, expectedAmount: "8800000", expectedCloseDate: "2026-12-31", ownerName: "王强" },
+          { name: "明志RW2000机器人清洗机", customerCode: "CUST-001", stage: "negotiation", probability: 80, expectedAmount: "2800000", expectedCloseDate: "2026-06-30", ownerName: "戴晓燕" },
+          { name: "上汽AGV搬运系统", customerCode: "CUST-002", stage: "proposal", probability: 60, expectedAmount: "4500000", expectedCloseDate: "2026-09-30", ownerName: "刘健康" },
+          { name: "台积电晶圆传输系统", customerCode: "CUST-004", stage: "qualification", probability: 40, expectedAmount: "8800000", expectedCloseDate: "2026-12-31", ownerName: "戴晓燕" },
         ];
         for (const opp of SEED_OPPS) {
           const customerId = custMap.get(opp.customerCode);
@@ -1712,12 +1712,12 @@ const readinessRouter = router({
         const tplList = await db.select({ id: approvalTemplates.id, templateCode: approvalTemplates.templateCode, businessType: approvalTemplates.businessType }).from(approvalTemplates).limit(100);
         if (tplList.length > 0) {
           const SEED_INSTANCES = [
-            { instanceCode: "AI-2026-001", templateIdx: 0, businessId: "LEAVE-001", businessTable: "hrm_leave_requests", businessTitle: "张伟请假3天", summary: "年假申请", status: "approved" },
+            { instanceCode: "AI-2026-001", templateIdx: 0, businessId: "LEAVE-001", businessTable: "hrm_leave_requests", businessTitle: "李大鹏请假3天", summary: "年假申请", status: "approved" },
             { instanceCode: "AI-2026-002", templateIdx: 1, businessId: "PR-001", businessTable: "purchase_requests", businessTitle: "采购伺服电机5台", summary: "生产用料采购", amount: "17500.00", status: "pending" },
             { instanceCode: "AI-2026-003", templateIdx: 3, businessId: "PROJ-001", businessTable: "projects", businessTitle: "苏州明志RW2000项目立项", summary: "新项目立项审批", amount: "2800000.00", status: "approved" },
             { instanceCode: "AI-2026-004", templateIdx: 4, businessId: "ECO-001", businessTable: "engineering_change_orders", businessTitle: "RW2000喷嘴材质变更", summary: "ECR/ECO审批", status: "approved" },
             { instanceCode: "AI-2026-005", templateIdx: 2, businessId: "EXP-001", businessTable: "expense_claims", businessTitle: "出差报销-南京蒂森", summary: "差旅报销3200元", amount: "3200.00", status: "pending" },
-            { instanceCode: "AI-2026-006", templateIdx: 0, businessId: "LEAVE-002", businessTable: "hrm_leave_requests", businessTitle: "李娜请假1天", summary: "事假申请", status: "approved" },
+            { instanceCode: "AI-2026-006", templateIdx: 0, businessId: "LEAVE-002", businessTable: "hrm_leave_requests", businessTitle: "倪微薇请假1天", summary: "事假申请", status: "approved" },
             { instanceCode: "AI-2026-007", templateIdx: 5, businessId: "WO-001", businessTable: "work_orders", businessTitle: "主轴量产工单签发", summary: "生产工单审批", status: "approved" },
             { instanceCode: "AI-2026-008", templateIdx: 1, businessId: "PR-002", businessTable: "purchase_requests", businessTitle: "采购42CrMo4钢材5吨", summary: "原材料采购", amount: "142500.00", status: "rejected" },
           ];
@@ -2040,11 +2040,11 @@ const readinessRouter = router({
             const empN = await safeCount(hrmEmployees);
             if (force || empN < 20) {
               const EXTRA_EMPS = [
-                { employeeCode: "GRT-E021", name: "韩雪", englishName: "Xue Han", gender: "female" as const, department: "质量部", position: "质量主管", level: "M4", phone: "13800000021", email: "hanxue@grt.com" },
-                { employeeCode: "GRT-E022", name: "冯超", englishName: "Chao Feng", gender: "male" as const, department: "生产部", position: "工艺工程师", level: "P6", phone: "13800000022", email: "fengchao@grt.com" },
-                { employeeCode: "GRT-E023", name: "蒋丽", englishName: "Li Jiang", gender: "female" as const, department: "销售部", position: "方案工程师", level: "P5", phone: "13800000023", email: "jiangli@grt.com" },
-                { employeeCode: "GRT-E024", name: "沈鹏", englishName: "Peng Shen", gender: "male" as const, department: "研发部", position: "电气工程师", level: "P6", phone: "13800000024", email: "shenpeng@grt.com" },
-                { employeeCode: "GRT-E025", name: "邓晓", englishName: "Xiao Deng", gender: "female" as const, department: "采购部", position: "采购专员", level: "P4", phone: "13800000025", email: "dengxiao@grt.com" },
+                { employeeCode: "GRT008", name: "马柯", englishName: "Ke Ma", gender: "male" as const, department: "事业十部", position: "质量专员", level: "P5", phone: "13800000021", email: "make@grt.com" },
+                { employeeCode: "GRT018", name: "孙国祥", englishName: "Guoxiang Sun", gender: "male" as const, department: "事业四部", position: "电气工程师", level: "P6", phone: "13800000022", email: "sungx@grt.com" },
+                { employeeCode: "GRT019", name: "冯艳", englishName: "Yan Feng", gender: "female" as const, department: "事业三部", position: "销售与项目工程师", level: "P5", phone: "13800000023", email: "fengyan@grt.com" },
+                { employeeCode: "GRT094", name: "徐树奎", englishName: "Shukui Xu", gender: "male" as const, department: "事业二部", position: "事业二部经理", level: "M5", phone: "13800000024", email: "xusk@grt.com" },
+                { employeeCode: "GRT030", name: "匡凯旋", englishName: "Kaixuan Kuang", gender: "male" as const, department: "事业一部", position: "售后服务主管", level: "M4", phone: "13800000025", email: "kuangkx@grt.com" },
               ];
               let c = 0;
               for (const emp of EXTRA_EMPS) {
@@ -2261,7 +2261,7 @@ const readinessRouter = router({
                 { fmeaCode: "FMEA-MFG-P03", fmeaType: "PFMEA" as const, title: "清洁度检测PFMEA (Cleanliness Testing PFMEA)", processName: "零件清洗", status: "active" as const },
               ];
               for (const f of fmeas) {
-                try { await db.insert(fmeaDocuments).values({ ...f, scope: "全流程", revision: 1, teamMembers: JSON.stringify(["陈明", "赵秀英", "冯超"]) }); c++; } catch { /* dup */ }
+                try { await db.insert(fmeaDocuments).values({ ...f, scope: "全流程", revision: 1, teamMembers: JSON.stringify(["杨勇", "金晓锋", "孙国祥"]) }); c++; } catch { /* dup */ }
               }
               seeded.fmea = c;
             }
@@ -2544,7 +2544,7 @@ const readinessRouter = router({
                 { fmeaCode: "FMEA-QUAL-P02", fmeaType: "PFMEA" as const, title: "精锻模具寿命PFMEA", processName: "锻压成型", status: "active" as const },
                 { fmeaCode: "FMEA-QUAL-P03", fmeaType: "PFMEA" as const, title: "齿轮磨削表面PFMEA", processName: "精磨", status: "draft" as const },
               ]) {
-                try { await db.insert(fmeaDocuments).values({ ...f, scope: "全流程", revision: 1, teamMembers: JSON.stringify(["赵秀英", "韩雪", "冯超"]) }); c++; } catch { /* dup */ }
+                try { await db.insert(fmeaDocuments).values({ ...f, scope: "全流程", revision: 1, teamMembers: JSON.stringify(["金晓锋", "马柯", "孙国祥"]) }); c++; } catch { /* dup */ }
               }
               seeded.fmea = c;
             }
@@ -2780,14 +2780,14 @@ const readinessRouter = router({
               if (tplList.length > 0) {
                 let c = 0;
                 for (const inst of [
-                  { instanceCode: "AI-BOOST-001", templateIdx: 0, businessId: "LEAVE-B01", businessTable: "hrm_leave_requests", businessTitle: "张伟请假3天", summary: "年假", status: "approved" },
+                  { instanceCode: "AI-BOOST-001", templateIdx: 0, businessId: "LEAVE-B01", businessTable: "hrm_leave_requests", businessTitle: "李大鹏请假3天", summary: "年假", status: "approved" },
                   { instanceCode: "AI-BOOST-002", templateIdx: 1, businessId: "PR-B01", businessTable: "purchase_requests", businessTitle: "采购伺服电机5台", summary: "生产用料", amount: "17500.00", status: "pending" },
                   { instanceCode: "AI-BOOST-003", templateIdx: 3, businessId: "PROJ-B01", businessTable: "projects", businessTitle: "RW2000项目立项", summary: "新项目立项", amount: "2800000.00", status: "approved" },
                   { instanceCode: "AI-BOOST-004", templateIdx: 4, businessId: "ECO-B01", businessTable: "engineering_change_orders", businessTitle: "喷嘴材质变更", summary: "ECR审批", status: "approved" },
                   { instanceCode: "AI-BOOST-005", templateIdx: 2, businessId: "EXP-B01", businessTable: "expense_claims", businessTitle: "出差报销-南京", summary: "差旅报销", amount: "3200.00", status: "pending" },
                   { instanceCode: "AI-BOOST-006", templateIdx: 5, businessId: "WO-B01", businessTable: "work_orders", businessTitle: "主轴量产工单签发", summary: "生产工单审批", status: "approved" },
                   { instanceCode: "AI-BOOST-007", templateIdx: 1, businessId: "PR-B02", businessTable: "purchase_requests", businessTitle: "采购42CrMo4钢材5吨", summary: "原材料采购", amount: "142500.00", status: "rejected" },
-                  { instanceCode: "AI-BOOST-008", templateIdx: 0, businessId: "LEAVE-B03", businessTable: "hrm_leave_requests", businessTitle: "陈明请假2天", summary: "病假申请", status: "approved" },
+                  { instanceCode: "AI-BOOST-008", templateIdx: 0, businessId: "LEAVE-B03", businessTable: "hrm_leave_requests", businessTitle: "杨勇请假2天", summary: "病假申请", status: "approved" },
                 ]) {
                   const tpl = tplList[inst.templateIdx % tplList.length];
                   try {
@@ -2977,8 +2977,8 @@ const salaryImportRouter = router({
 
 输出格式示例：
 [
-  {"employeeId": 1, "employeeName": "张三", "department": "技术部", "baseSalary": 15000, "performanceGrade": "A", "projectBonus": 5000, "overtimeHours": 16},
-  {"employeeId": 2, "employeeName": "李四", "department": "销售部", "baseSalary": 12000, "performanceGrade": "B", "attendanceDays": 20}
+  {"employeeId": 1, "employeeName": "李大鹏", "department": "事业一部", "baseSalary": 15000, "performanceGrade": "A", "projectBonus": 5000, "overtimeHours": 16},
+  {"employeeId": 2, "employeeName": "戴晓燕", "department": "事业一部", "baseSalary": 12000, "performanceGrade": "B", "attendanceDays": 20}
 ]
 
 请确保：
@@ -2986,8 +2986,8 @@ const salaryImportRouter = router({
 2. 绩效等级为大写字母
 3. 输出纯JSON，不要额外文字`,
       sampleData: [
-        { employeeId: 1, employeeName: "张三", department: "技术部", baseSalary: 15000, performanceGrade: "A", projectBonus: 5000, overtimeHours: 16 },
-        { employeeId: 2, employeeName: "李四", department: "销售部", baseSalary: 12000, performanceGrade: "B", attendanceDays: 20 },
+        { employeeId: 1, employeeName: "李大鹏", department: "事业一部", baseSalary: 15000, performanceGrade: "A", projectBonus: 5000, overtimeHours: 16 },
+        { employeeId: 2, employeeName: "戴晓燕", department: "事业一部", baseSalary: 12000, performanceGrade: "B", attendanceDays: 20 },
       ],
       employeeNames,
     };

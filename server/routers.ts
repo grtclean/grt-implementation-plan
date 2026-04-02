@@ -21,6 +21,8 @@ import { hrmRouter } from "./routers/hrm.router";
 import { costRouter } from "./routers/cost.router";
 import { costAlertRouter } from "./routers/cost-alert.router";
 import { annualPlanningRouter } from "./routers/annual-planning.router";
+import { annualGoalIncentiveRouter } from "./routers/annual-goal-incentive.router";
+import { consultantAgentRouter } from "./routers/consultant-agent.router";
 import { webhookRouter as realWebhookRouter } from "./routers/webhook.router";
 import { namingRouter as realNamingRouter } from "./routers/naming.router";
 import { communityRouter as realCommunityRouter } from "./routers/community.router";
@@ -91,6 +93,10 @@ import { uwbRouter } from "./routers/uwb.router";
 import { devTasksRouter as realDevTasksRouter } from "./routers/devTasks.router";
 import { productionRouter } from "./routers/production.router";
 import { processManagementRouter } from "./routers/processManagement.router";
+import { quotingEngineRouter } from "./routers/quoting-engine.router";
+import { productionValueRouter } from "./routers/production-value.router";
+import { qualityAccountabilityRouter } from "./routers/quality-accountability.router";
+import { conferenceAssetsRouter } from "./routers/conference-assets.router";
 import { questionnaireRouter } from "./routers/questionnaire.router";
 import { projectGateRouter } from "./routers/projectGate.router";
 import { externalSyncRouter } from "./routers/external-sync.router";
@@ -176,6 +182,7 @@ import { performanceTraceRouter } from "./services/performance-trace.router";
 import { iotDigitalTwinRouter } from "./services/iot-digital-twin.router";
 
 import { afterSalesRouter as realAfterSalesRouter } from "./services/after-sales.router";
+import { serviceEngineerRouter } from "./routers/service-engineer.router";
 import { architectureRouter } from "./services/architecture.router";
 import { aiEarlyWarningRouter } from "./services/ai-early-warning.router";
 import { costStandardsRouter } from "./services/cost-standards.router";
@@ -299,6 +306,7 @@ import { oeeDashboardRouter } from "./routers/oee-dashboard.router";
 import { complianceCalendarRouter } from "./routers/compliance-calendar.router";
 import { ecoImpactRouter } from "./routers/eco-impact.router";
 import { supplierRiskRouter } from "./routers/supplier-risk.router";
+import { supplierGovernanceRouter } from "./routers/supplier-governance.router";
 import { employeeProfileRouter } from "./routers/employee-profile.router";
 import { fmeaDynamicRouter } from "./routers/fmea-dynamic.router";
 import { aiInterventionRouter } from "./routers/ai-intervention.router";
@@ -345,6 +353,34 @@ import { mechanicalConfigRouter } from "./routers/mechanical-config.router";
 import { payrollSandboxRouter } from "./routers/payroll-sandbox.router";
 import { payrollAgentRouter } from "./routers/payroll-agent.router";
 import { scenarioInitRouter } from "./routers/scenario-init.router";
+import { dataExportRouter } from "./routers/data-export.router";
+import { financeWorkflowRouter } from "./routers/finance-workflow.router";
+import { kingdeeERPRouter } from "./erp/kingdee-erp.router";
+import { glAccountingRouter } from "./routers/gl-accounting.router";
+import { bidProjectRouter } from "./routers/bid-project.router";
+import { projectFinanceEngineRouter } from "./routers/project-finance-engine.router";
+import { financeAdvancedRouter } from "./routers/finance-advanced.router";
+import { onboardingPathRouter } from "./routers/onboarding-path.router";
+import { perfGoalLinkageRouter } from "./routers/perf-goal-linkage.router";
+import { performanceOpsRouter } from "./routers/performance-ops.router";
+import { systemOptimizationRouter } from "./routers/system-optimization.router";
+import { empowermentEngineRouter } from "./routers/empowerment-engine.router";
+import { careerLighthouseRouter } from "./routers/career-lighthouse.router";
+import { salaryAutomationRouter } from "./routers/salary-automation.router";
+import { onlineInterviewRouter } from "./routers/online-interview.router";
+import { changeControlRouter } from "./routers/change-control.router";
+import { agentGovernanceRouter } from "./routers/agent-governance.router";
+import { systemSchedulerRouter } from "./routers/system-scheduler.router";
+import { drawingLibraryRouter } from "./routers/drawing-library.router";
+import { cameraStreamRouter } from "./routers/camera-stream.router";
+import { assemblyVisionRouter } from "./routers/assembly-vision.router";
+import { barcodeRouter } from "./routers/barcode.router";
+import { robotDebugRouter } from "./routers/robot-debug.router";
+import { humanoidRobotRouter } from "./routers/humanoid-robot.router";
+import { laborCostEngineRouter } from "./routers/labor-cost-engine.router";
+import { agvLogisticsRouter } from "./routers/agv-logistics.router";
+import { ceoMotivationRouter } from "./routers/ceo-motivation.router";
+import { roleDashboardRouter } from "./routers/role-dashboard.router";
 
 /**
  * This is the primary router for the tRPC API.
@@ -394,6 +430,7 @@ export const appRouter = router({
   // These return empty/mock data and can be replaced with real implementations
   capabilityOs: realCapabilityOsRouter,
   afterSales: realAfterSalesRouter,
+  serviceEngineer: serviceEngineerRouter,
   compliance: complianceRouter,
   webhook: realWebhookRouter,
   agenda: realAgendaRouter,
@@ -407,6 +444,8 @@ export const appRouter = router({
   crm: crmRouter,
   contract: contractRouter,
   annualPlanning: annualPlanningRouter,
+  annualGoalIncentive: annualGoalIncentiveRouter,
+  consultantAgent: consultantAgentRouter,
   changeManagement: realChangeManagementRouter,
   expenseReportScheduler: realExpenseReportSchedulerRouter,
   costAlert: costAlertRouter,
@@ -447,6 +486,10 @@ export const appRouter = router({
   projectGate: projectGateRouter,
   productionDashboard: productionRouter,
   processManagement: processManagementRouter,
+  quotingEngine: quotingEngineRouter,
+  productionValue: productionValueRouter,
+  qualityAccountability: qualityAccountabilityRouter,
+  conferenceAssets: conferenceAssetsRouter,
   questionnaire: questionnaireRouter,
   newAiAssistant: realNewAiAssistantRouter,
   migration: realMigrationRouter,
@@ -806,9 +849,12 @@ export const appRouter = router({
 
   // Phase 2.2: Supplier Risk Rating (IQC × SCM real-time interlock)
   supplierRisk: supplierRiskRouter,
+  // Phase 3: Supplier Governance (CEO 批复 2026-03 — 审核/准入/抽检/淘汰)
+  supplierGovernance: supplierGovernanceRouter,
 
   // Phase 2.3: Employee Digital Profile (HR × AI × Meeting × Cert fusion)
   employeeProfile: employeeProfileRouter,
+
 
   // Phase 2.4: Dynamic FMEA RPN (Shop Floor QC × Engineering FMEA fusion)
   fmeaDynamic: fmeaDynamicRouter,
@@ -954,6 +1000,70 @@ export const appRouter = router({
 
   // Scenario Init — 沙盘场景数据注入 (13 init procedures + 3 batch launchers)
   scenarioInit: scenarioInitRouter,
+
+  // Data Export — 敏感数据导出审批 (requestExport, approve/reject, download)
+  dataExport: dataExportRouter,
+
+  // 金蝶ERP — K/3 MSSQL直连 (GL/AP/AR/PO/Items/Suppliers/Customers)
+  kingdeeERP: kingdeeERPRouter,
+
+  // 财务工作流 — 报销/供应商付款/客户收款/银行账户/固定费用/物料盘点/财务沙盘
+  financeWorkflow: financeWorkflowRouter,
+
+  // 总账核心 — 科目/凭证/余额/固定资产/折旧/税务发票/期末结账/三单匹配/角色配置
+  glAccounting: glAccountingRouter,
+
+  // 投标项目管理 — 商机→投标→中标→正式项目全程追溯
+  bidProject: bidProjectRouter,
+
+  // 项目财务引擎 — 工时成本池/AP-AR账龄/预算版本/现金流/预警矩阵/报销政策
+  projectFinanceEngine: projectFinanceEngineRouter,
+
+  // 财务高级 — 银行对账/项目EVA/多币种/财务报表/项目对标/自动折旧
+  financeAdvanced: financeAdvancedRouter,
+
+  // 新员工引导式学习路径 — 5阶段×多角色串联沙盘
+  onboardingPath: onboardingPathRouter,
+
+  // 绩效-目标联动 — 年度目标完成率→绩效工资档位
+  perfGoalLinkage: perfGoalLinkageRouter,
+  performanceOps: performanceOpsRouter,
+  systemOptimization: systemOptimizationRouter,
+  empowermentEngine: empowermentEngineRouter,
+  careerLighthouse: careerLighthouseRouter,
+  salaryAutomation: salaryAutomationRouter,
+  onlineInterview: onlineInterviewRouter,
+  changeControl: changeControlRouter,
+
+  // Agent治理 — 数字员工HR管理(CRUD/生命周期/版本/审计/合规)
+  agentGovernance: agentGovernanceRouter,
+
+  // 系统调度 — 定时任务管理+业务事件→GL过账桥接
+  systemScheduler: systemSchedulerRouter,
+
+  // 图纸库 — Drawing Library / BDO图纸管理 (registry, revisions, relations, search)
+  drawingLibrary: drawingLibraryRouter,
+
+  // 云端摄像头 — Camera Stream (registry, snapshot proxy, PTZ, groups, events)
+  cameraStream: cameraStreamRouter,
+  // 装配视觉分析 — Assembly Vision (recordings, time study, operator efficiency)
+  assemblyVision: assemblyVisionRouter,
+  // 条码管理 — Barcode (QR/CODE128/EAN13 generate, lookup, batch)
+  barcode: barcodeRouter,
+  // 机器人调试沙盘 — Robot Debug (sessions, commands, parameters, collision)
+  robotDebug: robotDebugRouter,
+  // 人型机器人平台 — Humanoid Robot (vision, material handling, maintenance)
+  humanoidRobot: humanoidRobotRouter,
+  // 工时成本引擎 — Labor Cost Engine (time entries, cost tracking, skill matching)
+  laborCostEngine: laborCostEngineRouter,
+  // AGV 车间物流 — AGV Logistics (fleet, routes, tasks, traffic, charging)
+  agvLogistics: agvLogisticsRouter,
+  // CEO 智能激励指挥台 — Smart Motivation (task assignment, KPI foresight, motivation, tech assist)
+  ceoMotivation: ceoMotivationRouter,
+
+  // 角色驾驶舱 — Role-Based Dashboard (personalized widgets + quick actions)
+  roleDashboard: roleDashboardRouter,
+
 
   // Health check endpoint
   health: publicProcedure.query(async () => {

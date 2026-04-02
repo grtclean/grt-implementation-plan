@@ -175,6 +175,168 @@ export async function provisionAllEmployees(): Promise<ProvisionResult> {
   return result;
 }
 
+// ─── GRT 96人真实花名册（与工资表一致） ──────────────────
+// [employeeCode, name, department, position]
+const GRT_REAL_ROSTER: Array<[string, string, string, string]> = [
+  ["GRT001","倪亚东","总裁办","董事长"],
+  ["GRT080","刘奥运","AI数智部","董事长助理"],
+  ["GRT049","胡杨","AI数智部","IT工程师"],
+  ["GRT062","朱宇浩","事业二部","生产工程师兼项目及IT工程师"],
+
+  ["GRT083","刘坤","AI数智部","市场主管"],
+  ["GRT103","朱文韬","AI数智部","市场专员"],
+  ["GRT105","倪微薇","AI数智部","AI数智&人事行政部经理"],
+  ["GRT002","黄晓兰","财务部","出纳/银行账户执行"],
+  ["GRT054","王秀萍","财务部","总账会计/财务复核"],
+  ["GRT101","王汝月","财务部","财务专员/报销初审"],
+  ["GRT066","李新正","财务部","仓库管理员"],
+  ["GRT079_2","马鹏风","财务部","供应链工程师"],
+  ["GRT067","沙建梅","人事行政部","人事行政主管"],
+  ["GRT053","段天珠","人事行政部","前法"],
+  ["GRT100","田炜钰","人事行政部","行政前台"],
+  ["GRT095","王爱云","人事行政部","后勤助理"],
+  ["GRT004","戴晓燕","事业一部","高级销售经理"],
+  ["GRT005","金晓锋","事业一部","制造质量经理"],
+  ["GRT022","李大鹏","事业一部","电气工程师"],
+  ["GRT063","刘健康","事业一部","销售与项目工程师"],
+  ["GRT020","张洵","事业一部","采购与项目工程师"],
+  ["GRT057","滕顺英","事业一部","采购与项目工程师"],
+  ["GRT043","韩保程","事业一部","销售与项目工程师"],
+  ["GRT093","李柯瑶","事业一部","销售与项目工程师"],
+  ["GRT104","董纾雨","事业一部","销售与项目工程师"],
+  ["GRT030","匡凯旋","事业一部","售后服务主管"],
+  ["GRT014","廉龙海","事业一部","售后技工"],
+  ["GRT028","朱明华","事业一部","售后技工"],
+  ["GRT040","曾春贵","事业一部","售后技工"],
+  ["GRT015","杜显文","事业一部","电气班组副班长"],
+  ["GRT046","吕雪冬","事业一部","电气班组班长"],
+  ["GRT087","梅奥杰","事业一部","助理电气工程师"],
+  ["GRT088","高嘉义","事业一部","助理电气工程师"],
+  ["GRT090","陈加丽","事业一部","助理机械研发工程师"],
+  ["GRT010","吴卫成","事业一部","机械装配"],
+  ["GRT016","曹庆伟","事业一部","机械装配"],
+
+  ["GRT039","侯德朋","事业一部","机械装配"],
+  ["GRT041","张良","事业一部","机械装配"],
+  ["GRT052","赵强","事业一部","机械装配"],
+  ["GRT059","焦斌","事业一部","机械装配"],
+  ["GRT079","阎建华","事业一部","机械装配"],
+  ["GRT031","沈龙翔","事业一部","电气装配"],
+  ["GRT036","韩品来","事业一部","电气装配"],
+  ["GRT051","崔聪聪","事业一部","电气装配"],
+  ["GRT071","刘琛杨","事业一部","电气装配"],
+  ["GRT072","赵铖杰","事业一部","电气装配"],
+  ["GRT017","田坪珍","事业一部","焊工"],
+  ["GRT082","沈富高","事业一部","焊工"],
+  ["GRT064","强兵兵","事业一部","激光切割"],
+  ["GRT061","李明遂","事业一部","数控车工"],
+  ["GRT047","嵇国华","事业一部","协作辅助"],
+  ["GRT094","徐树奎","事业二部","事业二部经理"],
+  ["GRT006","洪香龙","事业二部","机械设计经理"],
+  ["GRT044","洪小东","事业二部","机械研发工程师"],
+  ["GRT097","钱佳奇","事业二部","电气工程师"],
+  ["GRT065","蔡瑞","事业二部","机械研发工程师"],
+  ["GRT099","殷金刚","事业二部","机械研发工程师"],
+  ["GRT038","马林山","事业二部","装配班组长"],
+  ["GRT074","王金涛","事业二部","机械装配"],
+  ["GRT058","周辉","事业三部","事业三部经理"],
+  ["GRT007","孙坚","事业三部","电气主管"],
+  ["GRT055","沈迎凤","事业三部","采购经理"],
+  ["GRT003","倪亚琴","事业三部","采购与项目工程师"],
+  ["GRT019","冯艳","事业三部","销售与项目工程师"],
+  ["GRT035","王志强","事业三部","销售与项目工程师"],
+  ["GRT089","罗小玲","事业三部","助理机械研发工程师"],
+  ["GRT013","孙淼","事业三部","机械装配"],
+  ["GRT021","张松松","事业三部","机械装配"],
+  ["GRT025","肖博雅","事业三部","机械装配"],
+  ["GRT032","王犇","事业三部","机械装配"],
+  ["GRT034","王勇","事业三部","机械装配"],
+  ["GRT042","刘建年","事业三部","机械装配"],
+  ["GRT050","蕾翠林","事业三部","机械装配"],
+  ["GRT060","杨会龙","事业三部","机械装配"],
+  ["GRT075","胡绍杰","事业三部","机械装配"],
+  ["GRT076","王森","事业三部","机械装配"],
+  ["GRT077","吴阳洋","事业三部","机械装配"],
+  ["GRT084","蒋秋瑞","事业三部","机械装配"],
+  ["GRT023","杨之雲","事业三部","电气装配"],
+  ["GRT029","殷小勇","事业三部","电气装配"],
+  ["GRT056","陈成成","事业三部","焊工"],
+  ["GRT037","黄潇潇","事业三部","文员"],
+  ["GRT018","孙国祥","事业四部","电气工程师"],
+  ["GRT024","张腾飞","事业四部","机加工班组长"],
+  ["GRT008","马柯","事业十部","质量专员"],
+  ["GRT009","史龙昌","事业十部","激光切作班组长"],
+  ["GRT011","张超","事业十部","激光"],
+  ["GRT012","李兴伟","事业十部","冷作"],
+  ["GRT068","李亚超","事业十部","CNC操作工"],
+  ["GRT069","李鹏飞","事业十部","数控车工"],
+  ["GRT073","范威","事业十部","CNC操作工"],
+  ["GRT102","张飞","事业十部","机加工铣工"],
+  ["GRT045","杨勇","事业三部","生产工程师兼项目经理"],
+  ["GRT081","马康风","财务部","供应链助理工程师"],
+];
+
+// ─── 重新配置所有员工（用真实花名册，不依赖hrm_employees） ────
+
+export async function reprovisionAllEmployees(): Promise<ProvisionResult> {
+  const db = await requireDb();
+  const result: ProvisionResult = { created: 0, skipped: 0, errors: [] };
+
+  try {
+    // 1. 清除所有旧助理记录
+    await db.delete(employeeAiAssistants).where(sql`1=1`);
+
+    // 2. 先尝试从hrm_employees匹配ID，匹配不到则用序号
+    const hrmRows = await db.select({ id: hrmEmployees.id, employeeCode: hrmEmployees.employeeCode })
+      .from(hrmEmployees).limit(1000);
+    const codeToId = new Map<string, number>();
+    for (const r of hrmRows) codeToId.set(r.employeeCode, r.id);
+
+    // 3. 为每个真实员工构建记录
+    const insertValues = [];
+    let fallbackId = 90000;
+    for (const [code, name, dept, position] of GRT_REAL_ROSTER) {
+      try {
+        const empId = codeToId.get(code) ?? ++fallbackId;
+        const roleId = mapPositionToRole(position, dept);
+        if (roleId === "guest") { result.skipped++; continue; }
+        const preset = getPresetByRole(roleId);
+        const ctx: PromptContext = {
+          ownerName: name,
+          ownerCode: code,
+          department: dept,
+          position: position,
+          roleDescription: ROLE_DESCRIPTIONS[roleId] || "\u65E5\u5E38\u5DE5\u4F5C\u4EFB\u52A1\u6267\u884C",
+        };
+        insertValues.push({
+          employeeId: empId,
+          assistantCode: generateAssistantCode(code),
+          assistantName: generateAssistantName(name),
+          assistantType: preset.assistantType as any,
+          personalityConfig: buildPersonalityConfig(roleId, ctx),
+          knowledgeDomains: JSON.stringify(preset.knowledgeDomains),
+          status: "active" as const,
+        });
+      } catch (err: any) {
+        result.errors.push(`${name}(${code}): ${err.message}`);
+      }
+    }
+
+    // 4. 批量写入
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < insertValues.length; i += BATCH_SIZE) {
+      await db.insert(employeeAiAssistants).values(insertValues.slice(i, i + BATCH_SIZE));
+    }
+
+    result.created = insertValues.length;
+    result.skipped += GRT_REAL_ROSTER.length - insertValues.length - result.skipped;
+  } catch (err: any) {
+    result.errors.push(`\u91CD\u65B0\u914D\u7F6E\u5931\u8D25: ${err.message}`);
+  }
+
+  return result;
+}
+
 // ─── 为单个员工配置 ──────────────────────────────────────
 
 export async function provisionSingleEmployee(employeeId: number): Promise<ProvisionResult> {

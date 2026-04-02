@@ -113,4 +113,26 @@ export const orgRouter = router({
       await db.execute(sql`UPDATE departments SET ${sql.join(setClauses, sql`, `)} WHERE id = ${input.id}`);
       return { success: true };
     }),
+
+  /** 从 grt_employees 表获取完整上下级关系树 */
+  getHierarchy: protectedProcedure.query(async () => {
+    const db = await requireDb();
+    try {
+      const result: any = await db.execute(sql`
+        SELECT
+          e.id, e.employee_id, e.name, e.department,
+          e.supervisor_id,
+          s.name AS supervisor_name,
+          e.is_active
+        FROM grt_employees e
+        LEFT JOIN grt_employees s ON e.supervisor_id = s.id
+        WHERE e.is_active = 1
+        ORDER BY e.supervisor_id NULLS FIRST, e.department, e.name
+      `);
+      const rows = result?.rows ?? result ?? [];
+      return { employees: rows };
+    } catch {
+      return { employees: [] };
+    }
+  }),
 });

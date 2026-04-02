@@ -81,128 +81,132 @@ function TemplateForm({
 
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setError(null);
-    try {
-      const payload = {
-        productType: form.productType,
-        title: form.title,
-        subtitle: form.subtitle || undefined,
-        description: form.description || undefined,
-        heroVideoUrl: form.heroVideoUrl || undefined,
-        taktTimeSeconds: form.taktTimeSeconds ? Number(form.taktTimeSeconds) : undefined,
-        cleaningEfficiency: form.cleaningEfficiency || undefined,
-        cleanlinessStandard: form.cleanlinessStandard || undefined,
-        throughputPerHour: form.throughputPerHour ? Number(form.throughputPerHour) : undefined,
-        powerConsumptionKw: form.powerConsumptionKw ? Number(form.powerConsumptionKw) : undefined,
-        priceRangeMin: form.priceRangeMin ? Number(form.priceRangeMin) : undefined,
-        priceRangeMax: form.priceRangeMax ? Number(form.priceRangeMax) : undefined,
-        priceCurrency: form.priceCurrency,
-        roiMonths: form.roiMonths ? Number(form.roiMonths) : undefined,
-      };
+    const payload = {
+      productType: form.productType,
+      title: form.title,
+      subtitle: form.subtitle || undefined,
+      description: form.description || undefined,
+      heroVideoUrl: form.heroVideoUrl || undefined,
+      taktTimeSeconds: form.taktTimeSeconds ? Number(form.taktTimeSeconds) : undefined,
+      cleaningEfficiency: form.cleaningEfficiency || undefined,
+      cleanlinessStandard: form.cleanlinessStandard || undefined,
+      throughputPerHour: form.throughputPerHour ? Number(form.throughputPerHour) : undefined,
+      powerConsumptionKw: form.powerConsumptionKw ? Number(form.powerConsumptionKw) : undefined,
+      priceRangeMin: form.priceRangeMin ? Number(form.priceRangeMin) : undefined,
+      priceRangeMax: form.priceRangeMax ? Number(form.priceRangeMax) : undefined,
+      priceCurrency: form.priceCurrency,
+      roiMonths: form.roiMonths ? Number(form.roiMonths) : undefined,
+    };
 
-      if (isEdit) {
-        await updateMut.mutateAsync({ id: editData.id, ...payload });
-        toast({ title: "Template updated" });
-      } else {
-        await createMut.mutateAsync(payload);
-        toast({ title: "Template created successfully!" });
-      }
-      onSuccess();
-    } catch (err: any) {
-      const msg = err?.message || err?.data?.message || "Unknown error occurred";
-      setError(msg);
-      toast({ variant: "destructive", title: "Failed to save template", description: msg });
-    }
+    const mutation = isEdit
+      ? updateMut.mutateAsync({ id: editData.id, ...payload })
+      : createMut.mutateAsync(payload);
+
+    mutation
+      .then(() => {
+        toast({ title: isEdit ? "Template updated" : "Template created successfully!" });
+        onSuccess();
+      })
+      .catch((err: any) => {
+        const msg = err?.message || err?.data?.message || "Unknown error occurred";
+        setError(msg);
+        toast({ variant: "destructive", title: "Failed to save template", description: msg });
+      });
   };
 
   const set = (key: string, val: string) => setForm((p) => ({ ...p, [key]: val }));
 
   return (
-    <div className="grid gap-4 max-h-[70vh] overflow-y-auto pr-2">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label>Product Type *</Label>
-          <Input value={form.productType} onChange={(e) => set("productType", e.target.value)} placeholder="KLT周转箱" />
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div className="grid gap-4 max-h-[55vh] overflow-y-auto pr-2">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Product Type *</Label>
+            <Input value={form.productType} onChange={(e) => set("productType", e.target.value)} placeholder="KLT周转箱" />
+          </div>
+          <div>
+            <Label>Title *</Label>
+            <Input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="KLT Cleaning Solution" />
+          </div>
         </div>
         <div>
-          <Label>Title *</Label>
-          <Input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="KLT Cleaning Solution" />
+          <Label>Subtitle</Label>
+          <Input value={form.subtitle} onChange={(e) => set("subtitle", e.target.value)} placeholder="Advanced ultrasonic cleaning..." />
         </div>
+        <div>
+          <Label>Description</Label>
+          <Textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} />
+        </div>
+        <div>
+          <Label>Hero Video URL</Label>
+          <Input value={form.heroVideoUrl} onChange={(e) => set("heroVideoUrl", e.target.value)} placeholder="https://..." />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <Label>Takt Time (s)</Label>
+            <Input type="number" value={form.taktTimeSeconds} onChange={(e) => set("taktTimeSeconds", e.target.value)} />
+          </div>
+          <div>
+            <Label>Cleaning Efficiency</Label>
+            <Input value={form.cleaningEfficiency} onChange={(e) => set("cleaningEfficiency", e.target.value)} placeholder="99.7%" />
+          </div>
+          <div>
+            <Label>Cleanliness Standard</Label>
+            <Input value={form.cleanlinessStandard} onChange={(e) => set("cleanlinessStandard", e.target.value)} placeholder="VDA 19.1 / ISO 16232" />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <Label>Throughput / Hour</Label>
+            <Input type="number" value={form.throughputPerHour} onChange={(e) => set("throughputPerHour", e.target.value)} />
+          </div>
+          <div>
+            <Label>Power (kW)</Label>
+            <Input type="number" value={form.powerConsumptionKw} onChange={(e) => set("powerConsumptionKw", e.target.value)} />
+          </div>
+          <div>
+            <Label>ROI (months)</Label>
+            <Input type="number" value={form.roiMonths} onChange={(e) => set("roiMonths", e.target.value)} />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <Label>Price Min</Label>
+            <Input type="number" value={form.priceRangeMin} onChange={(e) => set("priceRangeMin", e.target.value)} />
+          </div>
+          <div>
+            <Label>Price Max</Label>
+            <Input type="number" value={form.priceRangeMax} onChange={(e) => set("priceRangeMax", e.target.value)} />
+          </div>
+          <div>
+            <Label>Currency</Label>
+            <Select value={form.priceCurrency} onValueChange={(v) => set("priceCurrency", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="EUR">EUR</SelectItem>
+                <SelectItem value="USD">USD</SelectItem>
+                <SelectItem value="CNY">CNY</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {error && (
+          <div className="p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+            {error}
+          </div>
+        )}
       </div>
-      <div>
-        <Label>Subtitle</Label>
-        <Input value={form.subtitle} onChange={(e) => set("subtitle", e.target.value)} placeholder="Advanced ultrasonic cleaning..." />
-      </div>
-      <div>
-        <Label>Description</Label>
-        <Textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} />
-      </div>
-      <div>
-        <Label>Hero Video URL</Label>
-        <Input value={form.heroVideoUrl} onChange={(e) => set("heroVideoUrl", e.target.value)} placeholder="https://..." />
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <Label>Takt Time (s)</Label>
-          <Input type="number" value={form.taktTimeSeconds} onChange={(e) => set("taktTimeSeconds", e.target.value)} />
-        </div>
-        <div>
-          <Label>Cleaning Efficiency</Label>
-          <Input value={form.cleaningEfficiency} onChange={(e) => set("cleaningEfficiency", e.target.value)} placeholder="99.7%" />
-        </div>
-        <div>
-          <Label>Cleanliness Standard</Label>
-          <Input value={form.cleanlinessStandard} onChange={(e) => set("cleanlinessStandard", e.target.value)} placeholder="VDA 19.1 / ISO 16232" />
-        </div>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <Label>Throughput / Hour</Label>
-          <Input type="number" value={form.throughputPerHour} onChange={(e) => set("throughputPerHour", e.target.value)} />
-        </div>
-        <div>
-          <Label>Power (kW)</Label>
-          <Input type="number" value={form.powerConsumptionKw} onChange={(e) => set("powerConsumptionKw", e.target.value)} />
-        </div>
-        <div>
-          <Label>ROI (months)</Label>
-          <Input type="number" value={form.roiMonths} onChange={(e) => set("roiMonths", e.target.value)} />
-        </div>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <Label>Price Min</Label>
-          <Input type="number" value={form.priceRangeMin} onChange={(e) => set("priceRangeMin", e.target.value)} />
-        </div>
-        <div>
-          <Label>Price Max</Label>
-          <Input type="number" value={form.priceRangeMax} onChange={(e) => set("priceRangeMax", e.target.value)} />
-        </div>
-        <div>
-          <Label>Currency</Label>
-          <Select value={form.priceCurrency} onValueChange={(v) => set("priceCurrency", v)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="EUR">EUR</SelectItem>
-              <SelectItem value="USD">USD</SelectItem>
-              <SelectItem value="CNY">CNY</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      {error && (
-        <div className="p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-sm">
-          {error}
-        </div>
-      )}
-      <Button onClick={handleSubmit} disabled={createMut.isPending || updateMut.isPending || !form.productType || !form.title}>
+      <Button type="submit" disabled={createMut.isPending || updateMut.isPending || !form.productType || !form.title} className="w-full">
         {(createMut.isPending || updateMut.isPending) && (
           <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
         )}
         {createMut.isPending ? "Creating..." : updateMut.isPending ? "Updating..." : isEdit ? "Update Template" : "Create Template"}
       </Button>
-    </div>
+    </form>
   );
 }
 

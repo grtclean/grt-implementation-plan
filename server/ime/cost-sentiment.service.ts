@@ -21,6 +21,22 @@ type DbRow = Record<string, unknown>;
 export async function startLiveSession(meetingId: string, userId: string) {
   const db = await requireDb();
 
+  // Ensure table exists
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS ime_live_sessions (
+      id serial PRIMARY KEY,
+      meeting_id varchar(100) NOT NULL,
+      session_status varchar(20) NOT NULL DEFAULT 'active',
+      started_by varchar(100),
+      live_contribution_snapshot jsonb DEFAULT '{}',
+      segment_count integer DEFAULT 0,
+      total_speaking_time_sec integer DEFAULT 0,
+      ai_suggestions jsonb DEFAULT '[]',
+      created_at timestamp DEFAULT now(),
+      ended_at timestamp
+    )
+  `);
+
   // Check for existing active session
   const existing = await db.execute(sql`
     SELECT id FROM ime_live_sessions

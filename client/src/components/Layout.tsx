@@ -15,6 +15,7 @@ import { GlobalMenuSearch } from "@/components/GlobalMenuSearch";
 import { useMenuFavorites } from "@/hooks/useMenuFavorites";
 import { useActiveApp } from "@/hooks/useActiveApp";
 import { useUserProfile, ROLE_HIERARCHY, ROLE_CONFIGS } from "@/contexts/UserProfileContext";
+import { isCustomerUser, CUSTOMER_ALLOWED_MENU_GROUPS } from "@shared/customer-access";
 import TopHeader from "@/components/Layout/TopHeader";
 import WaffleMenu from "@/components/Layout/WaffleMenu";
 import ContextualSidebar from "@/components/Layout/ContextualSidebar";
@@ -29,6 +30,26 @@ import { useLocation } from "wouter";
 // Context to prevent double-rendering of Layout (e.g., Suspense fallback + lazy page)
 const LayoutActiveContext = createContext(false);
 export const useIsInsideLayout = () => useContext(LayoutActiveContext);
+
+/** Check if a route is accessible for customer users based on filtered menu config */
+function isCustomerRouteAllowed(path: string, filteredMenu: MenuGroup[]): boolean {
+  // Always allow root/home
+  if (path === "/" || path === "/me") return true;
+  // Check if any filtered menu item matches the current path
+  for (const group of filteredMenu) {
+    for (const item of group.items) {
+      if (path === item.path || path.startsWith(item.path + "/")) return true;
+    }
+    if (group.subgroups) {
+      for (const sg of group.subgroups) {
+        for (const item of sg.items) {
+          if (path === item.path || path.startsWith(item.path + "/")) return true;
+        }
+      }
+    }
+  }
+  return false;
+}
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const isInsideLayout = useContext(LayoutActiveContext);
@@ -109,9 +130,16 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     return true;
   }, [currentUserRole, currentLevel, permissions, isSuperRole]);
 
+  // Customer whitelist check — user comes from useAuth()
+  const isCustomer = useMemo(() => isCustomerUser(user), [user]);
+
   const filteredMenuConfig = useMemo(() => {
     return menuConfig
-      .filter(group => canAccessGroup(group))
+      .filter(group => {
+        // Customer users: only allow whitelisted menu groups
+        if (isCustomer && !CUSTOMER_ALLOWED_MENU_GROUPS.has(group.name)) return false;
+        return canAccessGroup(group);
+      })
       .map(group => ({
         ...group,
         items: group.items.filter(item => canAccessItem(item) && !isHidden(item.path)),
@@ -122,7 +150,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         })).filter(sg => sg.items.length > 0),
       }))
       .filter(group => group.items.length > 0 || (group.subgroups && group.subgroups.length > 0));
-  }, [canAccessGroup, canAccessItem, isHidden]);
+  }, [canAccessGroup, canAccessItem, isHidden, isCustomer]);
 
   // ── Sidebar collapse sync ──
   const updatePreferencesMutation = trpc.auth.updatePreferences.useMutation();
@@ -318,48 +346,68 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
           logout={logout}
         />
 
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto pb-14 md:pb-0 [scrollbar-gutter:stable]">
+        {/* Main content — with customer route guard */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-14 md:pb-0 [scrollbar-gutter:stable]">
           <ErrorBoundary resetKeys={[location]} level="section">
-            <div className="p-3 sm:p-6 lg:p-8">{children}</div>
+            {isCustomer && !isCustomerRouteAllowed(location, filteredMenuConfig) ? (
+              <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="text-center space-y-4 max-w-md">
+                  <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                    <svg className="w-8 h-8 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m8-7a4 4 0 11-8 0 4 4 0 018 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                  </div>
+                  <h2 className="text-xl font-bold">无访问权限</h2>
+                  <p className="text-muted-foreground text-sm">该模块暂未对客户账户开放，如需访问请联系 GRT 项目经理。</p>
+                  <button onClick={() => window.location.href = "/"} className="text-sm text-primary hover:underline">← 返回首页</button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 sm:p-6 lg:p-8">{children}</div>
+            )}
           </ErrorBoundary>
         </main>
       </div>
 
-      {/* DingTalk-style mobile bottom nav — hidden on desktop */}
-      <MobileBottomNav
-        language={language}
-        alertCount={alertCount}
-        onNavigate={handleMenuNavigate}
-      />
-
-      {/* Right-side panels — preserved exactly as before */}
-      <GlobalMenuSearch />
-      <Suspense fallback={null}>
-        <HelpColumn
-          isOpen={helpPanelOpen}
-          onClose={() => setHelpPanelOpen(false)}
-          onOpenAI={() => setAiPanelOpen(true)}
+      {/* DingTalk-style mobile bottom nav — hidden on desktop, hidden for customers */}
+      {!isCustomer && (
+        <MobileBottomNav
+          language={language}
+          alertCount={alertCount}
+          onNavigate={handleMenuNavigate}
+          userRole={currentUserRole}
         />
-        <HelpOverlay />
-        <CopilotBar />
-        {panelMode === "agent" ? (
-          <RoleBasedAIAgent
-            isOpen={aiCanvasOpen}
-            onClose={() => setAiCanvasOpen(false)}
-            onSwitchToCanvas={() => setPanelMode("canvas")}
-          />
-        ) : (
-          <AiCanvas
-            isOpen={aiCanvasOpen}
-            onClose={() => setAiCanvasOpen(false)}
-            onSwitchToAgent={() => setPanelMode("agent")}
-          />
-        )}
-        <GuidedWalkthrough />
-        <AIFloatingButton onClick={() => setAiPanelOpen(true)} isOpen={aiPanelOpen} />
-        {aiPanelOpen && <AIConversationPanel isOpen={aiPanelOpen} onClose={() => setAiPanelOpen(false)} />}
-      </Suspense>
+      )}
+
+      {/* Right-side panels — hidden for customer users */}
+      {!isCustomer && (
+        <>
+          <GlobalMenuSearch />
+          <Suspense fallback={null}>
+            <HelpColumn
+              isOpen={helpPanelOpen}
+              onClose={() => setHelpPanelOpen(false)}
+              onOpenAI={() => setAiPanelOpen(true)}
+            />
+            <HelpOverlay />
+            <CopilotBar />
+            {panelMode === "agent" ? (
+              <RoleBasedAIAgent
+                isOpen={aiCanvasOpen}
+                onClose={() => setAiCanvasOpen(false)}
+                onSwitchToCanvas={() => setPanelMode("canvas")}
+              />
+            ) : (
+              <AiCanvas
+                isOpen={aiCanvasOpen}
+                onClose={() => setAiCanvasOpen(false)}
+                onSwitchToAgent={() => setPanelMode("agent")}
+              />
+            )}
+            <GuidedWalkthrough />
+            <AIFloatingButton onClick={() => setAiPanelOpen(true)} isOpen={aiPanelOpen} />
+            {aiPanelOpen && <AIConversationPanel isOpen={aiPanelOpen} onClose={() => setAiPanelOpen(false)} />}
+          </Suspense>
+        </>
+      )}
 
       {/* Idle timeout — warning banner or full lock screen */}
       {(isLocked || showWarning) && (

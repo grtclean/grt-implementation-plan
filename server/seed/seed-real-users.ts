@@ -43,15 +43,15 @@ const EMPLOYEES: EmpTuple[] = [
   ["GRT080", "刘奥运", "liuaoyun", "AI数智部", "董事长助理", "vp", true],
   ["GRT049", "胡杨", "huyang", "AI数智部", "IT工程师", "engineer", false],
   ["GRT062", "朱宇浩", "zhuyuhao", "事业二部", "生产工程师兼项目及IT工程师", "engineer", true],
-  ["GRT096", "侯晓薇", "houxiaowei", "AI数智部", "部门经理", "director", true],
+
   ["GRT083", "刘坤", "liukun", "AI数智部", "市场主管", "sales_rep", false],
   ["GRT103", "朱文韬", "zhuwentao", "AI数智部", "市场专员", "sales_rep", false],
   ["GRT105", "倪微薇", "niweiwei", "AI数智部", "AI数智&人事行政部经理", "vp", true],
 
   // ── 财务部 ──
-  ["GRT002", "黄晓兰", "huangxiaolan", "财务部", "会计", "engineer", false],
-  ["GRT054", "王秀萍", "wangxiuping", "财务部", "总账会计", "engineer", false],
-  ["GRT101", "王汝月", "wangruyue", "财务部", "会计助理", "floor_operator", false],
+  ["GRT002", "黄晓兰", "huangxiaolan", "财务部", "出纳/银行账户执行", "finance_specialist", false],
+  ["GRT054", "王秀萍", "wangxiuping", "财务部", "总账会计/财务复核", "finance_manager", false],
+  ["GRT101", "王汝月", "wangruyue", "财务部", "财务专员/报销初审", "finance_specialist", false],
   ["GRT066", "李新正", "lixinzheng", "财务部", "仓库管理员", "floor_operator", false],
   ["GRT079_2", "马鹏风", "mapengfeng", "财务部", "供应链工程师", "engineer", false],
 
@@ -68,8 +68,7 @@ const EMPLOYEES: EmpTuple[] = [
   ["GRT063", "刘健康", "liujiankang", "事业一部", "销售与项目工程师", "sales_rep", false],
   ["GRT020", "张洵", "zhangxun", "事业一部", "采购与项目工程师", "engineer", false],
   ["GRT057", "滕顺英", "tengshunying", "事业一部", "采购与项目工程师", "engineer", false],
-  ["GRT043", "韩保程", "hanbaocheng", "事业一部", "销售与项目工程师", "sales_rep", false],
-  ["GRT093", "李柯瑶", "likeyao", "事业一部", "销售与项目工程师", "sales_rep", false],
+  ["GRT035", "王志强", "wangzhiqiang", "事业一部", "销售与项目工程师", "sales_rep", false],
   ["GRT104", "董纾雨", "dongshuyu", "事业一部", "销售与项目工程师", "sales_rep", false],
   ["GRT030", "匡凯旋", "kuangkaixuan", "事业一部", "售后服务主管", "production_supervisor", true],
   ["GRT014", "廉龙海", "lianlonghai", "事业一部", "售后技工", "engineer", false],
@@ -82,7 +81,7 @@ const EMPLOYEES: EmpTuple[] = [
   ["GRT090", "陈加丽", "chenjiali", "事业一部", "助理机械研发工程师", "engineer", false],
   ["GRT010", "吴卫成", "wuweicheng", "事业一部", "机械装配", "floor_operator", false],
   ["GRT016", "曹庆伟", "caoqingwei", "事业一部", "机械装配", "floor_operator", false],
-  ["GRT033", "徐家乐", "xujiale", "事业一部", "机械装配", "floor_operator", false],
+
   ["GRT039", "侯德朋", "houdepeng", "事业一部", "机械装配", "floor_operator", false],
   ["GRT041", "张良", "zhangliang", "事业一部", "机械装配", "floor_operator", false],
   ["GRT052", "赵强", "zhaoqiang", "事业一部", "机械装配", "floor_operator", false],
@@ -115,7 +114,8 @@ const EMPLOYEES: EmpTuple[] = [
   ["GRT055", "沈迎凤", "shenyingfeng", "事业三部", "采购经理", "project_manager", true],
   ["GRT003", "倪亚琴", "niyaqin", "事业三部", "采购与项目工程师", "engineer", false],
   ["GRT019", "冯艳", "fengyan", "事业三部", "销售与项目工程师", "sales_rep", false],
-  ["GRT035", "王志强", "wangzhiqiang", "事业三部", "销售与项目工程师", "sales_rep", false],
+  ["GRT043", "韩保程", "hanbaocheng", "事业三部", "销售与项目工程师", "sales_rep", false],
+  ["GRT093", "李柯瑶", "likeyao", "事业三部", "销售与项目工程师", "sales_rep", false],
   ["GRT089", "罗小玲", "luoxiaoling", "事业三部", "助理机械研发工程师", "engineer", false],
   ["GRT013", "孙淼", "sunmiao", "事业三部", "机械装配", "floor_operator", false],
   ["GRT021", "张松松", "zhangsongsong", "事业三部", "机械装配", "floor_operator", false],
@@ -152,7 +152,10 @@ const EMPLOYEES: EmpTuple[] = [
   ["GRT045", "杨勇", "yangyong", "事业三部", "生产工程师兼项目经理", "project_manager", true],
 
   // ── 未分配 ──
-  ["GRT081", "马康风", "makangfeng", "未分配", "供应链助理工程师", "engineer", false],
+  ["GRT081", "马康风", "makangfeng", "财务部", "供应链助理工程师", "engineer", false],
+
+  // ── 事业三部（新入职） ──
+  ["GRT112", "谢伟", "xiewei", "事业三部", "机械工程师", "engineer", false],
 ];
 
 // ── Department → BU Code Mapping ──────────────────────────────
@@ -207,10 +210,12 @@ async function seed() {
     let linked = 0;
 
     for (const [empId, name, pinyin, dept, position, rbacRole, isAdmin] of EMPLOYEES) {
-      const username = pinyin;
-      const password = `${pinyin}${empId}`;
+      // V4: 用户名=员工号(如GRT001), 密码=拼音首字母大写+@100(如Niyadong@100)
+      // 不触发首次登录强制改密（不匹配 /^[a-z]+100$/ 格式）
+      const username = empId;
+      const password = `${pinyin.charAt(0).toUpperCase()}${pinyin.slice(1)}@100`;
 
-      // Check if user already exists
+      // Check if user already exists (by employee ID or old pinyin username)
       const existing = await db.select().from(users).where(eq(users.openId, username)).limit(1);
       if (existing.length > 0) {
         skipped++;
@@ -221,7 +226,7 @@ async function seed() {
       const salt = await bcrypt.genSalt(10);
       const hash = await bcrypt.hash(password, salt);
 
-      // Insert user
+      // Insert user — role标记:must_change_pwd表示首次登录需改密
       const [newUser] = await db.insert(users).values({
         openId: username,
         name: name,
@@ -238,10 +243,10 @@ async function seed() {
       const roleId = roleMap.get(rbacRole);
       if (roleId) {
         const existingLink = await db.select().from(userRoles)
-          .where(and(eq(userRoles.userId, String(newUser.id)), eq(userRoles.roleId, roleId)));
+          .where(and(eq(userRoles.userId, username), eq(userRoles.roleId, roleId)));
         if (existingLink.length === 0) {
           await db.insert(userRoles).values({
-            userId: String(newUser.id),
+            userId: username,
             roleId: roleId,
             isActive: true,
           });
@@ -254,7 +259,7 @@ async function seed() {
         const superAdminRoleId = roleMap.get("super_admin");
         if (superAdminRoleId) {
           await db.insert(userRoles).values({
-            userId: String(newUser.id),
+            userId: username,
             roleId: superAdminRoleId,
             isActive: true,
           });

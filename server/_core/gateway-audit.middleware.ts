@@ -57,6 +57,12 @@ export const PUBLIC_ALLOWLIST = new Set([
   "customerConfigSandbox.portalUser.verifyCredentials.mutation",
   "customerConfigSandbox.portalUser.portalGetProfile.query",
   "customerConfigSandbox.portalUser.portalGetReadingChannels.query",
+
+  // Online interview — candidate self-service (no login required)
+  "onlineInterview.getQuestions.query",
+  "onlineInterview.submitAnswers.mutation",
+  "onlineInterview.getAvailableSlots.query",
+  "onlineInterview.submitCandidateProfile.mutation",
 ]);
 
 /**

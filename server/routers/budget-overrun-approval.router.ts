@@ -193,10 +193,10 @@ export const budgetOverrunApprovalRouter = router({
       }
 
       const demos = [
-        { projectName: "GRT-UC200 超声波清洗机", originalBudget: 850000, overrunAmount: 127500, category: "material" as const, reason: "特种不锈钢材料价格上涨15%", requestorName: "王五", buCode: "overseas", status: "pending" as const },
-        { projectName: "GRT-SP100 喷淋清洗线", originalBudget: 1200000, overrunAmount: 96000, category: "labor" as const, reason: "现场安装工期延长，需增加人工", requestorName: "赵六", buCode: "commercial_vehicle", status: "approved" as const },
-        { projectName: "BYD电池壳清洗设备", originalBudget: 2000000, overrunAmount: 400000, category: "subcontract" as const, reason: "客户变更设计方案，增加3个工位", requestorName: "李四", buCode: "passenger_vehicle", status: "pending" as const },
-        { projectName: "半导体晶圆清洗系统", originalBudget: 5000000, overrunAmount: 250000, category: "material" as const, reason: "洁净室等级升级为Class100", requestorName: "孙九", buCode: "semiconductor", status: "rejected" as const },
+        { projectName: "GRT-UC200 超声波清洗机", originalBudget: 850000, overrunAmount: 127500, category: "material" as const, reason: "特种不锈钢材料价格上涨15%", requestorName: "张洵", buCode: "overseas", status: "pending" as const },
+        { projectName: "GRT-SP100 喷淋清洗线", originalBudget: 1200000, overrunAmount: 96000, category: "labor" as const, reason: "现场安装工期延长，需增加人工", requestorName: "杨勇", buCode: "commercial_vehicle", status: "approved" as const },
+        { projectName: "BYD电池壳清洗设备", originalBudget: 2000000, overrunAmount: 400000, category: "subcontract" as const, reason: "客户变更设计方案，增加3个工位", requestorName: "刘健康", buCode: "passenger_vehicle", status: "pending" as const },
+        { projectName: "半导体晶圆清洗系统", originalBudget: 5000000, overrunAmount: 250000, category: "material" as const, reason: "洁净室等级升级为Class100", requestorName: "孙国祥", buCode: "semiconductor", status: "rejected" as const },
       ];
 
       for (const d of demos) {

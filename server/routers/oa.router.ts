@@ -12,6 +12,7 @@ import { z } from "zod";
 import { jsonValue } from "../../shared/validators";
 import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
+import { processBusinessEvent } from "../services/finance-event-bridge.service";
 import {
   oaWorkflows,
   companyEventsMeetings,
@@ -41,6 +42,35 @@ import { eq, and, desc, count, ne, ilike, sql } from "drizzle-orm";
 const idInput = z.object({ id: z.union([z.string(), z.number()]) });
 const toNum = (id: string | number) => typeof id === "string" ? parseInt(id) : id;
 
+// 自动建表防护 — oa_workflows 表可能不存在
+let _oaTablesEnsured = false;
+async function ensureOaTables(db: any) {
+  if (_oaTablesEnsured) return;
+  try {
+    await db.execute(sql`SELECT 1 FROM oa_workflows LIMIT 0`);
+  } catch {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS oa_workflows (
+        id SERIAL PRIMARY KEY,
+        applicant_id INTEGER,
+        type VARCHAR(50) DEFAULT 'GENERAL',
+        status VARCHAR(20) DEFAULT 'PENDING',
+        title VARCHAR(300),
+        content TEXT,
+        linked_project_id INTEGER,
+        approver_id INTEGER,
+        approved_at TIMESTAMP,
+        approver_comment TEXT,
+        dingtalk_notified BOOLEAN DEFAULT false,
+        version INTEGER DEFAULT 1,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+  }
+  _oaTablesEnsured = true;
+}
+
 export const oaRouter = router({
 
   // ══════════════════════════════════════════════════
@@ -55,6 +85,7 @@ export const oaRouter = router({
     offset: z.number().default(0),
   }).optional()).query(async ({ input }) => {
     const db = await requireDb();
+    await ensureOaTables(db);
     const conditions = [];
 
     if (input?.type) conditions.push(eq(oaWorkflows.type, input.type));
@@ -89,7 +120,11 @@ export const oaRouter = router({
     linkedProjectId: z.number().optional(),
     approverId: z.number().optional(),
   })).mutation(async ({ input, ctx }) => {
-    return createOARequest({
+    // 经营级OA: 出差和报销必须关联项目
+    const projectRequired = ['EXPENSE'].includes(input.type);
+    const hasProject = !!input.linkedProjectId;
+
+    const result = await createOARequest({
       applicantId: ctx.user!.id,
       type: input.type,
       title: input.title,
@@ -97,13 +132,57 @@ export const oaRouter = router({
       linkedProjectId: input.linkedProjectId,
       approverId: input.approverId,
     });
+
+    return { ...result, projectLinked: hasProject, projectRecommended: projectRequired && !hasProject };
   }),
 
   approveWorkflow: requirePermission('oa:forms:manage').input(z.object({
     id: z.union([z.string(), z.number()]),
     comment: z.string().optional(),
   })).mutation(async ({ input, ctx }) => {
-    return approveOARequest(toNum(input.id), ctx.user!.id, input.comment);
+    const workflow = await approveOARequest(toNum(input.id), ctx.user!.id, input.comment);
+
+    // 经营级OA: 审批通过后触发下游财务动作
+    if (workflow.type === 'EXPENSE' || workflow.type === 'PROCUREMENT') {
+      try {
+        const content = workflow.content as Record<string, unknown> | null;
+        processBusinessEvent({
+          eventType: workflow.type === 'EXPENSE' ? 'reimbursement_approved' : 'procurement_received',
+          eventId: `EVT-OA-${workflow.id}`,
+          sourceModule: 'oa',
+          sourceDocType: workflow.type.toLowerCase(),
+          sourceDocId: workflow.id,
+          sourceDocCode: `OA-${workflow.id}`,
+          amount: Number(content?.totalAmount || content?.totalPrice || 0),
+          projectCode: workflow.linkedProjectId ? String(workflow.linkedProjectId) : undefined,
+          userId: ctx.user?.id || 0,
+          metadata: { oaType: workflow.type },
+          timestamp: new Date().toISOString(),
+        });
+      } catch (glErr) {
+        // Non-blocking: GL failure doesn't block OA approval
+      }
+    }
+
+    // 记录OA审批到项目时间线
+    if (workflow.linkedProjectId) {
+      try {
+        const { recordProjectActivity } = await import('../services/hrm-integration.service');
+        const content = workflow.content as Record<string, unknown> | null;
+        await recordProjectActivity({
+          projectId: workflow.linkedProjectId,
+          activityType: 'oa_approved',
+          activityTitle: `OA审批通过: ${workflow.type} - ${workflow.title || `OA-${workflow.id}`}`,
+          sourceModule: 'oa',
+          sourceDocType: workflow.type,
+          sourceDocId: workflow.id,
+          amount: Number(content?.totalAmount || content?.totalPrice || 0) || undefined,
+          performedBy: ctx.user?.id || 0,
+        });
+      } catch {}
+    }
+
+    return workflow;
   }),
 
   rejectWorkflow: requirePermission('oa:forms:manage').input(z.object({
@@ -135,15 +214,22 @@ export const oaRouter = router({
 
   getMyPendingApprovals: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
+    await ensureOaTables(db);
     const userId = ctx.user!.id;
-    const items = await db.select().from(oaWorkflows)
-      .where(
-        and(
-          eq(oaWorkflows.approverId, userId),
-          eq(oaWorkflows.status, "PENDING"),
+    let items: any[] = [];
+    try {
+      items = await db.select().from(oaWorkflows)
+        .where(
+          and(
+            eq(oaWorkflows.approverId, userId),
+            eq(oaWorkflows.status, "PENDING"),
+          )
         )
-      )
-      .orderBy(desc(oaWorkflows.createdAt)).limit(1000);
+        .orderBy(desc(oaWorkflows.createdAt)).limit(1000);
+    } catch {
+      // oa_workflows table may not exist — return empty
+      return [];
+    }
     return items;
   }),
 

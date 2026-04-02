@@ -128,6 +128,48 @@ const meetingRouter = router({
       return meeting;
     }),
 
+  // Sync meeting to Outlook Calendar
+  syncToOutlook: protectedProcedure
+    .input(z.object({
+      meetingId: z.union([z.string(), z.number()]),
+      isTeamsMeeting: z.boolean().default(false),
+      isRecurring: z.boolean().default(false),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const [meeting] = await db.select().from(sysMeetings).where(eq(sysMeetings.id, toNum(input.meetingId))).limit(1);
+      if (!meeting) return { success: false, error: "会议不存在" };
+
+      const { syncMeetingToOutlook, getRecurrenceConfig } = await import("../services/microsoft-graph/meeting-outlook-sync.service");
+      const recurrence = input.isRecurring ? getRecurrenceConfig(meeting.title) : null;
+
+      return syncMeetingToOutlook(meeting as any, {
+        isTeamsMeeting: input.isTeamsMeeting,
+        recurrence: recurrence || undefined,
+      });
+    }),
+
+  // Preview Outlook event (without sending)
+  previewOutlookEvent: protectedProcedure
+    .input(z.object({ meetingId: z.union([z.string(), z.number()]) }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const [meeting] = await db.select().from(sysMeetings).where(eq(sysMeetings.id, toNum(input.meetingId))).limit(1);
+      if (!meeting) return null;
+
+      const { previewOutlookEvent } = await import("../services/microsoft-graph/meeting-outlook-sync.service");
+      return previewOutlookEvent(meeting as any);
+    }),
+
+  // Batch sync all upcoming meetings to Outlook
+  syncAllToOutlook: protectedProcedure
+    .mutation(async () => {
+      const db = await requireDb();
+      const meetings = await db.select().from(sysMeetings).where(eq(sysMeetings.status, "UPCOMING")).limit(200);
+      const { syncAllUpcomingMeetings } = await import("../services/microsoft-graph/meeting-outlook-sync.service");
+      return syncAllUpcomingMeetings(meetings as any[]);
+    }),
+
   // Create a meeting with explicit stage, category, and direction
   createStageMeeting: requirePermission('collab:meeting:hub')
     .input(
@@ -890,7 +932,7 @@ const seedRouter = router({
       },
       {
         userId: 104,
-        userName: "胡炜",
+        userName: "胡杨",
         message: "AI质检系统的技术路线已经准备就绪，随时可以部署",
         time: new Date(Date.now() - 120000).toISOString(),
       },

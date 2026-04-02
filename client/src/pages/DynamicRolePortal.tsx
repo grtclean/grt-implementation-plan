@@ -11,6 +11,7 @@
  * 零 unicode escape · 零 any · 零 demo 数据 · 全原生 UTF-8
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import FloatingNav from '@/components/FloatingNav';
 import {
   Shield, AlertTriangle, CheckCircle2, Clock, TrendingUp, TrendingDown,
   Zap, Eye, BarChart3, Globe, DollarSign, Activity, Cpu,
@@ -221,8 +222,9 @@ export default function DynamicRolePortal() {
           <span className="flex items-center gap-1"><Layers className="h-3 w-3" />13 大沙盘实时同步</span>
           <span className="flex items-center gap-1"><BrainCircuit className="h-3 w-3" />Agent 幕僚团 · 12 在岗</span>
         </div>
-        <span>GRT 千人千面智能门户 v1.0 · 深度融合迭代公司</span>
+        <span>GRT 千人千面智能门户 v1.0 · 杰瑞德自动化公司</span>
       </footer>
+      <FloatingNav variant="light" />
     </div>
   );
 }

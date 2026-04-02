@@ -2225,9 +2225,9 @@ function RoleManagementPanel() {
                   <SelectValue placeholder="选择用户" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user1">张三 - 研发部</SelectItem>
-                  <SelectItem value="user2">李四 - 销售部</SelectItem>
-                  <SelectItem value="user3">王五 - 财务部</SelectItem>
+                  <SelectItem value="user1">胡杨 - 研发部</SelectItem>
+                  <SelectItem value="user2">刘健康 - 销售部</SelectItem>
+                  <SelectItem value="user3">杨勇 - 财务部</SelectItem>
                 </SelectContent>
               </Select>
             </div>

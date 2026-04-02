@@ -168,31 +168,77 @@ export async function suggestPurchaseStrategy(projectId: number): Promise<Purcha
 export async function generatePurchasePlan(bomId: number): Promise<PurchasePlan> {
   const db = await requireDb();
   if (!db) throw new Error("Database not available");
-  const bomItems = [
-    { materialId: 1, materialName: "不锈钢板材 SUS304", quantity: 20, requiredDate: dateOffset(14) },
-    { materialId: 2, materialName: "超声波换能器", quantity: 8, requiredDate: dateOffset(21) },
-    { materialId: 3, materialName: "高压泵 15MPa", quantity: 2, requiredDate: dateOffset(28) },
-    { materialId: 4, materialName: "PLC控制器 S7-1500", quantity: 1, requiredDate: dateOffset(35) },
-    { materialId: 5, materialName: "过滤系统组件", quantity: 4, requiredDate: dateOffset(21) },
-  ];
-  const lineItems: PurchasePlanLineItem[] = []; let totalCost = 0; let urgentCount = 0;
-  for (const item of bomItems) {
-    const hist = await db.select().from(purchaseOrders).where(eq(purchaseOrders.materialId, item.materialId)).orderBy(desc(purchaseOrders.poDate)).limit(5);
-    const price = hist.length > 0 ? Number(hist[0].unitPrice) : 10000;
-    const suppId = hist.length > 0 ? hist[0].supplierId : null;
-    const suppName = hist.length > 0 ? hist[0].supplierName : "待定";
+
+  // 1. Try to read real BOM items from bom_items table using Drizzle ORM (avoids raw SQL encoding issues)
+  let bomItemRows: Array<{ materialId: number; materialName: string; quantity: number; leadTimeDays: number; unitCost: number }> = [];
+  try {
+    const { bomItems } = await import("../../drizzle/bom-schema");
+    const rows = await db.select({
+      materialId: bomItems.id,
+      materialName: bomItems.materialName,
+      quantity: bomItems.quantity,
+      leadTimeDays: bomItems.leadTimeDays,
+      unitCost: bomItems.unitCost,
+    }).from(bomItems)
+      .where(and(eq(bomItems.bomMasterId, bomId), eq(bomItems.sourceType, "purchase")))
+      .orderBy(bomItems.sequence)
+      .limit(200);
+
+    if (rows.length > 0) {
+      bomItemRows = rows.map(r => ({
+        materialId: Number(r.materialId),
+        materialName: String(r.materialName ?? ""),
+        quantity: Number(r.quantity) || 1,
+        leadTimeDays: Number(r.leadTimeDays) || 14,
+        unitCost: Number(r.unitCost) || 0,
+      }));
+    }
+  } catch {
+    // bom_items table may not exist — fall through to demo data
+  }
+
+  // 2. Fallback to demo data if no real BOM items found
+  if (bomItemRows.length === 0) {
+    bomItemRows = [
+      { materialId: 1, materialName: "\u4E0D\u9508\u94A2\u677F\u6750 SUS304 2mm", quantity: 20, leadTimeDays: 14, unitCost: 28.5 },
+      { materialId: 2, materialName: "\u8D85\u58F0\u6CE2\u6362\u80FD\u5668 40kHz", quantity: 8, leadTimeDays: 21, unitCost: 680 },
+      { materialId: 3, materialName: "\u9AD8\u538B\u6CF5 15MPa", quantity: 2, leadTimeDays: 28, unitCost: 12500 },
+      { materialId: 4, materialName: "\u897F\u95E8\u5B50PLC S7-1500", quantity: 1, leadTimeDays: 35, unitCost: 8600 },
+      { materialId: 5, materialName: "\u8FC7\u6EE4\u7CFB\u7EDF\u7EC4\u4EF6", quantity: 4, leadTimeDays: 21, unitCost: 3200 },
+    ];
+  }
+
+  // 3. Build line items with price lookup and priority calculation
+  const lineItems: PurchasePlanLineItem[] = []; let totalCost = 0; let urgentCount = 0; let maxLead = 0;
+  for (const item of bomItemRows) {
+    let price = item.unitCost || 0;
+    let suppId: number | null = null;
+    let suppName = "\u5F85\u5B9A";
+    try {
+      const hist = await db.select().from(purchaseOrders).where(eq(purchaseOrders.materialId, item.materialId)).orderBy(desc(purchaseOrders.poDate)).limit(1);
+      if (hist.length > 0) {
+        price = Number(hist[0].unitPrice) || price;
+        suppId = hist[0].supplierId;
+        suppName = hist[0].supplierName ?? "\u5F85\u5B9A";
+      }
+    } catch { /* purchase_orders may be empty */ }
+
+    if (price <= 0) price = 1000;
+
+    const requiredDate = dateOffset(item.leadTimeDays);
     const total = price * item.quantity; totalCost += total;
-    const days = Math.ceil((new Date(item.requiredDate).getTime() - Date.now()) / 86400000);
+    if (item.leadTimeDays > maxLead) maxLead = item.leadTimeDays;
+    const days = item.leadTimeDays;
     let pri: PurchasePlanLineItem["priority"] = "medium";
     if (days <= 7) { pri = "urgent"; urgentCount++; } else if (days <= 14) pri = "high"; else if (days > 30) pri = "low";
     lineItems.push({ materialId: item.materialId, materialName: item.materialName, quantity: item.quantity,
-      estimatedUnitPrice: price, estimatedTotal: total, suggestedSupplierId: suppId,
-      suggestedSupplierName: suppName, requiredDate: item.requiredDate, priority: pri });
+      estimatedUnitPrice: price, estimatedTotal: Math.round(total * 100) / 100, suggestedSupplierId: suppId,
+      suggestedSupplierName: suppName, requiredDate, priority: pri });
   }
-  const uniqSupp = Array.from(new Set(lineItems.map((l) => l.suggestedSupplierName).filter((n) => n !== "待定")));
+  const uniqSupp = Array.from(new Set(lineItems.map((l) => l.suggestedSupplierName).filter((n) => n !== "\u5F85\u5B9A")));
   return { planId: genId("PP"), bomId, createdAt: new Date().toISOString(),
     totalEstimatedCost: Math.round(totalCost * 100) / 100, lineItems,
-    summary: { totalItems: lineItems.length, urgentItems: urgentCount, estimatedLeadTime: 35, suggestedSupplierCount: uniqSupp.length } };
+    summary: { totalItems: lineItems.length, urgentItems: urgentCount, estimatedLeadTime: maxLead || 35, suggestedSupplierCount: uniqSupp.length } };
 }
 
 export async function assessSupplierRisk(supplierId: number): Promise<SupplierRiskAssessment> {

@@ -493,7 +493,7 @@ export async function initSampleAnnualPlanningData(creatorId: number) {
       ]),
       frequency: "monthly" as const,
       month: 1,
-      responsibleUserName: "沈迎风",
+      responsibleUserName: "沈迎凤",
       status: "pending" as const,
       sortOrder: 1,
       isTemplate: 1

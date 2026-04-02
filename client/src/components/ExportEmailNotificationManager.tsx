@@ -100,8 +100,8 @@ const generateMockTasks = (): ExportTask[] => [
   {
     id: 'export-1',
     userId: 'user-1',
-    userName: '张三',
-    userEmail: 'zhangsan@example.com',
+    userName: '刘奥运',
+    userEmail: 'liuaoyun@grt.com',
     dataType: 'workflow_history',
     format: 'excel',
     status: 'completed',
@@ -120,8 +120,8 @@ const generateMockTasks = (): ExportTask[] => [
   {
     id: 'export-2',
     userId: 'user-1',
-    userName: '张三',
-    userEmail: 'zhangsan@example.com',
+    userName: '刘奥运',
+    userEmail: 'liuaoyun@grt.com',
     dataType: 'device_list',
     format: 'csv',
     status: 'processing',
@@ -140,8 +140,8 @@ const generateMockTasks = (): ExportTask[] => [
   {
     id: 'export-3',
     userId: 'user-2',
-    userName: '李四',
-    userEmail: 'lisi@example.com',
+    userName: '倪微薇',
+    userEmail: 'niweiwei@grt.com',
     dataType: 'maintenance_records',
     format: 'pdf',
     status: 'failed',
@@ -160,8 +160,8 @@ const generateMockTasks = (): ExportTask[] => [
   {
     id: 'export-4',
     userId: 'user-1',
-    userName: '张三',
-    userEmail: 'zhangsan@example.com',
+    userName: '刘奥运',
+    userEmail: 'liuaoyun@grt.com',
     dataType: 'aggregation_stats',
     format: 'json',
     status: 'expired',

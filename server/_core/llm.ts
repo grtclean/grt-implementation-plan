@@ -1,4 +1,9 @@
 import { ENV, env } from "./env";
+import { providerRegistry } from "../llm";
+import { logModelCall, logModelCallError } from "../llm/model-call-logger";
+import { createChildLogger } from "../lib/logger";
+
+const llmLog = createChildLogger("llm-core");
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -255,6 +260,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const provider = env.AI_PROVIDER?.toLowerCase() || "openai";
+  const requestId = `llm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const startTime = Date.now();
 
   // Build messages array: support both explicit messages and system/prompt shorthand
   const resolvedMessages: Message[] = messages ? [...messages] : [];
@@ -321,19 +328,47 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
   if (!response.ok) {
     const errorText = await response.text();
+    const duration = Date.now() - startTime;
+    logModelCallError(provider, resolveModel(), requestId, duration, new Error(`${response.status} ${response.statusText} – ${errorText}`));
     throw new Error(
       `LLM invoke failed (${provider}): ${response.status} ${response.statusText} – ${errorText}`
     );
   }
 
   const result = (await response.json()) as InvokeResult;
+  const duration = Date.now() - startTime;
 
   // Populate content shortcut from first choice
   if (!result.content && result.choices?.[0]?.message?.content) {
     result.content = result.choices[0].message.content;
   }
 
+  // Structured logging via model-call-logger
+  logModelCall({
+    content: result.content ?? "",
+    model: resolveModel(),
+    provider,
+    usage: result.usage,
+    duration_ms: duration,
+    request_id: requestId,
+  });
+
   return result;
+}
+
+/**
+ * Run health checks on all registered LLM providers.
+ * Used by /api/health and deploy/healthcheck.sh
+ */
+export async function healthCheckAllProviders() {
+  return providerRegistry.healthCheckAll();
+}
+
+/**
+ * List all available LLM providers.
+ */
+export function listAvailableProviders() {
+  return providerRegistry.listProviders().map(p => p.name);
 }
 
 // ── Multi-Provider Wrapper ──────────────────────────────────

@@ -40,6 +40,10 @@ const SubsystemHelp = React.lazy(() => import("./pages/SubsystemHelp"));
 import PublicHome from "./pages/PublicHome";
 const Capabilities = React.lazy(() => import("./pages/Capabilities"));
 const CustomerPortal = React.lazy(() => import("./pages/CustomerPortal"));
+const CustomerProjectPortal = React.lazy(() => import("./pages/CustomerProjectPortal"));
+const CustomerEquipmentAdmin = React.lazy(() => import("./pages/CustomerEquipmentAdmin"));
+const SalesProjectWorkbench = React.lazy(() => import("./pages/SalesProjectWorkbench"));
+const EquipmentLifecycleHub = React.lazy(() => import("./pages/EquipmentLifecycleHub"));
 const SiteDeliverySandbox = React.lazy(() => import("./pages/SiteDeliverySandbox"));
 const VipStrategicDashboard = React.lazy(() => import("./pages/VipStrategicDashboard"));
 const SmartEsopTvKiosk = React.lazy(() => import("./pages/SmartEsopTvKiosk"));
@@ -48,6 +52,7 @@ const GlobalEventOrchestrator = React.lazy(() => import("./pages/GlobalEventOrch
 const GlobalEventOrchestratorV2 = React.lazy(() => import("./pages/GlobalEventOrchestratorV2"));
 const MicroFrontendShell = React.lazy(() => import("./pages/MicroFrontendShell"));
 const MetadataDrivenEngine = React.lazy(() => import("./pages/MetadataDrivenEngine"));
+const ProjectCostSandbox = React.lazy(() => import("./pages/ProjectCostSandbox"));
 const QuotingBomSandbox = React.lazy(() => import("./pages/QuotingBomSandbox"));
 const DynamicRolePortal = React.lazy(() => import("./pages/DynamicRolePortal"));
 const WorkflowOrchestrator = React.lazy(() => import("./pages/WorkflowOrchestrator"));
@@ -56,6 +61,7 @@ const CustomerAuthorizationManager = React.lazy(() => import("./pages/CustomerAu
 const SmartProductionScheduling = React.lazy(() => import("./pages/SmartProductionScheduling"));
 const EngineBlock3DMonitor = React.lazy(() => import("./pages/EngineBlock3DMonitor"));
 const DeadlockMonitor = React.lazy(() => import("./pages/DeadlockMonitor"));
+const DevPageIndex = React.lazy(() => import("./pages/dev/DevPageIndex"));
 const AIDiagnostic = React.lazy(() => import("./pages/AIDiagnostic"));
 const CollaborationWorkspace = React.lazy(() => import("./pages/CollaborationWorkspace"));
 const LiveDocumentManager = React.lazy(() => import("./pages/LiveDocumentManager"));
@@ -198,6 +204,10 @@ const EmployeeIntelligentPerformance = React.lazy(() => import("./pages/Employee
 const PerfCalibrationDashboard = React.lazy(() => import("./pages/PerfCalibrationDashboard"));
 const Feedback360 = React.lazy(() => import("./pages/Feedback360"));
 const IncentiveManagement = React.lazy(() => import("./pages/IncentiveManagement"));
+const AnnualGoalAgreement = React.lazy(() => import("./pages/AnnualGoalAgreement"));
+const GoalTrackingDashboard = React.lazy(() => import("./pages/GoalTrackingDashboard"));
+const IncentiveProjection = React.lazy(() => import("./pages/IncentiveProjection"));
+const EmployeeConsultantAgent = React.lazy(() => import("./pages/EmployeeConsultantAgent"));
 const SalaryPreparationWizard = React.lazy(() => import("./pages/SalaryPreparationWizard"));
 const AttendanceClock = React.lazy(() => import("./pages/AttendanceClock"));
 const EmployeePointsCenter = React.lazy(() => import("./pages/EmployeePointsCenter"));
@@ -229,6 +239,26 @@ const StageDetail = React.lazy(() => import("./pages/pos/StageDetail"));
 const ProductionSteps = React.lazy(() => import("./pages/ProductionSteps"));
 const ProcessProgressDashboard = React.lazy(() => import("./pages/ProcessProgressDashboard"));
 const WorkerMobileView = React.lazy(() => import("./pages/WorkerMobileView"));
+const ShopfloorWorkerHome = React.lazy(() => import("./pages/ShopfloorWorkerHome"));
+const ServiceEngineerWorkstation = React.lazy(() => import("./pages/ServiceEngineerWorkstation"));
+const FinanceQuickHub = React.lazy(() => import("./pages/FinanceQuickHub"));
+const CashierWorkstation = React.lazy(() => import("./pages/CashierWorkstation"));
+const InventoryCountFlow = React.lazy(() => import("./pages/InventoryCountFlow"));
+const HRQuickHub = React.lazy(() => import("./pages/HRQuickHub"));
+const NewHireOnboarding = React.lazy(() => import("./pages/NewHireOnboarding"));
+const EmployeeSelfServiceHub = React.lazy(() => import("./pages/EmployeeSelfServiceHub"));
+const InterviewWorkflow = React.lazy(() => import("./pages/InterviewWorkflow"));
+const PerformanceOpsCenter = React.lazy(() => import("./pages/PerformanceOpsCenter"));
+const CeoCtoCommandCenter = React.lazy(() => import("./pages/CeoCtoCommandCenter"));
+const EmpowermentEngine = React.lazy(() => import("./pages/EmpowermentEngine"));
+const CareerLighthouse = React.lazy(() => import("./pages/CareerLighthouse"));
+const KpiLearningCenter = React.lazy(() => import("./pages/KpiLearningCenter"));
+const KpiAdminConsole = React.lazy(() => import("./pages/KpiAdminConsole"));
+const SalaryPerformanceCenter = React.lazy(() => import("./pages/SalaryPerformanceCenter"));
+const GrtTalentPortal = React.lazy(() => import("./pages/GrtTalentPortal"));
+const OnlineInterview = React.lazy(() => import("./pages/OnlineInterview"));
+const GrtRecruitLanding = React.lazy(() => import("./pages/GrtRecruitLanding"));
+const ChangeControlCenter = React.lazy(() => import("./pages/ChangeControlCenter"));
 const AiAccuracyDashboard = React.lazy(() => import("./pages/AiAccuracyDashboard"));
 const QualityCheckpoints = React.lazy(() => import("./pages/QualityCheckpoints"));
 const MaterialFlowTracking = React.lazy(() => import("./pages/MaterialFlowTracking"));
@@ -321,6 +351,16 @@ const SystemControlTower = React.lazy(() => import("./pages/SystemControlTower")
 const ERPIntegration = React.lazy(() => import("./pages/ErpIntegration"));
 const MaterialManagement = React.lazy(() => import("./pages/MaterialManagement"));
 const ProcurementManagement = React.lazy(() => import("./pages/ProcurementManagement"));
+const ProcurementCockpit = React.lazy(() => import("./pages/ProcurementCockpit"));
+const SalesWorkstation = React.lazy(() => import("./pages/SalesWorkstation"));
+const DigitalMarketingDashboard = React.lazy(() => import("./pages/DigitalMarketingDashboard"));
+const MechanicalEngineerWorkstation = React.lazy(() => import("./pages/MechanicalEngineerWorkstation"));
+const ElectricalEngineerWorkstation = React.lazy(() => import("./pages/ElectricalEngineerWorkstation"));
+const ProjectManagerWorkstation = React.lazy(() => import("./pages/ProjectManagerWorkstation"));
+const QualityInspectionWorkstation = React.lazy(() => import("./pages/QualityInspectionWorkstation"));
+const ProjectLifecycleDemo = React.lazy(() => import("./pages/ProjectLifecycleDemo"));
+const ReceivingWorkbench = React.lazy(() => import("./pages/ReceivingWorkbench"));
+const EngineerMaterialRequest = React.lazy(() => import("./pages/EngineerMaterialRequest"));
 const SupplyChainWorkbench = React.lazy(() => import("./pages/SupplyChainWorkbench"));
 const ProcurementWorkbench = React.lazy(() => import("./pages/ProcurementWorkbench"));
 const SupplyChainPlanning = React.lazy(() => import("./pages/SupplyChainPlanning"));
@@ -336,6 +376,7 @@ const MSAManagement = React.lazy(() => import("./pages/MSAManagement"));
 const SafetyRuleManagement = React.lazy(() => import("./pages/SafetyRuleManagement"));
 const RndNpiWorkbench = React.lazy(() => import("./pages/RndNpiWorkbench"));
 const PdmWorkbench = React.lazy(() => import("./pages/PdmWorkbench"));
+const DesignKnowledgeCenter = React.lazy(() => import("./pages/DesignKnowledgeCenter"));
 const DocumentGovernance = React.lazy(() => import("./pages/DocumentGovernance"));
 const OADynamicFormTest = React.lazy(() => import("./pages/OADynamicFormTest"));
 const OAFormWorkbench = React.lazy(() => import("./pages/OAFormWorkbench"));
@@ -349,6 +390,7 @@ const LobbyGlobalScreen = React.lazy(() => import("./pages/LobbyGlobalScreen"));
 const ShopfloorMasterBoard = React.lazy(() => import("./pages/ShopfloorMasterBoard"));
 
 // GRT Cloud Showcase Portal (全球数字云展厅)
+const CompanyIntroVDO = React.lazy(() => import("./pages/CompanyIntroVDO"));
 const ShowcasePortal = React.lazy(() => import("./pages/showcase/ShowcasePortal"));
 const Showroom = React.lazy(() => import("./pages/Showroom"));
 const EngineBlockAICleaningDemo = React.lazy(() => import("./pages/EngineBlockAICleaningDemo"));
@@ -356,6 +398,19 @@ const RobotCleaningMonitor = React.lazy(() => import("./pages/RobotCleaningMonit
 const GuestCloudHall = React.lazy(() => import("./pages/GuestCloudHall"));
 const ShowcaseBuilder = React.lazy(() => import("./pages/ShowcaseBuilder"));
 const ExcellenceShowcase = React.lazy(() => import("./pages/ExcellenceShowcase"));
+const ShowcaseHub = React.lazy(() => import("./pages/ShowcaseHub"));
+const SupplierConferenceView = React.lazy(() => import("./pages/SupplierConferenceView"));
+const LoyaltyPortal = React.lazy(() => import("./pages/LoyaltyPortal"));
+const GRTS3DemoPortal = React.lazy(() => import("./pages/GRTS3DemoPortal"));
+const MeetingCalendar = React.lazy(() => import("./pages/MeetingCalendar"));
+const ProductionValueDashboard = React.lazy(() => import("./pages/ProductionValueDashboard"));
+const ProjectQuotingWorkbench = React.lazy(() => import("./pages/ProjectQuotingWorkbench"));
+const QualityAccountability = React.lazy(() => import("./pages/QualityAccountability"));
+const CustomerAuth = React.lazy(() => import("./pages/CustomerAuth"));
+const CustomerForum = React.lazy(() => import("./pages/CustomerForum"));
+const CustomerWorkspace = React.lazy(() => import("./pages/CustomerWorkspace"));
+const MeilixinVipPortal = React.lazy(() => import("./pages/MeilixinVipPortal"));
+const AluminumCastingVipPortal = React.lazy(() => import("./pages/AluminumCastingVipPortal"));
 
 const MarketingHub = React.lazy(() => import("./pages/MarketingHub"));
 const DualAIMatrix = React.lazy(() => import("./pages/DualAIMatrix"));
@@ -409,6 +464,8 @@ const EcoReviewDashboard = React.lazy(() => import("./pages/EcoReviewDashboard")
 
 // Phase 2.2: Supplier Risk Radar (IQC × SCM Fusion)
 const SupplierRiskRadar = React.lazy(() => import("./pages/SupplierRiskRadar"));
+const SupplierGovernance = React.lazy(() => import("./pages/SupplierGovernance"));
+const SupplierPortal = React.lazy(() => import("./pages/SupplierPortal"));
 
 // Phase 2.3: Employee Digital Profile (HR × AI × Meeting × Cert Fusion)
 const EmployeeProfile = React.lazy(() => import("./pages/EmployeeProfile"));
@@ -429,6 +486,7 @@ const SmartInventoryDashboard = React.lazy(() => import("./pages/SmartInventoryD
 const CbamDashboard = React.lazy(() => import("./pages/CbamDashboard"));
 
 // Phase 4: Ultimate Digital Thread & Executive Cockpit
+const CEOFinanceDashboard = React.lazy(() => import("./pages/CEOFinanceDashboard"));
 const CeoExecutiveCockpit = React.lazy(() => import("./pages/CeoExecutiveCockpit"));
 
 // GRT Value Chain Enhancement — 非标清洗设备全价值链
@@ -553,12 +611,45 @@ const MechanicalConfigWorkbench = React.lazy(() => import("./pages/MechanicalCon
 const PayrollApprovalGate = React.lazy(() => import("./pages/Executive/PayrollApprovalGate"));
 const PayrollSandbox = React.lazy(() => import("./pages/PayrollSandbox"));
 const PayrollAgent = React.lazy(() => import("./pages/PayrollAgent"));
+const TiansiMigrationDashboard = React.lazy(() => import("./pages/TiansiMigrationDashboard"));
+const KingdeeMigrationDashboard = React.lazy(() => import("./pages/KingdeeMigrationDashboard"));
+const FinanceWorkbench = React.lazy(() => import("./pages/FinanceWorkbench"));
+const BarcodeManagement = React.lazy(() => import("./pages/BarcodeManagement"));
+const SupplyChainSandbox = React.lazy(() => import("./pages/SupplyChainSandbox"));
 const TheArena = React.lazy(() => import("./pages/Executive/TheArena"));
 const BiReportDashboard = React.lazy(() => import("./pages/BiReportDashboard"));
 const BiSandbox = React.lazy(() => import("./pages/BiSandbox"));
 const SystemTopologyMap = React.lazy(() => import("./pages/SystemTopologyMap"));
 const OemDeveloperPortal = React.lazy(() => import("./pages/OemDeveloperPortal"));
 const DeptProceduresWorkbench = React.lazy(() => import("./pages/DeptProceduresWorkbench"));
+const GatewayLogin = React.lazy(() => import("./pages/GatewayLogin"));
+const ProjectNexus = React.lazy(() => import("./pages/ProjectNexus"));
+const ExecuVision = React.lazy(() => import("./pages/ExecuVision"));
+const SyncMatrix = React.lazy(() => import("./pages/SyncMatrix"));
+const ExpoKiosk = React.lazy(() => import("./pages/ExpoKiosk"));
+const KeynotePresenter = React.lazy(() => import("./pages/KeynotePresenter"));
+const GearShaftConference = React.lazy(() => import("./pages/GearShaftConference"));
+const AluminumCastingConference = React.lazy(() => import("./pages/AluminumCastingConference"));
+const EngineBlockConference = React.lazy(() => import("./pages/EngineBlockConference"));
+const InjectionSystemConference = React.lazy(() => import("./pages/InjectionSystemConference"));
+const AgentGovernanceDashboard = React.lazy(() => import("./pages/AgentGovernanceDashboard"));
+const SystemOperationsCenter = React.lazy(() => import("./pages/SystemOperationsCenter"));
+// Cloud Camera + MES + Assembly Vision + Shopfloor TV
+const CloudCameraHub = React.lazy(() => import("./pages/CloudCameraHub"));
+const MESWorkbench = React.lazy(() => import("./pages/MESWorkbench"));
+const AssemblyVisionAnalysis = React.lazy(() => import("./pages/AssemblyVisionAnalysis"));
+const ShopfloorTV = React.lazy(() => import("./pages/ShopfloorTV"));
+// UWB + Robot Debug + Humanoid Robot
+const UWBShopfloorDashboard = React.lazy(() => import("./pages/UWBShopfloorDashboard"));
+const RobotDebugSandbox = React.lazy(() => import("./pages/RobotDebugSandbox"));
+const HumanoidRobotPlatform = React.lazy(() => import("./pages/HumanoidRobotPlatform"));
+// MES + Cost + AGV + Manufacturing Operations
+const MESProductionBoard = React.lazy(() => import("./pages/MESProductionBoard"));
+const CostPlanningWorkbench = React.lazy(() => import("./pages/CostPlanningWorkbench"));
+const AGVLogisticsDashboard = React.lazy(() => import("./pages/AGVLogisticsDashboard"));
+const AGVLogisticsSandbox = React.lazy(() => import("./pages/AGVLogisticsSandbox"));
+const ManufacturingOperationsCenter = React.lazy(() => import("./pages/ManufacturingOperationsCenter"));
+const CeoMotivationCommand = React.lazy(() => import("./pages/CeoMotivationCommand"));
 // GlobalAppShell — 全局智能母座 (has its own TopBar/LeftNav/RightCopilot)
 const GlobalAppShell = React.lazy(() => import("./pages/GlobalAppShell"));
 // Sandbox infrastructure — SandboxShell provides the three-column layout with route outlet
@@ -578,18 +669,19 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
 function LazyFallback() {
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-muted-foreground">加载中...</p>
+        <img src="/GRTlogo.gif" alt="GRT" className="w-10 h-10 rounded-lg" />
+        <div className="w-7 h-7 border-2 border-[#0078d4] border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-muted-foreground">加载中...</p>
       </div>
     </div>
   );
 }
 
 // Standalone routes that should NOT have sidebar layout
-const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/worker-mobile', '/kiosk', '/403', '/404', '/oa-test', '/morning-meeting', '/shop-floor/machine-login', '/customer-portal', '/app-shell', '/demo/micro-frontend', '/demo/metadata-engine', '/sandbox/quoting-bom', '/portal/dynamic', '/demo/workflow-orchestrator'];
-const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/', '/report-center/', '/vision/', '/shop-floor/', '/showcase/', '/showroom', '/guest/', '/excellence-showcase', '/customer-portal/'];
+const STANDALONE_PATHS = ['/login', '/login-success', '/public', '/gateway', '/project-nexus', '/exec-vision', '/sync-matrix', '/expo-kiosk', '/keynote', '/worker-mobile', '/kiosk', '/403', '/404', '/oa-test', '/morning-meeting', '/shop-floor/machine-login', '/customer-portal', '/app-shell', '/demo/micro-frontend', '/demo/metadata-engine', '/sandbox/quoting-bom', '/portal/dynamic', '/demo/workflow-orchestrator', '/shopfloor-tv', '/uwb-shopfloor-dashboard', '/mes-production-board', '/agv-logistics', '/customer/auth', '/customer/forum', '/customer-workspace', '/talent-portal', '/online-interview', '/join', '/careers'];
+const STANDALONE_PREFIXES = ['/signature/', '/m/', '/kiosk/', '/report-center/', '/vision/', '/shop-floor/', '/showcase/', '/showroom', '/guest/', '/excellence-showcase', '/customer-portal/', '/client-portal/', '/loyalty/', '/grts3-demo', '/conference/', '/supplier-portal/'];
 
 function Router() {
   const [location] = useLocation();
@@ -600,6 +692,9 @@ function Router() {
     <ErrorBoundary level="page" resetKeys={[location]}>
     <Suspense fallback={<LazyFallback />}>
     <Switch>
+      {/* Supplier Conference — token-gated strategic showcase */}
+      <Route path={"/showcase/supplier-conference/:token"} component={SupplierConferenceView} />
+      <Route path={"/showcase/company-intro"} component={CompanyIntroVDO} />
       {/* GRT Cloud Showcase Portal (全球数字云展厅) */}
       <Route path={"/showcase/:industry"} component={ShowcasePortal} />
       {/* Robot Cleaning Showroom (闭环自适应清洗展厅) */}
@@ -607,8 +702,30 @@ function Router() {
       <Route path={"/showroom"} component={Showroom} />
       {/* Robot Cleaning Monitor — TSMC-ready 6-tab operator workbench */}
       <Route path={"/robot-cleaning-monitor"} component={RobotCleaningMonitor} />
+      {/* Cloud Camera + MES + Assembly Vision + Shopfloor TV */}
+      <Route path="/cloud-camera" component={CloudCameraHub} />
+      <Route path="/mes-workbench" component={MESWorkbench} />
+      <Route path="/assembly-vision" component={AssemblyVisionAnalysis} />
+      <Route path="/shopfloor-tv" component={ShopfloorTV} />
+      {/* UWB + Robot Debug + Humanoid Robot */}
+      <Route path="/uwb-shopfloor-dashboard" component={UWBShopfloorDashboard} />
+      <Route path="/sandbox/robot-debug" component={RobotDebugSandbox} />
+      <Route path="/humanoid-robot" component={HumanoidRobotPlatform} />
+      {/* MES Production Board + Cost + AGV + Manufacturing Operations */}
+      <Route path="/mes-production-board" component={MESProductionBoard} />
+      <Route path="/cost-planning" component={CostPlanningWorkbench} />
+      <Route path="/agv-logistics" component={AGVLogisticsDashboard} />
+      <Route path="/sandbox/agv-logistics" component={AGVLogisticsSandbox} />
+      <Route path="/manufacturing-ops-center" component={ManufacturingOperationsCenter} />
+      {/* CEO 智能激励指挥台 */}
+      <Route path="/ceo/motivation-command" component={CeoMotivationCommand} />
       {/* Guest Cloud Hall — token-gated targeted showcase (定向数字展厅) */}
       <Route path={"/guest/showcase/:token"} component={GuestCloudHall} />
+      {/* GRTS3 Demo Portal — role-based customer demo (客户演示门户) */}
+      <Route path={"/grts3-demo/:role"} component={GRTS3DemoPortal} />
+      <Route path={"/grts3-demo"} component={GRTS3DemoPortal} />
+      {/* Loyalty Portal — customer points & rewards (客户积分门户) */}
+      <Route path={"/loyalty/:customerCode"} component={LoyaltyPortal} />
       {/* Organization Excellence Hub — 全域组织赋能中枢 */}
       <Route path={"/excellence-showcase"} component={ExcellenceShowcase} />
       {/* Public routes */}
@@ -617,6 +734,17 @@ function Router() {
       <Route path={"/tools"} component={Tools} />
       <Route path={"/risks"} component={Risks} />
       <Route path={"/smart-meeting"} component={SmartMeeting} />
+      <Route path={"/meeting-calendar"}><ProtectedRoute component={MeetingCalendar} /></Route>
+      <Route path={"/production-value"}><ProtectedRoute component={ProductionValueDashboard} /></Route>
+      <Route path={"/project-quoting"}><ProtectedRoute component={ProjectQuotingWorkbench} /></Route>
+      <Route path={"/quality-accountability"}><ProtectedRoute component={QualityAccountability} /></Route>
+      <Route path="/customer/auth" component={CustomerAuth} />
+      <Route path="/customer/forum" component={CustomerForum} />
+      <Route path="/customer-workspace" component={CustomerWorkspace} />
+      <Route path="/client-portal/meilixin-vip" component={MeilixinVipPortal} />
+      <Route path="/client-portal/xusheng-vip" component={AluminumCastingVipPortal} />
+      <Route path="/client-portal/ikd-vip" component={AluminumCastingVipPortal} />
+      <Route path="/client-portal/:slug" component={AluminumCastingVipPortal} />
       <Route path={"/meeting-executive"} component={MeetingExecutive} />
       <Route path={"/admin-dashboard"} component={AdminDashboard} />
       <Route path={"/monitoring"} component={MonitoringDashboard} />
@@ -655,14 +783,27 @@ function Router() {
       <Route path={"/simulator"} component={SimulatorDashboard} />
       <Route path={"/plm"} component={PLMWorkbench} />
       <Route path={"/sales-crm"} component={SalesCRMWorkbench} />
+      <Route path={"/sales-workstation"} component={SalesWorkstation} />
+      <Route path={"/digital-marketing"} component={DigitalMarketingDashboard} />
+      <Route path={"/mechanical-workstation"} component={MechanicalEngineerWorkstation} />
+      <Route path={"/electrical-workstation"} component={ElectricalEngineerWorkstation} />
+      <Route path={"/pm-workstation"} component={ProjectManagerWorkstation} />
+      <Route path={"/project-lifecycle-demo"} component={ProjectLifecycleDemo} />
+      <Route path={"/quality-inspection-workstation"} component={QualityInspectionWorkstation} />
       <Route path={"/sales-coach"} component={SalesCoachDashboard} />
       <Route path={"/showcase-builder"}>
         <ProtectedRoute component={ShowcaseBuilder} />
+      </Route>
+      <Route path={"/showcase-hub"}>
+        <ProtectedRoute component={ShowcaseHub} />
       </Route>
       <Route path={"/marketing-hub"}>
         <ProtectedRoute component={MarketingHub} />
       </Route>
       <Route path={"/after-sales-workbench"} component={AfterSalesWorkbench} />
+      <Route path="/service-engineer-workstation">
+        <ProtectedRoute component={ServiceEngineerWorkstation} />
+      </Route>
       <Route path={"/ai-genesis"} component={AIGenesisWorkspace} />
       <Route path={"/ai-security-governance"} component={AISecurityGovernance} />
       <Route path={"/ai-assistant-provisioning"} component={AiAssistantProvisioning} />
@@ -716,6 +857,18 @@ function Router() {
       <Route path={"/sandbox/quoting-bom"}><ProtectedRoute component={QuotingBomSandbox} /></Route>
       <Route path={"/portal/dynamic"}><ProtectedRoute component={DynamicRolePortal} /></Route>
       <Route path={"/demo/workflow-orchestrator"}><ProtectedRoute component={WorkflowOrchestrator} /></Route>
+      <Route path={"/customer-portal/project"}>
+        <ProtectedRoute component={CustomerProjectPortal} />
+      </Route>
+      <Route path="/customer-equipment-admin">
+        <ProtectedRoute component={CustomerEquipmentAdmin} />
+      </Route>
+      <Route path="/sales/customer-projects">
+        <ProtectedRoute component={SalesProjectWorkbench} />
+      </Route>
+      <Route path="/equipment-lifecycle">
+        <ProtectedRoute component={EquipmentLifecycleHub} />
+      </Route>
       <Route path={"/customer-portal/vip-dashboard"} component={VipStrategicDashboard} />
       <Route path={"/customer-portal/site-delivery"} component={SiteDeliverySandbox} />
       <Route path={"/customer-portal/global-delivery"} component={GlobalDeliverySandbox} />
@@ -723,7 +876,18 @@ function Router() {
       <Route path={"/customer-authorization"}><ProtectedRoute component={CustomerAuthorizationManager} /></Route>
       <Route path={"/login"} component={LocalLogin} />
       <Route path={"/login-success"} component={LoginSuccess} />
-      
+      <Route path={"/gateway"} component={GatewayLogin} />
+      <Route path={"/project-nexus"} component={ProjectNexus} />
+      <Route path={"/exec-vision"} component={ExecuVision} />
+      <Route path={"/sync-matrix"} component={SyncMatrix} />
+      <Route path={"/expo-kiosk"} component={ExpoKiosk} />
+      <Route path={"/keynote"} component={KeynotePresenter} />
+      <Route path={"/conference/gear-shaft"} component={GearShaftConference} />
+      <Route path={"/conference/aluminum-casting"} component={AluminumCastingConference} />
+      <Route path={"/conference/engine-block"} component={EngineBlockConference} />
+      <Route path={"/conference/injection-system"} component={InjectionSystemConference} />
+      <Route path={"/supplier-portal/:token"} component={SupplierPortal} />
+
       {/* Protected routes - require login */}
       <Route path={"/docs"}>
         <ProtectedRoute component={Docs} />
@@ -848,6 +1012,46 @@ function Router() {
       <Route path={"/hr-lifecycle"}>
         <ProtectedRoute component={HRLifecycle} />
       </Route>
+      <Route path="/hr-quick-hub">
+        <ProtectedRoute component={HRQuickHub} />
+      </Route>
+      <Route path="/new-hire-onboarding">
+        <ProtectedRoute component={NewHireOnboarding} />
+      </Route>
+      <Route path="/employee-self-service">
+        <ProtectedRoute component={EmployeeSelfServiceHub} />
+      </Route>
+      <Route path="/interview-workflow">
+        <ProtectedRoute component={InterviewWorkflow} />
+      </Route>
+      <Route path="/performance-ops-center">
+        <ProtectedRoute component={PerformanceOpsCenter} />
+      </Route>
+      <Route path="/command-center">
+        <ProtectedRoute component={CeoCtoCommandCenter} />
+      </Route>
+      <Route path="/empowerment-engine">
+        <ProtectedRoute component={EmpowermentEngine} />
+      </Route>
+      <Route path="/career-lighthouse">
+        <ProtectedRoute component={CareerLighthouse} />
+      </Route>
+      <Route path="/kpi-learning">
+        <ProtectedRoute component={KpiLearningCenter} />
+      </Route>
+      <Route path="/kpi-admin">
+        <ProtectedRoute component={KpiAdminConsole} />
+      </Route>
+      <Route path="/salary-performance">
+        <ProtectedRoute component={SalaryPerformanceCenter} />
+      </Route>
+      <Route path="/talent-portal" component={GrtTalentPortal} />
+      <Route path="/online-interview" component={OnlineInterview} />
+      <Route path="/join" component={GrtRecruitLanding} />
+      <Route path="/careers" component={GrtRecruitLanding} />
+      <Route path="/change-control">
+        <ProtectedRoute component={ChangeControlCenter} />
+      </Route>
       {/* 研发验证中心 */}
       <Route path={"/rd-verification"}>
         <ProtectedRoute component={RDVerificationCenter} />
@@ -883,6 +1087,15 @@ function Router() {
       </Route>
       <Route path={"/expense-report"}>
         <ProtectedRoute component={ExpenseReport} />
+      </Route>
+      <Route path="/finance-quick-hub">
+        <ProtectedRoute component={FinanceQuickHub} />
+      </Route>
+      <Route path="/cashier-workstation">
+        <ProtectedRoute component={CashierWorkstation} />
+      </Route>
+      <Route path="/inventory-count-flow">
+        <ProtectedRoute component={InventoryCountFlow} />
       </Route>
       <Route path={"/travel-dashboard"}>
         <ProtectedRoute component={TravelDashboard} />
@@ -1091,6 +1304,9 @@ function Router() {
       </Route>
       
       {/* 管理后台路由 */}
+      <Route path="/dev/pages">
+        <ProtectedRoute component={DevPageIndex} />
+      </Route>
       <Route path="/admin/erp-configuration">
         <ProtectedRoute component={ErpConfiguration} />
       </Route>
@@ -1102,10 +1318,10 @@ function Router() {
       </Route>
       
       <Route path="/admin/dingtalk-settings">
-        <DingTalkSettings />
+        <ProtectedRoute component={DingTalkSettings} />
       </Route>
       <Route path="/admin/notification-settings">
-        <NotificationSettings />
+        <ProtectedRoute component={NotificationSettings} />
       </Route>
       {/* v4.8.4 Hub中心页面路由 */}
       <Route path="/liquid-workforce-hub">
@@ -1235,6 +1451,19 @@ function Router() {
       <Route path="/incentive-management">
         <ProtectedRoute component={IncentiveManagement} />
       </Route>
+      {/* 年度目标协定与激励追踪 */}
+      <Route path="/annual-goal-agreement">
+        <ProtectedRoute component={AnnualGoalAgreement} />
+      </Route>
+      <Route path="/goal-tracking">
+        <ProtectedRoute component={GoalTrackingDashboard} />
+      </Route>
+      <Route path="/incentive-projection">
+        <ProtectedRoute component={IncentiveProjection} />
+      </Route>
+      <Route path="/employee-consultant">
+        <ProtectedRoute component={EmployeeConsultantAgent} />
+      </Route>
       <Route path="/salary-preparation">
         <ProtectedRoute component={SalaryPreparationWizard} />
       </Route>
@@ -1322,6 +1551,9 @@ function Router() {
       </Route>
       <Route path="/worker-mobile">
         <ProtectedRoute component={WorkerMobileView} />
+      </Route>
+      <Route path="/shopfloor-worker-home">
+        <ProtectedRoute component={ShopfloorWorkerHome} />
       </Route>
       {/* Workshop Kiosk Terminal (IATF 16949 / VDA 6.3) */}
       <Route path="/kiosk/qr-confirm" component={KioskQrConfirm} />
@@ -1626,6 +1858,9 @@ function Router() {
       <Route path="/inventory-dashboard">
         <ProtectedRoute component={InventoryDashboard} />
       </Route>
+      <Route path="/project-cost-sandbox">
+        <ProtectedRoute component={ProjectCostSandbox} />
+      </Route>
       <Route path="/cost-standards">
         <ProtectedRoute component={CostStandards} />
       </Route>
@@ -1837,6 +2072,15 @@ function Router() {
       <Route path="/procurement-management">
         <ProtectedRoute component={ProcurementManagement} />
       </Route>
+      <Route path="/procurement-cockpit">
+        <ProtectedRoute component={ProcurementCockpit} />
+      </Route>
+      <Route path="/receiving-workbench">
+        <ProtectedRoute component={ReceivingWorkbench} />
+      </Route>
+      <Route path="/engineer-material-request">
+        <ProtectedRoute component={EngineerMaterialRequest} />
+      </Route>
       <Route path="/procurement-workbench">
         <ProtectedRoute component={ProcurementWorkbench} />
       </Route>
@@ -1869,6 +2113,9 @@ function Router() {
       </Route>
       <Route path="/pdm">
         <ProtectedRoute component={PdmWorkbench} />
+      </Route>
+      <Route path="/design-knowledge">
+        <ProtectedRoute component={DesignKnowledgeCenter} />
       </Route>
       <Route path="/document-governance">
         <ProtectedRoute component={DocumentGovernance} />
@@ -1934,6 +2181,9 @@ function Router() {
       <Route path="/supply-chain/risk-radar">
         <ProtectedRoute component={SupplierRiskRadar} />
       </Route>
+      <Route path="/supplier-governance">
+        <ProtectedRoute component={SupplierGovernance} />
+      </Route>
       <Route path="/my-workspace/profile/:userId">
         <ProtectedRoute component={EmployeeProfile} />
       </Route>
@@ -1957,6 +2207,9 @@ function Router() {
       </Route>
       <Route path="/esg/cbam-dashboard">
         <ProtectedRoute component={CbamDashboard} />
+      </Route>
+      <Route path="/ceo-finance">
+        <ProtectedRoute component={CEOFinanceDashboard} />
       </Route>
       <Route path="/ceo/executive-cockpit">
         <ProtectedRoute component={CeoExecutiveCockpit} />
@@ -2021,9 +2274,41 @@ function Router() {
         <ProtectedRoute component={DeptProceduresWorkbench} />
       </Route>
 
+      {/* 天思ERP迁移控制台 */}
+      <Route path="/admin/tiansi-migration">
+        <ProtectedRoute component={TiansiMigrationDashboard} />
+      </Route>
+
+      {/* 金蝶K/3迁移控制台 */}
+      <Route path="/admin/kingdee-migration">
+        <ProtectedRoute component={KingdeeMigrationDashboard} />
+      </Route>
+
+      {/* 财务工作台 */}
+      <Route path="/finance">
+        <ProtectedRoute component={FinanceWorkbench} />
+      </Route>
+
+      {/* 条码管理 */}
+      <Route path="/barcode">
+        <ProtectedRoute component={BarcodeManagement} />
+      </Route>
+
+      {/* 供应链沙盘 */}
+      <Route path="/sandbox/supply-chain">
+        <ProtectedRoute component={SupplyChainSandbox} />
+      </Route>
+
       {/* GlobalAppShell — 全局智能母座 (standalone layout) */}
       <Route path="/app-shell">
         <ProtectedRoute component={GlobalAppShell} />
+      </Route>
+
+      <Route path="/admin/agent-governance">
+        <ProtectedRoute component={AgentGovernanceDashboard} />
+      </Route>
+      <Route path="/admin/operations">
+        <ProtectedRoute component={SystemOperationsCenter} />
       </Route>
 
       {/* ── 沙盘系统 — SandboxShell provides three-column layout with route outlet ── */}

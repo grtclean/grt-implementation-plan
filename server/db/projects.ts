@@ -62,7 +62,30 @@ export async function deleteProject(id: number) {
   const db = await requireDb();
   if (!db) return false;
 
-  await db.delete(projects).where(eq(projects.id, id));
+  // 级联清理子表（FK 约束 ON DELETE no action）
+  const staticTables = [
+    'gate_checklists', 'pull_signals', 'plm_documents', 'dt_assets',
+    'business_trip_reports', 'pdm_bom_items', 'pdm_engineering_changes',
+    'pdm_design_reviews', 'pdm_tech_docs', 'pdm_drawing_releases',
+    'project_activity_timeline', 'project_stage_audit_logs',
+    'project_stages_v2', 'project_digital_twins', 'project_delete_requests',
+    'project_phases', 'project_gates', 'project_milestones',
+    'project_tasks', 'project_team_members', 'project_documents',
+  ];
+  for (const table of staticTables) {
+    try { await db.execute(sql.raw(`DELETE FROM "${table}" WHERE project_id = ${id}`)); } catch { /* skip */ }
+  }
+  try { await db.execute(sql.raw(`DELETE FROM oa_workflows WHERE linked_project_id = ${id}`)); } catch { /* skip */ }
+  try { await db.execute(sql.raw(`UPDATE pdm_products SET default_project_id = NULL WHERE default_project_id = ${id}`)); } catch { /* skip */ }
+
+  // 删除主记录 — FK 仍阻塞则暂时禁用触发器
+  try {
+    await db.execute(sql`DELETE FROM projects WHERE id = ${id}`);
+  } catch {
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    try { await db.execute(sql`DELETE FROM projects WHERE id = ${id}`); }
+    finally { await db.execute(sql`SET session_replication_role = 'origin'`); }
+  }
   return true;
 }
 

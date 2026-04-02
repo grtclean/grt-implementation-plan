@@ -5,6 +5,8 @@
  */
 
 import { useState, useMemo } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 import { PageHeader } from "@/components/grt";
 import FeatureGuide from "@/components/FeatureGuide";
 import { Button } from "@/components/ui/button";
@@ -236,12 +238,12 @@ interface EmployeeData {
 
 const mockEmployeeData: EmployeeData = {
   id: "EMP-001",
-  name: "张三",
+  name: "胡杨",
   avatar: "",
-  department: "技术部",
-  position: "高级工程师",
+  department: "AI数智部",
+  position: "IT工程师",
   joinDate: "2023-01-15",
-  manager: "李经理",
+  manager: "金晓锋",
   performanceTrend: [72, 75, 78, 82, 85, 83, 88, 92, 90, 87, 89, 91, 93],
 };
 
@@ -416,7 +418,7 @@ const mockConversationRecords: ConversationRecord[] = [
   {
     id: "CONV-001",
     employeeId: "EMP-001",
-    participant: "李经理",
+    participant: "金晓锋",
     conversationType: "performance_discussion",
     duration: 45,
     angle: "正向激励",
@@ -440,11 +442,11 @@ const mockConversationRecords: ConversationRecord[] = [
 ];
 
 const mockLeaderboard = [
-  { id: "LB-001", employeeName: "张三", department: "技术部", score: 92, change: 5, rank: 1, trend: "up" },
-  { id: "LB-002", employeeName: "李四", department: "销售部", score: 90, change: 8, rank: 2, trend: "up" },
-  { id: "LB-003", employeeName: "王五", department: "技术部", score: 88, change: -2, rank: 3, trend: "down" },
-  { id: "LB-004", employeeName: "赵六", department: "技术部", score: 87, change: 3, rank: 4, trend: "up" },
-  { id: "LB-005", employeeName: "孙七", department: "生产部", score: 85, change: -1, rank: 5, trend: "down" },
+  { id: "LB-001", employeeName: "胡杨", department: "AI数智部", score: 92, change: 5, rank: 1, trend: "up" },
+  { id: "LB-002", employeeName: "刘健康", department: "事业一部", score: 90, change: 8, rank: 2, trend: "up" },
+  { id: "LB-003", employeeName: "杨勇", department: "事业三部", score: 88, change: -2, rank: 3, trend: "down" },
+  { id: "LB-004", employeeName: "焦斌", department: "事业一部", score: 87, change: 3, rank: 4, trend: "up" },
+  { id: "LB-005", employeeName: "马林山", department: "事业二部", score: 85, change: -1, rank: 5, trend: "down" },
 ];
 
 // ============================================================================
@@ -947,6 +949,10 @@ export default function EmployeeIntelligentPerformance() {
             <TabsTrigger value="leaderboard">
               <Trophy className="w-4 h-4 mr-2" />
               {t("hr.intellPerf.tab.leaderboard")}
+            </TabsTrigger>
+            <TabsTrigger value="annual-goal">
+              <Target className="w-4 h-4 mr-2" />
+              年度目标
             </TabsTrigger>
           </TabsList>
 
@@ -1609,6 +1615,11 @@ export default function EmployeeIntelligentPerformance() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* ═══ 年度目标 Tab (integrated from AnnualGoalAgreement) ═══ */}
+          <TabsContent value="annual-goal" className="space-y-4">
+            <AnnualGoalInlinePanel />
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -1691,5 +1702,141 @@ export default function EmployeeIntelligentPerformance() {
         </DialogContent>
       </Dialog>
       </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// Inline Panel: Annual Goal within Performance page
+// ═══════════════════════════════════════════════════════
+function AnnualGoalInlinePanel() {
+  const { user } = useAuth();
+  const employeeId = user?.id ?? 0;
+  const year = new Date().getFullYear();
+
+  const goalQ = trpc.annualGoalIncentive.dashboard.employeeSummary.useQuery(
+    { employeeId, year },
+    { enabled: !!employeeId }
+  );
+
+  const agreement = goalQ.data?.agreement;
+  const dimensions = goalQ.data?.dimensions || [];
+  const checkpoints = goalQ.data?.checkpoints || [];
+  const projection = goalQ.data?.projection;
+
+  if (!agreement) {
+    return (
+      <Card><CardContent className="py-8 text-center text-muted-foreground text-sm">
+        {year} 年度目标协定尚未创建。请联系主管在「年度目标协定」页面创建。
+      </CardContent></Card>
+    );
+  }
+
+  const compositeScore = dimensions.reduce(
+    (s: number, d: any) => s + (parseFloat(d.currentScore || "0") * parseFloat(d.weight || "0")) / 100, 0
+  );
+  const perfLevels = (agreement.performanceLevelsJson as any[]) || [];
+
+  return (
+    <div className="space-y-4">
+      {/* Summary Row */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <Card className="bg-card/50">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{compositeScore.toFixed(1)}</div>
+            <div className="text-xs text-muted-foreground">综合得分</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card/50">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-amber-600">{agreement.projectedBonusMonths || "0"}</div>
+            <div className="text-xs text-muted-foreground">预估奖金(月)</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card/50">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">{checkpoints.filter((c: any) => c.status === "completed").length}/{checkpoints.length}</div>
+            <div className="text-xs text-muted-foreground">检查点完成</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card/50">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold">{dimensions.length}</div>
+            <div className="text-xs text-muted-foreground">考核维度</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Dimensions Detail */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">考核维度与进度</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {dimensions.map((d: any) => {
+              const score = parseFloat(d.currentScore || "0");
+              const weight = parseFloat(d.weight || "0");
+              return (
+                <div key={d.id} className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">{d.dimensionName} <span className="text-muted-foreground font-normal">({weight}%)</span></span>
+                    <span className="font-mono"><span className="font-bold">{score}</span>/100 = <span className="text-blue-600 font-bold">{((score * weight) / 100).toFixed(1)}</span></span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${score >= 70 ? "bg-green-500" : score >= 40 ? "bg-blue-500" : "bg-amber-400"}`}
+                      style={{ width: `${score}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Checkpoints + Performance Levels */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">检查点时间线</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {checkpoints.map((cp: any) => (
+                <div key={cp.id} className="flex items-center justify-between py-1.5 border-b last:border-0">
+                  <div className="flex items-center gap-2">
+                    {cp.status === "completed"
+                      ? <div className="w-2 h-2 rounded-full bg-green-500" />
+                      : <div className="w-2 h-2 rounded-full bg-gray-300" />}
+                    <span className="text-sm">{cp.checkpointType}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{new Date(cp.scheduledDate).toLocaleDateString()}</span>
+                    {cp.overallScore && <span className="text-xs font-mono font-bold">{cp.overallScore}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">绩效等级 → 激励映射</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-4 gap-2">
+              {perfLevels.map((l: any) => (
+                <div key={l.code} className={`text-center p-3 rounded-lg border ${l.code === "A" ? "border-green-200 bg-green-50" : l.code === "B" ? "border-blue-200 bg-blue-50" : l.code === "C" ? "border-yellow-200 bg-yellow-50" : "border-red-200 bg-red-50"}`}>
+                  <div className="text-lg font-bold">{l.level}</div>
+                  <div className="text-xs text-muted-foreground">{l.code}级</div>
+                  <div className="text-sm font-semibold mt-1">{l.bonusMonths}月</div>
+                </div>
+              ))}
+            </div>
+            {(agreement.careerPathOptionJson as any)?.upgradeRole && (
+              <div className="mt-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-700">
+                🚀 升级路径: {(agreement.careerPathOptionJson as any).upgradeRole} → 奖金×{(agreement.careerPathOptionJson as any).bonusCapMultiplier || 2} + 基数+{(agreement.careerPathOptionJson as any).salaryDeltaPct || 20}%
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

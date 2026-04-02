@@ -81,16 +81,17 @@ export default function DeadlockMonitor() {
   const [testingChannel, setTestingChannel] = useState<string | null>(null);
   
   // 转换为组件需要的格式
+  const sd = statusQuery.data;
   const status: MonitorStatus = {
-    isRunning: (statusQuery.data as any)?.isRunning ?? true,
-    lastCheckAt: (statusQuery.data as any)?.lastCheckTime ?? new Date().toISOString(),
-    nextCheckAt: (statusQuery.data as any)?.nextCheckTime ?? new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-    cyclesDetected: Number((statusQuery.data as any)?.totalCyclesDetected) || 0,
-    cyclesResolved: Number((statusQuery.data as any)?.totalCyclesResolved) || 0,
-    checkIntervalMs: Number((statusQuery.data as any)?.checkIntervalMs) || 5 * 60 * 1000
+    isRunning: sd?.isRunning ?? true,
+    lastCheckAt: sd?.lastCheckTime ?? new Date().toISOString(),
+    nextCheckAt: sd?.nextCheckTime ?? new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+    cyclesDetected: Number(sd?.totalCyclesDetected ?? 0),
+    cyclesResolved: Number(sd?.totalCyclesResolved ?? 0),
+    checkIntervalMs: Number(sd?.checkIntervalMs ?? 5 * 60 * 1000),
   };
   
-  const recentCycles: DeadlockCycle[] = ((historyQuery.data as any)?.records ?? []).map((r: any) => ({
+  const recentCycles: DeadlockCycle[] = (historyQuery.data?.records ?? []).map((r: any) => ({
     id: r.id,
     nodes: r.cycleNodes,
     detectedAt: r.detectedAt,

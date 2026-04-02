@@ -1,8 +1,6 @@
 # GRT智能系统 Docker Compose配置
-# 版本: v4.0.0
-# 包含: 应用服务 + PostgreSQL数据库 + Redis缓存
-
-version: '3.8'
+# 版本: v4.1.0
+# 包含: 应用服务 + PostgreSQL数据库 + Redis缓存 + Adminer(dev)
 
 services:
   # ============================================
@@ -17,12 +15,15 @@ services:
         - JWT_SECRET=${JWT_SECRET}
         - VITE_APP_ID=${VITE_APP_ID}
         - VITE_APP_TITLE=${VITE_APP_TITLE:-GRT智能系统}
+        - VITE_LOCAL_AUTH=${VITE_LOCAL_AUTH:-true}
     container_name: grt-app
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - LOCAL_AUTH=${LOCAL_AUTH:-true}
+      - VITE_LOCAL_AUTH=${VITE_LOCAL_AUTH:-true}
       - DATABASE_URL=${DATABASE_URL:-postgresql://grt:grt_password@postgres:5432/grt_db}
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       - VITE_APP_ID=${VITE_APP_ID}
@@ -37,7 +38,7 @@ services:
     networks:
       - grt-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3

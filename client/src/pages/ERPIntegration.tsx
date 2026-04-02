@@ -28,13 +28,13 @@ export default function ERPIntegration() {
   // 获取集成状态
   const { data: statusData, refetch: refetchStatus } = trpc.tiansiERP.getIntegrationStatus.useQuery();
 
-  // 配置连接
-  const configMutation = trpc.tiansiERP.configureConnection.useMutation({
+  // 配置连接 — 天思ERP使用MSSQL直连，配置通过环境变量管理
+  const configMutation = trpc.tiansiERP.testConnection.useMutation({
     onSuccess: () => {
       toast({ title: t("supply.erp.configSuccess"), description: t("supply.erp.configSaved") });
       refetchStatus();
     },
-    onError: (error) => {
+    onError: (error: { message: string }) => {
       toast({ title: t("supply.erp.configFailed"), description: error.message, variant: 'destructive' });
     },
   });
@@ -44,47 +44,40 @@ export default function ERPIntegration() {
       toast({ title: t("supply.erp.connectSuccess"), description: t("supply.erp.connectTestPassed") });
       refetchStatus();
     },
-    onError: (error) => {
+    onError: (error: { message: string }) => {
       toast({ title: t("supply.erp.connectFailed"), description: error.message, variant: 'destructive' });
     },
   });
 
-  const importMutation = trpc.tiansiERP.importMaterials.useMutation({
+  const importMutation = trpc.tiansiERP.migrateMaterials.useMutation({
     onSuccess: (data) => {
-      toast({ title: t("supply.erp.syncSuccess"), description: tpl("supply.erp.materialsSynced", { count: (data as any)?.syncedCount || 0 }) });
+      toast({ title: t("supply.erp.syncSuccess"), description: tpl("supply.erp.materialsSynced", { count: data?.success || 0 }) });
     },
-    onError: (error) => {
+    onError: (error: { message: string }) => {
       toast({ title: t("supply.erp.syncFailed"), description: error.message, variant: 'destructive' });
     },
   });
 
-  const syncOrdersMutation = trpc.tiansiERP.syncPurchaseOrders.useMutation({
+  const syncOrdersMutation = trpc.tiansiERP.migratePOs.useMutation({
     onSuccess: (data) => {
-      toast({ title: t("supply.erp.syncSuccess"), description: tpl("supply.erp.ordersSynced", { count: (data as any)?.syncedCount || 0 }) });
+      toast({ title: t("supply.erp.syncSuccess"), description: tpl("supply.erp.ordersSynced", { count: data?.success || 0 }) });
     },
-    onError: (error) => {
+    onError: (error: { message: string }) => {
       toast({ title: t("supply.erp.syncFailed"), description: error.message, variant: 'destructive' });
     },
   });
 
-  const syncInventoryMutation = trpc.tiansiERP.syncInventory.useMutation({
+  const syncInventoryMutation = trpc.tiansiERP.migrateInventory.useMutation({
     onSuccess: (data) => {
-      toast({ title: t("supply.erp.syncSuccess"), description: tpl("supply.erp.inventorySynced", { count: (data as any)?.syncedCount || 0 }) });
+      toast({ title: t("supply.erp.syncSuccess"), description: tpl("supply.erp.inventorySynced", { count: data?.success || 0 }) });
     },
-    onError: (error) => {
+    onError: (error: { message: string }) => {
       toast({ title: t("supply.erp.syncFailed"), description: error.message, variant: 'destructive' });
     },
   });
 
   const handleConfigure = async () => {
-    await configMutation.mutateAsync({
-      apiUrl,
-      apiKey,
-      apiSecret,
-      companyId,
-      syncInterval: 30,
-      isEnabled: true,
-    });
+    await configMutation.mutateAsync();
   };
 
   const handleTest = async () => {
@@ -92,15 +85,15 @@ export default function ERPIntegration() {
   };
 
   const handleImportMaterials = async () => {
-    await importMutation.mutateAsync({ limit: 100 });
+    await importMutation.mutateAsync({ batchSize: 100, conflictStrategy: 'update', dryRun: false });
   };
 
   const handleSyncOrders = async () => {
-    await syncOrdersMutation.mutateAsync();
+    await syncOrdersMutation.mutateAsync({ batchSize: 200, conflictStrategy: 'update', dryRun: false });
   };
 
   const handleSyncInventory = async () => {
-    await syncInventoryMutation.mutateAsync();
+    await syncInventoryMutation.mutateAsync({ batchSize: 200, conflictStrategy: 'update', dryRun: false });
   };
 
   return (

@@ -7,7 +7,8 @@
  *   - Gap analysis table with AI improvement tips
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   RadarChart,
   PolarGrid,
@@ -98,10 +99,18 @@ function CustomTooltip({ active, payload, t }: any) {
 export default function My360Profile() {
   const { t } = useLanguage();
   const { currentUserRole } = useUserProfile();
+  const { user } = useAuth();
   const [showTips, setShowTips] = useState(false);
 
-  // Fetch data
-  const { data: assessment } = trpc.capabilitySystem.getMyAssessment.useQuery({ employeeId: 1017 });
+  // Derive employeeId from openId (GRT083 → 83)
+  const employeeId = useMemo(() => {
+    const openId = user?.openId || "";
+    const match = openId.match(/GRT0*(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+  }, [user]);
+
+  // Fetch data — use current user's employee number
+  const { data: assessment } = trpc.capabilitySystem.getMyAssessment.useQuery({ employeeId }, { enabled: employeeId > 0 });
   const { data: criteria } = trpc.capabilitySystem.getRoleCriteria.useQuery({ role: currentUserRole });
   const { data: dictionary } = trpc.capabilitySystem.getDictionary.useQuery();
 

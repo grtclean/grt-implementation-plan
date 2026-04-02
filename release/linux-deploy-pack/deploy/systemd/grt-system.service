@@ -1,0 +1,57 @@
+# =============================================================================
+# GRT System — systemd Unit File (non-Docker deployment)
+# Install to: /etc/systemd/system/grt-system.service
+# Enable:     sudo systemctl enable grt-system
+# Start:      sudo systemctl start grt-system
+# =============================================================================
+
+[Unit]
+Description=GRT Intelligent System (Node.js)
+Documentation=https://github.com/grt-system/grt-system
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=simple
+User=grt
+Group=grt
+WorkingDirectory=/opt/grt-system
+
+# Environment
+EnvironmentFile=/opt/grt-system/.env
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+# Application
+ExecStart=/usr/bin/node dist/index.js
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# Process limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/grt-system/logs /opt/grt-system/uploads /opt/grt-system/data
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=grt-system
+
+# Graceful shutdown (30s timeout)
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

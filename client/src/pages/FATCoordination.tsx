@@ -28,6 +28,7 @@ import {
   FileCheck,
   UserCheck,
   Pen,
+  Shield,
   ShieldCheck,
   ListChecks,
   FlaskConical,
@@ -139,7 +140,7 @@ const initialTestResults: TestResult[] = [
     testItemName: "清洗节拍测试",
     resultValue: "55s/件 (50件平均)",
     passed: true,
-    testedBy: "张工",
+    testedBy: "洪香龙",
     testedAt: "2024-03-15 09:30",
   },
   {
@@ -166,34 +167,34 @@ const initialTestResults: TestResult[] = [
     testItemName: "PLC程序功能测试",
     resultValue: "手动模式切换异常，报警ID-023未触发",
     passed: false,
-    testedBy: "陈工",
+    testedBy: "孙坚",
     testedAt: "2024-03-15 16:00",
   },
 ];
 
 const initialChecklist: ChecklistItem[] = [
   // 机械类
-  { id: "C001", category: "mechanical", description: "传动链条张紧度检查", checked: true, responsiblePerson: "张工", notes: "张力合格" },
-  { id: "C002", category: "mechanical", description: "密封圈完好性检查", checked: true, responsiblePerson: "张工", notes: "" },
-  { id: "C003", category: "mechanical", description: "喷嘴安装角度确认", checked: false, responsiblePerson: "张工", notes: "待调整3号喷嘴" },
-  { id: "C004", category: "mechanical", description: "过滤器安装确认", checked: true, responsiblePerson: "李工", notes: "" },
-  { id: "C005", category: "mechanical", description: "水箱液位传感器校准", checked: false, responsiblePerson: "李工", notes: "" },
+  { id: "C001", category: "mechanical", description: "传动链条张紧度检查", checked: true, responsiblePerson: "洪香龙", notes: "张力合格" },
+  { id: "C002", category: "mechanical", description: "密封圈完好性检查", checked: true, responsiblePerson: "洪香龙", notes: "" },
+  { id: "C003", category: "mechanical", description: "喷嘴安装角度确认", checked: false, responsiblePerson: "洪香龙", notes: "待调整3号喷嘴" },
+  { id: "C004", category: "mechanical", description: "过滤器安装确认", checked: true, responsiblePerson: "李大鹏", notes: "" },
+  { id: "C005", category: "mechanical", description: "水箱液位传感器校准", checked: false, responsiblePerson: "李大鹏", notes: "" },
   // 电气类
   { id: "C006", category: "electrical", description: "接线端子紧固检查", checked: true, responsiblePerson: "刘工", notes: "" },
   { id: "C007", category: "electrical", description: "变频器参数设置确认", checked: true, responsiblePerson: "刘工", notes: "已按工艺要求设置" },
   { id: "C008", category: "electrical", description: "传感器标定", checked: false, responsiblePerson: "刘工", notes: "温度传感器待标定" },
-  { id: "C009", category: "electrical", description: "HMI画面功能测试", checked: true, responsiblePerson: "陈工", notes: "" },
+  { id: "C009", category: "electrical", description: "HMI画面功能测试", checked: true, responsiblePerson: "孙坚", notes: "" },
   // 安全类
   { id: "C010", category: "safety", description: "安全门联锁功能确认", checked: true, responsiblePerson: "刘工", notes: "" },
   { id: "C011", category: "safety", description: "急停按钮功能测试", checked: true, responsiblePerson: "刘工", notes: "全部6个急停按钮测试通过" },
   { id: "C012", category: "safety", description: "接地电阻测量", checked: true, responsiblePerson: "刘工", notes: "< 4Ω" },
-  { id: "C013", category: "safety", description: "CE安全标签张贴", checked: false, responsiblePerson: "张工", notes: "" },
+  { id: "C013", category: "safety", description: "CE安全标签张贴", checked: false, responsiblePerson: "洪香龙", notes: "" },
   // 文档类
   { id: "C014", category: "documentation", description: "操作手册(中/英)", checked: true, responsiblePerson: "焦斌", notes: "V2.0已完成" },
   { id: "C015", category: "documentation", description: "电气图纸交付", checked: true, responsiblePerson: "刘工", notes: "" },
-  { id: "C016", category: "documentation", description: "PLC程序备份", checked: false, responsiblePerson: "陈工", notes: "" },
+  { id: "C016", category: "documentation", description: "PLC程序备份", checked: false, responsiblePerson: "孙坚", notes: "" },
   { id: "C017", category: "documentation", description: "维护保养手册", checked: false, responsiblePerson: "焦斌", notes: "编写中" },
-  { id: "C018", category: "documentation", description: "零件清单及供应商信息", checked: true, responsiblePerson: "李工", notes: "" },
+  { id: "C018", category: "documentation", description: "零件清单及供应商信息", checked: true, responsiblePerson: "李大鹏", notes: "" },
 ];
 
 const initialSignoffs: SignoffRecord[] = [
@@ -217,7 +218,7 @@ const initialSignoffs: SignoffRecord[] = [
     step: "customer_rep",
     label: "客户代表签署",
     status: "pending",
-    person: "客户方-李经理",
+    person: "客户方-金晓锋",
     date: "",
     comments: "",
   },
@@ -469,6 +470,10 @@ export default function FATCoordination() {
             <TabsTrigger value="signoff" className="flex items-center gap-1.5">
               <Pen className="h-4 w-4" />
               <span className="hidden sm:inline">客户签署</span>
+            </TabsTrigger>
+            <TabsTrigger value="pre-acceptance" className="flex items-center gap-1.5">
+              <Shield className="h-4 w-4" />
+              <span className="hidden sm:inline">调试预验收审批</span>
             </TabsTrigger>
           </TabsList>
 
@@ -896,7 +901,166 @@ export default function FATCoordination() {
               })}
             </div>
           </TabsContent>
+
+          {/* ═══ Tab 5: Pre-Acceptance Approval (调试预验收审批) ═══ */}
+          <TabsContent value="pre-acceptance" className="space-y-4">
+            <PreAcceptanceApprovalTab />
+          </TabsContent>
         </Tabs>}
       </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// Pre-Acceptance Approval Tab (调试预验收审批)
+// 技师确认 → 项目工程师确认 → 事业部经理批准 → 客户Portal自动更新
+// ═══════════════════════════════════════════════════════
+function PreAcceptanceApprovalTab() {
+  const [approvals, setApprovals] = useState([
+    // Phase 1: 设备调试 (技师)
+    { id: 1, phase: "commissioning", item: "清洗工艺参数确认", status: "approved", approver: "洪香龙", role: "调试技师", date: "2026-03-20", note: "所有参数在标准范围内" },
+    { id: 2, phase: "commissioning", item: "干燥参数调试", status: "approved", approver: "洪香龙", role: "调试技师", date: "2026-03-20", note: "温度85°C，时间优化至45s" },
+    { id: 3, phase: "commissioning", item: "节拍优化与确认", status: "approved", approver: "洪香龙", role: "调试技师", date: "2026-03-21", note: "实测58s，目标60s" },
+    { id: 4, phase: "commissioning", item: "超声波功率/频率校准", status: "approved", approver: "洪香龙", role: "调试技师", date: "2026-03-21", note: "28kHz/3kW 偏差<1%" },
+    { id: 5, phase: "commissioning", item: "过滤系统压差设定", status: "approved", approver: "洪香龙", role: "调试技师", date: "2026-03-22", note: "初始0.15bar，报警0.5bar" },
+    { id: 6, phase: "commissioning", item: "自动补液浓度设定", status: "approved", approver: "洪香龙", role: "调试技师", date: "2026-03-22", note: "3-5%范围，自动补偿" },
+    { id: 7, phase: "commissioning", item: "设备自清洁周期设定", status: "approved", approver: "洪香龙", role: "调试技师", date: "2026-03-22", note: "每500件自清洁" },
+    { id: 8, phase: "commissioning", item: "多场景程序逻辑验证", status: "approved", approver: "洪香龙", role: "调试技师", date: "2026-03-23", note: "3套配方全部验证" },
+    { id: 9, phase: "commissioning", item: "PM保养计划设定", status: "approved", approver: "洪香龙", role: "调试技师", date: "2026-03-23", note: "日/周/月/季已配置" },
+    { id: 10, phase: "commissioning", item: "安全连锁功能测试", status: "approved", approver: "洪香龙", role: "调试技师", date: "2026-03-24", note: "急停/光栅/门锁全通过" },
+    // Phase 2: 预验收前验证 (项目工程师)
+    { id: 11, phase: "pre_fat", item: "清洁度性能检测报告 (ISO 16232)", status: "approved", approver: "李大鹏", role: "项目工程师", date: "2026-03-25", note: "Class A ≤35μm" },
+    { id: 12, phase: "pre_fat", item: "干燥性能检测报告", status: "approved", approver: "李大鹏", role: "项目工程师", date: "2026-03-25", note: "无水渍，合格" },
+    { id: 13, phase: "pre_fat", item: "防锈效果验证", status: "conditional", approver: "李大鹏", role: "项目工程师", date: "", note: "客户要求时执行" },
+    { id: 14, phase: "pre_fat", item: "油水分离效果", status: "approved", approver: "李大鹏", role: "项目工程师", date: "2026-03-26", note: "≤5ppm" },
+    { id: 15, phase: "pre_fat", item: "电导率监控校订", status: "approved", approver: "李大鹏", role: "项目工程师", date: "2026-03-26", note: "已校准" },
+    { id: 16, phase: "pre_fat", item: "客户零件Traceability系统对接", status: "planned", approver: "李大鹏", role: "项目工程师", date: "", note: "待客户MES接口" },
+    { id: 17, phase: "pre_fat", item: "客户关键参数清单与历史设定", status: "approved", approver: "李大鹏", role: "项目工程师", date: "2026-03-27", note: "已存档GRTS 3.0" },
+    { id: 18, phase: "pre_fat", item: "全生命周期服务系统对接", status: "approved", approver: "李大鹏", role: "项目工程师", date: "2026-03-27", note: "客户Portal已联通" },
+    // Phase 3: 批准
+    { id: 19, phase: "approval", item: "调试技师签字确认", status: "approved", approver: "洪香龙 (机械设计经理)", role: "调试技师", date: "2026-03-24", note: "全部调试项通过" },
+    { id: 20, phase: "approval", item: "项目工程师签字确认", status: "approved", approver: "李大鹏 (电气工程师)", role: "项目工程师", date: "2026-03-27", note: "性能检测达标" },
+    { id: 21, phase: "approval", item: "事业部经理批准预验收", status: "pending", approver: "戴晓燕 (高级销售经理)", role: "事业部经理", date: "", note: "待批准 → 进入客户预验收" },
+  ]);
+
+  const phaseLabels: Record<string, { label: string; icon: string }> = {
+    commissioning: { label: "⚙️ 设备调试阶段 (技师确认)", icon: "⚙️" },
+    pre_fat: { label: "📋 预验收前验证 (项目工程师确认)", icon: "📋" },
+    approval: { label: "✍️ 审批签字 (三级审批)", icon: "✍️" },
+  };
+
+  const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
+    approved: { label: "✅ 已通过", color: "text-green-700", bg: "bg-green-100" },
+    pending: { label: "⏳ 待批准", color: "text-amber-700", bg: "bg-amber-100" },
+    conditional: { label: "🔹 有条件", color: "text-blue-700", bg: "bg-blue-100" },
+    planned: { label: "📅 已计划", color: "text-violet-700", bg: "bg-violet-100" },
+    na: { label: "➖ 不涉及", color: "text-gray-500", bg: "bg-gray-100" },
+  };
+
+  const handleApprove = (id: number) => {
+    setApprovals(prev => prev.map(a => a.id === id ? { ...a, status: "approved", date: new Date().toISOString().split("T")[0] } : a));
+  };
+
+  const totalItems = approvals.length;
+  const approvedItems = approvals.filter(a => a.status === "approved").length;
+  const progressPct = Math.round((approvedItems / totalItems) * 100);
+  const canPreAccept = approvals.filter(a => a.phase === "approval").every(a => a.status === "approved");
+
+  return (
+    <div className="space-y-4">
+      {/* Progress Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card><CardContent className="p-4 text-center">
+          <div className="text-2xl font-bold text-green-600">{approvedItems}/{totalItems}</div>
+          <div className="text-xs text-muted-foreground">已通过项</div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <div className="text-2xl font-bold text-blue-600">{progressPct}%</div>
+          <div className="text-xs text-muted-foreground">整体进度</div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <div className="text-2xl font-bold text-amber-600">{approvals.filter(a => a.status === "pending").length}</div>
+          <div className="text-xs text-muted-foreground">待批准</div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <div className={`text-2xl font-bold ${canPreAccept ? "text-green-600" : "text-gray-400"}`}>{canPreAccept ? "✅" : "⏳"}</div>
+          <div className="text-xs text-muted-foreground">可进入客户预验收</div>
+        </CardContent></Card>
+      </div>
+
+      <Progress value={progressPct} className="h-2" />
+
+      {/* Approval Phases */}
+      {["commissioning", "pre_fat", "approval"].map(phase => (
+        <Card key={phase}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">{phaseLabels[phase]?.label}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1.5">
+              {approvals.filter(a => a.phase === phase).map(a => {
+                const sc = statusConfig[a.status] || statusConfig.pending;
+                return (
+                  <div key={a.id} className="flex items-center justify-between py-2 px-3 rounded-lg border hover:bg-muted/30 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium">{a.item}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {a.approver} ({a.role}){a.date ? ` · ${a.date}` : ""}
+                        {a.note && <span className="ml-1 text-blue-600">— {a.note}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge className={`${sc.bg} ${sc.color} text-[10px]`}>{sc.label}</Badge>
+                      {a.status === "pending" && (
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => handleApprove(a.id)}>
+                          <CheckCircle2 className="h-3 w-3" /> 批准
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+
+      {/* Customer Portal Sync Status */}
+      <Card className="border-2 border-dashed border-blue-300">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Shield className="h-4 w-4 text-blue-600" /></div>
+              <div>
+                <div className="text-sm font-medium">客户Portal自动同步</div>
+                <div className="text-[10px] text-muted-foreground">审批状态实时更新到 /customer/portal → 调试与预验收审批流程</div>
+              </div>
+            </div>
+            <Badge className="bg-green-100 text-green-700">已联通</Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Final Acceptance Confirmation */}
+      <Card className={`border-2 ${canPreAccept ? "border-green-300 bg-green-50" : "border-gray-200"}`}>
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-semibold">{canPreAccept ? "✅ 可进入客户预验收 (FAT)" : "⏳ 等待事业部经理批准后方可进入客户预验收"}</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                {canPreAccept
+                  ? "所有审批已通过。客户可在Portal查看状态并进行终验收前再次确认。"
+                  : "有条件预验收需事业部经理确认与控制，未完成项在SAT前必须闭环。"}
+              </div>
+            </div>
+            {canPreAccept && (
+              <Button className="gap-1.5 bg-green-600 hover:bg-green-700">
+                <UserCheck className="h-4 w-4" /> 通知客户预验收
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

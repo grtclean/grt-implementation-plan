@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+      content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover" />
     <title>GRT System — 智能管理系统</title>
     <link rel="icon" type="image/gif" href="/GRTlogo.gif" />
     <link rel="apple-touch-icon" href="/GRTlogo.png" />
@@ -84,32 +84,218 @@
       (slow CDN, firewall), the page uses system font fallbacks — no
       layout shift because display=optional means no font swap.
     -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!--
+      Google Fonts: Use China-accessible mirror (fonts.loli.net) with aggressive timeout.
+      Falls back to system fonts if unreachable (display=optional prevents FOIT).
+    -->
+    <link rel="preconnect" href="https://fonts.loli.net" crossorigin>
     <link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Oswald:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=optional"
+      href="https://fonts.loli.net/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=optional"
       media="print" onload="this.media='all'">
     <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Oswald:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=optional">
+      <link rel="stylesheet" href="https://fonts.loli.net/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=optional">
     </noscript>
   </head>
 
   <body>
-    <!-- Loading overlay — removed by main.tsx after React mount -->
-    <div id="app-loader"><div class="spinner"></div></div>
-    <div id="root"></div>
-    <!-- SAFETY: Remove loading overlay even if JS modules fail to load.
-         This runs BEFORE module loading, so it's guaranteed to execute.
-         main.tsx normally removes it sooner (~3s); this is a fallback. -->
+    <!-- ══════════════════════════════════════════════════════════
+         微信 WebView 引导页 — 纯 HTML/CSS，零 JS 依赖
+         用户扫码后第一时间看到，无需等待任何 bundle 下载
+         ══════════════════════════════════════════════════════════ -->
+    <div id="wechat-hint" style="display:none">
+      <style>
+        #wechat-hint {
+          position:fixed;inset:0;z-index:999999;
+          background:linear-gradient(180deg,#0a0e17 0%,#0d1321 50%,#0a0e17 100%);
+          color:#fff;font-family:-apple-system,system-ui,"PingFang SC","Helvetica Neue",sans-serif;
+          overflow-y:auto;-webkit-overflow-scrolling:touch;
+        }
+        #wechat-hint .wh-inner {max-width:360px;margin:0 auto;padding:48px 24px 40px;text-align:center}
+        #wechat-hint .wh-logo {width:64px;height:64px;border-radius:16px;margin-bottom:20px}
+        #wechat-hint .wh-title {font-size:22px;font-weight:700;margin:0 0 4px;letter-spacing:-0.5px}
+        #wechat-hint .wh-sub {font-size:13px;color:#8b949e;margin:0 0 28px}
+        /* 步骤卡片 */
+        #wechat-hint .wh-steps {
+          background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+          border-radius:16px;padding:20px;margin-bottom:20px;text-align:left;
+        }
+        #wechat-hint .wh-step-title {font-size:14px;font-weight:600;color:#58a6ff;margin:0 0 16px;text-align:center}
+        #wechat-hint .wh-step {display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+        #wechat-hint .wh-step:last-child {margin-bottom:0}
+        #wechat-hint .wh-num {
+          width:28px;height:28px;border-radius:50%;
+          background:linear-gradient(135deg,#0078d4,#00a2ff);
+          display:flex;align-items:center;justify-content:center;
+          font-size:13px;font-weight:700;flex-shrink:0;
+        }
+        #wechat-hint .wh-step-text {flex:1;padding-top:3px}
+        #wechat-hint .wh-step-text b {font-size:14px;display:block;margin-bottom:2px}
+        #wechat-hint .wh-step-text span {font-size:11px;color:#8b949e;line-height:1.4}
+        /* 右上角箭头动画 */
+        #wechat-hint .wh-arrow {
+          position:fixed;top:8px;right:16px;z-index:1000000;
+          font-size:32px;animation:wh-bounce 1.5s ease-in-out infinite;
+        }
+        @keyframes wh-bounce {
+          0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)}
+        }
+        /* 按钮 */
+        #wechat-hint .wh-btn-primary {
+          width:100%;padding:12px;border-radius:10px;border:none;cursor:pointer;
+          font-size:15px;font-weight:600;font-family:inherit;
+          background:linear-gradient(135deg,#0078d4,#00a2ff);color:#fff;
+          margin-bottom:10px;
+        }
+        #wechat-hint .wh-btn-secondary {
+          width:100%;padding:10px;border-radius:10px;cursor:pointer;
+          font-size:12px;font-family:inherit;
+          background:transparent;color:#58a6ff;border:1px solid rgba(255,255,255,0.1);
+        }
+        #wechat-hint .wh-footer {margin-top:24px;font-size:10px;color:#484f58;line-height:1.5}
+      </style>
+      <!-- 右上角弹跳箭头 — 指向微信 ··· 菜单 -->
+      <div class="wh-arrow">↗️</div>
+      <div class="wh-inner">
+        <img src="/GRTlogo.gif" alt="GRT" class="wh-logo">
+        <h1 class="wh-title">GRT 客户门户</h1>
+        <p class="wh-sub">Global Robot Technology · 工业精密清洗</p>
+
+        <!-- 步骤引导 -->
+        <div class="wh-steps">
+          <div class="wh-step-title">请在浏览器中打开以获得最佳体验</div>
+          <div class="wh-step">
+            <div class="wh-num">1</div>
+            <div class="wh-step-text">
+              <b>点击右上角 ···</b>
+              <span>点击微信右上角的三个点菜单按钮</span>
+            </div>
+          </div>
+          <div class="wh-step">
+            <div class="wh-num">2</div>
+            <div class="wh-step-text">
+              <b>选择「在浏览器中打开」</b>
+              <span>在弹出菜单中找到并点击此选项</span>
+            </div>
+          </div>
+          <div class="wh-step">
+            <div class="wh-num">3</div>
+            <div class="wh-step-text">
+              <b>填写信息即可进入系统</b>
+              <span>输入手机号和公司名称，30秒完成注册</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <button id="wechat-copy-url" class="wh-btn-primary">
+          📋 复制链接到浏览器打开
+        </button>
+        <button id="wechat-continue" class="wh-btn-secondary">
+          继续在微信中使用（加载可能较慢）
+        </button>
+
+        <div class="wh-footer">
+          GRT · 全球机器人科技 · 杰瑞德自动化<br>
+          无锡 · 斯图加特 · 底特律
+        </div>
+      </div>
+    </div>
     <script>
+      (function() {
+        var ua = navigator.userAgent.toLowerCase();
+        var isWechat = ua.indexOf('micromessenger') > -1;
+        // 也检测企业微信、QQ内置浏览器
+        var isRestricted = isWechat || ua.indexOf('wxwork') > -1 || ua.indexOf(' qq/') > -1;
+        if (isRestricted) {
+          var hint = document.getElementById('wechat-hint');
+          if (hint) hint.style.display = 'block';
+
+          // 复制链接按钮
+          var copyBtn = document.getElementById('wechat-copy-url');
+          if (copyBtn) copyBtn.onclick = function() {
+            var url = location.href;
+            try {
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function() {
+                  copyBtn.innerHTML = '✅ 链接已复制！请打开手机浏览器粘贴访问';
+                  copyBtn.style.background = '#16a34a';
+                });
+              } else { throw 0; }
+            } catch(e) {
+              var t = document.createElement('textarea');
+              t.value = url;
+              t.style.cssText = 'position:fixed;left:-9999px';
+              document.body.appendChild(t);
+              t.select();
+              try { document.execCommand('copy'); } catch(ex) {}
+              document.body.removeChild(t);
+              copyBtn.innerHTML = '✅ 链接已复制！请打开手机浏览器粘贴访问';
+              copyBtn.style.background = '#16a34a';
+            }
+          };
+
+          // 继续使用按钮
+          var contBtn = document.getElementById('wechat-continue');
+          if (contBtn) contBtn.onclick = function() {
+            contBtn.innerHTML = '加载中...';
+            contBtn.style.color = '#8b949e';
+            contBtn.disabled = true;
+            setTimeout(function() { hint.style.display = 'none'; }, 500);
+          };
+        }
+      })();
+    </script>
+    <!-- Loading overlay — removed by main.tsx after React mount -->
+    <div id="app-loader">
+      <div style="text-align:center">
+        <img src="/GRTlogo.gif" alt="GRT" width="48" height="48" style="margin-bottom:12px">
+        <div class="spinner"></div>
+        <div style="margin-top:12px;font-size:12px;color:#888;font-family:system-ui" id="loader-text">GRT System</div>
+        <div id="loader-slow" style="display:none;margin-top:16px;font-size:11px;color:#666;font-family:system-ui;max-width:260px;line-height:1.5">
+          正在加载，请稍候...<br>
+          <span style="font-size:10px;color:#999">Loading resources...</span>
+        </div>
+        <div id="loader-retry" style="display:none;margin-top:16px;text-align:center">
+          <div style="font-size:11px;color:#e44;font-family:system-ui;margin-bottom:8px">加载较慢，请尝试刷新</div>
+          <button onclick="location.reload()" style="padding:8px 24px;border-radius:6px;background:#0078d4;color:#fff;border:none;font-size:13px;cursor:pointer;font-family:system-ui">
+            点击重试
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="root"></div>
+    <!-- Progressive loading feedback + safety fallback -->
+    <script>
+      // Show "loading" hint after 3s
+      setTimeout(function() {
+        var s = document.getElementById('loader-slow');
+        if (s) s.style.display = 'block';
+      }, 3000);
+      // Show retry button after 8s
+      setTimeout(function() {
+        var r = document.getElementById('loader-retry');
+        if (r) r.style.display = 'block';
+      }, 8000);
+      // Safety: remove overlay after 8s regardless
       setTimeout(function() {
         var loader = document.getElementById('app-loader');
         if (loader) loader.remove();
-        document.documentElement.style.backgroundColor = '';
         document.documentElement.classList.remove('no-transitions');
-      }, 5000);
+      }, 8000);
     </script>
-    <script type="module" src="/src/main.tsx"></script>
+    <!-- Entry point selection: customer pages get ultra-light entry (no tRPC/providers) -->
+    <script>
+      (function() {
+        var p = location.pathname.replace(/\/$/, '') || '/';
+        if (p === '/customer/auth' || p === '/customer/forum' || p === '/customer-workspace' || p === '/customer/portal') {
+          window.__GRT_CUSTOMER_FAST = true;
+        }
+        if (p.indexOf('/showcase/') === 0 || p.indexOf('/showroom') === 0) {
+          window.__GRT_SKIP_AUTH_FETCH = true;
+        }
+      })();
+    </script>
+    <script type="module" src="./src/entry-router.ts"></script>
     <!-- Analytics loaded AFTER page load event so it doesn't keep the
          browser loading indicator spinning (which causes perceived "jumping") -->
     <script>

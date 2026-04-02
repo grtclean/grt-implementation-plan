@@ -17,6 +17,8 @@ import {
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { useToast } from "../hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import {
   Dialog,
@@ -69,7 +71,9 @@ const lifecycleLabels: Record<string, string> = {
 };
 
 const familyLabels: Record<string, string> = {
-  USC: "超声波", SPR: "喷淋", IMM: "浸泡",
+  USC: "超声波", SPR: "喷淋", IMM: "浸泡", HPD: "高压去毛刺",
+  VDR: "真空干燥", PLS: "等离子", HYB: "混合清洗线", EBK: "缸体专机",
+  GRX: "齿轴专机", BAT: "电池壳清洗", SMC: "半导体清洗", CUS: "定制设备",
 };
 
 const severityColors: Record<string, string> = {
@@ -117,6 +121,32 @@ function EmptyState({ message }: { message: string }) {
   return <div className="text-center py-8 text-muted-foreground">{message}</div>;
 }
 
+// ── 产品关联图纸子组件 ──
+function ProductDrawings({ productCode }: { productCode: string }) {
+  const dwgQuery = trpc.drawingLibrary.getByProduct.useQuery({ productCode, limit: 20 }, { enabled: !!productCode, retry: false });
+  const drawings: any[] = Array.isArray(dwgQuery.data) ? dwgQuery.data : (dwgQuery.data as any)?.items ?? [];
+  if (dwgQuery.isLoading) return <div className="text-xs text-muted-foreground py-1">加载图纸...</div>;
+  if (drawings.length === 0) return <div className="text-xs text-muted-foreground py-1">暂无关联图纸 — <a href={`/drawing-library?product=${productCode}`} className="text-blue-600 underline">前往创建</a></div>;
+  const typeColors: Record<string, string> = { mechanical: "bg-blue-100 text-blue-700", electrical: "bg-yellow-100 text-yellow-700", pneumatic: "bg-green-100 text-green-700", assembly: "bg-purple-100 text-purple-700", detail: "bg-indigo-100 text-indigo-700", layout: "bg-pink-100 text-pink-700", schematic: "bg-orange-100 text-orange-700", wiring: "bg-amber-100 text-amber-700", piping: "bg-teal-100 text-teal-700", hydraulic: "bg-cyan-100 text-cyan-700", eplan: "bg-red-100 text-red-700" };
+  const statusColors: Record<string, string> = { draft: "text-gray-500", in_review: "text-amber-600", approved: "text-blue-600", released: "text-green-600", obsolete: "text-red-500" };
+  return (
+    <div>
+      <div className="text-xs font-semibold text-muted-foreground mb-1.5">关联图纸 ({drawings.length})</div>
+      <div className="space-y-1 max-h-40 overflow-y-auto">
+        {drawings.map((d: any) => (
+          <div key={d.id} className="flex items-center gap-2 text-xs p-1.5 bg-muted/50 rounded hover:bg-muted">
+            <span className="font-mono font-medium w-40 truncate">{d.drawingNumber}</span>
+            <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${typeColors[d.drawingType] || "bg-gray-100"}`}>{d.drawingType}</Badge>
+            <span className="flex-1 truncate text-muted-foreground">{d.title}</span>
+            <span className="text-[10px]">{d.version}</span>
+            <span className={`text-[10px] font-medium ${statusColors[d.status] || ""}`}>{d.status}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ════════════════════════════════════════════
 // Tab 1: 产品目录
 // ════════════════════════════════════════════
@@ -125,10 +155,11 @@ function ProductCatalogTab() {
   const [familyFilter, setFamilyFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [newProduct, setNewProduct] = useState({
     productCode: "",
     productName: "",
-    productFamily: "USC" as "USC" | "SPR" | "IMM",
+    productFamily: "",
     stationCount: 0,
   });
 
@@ -182,12 +213,21 @@ function ProductCatalogTab() {
           className="w-48"
         />
         <Select value={familyFilter} onValueChange={setFamilyFilter}>
-          <SelectTrigger className="w-32"><SelectValue placeholder="产品族" /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue placeholder="产品族" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部</SelectItem>
+            <SelectItem value="all">全部产品族</SelectItem>
             <SelectItem value="USC">超声波 USC</SelectItem>
             <SelectItem value="SPR">喷淋 SPR</SelectItem>
             <SelectItem value="IMM">浸泡 IMM</SelectItem>
+            <SelectItem value="HPD">高压去毛刺 HPD</SelectItem>
+            <SelectItem value="VDR">真空干燥 VDR</SelectItem>
+            <SelectItem value="PLS">等离子 PLS</SelectItem>
+            <SelectItem value="HYB">混合清洗线 HYB</SelectItem>
+            <SelectItem value="EBK">缸体专机 EBK</SelectItem>
+            <SelectItem value="GRX">齿轴专机 GRX</SelectItem>
+            <SelectItem value="BAT">电池壳清洗 BAT</SelectItem>
+            <SelectItem value="SMC">半导体清洗 SMC</SelectItem>
+            <SelectItem value="CUS">定制设备 CUS</SelectItem>
           </SelectContent>
         </Select>
         <Dialog open={showCreate} onOpenChange={setShowCreate}>
@@ -207,17 +247,37 @@ function ProductCatalogTab() {
                 value={newProduct.productName}
                 onChange={(e) => setNewProduct({ ...newProduct, productName: e.target.value })}
               />
-              <Select
-                value={newProduct.productFamily}
-                onValueChange={(v) => setNewProduct({ ...newProduct, productFamily: v as any })}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USC">超声波 USC</SelectItem>
-                  <SelectItem value="SPR">喷淋 SPR</SelectItem>
-                  <SelectItem value="IMM">浸泡 IMM</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-1.5">
+                <Select
+                  value={newProduct.productFamily}
+                  onValueChange={(v) => {
+                    if (v === "__custom") return;
+                    setNewProduct({ ...newProduct, productFamily: v });
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="选择产品族" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USC">USC — 超声波清洗系统</SelectItem>
+                    <SelectItem value="SPR">SPR — 喷淋清洗系统</SelectItem>
+                    <SelectItem value="IMM">IMM — 浸泡清洗系统</SelectItem>
+                    <SelectItem value="HPD">HPD — 高压去毛刺</SelectItem>
+                    <SelectItem value="VDR">VDR — 真空干燥系统</SelectItem>
+                    <SelectItem value="PLS">PLS — 等离子处理</SelectItem>
+                    <SelectItem value="HYB">HYB — 混合清洗线</SelectItem>
+                    <SelectItem value="EBK">EBK — 缸体清洗专机</SelectItem>
+                    <SelectItem value="GRX">GRX — 齿轴清洗专机</SelectItem>
+                    <SelectItem value="BAT">BAT — 电池壳清洗</SelectItem>
+                    <SelectItem value="SMC">SMC — 半导体清洗</SelectItem>
+                    <SelectItem value="CUS">CUS — 定制设备</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="或手动输入自定义产品族代码"
+                  value={newProduct.productFamily}
+                  onChange={(e) => setNewProduct({ ...newProduct, productFamily: e.target.value.toUpperCase() })}
+                  className="text-xs"
+                />
+              </div>
               <Input
                 type="number"
                 placeholder="工位数"
@@ -240,7 +300,7 @@ function ProductCatalogTab() {
       {/* Product grid */}
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {productsQuery.data?.items?.map((p: any) => (
-          <Card key={p.id} className="hover:shadow-md transition-shadow">
+          <Card key={p.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">{p.productCode}</CardTitle>
@@ -263,6 +323,60 @@ function ProductCatalogTab() {
                   style={{ width: `${p.maturityLevel ?? 0}%` }}
                 />
               </div>
+              {/* Expanded detail */}
+              {expandedId === p.id && (
+                <div className="mt-4 pt-3 border-t space-y-3" onClick={(e) => e.stopPropagation()}>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2 bg-muted rounded">
+                      <span className="text-muted-foreground">产品族: </span>
+                      <span className="font-medium">{familyLabels[p.productFamily] ?? p.productFamily}</span>
+                    </div>
+                    <div className="p-2 bg-muted rounded">
+                      <span className="text-muted-foreground">生命周期: </span>
+                      <span className="font-medium">{lifecycleLabels[p.lifecycleStatus] ?? p.lifecycleStatus}</span>
+                    </div>
+                    <div className="p-2 bg-muted rounded">
+                      <span className="text-muted-foreground">工位数: </span>
+                      <span className="font-medium">{p.stationCount ?? 0}</span>
+                    </div>
+                    <div className="p-2 bg-muted rounded">
+                      <span className="text-muted-foreground">成熟度: </span>
+                      <span className="font-medium">{p.maturityLevel ?? 0}%</span>
+                    </div>
+                    <div className="p-2 bg-muted rounded">
+                      <span className="text-muted-foreground">创建时间: </span>
+                      <span className="font-medium">{String(p.createdAt || "").slice(0, 10)}</span>
+                    </div>
+                    <div className="p-2 bg-muted rounded">
+                      <span className="text-muted-foreground">产品ID: </span>
+                      <span className="font-medium">{p.id}</span>
+                    </div>
+                  </div>
+                  {/* 关联图纸 */}
+                  <ProductDrawings productCode={p.productCode} />
+                  {/* 关联系统快捷入口 */}
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => window.location.href = `/bom-management?productId=${p.id}`}>
+                      BOM管理
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => window.location.href = `/drawing-library?product=${p.productCode}`}>
+                      图纸库({p.productCode})
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => window.location.href = `/projects?product=${p.productCode}`}>
+                      关联项目
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => window.location.href = `/stage-gate?product=${p.productCode}`}>
+                      门径管理
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => window.location.href = `/qc-management?product=${p.productCode}`}>
+                      质量管理
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => window.location.href = `/supply-chain?product=${p.productCode}`}>
+                      供应链追溯
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -322,13 +436,36 @@ function BaselineTab() {
 // ════════════════════════════════════════════
 
 function EcoTab() {
+  const { toast } = useToast();
   const pendingQuery = trpc.pdm.eco.listPendingApprovals.useQuery();
   const statsQuery = trpc.pdm.eco.getStats.useQuery();
+  const productsQuery = trpc.pdm.product.list.useQuery({ limit: 100 });
+  const products: any[] = productsQuery.data?.items ?? [];
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [ecrForm, setEcrForm] = useState({ projectId: "", title: "", description: "" });
+
+  const submitEcrMut = trpc.pdm.eco.submitEcr.useMutation({
+    onSuccess: () => { toast({ title: "ECR已提交" }); setShowCreate(false); setEcrForm({ projectId: "", title: "", description: "" }); pendingQuery.refetch(); statsQuery.refetch(); },
+    onError: (e) => toast({ title: "提交失败", description: e.message, variant: "destructive" }),
+  });
+  const advanceStepMut = trpc.pdm.eco.advanceStep.useMutation({
+    onSuccess: () => { toast({ title: "步骤已推进" }); pendingQuery.refetch(); statsQuery.refetch(); },
+    onError: (e) => toast({ title: "推进失败", description: e.message, variant: "destructive" }),
+  });
+  const approveEcoMut = trpc.pdm.eco.approveEco.useMutation({
+    onSuccess: () => { toast({ title: "ECO已批准" }); pendingQuery.refetch(); statsQuery.refetch(); },
+    onError: (e) => toast({ title: "批准失败", description: e.message, variant: "destructive" }),
+  });
 
   const stepLabels: Record<string, string> = {
-    ecr_submit: "ECR提交", impact_analysis: "影响分析",
-    review: "评审", approval: "审批",
-    execute: "执行", verify: "验证", close: "关闭",
+    ecr_submit: "① ECR提交", impact_analysis: "② 影响分析",
+    review: "③ 评审", approval: "④ 审批",
+    execute: "⑤ 执行", verify: "⑥ 验证", close: "⑦ 关闭",
+  };
+  const stepColors: Record<string, string> = {
+    pending: "bg-gray-100 text-gray-600", in_progress: "bg-blue-100 text-blue-700",
+    completed: "bg-green-100 text-green-700", rejected: "bg-red-100 text-red-700",
   };
 
   if (pendingQuery.isLoading && statsQuery.isLoading) return <LoadingState label="加载工程变更..." />;
@@ -336,45 +473,111 @@ function EcoTab() {
 
   return (
     <div className="space-y-4">
-      {/* ECO stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold">{statsQuery.data?.totalSteps ?? 0}</div>
-            <div className="text-xs text-muted-foreground">总工作流步骤</div>
-          </CardContent>
-        </Card>
-        {statsQuery.data?.byStatus?.map((s: any) => (
-          <Card key={s.status}>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold">{s.count}</div>
-              <div className="text-xs text-muted-foreground">{s.status}</div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* ECO 7步工作流说明 */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <GitBranch className="w-4 h-4 text-blue-500" />
+            <span className="text-sm font-semibold">ECO 七步工作流</span>
+          </div>
+          <div className="flex items-center gap-1 text-xs overflow-x-auto pb-1">
+            {["ecr_submit", "impact_analysis", "review", "approval", "execute", "verify", "close"].map((step, i, arr) => (
+              <div key={step} className="flex items-center gap-1 shrink-0">
+                <span className="px-2 py-1 bg-blue-50 border border-blue-200 rounded text-blue-700 font-medium">{stepLabels[step]}</span>
+                {i < arr.length - 1 && <span className="text-gray-300">→</span>}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats + Create button */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-3">
+          <Card><CardContent className="p-3 text-center"><div className="text-xl font-bold">{statsQuery.data?.totalSteps ?? 0}</div><div className="text-[10px] text-muted-foreground">总步骤</div></CardContent></Card>
+          {statsQuery.data?.byStatus?.slice(0, 3).map((s: any) => (
+            <Card key={s.status}><CardContent className="p-3 text-center"><div className="text-xl font-bold">{s.count}</div><div className="text-[10px] text-muted-foreground">{s.status}</div></CardContent></Card>
+          ))}
+        </div>
+        <Dialog open={showCreate} onOpenChange={setShowCreate}>
+          <DialogTrigger asChild>
+            <Button size="sm"><Plus className="w-4 h-4 mr-1" />发起ECR</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>发起工程变更请求 (ECR)</DialogTitle></DialogHeader>
+            <form onSubmit={(e) => { e.preventDefault(); if (!ecrForm.projectId || !ecrForm.title) { toast({ title: "请填写产品和标题", variant: "destructive" }); return; } submitEcrMut.mutate({ projectId: Number(ecrForm.projectId), title: ecrForm.title, description: ecrForm.description || undefined }); }} className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">关联产品 *</label>
+                <Select value={ecrForm.projectId} onValueChange={v => setEcrForm(f => ({ ...f, projectId: v }))}>
+                  <SelectTrigger><SelectValue placeholder="选择产品" /></SelectTrigger>
+                  <SelectContent>
+                    {products.map((p: any) => <SelectItem key={p.id} value={String(p.id)}>{p.productCode} — {p.productName}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">变更标题 *</label>
+                <Input value={ecrForm.title} onChange={e => setEcrForm(f => ({ ...f, title: e.target.value }))} placeholder="如: 清洗腔体密封方式变更" required />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">变更描述</label>
+                <Textarea value={ecrForm.description} onChange={e => setEcrForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="变更原因、影响范围、预期效果" />
+              </div>
+              <Button type="submit" className="w-full" disabled={submitEcrMut.isPending}>
+                {submitEcrMut.isPending ? "提交中..." : "提交ECR"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Pending approvals */}
+      {/* Pending approvals with action buttons */}
       <h3 className="text-lg font-semibold flex items-center gap-2">
-        <Clock className="w-5 h-5" />待审批
+        <Clock className="w-5 h-5" />待处理工作流
       </h3>
       <div className="space-y-2">
         {pendingQuery.data?.map((step: any) => (
           <Card key={step.id}>
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <div className="font-medium">ECO #{step.ecoId}</div>
-                <div className="text-sm text-muted-foreground">
-                  步骤: {stepLabels[step.stepType] ?? step.stepType}
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <div className="font-medium">ECO #{step.ecoId} — {step.title || "工程变更"}</div>
+                  <div className="text-sm text-muted-foreground">
+                    当前步骤: {stepLabels[step.stepType] ?? step.stepType}
+                  </div>
+                  {step.description && <div className="text-xs text-muted-foreground mt-1">{String(step.description).slice(0, 100)}</div>}
                 </div>
+                <Badge className={stepColors[step.stepStatus] ?? "bg-orange-100 text-orange-700"}>
+                  {step.stepStatus === "pending" ? "待处理" : step.stepStatus === "in_progress" ? "进行中" : step.stepStatus}
+                </Badge>
               </div>
-              <Badge variant="outline" className="text-orange-600 border-orange-300">
-                待审批
-              </Badge>
+              <div className="flex gap-2 flex-wrap">
+                {/* 推进到下一步 */}
+                <Button size="sm" variant="outline" className="text-xs h-7"
+                  disabled={advanceStepMut.isPending}
+                  onClick={() => advanceStepMut.mutate({ stepId: step.id, decision: "approved", decisionNotes: "审核通过，推进下一步" })}>
+                  推进下一步 →
+                </Button>
+                {/* 批准(仅在approval步骤) */}
+                {step.stepType === "approval" && (
+                  <Button size="sm" className="text-xs h-7 bg-green-600 hover:bg-green-700"
+                    disabled={approveEcoMut.isPending}
+                    onClick={() => approveEcoMut.mutate({ ecoId: step.ecoId, approved: true, notes: "批准执行" })}>
+                    ✓ 批准
+                  </Button>
+                )}
+                {step.stepType === "approval" && (
+                  <Button size="sm" variant="destructive" className="text-xs h-7"
+                    disabled={approveEcoMut.isPending}
+                    onClick={() => approveEcoMut.mutate({ ecoId: step.ecoId, approved: false, notes: "驳回" })}>
+                    ✗ 驳回
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}
-        {(pendingQuery.data?.length ?? 0) === 0 && <EmptyState message="无待审批项" />}
+        {(pendingQuery.data?.length ?? 0) === 0 && <EmptyState message="无待处理项 — 点击【发起ECR】创建工程变更请求" />}
       </div>
     </div>
   );
@@ -385,7 +588,10 @@ function EcoTab() {
 // ════════════════════════════════════════════
 
 function RequirementTab() {
-  const [projectId] = useState(1);
+  const [projectId, setProjectId] = useState(1);
+  const productsQuery = trpc.pdm.product.list.useQuery({ limit: 100 });
+  const products: any[] = productsQuery.data?.items ?? [];
+  const selectedProduct = products.find((p: any) => p.id === projectId);
   const matrixQuery = trpc.pdm.requirement.getMatrix.useQuery({ projectId });
   const coverageQuery = trpc.pdm.requirement.getCoverage.useQuery({ projectId });
 
@@ -399,6 +605,38 @@ function RequirementTab() {
 
   return (
     <div className="space-y-4">
+      {/* Product selector */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Package className="w-4 h-4 text-blue-500" />
+              <span className="text-sm font-medium">选择产品:</span>
+            </div>
+            <Select value={String(projectId)} onValueChange={(v) => setProjectId(Number(v))}>
+              <SelectTrigger className="w-64"><SelectValue placeholder="选择产品查看追溯" /></SelectTrigger>
+              <SelectContent>
+                {products.map((p: any) => (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    {p.productCode} — {p.productName}
+                  </SelectItem>
+                ))}
+                {products.length === 0 && <SelectItem value="1" disabled>暂无产品，请先在产品目录中创建</SelectItem>}
+              </SelectContent>
+            </Select>
+            {selectedProduct && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Badge variant="outline">{familyLabels[selectedProduct.productFamily] ?? selectedProduct.productFamily}</Badge>
+                <span>{selectedProduct.stationCount ?? 0}工位</span>
+                <Badge className={lifecycleColors[selectedProduct.lifecycleStatus] ?? ""}>
+                  {lifecycleLabels[selectedProduct.lifecycleStatus] ?? selectedProduct.lifecycleStatus}
+                </Badge>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Coverage summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>

@@ -1,0 +1,122 @@
+# GRT智能系统 Docker Compose配置
+# 版本: v4.0.0
+# 包含: 应用服务 + PostgreSQL数据库 + Redis缓存
+
+version: '3.8'
+
+services:
+  # ============================================
+  # GRT应用服务
+  # ============================================
+  grt-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - DATABASE_URL=${DATABASE_URL}
+        - JWT_SECRET=${JWT_SECRET}
+        - VITE_APP_ID=${VITE_APP_ID}
+        - VITE_APP_TITLE=${VITE_APP_TITLE:-GRT智能系统}
+    container_name: grt-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL:-postgresql://grt:grt_password@postgres:5432/grt_db}
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - VITE_APP_ID=${VITE_APP_ID}
+      - VITE_APP_TITLE=${VITE_APP_TITLE:-GRT智能系统}
+      - VITE_OAUTH_PORTAL_URL=${VITE_OAUTH_PORTAL_URL}
+      - OAUTH_SERVER_URL=${OAUTH_SERVER_URL}
+      - BUILT_IN_FORGE_API_URL=${BUILT_IN_FORGE_API_URL}
+      - BUILT_IN_FORGE_API_KEY=${BUILT_IN_FORGE_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - grt-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============================================
+  # PostgreSQL数据库
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: grt-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=grt_db
+      - POSTGRES_USER=grt
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-grt_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - grt-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grt -d grt_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ============================================
+  # Redis缓存 (可选)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: grt-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - grt-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================
+  # Adminer数据库管理 (开发环境)
+  # ============================================
+  adminer:
+    image: adminer:latest
+    container_name: grt-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+    depends_on:
+      - postgres
+    networks:
+      - grt-network
+    profiles:
+      - dev
+
+# ============================================
+# 网络配置
+# ============================================
+networks:
+  grt-network:
+    driver: bridge
+
+# ============================================
+# 数据卷
+# ============================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

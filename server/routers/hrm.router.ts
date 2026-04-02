@@ -40,7 +40,7 @@ async function ensureAttendance() {
       )
     `);
     const cnt = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM attendance_records`);
-    if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
+    if (Number(((cnt as any).rows ?? cnt)[0]?.cnt ?? 0) === 0) {
       await db.execute(sql`
         INSERT INTO attendance_records (employee_name, department, record_date, clock_in, clock_out, work_hours, status) VALUES
         ('洪香龙', '事业二部', CURRENT_DATE, '08:28', '17:35', '9.1h', '正常'),
@@ -49,7 +49,7 @@ async function ensureAttendance() {
         ('马林山', '事业二部', CURRENT_DATE, '07:55', '17:00', '9.1h', '正常'),
         ('蔡瑞',   '事业二部', CURRENT_DATE, '08:30', '18:20', '9.8h', '正常'),
         ('金晓锋', '事业一部', CURRENT_DATE, '08:00', '17:05', '9.1h', '正常'),
-        ('钱绍辉', '事业二部', CURRENT_DATE, '-',     '-',     '-',    '缺勤'),
+        ('钱佳奇', '事业二部', CURRENT_DATE, '-',     '-',     '-',    '缺勤'),
         ('马柯',   '事业十部', CURRENT_DATE, '08:35', '17:40', '9.1h', '正常')
       `);
     }

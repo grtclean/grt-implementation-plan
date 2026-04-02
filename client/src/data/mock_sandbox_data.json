@@ -1,0 +1,116 @@
+{
+  "projects": [
+    {
+      "id": "VW-RAMS",
+      "name": "VW-RAMS Cleaning System",
+      "customer": "Volkswagen AG",
+      "customerLogo": null,
+      "grtLogo": null,
+      "status": "active",
+      "currentPhase": "TK6",
+      "startDate": "2025-09-15",
+      "targetDate": "2026-08-30",
+      "projectManager": "杨勇",
+      "projectManagerCode": "GRT045",
+      "buCode": "HW",
+      "buName": "海外事业部",
+      "kpis": {
+        "onTimeRate": 92,
+        "qualityScore": 97,
+        "openActions": 14,
+        "budgetUtilization": 68,
+        "riskLevel": "medium"
+      },
+      "pipeline": [
+        { "id": "TK0", "name": "Opportunity", "nameZh": "商机", "status": "completed", "date": "2025-09-15", "owner": "戴晓燕" },
+        { "id": "TK1", "name": "Quotation", "nameZh": "报价", "status": "completed", "date": "2025-10-01", "owner": "戴晓燕" },
+        { "id": "TK2", "name": "Contract", "nameZh": "签约", "status": "completed", "date": "2025-10-20", "owner": "戴晓燕" },
+        { "id": "TK3", "name": "Kickoff", "nameZh": "立项", "status": "completed", "date": "2025-11-01", "owner": "杨勇" },
+        { "id": "TK4", "name": "Design", "nameZh": "设计", "status": "completed", "date": "2025-12-15", "owner": "洪香龙" },
+        { "id": "TK5", "name": "Procurement", "nameZh": "采购", "status": "completed", "date": "2026-01-20", "owner": "张洵" },
+        { "id": "TK6", "name": "Manufacturing", "nameZh": "制造", "status": "in_progress", "date": "2026-03-18", "owner": "马林山" },
+        { "id": "TK7", "name": "Assembly", "nameZh": "装配", "status": "upcoming", "date": "2026-04-15", "owner": "马林山" },
+        { "id": "TK8", "name": "Electrical", "nameZh": "电气", "status": "upcoming", "date": "2026-05-01", "owner": "孙坚" },
+        { "id": "TK9", "name": "Debug", "nameZh": "调试", "status": "upcoming", "date": "2026-05-20", "owner": "李大鹏" },
+        { "id": "TK10", "name": "FAT", "nameZh": "工厂验收", "status": "upcoming", "date": "2026-06-10", "owner": "金晓锋" },
+        { "id": "TK11", "name": "Shipping", "nameZh": "发运", "status": "upcoming", "date": "2026-06-25", "owner": "匡凯旋" },
+        { "id": "TK12", "name": "SAT", "nameZh": "现场验收", "status": "upcoming", "date": "2026-07-15", "owner": "匡凯旋" },
+        { "id": "TK13", "name": "Handover", "nameZh": "交付", "status": "upcoming", "date": "2026-08-30", "owner": "杨勇" }
+      ],
+      "recentActivity": [
+        { "id": "a1", "type": "phase_advanced", "message": "Phase advanced to TK6 Manufacturing", "user": "杨勇", "timestamp": "2026-03-18T09:15:00Z", "icon": "milestone" },
+        { "id": "a2", "type": "po_created", "message": "PO-HW-2026-042 issued to Siemens (PLC modules)", "user": "张洵", "timestamp": "2026-03-17T16:30:00Z", "icon": "procurement" },
+        { "id": "a3", "type": "design_approved", "message": "Mechanical design package v2.3 approved", "user": "洪香龙", "timestamp": "2026-03-16T14:20:00Z", "icon": "design" },
+        { "id": "a4", "type": "quality_check", "message": "IQC passed: ultrasonic transducer batch #B2026-088", "user": "金晓锋", "timestamp": "2026-03-15T11:45:00Z", "icon": "quality" },
+        { "id": "a5", "type": "oa_approved", "message": "Travel request approved: FAT preparation trip to Wolfsburg", "user": "倪微薇", "timestamp": "2026-03-14T09:00:00Z", "icon": "oa" },
+        { "id": "a6", "type": "bom_updated", "message": "BOM frozen: 247 line items, total ¥1.82M", "user": "洪小东", "timestamp": "2026-03-13T17:10:00Z", "icon": "bom" },
+        { "id": "a7", "type": "risk_flagged", "message": "Supply delay risk: vacuum pump lead time extended to 8 weeks", "user": "滕顺英", "timestamp": "2026-03-12T10:30:00Z", "icon": "risk" }
+      ],
+      "quickAccess": [
+        { "id": "qa1", "label": "Project BOM", "labelZh": "项目BOM", "icon": "clipboard", "path": "/bom", "badge": "247 items" },
+        { "id": "qa2", "label": "Design Vault", "labelZh": "设计文档", "icon": "folder", "path": "/vault", "badge": "v2.3" },
+        { "id": "qa3", "label": "Quality Dashboard", "labelZh": "质量看板", "icon": "shield", "path": "/quality", "badge": "97%" },
+        { "id": "qa4", "label": "Procurement", "labelZh": "采购跟踪", "icon": "truck", "path": "/procurement", "badge": "12 POs" },
+        { "id": "qa5", "label": "Cost Control", "labelZh": "成本控制", "icon": "dollar", "path": "/project-cost-sandbox", "badge": "68%" },
+        { "id": "qa6", "label": "Team & Labor", "labelZh": "团队工时", "icon": "users", "path": "/time-tracking", "badge": "1,240h" }
+      ]
+    },
+    {
+      "id": "VW-MEB-WT",
+      "name": "VW-MEB Washing Tunnel",
+      "customer": "Volkswagen MEB Platform",
+      "customerLogo": null,
+      "grtLogo": null,
+      "status": "active",
+      "currentPhase": "TK4",
+      "startDate": "2026-01-10",
+      "targetDate": "2026-12-20",
+      "projectManager": "杨勇",
+      "projectManagerCode": "GRT045",
+      "buCode": "HW",
+      "buName": "海外事业部",
+      "kpis": {
+        "onTimeRate": 88,
+        "qualityScore": 95,
+        "openActions": 21,
+        "budgetUtilization": 34,
+        "riskLevel": "low"
+      },
+      "pipeline": [
+        { "id": "TK0", "name": "Opportunity", "nameZh": "商机", "status": "completed", "date": "2026-01-10", "owner": "戴晓燕" },
+        { "id": "TK1", "name": "Quotation", "nameZh": "报价", "status": "completed", "date": "2026-01-25", "owner": "戴晓燕" },
+        { "id": "TK2", "name": "Contract", "nameZh": "签约", "status": "completed", "date": "2026-02-10", "owner": "刘健康" },
+        { "id": "TK3", "name": "Kickoff", "nameZh": "立项", "status": "completed", "date": "2026-02-20", "owner": "杨勇" },
+        { "id": "TK4", "name": "Design", "nameZh": "设计", "status": "in_progress", "date": "2026-03-18", "owner": "洪小东" },
+        { "id": "TK5", "name": "Procurement", "nameZh": "采购", "status": "upcoming", "date": "2026-04-20", "owner": "沈迎凤" },
+        { "id": "TK6", "name": "Manufacturing", "nameZh": "制造", "status": "upcoming", "date": "2026-06-01", "owner": "马林山" },
+        { "id": "TK7", "name": "Assembly", "nameZh": "装配", "status": "upcoming", "date": "2026-07-15", "owner": "马林山" },
+        { "id": "TK8", "name": "Electrical", "nameZh": "电气", "status": "upcoming", "date": "2026-08-01", "owner": "钱佳奇" },
+        { "id": "TK9", "name": "Debug", "nameZh": "调试", "status": "upcoming", "date": "2026-08-20", "owner": "李大鹏" },
+        { "id": "TK10", "name": "FAT", "nameZh": "工厂验收", "status": "upcoming", "date": "2026-09-15", "owner": "金晓锋" },
+        { "id": "TK11", "name": "Shipping", "nameZh": "发运", "status": "upcoming", "date": "2026-10-01", "owner": "匡凯旋" },
+        { "id": "TK12", "name": "SAT", "nameZh": "现场验收", "status": "upcoming", "date": "2026-11-15", "owner": "匡凯旋" },
+        { "id": "TK13", "name": "Handover", "nameZh": "交付", "status": "upcoming", "date": "2026-12-20", "owner": "杨勇" }
+      ],
+      "recentActivity": [
+        { "id": "b1", "type": "design_started", "message": "Mechanical concept design started: 6-station rotary layout", "user": "洪小东", "timestamp": "2026-03-15T08:00:00Z", "icon": "design" },
+        { "id": "b2", "type": "meeting", "message": "Customer requirement review meeting completed", "user": "杨勇", "timestamp": "2026-03-10T14:00:00Z", "icon": "meeting" },
+        { "id": "b3", "type": "kickoff", "message": "Project kickoff completed with VW MEB team", "user": "杨勇", "timestamp": "2026-02-20T10:00:00Z", "icon": "milestone" }
+      ],
+      "quickAccess": [
+        { "id": "qb1", "label": "Project BOM", "labelZh": "项目BOM", "icon": "clipboard", "path": "/bom", "badge": "Draft" },
+        { "id": "qb2", "label": "Design Vault", "labelZh": "设计文档", "icon": "folder", "path": "/vault", "badge": "v0.1" },
+        { "id": "qb3", "label": "Requirements", "labelZh": "需求文档", "icon": "file", "path": "/requirements", "badge": "23 items" },
+        { "id": "qb4", "label": "Cost Estimate", "labelZh": "成本估算", "icon": "dollar", "path": "/project-cost-sandbox", "badge": "34%" },
+        { "id": "qb5", "label": "Risk Register", "labelZh": "风险登记", "icon": "alert", "path": "/risk", "badge": "3 items" },
+        { "id": "qb6", "label": "Team & Labor", "labelZh": "团队工时", "icon": "users", "path": "/time-tracking", "badge": "320h" }
+      ]
+    }
+  ],
+  "currentUser": {
+    "name": "GRT Admin",
+    "role": "admin",
+    "department": "系统管理",
+    "employeeCode": "ADMIN"
+  }
+}

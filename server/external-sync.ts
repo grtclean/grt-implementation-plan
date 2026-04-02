@@ -461,8 +461,8 @@ export class ExternalSyncService {
 
   constructor() {
     // 从环境变量获取配置
-    const apiKey = process.env.EXT_SYNC_API_KEY;
-    const corpId = process.env.EXT_SYNC_CORP_ID;
+    const apiKey = process.env.EXT_SYNC_API_KEY || process.env.JIANDAOYUN_API_KEY;
+    const corpId = process.env.EXT_SYNC_CORP_ID || process.env.JIANDAOYUN_CORP_ID;
     
     if (apiKey) {
       this.client = new ExternalSyncClient({

@@ -19,6 +19,7 @@ import {
   Link2,
   Activity,
   AlertTriangle,
+  Calendar,
 } from "lucide-react";
 import {
   DepartmentRollupTab,
@@ -1243,6 +1244,116 @@ class TabErrorBoundary extends Component<
 }
 
 // ============================================================================
+// CompanyMeetingCalendar — 全公司会议日历
+// ============================================================================
+
+const CAL_FILTERS = [
+  { key: "all", label: "全部" },
+  { key: "走线", label: "走线会" },
+  { key: "晨会", label: "事业部晨会" },
+  { key: "销售", label: "销售会议" },
+  { key: "月度", label: "月度会议" },
+  { key: "客户", label: "客户来访" },
+  { key: "评审", label: "设计评审" },
+];
+const CAL_CAT_COLORS: Record<string, string> = {
+  "走线": "bg-red-50 border-red-200 text-red-700",
+  "晨会": "bg-orange-50 border-orange-200 text-orange-700",
+  "销售": "bg-cyan-50 border-cyan-200 text-cyan-700",
+  "月度": "bg-purple-50 border-purple-200 text-purple-700",
+  "季度": "bg-amber-50 border-amber-200 text-amber-700",
+  "客户": "bg-green-50 border-green-200 text-green-700",
+  "评审": "bg-blue-50 border-blue-200 text-blue-700",
+};
+const DAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+
+function getCalCategory(title: string): string {
+  if (title.includes("走线")) return "走线";
+  if (title.includes("晨会")) return "晨会";
+  if (title.includes("销售")) return "销售";
+  if (title.includes("月度")) return "月度";
+  if (title.includes("季度")) return "季度";
+  if (title.includes("客户")) return "客户";
+  if (title.includes("评审")) return "评审";
+  return "其他";
+}
+
+function CompanyMeetingCalendar({ meetings, isLoading }: { meetings: unknown; isLoading: boolean }) {
+  const [filter, setFilter] = useState("all");
+
+  const allMtgs: any[] = Array.isArray(meetings) ? meetings : [];
+  const filtered = filter === "all" ? allMtgs : allMtgs.filter((m: any) => String(m.title || "").includes(filter));
+  const sorted = [...filtered].sort((a: any, b: any) => String(a.scheduledStart || "").localeCompare(String(b.scheduledStart || "")));
+
+  return (
+    <div className="bg-white border rounded-lg">
+      <div className="p-4 border-b">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-blue-500" />
+            <h3 className="font-semibold text-sm">全公司会议日历</h3>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{sorted.length} 场</span>
+          </div>
+          <div className="flex gap-1.5 flex-wrap">
+            {CAL_FILTERS.map(f => (
+              <button key={f.key} onClick={() => setFilter(f.key)}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${filter === f.key ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="p-4">
+        {isLoading ? (
+          <div className="text-center py-8 text-gray-400 text-sm">加载中...</div>
+        ) : sorted.length === 0 ? (
+          <div className="text-center py-8 text-gray-400 text-sm">暂无匹配的会议</div>
+        ) : (
+          <div className="divide-y max-h-[500px] overflow-y-auto border rounded">
+            {sorted.map((m: any) => {
+              const title = String(m.title || "");
+              const cat = getCalCategory(title);
+              const cc = CAL_CAT_COLORS[cat] || "bg-gray-50 border-gray-200 text-gray-600";
+              const startStr = String(m.scheduledStart || "").slice(0, 16).replace("T", " ");
+              const endStr = String(m.scheduledEnd || "").slice(11, 16);
+              return (
+                <div key={m.id} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50/50 text-sm">
+                  <div className="w-28 shrink-0 text-xs text-gray-500 font-mono">{startStr || "--"}</div>
+                  <div className="w-12 shrink-0 text-xs text-gray-400 font-mono">{endStr ? "-" + endStr : ""}</div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${cc}`}>{cat}</span>
+                  <div className="flex-1 min-w-0 truncate text-gray-800">{title}</div>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${m.status === "UPCOMING" ? "bg-blue-100 text-blue-600" : m.status === "LIVE" ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"}`}>{String(m.status || "")}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      <div className="border-t px-4 py-3">
+        <details>
+          <summary className="text-xs font-semibold text-gray-500 cursor-pointer hover:text-gray-700">GRT 周期性会议体系一览表（点击展开）</summary>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-xs border">
+              <thead><tr className="bg-gray-50">
+                <th className="px-2 py-1.5 text-left border-b">会议</th><th className="px-2 py-1.5 text-left border-b">频率</th><th className="px-2 py-1.5 text-left border-b">时间</th><th className="px-2 py-1.5 text-left border-b">地点</th><th className="px-2 py-1.5 text-left border-b">参会人</th><th className="px-2 py-1.5 text-left border-b">议程</th>
+              </tr></thead>
+              <tbody>
+                <tr className="bg-red-50/30"><td className="px-2 py-1.5 border-b font-medium">部门长走线会</td><td className="px-2 py-1.5 border-b">每周四</td><td className="px-2 py-1.5 border-b">9:00-10:00</td><td className="px-2 py-1.5 border-b">一楼大厅</td><td className="px-2 py-1.5 border-b">CEO+部门长+质量</td><td className="px-2 py-1.5 border-b">OPL→巡检→红黑榜</td></tr>
+                <tr className="bg-orange-50/30"><td className="px-2 py-1.5 border-b font-medium">事业部晨会</td><td className="px-2 py-1.5 border-b">每周一</td><td className="px-2 py-1.5 border-b">7:50-8:20</td><td className="px-2 py-1.5 border-b">车间现场</td><td className="px-2 py-1.5 border-b">BU经理+PM+生产/质量/销售</td><td className="px-2 py-1.5 border-b">产值→交付→质量→销售→重点</td></tr>
+                <tr className="bg-cyan-50/30"><td className="px-2 py-1.5 border-b font-medium">销售周例会</td><td className="px-2 py-1.5 border-b">每周一</td><td className="px-2 py-1.5 border-b">9:00-10:00</td><td className="px-2 py-1.5 border-b">会议室</td><td className="px-2 py-1.5 border-b">销售总监+王志强/冯燕/韩宝程</td><td className="px-2 py-1.5 border-b">拜访→漏斗→订单→计划</td></tr>
+                <tr className="bg-purple-50/30"><td className="px-2 py-1.5 border-b font-medium">月度KPI会</td><td className="px-2 py-1.5 border-b">每月28日</td><td className="px-2 py-1.5 border-b">14:00-15:30</td><td className="px-2 py-1.5 border-b">会议室</td><td className="px-2 py-1.5 border-b">CEO/CTO+全体销售</td><td className="px-2 py-1.5 border-b">业绩→KPI→项目→复盘</td></tr>
+                <tr className="bg-purple-50/30"><td className="px-2 py-1.5 border-b font-medium">月度经营会</td><td className="px-2 py-1.5 border-b">每月末</td><td className="px-2 py-1.5 border-b">14:00-16:00</td><td className="px-2 py-1.5 border-b">会议室</td><td className="px-2 py-1.5 border-b">CEO/CTO+全体BU经理</td><td className="px-2 py-1.5 border-b">营收→述职→质量→人力</td></tr>
+                <tr className="bg-amber-50/30"><td className="px-2 py-1.5 font-medium">季度战略会</td><td className="px-2 py-1.5">每季末</td><td className="px-2 py-1.5">9:00-11:00</td><td className="px-2 py-1.5">会议室</td><td className="px-2 py-1.5">CEO/CTO+销售+财务</td><td className="px-2 py-1.5">回顾→分析→竞争→策略</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </div>
+  );
+}
+
 // ManagementRhythmTab — 管理节奏 (Automation → Meeting closed-loop)
 // ============================================================================
 
@@ -1254,6 +1365,11 @@ function ManagementRhythmTab() {
   );
   const okrDashQuery = trpc.okr.dashboard.useQuery(undefined, { retry: false });
   const statsQuery = trpc.automation.getAutomationStats.useQuery(undefined, { retry: false });
+  // V2: Load all scheduled meetings from sys_meetings
+  const allMeetingsQuery = trpc.smartMeeting.meeting.list.useQuery(
+    { limit: 100 },
+    { retry: false }
+  );
 
   const triggerPhaseMut = trpc.automation.triggerPhaseChange.useMutation({
     onSuccess: () => {
@@ -1353,7 +1469,7 @@ function ManagementRhythmTab() {
                 triggerPhaseMut.mutate({
                   phase: "M2_SIGNED",
                   projectTitle: "超声波清洗机项目-Demo",
-                  pmName: "张三",
+                  pmName: "胡杨",
                 })
               }
               disabled={triggerPhaseMut.isPending}
@@ -1473,6 +1589,126 @@ function ManagementRhythmTab() {
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Section 1.5: 管理节奏执行入口 */}
+      <div className="bg-white border rounded-lg">
+        <div className="p-4 border-b flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-blue-500" />
+            <h3 className="font-semibold text-sm">管理节奏执行面板</h3>
+          </div>
+          <a href="/meeting-calendar" className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+            打开会议日历（创建/管理会议）
+          </a>
+        </div>
+        <div className="p-4 space-y-4">
+          {/* 闭环说明 */}
+          <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-indigo-700 space-y-2">
+            <div className="font-semibold">管理节奏闭环执行流程：</div>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+              <div className="p-2 bg-white rounded border text-center">
+                <div className="font-bold mb-1">1. 战略分解</div>
+                <div className="text-[10px] text-gray-500">年度OKR → 季度目标 → 月度指标</div>
+                <div className="mt-1"><a href="/strategy/okr-matrix" className="text-indigo-600 underline">进入OKR</a></div>
+              </div>
+              <div className="p-2 bg-white rounded border text-center">
+                <div className="font-bold mb-1">2. 会议计划</div>
+                <div className="text-[10px] text-gray-500">按模板排定周/月/季度会议</div>
+                <div className="mt-1"><a href="/meeting-calendar" className="text-indigo-600 underline">会议日历</a></div>
+              </div>
+              <div className="p-2 bg-white rounded border text-center">
+                <div className="font-bold mb-1">3. 会议执行</div>
+                <div className="text-[10px] text-gray-500">智慧会议 → 议程推进 → AI纪要</div>
+                <div className="mt-1"><a href="/smart-meeting" className="text-indigo-600 underline">开始会议</a></div>
+              </div>
+              <div className="p-2 bg-white rounded border text-center">
+                <div className="font-bold mb-1">4. 行动跟踪</div>
+                <div className="text-[10px] text-gray-500">行动项分配 → 进度跟踪 → 逾期升级</div>
+                <div className="mt-1"><a href="/meeting-executive" className="text-indigo-600 underline">行动项Tab</a></div>
+              </div>
+              <div className="p-2 bg-white rounded border text-center">
+                <div className="font-bold mb-1">5. 效能复盘</div>
+                <div className="text-[10px] text-gray-500">效能评分 → 红黑榜 → OKR更新</div>
+                <div className="mt-1"><a href="/meeting-executive" className="text-indigo-600 underline">效能分析</a></div>
+              </div>
+            </div>
+          </div>
+
+          {/* 周期性会议体系 */}
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">GRT 周期性会议体系</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs border rounded">
+                <thead><tr className="bg-gray-50">
+                  <th className="px-2 py-1.5 text-left border-b font-semibold">会议</th>
+                  <th className="px-2 py-1.5 text-left border-b font-semibold">频率</th>
+                  <th className="px-2 py-1.5 text-left border-b font-semibold">时间</th>
+                  <th className="px-2 py-1.5 text-left border-b font-semibold">地点</th>
+                  <th className="px-2 py-1.5 text-left border-b font-semibold">参会人</th>
+                  <th className="px-2 py-1.5 text-left border-b font-semibold">核心议程</th>
+                  <th className="px-2 py-1.5 text-left border-b font-semibold">关联系统</th>
+                  <th className="px-2 py-1.5 text-left border-b font-semibold">操作</th>
+                </tr></thead>
+                <tbody>
+                  {[
+                    { n: "部门长走线会", f: "每周四", t: "9:00-10:00", l: "一楼大厅", p: "CEO+部门长+质量", a: "OPL→巡检→红黑榜", s: "智能绩效/红黑榜", c: "bg-red-50/50" },
+                    { n: "事业部晨会", f: "每周一", t: "7:50-8:20", l: "车间现场", p: "BU经理+PM+生产/质量/销售", a: "产值→交付→质量→销售→重点", s: "生产管理/项目管理", c: "bg-orange-50/50" },
+                    { n: "销售周例会", f: "每周一", t: "9:00-10:00", l: "会议室", p: "销售总监+王志强/冯燕/韩宝程", a: "拜访→漏斗→订单→计划", s: "CRM/销售管理", c: "bg-cyan-50/50" },
+                    { n: "销售月度KPI会", f: "每月28日", t: "14:00-15:30", l: "会议室", p: "CEO/CTO+全体销售", a: "业绩→KPI→项目→复盘", s: "智能绩效/KPI", c: "bg-purple-50/50" },
+                    { n: "月度经营分析会", f: "每月末", t: "14:00-16:00", l: "会议室", p: "CEO/CTO+BU经理+财务/HR", a: "营收→述职→质量→人力", s: "财务管理/BI报告", c: "bg-purple-50/50" },
+                    { n: "季度销售战略会", f: "每季末", t: "9:00-11:00", l: "会议室", p: "CEO/CTO+全体销售+财务", a: "回顾→分析→竞争→策略", s: "战略规划/OKR", c: "bg-amber-50/50" },
+                  ].map(r => (
+                    <tr key={r.n} className={r.c}>
+                      <td className="px-2 py-1.5 border-b font-medium">{r.n}</td>
+                      <td className="px-2 py-1.5 border-b">{r.f}</td>
+                      <td className="px-2 py-1.5 border-b">{r.t}</td>
+                      <td className="px-2 py-1.5 border-b">{r.l}</td>
+                      <td className="px-2 py-1.5 border-b">{r.p}</td>
+                      <td className="px-2 py-1.5 border-b">{r.a}</td>
+                      <td className="px-2 py-1.5 border-b text-gray-500">{r.s}</td>
+                      <td className="px-2 py-1.5 border-b">
+                        <a href="/meeting-calendar" className="text-blue-600 hover:underline">排会</a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* 系统输入说明 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
+              <div className="text-xs font-bold text-blue-700 mb-2">会议数据输入方式</div>
+              <ul className="text-[11px] text-blue-600 space-y-1">
+                <li>1. <a href="/meeting-calendar" className="underline">会议日历</a> → 手动创建会议</li>
+                <li>2. <a href="/smart-meeting" className="underline">智慧会议</a> → 按模板一键开会</li>
+                <li>3. Teams/Outlook → 自动导入(配置中)</li>
+                <li>4. 自动触发 → 项目阶段变更/OKR预警</li>
+              </ul>
+            </div>
+            <div className="p-3 bg-green-50 border border-green-100 rounded-lg">
+              <div className="text-xs font-bold text-green-700 mb-2">会议效能分析输出</div>
+              <ul className="text-[11px] text-green-600 space-y-1">
+                <li>1. <a href="/meeting-executive" className="underline">总览Tab</a> → 效能趋势+贡献排名</li>
+                <li>2. 参会人Tab → 个人雷达图+发言分析</li>
+                <li>3. 行动项Tab → 完成率+逾期预警</li>
+                <li>4. 红黑榜 → 关联HR绩效考核</li>
+              </ul>
+            </div>
+            <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg">
+              <div className="text-xs font-bold text-amber-700 mb-2">新会议如何设置</div>
+              <ul className="text-[11px] text-amber-600 space-y-1">
+                <li>1. 进入 <a href="/meeting-calendar" className="underline">会议日历</a></li>
+                <li>2. 点击"创建会议" → 选模板自动填充</li>
+                <li>3. 设置会议室、参与人、时间</li>
+                <li>4. 粘贴Teams链接(或自动生成)</li>
+                <li>5. 到时间后进入 <a href="/smart-meeting" className="underline">智慧会议</a> 执行</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
 

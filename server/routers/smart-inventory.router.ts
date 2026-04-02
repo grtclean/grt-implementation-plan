@@ -586,4 +586,87 @@ export const smartInventoryRouter = router({
       note: "Material rules and BOM data are read from real 'materials', 'inventory', and 'bom_items'/'bom_masters' tables.",
     };
   }),
+
+  /**
+   * autoReorderCheck — 扫描低于reorderPoint的物料，返回建议PR列表
+   */
+  autoReorderCheck: protectedProcedure.query(async () => {
+    try {
+      const db = await requireDb();
+      const rows = await db.execute(sql`
+        SELECT m.id, m.material_code, m.material_name, m.reorder_point,
+               m.reorder_pr_owner_id, m.reorder_pr_owner_name,
+               COALESCE(i.quantity_on_hand, 0) AS on_hand,
+               COALESCE(i.quantity_available, 0) AS available,
+               m.safety_stock_level, m.max_stock_level
+        FROM materials m
+        LEFT JOIN inventory i ON i.material_id = m.id
+        WHERE m.status = 'active'
+          AND m.reorder_point > 0
+          AND COALESCE(i.quantity_available, 0) < m.reorder_point
+        ORDER BY (m.reorder_point - COALESCE(i.quantity_available, 0)) DESC
+        LIMIT 50
+      `);
+      const arr = (rows as any).rows ?? [];
+      return {
+        candidates: arr.map((r: any) => ({
+          materialId: r.id,
+          materialCode: r.material_code,
+          materialName: r.material_name,
+          reorderPoint: Number(r.reorder_point),
+          currentAvailable: Number(r.available),
+          deficit: Number(r.reorder_point) - Number(r.available),
+          suggestedQty: Math.max(Number(r.max_stock_level || r.reorder_point * 2) - Number(r.available), 0),
+          prOwnerId: r.reorder_pr_owner_id,
+          prOwnerName: r.reorder_pr_owner_name,
+        })),
+        count: arr.length,
+        checkedAt: new Date().toISOString(),
+      };
+    } catch {
+      return { candidates: [], count: 0, checkedAt: new Date().toISOString() };
+    }
+  }),
+
+  /**
+   * executeAutoReorder — 自动创建采购申请记录
+   */
+  executeAutoReorder: requirePermission("canManageProcurement")
+    .input(z.object({
+      items: z.array(z.object({
+        materialId: z.union([z.string(), z.number()]),
+        materialCode: z.string(),
+        materialName: z.string(),
+        quantity: z.number().min(1),
+        estimatedUnitPrice: z.number().optional(),
+      })),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const results: Array<{ materialCode: string; requestCode: string; status: string }> = [];
+      const userId = (ctx as any).userId || 1;
+
+      try {
+        const db = await requireDb();
+        for (const item of input.items) {
+          const ts = Date.now();
+          const requestCode = `PR-AUTO-${ts}-${String(item.materialId).slice(-4)}`;
+          await db.execute(sql`
+            INSERT INTO purchase_requests (request_code, department, requested_by, required_date,
+              material_id, quantity, estimated_unit_price, purpose, status, created_at, updated_at)
+            VALUES (${requestCode}, 'auto-reorder', ${userId},
+              ${new Date(Date.now() + 14 * 86400000).toISOString()},
+              ${Number(item.materialId)}, ${item.quantity},
+              ${item.estimatedUnitPrice || 0},
+              ${'安全库存自动补货: ' + item.materialName},
+              'submitted',
+              NOW(), NOW())
+          `);
+          results.push({ materialCode: item.materialCode, requestCode, status: 'created' });
+        }
+      } catch (err: any) {
+        return { success: false, message: err.message, results };
+      }
+
+      return { success: true, message: `已创建 ${results.length} 条采购申请`, results };
+    }),
 });

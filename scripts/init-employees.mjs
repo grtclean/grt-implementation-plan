@@ -54,7 +54,7 @@ const employees = [
   {employeeId: "GRT030", name: "匡凯旋", department: "事业一部", position: "售后服务主管"},
   {employeeId: "GRT031", name: "沈龙翔", department: "事业一部", position: "电气装配"},
   {employeeId: "GRT032", name: "王犇", department: "事业三部", position: "机械装配"},
-  {employeeId: "GRT033", name: "徐家乐", department: "事业一部", position: "机械装配"},
+
   {employeeId: "GRT034", name: "王勇", department: "事业三部", position: "机械装配"},
   {employeeId: "GRT035", name: "王志强", department: "事业三部", position: "销售与项目工程师"},
   {employeeId: "GRT036", name: "韩品来", department: "事业一部", position: "电气装配"},
@@ -99,7 +99,7 @@ const employees = [
   {employeeId: "GRT077", name: "吴阳洋", department: "事业三部", position: "机械装配"},
   {employeeId: "GRT079", name: "阎建华", department: "事业一部", position: "机械装配"},
   {employeeId: "GRT080", name: "刘奥运", department: "AI数智部", position: "董事长助理"},
-  {employeeId: "GRT081", name: "马康风", department: "未分配", position: "供应链助理工程师"},
+  {employeeId: "GRT081", name: "马康风", department: "财务部", position: "供应链助理工程师"},
   {employeeId: "GRT082", name: "沈富高", department: "事业一部", position: "焊工"},
   {employeeId: "GRT083", name: "刘坤", department: "AI数智部", position: "市场主管"},
   {employeeId: "GRT084", name: "蒋秋瑞", department: "事业三部", position: "机械装配"},
@@ -110,7 +110,7 @@ const employees = [
   {employeeId: "GRT093", name: "李柯瑶", department: "事业一部", position: "销售与项目工程师"},
   {employeeId: "GRT094", name: "徐树奎", department: "事业一部", position: "事业二部经理"},
   {employeeId: "GRT095", name: "王爱云", department: "人事行政部", position: "后勤助理"},
-  {employeeId: "GRT096", name: "侯晓薇", department: "AI数智部", position: "部门经理"},
+
   {employeeId: "GRT097", name: "钱佳奇", department: "事业二部", position: "电气工程师"},
   {employeeId: "GRT099", name: "殷金刚", department: "事业二部", position: "机械研发工程师"},
   {employeeId: "GRT100", name: "田炜钰", department: "人事行政部", position: "行政前台"},

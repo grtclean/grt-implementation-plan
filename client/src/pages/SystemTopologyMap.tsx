@@ -9,6 +9,7 @@
  * - Auto-initialization trigger
  */
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import FloatingNav from '@/components/FloatingNav';
 import { useLocation } from "wouter";
 import {
   Calendar, Wallet, Award, FolderKanban, FileSpreadsheet,
@@ -196,10 +197,10 @@ function NodeDetailPanel({ node, onClose, onNavigate }: {
             </div>
             <div>
               <h3 className="text-lg font-black text-gray-100">{node.name}</h3>
-              <p className="text-xs text-gray-500">{node.nameEn} · 沙盘 #{node.num < 10 ? `0${node.num}` : node.num}</p>
+              <p className="text-xs text-gray-400">{node.nameEn} · 沙盘 #{node.num < 10 ? `0${node.num}` : node.num}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-300 p-1">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-200 p-1">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -242,9 +243,9 @@ function NodeDetailPanel({ node, onClose, onNavigate }: {
               {inEdges.map(e => {
                 const src = NODES.find(n => n.id === e.from);
                 return (
-                  <div key={e.id} className="flex items-center gap-2 text-[11px] text-gray-400 px-2 py-1 rounded bg-gray-900/30">
+                  <div key={e.id} className="flex items-center gap-2 text-[11px] text-gray-300 px-2 py-1 rounded bg-gray-900/30">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: e.color }} />
-                    <span className="text-gray-500">{src?.name}</span>
+                    <span className="text-gray-400">{src?.name}</span>
                     <span className="text-gray-600">→</span>
                     <span className="font-medium text-gray-300">{e.label}</span>
                   </div>
@@ -265,10 +266,10 @@ function NodeDetailPanel({ node, onClose, onNavigate }: {
               {outEdges.map(e => {
                 const tgt = NODES.find(n => n.id === e.to);
                 return (
-                  <div key={e.id} className="flex items-center gap-2 text-[11px] text-gray-400 px-2 py-1 rounded bg-gray-900/30">
+                  <div key={e.id} className="flex items-center gap-2 text-[11px] text-gray-300 px-2 py-1 rounded bg-gray-900/30">
                     <span className="font-medium text-gray-300">{e.label}</span>
                     <span className="text-gray-600">→</span>
-                    <span className="text-gray-500">{tgt?.name}</span>
+                    <span className="text-gray-400">{tgt?.name}</span>
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: e.color }} />
                   </div>
                 );
@@ -390,7 +391,7 @@ export default function SystemTopologyMap() {
                   全系统神经网络拓扑
                 </span>
               </h1>
-              <p className="text-[10px] text-gray-500">
+              <p className="text-[10px] text-gray-400">
                 System Neural Topology — 12 Nodes · 16 Edges · 26 Event Types · Real-Time Data Flow
               </p>
             </div>
@@ -422,7 +423,7 @@ export default function SystemTopologyMap() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0 text-gray-500 hover:text-gray-300"
+              className="h-7 w-7 p-0 text-gray-400 hover:text-gray-200"
               onClick={() => setAnimating(a => !a)}
               title={animating ? "暂停动画" : "恢复动画"}
             >
@@ -433,7 +434,7 @@ export default function SystemTopologyMap() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0 text-gray-500 hover:text-gray-300"
+              className="h-7 w-7 p-0 text-gray-400 hover:text-gray-200"
               onClick={toggleFullscreen}
             >
               {fullscreen ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
@@ -443,7 +444,7 @@ export default function SystemTopologyMap() {
             <Button
               variant="outline"
               size="sm"
-              className="h-7 text-[10px] gap-1 border-gray-700 text-gray-400"
+              className="h-7 text-[10px] gap-1 border-gray-700 text-gray-300"
               onClick={() => navigate("/sandbox")}
             >
               <Eye className="h-3 w-3" />
@@ -649,29 +650,29 @@ export default function SystemTopologyMap() {
         {/* ── Legend (bottom-left) ── */}
         <div className="absolute bottom-4 left-4 rounded-xl border border-gray-800 bg-[#0a0d14]/90 backdrop-blur-sm p-3 max-w-xs">
           <div className="flex items-center gap-2 mb-2">
-            <Info className="h-3 w-3 text-gray-500" />
-            <span className="text-[10px] font-bold text-gray-400">图例 Legend</span>
+            <Info className="h-3 w-3 text-gray-400" />
+            <span className="text-[10px] font-bold text-gray-300">图例 Legend</span>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[9px]">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full border-2" style={{ borderColor: "#3B82F6", backgroundColor: "#3B82F615" }} />
-              <span className="text-gray-500">泳道I 战略</span>
+              <span className="text-gray-400">泳道I 战略</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full border-2" style={{ borderColor: "#F59E0B", backgroundColor: "#F59E0B15" }} />
-              <span className="text-gray-500">泳道II 制造</span>
+              <span className="text-gray-400">泳道II 制造</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full border-2" style={{ borderColor: "#10B981", backgroundColor: "#10B98115" }} />
-              <span className="text-gray-500">泳道III 资源</span>
+              <span className="text-gray-400">泳道III 资源</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full bg-emerald-500" />
-              <span className="text-gray-500">已初始化</span>
+              <span className="text-gray-400">已初始化</span>
             </div>
             <div className="flex items-center gap-1.5 col-span-2">
               <div className="w-6 h-0 border-t-2 border-dashed" style={{ borderColor: "#3B82F660" }} />
-              <span className="text-gray-500">事件总线连接 (悬停节点高亮关联)</span>
+              <span className="text-gray-400">事件总线连接 (悬停节点高亮关联)</span>
             </div>
           </div>
           <p className="text-[8px] text-gray-600 mt-2">点击节点查看场景介入口与操作步骤</p>
@@ -687,7 +688,7 @@ export default function SystemTopologyMap() {
               return (
                 <div key={lane} className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: meta.color }} />
-                  <span className="text-gray-500">{meta.labelEn}:</span>
+                  <span className="text-gray-400">{meta.labelEn}:</span>
                   <span className="font-bold font-mono" style={{ color: meta.color }}>{initCount}/{laneNodes.length}</span>
                 </div>
               );
@@ -695,6 +696,7 @@ export default function SystemTopologyMap() {
           </div>
         </div>
       </div>
+      <FloatingNav />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { isPublicPath } from "@/lib/public-paths";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getLoginUrl } from "@/const";
@@ -141,9 +142,8 @@ function IframeLoginPrompt({ onRefresh, loginSuccessReceived }: { onRefresh: () 
 }
 
 export default function RequireAuth({ children }: RequireAuthProps) {
-  // === KEY FIX: Skip auth entirely for /login and /login-success pages ===
-  const currentPath = window.location.pathname;
-  const isPublicPage = currentPath === "/login" || currentPath === "/login-success" || currentPath.startsWith("/kiosk");
+  // === KEY FIX: Skip auth entirely for public pages ===
+  const isPublicPage = isPublicPath();
 
   const { isAuthenticated, loading, refresh } = useAuth();
   const [inIframe] = useState(() => isInIframe());
@@ -195,7 +195,7 @@ export default function RequireAuth({ children }: RequireAuthProps) {
     if (!loading && !isAuthenticated) {
       console.error("🚫 [GRT Route Guard Redirect]", {
         reason: "Not authenticated",
-        path: currentPath,
+        path: window.location.pathname,
         mode: isLocalAuth ? "local-auth" : "oauth",
         inIframe,
       });

@@ -62,11 +62,11 @@ export default function WorkerImport() {
   ]);
 
   const [previewData] = useState<PreviewRow[]>([
-    { rowNum: 1, data: { "姓名": "张三", "工号": "W001", "部门": "生产部", "职位": "操作员", "入职日期": "2024-01-15", "手机号": "13800138001", "邮箱": "zhangsan@example.com" }, status: "valid", errors: [] },
-    { rowNum: 2, data: { "姓名": "李四", "工号": "W002", "部门": "装配部", "职位": "技术员", "入职日期": "2024-02-01", "手机号": "13800138002", "邮箱": "lisi@example.com" }, status: "valid", errors: [] },
+    { rowNum: 1, data: { "姓名": "胡杨", "工号": "GRT049", "部门": "AI数智部", "职位": "IT工程师", "入职日期": "2024-01-15", "手机号": "13800138001", "邮箱": "huyang@example.com" }, status: "valid", errors: [] },
+    { rowNum: 2, data: { "姓名": "刘健康", "工号": "GRT063", "部门": "事业一部", "职位": "销售与项目工程师", "入职日期": "2024-02-01", "手机号": "13800138002", "邮箱": "liujiankang@example.com" }, status: "valid", errors: [] },
     { rowNum: 3, data: { "姓名": "", "工号": "W003", "部门": "质检部", "职位": "质检员", "入职日期": "2024-03-10", "手机号": "13800138003", "邮箱": "" }, status: "error", errors: ["姓名为必填字段"] },
-    { rowNum: 4, data: { "姓名": "赵六", "工号": "W004", "部门": "仓储部", "职位": "", "入职日期": "invalid", "手机号": "13800138004", "邮箱": "zhaoliu@example.com" }, status: "warning", errors: ["入职日期格式不正确"] },
-    { rowNum: 5, data: { "姓名": "钱七", "工号": "W005", "部门": "生产部", "职位": "班组长", "入职日期": "2024-04-20", "手机号": "13800138005", "邮箱": "qianqi@example.com" }, status: "valid", errors: [] },
+    { rowNum: 4, data: { "姓名": "焦斌", "工号": "GRT059", "部门": "事业一部", "职位": "", "入职日期": "invalid", "手机号": "13800138004", "邮箱": "jiaobin@example.com" }, status: "warning", errors: ["入职日期格式不正确"] },
+    { rowNum: 5, data: { "姓名": "韩保程", "工号": "GRT043", "部门": "事业一部", "职位": "销售与项目工程师", "入职日期": "2024-04-20", "手机号": "13800138005", "邮箱": "hanbaocheng@example.com" }, status: "valid", errors: [] },
   ]);
 
   const [importHistory] = useState<ImportHistory[]>([

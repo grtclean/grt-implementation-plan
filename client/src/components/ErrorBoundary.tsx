@@ -65,6 +65,22 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
+    // Auto-reload on chunk load failures (slow networks, DDNS timeouts)
+    const isChunkError = error.message?.includes("Loading chunk") ||
+      error.message?.includes("Failed to fetch dynamically imported module") ||
+      error.message?.includes("error loading dynamically imported module") ||
+      error.name === "ChunkLoadError";
+    if (isChunkError) {
+      const key = "grt_chunk_retry";
+      const retries = parseInt(sessionStorage.getItem(key) || "0", 10);
+      if (retries < 2) {
+        sessionStorage.setItem(key, String(retries + 1));
+        window.location.reload();
+        return { hasError: false, error: null };
+      }
+      // Exhausted retries — clear flag and show error
+      sessionStorage.removeItem(key);
+    }
     return { hasError: true, error };
   }
 

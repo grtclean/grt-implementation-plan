@@ -19,17 +19,21 @@ async function getDbAndSchema() {
   return { db: await dbModule.requireDb(), users: schema.users };
 }
 
+let _cachedJwtSecret: Uint8Array | null = null;
 function getJwtSecret() {
+  if (_cachedJwtSecret) return _cachedJwtSecret;
   const secret = ENV.cookieSecret || process.env.JWT_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
       throw new Error("FATAL: JWT_SECRET is not set. Set JWT_SECRET env var (≥32 chars).");
     }
-    const devFallback = `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    log.warn("JWT_SECRET not set — using random ephemeral key (tokens won't survive restarts). Set JWT_SECRET in .env");
-    return new TextEncoder().encode(devFallback);
+    const devFallback = `dev-fallback-grt-local-auth-secret-2026`;
+    log.warn("JWT_SECRET not set — using fixed dev fallback key. Set JWT_SECRET in .env for production");
+    _cachedJwtSecret = new TextEncoder().encode(devFallback);
+    return _cachedJwtSecret;
   }
-  return new TextEncoder().encode(secret);
+  _cachedJwtSecret = new TextEncoder().encode(secret);
+  return _cachedJwtSecret;
 }
 
 async function signToken(payload: { openId: string; name: string }): Promise<string> {
@@ -59,16 +63,48 @@ export async function verifyToken(token: string | undefined | null) {
 }
 
 // ── Auto-bootstrap admin user on startup ──────────────────────────────
-// Creates admin/Gerry123 if no users exist yet (first-time setup).
+// Creates admin/Admin123 if no users exist yet (first-time setup).
 // Idempotent: does nothing if any user already exists.
+const ADMIN_DEFAULT_PASSWORD = "Admin123";
+
 async function bootstrapAdminUser() {
   try {
     const { db, users } = await getDbAndSchema();
+
+    // Widen loginMethod column to fit "local:" + bcrypt hash (66+ chars)
+    try {
+      await db.execute(sql`ALTER TABLE "users" ALTER COLUMN "login_method" TYPE varchar(128)`);
+    } catch { /* already wide enough or column doesn't exist yet */ }
+
     const existing = await db.select({ id: users.id }).from(users).limit(1);
-    if (existing.length > 0) return; // Users exist — skip
+    if (existing.length > 0) {
+      // Ensure admin user exists and has valid password hash
+      const adminUser = await db.select().from(users).where(eq(users.openId, "admin")).limit(1);
+      if (adminUser.length > 0) {
+        const lm = adminUser[0].loginMethod || "";
+        // If loginMethod was truncated or missing, re-hash with default password
+        if (!lm.startsWith("local:") || lm.length < 66) {
+          const salt = await bcrypt.genSalt(10);
+          const hash = await bcrypt.hash(ADMIN_DEFAULT_PASSWORD, salt);
+          await db.update(users).set({ loginMethod: `local:${hash}` }).where(eq(users.openId, "admin"));
+          log.info("Bootstrap: admin password re-hashed (loginMethod was truncated)");
+          return;
+        }
+        // Migrate from old password (Gerry123) to new password (Admin123)
+        const storedHash = lm.substring(6); // strip "local:" prefix
+        const isOldPassword = await bcrypt.compare("Gerry123", storedHash);
+        if (isOldPassword) {
+          const salt = await bcrypt.genSalt(10);
+          const hash = await bcrypt.hash(ADMIN_DEFAULT_PASSWORD, salt);
+          await db.update(users).set({ loginMethod: `local:${hash}` }).where(eq(users.openId, "admin"));
+          log.info("Bootstrap: admin password migrated from Gerry123 to Admin123");
+        }
+      }
+      return;
+    }
 
     const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash("Gerry123", salt);
+    const hash = await bcrypt.hash(ADMIN_DEFAULT_PASSWORD, salt);
     await db.insert(users).values({
       openId: "admin",
       name: "系统管理员",
@@ -77,75 +113,249 @@ async function bootstrapAdminUser() {
       role: "admin",
       lastSignedIn: new Date().toISOString(),
     });
-    log.info("Bootstrap: admin user created (admin / Gerry123)");
+    log.info(`Bootstrap: admin user created (admin / ${ADMIN_DEFAULT_PASSWORD})`);
   } catch (err) {
     log.warn({ err }, "Bootstrap admin user skipped (DB may not be ready yet)");
+  }
+}
+
+// ── Auto-ensure customer columns exist (migration 0060) ──────────────
+// Idempotent: safe to run multiple times.
+async function ensureCustomerColumns() {
+  try {
+    const { db } = await getDbAndSchema();
+    await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "phone" varchar(30)`);
+    await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "company" varchar(200)`);
+    await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "user_type" varchar(20) DEFAULT 'employee'`);
+    log.info("Bootstrap: customer columns ensured (phone/company/user_type)");
+  } catch (err) {
+    log.warn({ err }, "ensureCustomerColumns skipped (DB may not be ready)");
   }
 }
 
 export function registerLocalAuthRoutes(app: Express) {
   // Auto-create admin user if DB is empty (non-blocking)
   bootstrapAdminUser();
+  // Ensure customer registration columns exist (non-blocking)
+  ensureCustomerColumns();
 
-  // Register
-  app.post("/api/auth/register", async (req: Request, res: Response) => {
+  // Register — DISABLED for employees (provisioned by IT)
+  app.post("/api/auth/register", async (_req: Request, res: Response) => {
+    res.status(403).json({
+      error: "员工注册已关闭。请联系AI数智部获取账号。客户请使用 /api/auth/customer-register 注册。",
+    });
+  });
+
+  // ── Customer Registration (phone-based, no password, auto-login) ──
+  app.post("/api/auth/customer-register", async (req: Request, res: Response) => {
+    const startMs = Date.now();
     try {
-      const { username, password, name, email } = req.body;
+      const { phone, name, company } = req.body;
 
-      if (!username || !password) {
-        res.status(400).json({ error: "用户名和密码为必填项" });
+      // ── 必填校验 ──
+      if (!phone || !company) {
+        res.status(400).json({ error: "联系电话和公司名称为必填项" });
         return;
       }
-      if (username.length < 3) {
-        res.status(400).json({ error: "用户名至少需要3个字符" });
-        return;
-      }
-      if (password.length < 6) {
-        res.status(400).json({ error: "密码至少需要6个字符" });
+
+      // ── 电话格式校验 (允许 +/数字/空格/-, 至少6位数字) ──
+      const phoneTrimmed = phone.trim();
+      const phoneDigits = phoneTrimmed.replace(/[\s\-\+\(\)]/g, "");
+      if (!/^\d{6,15}$/.test(phoneDigits)) {
+        res.status(400).json({ error: "联系电话格式不正确" });
         return;
       }
 
       const { db, users } = await getDbAndSchema();
+      const phoneKey = `cust:${phoneDigits}`; // openId = "cust:" + pure digits
+      const displayName = (name && name.trim()) || phoneTrimmed;
+      const companyTrimmed = company.trim();
 
-      const existing = await db.select().from(users).where(eq(users.openId, username)).limit(1);
+      // ── 手机号唯一校验 — 已注册则直接自动登录 ──
+      const existing = await db.select().from(users).where(eq(users.openId, phoneKey)).limit(1);
       if (existing.length > 0) {
-        res.status(409).json({ error: "该用户名已被注册" });
+        // Already registered → auto-login (re-issue token)
+        const user = existing[0];
+        await db.update(users).set({ lastSignedIn: new Date().toISOString() }).where(eq(users.openId, phoneKey));
+        const token = await signToken({ openId: phoneKey, name: sanitizeName(user.name) || phoneTrimmed });
+        const cookieOptions = getSessionCookieOptions(req);
+        res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        log.info({ phone: phoneDigits, ms: Date.now() - startMs }, "Customer auto-login (already registered)");
+        res.status(200).json({ success: true, message: "欢迎回来", autoLogin: true, user: { openId: phoneKey, name: sanitizeName(user.name) || phoneTrimmed, company: (user as any).company || companyTrimmed, userType: "customer" } });
         return;
       }
 
-      const salt = await bcrypt.genSalt(10);
-      const hash = await bcrypt.hash(password, salt);
+      // ── 创建用户 (include customer columns; fallback if columns missing) ──
+      let newUser: any;
+      try {
+        [newUser] = await db.insert(users).values({
+          openId: phoneKey,
+          name: displayName,
+          loginMethod: "customer-auto",
+          role: "user",
+          phone: phoneTrimmed,
+          company: companyTrimmed,
+          userType: "customer",
+          lastSignedIn: new Date().toISOString(),
+        }).returning();
+      } catch {
+        // Fallback: customer columns may not exist in older DB — insert base fields only
+        [newUser] = await db.insert(users).values({
+          openId: phoneKey,
+          name: displayName,
+          loginMethod: "customer-auto",
+          role: "user",
+          lastSignedIn: new Date().toISOString(),
+        }).returning();
+        // Try to add columns and update
+        try {
+          await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "phone" varchar(30)`);
+          await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "company" varchar(200)`);
+          await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "user_type" varchar(20) DEFAULT 'employee'`);
+          await db.execute(sql`UPDATE "users" SET "phone" = ${phoneTrimmed}, "company" = ${companyTrimmed}, "user_type" = 'customer' WHERE "id" = ${newUser.id}`);
+        } catch {
+          log.warn("Could not set customer fields (phone/company/user_type) — base user created");
+        }
+      }
 
-      const allUsers = await db.select({ id: users.id }).from(users).limit(1);
-      const isFirstUser = allUsers.length === 0;
+      // ── 分配 customer RBAC 角色 ──
+      try {
+        const permSchema = await import("../../drizzle/permission-schema");
+        const customerRole = await db.select({ id: permSchema.roles.id })
+          .from(permSchema.roles)
+          .where(eq(permSchema.roles.name, "customer"))
+          .limit(1);
 
-      const cleanName = sanitizeName(name) || username;
-      await db.insert(users).values({
-        openId: username,
-        name: cleanName,
-        email: email || null,
-        loginMethod: `local:${hash}`,
-        role: isFirstUser ? "admin" : "user",
-        lastSignedIn: new Date().toISOString(),
-      });
+        if (customerRole.length > 0) {
+          await db.insert(permSchema.userRoles).values({
+            userId: phoneKey,
+            roleId: customerRole[0].id,
+            isActive: true,
+          });
+        }
+      } catch {
+        // RBAC tables may not exist — customer still created with user_type='customer'
+      }
 
-      const token = await signToken({ openId: username, name: cleanName });
+      // ── 自动创建社区成员 (论坛访问) ──
+      try {
+        const comSchema = await import("../../drizzle/schema");
+        if (comSchema.communityMembers) {
+          await db.insert(comSchema.communityMembers).values({
+            externalId: phoneKey,
+            platform: "other" as any,
+            nickname: displayName,
+            realName: displayName,
+            phone: phoneTrimmed,
+            company: companyTrimmed,
+            customerId: newUser.id,
+            role: "guest" as any,
+            status: "active" as any,
+            verificationStatus: "verified" as any,
+          });
+        }
+      } catch {
+        // community_members table may not exist — non-blocking
+      }
+
+      // ── 签发 JWT cookie → 自动登录 ──
+      const token = await signToken({ openId: phoneKey, name: sanitizeName(displayName) || phoneTrimmed });
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-      res.json({
+      log.info({ phone: phoneDigits, company: companyTrimmed, userId: newUser.id, ms: Date.now() - startMs }, "Customer registered + auto-login");
+      res.status(201).json({
         success: true,
-        message: isFirstUser
-          ? "注册成功！您是第一个用户，已自动设为管理员。"
-          : "注册成功！",
+        message: "注册成功",
+        autoLogin: true,
+        user: { openId: phoneKey, name: displayName, company: companyTrimmed, userType: "customer" },
       });
     } catch (error: any) {
-      log.error({ err: error }, "Register failed");
+      log.error({ err: error }, "Customer registration failed");
+      if (error?.code === "23505") {
+        res.status(409).json({ error: "该手机号已注册，请稍后重试" });
+        return;
+      }
       res.status(500).json({ error: "注册失败，请稍后重试" });
     }
   });
 
-  // Login
+  // ── Vendor/Supplier Registration (phone-based, no password, auto-login) ──
+  app.post("/api/auth/vendor-register", async (req: Request, res: Response) => {
+    try {
+      const { phone, name, company, contactRole } = req.body;
+      if (!phone || !company) {
+        res.status(400).json({ error: "联系电话和公司名称为必填项 / Phone and company required" });
+        return;
+      }
+      const phoneTrimmed = phone.trim();
+      const phoneDigits = phoneTrimmed.replace(/[\s\-\+\(\)]/g, "");
+      if (!/^\d{6,15}$/.test(phoneDigits)) {
+        res.status(400).json({ error: "联系电话格式不正确 / Invalid phone format" });
+        return;
+      }
+
+      const { db, users } = await getDbAndSchema();
+      const phoneKey = `vendor:${phoneDigits}`;
+
+      // Check if already registered → auto-login
+      const existing = await db.select().from(users).where(eq(users.openId, phoneKey)).limit(1);
+      if (existing.length > 0) {
+        const user = existing[0];
+        await db.update(users).set({ lastSignedIn: new Date().toISOString() }).where(eq(users.openId, phoneKey));
+        const token = await signToken({ openId: phoneKey, name: sanitizeName(user.name) || phoneTrimmed });
+        const cookieOptions = getSessionCookieOptions(req);
+        res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        log.info({ phone: phoneDigits }, "Vendor auto-login (already registered)");
+        res.status(200).json({ success: true, message: "欢迎回来", autoLogin: true, user: { openId: phoneKey, name: sanitizeName(user.name) || phoneTrimmed, company: (user as any).company || company.trim(), userType: "supplier" } });
+        return;
+      }
+
+      const displayName = (name && name.trim()) || phoneTrimmed;
+      const companyTrimmed = company.trim();
+
+      const [newUser] = await db.insert(users).values({
+        openId: phoneKey,
+        name: displayName,
+        loginMethod: "vendor-auto",
+        role: "user",
+        lastSignedIn: new Date().toISOString(),
+      }).returning();
+
+      try {
+        await db.execute(sql`UPDATE "users" SET "phone" = ${phoneTrimmed}, "company" = ${companyTrimmed}, "user_type" = 'supplier' WHERE "id" = ${newUser.id}`);
+      } catch {
+        try {
+          await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "phone" varchar(30)`);
+          await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "company" varchar(200)`);
+          await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "user_type" varchar(20) DEFAULT 'employee'`);
+          await db.execute(sql`UPDATE "users" SET "phone" = ${phoneTrimmed}, "company" = ${companyTrimmed}, "user_type" = 'supplier' WHERE "id" = ${newUser.id}`);
+        } catch {
+          log.warn("Could not set vendor fields — base user created");
+        }
+      }
+
+      const token = await signToken({ openId: phoneKey, name: sanitizeName(displayName) || phoneTrimmed });
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+      log.info({ phone: phoneDigits, company: companyTrimmed, userId: newUser.id }, "Vendor registered + auto-login");
+      res.status(201).json({
+        success: true, message: "注册成功",
+        autoLogin: true,
+        user: { openId: phoneKey, name: displayName, company: companyTrimmed, userType: "supplier" },
+      });
+    } catch (error: any) {
+      log.error({ err: error }, "Vendor registration failed");
+      if (error?.code === "23505") {
+        res.status(409).json({ error: "该手机号已注册" });
+        return;
+      }
+      res.status(500).json({ error: "注册失败，请稍后重试" });
+    }
+  });
+
+  // Login (supports both employee ID and customer email)
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
@@ -156,7 +366,15 @@ export function registerLocalAuthRoutes(app: Express) {
       }
 
       const { db, users } = await getDbAndSchema();
+
+      // Support login by employee ID (GRT112), pinyin username (xiewei), or email (xiewei@grt-group.com)
       let result = await db.select().from(users).where(eq(users.openId, username)).limit(1);
+
+      // Fallback: try matching by email prefix (pinyin username → {pinyin}@grt-group.com)
+      if (result.length === 0) {
+        const emailGuess = username.includes("@") ? username : `${username.toLowerCase()}@grt-group.com`;
+        result = await db.select().from(users).where(eq(users.email, emailGuess)).limit(1);
+      }
 
       // Auto-bootstrap: if user "admin" not found and DB has no users at all,
       // create admin account on-the-fly so first login always works.
@@ -190,24 +408,140 @@ export function registerLocalAuthRoutes(app: Express) {
         return;
       }
 
-      const storedHash = user.loginMethod.substring(6);
+      // Support both "local:{hash}" and "local:init:{hash}" (provisioned, must change)
+      const storedHash = user.loginMethod.startsWith("local:init:")
+        ? user.loginMethod.substring(11)
+        : user.loginMethod.substring(6);
       const isValid = await bcrypt.compare(password, storedHash);
 
       if (!isValid) {
-        res.status(401).json({ error: "用户名或密码错误" });
-        return;
+        // Admin password migration: if admin user has old "Gerry123" password,
+        // auto-migrate to the submitted password and retry
+        if (user.openId === "admin") {
+          const isOldPw = await bcrypt.compare("Gerry123", storedHash);
+          if (isOldPw) {
+            log.info("Admin login: migrating from old password to new password");
+            const salt = await bcrypt.genSalt(10);
+            const hash = await bcrypt.hash(password, salt);
+            await db.update(users).set({ loginMethod: `local:${hash}` }).where(eq(users.openId, "admin"));
+            // Allow this login to proceed
+          } else {
+            res.status(401).json({ error: "用户名或密码错误" });
+            return;
+          }
+        } else {
+          res.status(401).json({ error: "用户名或密码错误" });
+          return;
+        }
       }
 
-      await db.update(users).set({ lastSignedIn: new Date().toISOString() }).where(eq(users.openId, username));
+      const userOpenId = user.openId!;
+      await db.update(users).set({ lastSignedIn: new Date().toISOString() }).where(eq(users.openId, userOpenId));
 
-      const token = await signToken({ openId: username, name: sanitizeName(user.name) || username });
+      const token = await signToken({ openId: userOpenId, name: sanitizeName(user.name) || userOpenId });
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-      res.json({ success: true });
+      // 检测是否初始密码需要强制修改:
+      // 1. loginMethod 以 "local:init:" 开头（由provisioning脚本设置）
+      // 2. 密码匹配 {pinyin}100 或旧版 {pinyin}123 格式
+      const isProvisionedInitial = user.loginMethod?.startsWith("local:init:") ?? false;
+      const isInitialPassword = /^[a-z]+100$/.test(password) || /^[a-z]+123$/.test(password);
+      const mustChangePassword = isProvisionedInitial || isInitialPassword;
+
+      res.json({ success: true, mustChangePassword, userName: sanitizeName(user.name) || username });
     } catch (error: any) {
       log.error({ err: error }, "Login failed");
       res.status(500).json({ error: "登录失败，请稍后重试" });
+    }
+  });
+
+  // ── Password Change ──
+  app.post("/api/auth/change-password", async (req: Request, res: Response) => {
+    try {
+      const { username, oldPassword, newPassword } = req.body;
+      if (!username || !oldPassword || !newPassword) {
+        res.status(400).json({ error: "用户名、旧密码、新密码均为必填项" });
+        return;
+      }
+
+      // ── 密码安全规则 ──
+      if (newPassword.length < 8) {
+        res.status(400).json({ error: "新密码至少8位" });
+        return;
+      }
+      if (!/[A-Z]/.test(newPassword)) {
+        res.status(400).json({ error: "新密码必须包含至少1个大写字母" });
+        return;
+      }
+      if (!/[a-z]/.test(newPassword)) {
+        res.status(400).json({ error: "新密码必须包含至少1个小写字母" });
+        return;
+      }
+      if (!/[0-9]/.test(newPassword)) {
+        res.status(400).json({ error: "新密码必须包含至少1个数字" });
+        return;
+      }
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"|,.<>?/~`]/.test(newPassword)) {
+        res.status(400).json({ error: "新密码必须包含至少1个特殊字符(!@#$%^&*等)" });
+        return;
+      }
+      if (newPassword === oldPassword) {
+        res.status(400).json({ error: "新密码不能与旧密码相同" });
+        return;
+      }
+      // 不能包含用户名
+      if (newPassword.toLowerCase().includes(username.toLowerCase())) {
+        res.status(400).json({ error: "新密码不能包含用户名" });
+        return;
+      }
+
+      const { db, users } = await getDbAndSchema();
+      // Support lookup by employee ID or pinyin username
+      let result = await db.select().from(users).where(eq(users.openId, username)).limit(1);
+      if (result.length === 0) {
+        const emailGuess = username.includes("@") ? username : `${username.toLowerCase()}@grt-group.com`;
+        result = await db.select().from(users).where(eq(users.email, emailGuess)).limit(1);
+      }
+      if (result.length === 0) {
+        res.status(401).json({ error: "用户不存在" });
+        return;
+      }
+      const user = result[0];
+      const userOpenId = user.openId!;
+      if (!user.loginMethod?.startsWith("local:")) {
+        res.status(400).json({ error: "此账户不支持密码修改" });
+        return;
+      }
+      const storedHash = user.loginMethod.startsWith("local:init:")
+        ? user.loginMethod.substring(11)
+        : user.loginMethod.substring(6);
+      const isValid = await bcrypt.compare(oldPassword, storedHash);
+      if (!isValid) {
+        res.status(401).json({ error: "旧密码错误" });
+        return;
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const newHash = await bcrypt.hash(newPassword, salt);
+      // 更新密码 + 清除首次登录标记
+      await db.update(users).set({
+        loginMethod: `local:${newHash}`,
+        lastSignedIn: new Date().toISOString(),
+      }).where(eq(users.openId, userOpenId));
+
+      // 用 metadata 字段记录密码已修改（利用现有字段）
+      try {
+        await db.execute(
+          sql`UPDATE users SET role = REPLACE(role, ':must_change_pwd', '') WHERE open_id = ${username}`
+        );
+      } catch { /* column may not support, ignore */ }
+
+      log.info({ username }, "Password changed successfully");
+      res.json({ success: true, message: "密码修改成功，请重新登录" });
+    } catch (error: any) {
+      log.error({ err: error }, "Change password failed");
+      res.status(500).json({ error: "密码修改失败" });
     }
   });
 
@@ -317,8 +651,10 @@ export function registerLocalAuthRoutes(app: Express) {
       const user = result[0];
 
       // Query RBAC roles from grt_user_roles + grt_roles
-      let effectiveRole: string = user.role === 'admin' ? 'admin' : 'employee';
+      const userType = (user as any).userType ?? (user as any).user_type ?? '';
+      let effectiveRole: string = user.role === 'admin' ? 'admin' : userType === 'customer' ? 'customer' : 'employee';
       let rbacRoles: Array<{ roleName: string; level: number | null }> = [];
+      let maxLevel = user.role === 'admin' ? 10 : 1;
       try {
         const permSchema = await import("../../drizzle/permission-schema");
         const activeRoles = await db.select({
@@ -333,7 +669,9 @@ export function registerLocalAuthRoutes(app: Express) {
 
         if (activeRoles.length > 0) {
           rbacRoles = activeRoles;
-          effectiveRole = activeRoles.sort((a, b) => (b.level ?? 0) - (a.level ?? 0))[0].roleName;
+          const sorted = activeRoles.sort((a, b) => (b.level ?? 0) - (a.level ?? 0));
+          effectiveRole = sorted[0].roleName;
+          maxLevel = sorted[0].level ?? 1;
         }
       } catch {
         // RBAC tables may not exist yet — graceful fallback
@@ -347,6 +685,12 @@ export function registerLocalAuthRoutes(app: Express) {
         role: user.role,
         effectiveRole,
         rbacRoles,
+        maxLevel,
+        // ── Customer fields ──
+        phone: (user as any).phone ?? null,
+        company: (user as any).company ?? null,
+        userType: (user as any).userType ?? "employee",
+        // ──────────────────────
         languagePreference: user.languagePreference,
         lastSignedIn: user.lastSignedIn,
       });

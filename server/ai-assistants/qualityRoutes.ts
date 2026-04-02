@@ -61,7 +61,7 @@ async function ensureQualityDashboard() {
         { id: "PA-001", type: "PA", title: "引入清洗液在线浓度监测系统", status: "in_progress", priority: "中", assignee: "孙坚", dueDate: "2026-03-01" },
         { id: "CA-003", type: "CA", title: "FAT测试急停功能延迟", status: "closed", priority: "高", assignee: "李大鹏", dueDate: "2026-01-30" },
         { id: "PA-002", type: "PA", title: "建立供应商来料检验强化流程", status: "open", priority: "中", assignee: "洪小东", dueDate: "2026-03-15" },
-        { id: "PA-003", type: "PA", title: "工人操作认证体系升级", status: "in_progress", priority: "低", assignee: "钱绍辉", dueDate: "2026-04-01" },
+        { id: "PA-003", type: "PA", title: "工人操作认证体系升级", status: "in_progress", priority: "低", assignee: "钱佳奇", dueDate: "2026-04-01" },
       ]);
       await db.execute(sql`INSERT INTO ai_assistant_dashboard (assistant_type, category, items) VALUES
         ('quality', 'causes', ${causes}::jsonb),

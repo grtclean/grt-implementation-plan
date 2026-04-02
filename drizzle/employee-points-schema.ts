@@ -384,6 +384,8 @@ export const communityPostTypeEnum = pgEnum("community_post_type", [
   "achievement",      // 成就分享
   "suggestion_share", // 合理化建议公示
   "knowledge",        // 知识分享
+  "tech_forum",       // 技术论坛讨论帖 (客户/员工)
+  "product_qa",       // 产品问答 (客户提问)
 ]);
 
 export const communityPosts = pgTable("community_posts", {
@@ -457,7 +459,31 @@ export type InsertCommunityPost = InferInsertModel<typeof communityPosts>;
 export type CommunitySensitiveWord = InferSelectModel<typeof communitySensitiveWords>;
 export type CommunityAck = InferSelectModel<typeof communityAcks>;
 
-// ── Table 14: Elite Benefit Applications — 精英福利申请 ────
+// ── Table 14: Community Comments — 论坛评论/回复 ─────────
+
+export const communityComments = pgTable("community_comments", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull(),
+  authorId: integer("author_id").notNull(),
+  authorType: varchar("author_type", { length: 20 }).notNull().default("customer"),
+  authorName: varchar("author_name", { length: 100 }).notNull(),
+  authorCompany: varchar("author_company", { length: 200 }),
+  parentId: integer("parent_id"),
+  content: text("content").notNull(),
+  contentClean: boolean("content_clean").notNull().default(true),
+  sensitiveWordsDetected: text("sensitive_words_detected"),
+  isApproved: boolean("is_approved").notNull().default(true),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_community_comment_post").on(table.postId),
+  index("idx_community_comment_parent").on(table.parentId),
+  index("idx_community_comment_author").on(table.authorId),
+]);
+
+export type CommunityComment = InferSelectModel<typeof communityComments>;
+
+// ── Table 15: Elite Benefit Applications — 精英福利申请 ────
 
 export const eliteBenefitStatusEnum = pgEnum("elite_benefit_status", [
   "pending",      // 待审核

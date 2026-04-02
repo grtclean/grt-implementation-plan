@@ -13,6 +13,7 @@
 import { useState, useMemo } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
+import FloatingNav from '@/components/FloatingNav';
 import {
   Factory,
   Activity,
@@ -373,6 +374,7 @@ export default function OEEDashboard() {
           </div>
         </div>
       </div>
+      <FloatingNav />
     </div>
   );
 }

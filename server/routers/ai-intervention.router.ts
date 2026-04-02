@@ -415,7 +415,7 @@ const DEMO_INTERVENTIONS: ActiveIntervention[] = [
   },
   // Manager override
   {
-    id: 5, userId: 1007, userName: "徐家乐 (Xu Jiale)",
+    id: 5, userId: 1007, userName: "焦斌 (Jiao Bin)",
     triggerType: "QUALITY_DEFECT",
     triggerReason: "6 defects on WLD-TIG-001 this week. Failure mode: Weld Porosity",
     assignedModuleId: 3, assignedModuleTitle: "Advanced Welding Technique (SS316)",

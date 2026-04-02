@@ -2785,6 +2785,27 @@ export const projects = pgTable("projects", {
 	index("projects_bu_code_idx").on(table.buCode),
 ]);
 
+// ── 项目删除申请表 ──
+export const projectDeleteRequests = pgTable("project_delete_requests", {
+	id: serial('id').primaryKey(),
+	projectId: integer('project_id').notNull(),
+	projectCode: varchar('project_code', { length: 32 }),
+	projectName: varchar('project_name', { length: 200 }),
+	reason: text('reason').notNull(),
+	requestedBy: integer('requested_by').notNull(),
+	requestedByName: varchar('requested_by_name', { length: 100 }),
+	status: varchar('status', { length: 20 }).default('pending').notNull(), // pending | approved | rejected | auto_approved
+	approvedBy: integer('approved_by'),
+	approvedByName: varchar('approved_by_name', { length: 100 }),
+	approvalNote: text('approval_note'),
+	isWithinGracePeriod: smallint('is_within_grace_period').default(0), // 1=在2分钟内自动批准
+	createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
+	resolvedAt: timestamp('resolved_at', { mode: 'string' }),
+}, (table) => [
+	index("pdr_project_id_idx").on(table.projectId),
+	index("pdr_status_idx").on(table.status),
+]);
+
 export const quotationLearningRecords = pgTable("quotation_learning_records", {
 	id: serial('id').primaryKey(),
 	learningId: varchar({ length: 50 }).notNull(),
@@ -3134,9 +3155,14 @@ export const users = pgTable("users", {
 	openId: varchar({ length: 64 }).notNull(),
 	name: text(),
 	email: varchar({ length: 320 }),
-	loginMethod: varchar({ length: 64 }),
+	loginMethod: varchar({ length: 128 }),
 	role: roleEnum3('role').default('user').notNull(),
 	languagePreference: languagePreferenceEnum('languagePreference').default('zh'),
+	// ── 客户注册扩展字段 (migration: 0060_add_customer_fields) ──
+	phone: varchar('phone', { length: 30 }),
+	company: varchar('company', { length: 200 }),
+	userType: varchar('user_type', { length: 20 }).default('employee'), // employee | customer | supplier | guest
+	// ──────────────────────────────────────────────────────────────
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 	lastSignedIn: timestamp({ mode: 'string' }).defaultNow().notNull(),

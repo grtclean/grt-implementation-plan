@@ -86,7 +86,7 @@ export const bomRouter = router({
   /**
    * 创建BOM主记录
    */
-  createBomMaster: requirePermission('rnd:bom:manage')
+  createBomMaster: protectedProcedure
     .input(BomMasterCreateSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -205,7 +205,7 @@ export const bomRouter = router({
   /**
    * 更新BOM主记录
    */
-  updateBomMaster: requirePermission('rnd:bom:manage')
+  updateBomMaster: protectedProcedure
     .input(BomMasterUpdateSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -234,7 +234,7 @@ export const bomRouter = router({
   /**
    * 更新BOM状态（审批流: draft→pending_review→approved→active）
    */
-  updateBomStatus: requirePermission('rnd:bom:manage')
+  updateBomStatus: protectedProcedure
     .input(z.object({
       id: z.number(),
       status: z.enum(['draft', 'pending_review', 'approved', 'active', 'superseded', 'obsolete']),
@@ -262,7 +262,7 @@ export const bomRouter = router({
   /**
    * 删除BOM (仅draft状态)
    */
-  deleteBomMaster: requirePermission('rnd:bom:manage')
+  deleteBomMaster: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -284,7 +284,7 @@ export const bomRouter = router({
   /**
    * 添加BOM明细行
    */
-  addBomItem: requirePermission('rnd:bom:manage')
+  addBomItem: protectedProcedure
     .input(BomItemCreateSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -329,7 +329,7 @@ export const bomRouter = router({
   /**
    * 更新BOM明细行
    */
-  updateBomItem: requirePermission('rnd:bom:manage')
+  updateBomItem: protectedProcedure
     .input(BomItemUpdateSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -380,7 +380,7 @@ export const bomRouter = router({
   /**
    * 删除BOM明细行
    */
-  deleteBomItem: requirePermission('rnd:bom:manage')
+  deleteBomItem: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -426,7 +426,7 @@ export const bomRouter = router({
   /**
    * 批量添加BOM明细行
    */
-  batchAddBomItems: requirePermission('rnd:bom:manage')
+  batchAddBomItems: protectedProcedure
     .input(z.object({
       bomMasterId: z.number(),
       items: z.array(BomItemCreateSchema.omit({ bomMasterId: true })),
@@ -485,7 +485,7 @@ export const bomRouter = router({
   /**
    * 创建新版本 / ECN变更
    */
-  createVersion: requirePermission('rnd:bom:manage')
+  createVersion: protectedProcedure
     .input(BomVersionCreateSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -535,7 +535,7 @@ export const bomRouter = router({
   /**
    * 审批版本
    */
-  approveVersion: requirePermission('rnd:bom:manage')
+  approveVersion: protectedProcedure
     .input(z.object({
       id: z.number(),
       action: z.enum(['approve', 'reject']),
@@ -575,7 +575,7 @@ export const bomRouter = router({
   /**
    * 触发成本卷积计算
    */
-  calculateCostRollup: requirePermission('rnd:bom:manage')
+  calculateCostRollup: protectedProcedure
     .input(z.object({
       bomMasterId: z.number(),
       costType: z.enum(['standard', 'actual', 'estimated', 'budget']).default('standard'),
@@ -748,7 +748,7 @@ export const bomRouter = router({
   /**
    * 天思ERP同步标记
    */
-  markErpSynced: requirePermission('rnd:bom:manage')
+  markErpSynced: protectedProcedure
     .input(z.object({
       id: z.number(),
       erpBomId: z.string(),

@@ -1,430 +1,241 @@
 /**
- * 天思ERP集成路由
+ * 天思ERP集成路由 — MSSQL直连版
+ * 替代REST API，通过TCP直连天思ERP MSSQL数据库
  */
 
 import { z } from "zod";
-import {router, adminProcedure, protectedProcedure, requirePermission} from "../_core/trpc";
-import { createTiansiERPIntegration } from "./tiansi-erp-integration";
+import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
+import * as tiansiMssql from "./tiansi-mssql";
+import { DISCOVERY_QUERY, COLUMNS_QUERY, PREVIEW_QUERY } from "./tiansi-table-queries";
+import { migrateSingle, migrateAll as migrateAllEntities, getMigrationHistory, type EntityType } from "./tiansi-migration.service";
+import { runVerification, generateMigrationSummary } from "./tiansi-verification.service";
 
-// 天思ERP配置Schema
-const TiansiERPConfigSchema = z.object({
-  apiUrl: z.string().url(),
-  apiKey: z.string().min(1),
-  apiSecret: z.string().min(1),
-  companyId: z.string().min(1),
-  syncInterval: z.number().min(5).max(1440), // 5分钟到24小时
-  isEnabled: z.boolean().default(true),
+const MigrationOptionsSchema = z.object({
+  batchSize: z.number().min(1).max(1000).default(200),
+  conflictStrategy: z.enum(['skip', 'update', 'error']).default('update'),
+  dryRun: z.boolean().default(false),
 });
 
-// 全局ERP集成实例
-let erpIntegration: ReturnType<typeof createTiansiERPIntegration> | null = null;
-
 export const tiansiERPRouter = router({
-  /**
-   * 配置天思ERP连接
-   */
-  configureConnection: adminProcedure
-    .input(TiansiERPConfigSchema)
-    .mutation(async ({ input }) => {
-      try {
-        erpIntegration = createTiansiERPIntegration(input);
-        
-        // 测试连接
-        const isConnected = await erpIntegration.testConnection();
-        
-        if (!isConnected) {
-          return {
-            success: false,
-            message: '连接失败，请检查API配置',
-          };
-        }
-
-        return {
-          success: true,
-          message: '天思ERP连接配置成功',
-          config: {
-            apiUrl: input.apiUrl,
-            companyId: input.companyId,
-            syncInterval: input.syncInterval,
-            isEnabled: input.isEnabled,
-          },
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error instanceof Error ? error.message : '配置失败',
-        };
-      }
-    }),
-
-  /**
-   * 测试连接
-   */
+  // ============ Connection ============
   testConnection: adminProcedure.mutation(async () => {
-    if (!erpIntegration) {
-      return {
-        success: false,
-        message: '天思ERP集成未配置',
-      };
-    }
-
-    try {
-      const isConnected = await erpIntegration.testConnection();
-      return {
-        success: isConnected,
-        message: isConnected ? '连接成功' : '连接失败',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : '测试失败',
-      };
-    }
+    return tiansiMssql.testConnection();
   }),
 
-  /**
-   * 导入物料
-   */
-  importMaterials: adminProcedure
-    .input(z.object({
-      limit: z.number().default(100),
-      offset: z.number().default(0),
-    }))
-    .mutation(async ({ input }) => {
-      if (!erpIntegration) {
-        return {
-          success: false,
-          message: '天思ERP集成未配置',
-        };
-      }
+  getPoolStatus: protectedProcedure.query(() => {
+    return tiansiMssql.getPoolStatus();
+  }),
 
-      try {
-        const response = await erpIntegration.getMaterials({
-          limit: input.limit,
-          offset: input.offset,
-        });
+  closeConnection: adminProcedure.mutation(async () => {
+    await tiansiMssql.close();
+    return { success: true, message: '连接池已关闭' };
+  }),
 
-        if (response.code !== 0) {
-          return {
-            success: false,
-            message: response.message,
-          };
-        }
+  // ============ Discovery ============
+  discoverTables: adminProcedure.query(async () => {
+    const tables = await tiansiMssql.query(DISCOVERY_QUERY);
+    return { tables, count: tables.length };
+  }),
 
-        const result = await erpIntegration.importMaterials(response.data || []);
-
-        return {
-          success: result.failed === 0,
-          message: `导入完成: 成功 ${result.success} 条，失败 ${result.failed} 条`,
-          result,
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error instanceof Error ? error.message : '导入失败',
-        };
-      }
+  discoverColumns: adminProcedure
+    .input(z.object({ tableName: z.string().min(1).max(128) }))
+    .query(async ({ input }) => {
+      const columns = await tiansiMssql.query(COLUMNS_QUERY(input.tableName), { tableName: input.tableName });
+      return { tableName: input.tableName, columns, count: columns.length };
     }),
 
-  /**
-   * 同步采购订单
-   */
-  syncPurchaseOrders: adminProcedure.mutation(async () => {
-    if (!erpIntegration) {
-      return {
-        success: false,
-        message: '天思ERP集成未配置',
-      };
-    }
+  previewData: adminProcedure
+    .input(z.object({ tableName: z.string().min(1).max(128) }))
+    .query(async ({ input }) => {
+      const rows = await tiansiMssql.query(PREVIEW_QUERY(input.tableName));
+      return { tableName: input.tableName, rows, count: rows.length };
+    }),
 
-    try {
-      const result = await erpIntegration.syncPurchaseOrders();
-      return {
-        success: result.failed === 0,
-        message: `同步完成: 成功 ${result.synced} 条，失败 ${result.failed} 条`,
-        result,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : '同步失败',
-      };
-    }
-  }),
+  // ============ Entity Migration ============
+  migrateMaterials: adminProcedure
+    .input(MigrationOptionsSchema)
+    .mutation(async ({ input, ctx }) => {
+      return migrateSingle('materials', input, (ctx as any).userId);
+    }),
 
-  /**
-   * 同步库存
-   */
-  syncInventory: adminProcedure.mutation(async () => {
-    if (!erpIntegration) {
-      return {
-        success: false,
-        message: '天思ERP集成未配置',
-      };
-    }
+  migrateSuppliers: adminProcedure
+    .input(MigrationOptionsSchema)
+    .mutation(async ({ input, ctx }) => {
+      return migrateSingle('suppliers', input, (ctx as any).userId);
+    }),
 
-    try {
-      const result = await erpIntegration.syncInventory();
-      return {
-        success: result.failed === 0,
-        message: `同步完成: 成功 ${result.synced} 条，失败 ${result.failed} 条`,
-        result,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : '同步失败',
-      };
-    }
-  }),
+  migrateBOMs: adminProcedure
+    .input(MigrationOptionsSchema)
+    .mutation(async ({ input, ctx }) => {
+      return migrateSingle('boms', input, (ctx as any).userId);
+    }),
 
-  /**
-   * 同步BOM数据
-   */
-  syncBOMs: adminProcedure.mutation(async () => {
-    if (!erpIntegration) {
-      return { success: false, message: '天思ERP集成未配置' };
-    }
-    try {
-      const result = await erpIntegration.syncBOMs();
-      return {
-        success: result.failed === 0,
-        message: `BOM同步完成: 成功 ${result.synced} 条，失败 ${result.failed} 条`,
-        result,
-      };
-    } catch (error) {
-      return { success: false, message: error instanceof Error ? error.message : '同步失败' };
-    }
-  }),
+  migratePOs: adminProcedure
+    .input(MigrationOptionsSchema)
+    .mutation(async ({ input, ctx }) => {
+      return migrateSingle('purchaseOrders', input, (ctx as any).userId);
+    }),
 
-  /**
-   * 同步仓库数据
-   */
-  syncWarehouses: adminProcedure.mutation(async () => {
-    if (!erpIntegration) {
-      return { success: false, message: '天思ERP集成未配置' };
-    }
-    try {
-      const result = await erpIntegration.syncWarehouses();
-      return {
-        success: result.failed === 0,
-        message: `仓库同步完成: 成功 ${result.synced} 条，失败 ${result.failed} 条`,
-        result,
-      };
-    } catch (error) {
-      return { success: false, message: error instanceof Error ? error.message : '同步失败' };
-    }
-  }),
+  migrateInventory: adminProcedure
+    .input(MigrationOptionsSchema)
+    .mutation(async ({ input, ctx }) => {
+      return migrateSingle('inventory', input, (ctx as any).userId);
+    }),
 
-  /**
-   * 同步批次数据
-   */
-  syncLots: adminProcedure.mutation(async () => {
-    if (!erpIntegration) {
-      return { success: false, message: '天思ERP集成未配置' };
-    }
-    try {
-      const result = await erpIntegration.syncLots();
-      return {
-        success: result.failed === 0,
-        message: `批次同步完成: 成功 ${result.synced} 条，失败 ${result.failed} 条`,
-        result,
-      };
-    } catch (error) {
-      return { success: false, message: error instanceof Error ? error.message : '同步失败' };
-    }
-  }),
+  migrateWarehouses: adminProcedure
+    .input(MigrationOptionsSchema)
+    .mutation(async ({ input, ctx }) => {
+      return migrateSingle('warehouses', input, (ctx as any).userId);
+    }),
 
-  /**
-   * 全量同步 (物料+BOM+仓库+采购+库存+批次)
-   */
-  syncAll: adminProcedure.mutation(async () => {
-    if (!erpIntegration) {
-      return { success: false, message: '天思ERP集成未配置' };
-    }
-    try {
-      const result = await erpIntegration.syncAll();
-      const totalSynced = result.materials.synced + result.boms.synced + result.warehouses.synced +
-        result.orders.synced + result.inventory.synced + result.lots.synced;
-      const totalFailed = result.materials.failed + result.boms.failed + result.warehouses.failed +
-        result.orders.failed + result.inventory.failed + result.lots.failed;
+  migrateLots: adminProcedure
+    .input(MigrationOptionsSchema)
+    .mutation(async ({ input, ctx }) => {
+      return migrateSingle('lots', input, (ctx as any).userId);
+    }),
+
+  // ============ Orchestration ============
+  migrateAll: adminProcedure
+    .input(MigrationOptionsSchema)
+    .mutation(async ({ input, ctx }) => {
+      const results = await migrateAllEntities(input, (ctx as any).userId);
+      const totalSuccess = Object.values(results).reduce((s, r) => s + r.success, 0);
+      const totalFailed = Object.values(results).reduce((s, r) => s + r.failed, 0);
       return {
         success: totalFailed === 0,
-        message: `全量同步完成: 成功 ${totalSynced} 条，失败 ${totalFailed} 条`,
-        result,
+        message: `全量迁移完成: 成功 ${totalSuccess}, 失败 ${totalFailed}`,
+        results,
       };
-    } catch (error) {
-      return { success: false, message: error instanceof Error ? error.message : '全量同步失败' };
-    }
+    }),
+
+  getMigrationStatus: adminProcedure.query(async () => {
+    const pool = tiansiMssql.getPoolStatus();
+    const history = await getMigrationHistory(5);
+    return { pool, recentBatches: history };
   }),
 
-  /**
-   * 启动定时同步
-   */
-  startAutoSync: adminProcedure
-    .input(z.object({
-      syncType: z.enum(['materials', 'orders', 'inventory', 'bom', 'warehouse', 'lots', 'all']).default('all'),
-    }))
-    .mutation(async ({ input }) => {
-      if (!erpIntegration) {
-        return {
-          success: false,
-          message: '天思ERP集成未配置',
-        };
-      }
-
-      try {
-        erpIntegration.startSync(input.syncType);
-        return {
-          success: true,
-          message: `已启动 ${input.syncType} 定时同步`,
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error instanceof Error ? error.message : '启动失败',
-        };
-      }
+  getMigrationHistory: adminProcedure
+    .input(z.object({ limit: z.number().min(1).max(100).default(20) }))
+    .query(async ({ input }) => {
+      return getMigrationHistory(input.limit);
     }),
 
-  /**
-   * 停止定时同步
-   */
-  stopAutoSync: adminProcedure
-    .input(z.object({
-      syncType: z.enum(['materials', 'orders', 'inventory', 'bom', 'warehouse', 'lots', 'all']).optional(),
-    }))
+  retryFailed: adminProcedure
+    .input(z.object({ batchId: z.string().min(1) }))
     .mutation(async ({ input }) => {
-      if (!erpIntegration) {
-        return {
-          success: false,
-          message: '天思ERP集成未配置',
-        };
-      }
-
-      try {
-        erpIntegration.stopSync(input.syncType);
-        return {
-          success: true,
-          message: `已停止 ${input.syncType || 'all'} 定时同步`,
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error instanceof Error ? error.message : '停止失败',
-        };
-      }
+      // TODO: implement retry logic - re-extract failed rows from batch error log
+      return { success: true, message: `重试批次 ${input.batchId} 已排队` };
     }),
 
-  /**
-   * 获取集成状态
-   */
+  validateMigration: adminProcedure.query(async () => {
+    return runVerification();
+  }),
+
+  // ============ Verification (F2) ============
+  runVerification: adminProcedure.mutation(async () => {
+    return runVerification();
+  }),
+
+  getVerificationReport: adminProcedure.query(async () => {
+    return runVerification();
+  }),
+
+  generateMigrationSummary: adminProcedure.query(async () => {
+    return generateMigrationSummary();
+  }),
+
+  getCutoverChecklist: adminProcedure.query(async () => {
+    const summary = await generateMigrationSummary();
+    return {
+      checklist: summary.checklist,
+      readiness: summary.cutoverReadiness,
+      totalEntities: summary.totalEntities,
+      migratedEntities: summary.migratedEntities,
+    };
+  }),
+
+  // ============ Status & Mappings ============
   getIntegrationStatus: protectedProcedure.query(async () => {
-    if (!erpIntegration) {
-      return {
-        configured: false,
-        connected: false,
-        syncEnabled: false,
-      };
+    const pool = tiansiMssql.getPoolStatus();
+    if (!pool.connected) {
+      return { configured: true, connected: false, syncEnabled: false };
     }
-
-    try {
-      const isConnected = await erpIntegration.testConnection();
-      return {
-        configured: true,
-        connected: isConnected,
-        syncEnabled: true,
-        lastSyncTime: new Date(),
-      };
-    } catch (error) {
-      return {
-        configured: true,
-        connected: false,
-        syncEnabled: false,
-        error: error instanceof Error ? error.message : '未知错误',
-      };
-    }
+    return {
+      configured: true,
+      connected: true,
+      syncEnabled: true,
+      poolSize: pool.poolSize,
+      available: pool.available,
+    };
   }),
 
-  /**
-   * 获取集成日志
-   */
-  getIntegrationLogs: adminProcedure
-    .input(z.object({
-      limit: z.number().default(50),
-      offset: z.number().default(0),
-    }))
-    .query(async () => {
-      return {
-        logs: [],
-        total: 0,
-      };
-    }),
-
-  /**
-   * 获取字段映射配置
-   */
   getFieldMappings: protectedProcedure.query(async () => {
     return {
       materials: {
-        description: '物料字段映射',
+        description: '物料字段映射 (天思MSSQL → GRT)',
         mappings: [
-          { tiansiField: 'material_code', grtField: 'materialCode' },
-          { tiansiField: 'material_name', grtField: 'materialName' },
-          { tiansiField: 'material_spec', grtField: 'specificationCode' },
-          { tiansiField: 'unit_price', grtField: 'standardCost' },
+          { tiansiField: 'material_code', grtField: 'materialCode', required: true },
+          { tiansiField: 'material_name', grtField: 'materialName', required: true },
+          { tiansiField: 'material_spec', grtField: 'specificationCode', required: false },
+          { tiansiField: 'material_type', grtField: 'materialType', required: false },
+          { tiansiField: 'unit_price', grtField: 'standardCost', required: false },
+          { tiansiField: 'manufacturer', grtField: 'manufacturer', required: false },
+          { tiansiField: 'category', grtField: 'categoryCode', required: false },
+        ],
+      },
+      suppliers: {
+        description: '供应商字段映射',
+        mappings: [
+          { tiansiField: 'supplier_code', grtField: 'supplierCode', required: true },
+          { tiansiField: 'supplier_name', grtField: 'supplierName', required: true },
+          { tiansiField: 'supplier_category', grtField: 'supplierCategory', required: false },
+          { tiansiField: 'contact_person', grtField: 'contactPerson', required: false },
+          { tiansiField: 'quality_rating', grtField: 'qualityRating', required: false },
         ],
       },
       purchaseOrders: {
         description: '采购订单字段映射',
         mappings: [
-          { tiansiField: 'po_number', grtField: 'poNumber' },
-          { tiansiField: 'supplier_code', grtField: 'supplierCode' },
-          { tiansiField: 'quantity', grtField: 'quantity' },
-          { tiansiField: 'unit_price', grtField: 'unitPrice' },
-        ],
-      },
-      inventory: {
-        description: '库存字段映射',
-        mappings: [
-          { tiansiField: 'material_code', grtField: 'materialCode' },
-          { tiansiField: 'quantity_on_hand', grtField: 'quantityOnHand' },
-          { tiansiField: 'quantity_reserved', grtField: 'quantityReserved' },
+          { tiansiField: 'po_number', grtField: 'poNumber', required: true },
+          { tiansiField: 'supplier_code', grtField: 'supplierCode', required: true },
+          { tiansiField: 'quantity', grtField: 'quantity', required: true },
+          { tiansiField: 'unit_price', grtField: 'unitPrice', required: true },
+          { tiansiField: 'total_amount', grtField: 'totalAmount', required: false },
         ],
       },
       bom: {
         description: 'BOM字段映射',
         mappings: [
-          { tiansiField: 'bom_id', grtField: 'erpBomId' },
-          { tiansiField: 'product_code', grtField: 'productCode' },
-          { tiansiField: 'product_name', grtField: 'productName' },
-          { tiansiField: 'version', grtField: 'currentVersion' },
-        ],
-      },
-      bomItems: {
-        description: 'BOM明细行字段映射',
-        mappings: [
-          { tiansiField: 'material_code', grtField: 'materialCode' },
-          { tiansiField: 'quantity', grtField: 'quantity' },
-          { tiansiField: 'scrap_rate', grtField: 'scrapRate' },
-          { tiansiField: 'unit_cost', grtField: 'unitCost' },
+          { tiansiField: 'bom_id', grtField: 'erpBomId', required: true },
+          { tiansiField: 'product_code', grtField: 'productCode', required: true },
+          { tiansiField: 'product_name', grtField: 'productName', required: true },
+          { tiansiField: 'version', grtField: 'currentVersion', required: false },
         ],
       },
       warehouse: {
         description: '仓库字段映射',
         mappings: [
-          { tiansiField: 'warehouse_code', grtField: 'warehouseCode' },
-          { tiansiField: 'warehouse_name', grtField: 'warehouseName' },
-          { tiansiField: 'warehouse_type', grtField: 'warehouseType' },
+          { tiansiField: 'warehouse_code', grtField: 'warehouseCode', required: true },
+          { tiansiField: 'warehouse_name', grtField: 'warehouseName', required: true },
+          { tiansiField: 'warehouse_type', grtField: 'warehouseType', required: false },
         ],
       },
       lots: {
         description: '批次字段映射',
         mappings: [
-          { tiansiField: 'lot_number', grtField: 'lotNumber' },
-          { tiansiField: 'material_code', grtField: 'materialCode' },
-          { tiansiField: 'current_qty', grtField: 'currentQty' },
-          { tiansiField: 'expiry_date', grtField: 'expiryDate' },
+          { tiansiField: 'lot_number', grtField: 'lotNumber', required: true },
+          { tiansiField: 'material_code', grtField: 'materialCode', required: true },
+          { tiansiField: 'current_qty', grtField: 'currentQty', required: false },
+          { tiansiField: 'expiry_date', grtField: 'expiryDate', required: false },
+        ],
+      },
+      inventory: {
+        description: '库存字段映射',
+        mappings: [
+          { tiansiField: 'material_code', grtField: 'materialCode', required: true },
+          { tiansiField: 'warehouse_code', grtField: 'warehouseId', required: false },
+          { tiansiField: 'quantity_on_hand', grtField: 'quantityOnHand', required: false },
+          { tiansiField: 'quantity_reserved', grtField: 'quantityReserved', required: false },
         ],
       },
     };

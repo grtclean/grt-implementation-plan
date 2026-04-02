@@ -20,7 +20,7 @@ import {
 // 待审核消息
 const pendingMessages = [
   { id: "m1", content: "请问GRT-5000的最大清洗压力是多少？", sender: "张工", group: "技术交流群", time: "10:30", aiReply: "GRT-5000最大清洗压力为150bar，适用于重度油污清洗场景。", aiScore: 92 },
-  { id: "m2", content: "设备调试遇到E003错误代码怎么处理？", sender: "李经理", group: "售后支持群", time: "10:45", aiReply: "E003错误代码通常表示压力传感器异常，请检查传感器连接和校准状态。", aiScore: 88 },
+  { id: "m2", content: "设备调试遇到E003错误代码怎么处理？", sender: "匡凯旋", group: "售后支持群", time: "10:45", aiReply: "E003错误代码通常表示压力传感器异常，请检查传感器连接和校准状态。", aiScore: 88 },
   { id: "m3", content: "能否提供一份产品报价单？", sender: "王总", group: "销售咨询群", time: "11:00", aiReply: "感谢您的咨询，我们的销售团队会尽快与您联系提供详细报价。", aiScore: 85 },
 ];
 

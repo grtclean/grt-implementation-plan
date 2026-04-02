@@ -299,14 +299,14 @@ export const imeRouter = router({
   // Phase 2: Real-time Assistant
   // ========================================================================
 
-  startLiveSession: requirePermission('mfg:process:manage')
+  startLiveSession: protectedProcedure
     .input(z.object({ meetingId: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const userId = (ctx as any).user?.openId || "unknown";
       return imeService.startLiveSession(input.meetingId, userId);
     }),
 
-  endLiveSession: requirePermission('mfg:process:manage')
+  endLiveSession: protectedProcedure
     .input(z.object({ sessionId: z.number() }))
     .mutation(async ({ input }) => {
       return imeService.endLiveSession(input.sessionId);

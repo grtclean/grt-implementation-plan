@@ -94,10 +94,10 @@ const priorities = [
 // Assignee preset list (GRT team)
 // ============================================
 const assignees = [
-  { id: "zhao", name: "赵工", nameEn: "Zhao", initials: "赵", avatarColor: "bg-blue-500" },
-  { id: "chen", name: "陈工", nameEn: "Chen", initials: "陈", avatarColor: "bg-emerald-500" },
-  { id: "li", name: "李工", nameEn: "Li", initials: "李", avatarColor: "bg-violet-500" },
-  { id: "zhang", name: "张工", nameEn: "Zhang", initials: "张", avatarColor: "bg-orange-500" },
+  { id: "zhao", name: "钱佳奇", nameEn: "Qian", initials: "钱", avatarColor: "bg-blue-500" },
+  { id: "chen", name: "孙坚", nameEn: "Sun", initials: "孙", avatarColor: "bg-emerald-500" },
+  { id: "li", name: "李大鹏", nameEn: "Li", initials: "李", avatarColor: "bg-violet-500" },
+  { id: "zhang", name: "洪香龙", nameEn: "Hong", initials: "洪", avatarColor: "bg-orange-500" },
   { id: "wang", name: "焦斌", nameEn: "Jiao", initials: "焦", avatarColor: "bg-pink-500" },
   { id: "liu", name: "刘工", nameEn: "Liu", initials: "刘", avatarColor: "bg-cyan-500" },
   { id: "huang", name: "黄工", nameEn: "Huang", initials: "黄", avatarColor: "bg-amber-500" },

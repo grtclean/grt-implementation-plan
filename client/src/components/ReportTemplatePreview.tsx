@@ -60,11 +60,11 @@ const MOCK_DATA = {
     { name: "其他", value: 8, color: "#8b5cf6" },
   ],
   performance: [
-    { name: "张三", deals: 8, amount: 1250000, rank: 1 },
-    { name: "李四", deals: 6, amount: 980000, rank: 2 },
-    { name: "王五", deals: 5, amount: 750000, rank: 3 },
-    { name: "赵六", deals: 4, amount: 620000, rank: 4 },
-    { name: "钱七", deals: 3, amount: 450000, rank: 5 },
+    { name: "戴晓燕", deals: 8, amount: 1250000, rank: 1 },
+    { name: "刘健康", deals: 6, amount: 980000, rank: 2 },
+    { name: "冯艳", deals: 5, amount: 750000, rank: 3 },
+    { name: "韩保程", deals: 4, amount: 620000, rank: 4 },
+    { name: "李柯瑶", deals: 3, amount: 450000, rank: 5 },
   ],
 };
 

@@ -39,7 +39,7 @@ export const authTranslations: TranslationModule = {
     "auth.createAccount": "创建新账户",
     "auth.enterCredentials": "请输入您的登录凭据",
     "auth.fillForm": "填写以下信息完成注册",
-    "auth.usernamePlaceholder": "请输入用户名（至少3个字符）",
+    "auth.usernamePlaceholder": "员工号(GRT112)或拼音(xiewei)",
     "auth.namePlaceholder": "您的姓名（选填，默认使用用户名）",
     "auth.emailPlaceholder": "your@email.com（选填）",
     "auth.passwordPlaceholder": "请输入密码",

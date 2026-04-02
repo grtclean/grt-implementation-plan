@@ -17,6 +17,7 @@
  */
 import { useState, useCallback, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import FloatingNav from '@/components/FloatingNav';
 
 // ═══════════════════════════════════════════════════════════════
 // §1  类型定义
@@ -1039,6 +1040,7 @@ export default function WorkflowOrchestrator() {
         </div>
         <div>GRT System V6.0 · 全域业务编排引擎 · P0 修复版</div>
       </footer>
+      <FloatingNav variant="light" />
     </div>
   );
 }

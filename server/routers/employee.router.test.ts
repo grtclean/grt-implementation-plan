@@ -85,7 +85,7 @@ function makeEmployeeList() {
   return [
     makeEmployee({ id: 1, employeeId: "GRT001", name: "倪亚东", department: "总裁办", position: "董事长", buCode: "HQ" }),
     makeEmployee({ id: 2, employeeId: "GRT002", name: "黄晓兰", department: "财务部", position: "会计", buCode: "FIN" }),
-    makeEmployee({ id: 3, employeeId: "GRT003", name: "侯亚琴", department: "事业三部", position: "采购与项目工程师", buCode: "BU3" }),
+    makeEmployee({ id: 3, employeeId: "GRT003", name: "倪亚琴", department: "事业三部", position: "采购与项目工程师", buCode: "BU3" }),
     makeEmployee({ id: 4, employeeId: "GRT004", name: "戴晓燕", department: "事业一部", position: "高级销售经理", buCode: "BU1" }),
   ];
 }
@@ -198,7 +198,7 @@ describe("employee router", () => {
       mockEmployeeService.getAllEmployees.mockResolvedValue(employees);
       const caller = createAdminCaller();
       const result = await caller.employee.list({ search: "亚" });
-      expect(result.employees).toHaveLength(2); // 倪亚东 + 侯亚琴
+      expect(result.employees).toHaveLength(2); // 倪亚东 + 倪亚琴
     });
 
     it("filters by search keyword (employeeId match)", async () => {

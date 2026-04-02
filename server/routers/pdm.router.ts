@@ -41,7 +41,7 @@ const productRouter = router({
         .object({
           limit: z.number().min(1).max(200).default(50),
           offset: z.number().min(0).default(0),
-          family: z.enum(["USC", "SPR", "IMM"]).optional(),
+          family: z.string().max(20).optional(),
           status: z
             .enum(["concept", "design", "released", "production", "service", "eol"])
             .optional(),
@@ -95,7 +95,7 @@ const productRouter = router({
       z.object({
         productCode: z.string().min(1).max(50),
         productName: z.string().min(1).max(200),
-        productFamily: z.enum(["USC", "SPR", "IMM"]),
+        productFamily: z.string().min(1).max(20),
         productCategory: z.string().max(100).optional(),
         description: z.string().optional(),
         stationCount: z.number().min(0).default(0),
@@ -366,7 +366,7 @@ const ECO_STEPS = [
 ] as const;
 
 const ecoRouter = router({
-  submitEcr: requirePermission("rnd:eco:manage")
+  submitEcr: protectedProcedure
     .input(
       z.object({
         projectId: z.number(),
@@ -419,7 +419,7 @@ const ecoRouter = router({
       return steps;
     }),
 
-  advanceStep: requirePermission("rnd:eco:manage")
+  advanceStep: protectedProcedure
     .input(
       z.object({
         stepId: z.number(),
@@ -472,7 +472,7 @@ const ecoRouter = router({
       return { completed: step.stepType, next: nextStep?.stepType ?? null };
     }),
 
-  recordImpactAnalysis: requirePermission("rnd:eco:manage")
+  recordImpactAnalysis: protectedProcedure
     .input(
       z.object({
         stepId: z.number(),
@@ -510,7 +510,7 @@ const ecoRouter = router({
       return updated;
     }),
 
-  approveEco: requirePermission("rnd:eco:approve")
+  approveEco: protectedProcedure
     .input(
       z.object({
         ecoId: z.number(),
@@ -566,7 +566,7 @@ const ecoRouter = router({
       return { ecoId: input.ecoId, approved: input.approved };
     }),
 
-  executeEco: requirePermission("rnd:eco:manage")
+  executeEco: protectedProcedure
     .input(z.object({ ecoId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -1076,7 +1076,7 @@ const fieldInsightRouter = router({
       return result;
     }),
 
-  createEcoFromInsight: requirePermission("rnd:eco:manage")
+  createEcoFromInsight: protectedProcedure
     .input(z.object({ insightId: z.number(), projectId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();

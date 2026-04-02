@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { findDocContent, type DocContent } from "@/data/knowledge-doc-content";
 import { trpc } from "../lib/trpc";
 import { useLanguage } from "../contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -163,8 +164,12 @@ function OverviewTab() {
 function LibraryTab({ searchQuery }: { searchQuery: string }) {
   const [selectedCategory, setSelectedCategory] = useState("");
   const categories = trpc.knowledgeCompliance.category.list.useQuery();
-  const requirements = trpc.knowledgeCompliance.requirement.getMyRequirements.useQuery({ skillLevel: 5 }); // show all levels
+  const requirements = trpc.knowledgeCompliance.requirement.getMyRequirements.useQuery({ skillLevel: 5 });
   const myProgress = trpc.knowledgeCompliance.progress.getMyProgress.useQuery({});
+
+  // Reading state
+  const [readingDoc, setReadingDoc] = useState<{ req: any; doc: DocContent | null } | null>(null);
+  const [readComplete, setReadComplete] = useState(false);
 
   const filtered = useMemo(() => {
     let items = requirements.data ?? [];
@@ -185,20 +190,60 @@ function LibraryTab({ searchQuery }: { searchQuery: string }) {
   }, [myProgress.data]);
 
   const utils = trpc.useUtils();
-  const startLearning = trpc.knowledgeCompliance.progress.upsertProgress.useMutation({
+  const upsertProgress = trpc.knowledgeCompliance.progress.upsertProgress.useMutation({
     onSuccess: () => utils.knowledgeCompliance.progress.getMyProgress.invalidate(),
   });
 
   const levelColors: Record<string, string> = { must_know: "bg-red-100 text-red-700", should_know: "bg-yellow-100 text-yellow-700", nice_to_know: "bg-blue-100 text-blue-700" };
   const levelLabels: Record<string, string> = { must_know: "必学", should_know: "应学", nice_to_know: "选学" };
   const masteryLabels: Record<string, string> = { aware: "了解", understand: "理解", apply: "应用", analyze: "分析", master: "精通" };
+  const catNameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const cat of (categories.data ?? []) as any[]) m.set(cat.code, cat.name);
+    return m;
+  }, [categories.data]);
+
+  function openDoc(req: any) {
+    const doc = findDocContent(req.docTitle);
+    setReadingDoc({ req, doc });
+    setReadComplete(false);
+    // Auto mark as in_progress
+    const prog = progressMap.get(`${req.docSourceType}:${req.docSourceId}`);
+    if (!prog || prog.status === "not_started") {
+      upsertProgress.mutate({
+        docSourceType: req.docSourceType, docSourceId: req.docSourceId ?? undefined,
+        docTitle: req.docTitle, categoryCode: req.categoryCode ?? undefined, status: "in_progress",
+      });
+    }
+  }
+
+  function handleContentScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 40) {
+      setReadComplete(true);
+    }
+  }
+
+  function markCompleted() {
+    if (!readingDoc) return;
+    const { req } = readingDoc;
+    upsertProgress.mutate({
+      docSourceType: req.docSourceType, docSourceId: req.docSourceId ?? undefined,
+      docTitle: req.docTitle, categoryCode: req.categoryCode ?? undefined,
+      status: "completed", progressPercent: 100,
+    });
+    setReadingDoc(null);
+  }
+
+  const statusLabel = (s: string) => s === "not_started" ? "未开始" : s === "in_progress" ? "学习中" : s === "completed" ? "已完成" : "已测试";
+  const statusColor = (s: string) => s === "completed" || s === "tested" ? "text-green-600" : s === "in_progress" ? "text-blue-600" : "";
 
   return (
     <div className="grid grid-cols-12 gap-4">
       {/* Category sidebar */}
       <div className="col-span-3">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">文档分类</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1"><Filter className="w-3.5 h-3.5" />文档分类</CardTitle></CardHeader>
           <CardContent className="p-0">
             <ScrollArea className="h-[600px]">
               <div
@@ -229,49 +274,53 @@ function LibraryTab({ searchQuery }: { searchQuery: string }) {
 
       {/* Document list */}
       <div className="col-span-9 space-y-2">
+        <div className="text-xs text-muted-foreground mb-1">
+          {selectedCategory ? `${catNameMap.get(selectedCategory) ?? selectedCategory} · ` : ""}共 {filtered.length} 份文档 · 点击文档标题进入学习
+        </div>
         {filtered.map((req: any) => {
           const prog = progressMap.get(`${req.docSourceType}:${req.docSourceId}`);
+          const hasContent = !!findDocContent(req.docTitle);
+          const doc = findDocContent(req.docTitle);
           return (
-            <Card key={req.id} className="hover:border-primary/30 transition-colors">
+            <Card
+              key={req.id}
+              className={`transition-colors cursor-pointer ${hasContent ? "hover:border-primary/40 hover:shadow-sm" : "hover:bg-muted/30"}`}
+              onClick={() => openDoc(req)}
+            >
               <CardContent className="pt-3 pb-3">
                 <div className="flex items-start gap-3">
-                  <FileText className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className={`mt-0.5 shrink-0 p-1.5 rounded ${prog?.status === "completed" || prog?.status === "tested" ? "bg-green-100" : hasContent ? "bg-primary/10" : "bg-muted"}`}>
+                    {prog?.status === "completed" || prog?.status === "tested"
+                      ? <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      : <FileText className={`w-4 h-4 ${hasContent ? "text-primary" : "text-muted-foreground"}`} />}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-sm font-medium">{req.docTitle}</h4>
+                      <h4 className={`text-sm font-medium ${hasContent ? "text-primary underline underline-offset-2 decoration-dotted" : ""}`}>
+                        {req.docTitle}
+                      </h4>
+                      {doc && <Badge variant="outline" className="text-[9px] font-mono">{doc.code}</Badge>}
                       <Badge className={`text-[10px] ${levelColors[req.requirementLevel]}`}>{levelLabels[req.requirementLevel]}</Badge>
                       <Badge variant="outline" className="text-[10px]">Lv{req.skillLevelRequired}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{masteryLabels[req.masteryExpectation]}</Badge>
                       {req.hasTest && <Badge variant="outline" className="text-[10px] text-purple-600"><ClipboardCheck className="w-3 h-3 mr-0.5" />有测试</Badge>}
                     </div>
-                    <div className="text-[11px] text-muted-foreground mt-1">
-                      来源: {req.docSourceType} · 分类: {req.categoryCode}
+                    <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-2">
+                      <span>{catNameMap.get(req.categoryCode) ?? req.categoryCode}</span>
+                      <span>·</span>
+                      <span>掌握要求: {masteryLabels[req.masteryExpectation]}</span>
                     </div>
-                    {/* Progress bar */}
                     {prog && (
                       <div className="mt-2 flex items-center gap-2">
                         <Progress value={prog.progressPercent ?? 0} className="h-1.5 flex-1" />
                         <span className="text-[10px] text-muted-foreground">{prog.progressPercent ?? 0}%</span>
-                        <Badge variant="outline" className={`text-[10px] ${prog.status === "completed" || prog.status === "tested" ? "text-green-600" : ""}`}>
-                          {prog.status === "not_started" ? "未开始" : prog.status === "in_progress" ? "学习中" : prog.status === "completed" ? "已完成" : "已测试"}
+                        <Badge variant="outline" className={`text-[10px] ${statusColor(prog.status)}`}>
+                          {statusLabel(prog.status)}
                         </Badge>
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    {req.docUrl && (
-                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => window.open(req.docUrl, "_blank")}>
-                        <Eye className="w-3 h-3 mr-1" />查阅
-                      </Button>
-                    )}
-                    {(!prog || prog.status === "not_started") && (
-                      <Button size="sm" className="h-7 text-[10px]" onClick={() => startLearning.mutate({
-                        docSourceType: req.docSourceType, docSourceId: req.docSourceId ?? undefined,
-                        docTitle: req.docTitle, categoryCode: req.categoryCode ?? undefined, status: "in_progress",
-                      })}>
-                        <Play className="w-3 h-3 mr-1" />开始学习
-                      </Button>
-                    )}
+                  <div className="shrink-0 flex items-center">
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </div>
                 </div>
               </CardContent>
@@ -282,6 +331,93 @@ function LibraryTab({ searchQuery }: { searchQuery: string }) {
           <Card><CardContent className="py-12 text-center text-muted-foreground text-xs">暂无匹配文档</CardContent></Card>
         )}
       </div>
+
+      {/* ── Reading Dialog ── */}
+      <Dialog open={!!readingDoc} onOpenChange={(open) => { if (!open) setReadingDoc(null); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+          {readingDoc?.doc ? (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="font-mono text-xs">{readingDoc.doc.code}</Badge>
+                  <Badge className="text-[10px] bg-blue-100 text-blue-700">{readingDoc.doc.category}</Badge>
+                  <Badge className={`text-[10px] ${levelColors[readingDoc.req.requirementLevel]}`}>
+                    {levelLabels[readingDoc.req.requirementLevel]}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">Lv{readingDoc.req.skillLevelRequired}</Badge>
+                  {(() => {
+                    const prog = progressMap.get(`${readingDoc.req.docSourceType}:${readingDoc.req.docSourceId}`);
+                    if (prog && (prog.status === "completed" || prog.status === "tested")) {
+                      return <Badge className="text-[10px] bg-green-100 text-green-700"><CheckCircle2 className="w-3 h-3 mr-0.5" />{statusLabel(prog.status)}</Badge>;
+                    }
+                    return <Badge className="text-[10px] bg-blue-100 text-blue-700"><Play className="w-3 h-3 mr-0.5" />学习中</Badge>;
+                  })()}
+                </div>
+                <DialogTitle className="text-lg">{readingDoc.doc.title}</DialogTitle>
+              </DialogHeader>
+
+              <ScrollArea className="flex-1 min-h-[300px]" onScrollCapture={handleContentScroll}>
+                <div className="border rounded-lg p-5 bg-muted/20">
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    {readingDoc.doc.content.split("\n").map((line, i) => {
+                      const trimmed = line.trim();
+                      if (!trimmed) return <div key={i} className="h-2" />;
+                      if (/^\d+\.\s/.test(trimmed) && !/^\d+\.\d/.test(trimmed)) {
+                        return <h3 key={i} className="text-base font-bold mt-4 mb-2 text-foreground">{trimmed}</h3>;
+                      }
+                      if (/^\d+\.\d+\s/.test(trimmed)) {
+                        return <p key={i} className="font-semibold mt-2 mb-1">{trimmed}</p>;
+                      }
+                      if (/^[a-z]\)\s/.test(trimmed) || /^-\s/.test(trimmed)) {
+                        return <p key={i} className="ml-6 text-sm">{trimmed}</p>;
+                      }
+                      return <p key={i} className="text-sm leading-relaxed">{trimmed}</p>;
+                    })}
+                  </div>
+                </div>
+              </ScrollArea>
+
+              <div className="flex items-center justify-between pt-2 border-t">
+                <div className="text-xs text-muted-foreground">
+                  {readComplete ? (
+                    <span className="text-green-600 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" />已阅读完毕</span>
+                  ) : (
+                    <span className="flex items-center gap-1 animate-pulse"><ArrowRight className="w-3.5 h-3.5" />请滚动至底部完成阅读</span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {readComplete && (() => {
+                    const prog = progressMap.get(`${readingDoc.req.docSourceType}:${readingDoc.req.docSourceId}`);
+                    if (!prog || prog.status !== "completed") {
+                      return (
+                        <Button size="sm" onClick={markCompleted} className="gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" />学习完成
+                        </Button>
+                      );
+                    }
+                    return null;
+                  })()}
+                  <Button size="sm" variant="outline" onClick={() => setReadingDoc(null)}>关闭</Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-base">文档内容待录入</DialogTitle>
+              </DialogHeader>
+              <div className="py-8 text-center text-muted-foreground">
+                <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm font-medium mb-1">"{readingDoc?.req?.docTitle}"</p>
+                <p className="text-xs">该文档内容尚未录入系统，请联系知识管理员补充。</p>
+              </div>
+              <DialogFooter>
+                <Button size="sm" variant="outline" onClick={() => setReadingDoc(null)}>关闭</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -289,9 +425,12 @@ function LibraryTab({ searchQuery }: { searchQuery: string }) {
 // ══════════════════════════════════════════════════════════════════
 // Tab 3: Role Requirements Map (岗位文档要求)
 // ══════════════════════════════════════════════════════════════════
+
 function RoleMapTab() {
   const [selectedRole, setSelectedRole] = useState("production_engineer");
   const [filterLevel, setFilterLevel] = useState<number | undefined>(undefined);
+  const [viewingDoc, setViewingDoc] = useState<DocContent | null>(null);
+  const [viewingReqTitle, setViewingReqTitle] = useState<string>("");
 
   const roles = trpc.knowledgeCompliance.requirement.listRoles.useQuery();
   const requirements = trpc.knowledgeCompliance.requirement.getByRole.useQuery({
@@ -316,6 +455,13 @@ function RoleMapTab() {
   }, [requirements.data]);
 
   const levelNames = ["", "初级 (Lv1)", "中级 (Lv2)", "高级 (Lv3)", "专家 (Lv4)", "大师 (Lv5)"];
+  const levelColors = ["", "#6b7280", "#3b82f6", "#22c55e", "#a855f7", "#eab308"];
+
+  function handleDocClick(title: string) {
+    const doc = findDocContent(title);
+    setViewingReqTitle(title);
+    setViewingDoc(doc);
+  }
 
   return (
     <div className="space-y-4">
@@ -335,7 +481,7 @@ function RoleMapTab() {
             {[1, 2, 3, 4, 5].map(l => <SelectItem key={l} value={String(l)}>≤ Lv{l}</SelectItem>)}
           </SelectContent>
         </Select>
-        <span className="text-xs text-muted-foreground">共 {requirements.data?.length ?? 0} 项</span>
+        <span className="text-xs text-muted-foreground">共 {requirements.data?.length ?? 0} 项 · 点击文档名称可查看全文</span>
       </div>
 
       {/* Stats bar */}
@@ -349,31 +495,97 @@ function RoleMapTab() {
 
       {/* Grouped by level */}
       {grouped.map(([level, items]) => (
-        <Card key={level}>
+        <Card key={level} className="border-l-4" style={{ borderLeftColor: levelColors[level] ?? "#6b7280" }}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Award className="w-4 h-4 text-primary" />
+              <Award className="w-4 h-4" style={{ color: levelColors[level] }} />
               {levelNames[level] || `Lv${level}`}
               <Badge variant="outline" className="text-[10px]">{items.length}项</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {items.map((req: any) => (
-                <div key={req.id} className="flex items-center gap-2 text-xs border rounded-lg px-3 py-2 hover:bg-muted/50">
-                  <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <span className="flex-1 truncate">{req.docTitle}</span>
-                  <Badge className={`text-[9px] ${req.requirementLevel === "must_know" ? "bg-red-100 text-red-700" : req.requirementLevel === "should_know" ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700"}`}>
-                    {req.requirementLevel === "must_know" ? "必学" : req.requirementLevel === "should_know" ? "应学" : "选学"}
-                  </Badge>
-                  {req.hasTest && <ClipboardCheck className="w-3 h-3 text-purple-500" />}
-                </div>
-              ))}
+              {items.map((req: any) => {
+                const hasContent = !!findDocContent(req.docTitle);
+                return (
+                  <div
+                    key={req.id}
+                    className={`flex items-center gap-2 text-xs border rounded-lg px-3 py-2 transition-colors ${
+                      hasContent
+                        ? "cursor-pointer hover:bg-primary/10 hover:border-primary/30"
+                        : "hover:bg-muted/50"
+                    }`}
+                    onClick={() => handleDocClick(req.docTitle)}
+                  >
+                    <FileText className={`w-3.5 h-3.5 shrink-0 ${hasContent ? "text-primary" : "text-muted-foreground"}`} />
+                    <span className={`flex-1 truncate ${hasContent ? "text-primary font-medium underline underline-offset-2 decoration-dotted" : ""}`}>
+                      {req.docTitle}
+                    </span>
+                    <Badge className={`text-[9px] ${req.requirementLevel === "must_know" ? "bg-red-100 text-red-700" : req.requirementLevel === "should_know" ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700"}`}>
+                      {req.requirementLevel === "must_know" ? "必学" : req.requirementLevel === "should_know" ? "应学" : "选学"}
+                    </Badge>
+                    {req.hasTest && <ClipboardCheck className="w-3 h-3 text-purple-500" />}
+                    {hasContent && <Eye className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100" />}
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
       ))}
       {grouped.length === 0 && <Card><CardContent className="py-8 text-center text-muted-foreground text-xs">该岗位暂无文档要求配置</CardContent></Card>}
+
+      {/* ── Document Viewer Dialog ── */}
+      <Dialog open={!!viewingDoc || !!viewingReqTitle} onOpenChange={(open) => { if (!open) { setViewingDoc(null); setViewingReqTitle(""); } }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          {viewingDoc ? (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="font-mono text-xs">{viewingDoc.code}</Badge>
+                  <Badge className="text-[10px] bg-blue-100 text-blue-700">{viewingDoc.category}</Badge>
+                </div>
+                <DialogTitle className="text-lg">{viewingDoc.title}</DialogTitle>
+              </DialogHeader>
+              <ScrollArea className="flex-1 min-h-[300px] border rounded-lg p-4 bg-muted/20">
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  {viewingDoc.content.split("\n").map((line, i) => {
+                    const trimmed = line.trim();
+                    if (!trimmed) return <div key={i} className="h-2" />;
+                    if (/^\d+\.\s/.test(trimmed) && !/^\d+\.\d/.test(trimmed)) {
+                      return <h3 key={i} className="text-base font-bold mt-4 mb-2 text-foreground">{trimmed}</h3>;
+                    }
+                    if (/^\d+\.\d+\s/.test(trimmed)) {
+                      return <p key={i} className="font-semibold mt-2 mb-1">{trimmed}</p>;
+                    }
+                    if (/^[a-z]\)\s/.test(trimmed) || /^-\s/.test(trimmed) || /^（/.test(trimmed)) {
+                      return <p key={i} className="ml-6 text-sm">{trimmed}</p>;
+                    }
+                    return <p key={i} className="text-sm leading-relaxed">{trimmed}</p>;
+                  })}
+                </div>
+              </ScrollArea>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => { setViewingDoc(null); setViewingReqTitle(""); }}>关闭</Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-base">文档暂未录入</DialogTitle>
+              </DialogHeader>
+              <div className="py-8 text-center text-muted-foreground">
+                <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm font-medium mb-1">"{viewingReqTitle}"</p>
+                <p className="text-xs">该文档内容尚未录入系统，请联系知识管理员补充。</p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => { setViewingDoc(null); setViewingReqTitle(""); }}>关闭</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -5,6 +5,10 @@ import {
   ChevronDown,
   ExternalLink,
   Globe,
+  ArrowUp,
+  ArrowLeft,
+  LayoutDashboard,
+  Home,
 } from "lucide-react";
 import HeroSection, { INDUSTRIES } from "@/components/showcase/HeroSection";
 import TechCapabilities from "@/components/showcase/TechCapabilities";
@@ -179,6 +183,26 @@ export default function ShowcasePortal() {
           </div>
         </div>
       </footer>
+
+      {/* ─── Fixed Bottom Navigation ─── */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 h-12 flex items-center justify-between px-6 border-t border-white/[0.05] backdrop-blur-xl" style={{ background: "rgba(10,10,10,0.92)" }}>
+        <span className="text-[10px] font-mono text-neutral-600">GRT Showcase Portal</span>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => { document.documentElement.scrollTo({ top: 0, behavior: "smooth" }); document.body.scrollTo({ top: 0, behavior: "smooth" }); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-cyan-500/30 text-cyan-400 bg-cyan-500/10 text-[11px] font-medium hover:scale-105 transition-transform cursor-pointer">
+            <ArrowUp className="w-3.5 h-3.5" /> 返回顶部
+          </button>
+          <button type="button" onClick={() => { if (window.history.length > 1) window.history.back(); else window.location.href = "/showcase-hub"; }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-neutral-600/30 text-neutral-400 bg-neutral-500/10 text-[11px] font-medium hover:scale-105 transition-transform cursor-pointer">
+            <ArrowLeft className="w-3.5 h-3.5" /> 返回
+          </button>
+          <button type="button" onClick={() => { window.location.href = "/showcase-hub"; }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-purple-500/30 text-purple-400 bg-purple-500/10 text-[11px] font-medium hover:scale-105 transition-transform cursor-pointer">
+            <LayoutDashboard className="w-3.5 h-3.5" /> 展示中枢
+          </button>
+          <button type="button" onClick={() => { window.location.href = "/me"; }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-500/30 text-amber-400 bg-amber-500/10 text-[11px] font-medium hover:scale-105 transition-transform cursor-pointer">
+            <Home className="w-3.5 h-3.5" /> 主界面
+          </button>
+        </div>
+      </div>
+      <div className="h-12" />
 
       {/* Marquee animation keyframes */}
       <style>{`

@@ -141,6 +141,7 @@ export function ProfileSwitcher({ className, compact = false }: ProfileSwitcherP
     roleConfig,
     dataScope,
     isRoleSwitching,
+    maxLevel,
     switchRole,
     switchBU,
   } = useUserProfile();
@@ -266,44 +267,52 @@ export function ProfileSwitcher({ className, compact = false }: ProfileSwitcherP
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
 
-          {ROLE_GROUPS.map((group) => (
-            <React.Fragment key={group.labelKey}>
-              <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground tracking-wider py-1">
-                {t(group.labelKey)}
-              </DropdownMenuLabel>
-              {group.roles.map(({ role, labelKey }) => {
-                const Icon = RoleIcon[role] || User;
-                const config = ROLE_CONFIGS[role];
-                const isActive = currentUserRole === role;
+          {ROLE_GROUPS.map((group) => {
+            // 只显示用户 maxLevel 范围内的角色
+            const allowedRoles = group.roles.filter(
+              ({ role }) => ROLE_HIERARCHY[role] <= maxLevel
+            );
+            if (allowedRoles.length === 0) return null;
 
-                return (
-                  <DropdownMenuItem
-                    key={role}
-                    onClick={() => switchRole(role)}
-                    className={cn(
-                      "flex items-center gap-2 py-1.5 cursor-pointer",
-                      isActive && "bg-accent"
-                    )}
-                  >
-                    <div
+            return (
+              <React.Fragment key={group.labelKey}>
+                <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground tracking-wider py-1">
+                  {t(group.labelKey)}
+                </DropdownMenuLabel>
+                {allowedRoles.map(({ role, labelKey }) => {
+                  const Icon = RoleIcon[role] || User;
+                  const config = ROLE_CONFIGS[role];
+                  const isActive = currentUserRole === role;
+
+                  return (
+                    <DropdownMenuItem
+                      key={role}
+                      onClick={() => switchRole(role)}
                       className={cn(
-                        "flex items-center justify-center w-6 h-6 rounded-md",
-                        config.color,
-                        "text-white"
+                        "flex items-center gap-2 py-1.5 cursor-pointer",
+                        isActive && "bg-accent"
                       )}
                     >
-                      <Icon className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm">{t(labelKey)}</span>
-                    </div>
-                    <span className="text-[10px] text-muted-foreground">L{config.level}</span>
-                    {isActive && <Check className="h-3 w-3 text-primary" />}
-                  </DropdownMenuItem>
-                );
-              })}
-            </React.Fragment>
-          ))}
+                      <div
+                        className={cn(
+                          "flex items-center justify-center w-6 h-6 rounded-md",
+                          config.color,
+                          "text-white"
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm">{t(labelKey)}</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">L{config.level}</span>
+                      {isActive && <Check className="h-3 w-3 text-primary" />}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </React.Fragment>
+            );
+          })}
 
           <DropdownMenuSeparator />
           <div className="px-2 py-2">

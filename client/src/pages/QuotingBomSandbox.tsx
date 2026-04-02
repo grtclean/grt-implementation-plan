@@ -9,6 +9,7 @@
  * 零 unicode escape · 零 any · 零静态写死
  */
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import FloatingNav from '@/components/FloatingNav';
 import {
   Layers, Package, AlertTriangle, CheckCircle2, Search,
   Plus, Trash2, ChevronRight, Zap, FileText,
@@ -915,6 +916,7 @@ export default function QuotingBomSandbox() {
           <span>GRT 报价 BOM 与 SOP 编排沙盘 v1.0</span>
         </div>
       </footer>
+      <FloatingNav variant="light" />
     </div>
   );
 }

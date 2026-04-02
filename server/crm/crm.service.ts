@@ -119,12 +119,12 @@ export async function createCustomer(data: {
   let nextNumber = 1;
   const maxCode = maxCodeResult[0]?.maxCode;
   if (maxCode) {
-    const match = maxCode.match(/CUS-(\d+)/);
+    const match = maxCode.match(/CUST?-(\d+)/);
     if (match) {
       nextNumber = parseInt(match[1], 10) + 1;
     }
   }
-  const code = `CUS-${String(nextNumber).padStart(3, "0")}`;
+  const code = `CUST-${String(nextNumber).padStart(3, "0")}`;
 
   const insertData: any = {
     code,
@@ -640,14 +640,18 @@ export async function listLeads(params: {
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const items = await db
-    .select()
-    .from(crmLeads)
-    .where(where)
-    .orderBy(desc(crmLeads.createdAt))
-    .limit(limit);
-
-  return items;
+  try {
+    const items = await db
+      .select()
+      .from(crmLeads)
+      .where(where)
+      .orderBy(desc(crmLeads.createdAt))
+      .limit(limit);
+    return items;
+  } catch {
+    // crm_leads table may not exist
+    return [];
+  }
 }
 
 /**

@@ -97,10 +97,10 @@ export default function AIPlanningAssistant() {
       
       // Mock task plan
       setTasks([
-        { id: '1', name: '需求确认', phase: 'M1', duration: 5, startDate: '2024-02-01', endDate: '2024-02-05', assignee: '张工', dependencies: [], risk: 'low' },
-        { id: '2', name: '方案设计', phase: 'M2', duration: 10, startDate: '2024-02-06', endDate: '2024-02-19', assignee: '李工', dependencies: ['1'], risk: 'medium', aiOptimization: '建议并行进行机械和电气设计，可节省5天' },
+        { id: '1', name: '需求确认', phase: 'M1', duration: 5, startDate: '2024-02-01', endDate: '2024-02-05', assignee: '洪小东', dependencies: [], risk: 'low' },
+        { id: '2', name: '方案设计', phase: 'M2', duration: 10, startDate: '2024-02-06', endDate: '2024-02-19', assignee: '钱佳奇', dependencies: ['1'], risk: 'medium', aiOptimization: '建议并行进行机械和电气设计，可节省5天' },
         { id: '3', name: '机械设计', phase: 'M3', duration: 15, startDate: '2024-02-20', endDate: '2024-03-11', assignee: '焦斌', dependencies: ['2'], risk: 'medium' },
-        { id: '4', name: '电气设计', phase: 'M4', duration: 12, startDate: '2024-02-20', endDate: '2024-03-06', assignee: '赵工', dependencies: ['2'], risk: 'low' },
+        { id: '4', name: '电气设计', phase: 'M4', duration: 12, startDate: '2024-02-20', endDate: '2024-03-06', assignee: '马林山', dependencies: ['2'], risk: 'low' },
         { id: '5', name: '采购', phase: 'M5', duration: 20, startDate: '2024-03-07', endDate: '2024-04-03', assignee: '采购部', dependencies: ['3', '4'], risk: 'high', aiOptimization: '长周期物料建议提前采购' },
         { id: '6', name: '装配', phase: 'M7', duration: 15, startDate: '2024-04-04', endDate: '2024-04-24', assignee: '装配组', dependencies: ['5'], risk: 'medium' },
         { id: '7', name: '调试', phase: 'M8', duration: 10, startDate: '2024-04-25', endDate: '2024-05-08', assignee: '调试组', dependencies: ['6'], risk: 'high' },
@@ -109,8 +109,8 @@ export default function AIPlanningAssistant() {
 
       setResources([
         { role: '机械工程师', name: '焦斌', utilization: 85, tasks: 3, overloaded: false },
-        { role: '电气工程师', name: '赵工', utilization: 72, tasks: 2, overloaded: false },
-        { role: '项目经理', name: '张工', utilization: 95, tasks: 5, overloaded: true },
+        { role: '电气工程师', name: '马林山', utilization: 72, tasks: 2, overloaded: false },
+        { role: '项目经理', name: '洪小东', utilization: 95, tasks: 5, overloaded: true },
         { role: '装配技师', name: '装配组', utilization: 60, tasks: 2, overloaded: false },
         { role: '调试工程师', name: '调试组', utilization: 88, tasks: 2, overloaded: false },
       ]);

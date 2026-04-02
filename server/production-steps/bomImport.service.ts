@@ -362,8 +362,8 @@ export async function syncFromExternalSync(params: {
   const now = Date.now();
 
   // 外部数据平台API配置
-  const apiKey = process.env.EXT_SYNC_API_KEY;
-  const corpId = process.env.EXT_SYNC_CORP_ID;
+  const apiKey = process.env.EXT_SYNC_API_KEY || process.env.JIANDAOYUN_API_KEY;
+  const corpId = process.env.EXT_SYNC_CORP_ID || process.env.JIANDAOYUN_CORP_ID;
 
   if (!apiKey || !corpId) {
     return {

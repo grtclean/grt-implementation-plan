@@ -1,10 +1,10 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║  2026战略指挥中心 — CEO Strategy Command Center             ║
+ * ║  战略指挥中心 — CEO Strategy Command Center                  ║
  * ║  实时联动: 项目/生产/质量/工时 → KPI → OKR → 战略目标       ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -54,6 +54,8 @@ import {
   Plus,
   Pencil,
   Trash2,
+  CalendarRange,
+  PieChart,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -138,6 +140,11 @@ export default function CeoStrategy2026() {
   const canManage = level >= 5; // director+ can manage strategy
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+
+  // Year options: 2026-2056
+  const yearOptions = useMemo(() => Array.from({ length: 31 }, (_, i) => 2026 + i), []);
 
   // ─── Goal CRUD state ───
   const [showCreateGoal, setShowCreateGoal] = useState(false);
@@ -146,18 +153,23 @@ export default function CeoStrategy2026() {
   const [goalForm, setGoalForm] = useState({ metricName: "", metricNameEn: "", targetValue: "", currentValue: "0", unit: "CNY", weight: "0.2", category: "revenue" as string });
 
   // ─── Queries ───
-  const dashboardQuery = trpc.strategyGoals.getDashboard.useQuery({ year: 2026 });
+  const dashboardQuery = trpc.strategyGoals.getDashboard.useQuery({ year: selectedYear });
   const liveMetrics = trpc.strategyGoals.getLiveMetrics.useQuery();
   const linkageMap = trpc.strategyGoals.getLinkageMap.useQuery();
-  const okrCascade = trpc.strategyGoals.getOkrCascade.useQuery({ year: 2026 });
+  const okrCascade = trpc.strategyGoals.getOkrCascade.useQuery({ year: selectedYear });
   const recentEvents = trpc.strategyGoals.getRecentEvents.useQuery({ limit: 10 });
+  const historicalProgress = trpc.strategyGoals.getHistoricalProgress.useQuery({ year: selectedYear });
 
   // ─── Mutations ───
   const seedMutation = trpc.strategyGoals.seedDemo.useMutation({
     onSuccess: () => { dashboardQuery.refetch(); toast.success("Demo数据已重置"); },
   });
   const syncMutation = trpc.strategyGoals.syncLiveToKpis.useMutation({
-    onSuccess: (data) => { dashboardQuery.refetch(); liveMetrics.refetch(); toast.success(data.message); },
+    onSuccess: (data) => {
+      setLastSyncTime(new Date());
+      dashboardQuery.refetch(); liveMetrics.refetch(); okrCascade.refetch(); historicalProgress.refetch(); recentEvents.refetch();
+      toast.success(data.message);
+    },
     onError: (e) => toast.error(`同步失败: ${e.message}`),
   });
   const createGoalMut = trpc.strategyGoals.createCompanyGoal.useMutation({
@@ -199,6 +211,7 @@ export default function CeoStrategy2026() {
     liveMetrics.refetch();
     recentEvents.refetch();
     okrCascade.refetch();
+    historicalProgress.refetch();
   };
 
   return (
@@ -210,11 +223,26 @@ export default function CeoStrategy2026() {
             <Crown className="h-7 w-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-              2026战略指挥中心
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                战略指挥中心
+              </h1>
+              <div className="relative inline-flex items-center">
+                <CalendarRange className="absolute left-2.5 h-3.5 w-3.5 text-blue-500 pointer-events-none" />
+                <select
+                  value={selectedYear}
+                  onChange={e => setSelectedYear(Number(e.target.value))}
+                  className="h-9 pl-8 pr-3 rounded-md border border-blue-200 bg-white text-sm font-medium shadow-sm cursor-pointer hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 appearance-none"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', paddingRight: '28px' }}
+                >
+                  {yearOptions.map(y => (
+                    <option key={y} value={y}>{y}年</option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <p className="text-sm text-gray-500 mt-0.5">
-              实时联动: 运营数据 → KPI → OKR → 战略目标 | GRT深度融合迭代
+              实时联动: 运营数据 → KPI → OKR → 战略目标 | GRT杰瑞德自动化
             </p>
           </div>
         </div>
@@ -229,11 +257,16 @@ export default function CeoStrategy2026() {
               </div>
             </div>
           )}
-          <Button size="sm" onClick={() => syncMutation.mutate({ year: 2026 })} disabled={syncMutation.isPending}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-            <Zap className="h-4 w-4 mr-1" />
-            {syncMutation.isPending ? "同步中..." : "同步实时数据"}
-          </Button>
+          <div className="flex flex-col items-end gap-0.5">
+            <Button size="sm" onClick={() => syncMutation.mutate({ year: selectedYear })} disabled={syncMutation.isPending}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+              <Zap className="h-4 w-4 mr-1" />
+              {syncMutation.isPending ? "同步中..." : "同步实时数据"}
+            </Button>
+            {lastSyncTime && (
+              <span className="text-[10px] text-gray-400">上次同步: {lastSyncTime.toLocaleTimeString("zh-CN")}</span>
+            )}
+          </div>
           <Button variant="outline" size="sm" onClick={refetchAll} disabled={dashboardQuery.isFetching}>
             <RefreshCw className={`h-4 w-4 mr-1 ${dashboardQuery.isFetching ? "animate-spin" : ""}`} />
             刷新
@@ -271,6 +304,7 @@ export default function CeoStrategy2026() {
           <TabsTrigger value="live" className="gap-1.5"><Activity className="w-3.5 h-3.5" />实时联动</TabsTrigger>
           <TabsTrigger value="linkage" className="gap-1.5"><GitBranch className="w-3.5 h-3.5" />联动地图</TabsTrigger>
           <TabsTrigger value="okr" className="gap-1.5"><Layers className="w-3.5 h-3.5" />OKR级联</TabsTrigger>
+          <TabsTrigger value="bi" className="gap-1.5"><PieChart className="w-3.5 h-3.5" />达成统计</TabsTrigger>
         </TabsList>
 
         {/* ═══ Tab 1: 战略总览 (Original dashboard) ═══ */}
@@ -870,6 +904,157 @@ export default function CeoStrategy2026() {
                   );
                 })}
               </div>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ═══ Tab 5: 达成统计 (BI) ═══ */}
+        <TabsContent value="bi" className="space-y-6 mt-4">
+          {historicalProgress.data && (
+            <>
+              {/* Annual Score */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="border shadow-sm bg-gradient-to-br from-blue-50 to-indigo-50 md:col-span-1">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold text-gray-700">{selectedYear}年度综合达成率</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-4">
+                      <div className={`text-5xl font-bold ${historicalProgress.data.annualPct >= 90 ? "text-emerald-600" : historicalProgress.data.annualPct >= 70 ? "text-amber-600" : "text-red-600"}`}>
+                        {historicalProgress.data.annualPct}%
+                      </div>
+                      <div className="text-sm text-gray-500 mt-2">
+                        {historicalProgress.data.goalCount} 项公司目标 | {historicalProgress.data.kpiCount} 项BU-KPI
+                      </div>
+                      <div className="mt-3">
+                        <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all duration-700 ${progressColor(historicalProgress.data.annualPct)}`}
+                            style={{ width: `${Math.min(historicalProgress.data.annualPct, 100)}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Quarterly Cards */}
+                <div className="md:col-span-2 grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {historicalProgress.data.quarters.map((q: any) => (
+                    <Card key={q.quarter} className="border shadow-sm">
+                      <CardHeader className="pb-1 pt-3 px-4">
+                        <CardTitle className="text-sm font-semibold text-gray-600">{q.quarter}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="px-4 pb-3">
+                        <div className={`text-2xl font-bold ${q.overallPct >= 90 ? "text-emerald-600" : q.overallPct >= 70 ? "text-amber-600" : "text-red-600"}`}>
+                          {q.overallPct}%
+                        </div>
+                        <div className="mt-2 space-y-1">
+                          {q.metrics.map((m: any) => (
+                            <div key={m.name} className="flex items-center gap-1.5">
+                              <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${progressColor(m.avgPct)}`} style={{ width: `${Math.min(m.avgPct, 100)}%` }} />
+                              </div>
+                              <span className="text-[9px] text-gray-400 w-8 text-right">{m.avgPct}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Monthly KPI Progress Table */}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-blue-600" />
+                  月度KPI达成率趋势
+                </h2>
+                <Card className="border shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gray-50/80">
+                          <TableHead className="font-semibold sticky left-0 bg-gray-50 z-10">KPI指标</TableHead>
+                          {historicalProgress.data.months.map((m: any) => (
+                            <TableHead key={m.month} className="font-semibold text-center text-xs min-w-[60px]">{m.month}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(historicalProgress.data.months[0]?.metrics ?? []).map((_: any, metricIdx: number) => {
+                          const metricName = historicalProgress.data!.months[0]?.metrics[metricIdx]?.name ?? "";
+                          return (
+                            <TableRow key={metricIdx}>
+                              <TableCell className="font-medium text-sm sticky left-0 bg-white z-10 whitespace-nowrap">{metricName}</TableCell>
+                              {historicalProgress.data!.months.map((m: any) => {
+                                const metric = m.metrics[metricIdx];
+                                if (!metric) return <TableCell key={m.month} />;
+                                return (
+                                  <TableCell key={m.month} className="text-center p-1.5">
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <span className={`text-xs font-medium ${metric.pct >= 90 ? "text-emerald-600" : metric.pct >= 70 ? "text-amber-600" : "text-red-600"}`}>
+                                        {metric.pct}%
+                                      </span>
+                                      <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                                        <div className={`h-full rounded-full ${progressColor(metric.pct)}`} style={{ width: `${Math.min(metric.pct, 100)}%` }} />
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                );
+                              })}
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Per-Goal Annual Summary */}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <Target className="h-5 w-5 text-emerald-600" />
+                  各目标年度达成
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {data?.companyGoals.map((goal: any) => {
+                    const pct = computeGoalPct(goal);
+                    const Icon = CATEGORY_ICONS[goal.category] || Target;
+                    return (
+                      <Card key={goal.id} className="border shadow-sm">
+                        <CardContent className="pt-4 pb-3">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className={`p-1.5 rounded-lg bg-gray-100 ${CATEGORY_COLORS[goal.category]}`}>
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <span className="text-sm font-semibold text-gray-800">{goal.metric_name}</span>
+                          </div>
+                          <div className="flex items-baseline justify-between mb-2">
+                            <span className="text-xl font-bold">{formatValue(Number(goal.current_value), goal.unit)}</span>
+                            <span className="text-xs text-gray-400">目标 {formatValue(Number(goal.target_value), goal.unit)}</span>
+                          </div>
+                          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full transition-all duration-500 ${progressColor(pct)}`}
+                              style={{ width: `${Math.min(pct, 100)}%` }} />
+                          </div>
+                          <div className="flex justify-between mt-1.5 text-xs">
+                            <span className={`font-medium ${pct >= 90 ? "text-emerald-600" : pct >= 70 ? "text-amber-600" : "text-red-600"}`}>
+                              {pct.toFixed(1)}%
+                            </span>
+                            <span className="text-gray-400">{(Number(goal.weight) * 100).toFixed(0)}% 权重</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+          {historicalProgress.isLoading && (
+            <div className="flex items-center justify-center h-40">
+              <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
             </div>
           )}
         </TabsContent>

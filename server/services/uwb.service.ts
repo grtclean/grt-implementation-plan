@@ -14,6 +14,28 @@ interface RawDbConnection {
   execute(sql: string, params?: unknown[]): Promise<unknown[]>;
 }
 
+/** Wrap Drizzle PG to support MySQL-style execute(query, [params]) */
+function pgCompat(db: any): RawDbConnection {
+  return {
+    async execute(query: string, params?: unknown[]): Promise<unknown[]> {
+      let finalQuery = query;
+      if (params && params.length) {
+        let idx = 0;
+        finalQuery = query.replace(/\?/g, () => {
+          const val = params[idx++];
+          if (val === null || val === undefined) return 'NULL';
+          if (typeof val === 'number') return String(val);
+          return `'${String(val).replace(/'/g, "''")}'`;
+        });
+      }
+      const { sql: drizzleSql } = require("drizzle-orm");
+      const result = await db.execute(drizzleSql.raw(finalQuery));
+      const rows = (result as any).rows ?? result ?? [];
+      return [rows];
+    }
+  };
+}
+
 /** DB row from uwb_zones */
 interface UwbZoneRow {
   id: string;
@@ -155,7 +177,7 @@ const tagEmployeeMap = new Map<string, { employeeId: string; resourceId?: string
  * 处理UWB定位数据
  */
 export async function processLocationData(data: UwbLocationData): Promise<void> {
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
 
   // 确定所在区域
   const zone = await determineZone(data.x, data.y, data.z);
@@ -218,7 +240,7 @@ export async function processBatchLocationData(dataList: UwbLocationData[]): Pro
  * 确定坐标所在区域
  */
 async function determineZone(x: number, y: number, z?: number): Promise<UwbZone | null> {
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
 
   let query = `
     SELECT * FROM uwb_zones
@@ -269,7 +291,7 @@ async function getEmployeeByTag(tagId: string): Promise<{ employeeId: string; re
   }
 
   // 从数据库查询（假设有员工-标签关联表）
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
   const [rows] = await db.execute(
     `SELECT e.id as employee_id, r.id as resource_id
      FROM users e
@@ -302,7 +324,7 @@ async function updateWorkHours(
   zone: UwbZone,
   timestamp: Date
 ): Promise<void> {
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
   const workDate = timestamp.toISOString().split('T')[0];
 
   // 查找当天该区域的工时记录
@@ -364,7 +386,7 @@ export async function getEmployeeWorkHoursSummary(
   startDate: string,
   endDate: string
 ): Promise<UwbWorkHoursSummary[]> {
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
 
   const [rows] = await db.execute(
     `SELECT
@@ -419,7 +441,7 @@ export async function calculateResourceCapacity(
   resourceId: string,
   date: string
 ): Promise<UwbCapacityData | null> {
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
 
   // 获取资源信息
   const [resourceRows] = await db.execute(
@@ -460,7 +482,7 @@ export async function calculateResourceCapacity(
  * 获取所有资源的实时产能
  */
 export async function getAllResourcesCapacity(date: string): Promise<UwbCapacityData[]> {
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
 
   const [resourceRows] = await db.execute(
     'SELECT id FROM scheduling_resources WHERE status = ?',
@@ -488,7 +510,7 @@ export async function syncWorkHoursToScheduling(
   taskId: string,
   reportedHours: number
 ): Promise<void> {
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
 
   // 获取资源ID
   const [resourceRows] = await db.execute(
@@ -517,7 +539,7 @@ export async function syncWorkHoursToScheduling(
  * 结束当天所有进行中的工时记录
  */
 export async function closeWorkHoursForDay(date: string): Promise<number> {
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
 
   const [result] = await db.execute(
     `UPDATE uwb_work_hours
@@ -535,7 +557,7 @@ export async function closeWorkHoursForDay(date: string): Promise<number> {
  * 创建UWB区域
  */
 export async function createZone(zone: Omit<UwbZone, 'id'>): Promise<string> {
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
   const id = uuidv4();
 
   await db.execute(
@@ -567,7 +589,7 @@ export async function createZone(zone: Omit<UwbZone, 'id'>): Promise<string> {
  * 获取所有区域
  */
 export async function getAllZones(): Promise<UwbZone[]> {
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
 
   const [rows] = await db.execute(
     'SELECT * FROM uwb_zones WHERE status = ? ORDER BY zone_code',
@@ -603,7 +625,7 @@ export async function getZoneOccupancy(zoneId: string): Promise<{
   capacity: number;
   employees: { id: string; name: string; lastSeen: Date }[];
 }> {
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
 
   // 获取区域信息
   const [zoneRows] = await db.execute(
@@ -648,7 +670,7 @@ export async function getZoneOccupancy(zoneId: string): Promise<{
  * 绑定UWB标签到员工
  */
 export async function bindTagToEmployee(tagId: string, employeeId: string): Promise<void> {
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
 
   // 更新员工表的UWB标签字段（假设users表有uwb_tag_id字段）
   await db.execute(
@@ -664,7 +686,7 @@ export async function bindTagToEmployee(tagId: string, employeeId: string): Prom
  * 解绑UWB标签
  */
 export async function unbindTag(tagId: string): Promise<void> {
-  const db = await getDb() as unknown as RawDbConnection;
+  const db = pgCompat(await getDb());
 
   await db.execute(
     'UPDATE users SET uwb_tag_id = NULL WHERE uwb_tag_id = ?',

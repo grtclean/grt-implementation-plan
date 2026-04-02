@@ -75,7 +75,7 @@ export default function CapabilityCertificates() {
         setVerifyResult({
           valid: true,
           certificateNumber: verifyNumber,
-          userName: "张工程师",
+          userName: "李大鹏",
           domainName: "技术能力",
           level: 3,
           issueDate: "2026-01-15",

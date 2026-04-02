@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
+import FloatingNav from '@/components/FloatingNav';
 import {
   DashboardModeProvider,
   useDashboardMode,
@@ -432,6 +433,7 @@ export default function LobbyGlobalScreen() {
   return (
     <DashboardModeProvider>
       <LobbyContent />
+      <FloatingNav />
     </DashboardModeProvider>
   );
 }

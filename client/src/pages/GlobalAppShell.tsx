@@ -21,6 +21,7 @@ import {
   Radio, X, Settings, Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import FloatingNav from '@/components/FloatingNav';
 
 // ═══════════════════════════════════════════════════════════
 // §1  TYPE SYSTEM — Zero `any`
@@ -311,12 +312,12 @@ const TopBar = memo(function TopBar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="shrink-0 h-12 px-4 flex items-center justify-between border-b border-slate-700/50 bg-slate-900/95 backdrop-blur-sm z-50">
+    <header className="shrink-0 h-12 px-4 flex items-center justify-between border-b border-slate-600/50 bg-slate-900/95 backdrop-blur-sm z-50">
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
           <Globe className="h-4 w-4 text-cyan-400" />
         </div>
-        <span className="text-xs font-bold text-slate-400 tracking-wider hidden lg:inline">GRT 工业 OS</span>
+        <span className="text-xs font-bold text-slate-300 tracking-wider hidden lg:inline">GRT 工业 OS</span>
         <div className="h-5 w-px bg-slate-700 mx-1" />
 
         {/* Project selector */}
@@ -333,7 +334,7 @@ const TopBar = memo(function TopBar() {
             {state.currentProject ? (
               <>
                 <Lock className="h-3.5 w-3.5" />
-                <span className="font-mono text-[11px] text-slate-400">{state.currentProject.code}</span>
+                <span className="font-mono text-[11px] text-slate-300">{state.currentProject.code}</span>
                 <span className="font-medium text-xs">{state.currentProject.name}</span>
               </>
             ) : (
@@ -347,8 +348,8 @@ const TopBar = memo(function TopBar() {
 
           {open && (
             <div className="absolute top-full left-0 mt-1 w-[460px] rounded-xl border border-slate-700 bg-slate-900 shadow-2xl shadow-black/50 z-50 overflow-hidden" style={{ animation: "slideIn .2s ease-out" }}>
-              <div className="p-3 border-b border-slate-700/50">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wider">选择全局项目上下文</p>
+              <div className="p-3 border-b border-slate-600/50">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider">选择全局项目上下文</p>
               </div>
               <div className="max-h-[280px] overflow-y-auto">
                 {DEMO_PROJECTS.map(proj => (
@@ -363,12 +364,12 @@ const TopBar = memo(function TopBar() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-mono text-slate-400">{proj.code}</span>
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400 border border-slate-600">{proj.phase}</span>
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400 border border-slate-600">{proj.bu}</span>
+                          <span className="text-[10px] font-mono text-slate-300">{proj.code}</span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 border border-slate-600">{proj.phase}</span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 border border-slate-600">{proj.bu}</span>
                         </div>
                         <p className="text-xs text-slate-200 mt-1">{proj.name}</p>
-                        <p className="text-[10px] text-slate-500">{proj.customer}</p>
+                        <p className="text-[10px] text-slate-400">{proj.customer}</p>
                       </div>
                       {state.currentProject?.id === proj.id && <CheckCircle2 className="h-4 w-4 text-cyan-400 shrink-0" />}
                     </div>
@@ -381,7 +382,7 @@ const TopBar = memo(function TopBar() {
       </div>
 
       {state.currentProject && (
-        <div className="flex items-center gap-4 text-[10px] text-slate-400">
+        <div className="flex items-center gap-4 text-[10px] text-slate-300">
           <span>12 沙盘</span>
           <span className="h-3 w-px bg-slate-700" />
           <span>26 EventBus</span>
@@ -401,7 +402,7 @@ const LeftNav = memo(function LeftNav() {
   const { state, dispatch } = useShell();
 
   return (
-    <nav className="w-14 shrink-0 border-r border-slate-700/50 bg-slate-900 flex flex-col items-center py-2 overflow-y-auto">
+    <nav className="w-14 shrink-0 border-r border-slate-600/50 bg-slate-900 flex flex-col items-center py-2 overflow-y-auto">
       {SANDBOX_MENU.map(sb => {
         const Icon = sb.icon;
         const isActive = state.activeSandboxId === sb.id;
@@ -414,7 +415,7 @@ const LeftNav = memo(function LeftNav() {
               "w-10 h-10 rounded-lg flex flex-col items-center justify-center mb-1 transition-all relative group",
               isActive
                 ? "bg-cyan-500/10 text-cyan-400"
-                : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50",
+                : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50",
             )}
           >
             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r bg-cyan-400" />}
@@ -481,15 +482,15 @@ const SandboxOutlet = memo(function SandboxOutlet() {
             {currentSandbox?.label ?? "AI 工艺孪生"} — SOP 工艺编排表单
           </h2>
         </div>
-        <p className="text-[10px] text-slate-500">
+        <p className="text-[10px] text-slate-400">
           所有列均可编辑。在物料框输入关键词（如"柱塞泵"、"喷淋压力"、"清洗剂"）后点击其他地方 (blur)，右侧 RAG 幕僚将自动响应。
         </p>
       </div>
 
       {/* SOP Table — REAL <input> fields */}
-      <div className="rounded-xl border border-slate-700/50 bg-slate-900 overflow-hidden">
+      <div className="rounded-xl border border-slate-600/50 bg-slate-900 overflow-hidden">
         {/* Header */}
-        <div className="grid grid-cols-[40px_minmax(120px,1fr)_minmax(140px,1.2fr)_minmax(140px,1.2fr)_minmax(180px,1.5fr)_minmax(100px,0.8fr)_50px] text-[10px] text-slate-400 uppercase tracking-wider bg-slate-800/50 border-b border-slate-700/30">
+        <div className="grid grid-cols-[40px_minmax(120px,1fr)_minmax(140px,1.2fr)_minmax(140px,1.2fr)_minmax(180px,1.5fr)_minmax(100px,0.8fr)_50px] text-[10px] text-slate-300 uppercase tracking-wider bg-slate-800/50 border-b border-slate-700/30">
           <div className="p-2.5 text-center">#</div>
           <div className="p-2.5">工序名称</div>
           <div className="p-2.5">物料 / BOM</div>
@@ -512,7 +513,7 @@ const SandboxOutlet = memo(function SandboxOutlet() {
               style={isFlashing ? { animation: "injFlashGreen 0.6s ease-in-out 3" } : undefined}
             >
               {/* Seq */}
-              <div className="p-2 text-center text-[10px] font-mono text-slate-500 self-center">{row.seq}</div>
+              <div className="p-2 text-center text-[10px] font-mono text-slate-400 self-center">{row.seq}</div>
 
               {/* Process Name — editable */}
               <div className="p-1.5 self-center">
@@ -527,7 +528,7 @@ const SandboxOutlet = memo(function SandboxOutlet() {
               <div className="p-1.5 self-center">
                 <input
                   className={cn(
-                    "w-full bg-transparent text-xs text-slate-300 border-b border-slate-700/50 hover:border-slate-500 focus:border-blue-500 outline-none py-1 px-1 transition-colors",
+                    "w-full bg-transparent text-xs text-slate-300 border-b border-slate-600/50 hover:border-slate-500 focus:border-blue-500 outline-none py-1 px-1 transition-colors",
                     isFlashing && flashField === "material" && "border-green-400 text-green-300",
                   )}
                   value={row.material}
@@ -541,7 +542,7 @@ const SandboxOutlet = memo(function SandboxOutlet() {
               <div className="p-1.5 self-center">
                 <input
                   className={cn(
-                    "w-full bg-transparent text-[11px] border-b border-slate-700/50 hover:border-slate-500 focus:border-cyan-500 outline-none py-1 px-1 transition-colors",
+                    "w-full bg-transparent text-[11px] border-b border-slate-600/50 hover:border-slate-500 focus:border-cyan-500 outline-none py-1 px-1 transition-colors",
                     row.specialProcess ? "text-cyan-300" : "text-slate-600",
                     isFlashing && flashField === "specialProcess" && "border-green-400 text-green-300",
                   )}
@@ -555,7 +556,7 @@ const SandboxOutlet = memo(function SandboxOutlet() {
               <div className="p-1.5 self-center">
                 <input
                   className={cn(
-                    "w-full bg-transparent text-[11px] border-b border-slate-700/50 hover:border-slate-500 focus:border-amber-500 outline-none py-1 px-1 transition-colors",
+                    "w-full bg-transparent text-[11px] border-b border-slate-600/50 hover:border-slate-500 focus:border-amber-500 outline-none py-1 px-1 transition-colors",
                     row.qualityNote ? "text-amber-300" : "text-slate-600",
                     isFlashing && flashField === "qualityNote" && "border-green-400 text-green-300",
                   )}
@@ -568,21 +569,21 @@ const SandboxOutlet = memo(function SandboxOutlet() {
               {/* Tooling — editable */}
               <div className="p-1.5 self-center">
                 <input
-                  className="w-full bg-transparent text-xs text-slate-400 border-b border-transparent hover:border-slate-600 focus:border-slate-500 outline-none py-1 px-1 transition-colors"
+                  className="w-full bg-transparent text-xs text-slate-300 border-b border-transparent hover:border-slate-600 focus:border-slate-500 outline-none py-1 px-1 transition-colors"
                   value={row.tooling}
                   onChange={e => updateRow(row.id, "tooling", e.target.value)}
                 />
               </div>
 
               {/* Estimated minutes */}
-              <div className="p-2 text-center text-xs text-slate-400 font-mono self-center">{row.estimatedMin}</div>
+              <div className="p-2 text-center text-xs text-slate-300 font-mono self-center">{row.estimatedMin}</div>
             </div>
           );
         })}
       </div>
 
       {/* Hint */}
-      <div className="mt-3 flex items-center gap-2 text-[10px] text-slate-500">
+      <div className="mt-3 flex items-center gap-2 text-[10px] text-slate-400">
         <Info className="h-3 w-3 shrink-0" />
         <span>试试：在第 4 行的物料框中输入"柱塞泵"，然后点击其他位置 (blur)。右侧 RAG 幕僚将自动检索全域知识图谱并提供一键反写。</span>
       </div>
@@ -665,18 +666,18 @@ const RightCopilot = memo(function RightCopilot() {
     critical: "border-red-500/40 bg-red-500/5",
     high: "border-orange-500/30 bg-orange-500/5",
     medium: "border-yellow-500/30 bg-yellow-500/5",
-    low: "border-slate-700/50 bg-slate-800/30",
+    low: "border-slate-600/50 bg-slate-800/30",
   };
 
   const SEV_BADGE: Record<string, { bg: string; text: string }> = {
     critical: { bg: "bg-red-500/15", text: "text-red-400" },
     high: { bg: "bg-orange-500/15", text: "text-orange-400" },
     medium: { bg: "bg-yellow-500/15", text: "text-yellow-400" },
-    low: { bg: "bg-slate-700/50", text: "text-slate-400" },
+    low: { bg: "bg-slate-700/50", text: "text-slate-300" },
   };
 
   return (
-    <aside className="w-[340px] shrink-0 border-l border-slate-700/50 bg-slate-900 flex flex-col overflow-hidden">
+    <aside className="w-[340px] shrink-0 border-l border-slate-600/50 bg-slate-900 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="p-3 border-b border-slate-700/30 bg-slate-800/30 shrink-0">
         <div className="flex items-center gap-2">
@@ -685,7 +686,7 @@ const RightCopilot = memo(function RightCopilot() {
           </div>
           <div>
             <p className="text-xs font-bold text-slate-200">全局 RAG 战略幕僚</p>
-            <p className="text-[9px] text-slate-500">跨 12 沙盘知识图谱 · 实时监听 Context</p>
+            <p className="text-[9px] text-slate-400">跨 12 沙盘知识图谱 · 实时监听 Context</p>
           </div>
         </div>
       </div>
@@ -697,7 +698,7 @@ const RightCopilot = memo(function RightCopilot() {
           <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-center">
             <Lock className="h-8 w-8 text-red-400/50 mx-auto mb-2" />
             <p className="text-xs text-red-300 font-medium">未锁定项目上下文</p>
-            <p className="text-[10px] text-slate-500 mt-1">请在顶部选择项目以激活全域知识图谱</p>
+            <p className="text-[10px] text-slate-400 mt-1">请在顶部选择项目以激活全域知识图谱</p>
           </div>
         )}
 
@@ -714,13 +715,13 @@ const RightCopilot = memo(function RightCopilot() {
 
         {/* Keyword monitor */}
         {state.focusedKeyword && (
-          <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 p-2.5 flex items-center gap-2" style={{ animation: "slideIn .2s ease-out" }}>
+          <div className="rounded-lg border border-slate-600/50 bg-slate-800/30 p-2.5 flex items-center gap-2" style={{ animation: "slideIn .2s ease-out" }}>
             <Search className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-[9px] text-slate-500">Context.focusedKeyword</p>
+              <p className="text-[9px] text-slate-400">Context.focusedKeyword</p>
               <p className="text-xs text-cyan-300 font-mono truncate">"{state.focusedKeyword}"</p>
             </div>
-            <button onClick={() => dispatch({ type: "CLEAR_KEYWORD" })} className="text-slate-600 hover:text-slate-400">
+            <button onClick={() => dispatch({ type: "CLEAR_KEYWORD" })} className="text-slate-600 hover:text-slate-300">
               <X className="h-3 w-3" />
             </button>
           </div>
@@ -749,18 +750,18 @@ const RightCopilot = memo(function RightCopilot() {
                     )}>
                       {node.severity.toUpperCase()}
                     </span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400 border border-slate-600">{node.type}</span>
-                    <span className="text-[9px] text-slate-500 font-mono">{node.sourceTable}</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 border border-slate-600">{node.type}</span>
+                    <span className="text-[9px] text-slate-400 font-mono">{node.sourceTable}</span>
                   </div>
 
                   {/* Title */}
                   <p className="text-xs font-medium text-slate-200 mb-1.5">{node.title}</p>
 
                   {/* Detail */}
-                  <p className="text-[11px] text-slate-400 leading-relaxed mb-3">{node.detail}</p>
+                  <p className="text-[11px] text-slate-300 leading-relaxed mb-3">{node.detail}</p>
 
                   {/* Linked sandbox */}
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mb-3">
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mb-3">
                     <Link2 className="h-3 w-3" />
                     关联沙盘: {SANDBOX_MENU.find(s => s.id === node.linkedSandbox)?.label ?? node.linkedSandbox}
                   </div>
@@ -785,7 +786,7 @@ const RightCopilot = memo(function RightCopilot() {
                   {/* Confidence */}
                   <div className="flex items-center justify-between mt-2 text-[9px]">
                     <span className="text-slate-600">{node.actionPayload.source}</span>
-                    <span className="text-slate-500">置信度: <span className="text-cyan-400 font-mono">{(node.actionPayload.confidence * 100).toFixed(0)}%</span></span>
+                    <span className="text-slate-400">置信度: <span className="text-cyan-400 font-mono">{(node.actionPayload.confidence * 100).toFixed(0)}%</span></span>
                   </div>
                 </div>
               );
@@ -797,7 +798,7 @@ const RightCopilot = memo(function RightCopilot() {
         {state.currentProject && !ragLoading && ragResults.length === 0 && state.focusedKeyword && (
           <div className="rounded-lg border border-slate-700/30 bg-slate-800/20 p-4 text-center" style={{ animation: "slideIn .3s ease-out" }}>
             <Search className="h-6 w-6 text-slate-600 mx-auto mb-2" />
-            <p className="text-[11px] text-slate-400">未在知识图谱中找到与"{state.focusedKeyword}"直接关联的条目</p>
+            <p className="text-[11px] text-slate-300">未在知识图谱中找到与"{state.focusedKeyword}"直接关联的条目</p>
             <p className="text-[10px] text-slate-600 mt-1">尝试输入更精确的物料名称</p>
           </div>
         )}
@@ -806,13 +807,13 @@ const RightCopilot = memo(function RightCopilot() {
         {state.currentProject && !ragLoading && ragResults.length === 0 && !state.focusedKeyword && initMessage && (
           <div className="text-center py-6">
             <Brain className="h-10 w-10 text-slate-700 mx-auto mb-2" />
-            <p className="text-[11px] text-slate-500">在左侧表单中编辑物料字段</p>
-            <p className="text-[11px] text-slate-500">幕僚将自动检索全域知识图谱</p>
+            <p className="text-[11px] text-slate-400">在左侧表单中编辑物料字段</p>
+            <p className="text-[11px] text-slate-400">幕僚将自动检索全域知识图谱</p>
             <div className="mt-3 space-y-1 text-[10px] text-slate-600">
               <p>可尝试的关键词：</p>
               <div className="flex gap-2 justify-center">
                 {["柱塞泵", "喷淋压力", "清洗剂"].map(kw => (
-                  <span key={kw} className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400">{kw}</span>
+                  <span key={kw} className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">{kw}</span>
                 ))}
               </div>
             </div>
@@ -822,7 +823,7 @@ const RightCopilot = memo(function RightCopilot() {
 
       {/* Footer */}
       <div className="p-2.5 border-t border-slate-700/30 bg-slate-800/20 shrink-0">
-        <div className="flex items-center justify-between text-[9px] text-slate-500">
+        <div className="flex items-center justify-between text-[9px] text-slate-400">
           <span className="flex items-center gap-1">
             <span className={cn("w-1.5 h-1.5 rounded-full", state.currentProject ? "bg-green-500" : "bg-red-500")} />
             {state.currentProject ? "知识图谱在线" : "无上下文"}
@@ -843,18 +844,18 @@ function NoProjectOverlay() {
     <div className="absolute inset-0 z-40 backdrop-blur-md bg-slate-900/70 flex items-center justify-center">
       <div className="text-center max-w-md">
         <div className="w-20 h-20 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto mb-5">
-          <Lock className="h-10 w-10 text-slate-500" />
+          <Lock className="h-10 w-10 text-slate-400" />
         </div>
         <h2 className="text-lg font-bold text-slate-200 mb-2">
           必须锁定项目上下文
         </h2>
-        <p className="text-sm text-slate-400 mb-1">
+        <p className="text-sm text-slate-300 mb-1">
           必须锁定项目主线后方可作业
         </p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-400">
           系统内产生的所有数据必须携带绝对的项目归属。请在顶部选择项目以解锁工作区。
         </p>
-        <div className="mt-5 flex items-center justify-center gap-2 text-slate-500">
+        <div className="mt-5 flex items-center justify-center gap-2 text-slate-400">
           <ArrowRight className="h-4 w-4 animate-bounce" style={{ animationDirection: "alternate" }} />
           <span className="text-xs">点击上方项目选择器</span>
         </div>
@@ -899,6 +900,7 @@ export default function GlobalAppShell() {
           </div>
           <RightCopilot />
         </div>
+        <FloatingNav />
       </div>
     </GlobalShellContext.Provider>
   );

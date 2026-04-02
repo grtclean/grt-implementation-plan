@@ -35,7 +35,7 @@ export default function NotificationAggregationPreview() {
     setIsRefreshing(true);
     const mockData: AggregatedNotification[] = [
       {
-        id: 'agg-1', recipientId: 'user-1', recipientName: '张三', channel: 'email',
+        id: 'agg-1', recipientId: 'user-1', recipientName: '胡杨', channel: 'email',
         messages: [
           { id: 'm1', title: '设备保养提醒', content: '设备A需要保养', priority: 'high', source: '保养系统', createdAt: Date.now() - 300000 },
           { id: 'm2', title: '设备保养提醒', content: '设备B需要保养', priority: 'normal', source: '保养系统', createdAt: Date.now() - 200000 },
@@ -44,7 +44,7 @@ export default function NotificationAggregationPreview() {
         scheduledTime: Date.now() + 600000, status: 'pending',
       },
       {
-        id: 'agg-2', recipientId: 'user-2', recipientName: '李四', channel: 'wechat',
+        id: 'agg-2', recipientId: 'user-2', recipientName: '刘健康', channel: 'wechat',
         messages: [
           { id: 'm4', title: '会议提醒', content: '明天上午9点项目评审会', priority: 'normal', source: '日程系统', createdAt: Date.now() - 400000 },
         ],

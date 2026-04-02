@@ -1,4 +1,5 @@
 import React, { useReducer, useRef, useCallback, useEffect, useState } from "react";
+import FloatingNav from '@/components/FloatingNav';
 
 // ─────────────────────────────────────────────────────────────
 // §1  Strict TypeScript Contracts — zero `any`
@@ -321,7 +322,7 @@ function DangerTriggerButton({ onClick, disabled }: { onClick: () => void; disab
         relative w-full py-4 px-5 rounded-xl font-bold text-sm tracking-wide
         transition-all duration-300 overflow-hidden group
         ${disabled
-          ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+          ? "bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-700"
           : "bg-gradient-to-r from-red-950 via-red-900 to-red-950 text-red-100 border-2 border-red-600/60 hover:border-red-400 cursor-pointer"
         }
       `}
@@ -346,7 +347,7 @@ function DangerTriggerButton({ onClick, disabled }: { onClick: () => void; disab
 /* ── Sandbox card ── */
 function SandboxCard({ node }: { node: ISandboxNode }) {
   const statusStyles: Record<SandboxStatus, string> = {
-    dormant: "border-slate-700/40 bg-slate-900/60",
+    dormant: "border-slate-600/50 bg-slate-900/60",
     alert: "border-red-500/80 bg-red-950/40",
     active: "border-amber-500/70 bg-amber-950/30",
     settled: "border-cyan-500/60 bg-cyan-950/30",
@@ -360,7 +361,7 @@ function SandboxCard({ node }: { node: ISandboxNode }) {
   };
 
   const statusBadge: Record<SandboxStatus, { text: string; color: string }> = {
-    dormant: { text: "休眠", color: "bg-slate-700 text-slate-400" },
+    dormant: { text: "休眠", color: "bg-slate-700 text-slate-300" },
     alert: { text: "警报", color: "bg-red-600 text-white" },
     active: { text: "激活", color: "bg-amber-600 text-white" },
     settled: { text: "结算", color: "bg-cyan-600 text-white" },
@@ -407,8 +408,8 @@ function SandboxCard({ node }: { node: ISandboxNode }) {
       <div className="flex items-center gap-2 mb-3">
         <span className="text-xl">{node.icon}</span>
         <div>
-          <div className="text-[10px] font-mono text-slate-500">{node.index}</div>
-          <div className={`text-sm font-semibold ${isAwake ? "text-slate-100" : "text-slate-500"}`}>{node.title}</div>
+          <div className="text-[10px] font-mono text-slate-400">{node.index}</div>
+          <div className={`text-sm font-semibold ${isAwake ? "text-slate-100" : "text-slate-400"}`}>{node.title}</div>
         </div>
       </div>
 
@@ -424,7 +425,7 @@ function SandboxCard({ node }: { node: ISandboxNode }) {
         node.status === "alert" ? "text-red-300 font-bold" :
         node.status === "active" ? "text-amber-200" :
         node.status === "settled" ? "text-cyan-200" :
-        "text-slate-500"
+        "text-slate-400"
       }`}
         style={isAwake ? { animation: "geoCountUp .5s ease-out" } : undefined}
       >
@@ -455,12 +456,12 @@ function MetricsBar({ metrics, phase }: { metrics: IKpiMetrics; phase: IGlobalSt
           delta: metrics.workerPoints < metrics.prevWorkerPoints,
           color: metrics.workerPoints < metrics.prevWorkerPoints ? "text-red-400" : "text-emerald-400" },
         { label: "全链路耗时", value: metrics.chainLatency, suffix: " ms", decimals: 0,
-          delta: false, color: phase === "complete" ? "text-cyan-400" : "text-slate-400" },
+          delta: false, color: phase === "complete" ? "text-cyan-400" : "text-slate-300" },
         { label: "事件已分发", value: metrics.eventsDispatched, suffix: "", decimals: 0,
-          delta: false, color: metrics.eventsDispatched > 0 ? "text-amber-400" : "text-slate-400" },
+          delta: false, color: metrics.eventsDispatched > 0 ? "text-amber-400" : "text-slate-300" },
       ] as const).map((m) => (
-        <div key={m.label} className="bg-slate-900/60 border border-slate-700/40 rounded-lg p-3 text-center">
-          <div className="text-[10px] text-slate-500 font-mono mb-1">{m.label}</div>
+        <div key={m.label} className="bg-slate-900/60 border border-slate-600/50 rounded-lg p-3 text-center">
+          <div className="text-[10px] text-slate-400 font-mono mb-1">{m.label}</div>
           <div className={`text-lg font-bold tabular-nums ${m.color}`}>
             {m.delta && <span className="text-red-500 mr-1">▼</span>}
             <AnimatedNumber value={m.value} decimals={m.decimals} suffix={m.suffix} />
@@ -652,7 +653,7 @@ export default function GlobalEventOrchestrator(): React.ReactElement {
             <h1 className="text-lg font-bold tracking-tight bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent">
               GRT 全域事件流转引擎与 Agent 协同中枢
             </h1>
-            <p className="text-[11px] text-slate-500 font-mono">
+            <p className="text-[11px] text-slate-400 font-mono">
               Global Event-Driven Orchestrator · 13 Sandboxes · Zero Manual Intervention
             </p>
           </div>
@@ -662,14 +663,14 @@ export default function GlobalEventOrchestrator(): React.ReactElement {
           <div className="flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${state.phase === "propagating" ? "bg-amber-400" : state.phase === "complete" ? "bg-emerald-400" : "bg-slate-600"}`}
               style={state.phase === "propagating" ? { animation: "geoGlow .6s infinite" } : undefined} />
-            <span className="text-slate-400">
+            <span className="text-slate-300">
               {state.phase === "idle" ? "待机" : state.phase === "propagating" ? "传播中" : "完成"}
             </span>
           </div>
           <span className="text-slate-600">|</span>
-          <span className="text-slate-500">{activeSandboxCount}/6 沙盘已激活</span>
+          <span className="text-slate-400">{activeSandboxCount}/6 沙盘已激活</span>
           {state.phase !== "idle" && (
-            <button onClick={handleReset} className="px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors">
+            <button onClick={handleReset} className="px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-slate-200 hover:border-slate-500 transition-colors">
               重置
             </button>
           )}
@@ -692,7 +693,7 @@ export default function GlobalEventOrchestrator(): React.ReactElement {
               <span className="text-sm">{"🧠"}</span>
               <span className="text-xs font-bold text-emerald-300 tracking-wide">GRT 神经网络编排中枢</span>
             </div>
-            <div className="text-[10px] font-mono text-slate-500 leading-relaxed">
+            <div className="text-[10px] font-mono text-slate-400 leading-relaxed">
               监控全厂 13 大沙盘流转 · EventBus 驱动 · Agent 自治调度
             </div>
             <div className="mt-2 flex gap-2">
@@ -721,7 +722,7 @@ export default function GlobalEventOrchestrator(): React.ReactElement {
           {/* Agent console */}
           <div className="flex-1 flex flex-col">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-mono text-slate-500 tracking-widest uppercase">Agent Dispatch Console</span>
+              <span className="text-[10px] font-mono text-slate-400 tracking-widest uppercase">Agent Dispatch Console</span>
               {state.agentLogs.length > 0 && (
                 <span className="text-[9px] font-mono text-emerald-600">{state.agentLogs.length} entries</span>
               )}
@@ -770,7 +771,7 @@ export default function GlobalEventOrchestrator(): React.ReactElement {
           {/* Section header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono text-slate-500 tracking-widest uppercase">Sandbox Response Matrix</span>
+              <span className="text-[10px] font-mono text-slate-400 tracking-widest uppercase">Sandbox Response Matrix</span>
               <span className="text-[10px] font-mono text-slate-600">· 全景微缩沙盘</span>
             </div>
             {state.phase === "complete" && (
@@ -795,20 +796,21 @@ export default function GlobalEventOrchestrator(): React.ReactElement {
             <div className="grid grid-cols-3 gap-4 text-[11px]">
               <div>
                 <div className="text-red-400 font-bold mb-1">{"起端 → 事件发射"}</div>
-                <div className="text-slate-500">车间 IoT 相机捕获异常，封装为 IWorkflowEvent，通过 EventBus dispatch 广播。沙盘之间零直接依赖。</div>
+                <div className="text-slate-400">车间 IoT 相机捕获异常，封装为 IWorkflowEvent，通过 EventBus dispatch 广播。沙盘之间零直接依赖。</div>
               </div>
               <div>
                 <div className="text-amber-400 font-bold mb-1">{"中端 → Agent 路由"}</div>
-                <div className="text-slate-500">Agent 神经核心解析事件语义，自动派发审批单、推送培训微课、冻结工位权限。无需人工干预。</div>
+                <div className="text-slate-400">Agent 神经核心解析事件语义，自动派发审批单、推送培训微课、冻结工位权限。无需人工干预。</div>
               </div>
               <div>
                 <div className="text-cyan-400 font-bold mb-1">{"后端 → 指标结算"}</div>
-                <div className="text-slate-500">积分、KPI、成本三大沙盘自动响应。异常成本归集至项目，绩效考核参数实时核减。</div>
+                <div className="text-slate-400">积分、KPI、成本三大沙盘自动响应。异常成本归集至项目，绩效考核参数实时核减。</div>
               </div>
             </div>
           </div>
         </div>
       </div>
+      <FloatingNav />
     </div>
   );
 }

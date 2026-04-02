@@ -1,0 +1,55 @@
+# GRT智能系统 Docker忽略文件
+
+# 依赖目录
+node_modules
+.pnpm-store
+
+# 构建输出
+dist
+build
+*.dist
+
+# 开发文件
+.git
+.gitignore
+*.md
+!README.md
+
+# 环境文件
+.env
+.env.*
+!.env.example
+
+# IDE配置
+.vscode
+.idea
+*.swp
+*.swo
+
+# 日志文件
+*.log
+logs
+
+# 测试文件
+*.test.ts
+*.spec.ts
+__tests__
+coverage
+
+# 临时文件
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Docker相关
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# 文档（可选保留）
+docs
+
+# 截图和备份
+screenshots
+*.bak

@@ -897,7 +897,7 @@ function FleetTab() {
 // ─── Main Component ─────────────────────────────────────────
 export default function RobotCleaningMonitor() {
   const { t } = useLanguage();
-  const [robotCode, setRobotCode] = useState("R-01");
+  const [robotCode, setRobotCode] = useState("GRT-CL-01");
 
   return (
     <div className="p-4 md:p-6 space-y-4">

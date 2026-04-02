@@ -115,3 +115,4 @@ lazyLoad(() => import("./document-governance").then(m => ({ default: m.documentG
 lazyLoad(() => import("./ido").then(m => ({ default: m.idoTranslations })));
 lazyLoad(() => import("./empowerment").then(m => ({ default: m.empowermentTranslations })));
 lazyLoad(() => import("./meeting-executive").then(m => ({ default: m.meetingExecutiveTranslations })));
+lazyLoad(() => import("./showcase-hub").then(m => ({ default: m.showcaseHubTranslations })));

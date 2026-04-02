@@ -448,27 +448,50 @@ export class ExtSyncFullImportService {
    */
   async getVerification(): Promise<Record<string, unknown>> {
     const db = await requireDb();
+    const extractCount = (result: any) => Number((result as any)[0]?.[0]?.cnt ?? (result as any).rows?.[0]?.cnt ?? 0);
 
+    // Core counts — always present
     const [deptCount, userCount, linkedCount, projectCount, approvalCount, orphanCheck] = await Promise.all([
       db.execute(drizzleSql`SELECT COUNT(*) as cnt FROM jiandaoyun_dept_mappings`),
       db.execute(drizzleSql`SELECT COUNT(*) as cnt FROM jiandaoyun_user_mappings`),
       db.execute(drizzleSql`SELECT COUNT(*) as cnt FROM jiandaoyun_user_mappings WHERE grt_user_id IS NOT NULL`),
       db.execute(drizzleSql`SELECT COUNT(*) as cnt FROM projects WHERE "jiandaoyunId" IS NOT NULL`),
       db.execute(drizzleSql`SELECT COUNT(*) as cnt FROM grt_approval_instances WHERE jiandaoyun_id IS NOT NULL`),
-      // 孤立引用检查：项目中引用了不存在的用户ID
       db.execute(drizzleSql`SELECT COUNT(*) as cnt FROM projects
         WHERE "managerId" IS NOT NULL AND "managerId" NOT IN (SELECT id FROM users)`),
     ]);
 
+    // Extended counts — optional tables, each wrapped in try/catch
+    const safeCount = async (query: ReturnType<typeof drizzleSql>) => {
+      try { return extractCount(await db.execute(query)); } catch { return null; }
+    };
+
+    const [roleCount, roleMemberCount, formCount, cacheCount, procurementCount, complaintCount, knowledgeCount, importRunCount] = await Promise.all([
+      safeCount(drizzleSql`SELECT COUNT(*) as cnt FROM jiandaoyun_role_mappings`),
+      safeCount(drizzleSql`SELECT COUNT(*) as cnt FROM jiandaoyun_role_members`),
+      safeCount(drizzleSql`SELECT COUNT(*) as cnt FROM jiandaoyun_form_mappings`),
+      safeCount(drizzleSql`SELECT COUNT(*) as cnt FROM jiandaoyun_form_data_cache`),
+      safeCount(drizzleSql`SELECT COUNT(*) as cnt FROM purchase_requests WHERE source = 'jiandaoyun'`),
+      safeCount(drizzleSql`SELECT COUNT(*) as cnt FROM customer_tickets WHERE source = 'jiandaoyun'`),
+      safeCount(drizzleSql`SELECT COUNT(*) as cnt FROM knowledge_documents WHERE source = 'jiandaoyun'`),
+      safeCount(drizzleSql`SELECT COUNT(*) as cnt FROM jiandaoyun_import_runs`),
+    ]);
+
     return {
-      departments: { extCount: ((deptCount as any)[0]?.[0]?.cnt || 0) },
+      departments: { extCount: extractCount(deptCount) },
       users: {
-        extCount: ((userCount as any)[0]?.[0]?.cnt || 0),
-        linkedCount: ((linkedCount as any)[0]?.[0]?.cnt || 0),
+        extCount: extractCount(userCount),
+        linkedCount: extractCount(linkedCount),
       },
-      projects: { importedCount: ((projectCount as any)[0]?.[0]?.cnt || 0) },
-      approvals: { importedCount: ((approvalCount as any)[0]?.[0]?.cnt || 0) },
-      orphanedReferences: { count: ((orphanCheck as any)[0]?.[0]?.cnt || 0) },
+      roles: { extCount: roleCount, memberCount: roleMemberCount },
+      forms: { discoveredCount: formCount, cachedRecords: cacheCount },
+      projects: { importedCount: extractCount(projectCount) },
+      approvals: { importedCount: extractCount(approvalCount) },
+      procurement: { importedCount: procurementCount },
+      complaints: { importedCount: complaintCount },
+      knowledge: { importedCount: knowledgeCount },
+      orphanedReferences: { count: extractCount(orphanCheck) },
+      importRuns: { totalCount: importRunCount },
     };
   }
 }

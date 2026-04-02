@@ -14,7 +14,7 @@ export default function LiveDashboard() {
     requests: 128,
     latency: 24
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Initialize data
@@ -23,8 +23,6 @@ export default function LiveDashboard() {
       value: 30 + Math.random() * 40
     }));
     setData(initialData);
-    // 模拟加载延迟，展示骨架屏效果
-    const loadTimer = setTimeout(() => setIsLoading(false), 500);
 
     const interval = setInterval(() => {
       const now = new Date();
@@ -44,7 +42,6 @@ export default function LiveDashboard() {
     }, 2000);
 
     return () => {
-      clearTimeout(loadTimer);
       clearInterval(interval);
     };
   }, []);

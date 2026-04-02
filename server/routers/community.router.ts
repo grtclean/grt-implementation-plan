@@ -9,7 +9,9 @@ import {
   communityStats,
   interactionLogs,
 } from "../../drizzle/schema";
-import { eq, desc, and, count, sql } from "drizzle-orm";
+import { communityPosts, communityComments, communitySensitiveWords } from "../../drizzle/employee-points-schema";
+import { filterSensitiveContent } from "../services/employee-points.service";
+import { eq, desc, and, count, sql, inArray } from "drizzle-orm";
 
 export const communityRouter = router({
   // 社群列表（按成员统计分组展示）
@@ -270,5 +272,225 @@ export const communityRouter = router({
       })
       .where(eq(communityMessages.id, input.messageId));
     return { success: true, message: approved ? "已批准" : "已拒绝" };
+  }),
+
+  // ══════════════════════════════════════════════════════════
+  // Forum — 客户技术论坛 (customer + employee accessible)
+  // ══════════════════════════════════════════════════════════
+  forum: router({
+    listTopics: protectedProcedure.input(z.object({
+      page: z.number().min(1).default(1),
+      pageSize: z.number().min(1).max(50).default(20),
+      postType: z.string().optional(),
+      search: z.string().optional(),
+    })).query(async ({ input }) => {
+      const db = await requireDb();
+      const offset = (input.page - 1) * input.pageSize;
+      const forumTypes = ["discussion", "tech_forum", "product_qa", "knowledge"];
+      let items = await db.select().from(communityPosts)
+        .where(and(
+          eq(communityPosts.isActive, true),
+          input.postType ? eq(communityPosts.postType, input.postType as any) : sql`${communityPosts.postType} = ANY(${forumTypes})`,
+        ))
+        .orderBy(desc(communityPosts.isPinned), desc(communityPosts.createdAt))
+        .limit(input.pageSize)
+        .offset(offset);
+
+      if (input.search) {
+        const s = `%${input.search}%`;
+        items = await db.select().from(communityPosts)
+          .where(and(
+            eq(communityPosts.isActive, true),
+            sql`${communityPosts.postType} = ANY(${forumTypes})`,
+            sql`(${communityPosts.title} ILIKE ${s} OR ${communityPosts.content} ILIKE ${s})`,
+          ))
+          .orderBy(desc(communityPosts.createdAt))
+          .limit(input.pageSize)
+          .offset(offset);
+      }
+
+      // Fetch author names from users table
+      const authorIds = [...new Set(items.map(i => i.authorId).filter(id => id > 0))];
+      let authorMap: Record<number, { name: string; company?: string; userType?: string }> = {};
+      if (authorIds.length > 0) {
+        try {
+          const { users } = await import("../../drizzle/schema");
+          const authors = await db.select({ id: users.id, name: users.name, company: sql<string>`company`, userType: sql<string>`user_type` })
+            .from(users).where(inArray(users.id, authorIds)).limit(100);
+          for (const a of authors) authorMap[a.id] = { name: a.name || "匿名", company: a.company, userType: a.userType };
+        } catch { /* users table columns may vary */ }
+      }
+
+      return {
+        items: items.map(i => ({
+          ...i,
+          authorName: authorMap[i.authorId]?.name || (i.authorId === 0 ? "系统" : "匿名"),
+          authorCompany: authorMap[i.authorId]?.company || "",
+          authorType: authorMap[i.authorId]?.userType || "employee",
+        })),
+        page: input.page,
+        pageSize: input.pageSize,
+      };
+    }),
+
+    getTopicDetail: protectedProcedure.input(z.object({
+      postId: z.number(),
+    })).query(async ({ input }) => {
+      const db = await requireDb();
+      // Increment view count
+      await db.update(communityPosts).set({
+        viewCount: sql`${communityPosts.viewCount} + 1`,
+      }).where(eq(communityPosts.id, input.postId));
+
+      const [post] = await db.select().from(communityPosts).where(eq(communityPosts.id, input.postId)).limit(1);
+      if (!post) return null;
+
+      const comments = await db.select().from(communityComments)
+        .where(and(eq(communityComments.postId, input.postId), eq(communityComments.isActive, true)))
+        .orderBy(communityComments.createdAt)
+        .limit(200);
+
+      // Fetch post author
+      let postAuthor = { name: "系统", company: "", userType: "employee" };
+      if (post.authorId > 0) {
+        try {
+          const { users } = await import("../../drizzle/schema");
+          const [a] = await db.select({ name: users.name, company: sql<string>`company`, userType: sql<string>`user_type` })
+            .from(users).where(eq(users.id, post.authorId)).limit(1);
+          if (a) postAuthor = { name: a.name || "匿名", company: a.company || "", userType: a.userType || "employee" };
+        } catch {}
+      }
+
+      return { post: { ...post, ...postAuthor }, comments };
+    }),
+
+    createTopic: protectedProcedure.input(z.object({
+      title: z.string().min(2).max(300),
+      content: z.string().min(5).max(10000),
+      postType: z.enum(["tech_forum", "product_qa", "discussion", "knowledge"]).default("tech_forum"),
+    })).mutation(async ({ input, ctx }) => {
+      const titleCheck = await filterSensitiveContent(input.title);
+      const contentCheck = await filterSensitiveContent(input.content);
+
+      if (titleCheck.blockedWords.length > 0 || contentCheck.blockedWords.length > 0) {
+        const blocked = [...titleCheck.blockedWords, ...contentCheck.blockedWords];
+        throw new Error(`内容包含违禁词，无法发布: ${blocked.join(", ")}`);
+      }
+
+      const db = await requireDb();
+      const [post] = await db.insert(communityPosts).values({
+        authorId: ctx.user!.id,
+        postType: input.postType as any,
+        title: titleCheck.filteredText,
+        content: contentCheck.filteredText,
+        contentClean: titleCheck.clean && contentCheck.clean,
+        scope: "company_wide",
+      }).returning();
+
+      return post;
+    }),
+
+    createComment: protectedProcedure.input(z.object({
+      postId: z.number(),
+      content: z.string().min(1).max(5000),
+      parentId: z.number().optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const check = await filterSensitiveContent(input.content);
+      if (check.blockedWords.length > 0) {
+        throw new Error(`评论包含违禁词: ${check.blockedWords.join(", ")}`);
+      }
+
+      const db = await requireDb();
+      const userName = ctx.user?.name || "匿名";
+      let userCompany = "";
+      let userType = "employee";
+      try {
+        const { users } = await import("../../drizzle/schema");
+        const [u] = await db.select({ company: sql<string>`company`, userType: sql<string>`user_type` })
+          .from(users).where(eq(users.id, ctx.user!.id)).limit(1);
+        if (u) { userCompany = u.company || ""; userType = u.userType || "employee"; }
+      } catch {}
+
+      const [comment] = await db.insert(communityComments).values({
+        postId: input.postId,
+        authorId: ctx.user!.id,
+        authorType: userType,
+        authorName: userName,
+        authorCompany: userCompany,
+        parentId: input.parentId ?? null,
+        content: check.filteredText,
+        contentClean: check.clean,
+        sensitiveWordsDetected: check.flaggedWords.length > 0 ? JSON.stringify(check.flaggedWords) : null,
+      }).returning();
+
+      // Increment comment count
+      await db.update(communityPosts).set({
+        commentCount: sql`${communityPosts.commentCount} + 1`,
+      }).where(eq(communityPosts.id, input.postId));
+
+      return comment;
+    }),
+
+    likeTopic: protectedProcedure.input(z.object({
+      postId: z.number(),
+    })).mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.update(communityPosts).set({
+        likeCount: sql`${communityPosts.likeCount} + 1`,
+      }).where(eq(communityPosts.id, input.postId));
+      return { success: true };
+    }),
+
+    getForumStats: protectedProcedure.query(async ({ ctx }) => {
+      const db = await requireDb();
+      const forumTypes = ["discussion", "tech_forum", "product_qa", "knowledge"];
+      const [topicCount] = await db.select({ c: count() }).from(communityPosts)
+        .where(and(eq(communityPosts.isActive, true), sql`${communityPosts.postType} = ANY(${forumTypes})`));
+      const [commentCount] = await db.select({ c: count() }).from(communityComments)
+        .where(eq(communityComments.isActive, true));
+      const [myTopics] = await db.select({ c: count() }).from(communityPosts)
+        .where(and(eq(communityPosts.authorId, ctx.user!.id), eq(communityPosts.isActive, true)));
+      return {
+        totalTopics: topicCount?.c ?? 0,
+        totalComments: commentCount?.c ?? 0,
+        myTopics: myTopics?.c ?? 0,
+      };
+    }),
+
+    adminListFlagged: requirePermission('collab:community:post').query(async () => {
+      const db = await requireDb();
+      const flaggedPosts = await db.select().from(communityPosts)
+        .where(and(eq(communityPosts.contentClean, false), eq(communityPosts.isActive, true)))
+        .orderBy(desc(communityPosts.createdAt)).limit(50);
+      const flaggedComments = await db.select().from(communityComments)
+        .where(and(eq(communityComments.contentClean, false), eq(communityComments.isActive, true)))
+        .orderBy(desc(communityComments.createdAt)).limit(50);
+      return { posts: flaggedPosts, comments: flaggedComments };
+    }),
+
+    adminModerate: requirePermission('collab:community:post').input(z.object({
+      targetType: z.enum(["post", "comment"]),
+      targetId: z.number(),
+      action: z.enum(["approve", "reject", "delete"]),
+    })).mutation(async ({ input }) => {
+      const db = await requireDb();
+      if (input.targetType === "post") {
+        if (input.action === "delete") {
+          await db.update(communityPosts).set({ isActive: false }).where(eq(communityPosts.id, input.targetId));
+        } else {
+          await db.update(communityPosts).set({ contentClean: input.action === "approve" }).where(eq(communityPosts.id, input.targetId));
+        }
+      } else {
+        if (input.action === "delete") {
+          await db.update(communityComments).set({ isActive: false }).where(eq(communityComments.id, input.targetId));
+        } else {
+          await db.update(communityComments).set({
+            isApproved: input.action === "approve",
+            contentClean: input.action === "approve",
+          }).where(eq(communityComments.id, input.targetId));
+        }
+      }
+      return { success: true };
+    }),
   }),
 });

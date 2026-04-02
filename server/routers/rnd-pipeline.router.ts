@@ -214,7 +214,7 @@ const quotationRouter = router({
       };
     }),
 
-  create: requirePermission('rnd:requirements:manage')
+  create: protectedProcedure
     .input(z.object({
       customer: z.string().min(1),
       project: z.string().min(1),
@@ -268,7 +268,7 @@ const requirementRouter = router({
       return { items };
     }),
 
-  create: requirePermission('rnd:requirements:manage')
+  create: protectedProcedure
     .input(z.object({
       title: z.string().min(1),
       customer: z.string().min(1),
@@ -288,7 +288,7 @@ const requirementRouter = router({
       return (result.rows as DbRow[])[0];
     }),
 
-  updateStatus: requirePermission('rnd:requirements:manage')
+  updateStatus: protectedProcedure
     .input(z.object({ id: z.number(), status: z.string() }))
     .mutation(async ({ input }) => {
       await ensureRequirementTable();
@@ -329,7 +329,7 @@ const solutionRouter = router({
       };
     }),
 
-  create: requirePermission('rnd:requirements:manage')
+  create: protectedProcedure
     .input(z.object({
       project: z.string().min(1),
       customer: z.string().min(1),
@@ -423,11 +423,11 @@ async function ensureDesignTaskTable() {
           ('MD-005', '喷淋管路总装', '缸体清洗线', 'mechanical', '管路布局', '自检完成', 'BU3', 'R1', '洪香龙', '杨勇', 'high', 85, '高压喷淋管路布局设计，含喷嘴选型、管径计算、压力损失分析', '2026-03-12', '2026-02-12'),
           ('MD-006', '工装夹具设计', '变速箱清洗', 'mechanical', '工装夹具', '设计中', 'BU1', 'R1', '李大鹏', '', 'medium', 30, '变速箱壳体定位夹具，兼容3种型号，快换设计', '2026-03-25', '2026-02-15'),
           ('ED-001', '主控PLC程序设计', '缸体清洗线', 'electrical', 'PLC程序', '编程中', 'BU3', 'R1', '孙坚', '沈豪', 'high', 60, 'S7-1500主站程序，含清洗工艺控制、液位联锁、温度PID、报警处理', '2026-03-18', '2026-02-07'),
-          ('ED-002', 'HMI界面开发', '变速箱清洗', 'electrical', 'HMI界面', '已完成', 'BU1', 'R1', '钱绍辉', '沈豪', 'medium', 100, 'WinCC Comfort V18界面，含工艺画面、参数设置、报警记录、趋势曲线', '2026-02-28', '2026-02-09'),
+          ('ED-002', 'HMI界面开发', '变速箱清洗', 'electrical', 'HMI界面', '已完成', 'BU1', 'R1', '钱佳奇', '沈豪', 'medium', 100, 'WinCC Comfort V18界面，含工艺画面、参数设置、报警记录、趋势曲线', '2026-02-28', '2026-02-09'),
           ('ED-003', '电气原理图设计', '晶圆清洗', 'electrical', '电气原理图', '审核中', 'BU4', 'R1', '梅奥杰', '沈豪', 'urgent', 85, 'EPLAN P8电气原理图，含主回路、控制回路、安全回路设计', '2026-03-08', '2026-02-04'),
           ('ED-004', 'IO分配表', '柴油机清洗', 'electrical', 'IO分配', '编程中', 'BU2', 'R1', '马柯', '', 'low', 30, 'PLC IO分配表编制，DI/DO/AI/AO点位分配，含备用点预留', '2026-03-22', '2026-02-11'),
           ('ED-005', '控制柜布局设计', '缸体清洗线', 'electrical', '控制柜设计', '仿真测试', 'BU3', 'R1', '孙坚', '沈豪', 'high', 70, '主控制柜+远程IO柜布局，含散热计算、EMC设计', '2026-03-16', '2026-02-13'),
-          ('ED-006', '电气布线图', '变速箱清洗', 'electrical', '电气布线', '编程中', 'BU1', 'R1', '钱绍辉', '', 'medium', 45, '现场电气布线路径规划，桥架布局、线缆选型', '2026-03-28', '2026-02-16')
+          ('ED-006', '电气布线图', '变速箱清洗', 'electrical', '电气布线', '编程中', 'BU1', 'R1', '钱佳奇', '', 'medium', 45, '现场电气布线路径规划，桥架布局、线缆选型', '2026-03-28', '2026-02-16')
       `);
     }
   } catch (e: unknown) {
@@ -502,7 +502,7 @@ function makeDesignRouter(discipline: "mechanical" | "electrical") {
       }),
 
     // Create
-    create: requirePermission('rnd:requirements:manage')
+    create: protectedProcedure
       .input(z.object({
         name: z.string().min(1),
         project: z.string().min(1),
@@ -527,7 +527,7 @@ function makeDesignRouter(discipline: "mechanical" | "electrical") {
       }),
 
     // Update task details
-    update: requirePermission('rnd:requirements:manage')
+    update: protectedProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
@@ -560,7 +560,7 @@ function makeDesignRouter(discipline: "mechanical" | "electrical") {
       }),
 
     // Update status (workflow transition)
-    updateStatus: requirePermission('rnd:requirements:manage')
+    updateStatus: protectedProcedure
       .input(z.object({
         id: z.number(),
         status: z.enum(discipline === "mechanical" ? MECH_STATUSES : ELEC_STATUSES),
@@ -582,7 +582,7 @@ function makeDesignRouter(discipline: "mechanical" | "electrical") {
       }),
 
     // Update checklist
-    updateChecklist: requirePermission('rnd:requirements:manage')
+    updateChecklist: protectedProcedure
       .input(z.object({
         id: z.number(),
         checklist: z.array(z.object({ item: z.string(), checked: z.boolean() }).passthrough()),
@@ -595,7 +595,7 @@ function makeDesignRouter(discipline: "mechanical" | "electrical") {
       }),
 
     // Bump revision
-    bumpRevision: requirePermission('rnd:requirements:manage')
+    bumpRevision: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await ensureDesignTaskTable();
@@ -610,7 +610,7 @@ function makeDesignRouter(discipline: "mechanical" | "electrical") {
       }),
 
     // Delete
-    delete: requirePermission('rnd:requirements:manage')
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await ensureDesignTaskTable();
@@ -809,7 +809,7 @@ const satTestRouter = router({
       }
       return { items: (result.rows as DbRow[]) || [] };
     }),
-  create: requirePermission('rnd:requirements:manage')
+  create: protectedProcedure
     .input(z.object({
       project: z.string().min(1),
       customer: z.string().min(1),
@@ -893,7 +893,7 @@ const acceptanceRouter = router({
       }));
       return { items };
     }),
-  create: requirePermission('rnd:requirements:manage')
+  create: protectedProcedure
     .input(z.object({
       project: z.string().min(1),
       customer: z.string().min(1),
@@ -970,7 +970,7 @@ const rfqKanbanRouter = router({
       `);
       return { items: (result.rows as DbRow[]) || [] };
     }),
-  create: requirePermission('rnd:requirements:manage')
+  create: protectedProcedure
     .input(z.object({
       titleZh: z.string().min(1),
       titleEn: z.string().optional(),

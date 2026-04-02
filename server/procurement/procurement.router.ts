@@ -223,6 +223,25 @@ export const procurementRouter = router({
 
       const insertId = (result as any)[0].insertId;
       const rows = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, insertId)).limit(1000);
+
+      // 记录采购到项目时间线
+      // NOTE: PurchaseOrderSchema does not yet include projectCode/projectId.
+      // When project linkage is added to the schema, wire timeline here:
+      // if (input.projectCode || input.projectId) {
+      //   try {
+      //     const { recordProjectActivity } = await import('../services/hrm-integration.service');
+      //     await recordProjectActivity({
+      //       projectId: input.projectId || 0,
+      //       projectCode: input.projectCode,
+      //       activityType: 'po_created',
+      //       activityTitle: `采购订单创建: ${poNumber}`,
+      //       sourceModule: 'procurement',
+      //       sourceDocType: 'purchase_order',
+      //       performedBy: (ctx as any).userId || 0,
+      //     });
+      //   } catch {}
+      // }
+
       return rows[0];
     }),
 

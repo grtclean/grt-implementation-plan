@@ -42,7 +42,7 @@ async function ensureBlacklist() {
       )
     `);
     const cnt = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM permission_blacklists`);
-    if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
+    if (Number(((cnt as any).rows ?? cnt)[0]?.cnt ?? 0) === 0) {
       await db.execute(sql`
         INSERT INTO permission_blacklists (bl_number, user_name, department, blocked_module, blocked_action, reason, created_by, created_at, status) VALUES
         ('BL-001', '赵某', '销售部', '财务管理', '查看成本数据', '离职过渡期限制敏感数据访问', 'HR经理', '2026-02-01', 'active'),
@@ -75,7 +75,7 @@ async function ensureTempPerm() {
       )
     `);
     const cnt = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM temporary_permissions`);
-    if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
+    if (Number(((cnt as any).rows ?? cnt)[0]?.cnt ?? 0) === 0) {
       await db.execute(sql`
         INSERT INTO temporary_permissions (tp_number, user_name, role_code, module_name, reason, granted_by, start_date, end_date, status) VALUES
         ('TP-001', '洪小东', 'bu_sales',           '客户管理',     '临时支援BU3销售',         '倪亚东', '2026-02-01', '2026-02-28', 'active'),
@@ -118,14 +118,14 @@ async function ensureUserStatus() {
       )
     `);
     const cnt = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM user_profile_status`);
-    if (Number((cnt.rows as any[])[0]?.cnt) === 0) {
+    if (Number(((cnt as any).rows ?? cnt)[0]?.cnt ?? 0) === 0) {
       await db.execute(sql`
         INSERT INTO user_profile_status (employee_id, name, department, bu_code, email, has_profile,
           work_plan_enabled, work_plan_frequency, training_enabled, project_enabled,
           performance_enabled, report_enabled, task_reminder_enabled, task_reminder_time, email_enabled,
           last_active, pending_tasks, overdue_tasks) VALUES
         ('GRT001', '倪亚东', '总裁办',   'FUNC', 'ni.yadong@grt.com',  true,  true,'daily', true,true,true,true,true,'15:00',true,  '2026-02-28 10:30:00', 3, 0),
-        ('GRT003', '侯亚琴', '事业三部', 'BU3',  'hou.yaqin@grt.com',   true,  true,'weekly',true,true,false,true,true,'14:00',true,  '2026-02-28 09:15:00', 5, 1),
+        ('GRT003', '倪亚琴', '事业三部', 'BU3',  'hou.yaqin@grt.com',   true,  true,'weekly',true,true,false,true,true,'14:00',true,  '2026-02-28 09:15:00', 5, 1),
         ('GRT004', '戴晓燕', '事业一部', 'BU1',  'dai.xiaoyan@grt.com', false, false,'daily', false,false,false,false,false,'15:00',false, NULL,                  0, 0),
         ('GRT006', '洪香龙', '事业二部', 'BU2',  'hong.xilong@grt.com', true,  true,'daily', false,true,true,false,false,'15:00',false, '2026-02-27 16:45:00', 2, 0),
         ('GRT007', '孙坚',   '事业三部', 'BU3',  'sun.jian@grt.com',    true,  true,'daily', true,true,true,true,true,'15:00',true,  '2026-02-28 11:00:00', 4, 2)

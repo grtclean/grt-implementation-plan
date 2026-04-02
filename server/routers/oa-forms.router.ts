@@ -20,7 +20,7 @@ import {
   oaFormTemplateVersions,
   oaFormFavorites,
 } from "../../drizzle/oa-dynamic-forms-schema";
-import { users } from "../../drizzle/schema";
+import { users, grtEmployees } from "../../drizzle/schema";
 import { eq, desc, and, sql, asc, ilike, or } from "drizzle-orm";
 
 // ── Helpers ──────────────────────────────────────────
@@ -33,6 +33,72 @@ function generateSubmissionCode(): string {
   const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
   const rand = String(Math.floor(Math.random() * 9999)).padStart(4, "0");
   return `DF-${dateStr}-${rand}`;
+}
+
+/**
+ * 审批人自动解析 — 根据 approverType 查找正确的审批人
+ * 支持: fixed_user | submitter_supervisor | department_head | role
+ */
+async function resolveApprover(
+  db: any,
+  stepConfig: { approverType: string; approverIds?: number[]; stepName?: string },
+  applicantUserId: number,
+): Promise<{ approverId: number | null; approverName: string | null }> {
+  // 1. 固定审批人
+  if (stepConfig.approverType === "fixed_user" && stepConfig.approverIds?.length) {
+    const [approver] = await db.select().from(users).where(eq(users.id, stepConfig.approverIds[0])).limit(1);
+    return { approverId: stepConfig.approverIds[0], approverName: (approver as any)?.name || "Unknown" };
+  }
+
+  // 2. 提交人的直接主管
+  if (stepConfig.approverType === "submitter_supervisor") {
+    try {
+      // 通过 users.name 关联 grt_employees.name 查找主管
+      const [applicantUser] = await db.select().from(users).where(eq(users.id, applicantUserId)).limit(1);
+      if (applicantUser?.name) {
+        const [emp] = await db.select().from(grtEmployees).where(eq(grtEmployees.name, applicantUser.name)).limit(1);
+        if (emp?.supervisorId) {
+          const [supervisor] = await db.select().from(grtEmployees).where(eq(grtEmployees.id, emp.supervisorId)).limit(1);
+          if (supervisor?.name) {
+            // 查找主管对应的 users 记录
+            const [supervisorUser] = await db.select().from(users).where(eq(users.name, supervisor.name)).limit(1);
+            if (supervisorUser) {
+              return { approverId: supervisorUser.id, approverName: supervisor.name };
+            }
+          }
+        }
+      }
+    } catch { /* grt_employees 表可能不存在 */ }
+    return { approverId: null, approverName: null };
+  }
+
+  // 3. 部门负责人 (查 grt_employees 层级向上找到 director 级别)
+  if (stepConfig.approverType === "department_head") {
+    try {
+      const [applicantUser] = await db.select().from(users).where(eq(users.id, applicantUserId)).limit(1);
+      if (applicantUser?.name) {
+        // 沿 supervisor 链向上找，直到找到 department 负责人（supervisor_id 直接汇报给 CEO 的那一层）
+        let current = await db.select().from(grtEmployees).where(eq(grtEmployees.name, applicantUser.name)).limit(1);
+        let depth = 0;
+        while (current.length > 0 && current[0].supervisorId && depth < 5) {
+          const [sup] = await db.select().from(grtEmployees).where(eq(grtEmployees.id, current[0].supervisorId)).limit(1);
+          if (!sup) break;
+          // 如果主管的主管是 null（CEO）或主管是部门级别，则当前 sup 就是部门负责人
+          if (!sup.supervisorId) {
+            // sup 是 CEO，则 current[0] 是部门负责人
+            const [deptHeadUser] = await db.select().from(users).where(eq(users.name, current[0].name)).limit(1);
+            if (deptHeadUser) return { approverId: deptHeadUser.id, approverName: current[0].name };
+            break;
+          }
+          current = [sup];
+          depth++;
+        }
+      }
+    } catch { /* fallback */ }
+    return { approverId: null, approverName: null };
+  }
+
+  return { approverId: null, approverName: null };
 }
 
 // ══════════════════════════════════════════════════════
@@ -330,18 +396,11 @@ export const oaFormsRouter = router({
         currentApprovalStep = 0;
         const firstStep = approvalFlow.steps[0];
 
-        // For fixed_user type, resolve first approver
-        if (firstStep.approverType === "fixed_user" && firstStep.approverIds && firstStep.approverIds.length > 0) {
-          currentApproverId = firstStep.approverIds[0];
-
-          // Look up approver name
-          const [approver] = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, currentApproverId));
-          if (approver) {
-            currentApproverName = (approver as any).name || (approver as any).displayName || "Unknown";
-          }
+        // 自动解析审批人（支持 fixed_user / submitter_supervisor / department_head）
+        const resolved = await resolveApprover(db, firstStep, applicantId);
+        if (resolved.approverId) {
+          currentApproverId = resolved.approverId;
+          currentApproverName = resolved.approverName;
         }
       }
 
@@ -416,6 +475,41 @@ export const oaFormsRouter = router({
     }),
 
   /** Get submissions pending approval for the current user */
+  /** 查询当前用户的审批链（直接主管 → 部门负责人 → CEO） */
+  getMyApprovalChain: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await requireDb();
+      const userId = ctx.user?.id ?? 0;
+      const chain: { level: string; name: string; employeeId: string; position: string }[] = [];
+
+      try {
+        const [me] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        if (!me?.name) return { chain };
+
+        const [emp] = await db.select().from(grtEmployees).where(eq(grtEmployees.name, me.name)).limit(1);
+        if (!emp) return { chain };
+
+        // 沿 supervisor 链向上遍历
+        let currentSupervisorId = emp.supervisorId;
+        let depth = 0;
+        const levels = ["直接主管", "部门负责人", "高管", "CEO"];
+        while (currentSupervisorId && depth < 5) {
+          const [sup] = await db.select().from(grtEmployees).where(eq(grtEmployees.id, currentSupervisorId)).limit(1);
+          if (!sup) break;
+          chain.push({
+            level: levels[Math.min(depth, levels.length - 1)],
+            name: sup.name,
+            employeeId: sup.employeeId,
+            position: "", // could query from EMPLOYEES array
+          });
+          currentSupervisorId = sup.supervisorId;
+          depth++;
+        }
+      } catch { /* grt_employees may not exist */ }
+
+      return { chain };
+    }),
+
   getMyPendingApprovals: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await requireDb();
@@ -516,23 +610,11 @@ export const oaFormsRouter = router({
       if (nextStep < totalSteps && approvalFlow?.steps) {
         // More steps remain — advance to next step
         const nextStepConfig = approvalFlow.steps[nextStep];
-        let nextApproverId: number | null = null;
-        let nextApproverName: string | null = null;
 
-        if (
-          nextStepConfig.approverType === "fixed_user" &&
-          nextStepConfig.approverIds &&
-          nextStepConfig.approverIds.length > 0
-        ) {
-          nextApproverId = nextStepConfig.approverIds[0];
-          const [approver] = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, nextApproverId));
-          if (approver) {
-            nextApproverName = (approver as any).name || (approver as any).displayName || "Unknown";
-          }
-        }
+        // 自动解析下一步审批人
+        const resolved = await resolveApprover(db, nextStepConfig, submission.applicantId ?? 0);
+        const nextApproverId = resolved.approverId;
+        const nextApproverName = resolved.approverName;
 
         // Atomic update — only update if still pending at current step
         const [updated] = await db

@@ -1,20 +1,13 @@
 import ErrorBoundary from "@/components/ErrorBoundary";
 import LiveDashboard from "@/components/LiveDashboard";
-import MaintenanceAlertDashboard from "@/components/MaintenanceAlertDashboard";
-import TrainingStatsDashboard from "@/components/TrainingStatsDashboard";
-import DailyPlanDashboard from "@/components/DailyPlanDashboard";
-import AgendaDashboard from "@/components/AgendaDashboard";
-import NewsInfoDashboard from "@/components/NewsInfoDashboard";
-import TeamsMessagesDashboard from "@/components/TeamsMessagesDashboard";
-import PerformanceGeminiDashboard from "@/components/PerformanceGeminiDashboard";
-import ProjectStatus12StepDashboard from "@/components/ProjectStatus12StepDashboard";
-import OffboardingProgressDashboard from "@/components/OffboardingProgressDashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
-import { ArrowRight, CheckCircle2, Clock, Target, Zap, LogIn, AlertCircle } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { ArrowRight, CheckCircle2, Clock, Target, Zap, LogIn, AlertCircle, TrendingUp, Bot, Award, Sun, Sparkles, MessageSquare, Calculator } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useEffect } from "react";
 
@@ -32,9 +25,31 @@ export default function Home() {
     }
   }, [loading, isAuthenticated, navigate]);
 
-  // Show nothing while auth is loading or redirecting
+  // Customer users → redirect to customer workspace
+  const { user } = useAuth();
+  useEffect(() => {
+    if (!loading && isAuthenticated && (user?.userType === "customer" || user?.effectiveRole === "customer")) {
+      navigate("/customer-workspace", { replace: true });
+    }
+  }, [loading, isAuthenticated, user, navigate]);
+
+  // Production workers → redirect to dedicated shopfloor home
+  useEffect(() => {
+    if (!loading && isAuthenticated && user?.effectiveRole === "production_worker") {
+      navigate("/shopfloor-worker-home", { replace: true });
+    }
+  }, [loading, isAuthenticated, user, navigate]);
+
+  // Show loading spinner while auth is loading or redirecting
   if (loading || (!isAuthenticated && isLocalAuth)) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">加载中...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -74,48 +89,8 @@ export default function Home() {
           <LiveDashboard />
         </ErrorBoundary>
 
-        {/* New Dashboard Widgets Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <ErrorBoundary level="component">
-            <DailyPlanDashboard />
-          </ErrorBoundary>
-          <ErrorBoundary level="component">
-            <AgendaDashboard />
-          </ErrorBoundary>
-          <ErrorBoundary level="component">
-            <PerformanceGeminiDashboard />
-          </ErrorBoundary>
-        </div>
-
-        {/* Training Statistics Dashboard */}
-        <ErrorBoundary level="section">
-          <TrainingStatsDashboard />
-        </ErrorBoundary>
-
-        {/* Second Row of New Widgets */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <ErrorBoundary level="component">
-            <NewsInfoDashboard />
-          </ErrorBoundary>
-          <ErrorBoundary level="component">
-            <TeamsMessagesDashboard />
-          </ErrorBoundary>
-          <ErrorBoundary level="component">
-            <ProjectStatus12StepDashboard />
-          </ErrorBoundary>
-        </div>
-
-        {/* Offboarding Progress Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <ErrorBoundary level="component">
-            <OffboardingProgressDashboard />
-          </ErrorBoundary>
-        </div>
-
-        {/* Maintenance Alert Dashboard */}
-        <ErrorBoundary level="section">
-          <MaintenanceAlertDashboard />
-        </ErrorBoundary>
+        {/* ═══ Integrated: My Goals + Consultant Agent ═══ */}
+        {isAuthenticated && <MyGoalConsultantStrip />}
 
         {/* Hero Section */}
         <section className="relative rounded-lg overflow-hidden border border-border shadow-2xl group">
@@ -244,6 +219,148 @@ export default function Home() {
           </div>
         </section>
       </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// Integrated: My Goals + Consultant Agent Strip
+// Appears on Home for every authenticated employee
+// ═══════════════════════════════════════════════════════
+function MyGoalConsultantStrip() {
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
+  const employeeId = user?.id ?? 0;
+  const year = new Date().getFullYear();
+
+  const goalQ = trpc.annualGoalIncentive.dashboard.employeeSummary.useQuery(
+    { employeeId, year },
+    { enabled: !!employeeId }
+  );
+  const digestQ = trpc.consultantAgent.outputs.getLatestDigest.useQuery(
+    { employeeId },
+    { enabled: !!employeeId }
+  );
+
+  const agreement = goalQ.data?.agreement;
+  const dimensions = goalQ.data?.dimensions || [];
+  const projection = goalQ.data?.projection;
+  const digest = digestQ.data;
+
+  // Don't show if no data at all
+  if (!agreement && !digest) return null;
+
+  const compositeScore = dimensions.reduce(
+    (s: number, d: any) => s + (parseFloat(d.currentScore || "0") * parseFloat(d.weight || "0")) / 100, 0
+  );
+
+  return (
+    <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Card 1: Goal Progress */}
+      {agreement && (
+        <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/goal-tracking")}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-blue-500" />
+                <span className="text-sm font-semibold">{year} 年度目标</span>
+              </div>
+              <Badge variant="outline" className="text-[10px]">{agreement.status === "active" ? "执行中" : agreement.status}</Badge>
+            </div>
+            {/* Dimension progress bars */}
+            <div className="space-y-2">
+              {dimensions.slice(0, 3).map((d: any) => {
+                const score = parseFloat(d.currentScore || "0");
+                return (
+                  <div key={d.id} className="space-y-0.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">{d.dimensionName} ({d.weight}%)</span>
+                      <span className="font-mono font-semibold">{score}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className={`h-full rounded-full ${score >= 70 ? "bg-green-500" : score >= 40 ? "bg-blue-500" : "bg-amber-400"}`}
+                        style={{ width: `${score}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">综合得分</span>
+              <span className="font-mono font-bold text-blue-600">{compositeScore.toFixed(1)}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Card 2: Incentive Projection */}
+      {agreement && (
+        <Card className="border-l-4 border-l-amber-500 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/incentive-projection")}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Award className="h-4 w-4 text-amber-500" />
+                <span className="text-sm font-semibold">激励预估</span>
+              </div>
+              <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+            <div className="text-center py-2">
+              <div className="text-3xl font-bold text-amber-600">
+                {projection?.bonusMonths || agreement.projectedBonusMonths || "0"}
+                <span className="text-sm font-normal text-muted-foreground ml-1">个月</span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {projection?.performanceLevelCode ? `${projection.performanceLevelCode}级` : "待评定"}
+                {agreement.careerPathAccepted && <span className="ml-2 text-amber-600"><Sparkles className="h-3 w-3 inline" /> 升级路径×2</span>}
+              </div>
+            </div>
+            {projection?.projectedBonusAmount && parseFloat(projection.projectedBonusAmount) > 0 && (
+              <div className="text-center text-xs text-muted-foreground">
+                预估金额 <span className="font-mono font-semibold text-amber-600">¥{parseFloat(projection.projectedBonusAmount).toLocaleString()}</span>
+              </div>
+            )}
+            <div className="mt-2 pt-2 border-t text-center">
+              <span className="text-[10px] text-blue-500 hover:underline">点击查看What-If模拟 →</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Card 3: Consultant Digest / Chat */}
+      <Card className="border-l-4 border-l-violet-500 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/employee-consultant")}>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Bot className="h-4 w-4 text-violet-500" />
+              <span className="text-sm font-semibold">工作顾问</span>
+            </div>
+            <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+          </div>
+          {digest ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Sun className="h-3 w-3 text-amber-400" />
+                {digest.title}
+              </div>
+              <p className="text-xs text-foreground/80 line-clamp-3 leading-relaxed">
+                {digest.content?.substring(0, 120)}...
+              </p>
+              {!digest.isRead && (
+                <Badge className="bg-violet-100 text-violet-700 text-[10px]">新简报</Badge>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-3">
+              <Bot className="h-8 w-8 mx-auto text-violet-300 mb-2" />
+              <div className="text-xs text-muted-foreground">你的专属工作顾问已就绪</div>
+              <div className="text-[10px] text-violet-500 mt-1">目标追踪 · 方法建议 · 情感支持</div>
+            </div>
+          )}
+          <div className="mt-2 pt-2 border-t text-center">
+            <span className="text-[10px] text-violet-500 hover:underline">开始对话 →</span>
+          </div>
+        </CardContent>
+      </Card>
+    </section>
   );
 }
 

@@ -962,4 +962,109 @@ export const warehouseRouter = router({
       }
       return results;
     }),
+
+  // ============================================
+  // UWB 库位定位 (UWB Location Tracking)
+  // ============================================
+
+  /**
+   * updateLocationUwb — 更新库位UWB锚点坐标
+   */
+  updateLocationUwb: requirePermission("canManageWarehouse")
+    .input(z.object({
+      locationId: z.union([z.string(), z.number()]),
+      uwbAnchorId: z.string().min(1).max(50),
+      uwbCoordX: z.number(),
+      uwbCoordY: z.number(),
+      uwbCoordZ: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const id = Number(input.locationId);
+      await db.update(warehouseLocations)
+        .set({
+          uwbAnchorId: input.uwbAnchorId,
+          uwbCoordX: String(input.uwbCoordX),
+          uwbCoordY: String(input.uwbCoordY),
+          uwbCoordZ: input.uwbCoordZ !== undefined ? String(input.uwbCoordZ) : null,
+          uwbLastSeen: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(warehouseLocations.id, id));
+
+      return { success: true, message: `库位 ${id} UWB坐标已更新` };
+    }),
+
+  /**
+   * getUwbMap — 获取仓库UWB定位地图数据
+   */
+  getUwbMap: protectedProcedure
+    .input(z.object({
+      warehouseId: z.union([z.string(), z.number()]),
+    }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const whId = Number(input.warehouseId);
+
+      // Get warehouse info
+      const wh = await db.select().from(warehouses)
+        .where(eq(warehouses.id, whId))
+        .limit(1);
+
+      if (wh.length === 0) {
+        return { warehouse: null, locations: [], uwbEnabled: false };
+      }
+
+      // Get all locations with UWB data for this warehouse
+      const locations = await db.select().from(warehouseLocations)
+        .where(eq(warehouseLocations.warehouseId, whId))
+        .limit(500);
+
+      const uwbLocations = locations.filter(l => l.uwbAnchorId);
+
+      return {
+        warehouse: {
+          id: wh[0].id,
+          warehouseCode: wh[0].warehouseCode,
+          warehouseName: wh[0].warehouseName,
+          uwbEnabled: wh[0].uwbEnabled,
+          uwbGatewayIp: wh[0].uwbGatewayIp,
+        },
+        locations: uwbLocations.map(l => ({
+          id: l.id,
+          locationCode: l.locationCode,
+          zone: l.zone,
+          uwbAnchorId: l.uwbAnchorId,
+          uwbCoordX: l.uwbCoordX ? Number(l.uwbCoordX) : null,
+          uwbCoordY: l.uwbCoordY ? Number(l.uwbCoordY) : null,
+          uwbCoordZ: l.uwbCoordZ ? Number(l.uwbCoordZ) : null,
+          uwbLastSeen: l.uwbLastSeen,
+          currentMaterialCode: l.currentMaterialCode,
+          currentQty: l.currentQty,
+          isOccupied: l.isOccupied,
+        })),
+        totalLocations: locations.length,
+        uwbEnabled: wh[0].uwbEnabled || false,
+      };
+    }),
+
+  deleteReceipt: requirePermission("supply:warehouse:manage")
+    .input(z.object({ id: z.union([z.string(), z.number()]) }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const id = Number(input.id);
+      await db.delete(warehouseReceiptItems).where(eq(warehouseReceiptItems.receiptId, id));
+      await db.delete(warehouseReceipts).where(eq(warehouseReceipts.id, id));
+      return { success: true, message: "入库单已删除" };
+    }),
+
+  deleteIssue: requirePermission("supply:warehouse:manage")
+    .input(z.object({ id: z.union([z.string(), z.number()]) }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const id = Number(input.id);
+      await db.delete(warehouseIssueItems).where(eq(warehouseIssueItems.issueId, id));
+      await db.delete(warehouseIssues).where(eq(warehouseIssues.id, id));
+      return { success: true, message: "出库单已删除" };
+    }),
 });

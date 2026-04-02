@@ -99,18 +99,18 @@ const organizationCapabilityData = {
     { domain: "L", L1: 20, L2: 12, L3: 8, L4: 4, L5: 1 }
   ],
   recentUpgrades: [
-    { engineer: "张工", domain: "T", from: "L2", to: "L3", date: "2026-01-25" },
-    { engineer: "李工", domain: "D", from: "L3", to: "L4", date: "2026-01-24" },
+    { engineer: "李大鹏", domain: "T", from: "L2", to: "L3", date: "2026-01-25" },
+    { engineer: "洪小东", domain: "D", from: "L3", to: "L4", date: "2026-01-24" },
     { engineer: "焦斌", domain: "C", from: "L1", to: "L2", date: "2026-01-23" },
-    { engineer: "赵工", domain: "S", from: "L2", to: "L3", date: "2026-01-22" },
-    { engineer: "陈工", domain: "K", from: "L1", to: "L2", date: "2026-01-21" }
+    { engineer: "钱佳奇", domain: "S", from: "L2", to: "L3", date: "2026-01-22" },
+    { engineer: "梅奥杰", domain: "K", from: "L1", to: "L2", date: "2026-01-21" }
   ],
   topPerformers: [
-    { engineer: "刘工", avgLevel: 4.2, strongestDomain: "T", level: "L5" },
-    { engineer: "孙工", avgLevel: 4.0, strongestDomain: "D", level: "L5" },
-    { engineer: "周工", avgLevel: 3.8, strongestDomain: "S", level: "L4" },
-    { engineer: "吴工", avgLevel: 3.7, strongestDomain: "C", level: "L4" },
-    { engineer: "郑工", avgLevel: 3.5, strongestDomain: "T", level: "L4" }
+    { engineer: "蔡瑞", avgLevel: 4.2, strongestDomain: "T", level: "L5" },
+    { engineer: "洪小东", avgLevel: 4.0, strongestDomain: "D", level: "L5" },
+    { engineer: "高嘉义", avgLevel: 3.8, strongestDomain: "S", level: "L4" },
+    { engineer: "陈加丽", avgLevel: 3.7, strongestDomain: "C", level: "L4" },
+    { engineer: "钱佳奇", avgLevel: 3.5, strongestDomain: "T", level: "L4" }
   ]
 };
 

@@ -40,8 +40,8 @@ const mockProjectData = {
   productType: "电池壳体清洗线",
   contractValue: 2800000,
   targetDeliveryDate: "2024-06-30",
-  projectManager: "张工",
-  salesOwner: "李经理",
+  projectManager: "洪香龙",
+  salesOwner: "戴晓燕",
 };
 
 const mockRiskAssessment = {
@@ -93,10 +93,10 @@ const mockUrsChecklist = [
 ];
 
 const mockTeamAllocation = [
-  { role: "项目经理", name: "张工", level: "L4", status: "已确认" },
+  { role: "项目经理", name: "洪香龙", level: "L4", status: "已确认" },
   { role: "机械设计", name: "焦斌", level: "L3", status: "已确认" },
   { role: "电气设计", name: "刘工", level: "L4", status: "已确认" },
-  { role: "软件开发", name: "陈工", level: "L3", status: "待确认" },
+  { role: "软件开发", name: "孙坚", level: "L3", status: "待确认" },
   { role: "现场调试", name: "待分配", level: "-", status: "待分配" },
 ];
 
@@ -458,8 +458,8 @@ export default function M1KickoffDashboard() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="pending">待分配 (建议L4+工程师)</SelectItem>
-                            <SelectItem value="zhang">张工 (L4)</SelectItem>
-                            <SelectItem value="li">李工 (L5)</SelectItem>
+                            <SelectItem value="zhang">洪香龙 (L4)</SelectItem>
+                            <SelectItem value="li">李大鹏 (L5)</SelectItem>
                             <SelectItem value="wang">焦斌 (L4)</SelectItem>
                           </SelectContent>
                         </Select>
@@ -474,8 +474,8 @@ export default function M1KickoffDashboard() {
                             <SelectValue placeholder="选择蓝队负责人" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="zhang">张工</SelectItem>
-                            <SelectItem value="li">李工</SelectItem>
+                            <SelectItem value="zhang">洪香龙</SelectItem>
+                            <SelectItem value="li">李大鹏</SelectItem>
                             <SelectItem value="wang">焦斌</SelectItem>
                           </SelectContent>
                         </Select>

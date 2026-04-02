@@ -1,0 +1,90 @@
+{
+  "auditDate": "2026-04-02",
+  "services": [
+    {
+      "name": "GRT Web Client",
+      "type": "SPA Frontend",
+      "path": "client/",
+      "startCommand": "npm run dev (Vite) / npm run build (static)",
+      "configFiles": ["vite.config.ts", "client/index.html"],
+      "port": "5173 (dev) / 3000 (prod, Express-hosted)",
+      "dependencies": ["React 19", "Vite", "Wouter", "tRPC Client", "Tailwind CSS"],
+      "notes": "No independent package.json; shares root monorepo"
+    },
+    {
+      "name": "GRT API Server",
+      "type": "Express + tRPC Backend",
+      "path": "server/",
+      "entryFile": "server/_core/index.ts",
+      "startCommand": "tsx watch server/_core/index.ts (dev) / node dist/index.js (prod)",
+      "configFiles": [".env", ".env.development", ".env.production"],
+      "port": 3000,
+      "dependencies": ["Express", "@trpc/server", "Drizzle ORM", "pg", "mssql"],
+      "notes": "Hosts frontend static files + tRPC API + WebSocket in single process"
+    },
+    {
+      "name": "WebSocket Services (x3)",
+      "type": "ws (HTTP upgrade, shared port)",
+      "path": "server/services/websocket.service.ts, server/ime/ime-websocket.service.ts, server/services/camera-event-websocket.service.ts",
+      "port": "3000 (shared with HTTP)",
+      "notes": "3 WS servers: general, IME real-time, camera events. All noServer mode."
+    },
+    {
+      "name": "PostgreSQL",
+      "type": "Relational Database (Primary)",
+      "configVar": "DATABASE_URL",
+      "port": 5432,
+      "orm": "Drizzle ORM",
+      "schemaPath": "drizzle/",
+      "tableCount": "794+",
+      "notes": "Local PG in dev, Docker in prod"
+    },
+    {
+      "name": "TianSi ERP MSSQL",
+      "type": "External ERP Database (Read-only)",
+      "configVars": ["TIANSI_MSSQL_HOST", "TIANSI_MSSQL_PORT", "TIANSI_MSSQL_DATABASE", "TIANSI_MSSQL_USER", "TIANSI_MSSQL_PASSWORD"],
+      "port": 1433,
+      "routerPath": "server/erp/tiansi-erp.router.ts",
+      "notes": "Direct TCP connection to TianSi ERP MSSQL"
+    },
+    {
+      "name": "Kingdee K/3 MSSQL",
+      "type": "External ERP Database (Read-only)",
+      "configVars": ["KINGDEE_MSSQL_HOST", "KINGDEE_MSSQL_PORT", "KINGDEE_MSSQL_DATABASE", "KINGDEE_MSSQL_USER", "KINGDEE_MSSQL_PASSWORD"],
+      "port": 1433,
+      "routerPath": "server/erp/kingdee-erp.router.ts",
+      "notes": "Direct TCP connection to Kingdee K/3 MSSQL"
+    },
+    {
+      "name": "Redis",
+      "type": "Cache (Optional)",
+      "configVar": "REDIS_URL",
+      "port": 6379,
+      "implementationPath": "server/cache-manager.ts",
+      "notes": "Fallback to in-memory cache when REDIS_URL not set (dev mode)"
+    },
+    {
+      "name": "Workers (in-process)",
+      "type": "Async Task Processing",
+      "path": "server/workers/",
+      "workers": ["clawWorker.ts", "externalSyncWorker.ts", "knowledgeWorker.ts", "payrollCalculator.ts", "solutionEngineWorker.ts"],
+      "notes": "RISK: All workers run in main API process"
+    },
+    {
+      "name": "Nginx (Docker mode)",
+      "type": "Reverse Proxy",
+      "configPath": "docker/nginx.conf",
+      "port": "80/443",
+      "notes": "Only used in Docker deployment mode"
+    },
+    {
+      "name": "PM2 (Production)",
+      "type": "Process Manager",
+      "configPath": "ecosystem.config.cjs",
+      "processName": "grt-system",
+      "mode": "fork",
+      "instances": 1,
+      "notes": "Two config files exist: .cjs and .js"
+    }
+  ]
+}

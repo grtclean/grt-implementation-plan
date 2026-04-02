@@ -25,8 +25,9 @@ function levelLabel(s: string | null | undefined): string {
   return s.trim();
 }
 
-// ── 30 Employee Assessments — REAL data from CEO (Feb 2026) ──
-// Names corrected to match employees.json master roster
+// ── 37 Employee Assessments — REAL data from 副本GRT人员能力测评（202602）.xlsx ──
+// Source: xlsx (38 rows, 倪微微无评分已排除)
+// Levels support half-grades: L1, L1.5, L2, L2.5, L3, L3.5 etc.
 interface EmployeeAssessment {
   grtId: string;
   name: string;
@@ -36,36 +37,51 @@ interface EmployeeAssessment {
 }
 
 const ASSESSMENTS: EmployeeAssessment[] = [
-  { grtId: "GRT001", name: "倪亚东", position: "董事长", department: "总裁办", T: "L4", S: "L5", D: "L4", C: "L5", K: "L4", L: "L5" },
-  { grtId: "GRT080", name: "刘奥运", position: "董事长助理", department: "AI数智部", T: "L4", S: "L4", D: "L3", C: "L4", K: "L4", L: "L3" },
-  { grtId: "GRT002", name: "黄晓兰", position: "会计", department: "财务部", T: "L2", S: "L3", D: "L1", C: "L3", K: "L4", L: "L1" },
-  { grtId: "GRT054", name: "王秀萍", position: "总账会计", department: "财务部", T: "L2", S: "L3", D: "L1", C: "L3", K: "L4", L: "L1" },
-  { grtId: "GRT101", name: "王汝月", position: "会计助理", department: "财务部", T: "L1", S: "L2", D: "L1", C: "L2", K: "L3", L: "L1" },
-  { grtId: "GRT066", name: "李新正", position: "仓库管理员", department: "财务部", T: "L2", S: "L2", D: "L1", C: "L2", K: "L3", L: "L1" },
-  { grtId: "GRT067", name: "沙建梅", position: "人事行政主管", department: "人事行政部", T: "L2", S: "L4", D: "L2", C: "L4", K: "L3", L: "L3" },
-  { grtId: "GRT053", name: "段天珠", position: "前法", department: "人事行政部", T: "L2", S: "L3", D: "L2", C: "L3", K: "L4", L: "L2" },
-  { grtId: "GRT100", name: "田炜钰", position: "行政前台", department: "人事行政部", T: "L1", S: "L3", D: "L1", C: "L3", K: "L2", L: "L1" },
-  { grtId: "GRT049", name: "胡杨", position: "IT工程师", department: "AI数智部", T: "L4", S: "L3", D: "L3", C: "L3", K: "L3", L: "L2" },
-  { grtId: "GRT062", name: "朱宇浩", position: "生产工程师兼项目及IT工程师", department: "事业二部", T: "L4", S: "L3", D: "L3", C: "L3", K: "L3", L: "L2" },
-  { grtId: "GRT096", name: "侯晓薇", position: "部门经理", department: "AI数智部", T: "L3", S: "L3", D: "L3", C: "L3", K: "L3", L: "L2" },
-  { grtId: "GRT083", name: "刘坤", position: "市场主管", department: "AI数智部", T: "L3", S: "L3", D: "L2", C: "L4", K: "L3", L: "L2" },
-  { grtId: "GRT103", name: "朱文韬", position: "市场专员", department: "AI数智部", T: "L2", S: "L3", D: "L2", C: "L4", K: "L3", L: "L2" },
-  { grtId: "GRT004", name: "戴晓燕", position: "高级销售经理", department: "事业一部", T: "L3", S: "L4", D: "L2", C: "L5", K: "L3", L: "L4" },
-  { grtId: "GRT005", name: "金晓锋", position: "制造质量经理", department: "事业一部", T: "L4", S: "L3", D: "L3", C: "L3", K: "L4", L: "L3" },
-  { grtId: "GRT022", name: "李大鹏", position: "电气工程师", department: "事业一部", T: "L4", S: "L2", D: "L3", C: "L2", K: "L3", L: "L1" },
-  { grtId: "GRT063", name: "刘健康", position: "销售与项目工程师", department: "事业一部", T: "L3", S: "L4", D: "L2", C: "L4", K: "L3", L: "L3" },
-  { grtId: "GRT006", name: "洪香龙", position: "机械设计经理", department: "事业二部", T: "L5", S: "L3", D: "L5", C: "L3", K: "L4", L: "L3" },
-  { grtId: "GRT044", name: "洪小东", position: "机械研发工程师", department: "事业二部", T: "L4", S: "L2", D: "L4", C: "L2", K: "L3", L: "L1" },
-  { grtId: "GRT097", name: "钱佳奇", position: "电气工程师", department: "事业二部", T: "L4", S: "L2", D: "L3", C: "L2", K: "L3", L: "L1" },
-  { grtId: "GRT003", name: "倪亚琴", position: "采购与项目工程师", department: "事业三部", T: "L3", S: "L3", D: "L2", C: "L3", K: "L3", L: "L2" },
-  { grtId: "GRT007", name: "孙坚", position: "电气主管", department: "事业三部", T: "L4", S: "L3", D: "L4", C: "L3", K: "L4", L: "L3" },
-  { grtId: "GRT055", name: "沈迎凤", position: "采购经理", department: "事业三部", T: "L2", S: "L4", D: "L2", C: "L4", K: "L3", L: "L3" },
-  { grtId: "GRT019", name: "冯艳", position: "销售与项目工程师", department: "事业三部", T: "L3", S: "L3", D: "L2", C: "L4", K: "L3", L: "L2" },
-  { grtId: "GRT018", name: "孙国祥", position: "电气工程师", department: "事业四部", T: "L4", S: "L2", D: "L3", C: "L2", K: "L3", L: "L1" },
-  { grtId: "GRT024", name: "张腾飞", position: "机加工班组长", department: "事业四部", T: "L3", S: "L3", D: "L2", C: "L3", K: "L3", L: "L2" },
-  { grtId: "GRT008", name: "马柯", position: "质量专员", department: "事业十部", T: "L3", S: "L3", D: "L2", C: "L3", K: "L4", L: "L2" },
-  { grtId: "GRT009", name: "史龙昌", position: "激光切作班组长", department: "事业十部", T: "L3", S: "L2", D: "L2", C: "L2", K: "L3", L: "L2" },
-  { grtId: "GRT045", name: "杨勇", position: "生产工程师兼项目经理", department: "事业三部", T: "L3", S: "L4", D: "L2", C: "L4", K: "L3", L: "L3" },
+  // ── 事业一部 ──
+  { grtId: "GRT004", name: "戴晓燕", position: "高级销售经理", department: "事业一部", T: "L3", S: "L2.5", D: "L2.5", C: "L3", K: "L2", L: "L3" },
+  { grtId: "GRT005", name: "金晓锋", position: "制造质量经理", department: "事业一部", T: "L3", S: "L2", D: "L2.5", C: "L3", K: "L2.5", L: "L3" },
+  { grtId: "GRT022", name: "李大鹏", position: "电气工程师", department: "事业一部", T: "L2", S: "L2", D: "L2", C: "L2", K: "L2", L: "L2" },
+  { grtId: "GRT030", name: "匡凯旋", position: "售后服务主管", department: "事业一部", T: "L2.5", S: "L2", D: "L2.5", C: "L2.5", K: "L2", L: "L2.5" },
+  { grtId: "GRT035", name: "王志强", position: "销售与项目工程师", department: "事业一部", T: "L2", S: "L2", D: "L1.5", C: "L2", K: "L2", L: "L1.5" },
+  { grtId: "GRT063", name: "刘健康", position: "销售与项目工程师", department: "事业一部", T: "L2", S: "L1.5", D: "L1", C: "L1.5", K: "L1.5", L: "L1" },
+  { grtId: "GRT087", name: "梅奥杰", position: "助理电气工程师", department: "事业一部", T: "L1", S: "L1", D: "L1", C: "L1", K: "L1", L: "L1" },
+  { grtId: "GRT088", name: "高嘉义", position: "助理电气工程师", department: "事业一部", T: "L1", S: "L1", D: "L1", C: "L1", K: "L1", L: "L1" },
+  { grtId: "GRT090", name: "陈加丽", position: "助理机械研发工程师", department: "事业一部", T: "L1", S: "L1", D: "L1", C: "L1", K: "L1", L: "L1" },
+  { grtId: "GRT104", name: "董纾雨", position: "销售与项目工程师", department: "事业一部", T: "L1", S: "L1", D: "L1", C: "L1", K: "L1", L: "L1" },
+  // ── 事业二部 ──
+  { grtId: "GRT006", name: "洪香龙", position: "机械设计经理", department: "事业二部", T: "L3", S: "L2.5", D: "L3", C: "L2.5", K: "L2", L: "L3" },
+  { grtId: "GRT044", name: "洪小东", position: "机械研发工程师", department: "事业二部", T: "L2", S: "L2", D: "L2", C: "L1.5", K: "L1.5", L: "L2" },
+  { grtId: "GRT094", name: "徐树奎", position: "事业二部经理", department: "事业二部", T: "L3", S: "L2", D: "L2.5", C: "L2.5", K: "L2.5", L: "L2.5" },
+  { grtId: "GRT097", name: "钱佳奇", position: "电气工程师", department: "事业二部", T: "L2", S: "L2", D: "L2", C: "L2", K: "L2", L: "L2" },
+  { grtId: "GRT099", name: "殷金刚", position: "机械研发工程师", department: "事业二部", T: "L2.5", S: "L2", D: "L2.5", C: "L2", K: "L1.5", L: "L2" },
+  { grtId: "GRT062", name: "朱宇浩", position: "IT工程师&EHS", department: "事业二部", T: "L2", S: "L2.5", D: "L2", C: "L1.5", K: "L2", L: "L2" },
+  // ── 事业三部 ──
+  { grtId: "GRT003", name: "倪亚琴", position: "采购与项目工程师", department: "事业三部", T: "L2", S: "L2", D: "L2", C: "L1.5", K: "L2", L: "L2" },
+  { grtId: "GRT007", name: "孙坚", position: "电气主管", department: "事业三部", T: "L3", S: "L3", D: "L2.5", C: "L2.5", K: "L2.5", L: "L2" },
+  { grtId: "GRT019", name: "冯艳", position: "销售与项目工程师", department: "事业三部", T: "L2.5", S: "L2", D: "L2", C: "L2", K: "L2", L: "L1.5" },
+  { grtId: "GRT043", name: "韩保程", position: "销售与项目工程师", department: "事业三部", T: "L2.5", S: "L2.5", D: "L2.5", C: "L2.5", K: "L2", L: "L2" },
+  { grtId: "GRT045", name: "杨勇", position: "销售与项目服务经理", department: "事业三部", T: "L2", S: "L3", D: "L1.5", C: "L2", K: "L1.5", L: "L1.5" },
+  { grtId: "GRT055", name: "沈迎凤", position: "采购经理", department: "事业三部", T: "L3", S: "L3", D: "L3", C: "L2", K: "L2", L: "L3.5" },
+  { grtId: "GRT058", name: "周辉", position: "事业三部经理", department: "事业三部", T: "L3", S: "L2", D: "L2.5", C: "L2.5", K: "L2.5", L: "L2.5" },
+  { grtId: "GRT089", name: "罗小玲", position: "助理机械研发工程师", department: "事业三部", T: "L1", S: "L1", D: "L1", C: "L1", K: "L1", L: "L1" },
+  { grtId: "GRT093", name: "李柯瑶", position: "销售与项目工程师", department: "事业三部", T: "L1", S: "L1", D: "L1", C: "L1", K: "L1", L: "L1" },
+  // ── 事业四部 ──
+  { grtId: "GRT018", name: "孙国祥", position: "电气工程师", department: "事业四部", T: "L2", S: "L1.5", D: "L2", C: "L2", K: "L2", L: "L2" },
+  // ── AI数智部 ──
+  { grtId: "GRT049", name: "胡杨", position: "IT工程师", department: "AI数智部", T: "L2.5", S: "L2.5", D: "L3", C: "L2", K: "L2", L: "L2" },
+  { grtId: "GRT080", name: "刘奥运", position: "董事长助理", department: "AI数智部", T: "L2", S: "L2", D: "L1", C: "L1.5", K: "L2", L: "L2" },
+  { grtId: "GRT083", name: "刘坤", position: "市场主管", department: "AI数智部", T: "L2", S: "L2.5", D: "L2.5", C: "L1.5", K: "L2", L: "L2" },
+  { grtId: "GRT103", name: "朱文韬", position: "市场专员", department: "AI数智部", T: "L1", S: "L1", D: "L1", C: "L1", K: "L1", L: "L1" },
+  // ── 财务部 ──
+  { grtId: "GRT054", name: "王秀萍", position: "总账会计", department: "财务部", T: "L2.5", S: "L2", D: "L2.5", C: "L2", K: "L2.5", L: "L2" },
+  { grtId: "GRT081", name: "马康风", position: "供应链助理工程师", department: "财务部", T: "L2.5", S: "L2.5", D: "L1.5", C: "L1.5", K: "L2", L: "L2.5" },
+  { grtId: "GRT101", name: "王汝月", position: "会计助理", department: "财务部", T: "L1", S: "L1", D: "L1", C: "L1", K: "L1", L: "L1" },
+  // ── 人事行政部 ──
+  { grtId: "GRT067", name: "沙建梅", position: "人事行政主管", department: "人事行政部", T: "L2", S: "L1.5", D: "L2", C: "L2", K: "L2", L: "L2" },
+  { grtId: "GRT100", name: "田炜钰", position: "行政前台", department: "人事行政部", T: "L1", S: "L1", D: "L1", C: "L1", K: "L1", L: "L1" },
+  // ── 事业十部 ──
+  { grtId: "GRT020", name: "张洵", position: "采购与项目工程师", department: "事业一部", T: "L2.5", S: "L2", D: "L2", C: "L1.5", K: "L2", L: "L2" },
+  { grtId: "GRT057", name: "滕顺英", position: "采购与项目工程师", department: "事业一部", T: "L2", S: "L2", D: "L2", C: "L1.5", K: "L2", L: "L2" },
 ];
 
 // ── Role → Job Family Mapping ─────────────────────────────

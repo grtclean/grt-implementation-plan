@@ -19,7 +19,7 @@ const TRIP_MANAGER_ROLES = new Set(["admin", "director", "dept_manager", "hr_man
 async function assertTripOwnership(db: any, tripId: number, userId: number, role: string) {
   if (TRIP_MANAGER_ROLES.has(role)) return;
   const [trip] = await db.select({ userId: tripRequests.userId }).from(tripRequests).where(eq(tripRequests.id, tripId))
-      .limit(1000);
+      .limit(1);
   if (!trip) throw new TRPCError({ code: "NOT_FOUND", message: `出差申请 #${tripId} 不存在` });
   if (trip.userId !== userId) {
     throw new TRPCError({ code: "FORBIDDEN", message: "无权操作他人的出差申请" });
@@ -42,7 +42,7 @@ export const tripRequestRouter = router({
     const db = await requireDb();
     const id = parseInt(input.id);
     await assertTripOwnership(db, id, ctx.user!.id, ctx.user!.role ?? "employee");
-    const [request] = await db.select().from(tripRequests).where(eq(tripRequests.id, id)).limit(1000);
+    const [request] = await db.select().from(tripRequests).where(eq(tripRequests.id, id)).limit(1);
     if (!request) return null;
 
     const itineraries = await db.select().from(tripItineraries)

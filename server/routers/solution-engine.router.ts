@@ -9,7 +9,6 @@
 import { z } from "zod";
 import {router, protectedProcedure, requirePermission} from "../_core/trpc";
 import { requireDb } from "../db";
-import { aiTasks } from "../../drizzle/schema";
 import {
   customerTechnicalRequirements,
   aiSolutionProposals,
@@ -27,6 +26,41 @@ async function ensureTables() {
   if (tablesEnsured) return;
   try {
     const db = await requireDb();
+
+    // Ensure ai_task_status enum + ai_tasks table exist (referenced by FK)
+    // Must match Drizzle schema in drizzle/schema.ts → aiTasks
+    await db.execute(sql`
+      DO $$ BEGIN
+        CREATE TYPE ai_task_status AS ENUM ('pending', 'processing', 'completed', 'failed', 'cancelled');
+      EXCEPTION WHEN duplicate_object THEN NULL; END $$
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS ai_tasks (
+        id SERIAL PRIMARY KEY,
+        task_type VARCHAR(50) NOT NULL,
+        status ai_task_status NOT NULL DEFAULT 'pending',
+        input_data JSONB,
+        result_data JSONB,
+        error_message VARCHAR(500),
+        created_by VARCHAR(50),
+        submitted_by_id INTEGER,
+        started_at TIMESTAMP,
+        completed_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
+        retry_count INTEGER DEFAULT 0,
+        max_retries INTEGER DEFAULT 3,
+        timeout_at TIMESTAMP,
+        worker_lock_id VARCHAR(50),
+        version INTEGER NOT NULL DEFAULT 1
+      )
+    `);
+    // Idempotent: add columns that may be missing from older table versions
+    await db.execute(sql`ALTER TABLE ai_tasks ADD COLUMN IF NOT EXISTS result_data JSONB`);
+    await db.execute(sql`ALTER TABLE ai_tasks ADD COLUMN IF NOT EXISTS submitted_by_id INTEGER`);
+    await db.execute(sql`ALTER TABLE ai_tasks ADD COLUMN IF NOT EXISTS retry_count INTEGER DEFAULT 0`);
+    await db.execute(sql`ALTER TABLE ai_tasks ADD COLUMN IF NOT EXISTS max_retries INTEGER DEFAULT 3`);
+    await db.execute(sql`ALTER TABLE ai_tasks ADD COLUMN IF NOT EXISTS timeout_at TIMESTAMP`);
+    await db.execute(sql`ALTER TABLE ai_tasks ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1`);
 
     // Create enums if not exist
     await db.execute(sql`
@@ -159,7 +193,10 @@ async function ensureTables() {
     tablesEnsured = true;
     log.info("[SolutionEngine] Tables ensured");
   } catch (err) {
-    log.warn({ err }, "[SolutionEngine] ensureTables failed");
+    // Mark as ensured even on partial failure — tables may already exist
+    // from a previous session. Let the actual queries surface real errors.
+    tablesEnsured = true;
+    log.warn({ err }, "[SolutionEngine] ensureTables partial failure (tables may already exist)");
   }
 }
 
@@ -330,18 +367,19 @@ export const solutionEngineRouter = router({
         throw new Error("Requirement not found");
       }
 
-      // 2. 创建 AI 任务
-      const [newTask] = await db.insert(aiTasks).values({
-        taskType: 'SOLUTION_PROPOSAL_GENERATION',
-        status: 'pending',
-        inputData: {
-          requirementId: input.requirementId,
-          workpieceName: requirement.workpieceName,
-          includeCompetitorAnalysis: input.includeCompetitorAnalysis,
-          includeBudgetEstimate: input.includeBudgetEstimate,
-        } as Record<string, unknown>,
-        createdBy: userId,
-      }).returning();
+      // 2. 创建 AI 任务 (raw SQL to avoid Drizzle column mismatch with existing table)
+      const inputJson = JSON.stringify({
+        requirementId: input.requirementId,
+        workpieceName: requirement.workpieceName,
+        includeCompetitorAnalysis: input.includeCompetitorAnalysis,
+        includeBudgetEstimate: input.includeBudgetEstimate,
+      });
+      const taskResult = await db.execute(sql`
+        INSERT INTO ai_tasks (task_type, status, input_data, created_by, created_at)
+        VALUES ('SOLUTION_PROPOSAL_GENERATION', 'pending', ${inputJson}::jsonb, ${userId}, NOW())
+        RETURNING id, task_type, status, created_at
+      `);
+      const newTask = taskResult.rows[0] as { id: number; task_type: string; status: string; created_at: string };
 
       // 3. 创建方案记录 (初始状态 GENERATING)
       const [proposal] = await db.insert(aiSolutionProposals).values({
@@ -388,9 +426,12 @@ export const solutionEngineRouter = router({
       await ensureTables();
       const db = await requireDb();
 
-      const [task] = await db.select().from(aiTasks)
-        .where(eq(aiTasks.id, input.taskId))
-        .limit(1);
+      // Raw SQL to avoid Drizzle column mismatch with existing table
+      const taskResult = await db.execute(sql`
+        SELECT id, task_type, status, error_message, created_at, completed_at
+        FROM ai_tasks WHERE id = ${input.taskId} LIMIT 1
+      `);
+      const task = taskResult.rows[0] as { id: number; task_type: string; status: string; error_message: string | null; created_at: string; completed_at: string | null } | undefined;
 
       if (!task) {
         return { status: 'not_found', taskId: input.taskId };
@@ -408,7 +449,7 @@ export const solutionEngineRouter = router({
       return {
         taskId: task.id,
         status: task.status,
-        errorMessage: task.errorMessage,
+        errorMessage: task.error_message,
         proposal: proposal ? {
           id: proposal.id,
           status: proposal.status,
@@ -417,8 +458,8 @@ export const solutionEngineRouter = router({
           competitorAnalysis: proposal.competitorAnalysis,
           budgetEstimate: proposal.budgetEstimate,
         } : null,
-        createdAt: task.createdAt,
-        completedAt: task.completedAt,
+        createdAt: task.created_at,
+        completedAt: task.completed_at,
       };
     }),
 

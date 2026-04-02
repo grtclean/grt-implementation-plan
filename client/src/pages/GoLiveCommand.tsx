@@ -809,7 +809,7 @@ function SalaryImportTab() {
         <CardContent>
           <textarea
             className="w-full h-32 p-3 border rounded text-sm font-mono resize-y"
-            placeholder='[{"employeeId": 1, "employeeName": "张三", "department": "技术部", "baseSalary": 15000, "performanceGrade": "A", "projectBonus": 5000, "overtimeHours": 16}]'
+            placeholder='[{"employeeId": 1, "employeeName": "胡杨", "department": "技术部", "baseSalary": 15000, "performanceGrade": "A", "projectBonus": 5000, "overtimeHours": 16}]'
             value={jsonInput}
             onChange={(e) => setJsonInput(e.target.value)}
           />

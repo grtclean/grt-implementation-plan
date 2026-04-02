@@ -8,6 +8,7 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
+import FloatingNav from '@/components/FloatingNav';
 import {
   DashboardModeProvider,
   useDashboardMode,
@@ -462,6 +463,7 @@ export default function ShopfloorMasterBoard() {
   return (
     <DashboardModeProvider>
       <ShopfloorContent />
+      <FloatingNav />
     </DashboardModeProvider>
   );
 }

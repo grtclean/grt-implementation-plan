@@ -34,6 +34,7 @@ export default function MechanicalDesign() {
   const { t } = useLanguage();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [formData, setFormData] = useState({ name: "", project: "", engineer: "" });
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   // ─── tRPC queries ───
   const designQuery = trpc.rndPipeline.mechanical.list.useQuery(
@@ -109,25 +110,45 @@ export default function MechanicalDesign() {
         <CardContent>
           <div className="space-y-3">
             {designs.map((d: any) => (
-              <div key={d.id} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm text-muted-foreground">{d.taskNumber}</span>
-                    <Badge variant="outline">{d.bu}</Badge>
-                    <Badge variant="secondary">{d.rev}</Badge>
-                  </div>
-                  <p className="font-medium mt-1">{d.name}</p>
-                  <p className="text-sm text-muted-foreground">{t("rnd.mechanical.project")}: {d.project} · {t("rnd.mechanical.engineer")}: {d.engineer}</p>
-                </div>
-                <div className="text-right space-y-1">
-                  <StatusBadge color={statusColorMap[d.status as keyof typeof statusColorMap] ?? 'gray'}>{d.status}</StatusBadge>
-                  <div className="flex items-center gap-2">
-                    <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full" style={{ width: `${d.progress}%` }} />
+              <div key={d.id}>
+                <div className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors"
+                  onClick={() => setExpandedId(expandedId === d.id ? null : d.id)}>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm text-muted-foreground">{d.taskNumber}</span>
+                      <Badge variant="outline">{d.bu || d.buCode}</Badge>
+                      <Badge variant="secondary">{d.rev || d.revision}</Badge>
                     </div>
-                    <span className="text-xs text-muted-foreground">{d.progress}%</span>
+                    <p className="font-medium mt-1">{d.name}</p>
+                    <p className="text-sm text-muted-foreground">{t("rnd.mechanical.project")}: {d.project} · {t("rnd.mechanical.engineer")}: {d.engineer}</p>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <StatusBadge color={statusColorMap[d.status as keyof typeof statusColorMap] ?? 'gray'}>{d.status}</StatusBadge>
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${d.progress}%` }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground">{d.progress}%</span>
+                    </div>
                   </div>
                 </div>
+                {expandedId === d.id && (
+                  <div className="mx-4 mb-3 p-4 bg-muted/30 rounded-b-lg border border-t-0 space-y-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                      <div className="p-2 bg-background rounded border"><span className="text-muted-foreground">设计类型: </span><span className="font-medium">{d.designType || "通用"}</span></div>
+                      <div className="p-2 bg-background rounded border"><span className="text-muted-foreground">优先级: </span><span className="font-medium">{d.priority || "medium"}</span></div>
+                      <div className="p-2 bg-background rounded border"><span className="text-muted-foreground">审核人: </span><span className="font-medium">{d.reviewer || "待指定"}</span></div>
+                      <div className="p-2 bg-background rounded border"><span className="text-muted-foreground">截止: </span><span className="font-medium">{d.dueDate || "未设定"}</span></div>
+                    </div>
+                    {d.description && <div className="text-sm text-muted-foreground bg-background p-3 rounded border"><span className="font-medium text-foreground">描述: </span>{d.description}</div>}
+                    <div className="flex gap-2 flex-wrap">
+                      <Button size="sm" variant="outline" className="text-xs h-7" onClick={(e) => { e.stopPropagation(); window.location.href = `/drawing-library?product=${d.project}`; }}>关联图纸</Button>
+                      <Button size="sm" variant="outline" className="text-xs h-7" onClick={(e) => { e.stopPropagation(); window.location.href = `/bom-management?product=${d.project}`; }}>关联BOM</Button>
+                      <Button size="sm" variant="outline" className="text-xs h-7" onClick={(e) => { e.stopPropagation(); window.location.href = `/pdm?product=${d.project}`; }}>PDM</Button>
+                      <Button size="sm" variant="outline" className="text-xs h-7" onClick={(e) => { e.stopPropagation(); window.location.href = `/design-knowledge`; }}>设计知识</Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
             {designs.length === 0 && (

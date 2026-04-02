@@ -32,6 +32,8 @@ export const displayScreens = pgTable(
     modeUnlockedAt: timestamp("mode_unlocked_at", { mode: "string" }),
     modeUnlockExpiresAt: timestamp("mode_unlock_expires_at", { mode: "string" }),
     unlockedByName: varchar("unlocked_by_name", { length: 100 }),
+    screenResolution: varchar("screen_resolution", { length: 20 }).default("1920x1080"), // 3840x2160 for 4K TVs
+    orientation: varchar("orientation", { length: 20 }).default("landscape"), // portrait for vertical TVs
     isActive: boolean("is_active").default(true),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
@@ -53,6 +55,9 @@ export const screenPlaylists = pgTable(
     durationSeconds: integer("duration_seconds").default(30).notNull(),
     orderIndex: integer("order_index").default(0).notNull(),
     mode: varchar("mode", { length: 20 }).default("BOTH").notNull(), // EXTERNAL | INTERNAL | BOTH
+    cameraGroupId: integer("camera_group_id"), // links to camera_groups for CameraGridView
+    cameraId: integer("camera_id"), // single camera fullscreen view
+    dataRefreshSeconds: integer("data_refresh_seconds").default(5), // for real-time data widgets
     isActive: boolean("is_active").default(true),
   },
   (table) => [

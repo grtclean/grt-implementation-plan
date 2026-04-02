@@ -1,0 +1,15 @@
+{
+  "auditDate": "2026-04-02",
+  "ports": [
+    { "port": 3000, "protocol": "HTTP/WS", "service": "Express API + tRPC + WebSocket + Frontend", "source": "server/_core/index.ts:317, docker-compose.yml", "exposed": true, "notes": "Primary service port — all traffic" },
+    { "port": 5173, "protocol": "HTTP", "service": "Vite Dev Server (HMR)", "source": "Vite default", "exposed": false, "notes": "Development only" },
+    { "port": 5432, "protocol": "TCP", "service": "PostgreSQL", "source": ".env:DATABASE_URL, docker-compose.yml", "exposed": false, "notes": "Primary database" },
+    { "port": 6379, "protocol": "TCP", "service": "Redis", "source": ".env.production:REDIS_URL, docker-compose.yml", "exposed": false, "notes": "Production cache only" },
+    { "port": 1433, "protocol": "TCP", "service": "TianSi ERP MSSQL", "source": ".env:TIANSI_MSSQL_PORT", "exposed": false, "notes": "Internal network (10.2.1.230)" },
+    { "port": 1433, "protocol": "TCP", "service": "Kingdee K/3 MSSQL", "source": ".env:KINGDEE_MSSQL_PORT", "exposed": false, "notes": "Internal network (10.2.1.249)" },
+    { "port": 80, "protocol": "HTTP", "service": "Nginx (Docker)", "source": "docker-compose.windows.yml", "exposed": true, "notes": "Docker deployment only" },
+    { "port": 443, "protocol": "HTTPS", "service": "Nginx (Docker)", "source": "docker-compose.windows.yml", "exposed": true, "notes": "Docker deployment only" },
+    { "port": 8080, "protocol": "HTTP", "service": "Adminer (DB Admin)", "source": "docker-compose.yml", "exposed": false, "notes": "Docker internal DB admin tool" },
+    { "port": 3306, "protocol": "TCP", "service": "MySQL (Docker Windows)", "source": "docker-compose.windows.yml", "exposed": false, "notes": "Windows Docker alternative DB" }
+  ]
+}

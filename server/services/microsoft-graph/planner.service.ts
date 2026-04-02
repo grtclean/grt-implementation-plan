@@ -84,7 +84,7 @@ const mockTasks: PlannerTask[] = [
   {
     id: "task-5", planId: "plan-2", bucketId: "bkt-4", title: "工装夹具设计",
     percentComplete: 25, startDateTime: "2026-02-20T09:00:00Z", dueDateTime: "2026-03-25T17:00:00Z",
-    priority: 5, assignedTo: ["孙坚", "钱绍辉"], createdDateTime: "2026-02-20T09:00:00Z",
+    priority: 5, assignedTo: ["孙坚", "钱佳奇"], createdDateTime: "2026-02-20T09:00:00Z",
     completedDateTime: null, orderHint: "1",
   },
 ];

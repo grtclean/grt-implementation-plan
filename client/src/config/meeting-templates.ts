@@ -1312,6 +1312,248 @@ export const FINAL_ACCEPTANCE_TEMPLATE: MeetingTemplate = {
 // 模板集合
 // ============================================
 
+// ============================================
+// 销售管理类会议模板
+// ============================================
+
+// ============================================
+// 公司级周期性会议模板
+// ============================================
+
+export const DEPT_WALKTHROUGH_TEMPLATE: MeetingTemplate = {
+  id: 'dept_walkthrough',
+  name: '部门长走线会',
+  nameEn: 'Department Head Gemba Walk',
+  category: 'internal',
+  subcategory: '公司级会议',
+  icon: 'Footprints',
+  color: '#dc2626',
+  description: '每周四全公司部门长走线检查。现场巡检一楼大厅及车间，确认OPL（One Point Lesson）执行情况，检查质量/5S/交付/工艺/安全等发现项状态。结果关联智能绩效红黑榜。',
+  defaultDuration: 60,
+  participants: {
+    required: ['全体部门长/事业部经理', 'CEO', '质量总监'],
+    optional: ['CTO', 'HR总监', '安全主管', '5S专员'],
+  },
+  agenda: [
+    { id: 'dw1', title: '上周OPL回顾', duration: 15, description: '逐项回顾上周及前几周的OPL(One Point Lesson)完成状态：已关闭/进行中/逾期', responsible: '质量总监', required: true, outputs: ['OPL状态汇总表'] },
+    { id: 'dw2', title: '现场走线巡检', duration: 25, description: '按路线巡检一楼大厅→车间各工位，现场发现问题立即记录', responsible: '全体部门长', required: true, outputs: ['现场巡检记录'] },
+    { id: 'dw3', title: '发现项分类登记', duration: 10, description: '将巡检发现项分类（质量/5S/交付/工艺/安全），指定责任人和整改周期', responsible: '质量总监', required: true, outputs: ['发现项登记表'] },
+    { id: 'dw4', title: '红黑榜更新', duration: 5, description: '根据OPL完成率和新发现项数量更新部门红黑榜排名', responsible: 'CEO/质量总监', required: true, outputs: ['红黑榜更新'] },
+    { id: 'dw5', title: '优秀改善案例分享', duration: 5, description: '选取1个本周最佳改善案例进行3分钟分享', responsible: '相关部门长', required: false, outputs: ['改善案例记录'] },
+  ],
+  outputs: [
+    { id: 'dw_o1', name: '走线检查报告', template: '## 部门长走线会报告 {{date}} (周四)\n\n### OPL状态汇总\n| 序号 | OPL描述 | 类别 | 责任人 | 发现日期 | 计划关闭 | 状态 |\n|------|---------|------|--------|----------|----------|------|\n\n### 本周新发现项\n| 序号 | 发现项 | 类别 | 区域 | 责任人 | 整改周期 | 优先级 |\n|------|--------|------|------|--------|----------|--------|\n\n### 类别统计\n| 类别 | 开放项数 | 本周新增 | 本周关闭 | 逾期数 |\n|------|----------|----------|----------|--------|\n| 质量 | | | | |\n| 5S | | | | |\n| 交付 | | | | |\n| 工艺 | | | | |\n| 安全 | | | | |\n\n### 红黑榜\n| 排名 | 部门 | OPL完成率 | 新发现项 | 评级 |\n|------|------|-----------|----------|------|\n\n### 优秀改善案例\n', required: true },
+  ],
+  followUpActions: [
+    '24小时内将发现项录入OPL系统',
+    '责任人48小时内提交整改计划',
+    '红黑榜同步更新到智能绩效系统',
+    '逾期项升级至CEO周报',
+    '优秀案例纳入改善案例库',
+  ],
+  aiPrompts: {
+    summary: '请总结本次走线会：(1)OPL整体完成率趋势 (2)高频问题类别分析 (3)重复发现项预警 (4)各部门表现排名 (5)需CEO关注的关键项',
+    actionItems: '请提取每个发现项的行动计划：[区域] - [发现项] - [类别] - [责任人] - [整改日期] - [优先级]',
+    assessment: '请评估走线会效能：(1)OPL关闭率是否达标(≥85%) (2)重复发现项比例 (3)整改周期是否合理 (4)各部门参与度',
+  },
+  bestPractices: [
+    '走线路线每月轮换，避免盲区',
+    '发现项必须现场拍照留证',
+    '责任人必须当场确认整改周期',
+    '逾期超过2周的项自动升级为红色预警',
+    '每月评选最佳改善部门，奖励公示',
+  ],
+};
+
+export const BU_MORNING_STANDUP_TEMPLATE: MeetingTemplate = {
+  id: 'bu_morning_standup',
+  name: '事业部晨会',
+  nameEn: 'BU Morning Standup',
+  category: 'internal',
+  subcategory: '公司级会议',
+  icon: 'Sun',
+  color: '#f97316',
+  description: '每周一早晨各事业部在车间现场召开晨会。总结上周产值/交付/质量/销售/客户反馈，布置本周主要任务。站立式会议，控制在30分钟内。',
+  defaultDuration: 30,
+  participants: {
+    required: ['事业部经理', '项目经理', '生产主管', '质量主管', '销售工程师'],
+    optional: ['CTO', '设计工程师', '采购'],
+  },
+  agenda: [
+    { id: 'bm1', title: '上周产值回顾', duration: 5, description: '上周产值完成率，与月度目标对比，差异分析', responsible: '生产主管', required: true, outputs: ['产值完成率'] },
+    { id: 'bm2', title: '项目交付进度', duration: 5, description: '在手项目M0-M12进度更新，延期项预警', responsible: '项目经理', required: true, outputs: ['项目进度表'] },
+    { id: 'bm3', title: '质量指标', duration: 5, description: '上周IQC/过程/终检合格率，NCR状态，客户投诉', responsible: '质量主管', required: true, outputs: ['质量周报'] },
+    { id: 'bm4', title: '销售与客户动态', duration: 5, description: '新询价/报价/订单动态，客户反馈/投诉，本周客户来访计划', responsible: '销售工程师', required: true, outputs: ['销售动态'] },
+    { id: 'bm5', title: '本周重点任务', duration: 5, description: '本周Top 5重点任务，资源需求，跨部门协调事项', responsible: '事业部经理', required: true, outputs: ['周任务清单'] },
+    { id: 'bm6', title: '优秀案例/表扬', duration: 5, description: '上周优秀表现人员/团队表扬，典型案例分享', responsible: '事业部经理', required: false, outputs: ['表扬记录'] },
+  ],
+  outputs: [
+    { id: 'bm_o1', name: '事业部周报', template: '## {{buName}} 事业部晨会纪要 {{date}} (周一)\n\n### 上周产值\n- 计划产值: ¥___万\n- 实际产值: ¥___万\n- 完成率: ___%\n- 月度累计完成率: ___%\n\n### 项目交付\n| 项目 | 阶段 | 进度 | 风险 | 备注 |\n|------|------|------|------|------|\n\n### 质量指标\n- IQC合格率: ___%\n- 过程合格率: ___%\n- 终检合格率: ___%\n- 开放NCR: ___项\n- 客户投诉: ___起\n\n### 销售动态\n- 新询价: ___个\n- 发出报价: ___个\n- 新订单: ___个 / ¥___万\n- 本周客户来访: \n\n### 本周重点\n| 序号 | 任务 | 责任人 | 截止 |\n|------|------|--------|------|\n| 1 | | | |\n| 2 | | | |\n| 3 | | | |\n\n### 表扬\n', required: true },
+  ],
+  followUpActions: [
+    '晨会纪要10分钟内发送至事业部全员+CEO',
+    '延期项目升级至项目管理系统',
+    '客户投诉24小时内启动8D流程',
+    '客户来访通知相关部门做好接待准备',
+    '优秀案例纳入月度评优候选',
+  ],
+  aiPrompts: {
+    summary: '请总结事业部晨会：(1)产值完成率与趋势 (2)项目交付风险项 (3)质量异常预警 (4)销售管线健康度 (5)本周关键任务',
+    actionItems: '请提取晨会行动项：[责任人] - [任务] - [截止日期] - [类别(生产/质量/销售/项目)]',
+    assessment: '请评估事业部运营健康度：(1)产值趋势(连续增长/下降) (2)交付准时率 (3)质量稳定性 (4)客户满意度信号',
+  },
+  bestPractices: [
+    '站立式会议，严格控制30分钟',
+    '每人汇报不超过3分钟，数据说话',
+    '问题只提出不讨论，需要讨论的另行安排',
+    '延期和质量异常必须有根因分析',
+    '晨会在车间现场进行，增强现场感',
+  ],
+};
+
+export const SALES_WEEKLY_REVIEW_TEMPLATE: MeetingTemplate = {
+  id: 'sales_weekly_review',
+  name: '销售周例会',
+  nameEn: 'Sales Weekly Review',
+  category: 'internal',
+  subcategory: '销售管理',
+  icon: 'TrendingUp',
+  color: '#0ea5e9',
+  description: '每周销售团队例会，回顾本周销售进展、客户拜访、项目推进情况，制定下周行动计划。适用于事业部销售工程师团队（王志强、冯燕、韩宝程等）。',
+  defaultDuration: 60,
+  participants: {
+    required: ['销售总监/事业部经理', '全体销售工程师'],
+    optional: ['技术支持工程师', 'CTO', 'CEO'],
+  },
+  agenda: [
+    { id: 'sw1', title: '上周行动项回顾', duration: 10, description: '逐一回顾上周行动项完成情况，标记完成/延期/取消', responsible: '会议主持', required: true, outputs: ['行动项完成率统计'] },
+    { id: 'sw2', title: '本周客户拜访汇报', duration: 15, description: '每位销售工程师汇报本周客户拜访：客户名称、拜访目的、关键反馈、下一步', responsible: '全体销售', required: true, outputs: ['客户拜访记录'] },
+    { id: 'sw3', title: '项目漏斗更新', duration: 10, description: '更新M0-M3项目状态：新增线索、阶段推进、丢单分析', responsible: '全体销售', required: true, outputs: ['漏斗变化记录'] },
+    { id: 'sw4', title: '本周订单/报价进展', duration: 10, description: '在手订单进展、新报价发出、报价跟踪', responsible: '全体销售', required: true, outputs: ['订单/报价汇总'] },
+    { id: 'sw5', title: '竞争情报分享', duration: 5, description: '竞争对手动态、客户侧听到的市场信息', responsible: '全体销售', required: false, outputs: ['竞争情报记录'] },
+    { id: 'sw6', title: '下周重点行动计划', duration: 10, description: '每位销售工程师制定下周Top 3行动项，含责任人和完成时间', responsible: '全体销售', required: true, outputs: ['下周行动计划'] },
+  ],
+  outputs: [
+    { id: 'sw_o1', name: '销售周报', template: '## 销售周报 {{date}}\n\n### 客户拜访汇总\n| 销售 | 客户 | 目的 | 反馈 | 下一步 |\n|------|------|------|------|--------|\n\n### 项目漏斗变化\n- M0新增: \n- M1推进: \n- M2推进: \n- M3推进: \n- 丢单: \n\n### 订单/报价\n- 新订单: \n- 新报价: \n\n### 下周重点\n| 销售 | 行动项 | 截止日期 |\n|------|--------|----------|\n', required: true },
+  ],
+  followUpActions: [
+    '更新CRM系统中的客户拜访记录',
+    '更新项目漏斗M0-M3状态',
+    '发送周报至事业部经理和CTO',
+    '设置下周客户拜访日历提醒',
+    '超期行动项升级至事业部经理',
+  ],
+  aiPrompts: {
+    summary: '请总结本次销售周例会的要点，包括：(1)客户拜访亮点和需关注的客户反馈 (2)项目漏斗变化趋势 (3)订单和报价进展 (4)竞争情报关键发现 (5)下周重点行动',
+    actionItems: '请从会议记录中提取每位销售工程师的行动项，格式为：[销售姓名] - [行动内容] - [截止日期] - [优先级]',
+    assessment: '请评估本次销售周会的效率：(1)各销售的客户拜访量是否达标(每周≥3次) (2)项目漏斗是否健康(M0→M1转化率) (3)行动项执行率 (4)会议时间利用率',
+  },
+  bestPractices: [
+    '每位销售工程师汇报控制在3分钟内',
+    '客户拜访汇报必须包含"客户说了什么"而非"我做了什么"',
+    '项目漏斗更新必须有数据支撑（报价金额、预计签约时间）',
+    '下周行动项必须SMART（具体、可衡量、有截止日期）',
+    '会议结束后2小时内发送周报',
+  ],
+};
+
+export const SALES_MONTHLY_KPI_TEMPLATE: MeetingTemplate = {
+  id: 'sales_monthly_kpi',
+  name: '销售月度指标分析会',
+  nameEn: 'Sales Monthly KPI Review',
+  category: 'internal',
+  subcategory: '销售管理',
+  icon: 'BarChart3',
+  color: '#8b5cf6',
+  description: '每月销售指标回顾与分析会议。对比月度销售目标与实际达成，分析差距原因，制定改进措施。含个人KPI评审和团队整体分析。',
+  defaultDuration: 90,
+  participants: {
+    required: ['销售总监/事业部经理', '全体销售工程师', 'CEO/CTO'],
+    optional: ['财务经理', 'HR经理', '技术总监'],
+  },
+  agenda: [
+    { id: 'sm1', title: '月度业绩总览', duration: 10, description: '展示团队整体月度KPI：合同额、回款、新客户数、客户拜访量、报价转化率', responsible: '销售总监', required: true, outputs: ['月度KPI仪表板'] },
+    { id: 'sm2', title: '个人KPI逐一评审', duration: 30, description: '每位销售工程师汇报个人月度指标达成情况，对比目标差距分析', responsible: '全体销售', required: true, outputs: ['个人KPI评审表'] },
+    { id: 'sm3', title: '重点项目深度分析', duration: 15, description: '选取3-5个重点项目做深度分析：进展、风险、需要的资源支持', responsible: '相关销售', required: true, outputs: ['重点项目分析报告'] },
+    { id: 'sm4', title: '丢单/失败案例复盘', duration: 10, description: '本月丢单项目复盘：原因分析、教训总结、改进建议', responsible: '相关销售', required: true, outputs: ['丢单复盘记录'] },
+    { id: 'sm5', title: '市场趋势与行业洞察', duration: 10, description: '行业展会、客户动态、竞争对手情报汇总分析', responsible: '销售总监', required: false, outputs: ['市场分析报告'] },
+    { id: 'sm6', title: '下月目标与策略', duration: 15, description: '设定下月各项KPI目标，制定重点攻关客户和策略', responsible: '销售总监+全体销售', required: true, outputs: ['下月销售计划'] },
+  ],
+  outputs: [
+    { id: 'sm_o1', name: '月度销售KPI报告', template: '## 月度销售KPI报告 {{month}}\n\n### 团队总览\n| 指标 | 目标 | 实际 | 达成率 |\n|------|------|------|--------|\n| 合同额(万元) | | | |\n| 回款额(万元) | | | |\n| 新客户数 | | | |\n| 客户拜访量 | | | |\n| 报价数 | | | |\n| 报价转化率 | | | |\n\n### 个人KPI\n| 销售 | 合同额 | 回款 | 拜访量 | 报价数 | 综合达成率 |\n|------|--------|------|--------|--------|------------|\n| 王志强 | | | | | |\n| 冯燕 | | | | | |\n| 韩宝程 | | | | | |\n\n### 重点项目\n\n### 丢单复盘\n\n### 下月计划\n', required: true },
+  ],
+  followUpActions: [
+    '更新个人月度KPI到绩效系统',
+    '发送月度销售报告至CEO/CTO',
+    '未达标销售制定改进计划并提交',
+    '更新下月销售预测到财务系统',
+    '安排重点客户攻关专项会议',
+    '丢单教训纳入销售培训材料库',
+  ],
+  aiPrompts: {
+    summary: '请总结本次销售月度分析会的要点：(1)团队整体KPI达成情况及趋势 (2)表现突出和需要关注的销售 (3)重点项目进展 (4)丢单的共性原因 (5)下月关键策略',
+    actionItems: '请提取每位销售工程师的改进行动项和下月重点目标，格式：[姓名] - [当月达成率] - [改进措施] - [下月目标]',
+    assessment: '请评估销售团队健康度：(1)漏斗充足率(M0-M3各阶段项目数) (2)客户覆盖度(新客户vs老客户比例) (3)报价转化率趋势 (4)回款及时率 (5)个人间业绩差异分析',
+  },
+  bestPractices: [
+    '数据说话：所有指标必须有数据支撑，不接受定性描述',
+    '个人KPI评审控制在每人5分钟以内',
+    '丢单复盘要找根因，不是简单的"价格太高"',
+    '下月目标要与年度目标对齐，不能脱节',
+    '会议结束24小时内出月报并发送全员',
+    '连续2个月未达标的销售需制定专项辅导计划',
+  ],
+};
+
+export const SALES_QUARTERLY_STRATEGY_TEMPLATE: MeetingTemplate = {
+  id: 'sales_quarterly_strategy',
+  name: '销售季度战略会',
+  nameEn: 'Sales Quarterly Strategy Meeting',
+  category: 'internal',
+  subcategory: '销售管理',
+  icon: 'Target',
+  color: '#f59e0b',
+  description: '每季度一次的销售战略回顾与规划会议。分析季度业绩、市场变化、竞争格局，调整下季度销售策略和资源配置。',
+  defaultDuration: 120,
+  participants: {
+    required: ['CEO', 'CTO', '销售总监/事业部经理', '全体销售工程师'],
+    optional: ['财务总监', 'HR总监', '研发总监', '质量总监'],
+  },
+  agenda: [
+    { id: 'sq1', title: '季度业绩回顾', duration: 20, description: '对比季度销售目标与实际：合同额、回款、利润率、新客户开发、行业分布', responsible: '销售总监', required: true, outputs: ['季度业绩报告'] },
+    { id: 'sq2', title: '行业与市场分析', duration: 15, description: '新能源/汽车/半导体/工业通用四大行业趋势分析', responsible: '销售总监', required: true, outputs: ['行业分析报告'] },
+    { id: 'sq3', title: '竞争格局变化', duration: 10, description: '主要竞争对手动态、新进入者、技术替代风险', responsible: '销售总监', required: true, outputs: ['竞争分析'] },
+    { id: 'sq4', title: '重点客户战略评审', duration: 20, description: '战略客户(CATL/BYD/Bosch等)合作深度分析、扩展机会', responsible: '对口销售', required: true, outputs: ['客户战略地图'] },
+    { id: 'sq5', title: '产品技术匹配分析', duration: 15, description: 'CTO分享技术路线图与客户需求匹配度，新产品推广计划', responsible: 'CTO', required: true, outputs: ['技术匹配矩阵'] },
+    { id: 'sq6', title: '下季度策略与目标', duration: 20, description: '制定下季度销售策略、目标分解、资源配置', responsible: 'CEO+销售总监', required: true, outputs: ['季度销售计划'] },
+    { id: 'sq7', title: '销售团队能力建设', duration: 10, description: '培训需求、人员调整、激励政策讨论', responsible: '销售总监+HR', required: false, outputs: ['团队建设计划'] },
+    { id: 'sq8', title: 'CEO/CTO总结指示', duration: 10, description: '高层战略方向指引和资源承诺', responsible: 'CEO/CTO', required: true, outputs: ['战略方向纪要'] },
+  ],
+  outputs: [
+    { id: 'sq_o1', name: '季度销售战略报告', template: '## Q{{quarter}} {{year}} 销售战略报告\n\n### 业绩回顾\n| 指标 | Q目标 | Q实际 | 达成率 | 同比 |\n|------|-------|-------|--------|------|\n\n### 行业分析\n\n### 竞争格局\n\n### 战略客户分析\n\n### 下季度策略\n\n### 目标分解\n| 销售 | 合同额目标 | 重点客户 | 重点行业 |\n|------|-----------|---------|----------|\n| 王志强 | | | |\n| 冯燕 | | | |\n| 韩宝程 | | | |\n', required: true },
+  ],
+  followUpActions: [
+    '发布季度销售战略报告至全员',
+    '更新年度销售预测',
+    '启动下季度重点客户攻关计划',
+    '安排销售培训（如需）',
+    '调整激励政策（如需）',
+    '更新CRM中的客户战略标签',
+  ],
+  aiPrompts: {
+    summary: '请从战略视角总结本次季度会议：(1)业绩趋势和增长引擎 (2)面临的主要挑战 (3)市场机会窗口 (4)下季度必赢之战 (5)需要CEO/CTO决策的事项',
+    actionItems: '请提取高优先级战略行动项：[负责人] - [行动] - [截止日期] - [预期成果] - [所需资源]',
+    assessment: '请评估GRT销售竞争力：(1)市场份额变化 (2)客户粘性(复购率) (3)新市场渗透进度 (4)技术竞争力vs对手 (5)团队执行力评分',
+  },
+  bestPractices: [
+    'CEO/CTO必须全程参加，体现战略重视',
+    '数据驱动，避免主观感受',
+    '聚焦"必赢之战"，不超过3个战略方向',
+    '每个行动项必须有明确的"所有者"和"里程碑"',
+    '会议结束48小时内发布战略报告',
+  ],
+};
+
 export const MEETING_TEMPLATES: MeetingTemplate[] = [
   // 内部管理类
   EMPLOYEE_INTERVIEW_TEMPLATE,
@@ -1321,6 +1563,13 @@ export const MEETING_TEMPLATES: MeetingTemplate[] = [
   MONTHLY_PLANNING_TEMPLATE,
   ANNUAL_PLANNING_TEMPLATE,
   ANNUAL_SUMMARY_TEMPLATE,
+  // 公司级周期性会议
+  DEPT_WALKTHROUGH_TEMPLATE,
+  BU_MORNING_STANDUP_TEMPLATE,
+  // 销售管理类
+  SALES_WEEKLY_REVIEW_TEMPLATE,
+  SALES_MONTHLY_KPI_TEMPLATE,
+  SALES_QUARTERLY_STRATEGY_TEMPLATE,
   // 客户项目类
   CUSTOMER_FIRST_MEETING_TEMPLATE,
   CUSTOMER_SOLUTION_MEETING_TEMPLATE,
@@ -1335,10 +1584,12 @@ export const MEETING_CATEGORIES = [
     name: '内部管理',
     nameEn: 'Internal Management',
     subcategories: [
+      { id: 'company', name: '公司级会议', templates: ['dept_walkthrough', 'bu_morning_standup'] },
       { id: 'hr', name: 'HR管理', templates: ['employee_interview', 'performance_dialogue'] },
       { id: 'production', name: '生产管理', templates: ['production_weekly'] },
       { id: 'business', name: '经营管理', templates: ['monthly_business_review', 'monthly_planning'] },
       { id: 'strategy', name: '战略管理', templates: ['annual_planning', 'annual_summary'] },
+      { id: 'sales', name: '销售管理', templates: ['sales_weekly_review', 'sales_monthly_kpi', 'sales_quarterly_strategy'] },
     ],
   },
   {

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useCallback, useRef, useEffect, useState, useMemo } from "react";
+import FloatingNav from '@/components/FloatingNav';
 
 // ═══════════════════════════════════════════════════════════════
 // §1  Core Metadata Protocol — zero `any`
@@ -980,6 +981,7 @@ function ShellInner(): React.ReactElement {
         </div>
         <span>GRT System V5.0 · Universal Sandbox Engine</span>
       </footer>
+      <FloatingNav />
     </div>
   );
 }

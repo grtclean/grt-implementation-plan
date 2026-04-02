@@ -8,7 +8,7 @@ import { CheckCircle2, Eye, EyeOff, Loader2, LogIn, UserPlus } from "lucide-reac
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
-type Mode = "login" | "register";
+type Mode = "login" | "register"; // register disabled in UI — accounts provisioned by IT
 
 export default function LocalLogin() {
   const { t, tpl } = useLanguage();
@@ -23,12 +23,34 @@ export default function LocalLogin() {
   const { isAuthenticated, loading: authLoading, refresh } = useAuth();
   const [, navigate] = useLocation();
 
-  // If already authenticated, redirect to home
+  // 首次登录改密
+  const [changePwdOpen, setChangePwdOpen] = useState(false);
+  const [changePwdUser, setChangePwdUser] = useState("");
+  const [changePwdOld, setChangePwdOld] = useState("");
+  const [changePwdNew, setChangePwdNew] = useState("");
+  const [changePwdConfirm, setChangePwdConfirm] = useState("");
+  const [changePwdError, setChangePwdError] = useState("");
+  const [changePwdLoading, setChangePwdLoading] = useState(false);
+
+  // If already authenticated, redirect to home (unless ?switch=1 for account switching)
+  const isSwitchMode = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("switch") === "1";
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    if (!authLoading && isAuthenticated && !isSwitchMode) {
       navigate("/", { replace: true });
     }
-  }, [authLoading, isAuthenticated, navigate]);
+  }, [authLoading, isAuthenticated, navigate, isSwitchMode]);
+
+  // In switch mode, logout first so the new login cookie takes effect
+  useEffect(() => {
+    if (isSwitchMode && isAuthenticated && !authLoading) {
+      fetch("/api/auth/logout", { method: "POST", credentials: "include" }).then(() => {
+        // Clear URL param and reload to get clean state
+        const url = new URL(window.location.href);
+        url.searchParams.delete("switch");
+        window.location.href = url.pathname;
+      });
+    }
+  }, [isSwitchMode, isAuthenticated, authLoading]);
 
   // Focus username input on mode change
   useEffect(() => {
@@ -100,18 +122,24 @@ export default function LocalLogin() {
         return;
       }
 
-      // Show success
-      setSuccessMsg(mode === "login" ? t("auth.loginRedirect") : (data.message || t("auth.registerRedirect")));
-
-      // Refresh auth state (fetches /api/auth/me with the new cookie),
-      // then navigate via client-side routing (no full page reload).
-      const ok = await refresh();
-      if (ok) {
-        navigate("/", { replace: true });
-      } else {
-        // Fallback: full page reload if refresh somehow fails
-        window.location.href = "/";
+      // 首次登录需修改密码
+      if (data.mustChangePassword && mode === "login") {
+        setChangePwdOpen(true);
+        setChangePwdUser(username);
+        setChangePwdOld(password);
+        setLoading(false);
+        return;
       }
+
+      // Show success message briefly, then full page reload
+      setSuccessMsg(mode === "login" ? t("auth.loginRedirect") : (data.message || t("auth.registerRedirect")));
+      setLoading(false);
+
+      // Full page reload to re-initialize auth singleton with fresh state.
+      // Small delay to show the success message to the user
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
     } catch (err: any) {
       // Show the actual error for diagnostics instead of a generic "network error"
       const detail = err?.message || String(err);
@@ -120,8 +148,8 @@ export default function LocalLogin() {
     }
   };
 
-  // Don't show login page if already authenticated
-  if (!authLoading && isAuthenticated) {
+  // Don't show login page if already authenticated (unless switching accounts)
+  if (!authLoading && isAuthenticated && !isSwitchMode) {
     return null;
   }
 
@@ -153,18 +181,9 @@ export default function LocalLogin() {
             <LogIn className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
             {t("auth.login")}
           </button>
-          <button
-            type="button"
-            onClick={() => switchMode("register")}
-            className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all duration-200 ${
-              mode === "register"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <UserPlus className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-            {t("auth.register")}
-          </button>
+          <span className="flex-1 py-2 px-4 text-xs text-muted-foreground text-center">
+            员工号登录 · 初始密码由IT分配
+          </span>
         </div>
 
         {/* Form Card */}
@@ -319,6 +338,64 @@ export default function LocalLogin() {
           GRT System v2.0
         </p>
       </div>
+
+      {/* 首次登录强制改密对话框 */}
+      {changePwdOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-lg">首次登录 — 请修改密码</CardTitle>
+              <CardDescription>
+                为了账户安全，首次登录必须修改初始密码。新密码要求：
+                <ul className="mt-2 text-xs space-y-0.5 list-disc pl-4">
+                  <li>至少8位</li>
+                  <li>包含大写字母、小写字母、数字、特殊字符</li>
+                  <li>不能包含用户名</li>
+                  <li>不能与初始密码相同</li>
+                </ul>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setChangePwdError("");
+                if (changePwdNew !== changePwdConfirm) { setChangePwdError("两次输入的新密码不一致"); return; }
+                setChangePwdLoading(true);
+                try {
+                  const res = await fetch("/api/auth/change-password", {
+                    method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+                    body: JSON.stringify({ username: changePwdUser, oldPassword: changePwdOld, newPassword: changePwdNew }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) { setChangePwdError(data.error || "修改失败"); setChangePwdLoading(false); return; }
+                  setChangePwdOpen(false);
+                  setSuccessMsg("密码修改成功，请用新密码重新登录");
+                  setChangePwdLoading(false);
+                } catch { setChangePwdError("网络错误"); setChangePwdLoading(false); }
+              }} className="space-y-3">
+                <div>
+                  <Label>用户名</Label>
+                  <Input value={changePwdUser} disabled className="bg-muted" />
+                </div>
+                <div>
+                  <Label>新密码</Label>
+                  <Input type="password" value={changePwdNew} onChange={e => setChangePwdNew(e.target.value)}
+                    placeholder="至少8位，含大小写+数字+特殊字符" required minLength={8} />
+                </div>
+                <div>
+                  <Label>确认新密码</Label>
+                  <Input type="password" value={changePwdConfirm} onChange={e => setChangePwdConfirm(e.target.value)}
+                    placeholder="再次输入新密码" required />
+                </div>
+                {changePwdError && <p className="text-sm text-destructive">{changePwdError}</p>}
+                <Button type="submit" className="w-full" disabled={changePwdLoading}>
+                  {changePwdLoading ? "修改中..." : "修改密码并重新登录"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

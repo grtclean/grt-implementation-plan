@@ -68,7 +68,7 @@ export const env = {
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "",
   ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com/v1",
   ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-20250514",
-  // External Sync API
-  EXT_SYNC_API_KEY: process.env.EXT_SYNC_API_KEY ?? "",
-  EXT_SYNC_CORP_ID: process.env.EXT_SYNC_CORP_ID ?? "",
+  // External Sync API (supports both EXT_SYNC_* and legacy JIANDAOYUN_* env names)
+  EXT_SYNC_API_KEY: process.env.EXT_SYNC_API_KEY || process.env.JIANDAOYUN_API_KEY || "",
+  EXT_SYNC_CORP_ID: process.env.EXT_SYNC_CORP_ID || process.env.JIANDAOYUN_CORP_ID || "",
 };

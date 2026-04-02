@@ -66,7 +66,11 @@ export type Permission =
   // 培训管理权限
   | 'training:admin'
   | 'training:manage'
-  | 'training:view';
+  | 'training:view'
+
+  // HR目标管理权限
+  | 'hr:goal:manage'
+  | 'hr:goal:view';
 
 // 角色权限映射
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
@@ -82,8 +86,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'community:admin', 'community:moderate', 'community:reply', 'community:view',
     'erp:admin', 'erp:sync', 'erp:view',
     'training:admin', 'training:manage', 'training:view',
+    'hr:goal:manage', 'hr:goal:view',
   ],
-  
+
   manager: [
     // 经理拥有管理和操作权限
     'user:view',
@@ -95,6 +100,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'community:moderate', 'community:reply', 'community:view',
     'erp:sync', 'erp:view',
     'training:manage', 'training:view',
+    'hr:goal:manage', 'hr:goal:view',
   ],
   
   user: [

@@ -10,6 +10,7 @@
  * 零 unicode escape · 零 any · 零 cross-module import · 全原生 UTF-8
  */
 import React, { createContext, useContext, useCallback, useRef, useEffect, useState } from "react";
+import FloatingNav from '@/components/FloatingNav';
 import { cn } from "@/lib/utils";
 
 // ═══════════════════════════════════════════════════════════════
@@ -1014,6 +1015,7 @@ function ShellInner(): React.ReactElement {
         </div>
         <div>GRT System V5.0 · 跨域数据水合引擎</div>
       </footer>
+      <FloatingNav />
     </div>
   );
 }

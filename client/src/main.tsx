@@ -1,12 +1,11 @@
 import { trpc } from "@/lib/trpc";
+import { isPublicPath } from "@/lib/public-paths";
 import { UNAUTHED_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
+import React, { Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
-import App from "./App";
-import ErrorBoundary from "./components/ErrorBoundary";
-import { BehaviorProbeProvider } from "./components/BehaviorProbeProvider";
 import { getLoginUrl } from "./const";
 import { toast } from "sonner";
 import "./index.css";
@@ -106,9 +105,8 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
   const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
   if (!isUnauthorized) return;
 
-  // Don't redirect if already on login page or public showcase pages
-  const currentPath = window.location.pathname;
-  if (currentPath === "/login" || currentPath === "/login-success" || currentPath.startsWith("/showcase/")) return;
+  // Don't redirect on public/customer pages
+  if (isPublicPath()) return;
 
   isRedirecting = true;
 
@@ -131,14 +129,15 @@ queryClient.getQueryCache().subscribe(event => {
     // Only redirect on explicit auth errors, and add a delay to prevent rapid redirects
     if (!isRedirecting && error instanceof TRPCClientError) {
       if (error.message === UNAUTHED_ERR_MSG) {
-        const currentPath = window.location.pathname;
-        if (currentPath !== "/login" && currentPath !== "/login-success" && currentPath !== "/auto-login.html" && !currentPath.startsWith("/showcase/")) {
+        if (!isPublicPath()) {
           console.warn("🔒 [Auth] Unauthorized query detected, redirecting to login...");
           redirectToLoginIfUnauthorized(error);
         }
-      } else if ((error.data as any)?.code === "FORBIDDEN" && window.location.pathname !== "/403") {
-        isRedirecting = true;
-        window.location.href = "/403";
+      } else if ((error.data as any)?.code === "FORBIDDEN") {
+        if (!isPublicPath()) {
+          isRedirecting = true;
+          window.location.href = "/403";
+        }
       }
     }
   }
@@ -155,8 +154,7 @@ queryClient.getMutationCache().subscribe(event => {
     });
     if (!isRedirecting && error instanceof TRPCClientError) {
       if (error.message === UNAUTHED_ERR_MSG) {
-        const currentPath = window.location.pathname;
-        if (currentPath !== "/login" && currentPath !== "/login-success") {
+        if (!isPublicPath()) {
           console.warn("🔒 [Auth] Unauthorized mutation detected, redirecting to login...");
           redirectToLoginIfUnauthorized(error);
         }
@@ -225,75 +223,64 @@ function dismissLoader() {
   loaderDismissed = true;
   const loader = document.getElementById("app-loader");
   if (loader) loader.remove();
-  document.documentElement.style.backgroundColor = '';
+  // Keep the inline background-color on <html> — clearing it causes a white flash
+  // on standalone pages (customer portal) where no Layout component provides bg.
+  // CSS will override it once fully loaded; the inline value acts as a seamless bridge.
   document.documentElement.classList.remove("no-transitions");
 }
 
-// Safety: always dismiss overlay within 4s, even if auth/render fails
-setTimeout(dismissLoader, 4000);
+// Safety: dismiss overlay after 6s regardless (fallback for unexpected hangs)
+setTimeout(dismissLoader, 6000);
 
+// ── Standard path: full provider chain for employee/admin pages ──
+// Customer pages are handled by customer-entry.tsx (selected in index.html).
 authReady.then(async () => {
-  try {
-    createRoot(document.getElementById("root")!).render(
-      <ErrorBoundary level="page" onError={(error, errorInfo) => {
-        _fatalErrors.push({
-          ts: new Date().toISOString(),
-          msg: error.message,
-          stack: error.stack + '\n\n--- Component Stack ---\n' + errorInfo.componentStack,
-          source: 'React ErrorBoundary (root)',
-        });
-        console.error("[GRT React ErrorBoundary]", { error, errorInfo });
-      }}>
-        <trpc.Provider client={trpcClient} queryClient={queryClient}>
-          <QueryClientProvider client={queryClient}>
-            <BehaviorProbeProvider enabled={true}>
-              <App />
-            </BehaviorProbeProvider>
-          </QueryClientProvider>
-        </trpc.Provider>
-      </ErrorBoundary>
-    );
-    // React tree is now mounted — errors will be caught by ErrorBoundaries
-    _reactMounted = true;
-  } catch (mountError: any) {
-    _fatalErrors.push({
-      ts: new Date().toISOString(),
-      msg: mountError?.message || String(mountError),
-      stack: mountError?.stack || 'No stack (createRoot crash)',
-      source: 'createRoot try-catch',
-    });
-    console.error("[GRT FATAL createRoot]", mountError);
-    renderFatalDiagnostic();
-  }
-
-  // Wait for fonts (max 2s) — display=optional means this resolves fast in practice
-  try {
-    await Promise.race([
-      document.fonts.ready,
-      new Promise(r => setTimeout(r, 2000)),
+    // Dynamic import — only loads the full app bundle for non-customer pages.
+    // Customer fast path above skips this entirely, saving ~800KB on mobile.
+    const [
+      { default: App },
+      { default: ErrorBoundary },
+      { BehaviorProbeProvider },
+    ] = await Promise.all([
+      import("./App"),
+      import("./components/ErrorBoundary"),
+      import("./components/BehaviorProbeProvider"),
     ]);
-  } catch {}
+    try {
+      createRoot(document.getElementById("root")!).render(
+        <ErrorBoundary level="page" onError={(error, errorInfo) => {
+          _fatalErrors.push({
+            ts: new Date().toISOString(),
+            msg: error.message,
+            stack: error.stack + '\n\n--- Component Stack ---\n' + errorInfo.componentStack,
+            source: 'React ErrorBoundary (root)',
+          });
+          console.error("[GRT React ErrorBoundary]", { error, errorInfo });
+        }}>
+          <trpc.Provider client={trpcClient} queryClient={queryClient}>
+            <QueryClientProvider client={queryClient}>
+              <BehaviorProbeProvider enabled={true}>
+                <App />
+              </BehaviorProbeProvider>
+            </QueryClientProvider>
+          </trpc.Provider>
+        </ErrorBoundary>
+      );
+      _reactMounted = true;
+    } catch (mountError: any) {
+      _fatalErrors.push({
+        ts: new Date().toISOString(),
+        msg: mountError?.message || String(mountError),
+        stack: mountError?.stack || 'No stack (createRoot crash)',
+        source: 'createRoot try-catch',
+      });
+      console.error("[GRT FATAL createRoot]", mountError);
+      renderFatalDiagnostic();
+    }
 
-  // Wait for first paint + initial data queries to settle.
-  // The overlay stays visible until the page content is FULLY ready,
-  // then is removed in one shot (no fade) for a clean single-frame switch.
-  requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      // Let React effects fire (80ms) then poll for query completion
-      setTimeout(() => {
-        const waitForQueries = (remaining: number) => {
-          if (remaining <= 0 || queryClient.isFetching() === 0) {
-            // One more rAF to ensure React has flushed all pending state updates
-            requestAnimationFrame(() => dismissLoader());
-          } else {
-            setTimeout(() => waitForQueries(remaining - 50), 50);
-          }
-        };
-        waitForQueries(1500); // max 1.5s for queries to settle
-      }, 80);
+      requestAnimationFrame(() => dismissLoader());
     });
+  }).catch(() => {
+    dismissLoader();
   });
-}).catch(() => {
-  // Auth failed — dismiss overlay anyway so user sees the login redirect
-  dismissLoader();
-});

@@ -260,7 +260,7 @@ export default function MorningMeetingBoard() {
                     </Badge>
                   )}
                 </h1>
-                <div className="flex items-center gap-4 text-xs text-slate-400 mt-0.5">
+                <div className="flex items-center gap-4 text-xs text-slate-300 mt-0.5">
                   {firstMeeting && (
                     <>
                       <span className="flex items-center gap-1">
@@ -290,7 +290,7 @@ export default function MorningMeetingBoard() {
                 <div className="font-mono text-2xl font-bold tabular-nums text-white tracking-wider">
                   {clockStr}
                 </div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-widest">
+                <div className="text-[10px] text-slate-400 uppercase tracking-widest">
                   {concluded ? t("manufacturing.morning.meetingEnded") : t("manufacturing.morning.live")}
                 </div>
               </div>
@@ -329,7 +329,7 @@ export default function MorningMeetingBoard() {
 
             {/* Progress bar */}
             <div className="flex-1" />
-            <div className="flex items-center gap-2 text-slate-500">
+            <div className="flex items-center gap-2 text-slate-400">
               <span className="text-[10px] uppercase tracking-wider">{t("manufacturing.morning.completion")}</span>
               <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                 <div
@@ -337,7 +337,7 @@ export default function MorningMeetingBoard() {
                   style={{ width: `${totalCount > 0 ? (doneCount / totalCount) * 100 : 0}%` }}
                 />
               </div>
-              <span className="font-mono text-[10px] tabular-nums text-slate-400">
+              <span className="font-mono text-[10px] tabular-nums text-slate-300">
                 {totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0}%
               </span>
             </div>
@@ -354,25 +354,25 @@ export default function MorningMeetingBoard() {
             {/* Column Headers */}
             <thead className="sticky top-0 z-10">
               <tr className="bg-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
-                <th className="w-[44px] text-center py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                <th className="w-[44px] text-center py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                   #
                 </th>
-                <th className="text-left py-2.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                <th className="text-left py-2.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                   {t("manufacturing.morning.colAgenda")}
                 </th>
-                <th className="w-[100px] text-center py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                <th className="w-[100px] text-center py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                   {t("manufacturing.morning.colSource")}
                 </th>
-                <th className="w-[260px] text-left py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                <th className="w-[260px] text-left py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                   {t("manufacturing.morning.colDecision")}
                 </th>
-                <th className="w-[150px] text-left py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                <th className="w-[150px] text-left py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                   {t("manufacturing.morning.colAssignee")}
                 </th>
-                <th className="w-[130px] text-left py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                <th className="w-[130px] text-left py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                   {t("manufacturing.morning.colDeadline")}
                 </th>
-                <th className="w-[110px] text-left py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                <th className="w-[110px] text-left py-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                   {t("manufacturing.morning.colStatus")}
                 </th>
               </tr>
@@ -529,7 +529,7 @@ export default function MorningMeetingBoard() {
             <div className="w-16 h-16 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex items-center justify-center mb-4">
               <Calendar className="h-7 w-7 text-slate-600" />
             </div>
-            <h3 className="text-base font-semibold text-slate-400 mb-1">
+            <h3 className="text-base font-semibold text-slate-300 mb-1">
               {firstMeeting ? t("manufacturing.morning.noAgenda") : t("manufacturing.morning.noMeeting")}
             </h3>
             <p className="text-sm text-slate-600 max-w-md">
@@ -547,7 +547,7 @@ export default function MorningMeetingBoard() {
       <div className="shrink-0 border-t border-slate-700/50 bg-slate-900/80 backdrop-blur-md px-5 py-3">
         <div className="flex items-center justify-between">
           {/* Stats summary */}
-          <div className="flex items-center gap-5 text-xs text-slate-500">
+          <div className="flex items-center gap-5 text-xs text-slate-400">
             <span className="font-mono tabular-nums">
               <strong className="text-slate-300">{totalCount}</strong> {t("manufacturing.morning.items")}
             </span>
@@ -610,7 +610,7 @@ function StatPill({ icon: Icon, label, value, color }: {
   return (
     <div className="flex items-center gap-1.5">
       <Icon className={`h-3 w-3 ${color}`} />
-      <span className="text-[10px] uppercase tracking-wider text-slate-500">{label}</span>
+      <span className="text-[10px] uppercase tracking-wider text-slate-400">{label}</span>
       <span className={`font-mono font-bold tabular-nums ${color}`}>{value}</span>
     </div>
   );

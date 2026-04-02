@@ -42,21 +42,63 @@ export const kioskRouter = router({
       try {
         const dbModule = await import("../db");
         const schema = await import("../../drizzle/schema");
-        const { eq, or } = await import("drizzle-orm");
+        const { eq, or, ilike } = await import("drizzle-orm");
         const { sql } = await import("drizzle-orm");
         const db = await dbModule.requireDb();
 
-        // Look up by openId or name
-        const users = await db
+        const eid = input.employeeId.trim();
+
+        // 1. 直接查 users 表：openId（拼音）、name（中文名）、大小写不敏感
+        let users = await db
           .select()
           .from(schema.users)
           .where(
             or(
-              eq(schema.users.openId, input.employeeId),
-              eq(schema.users.name, input.employeeId)
+              eq(schema.users.openId, eid),
+              eq(schema.users.name, eid),
+              ilike(schema.users.openId, eid)
             )
           )
           .limit(1);
+
+        // 2. GRT工号格式 → 查 workers 表关联
+        if (users.length === 0 && /^GRT\d+$/i.test(eid)) {
+          try {
+            const result: any = await db.execute(sql`
+              SELECT u.* FROM users u
+              JOIN workers w ON (u.name = w.name)
+              WHERE UPPER(w.employee_code) = ${eid.toUpperCase()}
+              LIMIT 1
+            `);
+            const rows = result?.rows ?? result ?? [];
+            if (rows.length > 0) users = rows;
+          } catch { /* workers table may not exist */ }
+        }
+
+        // 3. 兜底：GRT工号 → 直接在 users 表用 name 反查
+        //    seed-real-users 格式: ["GRT010", "吴卫成", "wuweicheng"]
+        if (users.length === 0 && /^GRT\d+$/i.test(eid)) {
+          try {
+            const result: any = await db.execute(sql`
+              SELECT * FROM users
+              WHERE name IN (
+                SELECT name FROM (VALUES
+                  ('GRT010','吴卫成'),('GRT016','曹庆伟'),('GRT039','侯德朋'),
+                  ('GRT041','张良'),('GRT052','赵强'),('GRT059','焦斌'),
+                  ('GRT079','阎建华'),('GRT031','沈龙翔'),('GRT036','韩品来'),
+                  ('GRT051','崔聪聪'),('GRT071','刘琛杨'),('GRT072','赵铖杰'),
+                  ('GRT013','孙淼'),('GRT021','张松松'),('GRT022','冯磊'),
+                  ('GRT023','李洋'),('GRT029','罗金其'),('GRT034','徐洪友'),
+                  ('GRT100','田炜钰'),('GRT095','王爱云'),('GRT066','李新正')
+                ) AS t(grt_id, name)
+                WHERE UPPER(t.grt_id) = ${eid.toUpperCase()}
+              )
+              LIMIT 1
+            `);
+            const rows = result?.rows ?? result ?? [];
+            if (rows.length > 0) users = rows;
+          } catch { /* fallback failed */ }
+        }
 
         if (users.length === 0) {
           return { operator: null, qualificationStatus: "not_found" as const };
@@ -542,5 +584,177 @@ export const kioskRouter = router({
       const session = qrSessions.get(input.sessionId);
       if (!session) return { found: false, stationId: null, departmentCode: null };
       return { found: true, stationId: session.stationId, departmentCode: session.departmentCode };
+    }),
+
+  /**
+   * Deploy SOP from AI Process Twin Sandbox to kiosk terminals
+   * Writes SOP steps + BOM + quality checkpoints into sopTemplates table
+   * so kiosk.getStationSOP can read them.
+   */
+  deploySopToKiosk: protectedProcedure
+    .input(z.object({
+      sopSteps: z.array(z.object({
+        id: z.string(),
+        seq: z.number(),
+        title: z.string(),
+        operation: z.string(),
+        tools: z.array(z.string()),
+        qcCheckpoint: z.string().optional(),
+        estimatedMinutes: z.number(),
+        requiredSkill: z.string().optional(),
+        fmeaWarnings: z.array(z.object({
+          mode: z.string(),
+          rpn: z.number(),
+          severity: z.number(),
+          control: z.string(),
+        })).optional(),
+      })),
+      bomItems: z.array(z.object({
+        materialCode: z.string(),
+        materialName: z.string(),
+        quantity: z.number(),
+        zone: z.string(),
+      })),
+      targets: z.array(z.string()),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const dbModule = await import("../db");
+        const schema = await import("../../drizzle/schema");
+        const { eq, sql } = await import("drizzle-orm");
+        const db = await dbModule.requireDb();
+
+        const deployed: string[] = [];
+
+        // Group SOP steps by process code (T1, T2, T3 etc.)
+        // Each step title starts with "T1 ...", "T2 ...", etc.
+        const processGroups = new Map<string, typeof input.sopSteps>();
+        for (const step of input.sopSteps) {
+          const match = step.title.match(/^(T\d+)/);
+          const processCode = match ? match[1] : `T${step.seq}`;
+          if (!processGroups.has(processCode)) processGroups.set(processCode, []);
+          processGroups.get(processCode)!.push(step);
+        }
+
+        // Also create a combined SOP for the whole line (processCode = "FULL")
+        const allStepsJson = input.sopSteps.map((s, i) => ({
+          stepNo: i + 1,
+          title: s.title,
+          description: s.operation,
+          duration: s.estimatedMinutes,
+          tools: s.tools,
+          safetyNotes: s.fmeaWarnings?.filter(w => w.rpn >= 150).map(w => `⚠️ ${w.mode} (RPN ${w.rpn})`).join('; ') || null,
+          qcCheckpoint: s.qcCheckpoint,
+          requiredSkill: s.requiredSkill,
+        }));
+
+        const qualityCheckpoints = input.sopSteps
+          .filter(s => s.qcCheckpoint)
+          .map((s, i) => ({
+            name: s.title,
+            type: "工艺检查",
+            criteria: s.qcCheckpoint,
+            isMandatory: (s.fmeaWarnings?.some(w => w.rpn >= 150)) ?? false,
+          }));
+
+        // Upsert the full-line SOP template
+        const sopCode = "SOP-AI-TWIN-FULL";
+        try {
+          const existing = await db
+            .select()
+            .from(schema.sopTemplates)
+            .where(eq(schema.sopTemplates.code, sopCode))
+            .limit(1);
+
+          if (existing.length > 0) {
+            await db.update(schema.sopTemplates)
+              .set({
+                steps: allStepsJson,
+                qualityCheckpoints,
+                requiredTools: [...new Set(input.sopSteps.flatMap(s => s.tools))],
+                estimatedDurationMinutes: input.sopSteps.reduce((s, step) => s + step.estimatedMinutes, 0),
+                updatedAt: new Date(),
+              })
+              .where(eq(schema.sopTemplates.code, sopCode));
+            deployed.push(`Updated ${sopCode}`);
+          } else {
+            await db.insert(schema.sopTemplates).values({
+              code: sopCode,
+              title: "8800T 压铸岛清洗系统 — AI 防呆 SOP",
+              processCode: "FULL",
+              version: "1.0",
+              category: "清洗工艺",
+              steps: allStepsJson,
+              qualityCheckpoints,
+              requiredTools: [...new Set(input.sopSteps.flatMap(s => s.tools))],
+              estimatedDurationMinutes: input.sopSteps.reduce((s, step) => s + step.estimatedMinutes, 0),
+              difficultyLevel: "高级工艺",
+              isActive: true,
+            });
+            deployed.push(`Created ${sopCode}`);
+          }
+        } catch (err) {
+          log.error({ err }, "Failed to upsert full SOP template");
+        }
+
+        // Also create per-process SOP templates (T1, T2, T3...)
+        for (const [processCode, steps] of processGroups) {
+          const code = `SOP-AI-TWIN-${processCode}`;
+          const stepsJson = steps.map((s, i) => ({
+            stepNo: i + 1,
+            title: s.title,
+            description: s.operation,
+            duration: s.estimatedMinutes,
+            tools: s.tools,
+            safetyNotes: s.fmeaWarnings?.filter(w => w.rpn >= 150).map(w => `⚠️ ${w.mode} (RPN ${w.rpn})`).join('; ') || null,
+            qcCheckpoint: s.qcCheckpoint,
+          }));
+
+          try {
+            const existing = await db
+              .select()
+              .from(schema.sopTemplates)
+              .where(eq(schema.sopTemplates.code, code))
+              .limit(1);
+
+            if (existing.length > 0) {
+              await db.update(schema.sopTemplates)
+                .set({
+                  steps: stepsJson,
+                  requiredTools: [...new Set(steps.flatMap(s => s.tools))],
+                  estimatedDurationMinutes: steps.reduce((s, step) => s + step.estimatedMinutes, 0),
+                  updatedAt: new Date() as any,
+                })
+                .where(eq(schema.sopTemplates.code, code));
+            } else {
+              await db.insert(schema.sopTemplates).values({
+                code,
+                title: steps[0].title,
+                processCode,
+                version: "1.0",
+                category: "清洗工艺",
+                steps: stepsJson,
+                requiredTools: [...new Set(steps.flatMap(s => s.tools))],
+                estimatedDurationMinutes: steps.reduce((s, step) => s + step.estimatedMinutes, 0),
+                difficultyLevel: steps[0].requiredSkill || "中级",
+                isActive: true,
+              });
+            }
+            deployed.push(code);
+          } catch (err) {
+            log.error({ err }, `Failed to upsert SOP ${code}`);
+          }
+        }
+
+        return {
+          success: true,
+          deployedCount: deployed.length,
+          deployed,
+          message: `已部署 ${deployed.length} 个 SOP 模板到数据库，Kiosk 终端可立即读取`,
+        };
+      } catch (err) {
+        log.error({ err }, "deploySopToKiosk error");
+        return { success: false, deployedCount: 0, deployed: [], message: "部署失败" };
+      }
     }),
 });

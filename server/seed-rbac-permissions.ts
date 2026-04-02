@@ -58,6 +58,19 @@ const PERMISSIONS: PermDef[] = [
   { code: "system:data:migrate", name: "Execute data migrations", category: "system", module: "system", action: "execute", level: 4 },
   { code: "system:dingtalk:config", name: "Configure DingTalk integration", category: "system", module: "system", action: "manage", level: 4 },
   { code: "system:microsoft:config", name: "Configure Microsoft Graph settings", category: "system", module: "system", action: "manage", level: 4 },
+  { code: "admin:system:manage", name: "Full system administration", category: "system", module: "system", action: "manage", level: 5 },
+  { code: "admin:audit:view", name: "View system audit logs", category: "system", module: "system", action: "view", level: 4 },
+  { code: "system:config:manage", name: "Manage system configuration", category: "system", module: "system", action: "manage", level: 4 },
+  { code: "platform:file:upload", name: "Upload files to platform", category: "system", module: "system", action: "execute", level: 1 },
+  { code: "hr:salary:view", name: "View salary data", category: "hr", module: "hr", action: "view", level: 3 },
+  { code: "hr:employee:manage", name: "Manage employee records", category: "hr", module: "hr", action: "manage", level: 3 },
+  { code: "project:approve", name: "Approve project proposals", category: "project", module: "project", action: "approve", level: 3 },
+  { code: "mfg:closed-loop:view", name: "View closed-loop quality data", category: "mfg", module: "mfg", action: "view", level: 1 },
+  { code: "mfg:closed-loop:manage", name: "Manage closed-loop quality processes", category: "mfg", module: "mfg", action: "manage", level: 2 },
+  { code: "finance:project:view", name: "View project financial data", category: "finance", module: "finance", action: "view", level: 2 },
+  { code: "finance:project:manage", name: "Manage project financials", category: "finance", module: "finance", action: "manage", level: 3 },
+  { code: "finance:reports:view", name: "View financial reports", category: "finance", module: "finance", action: "view", level: 2 },
+  { code: "finance:reports:manage", name: "Manage financial reports", category: "finance", module: "finance", action: "manage", level: 3 },
 
   // ── 2. SALES & CRM (21) ──
   { code: "crm:customers:view", name: "View customer records", category: "crm", module: "crm", action: "view", level: 1 },
@@ -216,6 +229,21 @@ const PERMISSIONS: PermDef[] = [
   { code: "mfg:semiconductor-cleaning:manage", name: "Manage semiconductor cleaning recipes & validation", category: "mfg", module: "mfg", action: "manage", level: 2 },
   { code: "mfg:cleanroom:read", name: "View cleanroom environment logs", category: "mfg", module: "mfg", action: "view", level: 1 },
   { code: "mfg:cleanroom:manage", name: "Manage cleanroom environment readings", category: "mfg", module: "mfg", action: "manage", level: 2 },
+  { code: "mfg:mes:dispatch", name: "Dispatch MES work orders", category: "mfg", module: "mfg", action: "execute", level: 2 },
+  { code: "mfg:mes:operate", name: "Operate MES station (start/pause/complete)", category: "mfg", module: "mfg", action: "execute", level: 1 },
+  { code: "mfg:capacity:manage", name: "Manage capacity plans", category: "mfg", module: "mfg", action: "manage", level: 2 },
+  { code: "mfg:downtime:manage", name: "Manage equipment downtime records", category: "mfg", module: "mfg", action: "manage", level: 2 },
+  { code: "mfg:camera:view", name: "View camera feeds", category: "mfg", module: "mfg", action: "view", level: 1 },
+  { code: "mfg:camera:manage", name: "Manage camera registry", category: "mfg", module: "mfg", action: "manage", level: 2 },
+  { code: "mfg:camera:ptz", name: "Control PTZ cameras", category: "mfg", module: "mfg", action: "execute", level: 2 },
+  { code: "mfg:camera:recording", name: "Manage camera recordings", category: "mfg", module: "mfg", action: "manage", level: 2 },
+  { code: "mfg:assembly:review", name: "Review assembly vision results", category: "mfg", module: "mfg", action: "view", level: 1 },
+  { code: "mfg:assembly:manage", name: "Manage assembly vision tasks", category: "mfg", module: "mfg", action: "manage", level: 2 },
+  { code: "mfg:humanoid:manage", name: "Manage humanoid robots", category: "mfg", module: "mfg", action: "manage", level: 3 },
+  { code: "mfg:humanoid:operate", name: "Operate humanoid robot tasks", category: "mfg", module: "mfg", action: "execute", level: 2 },
+  { code: "mfg:robot-debug:manage", name: "Manage robot debug sessions", category: "mfg", module: "mfg", action: "manage", level: 3 },
+  { code: "mfg:robot-debug:operate", name: "Operate robot debug commands", category: "mfg", module: "mfg", action: "execute", level: 2 },
+  { code: "mfg:maintenance:manage", name: "Manage maintenance schedules", category: "mfg", module: "mfg", action: "manage", level: 2 },
 
   // ── 6. SUPPLY CHAIN (15) ──
   { code: "supply:workbench:view", name: "View supply chain workbench", category: "supply", module: "supply", action: "view", level: 1 },
@@ -317,6 +345,20 @@ const PERMISSIONS: PermDef[] = [
   { code: "finance:cost:standards", name: "Configure cost standards", category: "finance", module: "finance", action: "manage", level: 4 },
   { code: "finance:analytics:view", name: "View AI budget analysis", category: "finance", module: "finance", action: "view", level: 2 },
   { code: "finance:vat:calculator", name: "Use VAT calculator", category: "finance", module: "finance", action: "execute", level: 1 },
+  { code: "finance:gl:view", name: "View GL chart of accounts & entries", category: "finance", module: "finance", action: "view", level: 2 },
+  { code: "finance:gl:manage", name: "Manage GL entries & period close", category: "finance", module: "finance", action: "manage", level: 3 },
+  { code: "finance:asset:view", name: "View fixed assets", category: "finance", module: "finance", action: "view", level: 2 },
+  { code: "finance:asset:manage", name: "Manage fixed assets & depreciation", category: "finance", module: "finance", action: "manage", level: 3 },
+  { code: "finance:invoice:view", name: "View tax invoices", category: "finance", module: "finance", action: "view", level: 2 },
+  { code: "finance:invoice:manage", name: "Manage tax invoices", category: "finance", module: "finance", action: "manage", level: 3 },
+  { code: "finance:bank:view", name: "View bank statements & reconciliation", category: "finance", module: "finance", action: "view", level: 2 },
+  { code: "finance:bank:manage", name: "Manage bank reconciliation", category: "finance", module: "finance", action: "manage", level: 3 },
+  { code: "finance:eva:manage", name: "Manage earned value analysis", category: "finance", module: "finance", action: "manage", level: 3 },
+  { code: "finance:currency:view", name: "View exchange rates", category: "finance", module: "finance", action: "view", level: 2 },
+  { code: "finance:currency:manage", name: "Manage exchange rates", category: "finance", module: "finance", action: "manage", level: 3 },
+  { code: "finance:report:view", name: "View financial reports (BS/PL)", category: "finance", module: "finance", action: "view", level: 2 },
+  { code: "finance:benchmark:view", name: "View project cost benchmarks", category: "finance", module: "finance", action: "view", level: 2 },
+  { code: "finance:depreciation:manage", name: "Run depreciation calculations", category: "finance", module: "finance", action: "manage", level: 3 },
 
   // ── 11. AI INTELLIGENCE (24) ──
   { code: "ai:hub:access", name: "Access AI hub", category: "ai", module: "ai", action: "view", level: 1 },
@@ -633,6 +675,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "project:stage-gate:view", "project:stage-gate:manage",
     "project:m1:manage", "project:tasks:view", "project:gantt:view",
     "project:risks:view", "project:cockpit:view",
+    // POS
+    "pos:dashboard:view", "pos:projects:manage",
     // Manufacturing: view dashboards
     "mfg:command:view", "mfg:dashboard:view", "mfg:scheduling:view",
     "mfg:spc:view", "mfg:materials:view", "mfg:inventory:view",
@@ -705,6 +749,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "project:list:view", "project:create", "project:edit",
     "project:stage-gate:view", "project:stage-gate:manage", "project:m1:manage",
     "project:tasks:view", "project:gantt:view", "project:risks:view", "project:cockpit:view",
+    // POS
+    "pos:dashboard:view", "pos:projects:manage",
     // Manufacturing
     "mfg:command:view", "mfg:dashboard:view", "mfg:scheduling:view",
     "mfg:spc:view", "mfg:materials:view", "mfg:inventory:view",
@@ -776,6 +822,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "project:risks:view", "project:risks:manage", "project:sop:view",
     "project:sop:manage", "project:documents:manage", "project:delivery:manage",
     "project:cockpit:view",
+    // POS
+    "pos:dashboard:view", "pos:projects:manage",
     // Manufacturing: full
     "mfg:command:view", "mfg:dashboard:view", "mfg:process:view", "mfg:process:manage",
     "mfg:scheduling:view", "mfg:scheduling:run", "mfg:scheduling:dispatch",
@@ -863,8 +911,12 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "crm:forecast:view", "crm:churn:view",
     // Customer authorization
     "customer:authorization:manage", "customer:authorization:view",
-    // Project: view
-    "project:list:view", "project:gantt:view", "project:cockpit:view",
+    // Project: view + manage
+    "project:list:view", "project:create", "project:edit",
+    "project:stage-gate:view", "project:stage-gate:manage",
+    "project:gantt:view", "project:cockpit:view",
+    // POS
+    "pos:dashboard:view", "pos:projects:manage",
     // AI
     "ai:hub:access", "ai:assistant:chat", "ai:rag:query",
     // Finance
@@ -898,6 +950,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "project:gantt:view", "project:risks:view", "project:risks:manage",
     "project:sop:view", "project:sop:manage", "project:documents:manage",
     "project:delivery:manage", "project:cockpit:view",
+    // POS
+    "pos:dashboard:view", "pos:projects:manage",
     // Manufacturing: view
     "mfg:command:view", "mfg:dashboard:view", "mfg:scheduling:view",
     "mfg:materials:view",
@@ -995,7 +1049,9 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     "project:list:view", "project:tasks:view", "project:tasks:manage",
     "project:gantt:view", "project:risks:view", "project:risks:manage",
     "project:sop:view", "project:documents:manage", "project:delivery:manage",
-    "project:stage-gate:view",
+    "project:stage-gate:view", "project:stage-gate:manage",
+    // POS
+    "pos:dashboard:view", "pos:projects:manage",
     // Manufacturing
     "mfg:command:view", "mfg:dashboard:view", "mfg:process:view", "mfg:process:manage",
     "mfg:steps:view", "mfg:steps:manage", "mfg:spc:view",
@@ -1041,7 +1097,12 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     // Customer authorization: view only
     "customer:authorization:view",
     // Project
-    "project:list:view",
+    "project:list:view", "project:create", "project:edit",
+    "project:stage-gate:view", "project:stage-gate:manage",
+    "project:tasks:view", "project:gantt:view", "project:risks:view",
+    "project:cockpit:view",
+    // POS
+    "pos:dashboard:view", "pos:projects:manage",
     // Service
     "service:tickets:view", "service:feedback:view",
     // AI

@@ -30,6 +30,7 @@ import { helpArticles } from "../../drizzle/help-schema";
 import { submitTask, getTaskStatus } from "../services/task-worker.service";
 import {
   provisionAllEmployees,
+  reprovisionAllEmployees,
   provisionSingleEmployee,
   refreshPresetsByRole,
   getProvisioningStatus,
@@ -546,6 +547,18 @@ export const employeeAiAssistantRouter = router({
       return await provisionAllEmployees();
     } catch (error: any) {
       log.error({ err: error }, "Failed to provision all employees");
+      return { created: 0, skipped: 0, errors: [error.message] };
+    }
+  }),
+
+  /**
+   * 重新配置所有员工AI助理（清除旧数据，用真实名字重建）
+   */
+  reprovisionAll: requirePermission('ai:assistant:chat').mutation(async () => {
+    try {
+      return await reprovisionAllEmployees();
+    } catch (error: any) {
+      log.error({ err: error }, "Failed to reprovision all employees");
       return { created: 0, skipped: 0, errors: [error.message] };
     }
   }),

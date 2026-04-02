@@ -36,6 +36,7 @@ import {
   processPayrollTask,
 } from "../workers/payrollCalculator";
 import { createChildLogger } from "../lib/logger";
+import { processBusinessEvent } from "../services/finance-event-bridge.service";
 
 const log = createChildLogger("payroll-router");
 
@@ -44,12 +45,20 @@ const viewPayroll = requirePermission("hr:salary:view");
 const managePayroll = requirePermission("system:config:manage");
 
 // ── Valid state transitions ──────────────────────────────
+// 标准流程: DRAFT → HR → FINANCE → CEO → PAID
+// 保密通道: 倪微薇(GRT105/vp) 提交 → 黄晓兰(GRT002/engineer-财务) 审核并执行
 const VALID_TRANSITIONS: Record<string, { next: string; requiredRole: string[] }> = {
-  DRAFT:              { next: "HR_VERIFIED",       requiredRole: ["hr_manager", "hr_specialist", "admin"] },
-  HR_VERIFIED:        { next: "FINANCE_APPROVED",  requiredRole: ["finance_manager", "admin"] },
-  FINANCE_APPROVED:   { next: "CEO_APPROVED",      requiredRole: ["director", "admin"] },
-  CEO_APPROVED:       { next: "PAID",              requiredRole: ["finance_manager", "admin"] },
+  DRAFT:              { next: "HR_VERIFIED",       requiredRole: ["hr_manager", "hr_specialist", "admin", "vp"] },
+  HR_VERIFIED:        { next: "FINANCE_APPROVED",  requiredRole: ["finance_manager", "finance_specialist", "admin", "vp"] },
+  FINANCE_APPROVED:   { next: "CEO_APPROVED",      requiredRole: ["director", "admin", "vp"] },
+  CEO_APPROVED:       { next: "PAID",              requiredRole: ["finance_manager", "finance_specialist", "admin"] },
 };
+
+// 保密通道: 倪微薇提交，黄晓兰审核并执行银行付款
+// 倪微薇 (GRT105) = vp role, can submit through all approval stages
+// 黄晓兰 (GRT002) = finance_specialist/cashier, audits and executes bank transfer
+const CONFIDENTIAL_PAYROLL_SUBMITTERS = ['niweiwei', 'GRT105'];
+const CONFIDENTIAL_PAYROLL_EXECUTORS = ['huangxiaolan', 'GRT002'];
 
 // ── Sub-Router: Salary Structures ────────────────────────
 
@@ -596,11 +605,31 @@ const ledgerRouter = router({
         paid++;
       }
 
+      // GL自动过账 — 工资发放→应付工资/银行
+      const totalNet = approved.reduce((s, l) => s + Number(l.netPay), 0);
+      try {
+        processBusinessEvent({
+          eventType: 'salary_paid',
+          eventId: `EVT-SAL-${input.period}`,
+          sourceModule: 'payroll',
+          sourceDocType: 'salary_payment',
+          sourceDocId: 0,
+          sourceDocCode: `SAL-${input.period}`,
+          amount: totalNet,
+          departmentCode: 'ALL',
+          userId: ctx.user!.id,
+          metadata: { period: input.period, employeeCount: paid },
+          timestamp: new Date().toISOString(),
+        });
+      } catch (glErr: any) {
+        log.error({ err: glErr }, 'payroll GL auto-posting failed (non-blocking)');
+      }
+
       log.info({ period: input.period, paid, userId: ctx.user!.id }, "Payout executed");
       return {
         success: true,
         paid,
-        totalNetPay: approved.reduce((s, l) => s + Number(l.netPay), 0).toFixed(2),
+        totalNetPay: totalNet.toFixed(2),
         message: `${paid} payslips marked as PAID`,
       };
     }),

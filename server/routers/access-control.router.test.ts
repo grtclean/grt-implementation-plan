@@ -651,7 +651,7 @@ describe("accessControl.userStatus", () => {
       executeResultsQueue.push({
         rows: [
           {
-            id: 1, employee_id: "GRT003", name: "侯亚琴", department: "事业三部",
+            id: 1, employee_id: "GRT003", name: "倪亚琴", department: "事业三部",
             bu_code: "BU3", email: "", has_profile: true,
             work_plan_enabled: true, work_plan_frequency: "weekly",
             training_enabled: true, project_enabled: true,

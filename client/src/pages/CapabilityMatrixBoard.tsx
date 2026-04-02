@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Users, Award, Filter } from "lucide-react";
+import { Search, Users, Award, Filter, Pencil, Check, X } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 // ── Types ──
@@ -118,12 +118,62 @@ function SkeletonRow({ cols }: { cols: number }) {
   );
 }
 
+// ── DB field mapping ──
+
+const FIELD_MAP: Record<string, string> = {
+  tScore: "t_score", sScore: "s_score", dScore: "d_score",
+  cScore: "c_score", kScore: "k_score", lScore: "l_score",
+};
+
+// ── Editable Score Cell ──
+
+function EditableScoreCell({ row, field, onSaved }: { row: Assessment; field: ScoreField; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState("");
+  const mutation = trpc.competency.updateScore.useMutation({ onSuccess: () => { setEditing(false); onSaved(); } });
+
+  const start = useCallback(() => {
+    setVal(row[field] || "");
+    setEditing(true);
+  }, [row, field]);
+
+  const save = useCallback(() => {
+    if (!val.trim()) return;
+    mutation.mutate({ employeeId: row.employeeId, field: FIELD_MAP[field] as any, value: val.trim() });
+  }, [val, row.employeeId, field, mutation]);
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1 justify-center">
+        <input
+          autoFocus
+          type="number" min={0} max={100} step={1}
+          value={val}
+          onChange={e => setVal(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
+          className="w-14 h-7 text-center text-xs border border-[#0078d4] rounded bg-white focus:outline-none focus:ring-1 focus:ring-[#0078d4]"
+        />
+        <button onClick={save} className="text-[#107c10] hover:text-[#0b6a0b]"><Check className="w-3.5 h-3.5" /></button>
+        <button onClick={() => setEditing(false)} className="text-[#a19f9d] hover:text-[#605e5c]"><X className="w-3.5 h-3.5" /></button>
+      </div>
+    );
+  }
+
+  return (
+    <span className="group cursor-pointer inline-flex items-center gap-1" onClick={start}>
+      {scoreBadge(row[field])}
+      <Pencil className="w-3 h-3 text-[#c8c6c4] opacity-0 group-hover:opacity-100 transition-opacity" />
+    </span>
+  );
+}
+
 // ── Main Component ──
 
 export default function CapabilityMatrixBoard() {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
+  const [showPending, setShowPending] = useState(false);
 
   const assessmentsQuery = trpc.competency.getAssessments.useQuery(
     {
@@ -134,8 +184,12 @@ export default function CapabilityMatrixBoard() {
 
   const departmentsQuery = trpc.competency.getDepartments.useQuery();
 
-  const items: Assessment[] = assessmentsQuery.data?.items ?? [];
-  const total = assessmentsQuery.data?.total ?? 0;
+  const allItems: Assessment[] = assessmentsQuery.data?.items ?? [];
+  const items = showPending
+    ? allItems.filter(r => !r.tScore && !r.sScore && !r.dScore && !r.cScore && !r.kScore && !r.lScore)
+    : allItems;
+  const total = items.length;
+  const pendingCount = allItems.filter(r => !r.tScore && !r.sScore && !r.dScore && !r.cScore && !r.kScore && !r.lScore).length;
   const departments: string[] = departmentsQuery.data ?? [];
   const isLoading = assessmentsQuery.isLoading;
 
@@ -203,6 +257,19 @@ export default function CapabilityMatrixBoard() {
                 ))}
               </select>
             </div>
+
+            {/* Pending filter */}
+            <button
+              onClick={() => setShowPending(v => !v)}
+              className={`flex items-center gap-1.5 h-9 px-3 text-xs font-medium rounded border transition-colors ${
+                showPending
+                  ? "bg-[#fff4ce] border-[#d83b01] text-[#d83b01]"
+                  : "bg-white border-[#8a8886] text-[#605e5c] hover:bg-[#f3f2f1]"
+              }`}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              待评估 ({pendingCount})
+            </button>
 
             {/* Search */}
             <div className="relative">
@@ -298,7 +365,7 @@ export default function CapabilityMatrixBoard() {
                     </td>
                     {DOMAINS.map((d) => (
                       <td key={d.code} className="px-3 py-3 text-center">
-                        {scoreBadge(row[d.field])}
+                        <EditableScoreCell row={row} field={d.field} onSaved={() => assessmentsQuery.refetch()} />
                       </td>
                     ))}
                   </tr>

@@ -105,6 +105,33 @@ function isDbConflictError(err: unknown): boolean {
 const mutationAuditMiddleware = createAuditMiddleware(t);
 
 /**
+ * Customer route guard — blocks customer users from accessing internal-only routers.
+ * Uses CUSTOMER_BLOCKED_ROUTERS from shared/customer-access.ts.
+ */
+import { isCustomerUser, CUSTOMER_BLOCKED_ROUTERS } from "@shared/customer-access";
+
+const customerRouteGuard = t.middleware(async ({ ctx, next, path }) => {
+  if (!ctx.user) return next({ ctx });
+
+  // Only restrict customer users
+  const user = ctx.user as any;
+  if (!isCustomerUser({ userType: user.userType, effectiveRole: user.effectiveRole })) {
+    return next({ ctx });
+  }
+
+  // Check if the router prefix is blocked
+  const routerPrefix = path.split(".")[0];
+  if (CUSTOMER_BLOCKED_ROUTERS.has(routerPrefix)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "该模块暂未对客户账户开放 / This module is not available for customer accounts",
+    });
+  }
+
+  return next({ ctx });
+});
+
+/**
  * Compliance commitment gateway — blocks all business routes if the user
  * has not signed the monthly self-discipline commitment.
  *
@@ -145,6 +172,13 @@ const commitmentGateway = t.middleware(async ({ ctx, next, path }) => {
 
   // Admin bypass — admins are always allowed through
   if (ctx.user.role === 'admin') return next({ ctx });
+
+  // Launch phase bypass — temporarily skip commitment check during system rollout
+  // TODO: Remove after 2026-Q2 when all employees have been trained on commitment signing
+  if (process.env.COMMITMENT_ENFORCE !== 'true') return next({ ctx });
+
+  // Customer bypass — customer users don't sign employee compliance commitments
+  if (isCustomerUser(ctx.user as any)) return next({ ctx });
 
   const period = (() => {
     const d = new Date();
@@ -210,6 +244,7 @@ const commitmentGateway = t.middleware(async ({ ctx, next, path }) => {
  */
 export const protectedProcedure = publicProcedure
   .use(requireUser)
+  .use(customerRouteGuard)
   .use(safeMutationMiddleware)
   .use(mutationAuditMiddleware)
   .use(commitmentGateway);

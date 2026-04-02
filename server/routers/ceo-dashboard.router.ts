@@ -56,6 +56,7 @@ export const ceoDashboardRouter = router({
       if (cached) return cached;
 
       const db = await requireDb();
+      const dataWarnings: string[] = [];
 
       // 1. Average OEE
       let avgOee = 0;
@@ -65,8 +66,10 @@ export const ceoDashboardRouter = router({
           .from(oeeSnapshots)
           .limit(1);
         avgOee = Number(oeeResult?.avgOee || 0) * 100;
-      } catch {
-        avgOee = 78.5; // fallback mock
+      } catch (err) {
+        log.warn({ err }, "OEE数据查询失败");
+        avgOee = 0;
+        dataWarnings.push("OEE数据不可用");
       }
 
       // 2. Open FMEA count
@@ -77,8 +80,10 @@ export const ceoDashboardRouter = router({
           .from(fmeaDocuments)
           .where(eq(fmeaDocuments.status, "active"));
         openFmeaCount = Number(fmeaResult?.value || 0);
-      } catch {
-        openFmeaCount = 12; // fallback mock
+      } catch (err) {
+        log.warn({ err }, "FMEA数据查询失败");
+        openFmeaCount = 0;
+        dataWarnings.push("FMEA数据不可用");
       }
 
       // 3. Budget variance
@@ -95,8 +100,10 @@ export const ceoDashboardRouter = router({
         const totalBudget = budgets.reduce((s, b) => s + Number(b.budgetAmount), 0);
         const totalUsed = budgets.reduce((s, b) => s + Number(b.usedAmount), 0);
         budgetVariancePct = totalBudget > 0 ? ((totalUsed - totalBudget) / totalBudget) * 100 : 0;
-      } catch {
-        budgetVariancePct = -3.2; // fallback mock
+      } catch (err) {
+        log.warn({ err }, "预算差异数据查询失败");
+        budgetVariancePct = 0;
+        dataWarnings.push("预算差异数据不可用");
       }
 
       // 4. Active supplier penalties
@@ -107,8 +114,10 @@ export const ceoDashboardRouter = router({
           .from(supplierPenalties)
           .where(eq(supplierPenalties.penaltyType, "warning"));
         penaltyCount = Number(penaltyResult?.value || 0);
-      } catch {
-        penaltyCount = 5; // fallback mock
+      } catch (err) {
+        log.warn({ err }, "供应商处罚数据查询失败");
+        penaltyCount = 0;
+        dataWarnings.push("供应商处罚数据不可用");
       }
 
       // 5. Average AEI
@@ -123,8 +132,10 @@ export const ceoDashboardRouter = router({
           .from(aeiMonthlyScores)
           .where(eq(aeiMonthlyScores.month, currentMonth));
         avgAei = Number(aeiResult?.avgAei || 0);
-      } catch {
-        avgAei = 72.3; // fallback mock
+      } catch (err) {
+        log.warn({ err }, "AEI数据查询失败");
+        avgAei = 0;
+        dataWarnings.push("AEI数据不可用");
       }
 
       const result = {
@@ -133,6 +144,7 @@ export const ceoDashboardRouter = router({
         budget: { variancePct: Math.round(budgetVariancePct * 10) / 10, grade: Math.abs(budgetVariancePct) <= 5 ? "green" : Math.abs(budgetVariancePct) <= 15 ? "yellow" : "red" },
         suppliers: { activePenalties: penaltyCount, grade: penaltyCount <= 3 ? "green" : penaltyCount <= 10 ? "yellow" : "red" },
         aei: { avgScore: Math.round(avgAei * 10) / 10, grade: avgAei >= 75 ? "green" : avgAei >= 50 ? "yellow" : "red" },
+        dataWarnings,
       };
 
       setCache(cacheKey, result);
@@ -149,6 +161,7 @@ export const ceoDashboardRouter = router({
       if (cached) return cached;
 
       const db = await requireDb();
+      const dataWarnings: string[] = [];
 
       // Count meeting action items status
       let completedActions = 0;
@@ -161,9 +174,11 @@ export const ceoDashboardRouter = router({
           .from(meetingActionItems)
           .where(eq(meetingActionItems.status, "COMPLETED"));
         completedActions = Number(completedResult?.value || 0);
-      } catch {
-        totalActions = 156;
-        completedActions = 112;
+      } catch (err) {
+        log.warn({ err }, "会议行动项数据查询失败");
+        totalActions = 0;
+        completedActions = 0;
+        dataWarnings.push("会议行动项数据不可用");
       }
 
       // Robot fleet alerts (last 30 days)
@@ -175,8 +190,10 @@ export const ceoDashboardRouter = router({
           .from(robotConditionAlerts)
           .where(gte(robotConditionAlerts.createdAt, thirtyDaysAgo));
         recentAlerts = Number(alertResult?.value || 0);
-      } catch {
-        recentAlerts = 24;
+      } catch (err) {
+        log.warn({ err }, "机器人告警数据查询失败");
+        recentAlerts = 0;
+        dataWarnings.push("机器人告警数据不可用");
       }
 
       const result = {
@@ -187,6 +204,7 @@ export const ceoDashboardRouter = router({
           completionRate: totalActions > 0 ? Math.round((completedActions / totalActions) * 100) : 0,
         },
         robotAlerts: { last30Days: recentAlerts },
+        dataWarnings,
         updatedAt: new Date().toISOString(),
       };
 
@@ -280,6 +298,7 @@ export const ceoDashboardRouter = router({
       const db = await requireDb();
 
       let machines: Array<{ machineId: number; oee: number; availability: number; performance: number; quality: number; date: string }> = [];
+      const dataWarnings: string[] = [];
 
       try {
         const snapshots = await db
@@ -296,17 +315,15 @@ export const ceoDashboardRouter = router({
           quality: Number(s.quality) * 100,
           date: s.snapshotDate,
         }));
-      } catch {
-        // Fallback mock
-        machines = [
-          { machineId: 1, oee: 87.2, availability: 92.1, performance: 95.3, quality: 99.2, date: new Date().toISOString().slice(0, 10) },
-          { machineId: 2, oee: 72.1, availability: 85.3, performance: 88.4, quality: 95.6, date: new Date().toISOString().slice(0, 10) },
-          { machineId: 3, oee: 91.5, availability: 96.0, performance: 97.1, quality: 98.2, date: new Date().toISOString().slice(0, 10) },
-        ];
+      } catch (err) {
+        log.warn({ err }, "OEE设备快照数据查询失败");
+        machines = [];
+        dataWarnings.push("OEE设备数据不可用");
       }
 
       const result = {
         machines,
+        dataWarnings,
         summary: {
           total: machines.length,
           worldClass: machines.filter((m) => m.oee >= 85).length,

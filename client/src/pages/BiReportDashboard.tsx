@@ -52,63 +52,62 @@ const BI_MUTED = "text-[#64748b]";
 // ── Demo Data (演示数据 — 基于真实员工) ──
 
 const DEMO_DEPARTMENTS = [
-  { departmentCode: "BU_OS", departmentName: "海外事业部", departmentType: "事业部", targetRevenue: "52000000", actualRevenue: "48100000", achievementRate: "92.50", rewardCount: 8, penaltyCount: 1, rewardAmount: "320000", penaltyAmount: "15000", planTotal: 45, planCompleted: 41, planAchievementRate: "91.11", trainingSessions: 12, trainingAttendees: 38, trainingQualityScore: "4.5", headcount: 42, activeProjects: 18, aiEvaluation: "海外事业部整体表现优异，目标达成率92.5%位列第一。欧洲区吴卫成团队贡献突出，连续3个月超额完成。培训参与率高，4.5分质量评分说明团队学习氛围良好。建议继续加强东南亚区域拓展，提升南美区业绩。" },
-  { departmentCode: "BU_SC", departmentName: "半导体事业部", departmentType: "事业部", targetRevenue: "38000000", actualRevenue: "33400000", achievementRate: "87.89", rewardCount: 5, penaltyCount: 2, rewardAmount: "180000", penaltyAmount: "30000", planTotal: 32, planCompleted: 27, planAchievementRate: "84.38", trainingSessions: 8, trainingAttendees: 22, trainingQualityScore: "4.2", headcount: 28, activeProjects: 12, aiEvaluation: "半导体事业部保持增长势头，中芯国际项目是本季度亮点。视觉算法组交付能力需提升（肖博雅排名下滑3位），建议安排专项培训。" },
-  { departmentCode: "BU_CV", departmentName: "商用车事业部", departmentType: "事业部", targetRevenue: "45000000", actualRevenue: "35600000", achievementRate: "79.11", rewardCount: 3, penaltyCount: 3, rewardAmount: "120000", penaltyAmount: "45000", planTotal: 38, planCompleted: 28, planAchievementRate: "73.68", trainingSessions: 10, trainingAttendees: 30, trainingQualityScore: "3.8", headcount: 35, activeProjects: 15, aiEvaluation: "商用车事业部达成率79%，低于集团平均。焦斌业绩突出但团队整体偏弱。3次处罚集中在交期延误，需加强项目管理能力。培训质量3.8分偏低，建议调整培训内容针对性。" },
-  { departmentCode: "BU_PV", departmentName: "乘用车事业部", departmentType: "事业部", targetRevenue: "35000000", actualRevenue: "25000000", achievementRate: "71.43", rewardCount: 2, penaltyCount: 4, rewardAmount: "80000", penaltyAmount: "60000", planTotal: 28, planCompleted: 19, planAchievementRate: "67.86", trainingSessions: 6, trainingAttendees: 18, trainingQualityScore: "3.5", headcount: 25, activeProjects: 8, aiEvaluation: "乘用车事业部表现低于预期。CAPEX覆盖率仅38%，大量客户预算未录入。4次处罚反映管理问题。建议事业部总经理金晓锋组织专项整改，聚焦宝马和上汽大众两个重点客户。" },
-  { departmentCode: "BU_IG", departmentName: "工业通用事业部", departmentType: "事业部", targetRevenue: "30000000", actualRevenue: "19200000", achievementRate: "64.00", rewardCount: 1, penaltyCount: 5, rewardAmount: "30000", penaltyAmount: "75000", planTotal: 25, planCompleted: 15, planAchievementRate: "60.00", trainingSessions: 5, trainingAttendees: 12, trainingQualityScore: "3.2", headcount: 20, activeProjects: 6, aiEvaluation: "工业通用事业部亟需整改。M3项目数为0，管道严重断层。5次处罚是所有BU最多。培训质量最低3.2分。建议洪香龙总经理提交限期整改方案，重点推进三一重工和徐工集团项目。" },
-  { departmentCode: "PROCUREMENT", departmentName: "采购部", departmentType: "职能部门", targetRevenue: null, actualRevenue: null, achievementRate: null, rewardCount: 3, penaltyCount: 2, rewardAmount: "90000", penaltyAmount: "25000", planTotal: 60, planCompleted: 52, planAchievementRate: "86.67", trainingSessions: 8, trainingAttendees: 15, trainingQualityScore: "4.0", headcount: 18, activeProjects: 0, aiEvaluation: "采购部计划完成率86.7%表现良好。供应商交期管理有所改善，3项奖励来自成本节约贡献。建议加强供应商风险预警体系建设。" },
-  { departmentCode: "AI_DEPT", departmentName: "AI技术部", departmentType: "职能部门", targetRevenue: null, actualRevenue: null, achievementRate: null, rewardCount: 4, penaltyCount: 0, rewardAmount: "150000", penaltyAmount: "0", planTotal: 35, planCompleted: 33, planAchievementRate: "94.29", trainingSessions: 15, trainingAttendees: 12, trainingQualityScore: "4.8", headcount: 12, activeProjects: 8, aiEvaluation: "AI技术部是本季度最佳职能部门。计划完成率94.3%、零处罚、培训质量4.8分均为全集团最高。Sales Coach Engine和Battle Arena两个项目按时交付。建议适当增加人员配置支撑更多业务场景。" },
-  { departmentCode: "RND_CENTER", departmentName: "研发中心", departmentType: "职能部门", targetRevenue: null, actualRevenue: null, achievementRate: null, rewardCount: 6, penaltyCount: 1, rewardAmount: "200000", penaltyAmount: "10000", planTotal: 50, planCompleted: 42, planAchievementRate: "84.00", trainingSessions: 10, trainingAttendees: 35, trainingQualityScore: "4.3", headcount: 40, activeProjects: 22, aiEvaluation: "研发中心整体稳定。曹庆伟(#1)和张洵(#2)持续引领技术创新。ZLD膜组件研发组李大鹏排名倒数第二，需重点关注。ECO变更闭环率有提升，建议强化Design Review流程。" },
+  { departmentCode: "BU1", departmentName: "事业一部", departmentType: "事业部", targetRevenue: "52000000", actualRevenue: "48100000", achievementRate: "92.50", rewardCount: 8, penaltyCount: 1, rewardAmount: "320000", penaltyAmount: "15000", planTotal: 45, planCompleted: 41, planAchievementRate: "91.11", trainingSessions: 12, trainingAttendees: 38, trainingQualityScore: "4.5", headcount: 12, activeProjects: 18, aiEvaluation: "事业一部整体表现优异，目标达成率92.5%位列第一。高级销售经理戴晓燕团队贡献突出，连续3个月超额完成。制造质量经理金晓锋把控质量关卡有力，培训参与率高，4.5分质量评分说明团队学习氛围良好。建议继续强化售后服务体系，匡凯旋售后主管经验值得推广。" },
+  { departmentCode: "BU2", departmentName: "事业二部", departmentType: "事业部", targetRevenue: "38000000", actualRevenue: "33400000", achievementRate: "87.89", rewardCount: 5, penaltyCount: 2, rewardAmount: "180000", penaltyAmount: "30000", planTotal: 32, planCompleted: 27, planAchievementRate: "84.38", trainingSessions: 8, trainingAttendees: 22, trainingQualityScore: "4.2", headcount: 5, activeProjects: 12, aiEvaluation: "事业二部保持增长势头，经理徐树奎统筹有力。机械设计经理洪香龙主导的新产品研发是本季度亮点。电气工程师钱佳奇交付能力需提升（排名下滑3位），建议安排专项培训。" },
+  { departmentCode: "BU3", departmentName: "事业三部", departmentType: "事业部", targetRevenue: "45000000", actualRevenue: "35600000", achievementRate: "79.11", rewardCount: 3, penaltyCount: 3, rewardAmount: "120000", penaltyAmount: "45000", planTotal: 38, planCompleted: 28, planAchievementRate: "73.68", trainingSessions: 10, trainingAttendees: 30, trainingQualityScore: "3.8", headcount: 6, activeProjects: 15, aiEvaluation: "事业三部达成率79%，低于集团平均。经理周辉统筹需加强。冯艳和韩保程销售业绩有差距。3次处罚集中在交期延误，项目经理杨勇需加强项目管理能力。培训质量3.8分偏低，建议调整培训内容针对性。" },
+  { departmentCode: "PROCUREMENT", departmentName: "采购部", departmentType: "职能部门", targetRevenue: null, actualRevenue: null, achievementRate: null, rewardCount: 3, penaltyCount: 2, rewardAmount: "90000", penaltyAmount: "25000", planTotal: 60, planCompleted: 52, planAchievementRate: "86.67", trainingSessions: 8, trainingAttendees: 15, trainingQualityScore: "4.0", headcount: 3, activeProjects: 0, aiEvaluation: "采购部计划完成率86.7%表现良好。采购经理沈迎凤供应商交期管理有所改善，3项奖励来自成本节约贡献。建议加强供应商风险预警体系建设。" },
+  { departmentCode: "FINANCE", departmentName: "财务部", departmentType: "职能部门", targetRevenue: null, actualRevenue: null, achievementRate: null, rewardCount: 2, penaltyCount: 0, rewardAmount: "60000", penaltyAmount: "0", planTotal: 40, planCompleted: 37, planAchievementRate: "92.50", trainingSessions: 6, trainingAttendees: 3, trainingQualityScore: "4.3", headcount: 3, activeProjects: 0, aiEvaluation: "财务部表现稳健。总账会计王秀萍账务处理准确及时，出纳黄晓兰资金管理规范。财务专员王汝月在ERP对账方面贡献突出。建议加强财务数字化分析能力培训。" },
+  { departmentCode: "AI_DEPT", departmentName: "AI数智部", departmentType: "职能部门", targetRevenue: null, actualRevenue: null, achievementRate: null, rewardCount: 4, penaltyCount: 0, rewardAmount: "150000", penaltyAmount: "0", planTotal: 35, planCompleted: 33, planAchievementRate: "94.29", trainingSessions: 15, trainingAttendees: 12, trainingQualityScore: "4.8", headcount: 3, activeProjects: 8, aiEvaluation: "AI数智部是本季度最佳职能部门。倪微薇主导的数字化转型项目按时交付，计划完成率94.3%、零处罚、培训质量4.8分均为全集团最高。建议适当增加人员配置支撑更多业务场景。" },
+  { departmentCode: "MANAGEMENT", departmentName: "管理层", departmentType: "职能部门", targetRevenue: null, actualRevenue: null, achievementRate: null, rewardCount: 6, penaltyCount: 1, rewardAmount: "200000", penaltyAmount: "10000", planTotal: 50, planCompleted: 42, planAchievementRate: "84.00", trainingSessions: 10, trainingAttendees: 3, trainingQualityScore: "4.6", headcount: 3, activeProjects: 22, aiEvaluation: "管理层整体战略规划执行到位。董事长倪亚东推动集团数字化转型战略落地。董事长助理刘奥运跨部门协调高效，22个活跃项目进展顺利。建议强化各BU间资源协调机制。" },
 ];
 
 // ── Demo Data (演示数据 — 基于真实员工) ──
 const DEMO_INDIVIDUALS = [
-  { userId: 101, userName: "吴卫成", departmentCode: "BU_OS", departmentName: "海外事业部·欧洲区", position: "高级销售经理", targetValue: "8000000", actualValue: "7800000", achievementRate: "97.50", rewards: [{ title: "Q1超额奖", amount: 50000, date: "2026-03-01" }], penalties: [], planItemsTotal: 12, planItemsCompleted: 12, planAchievementRate: "100.00", trainingAttended: 4, trainingHours: "16.0", trainingScore: "4.8", kpiScore: "96.50", rankInDepartment: 1, rankOverall: 1, aiCoordinatedEvaluation: "吴卫成是集团标杆销售。目标达成率97.5%、计划100%完成、培训4.8分。欧洲区经验值得全集团复制推广。建议晋升为海外区域总监。" },
-  { userId: 102, userName: "焦斌", departmentCode: "BU_CV", departmentName: "商用车事业部", position: "销售经理", targetValue: "6000000", actualValue: "5600000", achievementRate: "93.33", rewards: [{ title: "潍柴大单奖", amount: 30000, date: "2026-03-05" }], penalties: [], planItemsTotal: 10, planItemsCompleted: 9, planAchievementRate: "90.00", trainingAttended: 3, trainingHours: "12.0", trainingScore: "4.2", kpiScore: "93.20", rankInDepartment: 1, rankOverall: 2, aiCoordinatedEvaluation: "焦斌在商用车BU内一骑绝尘，但团队带动能力需提升。建议分配2名新人由其指导。" },
-  { userId: 103, userName: "孙淼", departmentCode: "BU_OS", departmentName: "海外事业部·北美区", position: "销售经理", targetValue: "5000000", actualValue: "4400000", achievementRate: "88.00", rewards: [], penalties: [], planItemsTotal: 8, planItemsCompleted: 7, planAchievementRate: "87.50", trainingAttended: 3, trainingHours: "12.0", trainingScore: "4.0", kpiScore: "88.70", rankInDepartment: 2, rankOverall: 3, aiCoordinatedEvaluation: "孙淼北美区表现稳定，达成率88%。2个M1项目推进顺利。建议加强与当地代理商合作深度。" },
-  { userId: 104, userName: "杜显文", departmentCode: "BU_PV", departmentName: "乘用车事业部", position: "销售主管", targetValue: "4500000", actualValue: "3800000", achievementRate: "84.44", rewards: [], penalties: [{ title: "客户投诉", amount: 5000, date: "2026-02-20" }], planItemsTotal: 8, planItemsCompleted: 6, planAchievementRate: "75.00", trainingAttended: 2, trainingHours: "8.0", trainingScore: "3.5", kpiScore: "85.30", rankInDepartment: 1, rankOverall: 4, aiCoordinatedEvaluation: "杜显文有1次客户投诉处罚，需关注服务质量。计划完成率75%偏低，建议加强周计划复盘。" },
-  { userId: 105, userName: "廉龙海", departmentCode: "BU_SC", departmentName: "半导体事业部", position: "大客户经理", targetValue: "6000000", actualValue: "5000000", achievementRate: "83.33", rewards: [{ title: "中芯国际签单奖", amount: 40000, date: "2026-03-05" }], penalties: [], planItemsTotal: 9, planItemsCompleted: 8, planAchievementRate: "88.89", trainingAttended: 3, trainingHours: "12.0", trainingScore: "4.5", kpiScore: "82.10", rankInDepartment: 1, rankOverall: 5, aiCoordinatedEvaluation: "廉龙海拿下中芯国际大单，表现亮眼。培训评分4.5反映持续学习能力。建议培养为半导体事业部销售总监候选人。" },
-  { userId: 201, userName: "曹庆伟", departmentCode: "RND_CENTER", departmentName: "研发中心", position: "首席工程师", targetValue: null, actualValue: null, achievementRate: null, rewards: [{ title: "技术创新奖", amount: 60000, date: "2026-03-01" }, { title: "专利奖", amount: 20000, date: "2026-02-15" }], penalties: [], planItemsTotal: 15, planItemsCompleted: 15, planAchievementRate: "100.00", trainingAttended: 5, trainingHours: "20.0", trainingScore: "5.0", kpiScore: "97.80", rankInDepartment: 1, rankOverall: 1, aiCoordinatedEvaluation: "曹庆伟是集团技术灵魂人物。计划完成率100%，2项奖励，培训满分。清洗机研发突破性进展归功于其技术领导力。" },
-  { userId: 301, userName: "杨勇", departmentCode: "PROCUREMENT", departmentName: "采购部", position: "采购主管", targetValue: null, actualValue: null, achievementRate: null, rewards: [{ title: "成本节约奖", amount: 25000, date: "2026-03-10" }], penalties: [], planItemsTotal: 18, planItemsCompleted: 16, planAchievementRate: "88.89", trainingAttended: 4, trainingHours: "16.0", trainingScore: "4.2", kpiScore: "85.00", rankInDepartment: 1, rankOverall: 8, aiCoordinatedEvaluation: "杨勇采购成本控制能力突出，获成本节约奖。供应商管理规范。建议推动更多采购数字化工具应用。" },
-  { userId: 401, userName: "朱宇浩", departmentCode: "AI_DEPT", departmentName: "AI技术部", position: "AI工程师", targetValue: null, actualValue: null, achievementRate: null, rewards: [{ title: "项目交付奖", amount: 30000, date: "2026-03-01" }], penalties: [], planItemsTotal: 12, planItemsCompleted: 12, planAchievementRate: "100.00", trainingAttended: 6, trainingHours: "24.0", trainingScore: "4.9", kpiScore: "94.50", rankInDepartment: 1, rankOverall: 3, aiCoordinatedEvaluation: "朱宇浩交付了Sales Coach和Battle Arena两个核心AI系统。计划完成率100%、培训4.9分。AI技术部核心骨干。" },
-  { userId: 117, userName: "杨会龙", departmentCode: "BU_OS", departmentName: "海外事业部·南美区", position: "销售代表", targetValue: "3000000", actualValue: "1050000", achievementRate: "35.00", rewards: [], penalties: [{ title: "业绩不达标", amount: 10000, date: "2026-03-01" }, { title: "报告迟交", amount: 3000, date: "2026-02-28" }], planItemsTotal: 8, planItemsCompleted: 3, planAchievementRate: "37.50", trainingAttended: 1, trainingHours: "4.0", trainingScore: "2.5", kpiScore: "35.10", rankInDepartment: 8, rankOverall: 42, aiCoordinatedEvaluation: "杨会龙南美区表现严重落后。达成率35%、计划完成仅37.5%、2次处罚。培训参与度极低（1次/2.5分）。建议启动绩效改进计划PIP，如3个月内无改善则考虑调岗。" },
-  { userId: 118, userName: "周辉", departmentCode: "BU_CV", departmentName: "商用车事业部", position: "销售代表", targetValue: "3000000", actualValue: "850000", achievementRate: "28.33", rewards: [], penalties: [{ title: "客户流失", amount: 15000, date: "2026-02-15" }, { title: "违规报价", amount: 20000, date: "2026-03-03" }], planItemsTotal: 8, planItemsCompleted: 2, planAchievementRate: "25.00", trainingAttended: 0, trainingHours: "0", trainingScore: null, kpiScore: "28.40", rankInDepartment: 10, rankOverall: 45, aiCoordinatedEvaluation: "周辉是集团末位。达成率28.3%、2次严重处罚（含违规报价）、零培训参与。强烈建议立即启动离职面谈或转岗安排。" },
+  { userId: 101, userName: "戴晓燕", departmentCode: "BU1", departmentName: "事业一部", position: "高级销售经理", targetValue: "8000000", actualValue: "7800000", achievementRate: "97.50", rewards: [{ title: "Q1超额奖", amount: 50000, date: "2026-03-01" }], penalties: [], planItemsTotal: 12, planItemsCompleted: 12, planAchievementRate: "100.00", trainingAttended: 4, trainingHours: "16.0", trainingScore: "4.8", kpiScore: "96.50", rankInDepartment: 1, rankOverall: 1, aiCoordinatedEvaluation: "戴晓燕是集团标杆销售。目标达成率97.5%、计划100%完成、培训4.8分。销售管理经验值得全集团复制推广。建议晋升为事业部销售总监。" },
+  { userId: 102, userName: "刘健康", departmentCode: "BU1", departmentName: "事业一部", position: "销售工程师", targetValue: "6000000", actualValue: "5600000", achievementRate: "93.33", rewards: [{ title: "大单签约奖", amount: 30000, date: "2026-03-05" }], penalties: [], planItemsTotal: 10, planItemsCompleted: 9, planAchievementRate: "90.00", trainingAttended: 3, trainingHours: "12.0", trainingScore: "4.2", kpiScore: "93.20", rankInDepartment: 2, rankOverall: 2, aiCoordinatedEvaluation: "刘健康销售业绩优秀，技术方案能力强。建议与王志强搭档拓展新客户群。" },
+  { userId: 103, userName: "王志强", departmentCode: "BU1", departmentName: "事业一部", position: "销售工程师", targetValue: "5000000", actualValue: "4400000", achievementRate: "88.00", rewards: [], penalties: [], planItemsTotal: 8, planItemsCompleted: 7, planAchievementRate: "87.50", trainingAttended: 3, trainingHours: "12.0", trainingScore: "4.0", kpiScore: "88.70", rankInDepartment: 3, rankOverall: 3, aiCoordinatedEvaluation: "王志强表现稳定，达成率88%。2个M1项目推进顺利。建议加强与客户深度合作。" },
+  { userId: 104, userName: "冯艳", departmentCode: "BU3", departmentName: "事业三部", position: "销售工程师", targetValue: "4500000", actualValue: "3800000", achievementRate: "84.44", rewards: [], penalties: [{ title: "客户投诉", amount: 5000, date: "2026-02-20" }], planItemsTotal: 8, planItemsCompleted: 6, planAchievementRate: "75.00", trainingAttended: 2, trainingHours: "8.0", trainingScore: "3.5", kpiScore: "85.30", rankInDepartment: 2, rankOverall: 4, aiCoordinatedEvaluation: "冯艳有1次客户投诉处罚，需关注服务质量。计划完成率75%偏低，建议加强周计划复盘。" },
+  { userId: 105, userName: "韩保程", departmentCode: "BU3", departmentName: "事业三部", position: "销售工程师", targetValue: "6000000", actualValue: "5000000", achievementRate: "83.33", rewards: [{ title: "重点客户签单奖", amount: 40000, date: "2026-03-05" }], penalties: [], planItemsTotal: 9, planItemsCompleted: 8, planAchievementRate: "88.89", trainingAttended: 3, trainingHours: "12.0", trainingScore: "4.5", kpiScore: "82.10", rankInDepartment: 3, rankOverall: 5, aiCoordinatedEvaluation: "韩保程拿下重点客户大单，表现亮眼。培训评分4.5反映持续学习能力。建议培养为事业三部销售骨干。" },
+  { userId: 201, userName: "洪香龙", departmentCode: "BU2", departmentName: "事业二部", position: "机械设计经理", targetValue: null, actualValue: null, achievementRate: null, rewards: [{ title: "技术创新奖", amount: 60000, date: "2026-03-01" }, { title: "专利奖", amount: 20000, date: "2026-02-15" }], penalties: [], planItemsTotal: 15, planItemsCompleted: 15, planAchievementRate: "100.00", trainingAttended: 5, trainingHours: "20.0", trainingScore: "5.0", kpiScore: "97.80", rankInDepartment: 1, rankOverall: 1, aiCoordinatedEvaluation: "洪香龙是集团机械设计核心人物。计划完成率100%，2项奖励，培训满分。新产品研发突破性进展归功于其技术领导力。" },
+  { userId: 301, userName: "沈迎凤", departmentCode: "PROCUREMENT", departmentName: "采购部", position: "采购经理", targetValue: null, actualValue: null, achievementRate: null, rewards: [{ title: "成本节约奖", amount: 25000, date: "2026-03-10" }], penalties: [], planItemsTotal: 18, planItemsCompleted: 16, planAchievementRate: "88.89", trainingAttended: 4, trainingHours: "16.0", trainingScore: "4.2", kpiScore: "85.00", rankInDepartment: 1, rankOverall: 8, aiCoordinatedEvaluation: "沈迎凤采购成本控制能力突出，获成本节约奖。供应商管理规范。建议推动更多采购数字化工具应用。" },
+  { userId: 401, userName: "倪微薇", departmentCode: "AI_DEPT", departmentName: "AI数智部", position: "AI数智&HR经理", targetValue: null, actualValue: null, achievementRate: null, rewards: [{ title: "数字化转型奖", amount: 30000, date: "2026-03-01" }], penalties: [], planItemsTotal: 12, planItemsCompleted: 12, planAchievementRate: "100.00", trainingAttended: 6, trainingHours: "24.0", trainingScore: "4.9", kpiScore: "94.50", rankInDepartment: 1, rankOverall: 3, aiCoordinatedEvaluation: "倪微薇主导数字化转型和HR体系建设，交付多个核心系统。计划完成率100%、培训4.9分。AI数智部核心骨干。" },
+  { userId: 501, userName: "金晓锋", departmentCode: "BU1", departmentName: "事业一部", position: "制造质量经理", targetValue: null, actualValue: null, achievementRate: null, rewards: [{ title: "质量零缺陷奖", amount: 20000, date: "2026-03-01" }], penalties: [], planItemsTotal: 10, planItemsCompleted: 9, planAchievementRate: "90.00", trainingAttended: 4, trainingHours: "16.0", trainingScore: "4.6", kpiScore: "91.00", rankInDepartment: 4, rankOverall: 6, aiCoordinatedEvaluation: "金晓锋质量管控能力突出，连续2个月零客诉。质量体系建设有成效。建议推广质量管理经验到其他事业部。" },
+  { userId: 502, userName: "杨勇", departmentCode: "BU3", departmentName: "事业三部", position: "项目经理", targetValue: "3000000", actualValue: "1050000", achievementRate: "35.00", rewards: [], penalties: [{ title: "项目延期", amount: 10000, date: "2026-03-01" }, { title: "报告迟交", amount: 3000, date: "2026-02-28" }], planItemsTotal: 8, planItemsCompleted: 3, planAchievementRate: "37.50", trainingAttended: 1, trainingHours: "4.0", trainingScore: "2.5", kpiScore: "35.10", rankInDepartment: 5, rankOverall: 42, aiCoordinatedEvaluation: "杨勇项目管理表现严重落后。达成率35%、计划完成仅37.5%、2次处罚。培训参与度极低（1次/2.5分）。建议启动绩效改进计划PIP，经理周辉需重点辅导。" },
 ];
 
 // ── Demo Data (演示数据 — 基于真实员工) ──
 const DEMO_EXECUTIVE_SUMMARY = `【2026年3月 · 集团BI综合报告 · AI高管摘要】
 
-整体达成率：集团平均目标达成率 78.9%，较上月提升 3.2%。
+整体达成率：集团平均目标达成率 86.5%，较上月提升 3.2%。
 
 最佳部门：
-• 海外事业部（92.5%）— 欧洲区吴卫成连续3月榜首，北美区孙淼稳步增长
-• AI技术部 — 计划完成率94.3%，零处罚，培训质量4.8分，全集团最优
+• 事业一部（92.5%）— 戴晓燕连续3月榜首，刘健康、王志强稳步增长
+• AI数智部 — 计划完成率94.3%，零处罚，培训质量4.8分，全集团最优
 
 需关注部门：
-• 工业通用事业部（64.0%）— M3项目数为0，5次处罚最多，培训3.2分最低
-• 乘用车事业部（71.4%）— CAPEX覆盖率38%严重不足，4次处罚
+• 事业三部（79.1%）— 达成率低于集团平均，3次处罚集中在交期延误
+• 采购部 — 计划完成率86.7%尚可，但供应商风险预警体系待建设
 
 奖惩分布：
-• 全集团奖励32次/¥117万，处罚18次/¥26万，奖惩比1.78:1
-• AI技术部零处罚，工业通用事业部5次处罚需重点关注
+• 全集团奖励31次/¥103万，处罚8次/¥10万，奖惩比3.88:1
+• AI数智部和财务部零处罚，事业三部3次处罚需重点关注
 
 培训质量：
-• 集团平均4.0分，AI技术部(4.8)>海外(4.5)>研发(4.3)>半导体(4.2)>采购(4.0)>商用车(3.8)>乘用车(3.5)>工业通用(3.2)
-• 周辉零培训参与，杨会龙仅1次，需强制安排
+• 集团平均4.3分，AI数智部(4.8)>管理层(4.6)>事业一部(4.5)>财务部(4.3)>事业二部(4.2)>采购(4.0)>事业三部(3.8)
+• 杨勇培训仅1次/2.5分，需强制安排
 
 关键建议：
-1. 工业通用事业部启动限期整改，洪香龙总经理提交30天行动计划
-2. 吴卫成欧洲区经验全集团推广，安排3场内部分享会
-3. 乘用车CAPEX录入列为本周P0任务
-4. 末位2人（杨会龙、周辉）启动PIP绩效改进程序`;
+1. 事业三部经理周辉加强项目管理，杨勇启动PIP绩效改进
+2. 戴晓燕销售经验全集团推广，安排3场内部分享会
+3. 洪香龙技术创新成果向事业一部和三部推广
+4. 金晓锋质量管理经验跨BU复制`;
 
 // ── Demo Access Rules ──
 const DEMO_RULES = [
   { id: 1, periodType: null, departmentCode: null, grantedToRole: "admin", grantedToUserId: null, accessLevel: "manage", isActive: true },
   { id: 2, periodType: null, departmentCode: null, grantedToRole: "director", grantedToUserId: null, accessLevel: "view_individual", isActive: true },
   { id: 3, periodType: "monthly", departmentCode: null, grantedToRole: "bu_gm", grantedToUserId: null, accessLevel: "view_detail", isActive: true },
-  { id: 4, periodType: "monthly", departmentCode: "BU_OS", grantedToRole: "bu_sales", grantedToUserId: null, accessLevel: "view_summary", isActive: true },
+  { id: 4, periodType: "monthly", departmentCode: "BU1", grantedToRole: "bu_sales", grantedToUserId: null, accessLevel: "view_summary", isActive: true },
   { id: 5, periodType: "quarterly", departmentCode: null, grantedToRole: "dept_manager", grantedToUserId: null, accessLevel: "view_summary", isActive: true },
   { id: 6, periodType: null, departmentCode: "PROCUREMENT", grantedToRole: null, grantedToUserId: 301, accessLevel: "view_detail", isActive: true },
 ];
@@ -159,9 +158,9 @@ function DeptRow({ dept, onSelect }: { dept: any; onSelect: () => void }) {
       </div>
 
       {/* Achievement */}
-      <div className="text-center w-16">
-        <p className={`text-xs ${BI_MUTED}`}>达成率</p>
-        <p className={`text-sm font-bold font-mono ${
+      <div className="text-center w-12 sm:w-16">
+        <p className={`text-[10px] sm:text-xs ${BI_MUTED}`}>达成率</p>
+        <p className={`text-xs sm:text-sm font-bold font-mono ${
           rate >= 85 ? "text-emerald-400" : rate >= 70 ? "text-amber-400" : "text-red-400"
         }`}>
           {dept.achievementRate ? `${rate.toFixed(1)}%` : "—"}
@@ -169,7 +168,7 @@ function DeptRow({ dept, onSelect }: { dept: any; onSelect: () => void }) {
       </div>
 
       {/* Plan */}
-      <div className="text-center w-16">
+      <div className="text-center w-12 sm:w-16 hidden sm:block">
         <p className={`text-xs ${BI_MUTED}`}>计划</p>
         <p className={`text-sm font-bold font-mono ${
           planRate >= 85 ? "text-emerald-400" : planRate >= 70 ? "text-amber-400" : "text-red-400"
@@ -179,7 +178,7 @@ function DeptRow({ dept, onSelect }: { dept: any; onSelect: () => void }) {
       </div>
 
       {/* Rewards/Penalties */}
-      <div className="text-center w-16">
+      <div className="text-center w-12 sm:w-16 hidden sm:block">
         <p className={`text-xs ${BI_MUTED}`}>奖/惩</p>
         <p className={`text-sm font-mono ${BI_TEXT}`}>
           <span className="text-emerald-400">+{dept.rewardCount}</span>
@@ -189,7 +188,7 @@ function DeptRow({ dept, onSelect }: { dept: any; onSelect: () => void }) {
       </div>
 
       {/* Training */}
-      <div className="text-center w-14">
+      <div className="text-center w-12 sm:w-14 hidden sm:block">
         <p className={`text-xs ${BI_MUTED}`}>培训</p>
         <p className={`text-sm font-bold font-mono ${
           trainingScore >= 4.0 ? "text-emerald-400" : trainingScore >= 3.5 ? "text-amber-400" : "text-red-400"
@@ -233,7 +232,7 @@ function PersonCard({ person }: { person: any }) {
 
         <p className={`text-[10px] ${BI_MUTED}`}>{person.departmentName}</p>
 
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div>
             <p className={`text-[10px] ${BI_MUTED}`}>达成率</p>
             <p className={`text-xs font-bold font-mono ${
@@ -540,7 +539,7 @@ export default function BiReportDashboard() {
         <div className="flex items-center gap-2">
           {/* Period type selector */}
           <Select value={periodType} onValueChange={setPeriodType}>
-            <SelectTrigger className={`w-28 h-8 text-xs bg-[#131a2b] border-[#1e293b] ${BI_TEXT}`}>
+            <SelectTrigger className={`w-20 sm:w-28 h-8 text-xs bg-[#131a2b] border-[#1e293b] ${BI_TEXT}`}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -562,7 +561,7 @@ export default function BiReportDashboard() {
               value={selectedPeriodId?.toString() ?? ""}
               onValueChange={(v) => setSelectedPeriodId(Number(v))}
             >
-              <SelectTrigger className={`w-36 h-8 text-xs bg-[#131a2b] border-[#1e293b] ${BI_TEXT}`}>
+              <SelectTrigger className={`w-24 sm:w-36 h-8 text-xs bg-[#131a2b] border-[#1e293b] ${BI_TEXT}`}>
                 <SelectValue placeholder="选择报告周期" />
               </SelectTrigger>
               <SelectContent>

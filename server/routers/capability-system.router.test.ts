@@ -427,7 +427,7 @@ describe("capabilitySystem router", () => {
       const names = result.items.map((i: any) => i.name);
       expect(names).toContain("刘奥运");
       expect(names).toContain("胡杨");
-      expect(names).toContain("侯晓薇");
+
       expect(names).toContain("刘坤");
       expect(names).toContain("朱文韬");
     });

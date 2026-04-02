@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { trpc } from '@/lib/trpc';
 import { PageHeader } from '@/components/grt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,8 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Clock, Play, Pause, RotateCcw, Plus, Trash2, CheckCircle2, AlertCircle, Users, BarChart3, Download, Share2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Clock, Play, Pause, RotateCcw, Plus, Trash2, CheckCircle2, AlertCircle, Users, BarChart3, Download, Share2, CalendarDays } from 'lucide-react';
 import { Streamdown } from 'streamdown';
+import { MEETING_TEMPLATES, getMeetingTemplate } from '@/config/meeting-templates';
 
 interface Agenda {
   id: string;
@@ -41,10 +44,21 @@ interface AIInsight {
  */
 export default function SmartMeetingOptimized() {
   const { t } = useLanguage();
+
+  // ── 从数据库加载已排会议列表 ──
+  const meetingsQuery = trpc.smartMeeting.meeting.list.useQuery({ limit: 100 }, { retry: false });
+  const scheduledMeetings: any[] = Array.isArray(meetingsQuery.data) ? meetingsQuery.data : [];
+  // 按时间排序，UPCOMING 优先
+  const upcomingMeetings = scheduledMeetings
+    .filter((m: any) => m.status === "UPCOMING")
+    .sort((a: any, b: any) => String(a.scheduledStart || "").localeCompare(String(b.scheduledStart || "")));
+
+  const [selectedMeetingId, setSelectedMeetingId] = useState<string>("");
+
   // 会议基本信息
-  const [meetingTitle, setMeetingTitle] = useState('产品迭代规划会议');
+  const [meetingTitle, setMeetingTitle] = useState('');
   const [meetingDate, setMeetingDate] = useState(new Date().toISOString().split('T')[0]);
-  const [participants, setParticipants] = useState('6');
+  const [participants, setParticipants] = useState('');
   const [meetingDuration, setMeetingDuration] = useState(0); // 秒
 
   // 计时器状态
@@ -52,34 +66,109 @@ export default function SmartMeetingOptimized() {
   const [timerSeconds, setTimerSeconds] = useState(0);
 
   // 议程管理
-  const [agendas, setAgendas] = useState<Agenda[]>([
-    { id: '1', title: '开场与目标确认', duration: 5, status: 'completed' },
-    { id: '2', title: '上周工作回顾', duration: 10, status: 'in-progress' },
-    { id: '3', title: '本周重点任务', duration: 15, status: 'pending' },
-    { id: '4', title: '问题讨论', duration: 15, status: 'pending' },
-    { id: '5', title: '总结与行动项', duration: 5, status: 'pending' },
-  ]);
+  const [agendas, setAgendas] = useState<Agenda[]>([]);
 
   // 协作画布
-  const [collaborativeNotes, setCollaborativeNotes] = useState(`# 会议纪要
+  const [collaborativeNotes, setCollaborativeNotes] = useState('');
+
+  // ── 选择会议后自动填充 ──
+  function handleSelectMeeting(idStr: string) {
+    setSelectedMeetingId(idStr);
+    const meeting = scheduledMeetings.find((m: any) => String(m.id) === idStr);
+    if (!meeting) return;
+
+    const title = String(meeting.title || "");
+    const desc = String(meeting.description || "");
+    const dateStr = String(meeting.scheduledStart || "").slice(0, 10) || new Date().toISOString().slice(0, 10);
+
+    setMeetingTitle(title);
+    setMeetingDate(dateStr);
+
+    // 提取参会人
+    const descLines = desc.split("\n");
+    let attendees = "";
+    for (const line of descLines) {
+      if (line.includes("参会") || line.includes("参与")) {
+        attendees = line.replace(/.*[：:]/, "").trim();
+        break;
+      }
+    }
+    setParticipants(attendees || "待确认");
+
+    // 根据标题匹配模板，自动生成议程
+    let templateAgendas: Agenda[] = [];
+    const templateMap: Record<string, string> = {
+      "走线": "dept_walkthrough",
+      "晨会": "bu_morning_standup",
+      "销售周例会": "sales_weekly_review",
+      "销售月度": "sales_monthly_kpi",
+      "季度战略": "sales_quarterly_strategy",
+      "月度经营": "monthly_business_review",
+      "月度KPI": "sales_monthly_kpi",
+      "设计评审": "drawing_review",
+      "客户来访": "customer_first_meeting",
+    };
+
+    for (const [keyword, templateId] of Object.entries(templateMap)) {
+      if (title.includes(keyword)) {
+        const tpl = getMeetingTemplate(templateId);
+        if (tpl) {
+          templateAgendas = tpl.agenda.map((a, i) => ({
+            id: String(i + 1),
+            title: a.title,
+            duration: a.duration,
+            status: 'pending' as const,
+          }));
+        }
+        break;
+      }
+    }
+
+    // 如果没匹配到模板，从描述中提取议程
+    if (templateAgendas.length === 0) {
+      const agendaLines = descLines.filter(l => /^\d+[\.\)、]/.test(l.trim()) || l.trim().startsWith("→"));
+      if (agendaLines.length > 0) {
+        templateAgendas = agendaLines.map((line, i) => ({
+          id: String(i + 1),
+          title: line.replace(/^\d+[\.\)、]\s*/, "").replace(/→\s*/, "").replace(/\(\d+min\)/, "").trim(),
+          duration: parseInt(line.match(/(\d+)min/)?.[1] || "10"),
+          status: 'pending' as const,
+        }));
+      } else {
+        templateAgendas = [
+          { id: '1', title: '开场与目标确认', duration: 5, status: 'pending' },
+          { id: '2', title: '主题讨论', duration: 30, status: 'pending' },
+          { id: '3', title: '总结与行动项', duration: 10, status: 'pending' },
+        ];
+      }
+    }
+
+    setAgendas(templateAgendas);
+
+    // 生成会议纪要模板
+    setCollaborativeNotes(`# ${title}
 
 ## 会议信息
-- **日期**: 2026-02-06
-- **会议类型**: 周会
-- **参会人员**: 吴卫成, 李明, 孙淼, 陈强, 刘建年, 赵六 {/* demo */}
+- **日期**: ${dateStr}
+- **参会人员**: ${attendees || "待确认"}
+- **会议ID**: ${meeting.id}
 
-## 关键讨论点
-
-### 1. 上周工作回顾
-- TODO: 完成上周任务总结
-
-### 2. 本周重点任务
-- Action: 确定本周优先级任务
-- TODO: 分配任务负责人
+## 议程
+${templateAgendas.map((a, i) => `### ${i + 1}. ${a.title} (${a.duration}分钟)\n- \n`).join("\n")}
 
 ## 决策记录
-- Decision: 采用敏捷迭代方式，每两周一个迭代
+-
+
+## 行动项
+| 序号 | 行动项 | 责任人 | 截止日期 |
+|------|--------|--------|----------|
+| 1 | | | |
 `);
+
+    // 重置计时器
+    setIsTimerRunning(false);
+    setTimerSeconds(0);
+  }
 
   // AI洞察
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([
@@ -100,7 +189,7 @@ export default function SmartMeetingOptimized() {
     {
       id: '1',
       title: '完成修复，这个很紧急',
-      owner: '李明',
+      owner: '洪香龙',
       dueDate: '2026-02-06',
       priority: 'high',
       status: 'pending',
@@ -257,10 +346,49 @@ ${t("mi.smart.exportGeneratedAt")}: ${new Date().toLocaleString()}
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* 选择已排会议 */}
+        <Card className="bg-white shadow border-0">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-semibold text-gray-700">选择会议:</span>
+              </div>
+              <Select value={selectedMeetingId} onValueChange={handleSelectMeeting}>
+                <SelectTrigger className="w-[400px]">
+                  <SelectValue placeholder={meetingsQuery.isLoading ? "加载中..." : `从 ${upcomingMeetings.length} 个待开会议中选择`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {upcomingMeetings.length === 0 && (
+                    <SelectItem value="__none" disabled>暂无待开会议</SelectItem>
+                  )}
+                  {upcomingMeetings.map((m: any) => {
+                    const dateStr = String(m.scheduledStart || "").slice(0, 10);
+                    const timeStr = String(m.scheduledStart || "").slice(11, 16);
+                    return (
+                      <SelectItem key={m.id} value={String(m.id)}>
+                        {dateStr} {timeStr} | {String(m.title || "").slice(0, 40)}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              {meetingTitle && (
+                <Badge variant="outline" className="text-blue-600 border-blue-200">
+                  {meetingTitle.slice(0, 30)}
+                </Badge>
+              )}
+              {participants && (
+                <span className="text-xs text-gray-500">参会: {participants.slice(0, 30)}</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* 头部 */}
         <PageHeader
           icon={Clock}
-          title={meetingTitle}
+          title={meetingTitle || "请选择会议"}
           description={t("mi.smart.description")}
           actions={
             <>

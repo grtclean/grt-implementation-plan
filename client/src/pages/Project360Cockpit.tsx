@@ -40,9 +40,10 @@ import {
   Wrench,
 } from "lucide-react";
 
-// ─── SAIC New Energy Cleaning Line — Mock Project Data ───────────────
+// ─── SAIC New Energy Cleaning Line — Demo Project Data ───────────────
+// TODO: Replace DEMO_PROJECT with tRPC query: trpc.project.getById.useQuery(selectedProjectId)
 
-const PROJECT = {
+const DEMO_PROJECT = {
   id: 1,
   name: "SAIC New Energy Cleaning Line",
   nameCn: "上汽新能源清洗线",
@@ -52,7 +53,7 @@ const PROJECT = {
   lifecycle: "M0-M12",
   startDate: "2025-09-15",
   targetDate: "2026-06-30",
-  projectManager: "Wang Lei (王磊)",
+  projectManager: "Yang Yong (杨勇)",
 };
 
 const KPI = {
@@ -181,6 +182,10 @@ export default function Project360Cockpit() {
   const roleLevel = ROLE_HIERARCHY[currentUserRole] || 0;
   const canApproveECO = roleLevel >= 3; // dept_manager+
 
+  const [dataSource] = useState<'demo' | 'live'>('demo');
+  // TODO: when tRPC is connected, use: const { data: project } = trpc.project.getById.useQuery(selectedProjectId);
+  const PROJECT = DEMO_PROJECT;
+
   const [ecoDialogOpen, setEcoDialogOpen] = useState(false);
   const [ecoSubmitted, setEcoSubmitted] = useState(false);
 
@@ -197,6 +202,13 @@ export default function Project360Cockpit() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* ─── Data Source Indicator ─── */}
+      {dataSource === 'demo' && (
+        <div className="mx-4 sm:mx-6 mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2 text-sm text-yellow-800">
+          <AlertTriangle className="h-4 w-4" />
+          数据来源: 演示数据 — 连接tRPC后将显示实时项目数据
+        </div>
+      )}
       {/* ─── Page Header ─── */}
       <div className="bg-white border-b px-4 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center justify-between gap-3">

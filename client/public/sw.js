@@ -5,10 +5,10 @@
  * Provides offline shell so the PWA feels native on mobile.
  */
 
-const CACHE_NAME = "grt-v1";
-const STATIC_ASSETS = ["/", "/GRTlogo.gif", "/manifest.json"];
+const CACHE_NAME = "grt-v4";
+const STATIC_ASSETS = ["/GRTlogo.gif"];
 
-// Install — pre-cache shell
+// Install — pre-cache only immutable assets (NOT HTML)
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
@@ -16,7 +16,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activate — clean old caches
+// Activate — clean ALL old caches immediately
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -28,29 +28,65 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch — network-first for API, cache-first for assets
+// Fetch strategy:
+// - HTML (navigation): NETWORK-FIRST — always get latest, cache as fallback
+// - JS/CSS with hash: CACHE-FIRST — immutable (hash changes on rebuild)
+// - API: skip (no caching)
+// - Other assets: stale-while-revalidate
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET and API/tRPC requests (always go to network)
+  // Skip non-GET and API requests
   if (request.method !== "GET" || url.pathname.startsWith("/api/")) {
     return;
   }
 
+  // HTML navigation requests — NETWORK-FIRST (critical for deployments)
+  if (request.mode === "navigate" || request.destination === "document") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((c) => c || caches.match("/")))
+    );
+    return;
+  }
+
+  // Hashed assets (JS/CSS chunks) — CACHE-FIRST (immutable by hash)
+  if (url.pathname.startsWith("/assets/")) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Other static files — stale-while-revalidate
   event.respondWith(
     caches.match(request).then((cached) => {
       const fetchPromise = fetch(request)
         .then((response) => {
-          // Only cache successful responses from same origin
           if (response.ok && url.origin === self.location.origin) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }
           return response;
         })
-        .catch(() => cached); // Offline fallback
-
+        .catch(() => cached);
       return cached || fetchPromise;
     })
   );

@@ -184,10 +184,41 @@ const projectRouter = router({
       budget: z.number().optional(),
       description: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        // 获取更新前的项目数据用于变更日志
+        const before = await posDb.getProjectById(input.id);
         const { id, ...data } = input;
-        return await posDb.updateProject(id, data);
+        const result = await posDb.updateProject(id, data);
+
+        // 记录变更日志到 project_activity_timeline
+        try {
+          const { recordProjectActivity } = await import('../services/hrm-integration.service');
+          const changes: string[] = [];
+          if (before) {
+            if (input.projectName && input.projectName !== before.projectName) changes.push(`名称: ${before.projectName} → ${input.projectName}`);
+            if (input.description !== undefined && input.description !== (before.description || '')) changes.push(`描述已更新`);
+            if (input.currentStage && input.currentStage !== before.currentStage) changes.push(`阶段: ${before.currentStage} → ${input.currentStage}`);
+            if (input.status && input.status !== before.status) changes.push(`状态: ${before.status} → ${input.status}`);
+            if (input.priority && input.priority !== before.priority) changes.push(`优先级: ${before.priority} → ${input.priority}`);
+            if (input.plannedStartDate && input.plannedStartDate !== before.plannedStartDate) changes.push(`计划开始: ${input.plannedStartDate}`);
+            if (input.plannedEndDate && input.plannedEndDate !== before.plannedEndDate) changes.push(`计划结束: ${input.plannedEndDate}`);
+            if (input.budget !== undefined && input.budget !== Number(before.budget)) changes.push(`预算: ${input.budget}`);
+          }
+          if (changes.length > 0) {
+            await recordProjectActivity({
+              projectId: id,
+              projectCode: before?.projectCode || undefined,
+              activityType: 'project_updated',
+              activityTitle: `项目信息更新: ${changes.join('; ')}`,
+              sourceModule: 'pos',
+              performedBy: ctx.user?.id ?? 0,
+              performedByName: ctx.user?.name || undefined,
+            });
+          }
+        } catch { /* audit best-effort */ }
+
+        return result;
       } catch (error) {
         log.error({ err: error }, "Failed to update project");
         throw new Error('更新项目失败');
@@ -462,7 +493,7 @@ const stageRouter = router({
             fileType: 'application/docx',
             version: 'v1.2',
             uploadedBy: 1,
-            uploaderName: '张三',
+            uploaderName: '李大鹏',
             uploadedAt: '2025-02-08T10:00:00Z',
             fileSize: '2.5MB',
           },
@@ -474,7 +505,7 @@ const stageRouter = router({
             fileType: 'application/xlsx',
             version: 'v2.0',
             uploadedBy: 2,
-            uploaderName: '李四',
+            uploaderName: '戴晓燕',
             uploadedAt: '2025-02-09T14:30:00Z',
             fileSize: '1.2MB',
           },
@@ -497,7 +528,7 @@ const stageRouter = router({
             version: 'v1.2',
             fileUrl: '/files/tech-proposal-v1.2.docx',
             uploadedBy: 1,
-            uploaderName: '张三',
+            uploaderName: '李大鹏',
             uploadedAt: '2025-02-08T10:00:00Z',
             changeNotes: '更新了技术参数',
             fileSize: '2.5MB',
@@ -506,7 +537,7 @@ const stageRouter = router({
             version: 'v1.1',
             fileUrl: '/files/tech-proposal-v1.1.docx',
             uploadedBy: 1,
-            uploaderName: '张三',
+            uploaderName: '李大鹏',
             uploadedAt: '2025-02-05T16:20:00Z',
             changeNotes: '添加了工艺流程图',
             fileSize: '2.3MB',
@@ -515,7 +546,7 @@ const stageRouter = router({
             version: 'v1.0',
             fileUrl: '/files/tech-proposal-v1.0.docx',
             uploadedBy: 2,
-            uploaderName: '李四',
+            uploaderName: '戴晓燕',
             uploadedAt: '2025-02-01T09:00:00Z',
             changeNotes: '初始版本',
             fileSize: '2.0MB',

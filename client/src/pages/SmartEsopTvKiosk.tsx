@@ -9,6 +9,7 @@
  * Layout (Edit mode): Full-screen tabbed editor overlay
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import FloatingNav from '@/components/FloatingNav';
 import {
   Shield, CheckCircle2, AlertTriangle, Clock, User,
   Wrench, Eye, Camera, Zap, BarChart3,
@@ -1314,6 +1315,7 @@ export default function SmartEsopTvKiosk() {
         <div className="w-[45%] shrink-0 border-l-2 border-neutral-800"><CenterPanel config={config} activeStep={activeStep} /></div>
         <div className="w-[30%] shrink-0"><RightPanel activeStep={activeStep} elapsed={elapsed} onComplete={handleComplete} /></div>
       </div>
+      <FloatingNav />
     </div>
   );
 }

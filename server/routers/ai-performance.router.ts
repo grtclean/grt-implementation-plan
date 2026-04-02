@@ -398,14 +398,14 @@ export const aiPerformanceRouter = router({
 
       // ── Strategy 2: Seed realistic meeting data, then compute scores ──
       const demoUsers = [
-        { id: 1, name: "张三", dept: "项目管理部" },
-        { id: 2, name: "李四", dept: "质量部" },
-        { id: 3, name: "王五", dept: "销售部" },
-        { id: 4, name: "赵六", dept: "研发部" },
-        { id: 5, name: "周七", dept: "生产部" },
-        { id: 6, name: "钱八", dept: "采购部" },
-        { id: 7, name: "孙九", dept: "人力资源" },
-        { id: 8, name: "吴十", dept: "财务部" },
+        { id: 1, name: "杨勇", dept: "项目管理部" },
+        { id: 2, name: "金晓锋", dept: "质量部" },
+        { id: 3, name: "戴晓燕", dept: "销售部" },
+        { id: 4, name: "洪小东", dept: "研发部" },
+        { id: 5, name: "李大鹏", dept: "生产部" },
+        { id: 6, name: "张洵", dept: "采购部" },
+        { id: 7, name: "沙建梅", dept: "人力资源" },
+        { id: 8, name: "王秀萍", dept: "财务部" },
       ];
 
       const months = ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"];

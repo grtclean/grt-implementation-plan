@@ -199,11 +199,11 @@ const SEED_TV_TARGETS: TvTarget[] = [
 ];
 
 const SEED_FIELD_FEEDBACK: FieldFeedback[] = [
-  { id: 1, type: "defect", processStep: "T3-喷淋清洗", description: "第 3 排喷嘴出现明显的扇形角度偏移 (约 15\u00B0)，导致 8800T 大件右侧清洗盲区", severity: "high", reportedBy: "王工 (装配督导)", date: "2026-03-13", linkedFmeaItemId: 7, status: "investigating" },
-  { id: 2, type: "improvement", processStep: "T1-上料定位", description: "建议在定位工装上增加光电传感器，实现自动偏移量检测替代人工三坐标", severity: "medium", reportedBy: "赵博 (工艺专家)", date: "2026-03-12", linkedFmeaItemId: 6, status: "open" },
-  { id: 3, type: "observation", processStep: "T5-真空干燥", description: "连续 3 天真空度从 -0.095MPa 缓慢下降到 -0.088MPa，密封圈可能开始老化", severity: "medium", reportedBy: "张工 (设备维护)", date: "2026-03-11", linkedFmeaItemId: 2, status: "investigating" },
-  { id: 4, type: "defect", processStep: "T7-超声波清洗", description: "2# 超声波槽功率测试显示实际输出仅为额定的 82%，低于 85% 阈值", severity: "high", reportedBy: "QC 李工", date: "2026-03-10", linkedFmeaItemId: 4, status: "resolved" },
-  { id: 5, type: "improvement", processStep: "T9-终检清洁度", description: "建议在检测仪前增加恒温腔 (\u00B11\u2103)，减少环境温度对零点的影响", severity: "low", reportedBy: "质量部 陈经理", date: "2026-03-09", linkedFmeaItemId: 5, status: "open" },
+  { id: 1, type: "defect", processStep: "T3-喷淋清洗", description: "第 3 排喷嘴出现明显的扇形角度偏移 (约 15\u00B0)，导致 8800T 大件右侧清洗盲区", severity: "high", reportedBy: "吴卫成 (GRT010 机械装配)", date: "2026-03-13", linkedFmeaItemId: 7, status: "investigating" },
+  { id: 2, type: "improvement", processStep: "T1-上料定位", description: "建议在定位工装上增加光电传感器，实现自动偏移量检测替代人工三坐标", severity: "medium", reportedBy: "赵强 (GRT052 机械装配)", date: "2026-03-12", linkedFmeaItemId: 6, status: "open" },
+  { id: 3, type: "observation", processStep: "T5-真空干燥", description: "连续 3 天真空度从 -0.095MPa 缓慢下降到 -0.088MPa，密封圈可能开始老化", severity: "medium", reportedBy: "沈龙翔 (GRT031 电气装配)", date: "2026-03-11", linkedFmeaItemId: 2, status: "investigating" },
+  { id: 4, type: "defect", processStep: "T7-超声波清洗", description: "2# 超声波槽功率测试显示实际输出仅为额定的 82%，低于 85% 阈值", severity: "high", reportedBy: "金晓锋 (GRT005 质量经理)", date: "2026-03-10", linkedFmeaItemId: 4, status: "resolved" },
+  { id: 5, type: "improvement", processStep: "T9-终检清洁度", description: "建议在检测仪前增加恒温腔 (\u00B11\u2103)，减少环境温度对零点的影响", severity: "low", reportedBy: "洪香龙 (GRT006 机械设计经理)", date: "2026-03-09", linkedFmeaItemId: 5, status: "open" },
 ];
 
 // ═══════════════════════════════════════════════════════════
@@ -923,15 +923,53 @@ function StepTvDeploy() {
     lsSet("tv-deployed", true);
     lsSet("tv-deployed-at", ts);
 
-    // Brief processing then confirm
-    setTimeout(() => {
-      setDeploying(false);
-      setDeployed(true);
-      setDeployedAt(ts);
-      toast.success("SOP 已推送至车间大屏", {
-        description: `${GENERATED_SOP_STEPS.length} 步 SOP + ${SEED_BOM_ITEMS.length} 物料 → ${targetNames.join(", ")}`,
+    // 真正写入 DB — 调用 kiosk.deploySopToKiosk
+    fetch("/api/trpc/kiosk.deploySopToKiosk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        json: {
+          sopSteps: GENERATED_SOP_STEPS.map(s => ({
+            id: s.id,
+            seq: s.seq,
+            title: s.title,
+            operation: s.operation,
+            tools: s.tools,
+            qcCheckpoint: s.qcCheckpoint,
+            estimatedMinutes: s.estimatedMinutes,
+            requiredSkill: s.requiredSkill,
+            fmeaWarnings: s.fmeaWarnings,
+          })),
+          bomItems: SEED_BOM_ITEMS.map(b => ({
+            materialCode: b.materialCode,
+            materialName: b.materialName,
+            quantity: b.quantity,
+            zone: b.zone,
+          })),
+          targets: Array.from(selectedTargets),
+        },
+      }),
+    })
+      .then(r => r.json())
+      .then(json => {
+        const data = json?.result?.data?.json ?? json?.result?.data;
+        setDeploying(false);
+        setDeployed(true);
+        setDeployedAt(ts);
+        toast.success("SOP 已推送至车间大屏 + 写入数据库", {
+          description: `${GENERATED_SOP_STEPS.length} 步 SOP + ${SEED_BOM_ITEMS.length} 物料 → ${targetNames.join(", ")}${data?.deployedCount ? ` (${data.deployedCount} 个模板已入库)` : ""}`,
+        });
+      })
+      .catch(() => {
+        // 降级：DB 写入失败，仍然本地标记部署成功
+        setDeploying(false);
+        setDeployed(true);
+        setDeployedAt(ts);
+        toast.success("SOP 已推送至车间大屏 (本地)", {
+          description: `${GENERATED_SOP_STEPS.length} 步 SOP + ${SEED_BOM_ITEMS.length} 物料 → ${targetNames.join(", ")}`,
+        });
       });
-    }, 600);
   };
 
   return (

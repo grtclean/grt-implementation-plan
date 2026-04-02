@@ -239,8 +239,8 @@ export default function LeadManagement() {
   // 下载导入模板
   const downloadTemplate = () => {
     const template = `客户名称,联系人,电话,邮箱,公司,来源,状态,优先级,预估金额,备注
-张经理,张三,13800138000,zhang@example.com,某某科技有限公司,展会,new,high,500000,对超声波清洗设备感兴趣
-李总,李四,13900139000,li@example.com,某某制造有限公司,转介绍,contacted,medium,300000,需要定制化方案`;
+张经理,胡杨,13800138000,zhang@example.com,某某科技有限公司,展会,new,high,500000,对超声波清洗设备感兴趣
+李总,刘健康,13900139000,li@example.com,某某制造有限公司,转介绍,contacted,medium,300000,需要定制化方案`;
 
     const blob = new Blob(['\ufeff' + template], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);

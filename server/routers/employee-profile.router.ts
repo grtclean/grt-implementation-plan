@@ -519,7 +519,7 @@ const REAL_EMPLOYEE_LIST: RealEmployeeRaw[] = [
   { userId: 100, grtId: "GRT100", name: "田炜钰", department: "人事行政部", position: "行政前台" },
   { userId: 49,  grtId: "GRT049", name: "胡杨",   department: "AI数智部",   position: "IT工程师" },
   { userId: 62,  grtId: "GRT062", name: "朱宇浩", department: "事业二部",   position: "生产工程师兼项目及IT工程师" },
-  { userId: 96,  grtId: "GRT096", name: "侯晓薇", department: "AI数智部",   position: "部门经理" },
+
   { userId: 83,  grtId: "GRT083", name: "刘坤",   department: "AI数智部",   position: "市场主管" },
   { userId: 103, grtId: "GRT103", name: "朱文韬", department: "AI数智部",   position: "市场专员" },
   { userId: 4,   grtId: "GRT004", name: "戴晓燕", department: "事业一部",   position: "高级销售经理" },

@@ -231,9 +231,9 @@ export default function WorkerManagement() {
   const handleDownloadTemplate = (format: "csv" | "xlsx" = "xlsx") => {
     const headers = ["姓名", "部门", "职位", "技能等级(L1-L5)", "电话", "邮箱"];
     const sampleData = [
-      ["张三", "生产部", "生产工人", "L2", "13800138001", "zhangsan@example.com"],
-      ["李四", "质检部", "质检员", "L3", "13800138002", "lisi@example.com"],
-      ["王五", "装配部", "装配工", "L4", "13800138003", "wangwu@example.com"],
+      ["胡杨", "生产部", "生产工人", "L2", "13800138001", "zhangsan@example.com"],
+      ["刘健康", "质检部", "质检员", "L3", "13800138002", "lisi@example.com"],
+      ["杨勇", "装配部", "装配工", "L4", "13800138003", "wangwu@example.com"],
     ];
     
     if (format === "xlsx") {

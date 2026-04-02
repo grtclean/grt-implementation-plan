@@ -1,4 +1,5 @@
 import React, { useReducer, useRef, useCallback, useEffect, useState } from "react";
+import FloatingNav from '@/components/FloatingNav';
 
 // ═══════════════════════════════════════════════════════════════
 // §1  Type Contracts — zero `any`, strict enums
@@ -649,6 +650,7 @@ export default function GlobalEventOrchestratorV2(): React.ReactElement {
           </div>
         </main>
       </div>
+      <FloatingNav />
     </div>
   );
 }

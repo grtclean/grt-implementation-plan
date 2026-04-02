@@ -75,11 +75,11 @@ const mockDashboardData = {
   
   // 最近出差动态
   recentActivities: [
-    { id: 1, name: "张三", destination: "上海", status: "traveling", time: "2小时前" },
-    { id: 2, name: "李四", destination: "北京", status: "arrived", time: "4小时前" },
-    { id: 3, name: "王五", destination: "深圳", status: "returning", time: "6小时前" },
-    { id: 4, name: "赵六", destination: "德国", status: "traveling", time: "1天前" },
-    { id: 5, name: "钱七", destination: "日本", status: "completed", time: "2天前" }
+    { id: 1, name: "胡杨", destination: "上海", status: "traveling", time: "2小时前" },
+    { id: 2, name: "刘健康", destination: "北京", status: "arrived", time: "4小时前" },
+    { id: 3, name: "杨勇", destination: "深圳", status: "returning", time: "6小时前" },
+    { id: 4, name: "焦斌", destination: "德国", status: "traveling", time: "1天前" },
+    { id: 5, name: "韩保程", destination: "日本", status: "completed", time: "2天前" }
   ]
 };
 

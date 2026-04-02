@@ -99,7 +99,7 @@ const mockSOPs: SOPRecord[] = [
   {
     id: 4, code: "SOP-MT-001", title: "设备日常维护保养规程", category: "设备维护",
     version: "2.0", status: "approved", content: "1. 每日检查清洗液浓度\n2. 每周清洁过滤器\n3. 每月校准传感器\n4. 每季度更换密封件\n5. 每半年大保养\n6. 记录维护日志",
-    equipmentModels: ["USC-3000", "USC-2000", "SPR-5000", "SPR-3000"], stages: ["M10", "M11", "M12"], author: "钱绍辉", approver: "金晓锋",
+    equipmentModels: ["USC-3000", "USC-2000", "SPR-5000", "SPR-3000"], stages: ["M10", "M11", "M12"], author: "钱佳奇", approver: "金晓锋",
     effectiveDate: "2025-01-01", createdAt: "2024-12-01", updatedAt: "2025-09-30",
   },
   {

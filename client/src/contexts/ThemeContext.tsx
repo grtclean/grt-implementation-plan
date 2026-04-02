@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
+import { isPublicPath } from "@/lib/public-paths";
 import { trpc } from "@/lib/trpc";
 
 type Theme = "light" | "dark" | "system";
@@ -44,8 +45,7 @@ export function ThemeProvider({
   });
   
   // Skip server sync on public pages where user is not authenticated
-  const isPublicPage = typeof window !== 'undefined' &&
-    (window.location.pathname === '/login' || window.location.pathname === '/login-success');
+  const isPublicPage = isPublicPath();
 
   // Start initialized if: public page OR localStorage already has a cached theme.
   // This prevents the tRPC query from firing on initial load (avoids state transitions / flickering).

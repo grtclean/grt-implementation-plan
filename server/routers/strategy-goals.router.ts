@@ -116,50 +116,50 @@ async function seedIfEmpty() {
       }));
 
     const allKpis = [
-      // BU1 海外 — 张海涛
-      ...mkKpis('海外事业部', 'BU1', '张海涛', [
-        [1, '事业部营收', 'Division Revenue', 85000000, 22000000, 'CNY', 0.30, '全年营收达成85M CNY，含海外OEM及售后服务收入', 'A', 25.9],
-        [2, 'FAT一次通过率', 'FAT First-Pass Rate', 96, 94.5, '%', 0.20, '海外项目FAT一次通过率≥96%，含远程FAT', 'A', 98.4],
-        [3, '项目交付及时率', 'Project OTD', 93, 90, '%', 0.20, '海外项目交付及时率≥93%，扣除不可抗力', 'A', 96.8],
-        [4, '质量百万缺陷率', 'Quality DPPM', 450, 380, 'DPPM', 0.15, '海外发运产品DPPM≤450，含IQC及终检', 'G', 100],
-        [5, '制造成本控制', 'Cost Reduction', 6, 4.8, '% reduction', 0.10, '海外BU制造成本同比降低≥6%', 'A', 80],
-        [6, '团队建设完成率', 'Team Building', 90, 85, '%', 0.05, '海外团队培训覆盖率、认证通过率综合≥90%', 'G', 94.4],
+      // BU1 海外 — 戴晓燕（高级销售经理，GRT004）
+      ...mkKpis('海外事业部', 'BU1', '戴晓燕', [
+        [1, '事业部营收', 'Division Revenue', 85000000, 22000000, 'CNY', 0.30, '海外清洗设备整线销售+售后备件收入，含欧美及东南亚OEM项目', 'A', 25.9],
+        [2, 'FAT一次通过率', 'FAT First-Pass Rate', 96, 94.5, '%', 0.20, '海外项目FAT一次通过率≥96%，含远程视频FAT及客户现场验收', 'A', 98.4],
+        [3, '项目交付及时率', 'Project OTD', 93, 90, '%', 0.20, '海外项目从合同签订到设备发运的交期达成率≥93%，扣除海运不可抗力', 'A', 96.8],
+        [4, '质量百万缺陷率', 'Quality DPPM', 450, 380, 'DPPM', 0.15, '海外发运清洗设备零部件DPPM≤450，含来料IQC、过程IPQC及出货OQC', 'G', 100],
+        [5, '制造成本控制', 'Cost Reduction', 6, 4.8, '% reduction', 0.10, '海外BU清洗设备制造成本同比降低≥6%，含标准化模块复用率提升', 'A', 80],
+        [6, '团队建设完成率', 'Team Building', 90, 85, '%', 0.05, '海外团队技能矩阵覆盖率≥90%，含外语能力、远程调试认证、售后服务资质', 'G', 94.4],
       ]),
-      // BU2 商用车 — 王志强
-      ...mkKpis('商用车事业部', 'BU2', '王志强', [
-        [1, '事业部营收', 'Division Revenue', 72000000, 16500000, 'CNY', 0.30, '全年营收达成72M CNY，含新能源商用车清洗线', 'A', 22.9],
-        [2, 'FAT一次通过率', 'FAT First-Pass Rate', 94, 91, '%', 0.20, '商用车项目FAT一次通过率≥94%', 'A', 96.8],
-        [3, '项目交付及时率', 'Project OTD', 91, 87, '%', 0.20, '商用车项目交付及时率≥91%', 'R', 95.6],
-        [4, '质量百万缺陷率', 'Quality DPPM', 550, 610, 'DPPM', 0.15, '商用车DPPM≤550，重点关注焊接及涂装工序', 'R', 90.2],
-        [5, '制造成本控制', 'Cost Reduction', 4.5, 3.1, '% reduction', 0.10, '商用车BU制造成本同比降低≥4.5%', 'A', 68.9],
-        [6, '团队建设完成率', 'Team Building', 88, 78, '%', 0.05, '商用车团队培训覆盖率≥88%', 'A', 88.6],
+      // BU2 商用车 — 徐树奎（事业二部经理，GRT094）
+      ...mkKpis('商用车事业部', 'BU2', '徐树奎', [
+        [1, '事业部营收', 'Division Revenue', 72000000, 16500000, 'CNY', 0.30, '商用车清洗线整线交付+新能源商用车零部件清洗设备销售收入', 'A', 22.9],
+        [2, 'FAT一次通过率', 'FAT First-Pass Rate', 94, 91, '%', 0.20, '商用车清洗线FAT一次通过率≥94%，含发动机/变速箱清洗工艺验证', 'A', 96.8],
+        [3, '项目交付及时率', 'Project OTD', 91, 87, '%', 0.20, '商用车项目里程碑节点达成率≥91%，含设计评审/制造/安装调试全流程', 'R', 95.6],
+        [4, '质量百万缺陷率', 'Quality DPPM', 550, 610, 'DPPM', 0.15, '商用车清洗设备DPPM≤550，重点关注焊接变形及涂装附着力工序', 'R', 90.2],
+        [5, '制造成本控制', 'Cost Reduction', 4.5, 3.1, '% reduction', 0.10, '商用车BU制造成本同比降低≥4.5%，含钣金下料优化及外协成本管控', 'A', 68.9],
+        [6, '团队建设完成率', 'Team Building', 88, 78, '%', 0.05, '商用车团队技能矩阵覆盖率≥88%，含焊接/电气/PLC调试多技能培训', 'A', 88.6],
       ]),
-      // BU3 乘用车 — 李明远
-      ...mkKpis('乘用车事业部', 'BU3', '李明远', [
-        [1, '事业部营收', 'Division Revenue', 58000000, 14200000, 'CNY', 0.30, '全年营收达成58M CNY，含新能源乘用车零部件清洗线', 'A', 24.5],
-        [2, 'FAT一次通过率', 'FAT First-Pass Rate', 95, 93.8, '%', 0.20, '乘用车项目FAT一次通过率≥95%', 'A', 98.7],
-        [3, '项目交付及时率', 'Project OTD', 92, 91, '%', 0.20, '乘用车项目交付及时率≥92%', 'G', 98.9],
-        [4, '质量百万缺陷率', 'Quality DPPM', 480, 450, 'DPPM', 0.15, '乘用车DPPM≤480，重点关注精密清洗', 'G', 100],
-        [5, '制造成本控制', 'Cost Reduction', 5, 3.5, '% reduction', 0.10, '乘用车BU制造成本同比降低≥5%', 'A', 70],
-        [6, '团队建设完成率', 'Team Building', 90, 82, '%', 0.05, '乘用车团队培训覆盖率≥90%', 'A', 91.1],
+      // BU3 乘用车 — 周辉（事业三部经理，GRT058）
+      ...mkKpis('乘用车事业部', 'BU3', '周辉', [
+        [1, '事业部营收', 'Division Revenue', 58000000, 14200000, 'CNY', 0.30, '乘用车精密清洗线+新能源电池壳体清洗设备销售收入', 'A', 24.5],
+        [2, 'FAT一次通过率', 'FAT First-Pass Rate', 95, 93.8, '%', 0.20, '乘用车精密清洗线FAT一次通过率≥95%，含清洁度颗粒检测达标', 'A', 98.7],
+        [3, '项目交付及时率', 'Project OTD', 92, 91, '%', 0.20, '乘用车项目全流程交付及时率≥92%，含客户产线对接调试', 'G', 98.9],
+        [4, '质量百万缺陷率', 'Quality DPPM', 480, 450, 'DPPM', 0.15, '乘用车清洗设备DPPM≤480，重点关注精密清洗腔体密封及超声波模组', 'G', 100],
+        [5, '制造成本控制', 'Cost Reduction', 5, 3.5, '% reduction', 0.10, '乘用车BU制造成本同比降低≥5%，含精密零件国产化替代', 'A', 70],
+        [6, '团队建设完成率', 'Team Building', 90, 82, '%', 0.05, '乘用车团队技能矩阵覆盖率≥90%，含洁净度检测、超声波调试认证', 'A', 91.1],
       ]),
-      // BU4 半导体 — 陈立学
-      ...mkKpis('半导体事业部', 'BU4', '陈立学', [
-        [1, '事业部营收', 'Division Revenue', 35000000, 9800000, 'CNY', 0.30, '全年营收达成35M CNY，含晶圆清洗及封装清洗设备', 'G', 28.0],
-        [2, 'FAT一次通过率', 'FAT First-Pass Rate', 98, 97.5, '%', 0.20, '半导体项目FAT一次通过率≥98%，洁净度Class100', 'G', 99.5],
-        [3, '项目交付及时率', 'Project OTD', 95, 94, '%', 0.20, '半导体项目交付及时率≥95%', 'G', 98.9],
-        [4, '质量百万缺陷率', 'Quality DPPM', 300, 280, 'DPPM', 0.15, '半导体DPPM≤300，零颗粒污染标准', 'G', 100],
-        [5, '制造成本控制', 'Cost Reduction', 5.5, 4.2, '% reduction', 0.10, '半导体BU制造成本同比降低≥5.5%', 'A', 76.4],
-        [6, '团队建设完成率', 'Team Building', 92, 88, '%', 0.05, '半导体团队培训覆盖率≥92%，含洁净室认证', 'G', 95.7],
+      // BU4 半导体 — 孙国祥（电气工程师，GRT018）
+      ...mkKpis('半导体事业部', 'BU4', '孙国祥', [
+        [1, '事业部营收', 'Division Revenue', 35000000, 9800000, 'CNY', 0.30, '半导体晶圆清洗+封装清洗设备销售收入，含洁净室配套', 'G', 28.0],
+        [2, 'FAT一次通过率', 'FAT First-Pass Rate', 98, 97.5, '%', 0.20, '半导体清洗设备FAT一次通过率≥98%，Class100洁净度+颗粒≤0.1μm达标', 'G', 99.5],
+        [3, '项目交付及时率', 'Project OTD', 95, 94, '%', 0.20, '半导体项目交付及时率≥95%，含晶圆厂洁净室安装调试', 'G', 98.9],
+        [4, '质量百万缺陷率', 'Quality DPPM', 300, 280, 'DPPM', 0.15, '半导体清洗设备DPPM≤300，零颗粒污染标准+化学品残留检测', 'G', 100],
+        [5, '制造成本控制', 'Cost Reduction', 5.5, 4.2, '% reduction', 0.10, '半导体BU制造成本同比降低≥5.5%，含特种材料(PVDF/Teflon)采购优化', 'A', 76.4],
+        [6, '团队建设完成率', 'Team Building', 92, 88, '%', 0.05, '半导体团队技能矩阵覆盖率≥92%，含洁净室操作认证、化学品安全资质', 'G', 95.7],
       ]),
-      // BU5 工业通用 — 周建国
-      ...mkKpis('工业通用事业部', 'BU5', '周建国', [
-        [1, '事业部营收', 'Division Revenue', 30000000, 6500000, 'CNY', 0.30, '全年营收达成30M CNY，含通用工业清洗线', 'R', 21.7],
-        [2, 'FAT一次通过率', 'FAT First-Pass Rate', 93, 89, '%', 0.20, '工业通用项目FAT一次通过率≥93%', 'R', 95.7],
-        [3, '项目交付及时率', 'Project OTD', 90, 84, '%', 0.20, '工业通用项目交付及时率≥90%', 'R', 93.3],
-        [4, '质量百万缺陷率', 'Quality DPPM', 600, 720, 'DPPM', 0.15, '工业通用DPPM≤600', 'R', 83.3],
-        [5, '制造成本控制', 'Cost Reduction', 4, 2.8, '% reduction', 0.10, '工业通用BU制造成本同比降低≥4%', 'A', 70],
-        [6, '团队建设完成率', 'Team Building', 85, 70, '%', 0.05, '工业通用团队培训覆盖率≥85%', 'R', 82.4],
+      // BU5 工业通用 — 马柯（质量专员，GRT008）
+      ...mkKpis('工业通用事业部', 'BU5', '马柯', [
+        [1, '事业部营收', 'Division Revenue', 30000000, 6500000, 'CNY', 0.30, '通用工业清洗线(轴承/液压件/齿轮箱)销售+改造升级收入', 'R', 21.7],
+        [2, 'FAT一次通过率', 'FAT First-Pass Rate', 93, 89, '%', 0.20, '工业通用清洗线FAT一次通过率≥93%，含多品种切换验证', 'R', 95.7],
+        [3, '项目交付及时率', 'Project OTD', 90, 84, '%', 0.20, '工业通用项目交付及时率≥90%，含非标设计变更管控', 'R', 93.3],
+        [4, '质量百万缺陷率', 'Quality DPPM', 600, 720, 'DPPM', 0.15, '工业通用清洗设备DPPM≤600，重点关注非标件加工精度', 'R', 83.3],
+        [5, '制造成本控制', 'Cost Reduction', 4, 2.8, '% reduction', 0.10, '工业通用BU制造成本同比降低≥4%，含通用模块标准化复用', 'A', 70],
+        [6, '团队建设完成率', 'Team Building', 85, 70, '%', 0.05, '工业通用团队技能矩阵覆盖率≥85%，含多工种轮岗、安全生产资质', 'R', 82.4],
       ]),
     ];
 
@@ -486,15 +486,18 @@ export const strategyGoalsRouter = router({
     }),
 
   // ── Force re-seed for demo
-  seedDemo: requirePermission('strategy:okr:manage').mutation(async () => {
-    await ensureTables();
-    const db = await requireDb();
-    await db.delete(divisionKpis).where(eq(divisionKpis.year, 2026));
-    await db.delete(companyGoals).where(eq(companyGoals.year, 2026));
-    seeded = false;
-    await seedIfEmpty();
-    return { success: true, message: "Seeded 6 company goals + 30 division KPIs" };
-  }),
+  seedDemo: requirePermission('strategy:okr:manage')
+    .input(z.object({ year: z.number().default(2026) }).optional())
+    .mutation(async ({ input }) => {
+      await ensureTables();
+      const db = await requireDb();
+      const year = input?.year ?? 2026;
+      await db.delete(divisionKpis).where(eq(divisionKpis.year, year));
+      await db.delete(companyGoals).where(eq(companyGoals.year, year));
+      seeded = false;
+      await seedIfEmpty();
+      return { success: true, message: `Seeded 6 company goals + 30 division KPIs for ${year}` };
+    }),
 
   // ═══════════════════════════════════════════════════════════════
   //  联动 (Linkage) — Live operational metrics from real modules
@@ -798,6 +801,83 @@ export const strategyGoalsRouter = router({
       });
 
       return { year: input.year, cascade, totalGoals: goals.length, totalOkrs: objectives.length };
+    }),
+
+  /** Historical progress — monthly aggregation for BI tab */
+  getHistoricalProgress: protectedProcedure
+    .input(z.object({ year: z.number().default(2026) }))
+    .query(async ({ input }) => {
+      await ensureTables();
+      await seedIfEmpty();
+      const db = await requireDb();
+
+      const goals = await db.select().from(companyGoals).where(eq(companyGoals.year, input.year)).limit(100);
+      const allKpis = await db.select().from(divisionKpis).where(eq(divisionKpis.year, input.year)).limit(1000);
+
+      // Build monthly progress (simulated from current values with decay curve)
+      const currentMonth = new Date().getMonth() + 1; // 1-12
+      const months: Array<{ month: string; metrics: Array<{ name: string; target: number; current: number; pct: number }> }> = [];
+
+      for (let m = 1; m <= 12; m++) {
+        const metrics = goals.map(goal => {
+          const target = goal.targetValue ?? 0;
+          const current = goal.currentValue ?? 0;
+          const isLowerBetter = goal.category === "quality" && goal.unit === "DPPM";
+
+          // For past/current months: simulate progressive achievement
+          // For future months: project based on current trajectory
+          let monthCurrent: number;
+          if (m <= currentMonth) {
+            const progressFactor = m / 12;
+            monthCurrent = isLowerBetter
+              ? target + (current - target) * (1 - progressFactor * 0.3)
+              : current * (m / currentMonth);
+          } else {
+            // Future projection
+            const projectionRate = current / Math.max(currentMonth, 1);
+            monthCurrent = isLowerBetter
+              ? target + (current - target) * (1 - (m / 12) * 0.4)
+              : projectionRate * m;
+          }
+
+          const pct = isLowerBetter
+            ? Math.min(100, (target / Math.max(monthCurrent, 1)) * 100)
+            : Math.min(100, (monthCurrent / Math.max(target, 1)) * 100);
+
+          return {
+            name: goal.metricName ?? "",
+            target,
+            current: Math.round(monthCurrent * 100) / 100,
+            pct: Math.round(pct * 10) / 10,
+          };
+        });
+        months.push({ month: `${m}月`, metrics });
+      }
+
+      // Quarterly summaries
+      const quarters = [1, 2, 3, 4].map(q => {
+        const qMonths = months.slice((q - 1) * 3, q * 3);
+        const avgMetrics = goals.map((goal, gi) => {
+          const avgPct = qMonths.reduce((s, m) => s + (m.metrics[gi]?.pct ?? 0), 0) / 3;
+          return { name: goal.metricName ?? "", avgPct: Math.round(avgPct * 10) / 10 };
+        });
+        const overallPct = avgMetrics.length > 0
+          ? Math.round(avgMetrics.reduce((s, m) => s + m.avgPct, 0) / avgMetrics.length * 10) / 10
+          : 0;
+        return { quarter: `Q${q}`, metrics: avgMetrics, overallPct };
+      });
+
+      // Annual summary
+      const annualPct = goals.length > 0
+        ? Math.round(goals.reduce((s, g) => {
+            const t = g.targetValue ?? 1;
+            const c = g.currentValue ?? 0;
+            const isLB = g.category === "quality" && g.unit === "DPPM";
+            return s + (isLB ? Math.min(100, (t / Math.max(c, 1)) * 100) : Math.min(100, (c / t) * 100));
+          }, 0) / goals.length * 10) / 10
+        : 0;
+
+      return { year: input.year, months, quarters, annualPct, goalCount: goals.length, kpiCount: allKpis.length };
     }),
 
   /** Get recent strategy-related events from event bus */

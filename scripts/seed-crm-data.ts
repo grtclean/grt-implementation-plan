@@ -4,11 +4,11 @@
  * Seeds realistic demo data into the CRM v2 tables for the GRT System CEO demo.
  *
  * Tables seeded:
- *   1. crm_customers_v2    - 8 customers
- *   2. crm_contacts_v2     - 12 contacts
- *   3. crm_leads            - 6 leads
- *   4. crm_opportunities_v2 - 6 opportunities
- *   5. crm_interactions     - 10 interactions
+ *   1. crm_customers_v2    - 9 customers (incl. 华朔科技 S级战略客户)
+ *   2. crm_contacts_v2     - 13 contacts (incl. 温旭霞/华朔)
+ *   3. crm_leads            - 7 leads (incl. 华朔)
+ *   4. crm_opportunities_v2 - 7 opportunities (incl. 华朔战略合作)
+ *   5. crm_interactions     - 11 interactions (incl. 华朔4.1晚餐)
  *
  * Usage:
  *   npx tsx scripts/seed-crm-data.ts
@@ -60,6 +60,7 @@ async function main() {
       { code: "CUS-006", name: "采埃孚上海", shortName: "ZF-SH", type: "prospect", level: "B", industry: "汽车零部件", region: "华东", address: "上海市嘉定区安亭路1001号", website: "https://www.zf.com/cn", phone: "021-39576000", email: "info.cn@zf.com", taxId: "91310000MA1FP9HN3L", annualRevenue: "45000000000.00", employeeCount: 5200, source: "website", assignedTo: uid(2), status: "active", notes: "潜在大客户，进行中" },
       { code: "CUS-007", name: "比亚迪深圳", shortName: "BYD-SZ", type: "prospect", level: "B", industry: "新能源汽车", region: "华南", address: "广东省深圳市坪山区比亚迪路3009号", website: "https://www.byd.com", phone: "0755-89888888", email: "supply@byd.com", taxId: "914403007178096575", annualRevenue: "602300000000.00", employeeCount: 290000, source: "cold_call", assignedTo: uid(3), status: "active", notes: "新能源车领域重点开拓" },
       { code: "CUS-008", name: "三一重工", shortName: "三一", type: "prospect", level: "C", industry: "工程机械", region: "华中", address: "湖南省长沙市经济开发区三一工业城", website: "https://www.sany.com.cn", phone: "0731-84031888", email: "info@sany.com.cn", taxId: "91430100185075880T", annualRevenue: "178000000000.00", employeeCount: 45000, source: "referral", assignedTo: uid(3), status: "active", notes: "工程机械跨行业客户" },
+      { code: "CUS-009", name: "浙江华朔科技股份有限公司", shortName: "华朔HSGF", type: "customer", level: "S", industry: "新能源汽车铝合金精密压铸", region: "华东", address: "浙江省宁波市鄞州区", website: "http://www.china-huashuo.com", phone: "0574-88000000", email: "info@china-huashuo.com", taxId: "91330200XXXXXXXXXX", annualRevenue: "5000000000.00", employeeCount: 3000, source: "referral", assignedTo: uid(0), status: "active", notes: "S级战略客户 — 铝合金压铸龙头，350~4400吨压铸单元90+套，客户含沃尔沃/蔚来/小鹏/奔驰。老板女婿温旭霞为关键联系人，理想卜工对接。" },
     ];
 
     const customerIds: number[] = [];
@@ -73,7 +74,7 @@ async function main() {
       );
       customerIds.push(res.rows[0].id);
     }
-    console.log("Inserted 8 customers, IDs:", customerIds);
+    console.log("Inserted 9 customers, IDs:", customerIds);
 
     // =========================================================================
     // 2. Contacts (12 rows)
@@ -91,6 +92,7 @@ async function main() {
       { cIdx: 5, name: "周明达", position: "供应链经理", department: "供应链管理部", mobile: "13500135001", landline: "021-39576100", email: "zhoumd@zf-sh.com", wechat: "zmd_zf", isKey: true, notes: "新供应商导入对接人" },
       { cIdx: 6, name: "林婷婷", position: "新能源采购经理", department: "采购中心", mobile: "13400134001", landline: "0755-89888100", email: "lintt@byd.com", wechat: "ltt_byd", isKey: true, notes: "新能源零部件采购负责人" },
       { cIdx: 7, name: "范志峰", position: "设备采购主管", department: "采购部", mobile: "13300133001", landline: "0731-84031900", email: "fanzf@sany.com.cn", wechat: "fzf_sany", isKey: false, notes: "工程机械零部件采购" },
+      { cIdx: 8, name: "温旭霞", position: "副总经理/董事", department: "管理层", mobile: null, landline: null, email: null, wechat: null, isKey: true, notes: "老板女婿，关键决策人。2026-04-01晚与理想卜工共进晚餐建立关系" },
     ];
 
     const contactIds: number[] = [];
@@ -104,7 +106,7 @@ async function main() {
       );
       contactIds.push(res.rows[0].id);
     }
-    console.log("Inserted 12 contacts, IDs:", contactIds);
+    console.log("Inserted 13 contacts, IDs:", contactIds);
 
     // =========================================================================
     // 3. Leads (6 rows)
@@ -116,6 +118,7 @@ async function main() {
       { companyName: "长城汽车", contactName: "周立波", contactPhone: "13200132004", contactEmail: "zhoulb@gwm.cn", source: "cold_call", productInterest: "整车检测线升级", estimatedBudget: "8000000.00", priority: "low", status: "lost", aiConfidence: "0.3800", assignedTo: uid(3), notes: "已选择竞争对手" },
       { companyName: "南京依维柯", contactName: "戴晓燕", contactPhone: "13200132005", contactEmail: "daixy@iveco-nj.com", source: "direct", productInterest: "商用车排放检测设备", estimatedBudget: "5500000.00", priority: "medium", status: "new", aiConfidence: "0.5500", assignedTo: uid(1), notes: "南京依维柯商用车基地" },
       { companyName: "潍柴动力", contactName: "王建文", contactPhone: "13200132006", contactEmail: "wangjw@weichai.com", source: "exhibition", productInterest: "柴油发动机性能测试台架", estimatedBudget: "12000000.00", priority: "high", status: "contacted", aiConfidence: "0.7200", assignedTo: uid(0), notes: "上海内燃机展会收集" },
+      { companyName: "浙江华朔科技", contactName: "温旭霞", contactPhone: null, contactEmail: null, source: "referral", productInterest: "铝合金压铸齿轮箱壳体/新能源结构件", estimatedBudget: "20000000.00", priority: "high", status: "qualified", aiConfidence: "0.8800", assignedTo: uid(0), notes: "理想卜工4.1晚餐引荐，S级战略客户，压铸龙头企业" },
     ];
 
     const leadIds: number[] = [];
@@ -129,7 +132,7 @@ async function main() {
       );
       leadIds.push(res.rows[0].id);
     }
-    console.log("Inserted 6 leads, IDs:", leadIds);
+    console.log("Inserted 7 leads, IDs:", leadIds);
 
     // =========================================================================
     // 4. Opportunities (6 rows)
@@ -141,6 +144,7 @@ async function main() {
       { name: "博世苏州-质检设备升级", customerId: customerIds[4], contactId: contactIds[7], stage: "proposal", expectedAmount: "8500000.00", currency: "CNY", probability: 55, expectedCloseDate: "2026-05-20", actualCloseDate: null, productInterest: "在线质检设备+SPC系统", competitorInfo: "Zeiss, Keyence", assignedTo: uid(2), source: "direct", notes: "方案已提交，等待客户评审" },
       { name: "比亚迪-新能源电池检测线", customerId: customerIds[6], contactId: contactIds[10], stage: "lead", expectedAmount: "35000000.00", currency: "CNY", probability: 15, expectedCloseDate: "2026-09-30", actualCloseDate: null, productInterest: "电池包检测线+数据采集系统", competitorInfo: "先导智能, 天永智能", assignedTo: uid(3), source: "cold_call", notes: "初步接触，待深入了解需求" },
       { name: "宝马沈阳-VDA6.3审核辅导", customerId: customerIds[3], contactId: contactIds[6], stage: "closed_won", expectedAmount: "4200000.00", currency: "CNY", probability: 100, expectedCloseDate: "2026-02-10", actualCloseDate: "2026-02-08", productInterest: "VDA 6.3审核辅导+培训", competitorInfo: "TUV SUD", assignedTo: uid(1), source: "exhibition", notes: "已签约并收款" },
+      { name: "华朔科技-铝压铸齿轮箱壳体战略合作", customerId: customerIds[8], contactId: contactIds[12], stage: "qualification", expectedAmount: "20000000.00", currency: "CNY", probability: 35, expectedCloseDate: "2026-08-30", actualCloseDate: null, productInterest: "铝合金压铸齿轮箱壳体+新能源汽车结构件", competitorInfo: "文灿股份、旭升集团", assignedTo: uid(0), source: "referral", notes: "S级战略客户，理想卜工4.1晚餐引荐温旭霞(老板女婿)，待深度技术对接" },
     ];
 
     const opportunityIds: number[] = [];
@@ -154,7 +158,7 @@ async function main() {
       );
       opportunityIds.push(res.rows[0].id);
     }
-    console.log("Inserted 6 opportunities, IDs:", opportunityIds);
+    console.log("Inserted 7 opportunities, IDs:", opportunityIds);
 
     // =========================================================================
     // 5. Interactions (10 rows)
@@ -170,6 +174,7 @@ async function main() {
       { customerId: customerIds[5], opportunityId: null, type: "call", subject: "采埃孚上海初次接触", content: "与周明达经理电话沟通，介绍GRT体系能力，客户表示有兴趣进一步了解", sentiment: "positive", isComplaint: false, complaintSeverity: null, resolution: null, createdBy: uid(2) },
       { customerId: customerIds[6], opportunityId: opportunityIds[4], type: "visit", subject: "比亚迪深圳工厂参观", content: "参观比亚迪深圳电池生产基地，了解其检测需求和现有设备情况", sentiment: "positive", isComplaint: false, complaintSeverity: null, resolution: null, createdBy: uid(3) },
       { customerId: customerIds[7], opportunityId: null, type: "email", subject: "三一重工产品资料发送", content: "应范志峰要求发送产品目录和典型案例，等待客户反馈", sentiment: "neutral", isComplaint: false, complaintSeverity: null, resolution: null, createdBy: uid(3) },
+      { customerId: customerIds[8], opportunityId: opportunityIds[6], type: "visit", subject: "华朔科技-温旭霞晚餐会", content: "2026-04-01晚，理想卜工与华朔科技副总温旭霞（老板女婿）共进晚餐。温总介绍华朔在新能源汽车铝合金压铸领域的战略规划，对GRT齿轮箱壳体制造能力表示浓厚兴趣。双方初步探讨战略合作可能性，后续安排工厂互访。", sentiment: "positive", isComplaint: false, complaintSeverity: null, resolution: null, createdBy: uid(0) },
     ];
 
     for (const ix of interactions) {
@@ -180,7 +185,7 @@ async function main() {
         [ix.customerId, ix.opportunityId, ix.type, ix.subject, ix.content, ix.sentiment, ix.isComplaint, ix.complaintSeverity, ix.resolution, ix.createdBy]
       );
     }
-    console.log("Inserted 10 interactions.");
+    console.log("Inserted 11 interactions.");
 
     await client.query("COMMIT");
     console.log("Transaction committed.");

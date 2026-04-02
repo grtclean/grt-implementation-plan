@@ -17,6 +17,7 @@ import {
   inventory,
   materialChangeHistory,
   materialImportRecords,
+  materialCodingRules,
 } from "../../drizzle/material-schema";
 
 // 验证Schema
@@ -552,6 +553,79 @@ export const materialRouter = router({
         downloadUrl: '/api/materials/export',
         fileName: `materials-${new Date().toISOString()}.xlsx`,
         format: input.format,
+      };
+    }),
+
+  /**
+   * validateAgainstCodingRules — 校验物料编码是否符合当前有效编码规则
+   */
+  validateAgainstCodingRules: protectedProcedure
+    .input(z.object({
+      materialCode: z.string().min(1),
+    }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      // Get active coding rules
+      const rules = await db.select().from(materialCodingRules)
+        .where(and(
+          eq(materialCodingRules.isActive, 'yes'),
+        ))
+        .limit(1);
+
+      if (rules.length === 0) {
+        return {
+          valid: true,
+          message: '无活跃编码规则，跳过校验',
+          ruleVersion: null,
+        };
+      }
+
+      const rule = rules[0];
+      let ruleDefinition: any;
+      try {
+        ruleDefinition = JSON.parse(rule.ruleDefinition);
+      } catch {
+        return { valid: true, message: '编码规则定义解析失败，跳过校验', ruleVersion: rule.version };
+      }
+
+      // Basic pattern validation
+      const errors: string[] = [];
+      const code = input.materialCode;
+
+      // Check prefix
+      if (ruleDefinition.prefix && !code.startsWith(ruleDefinition.prefix)) {
+        errors.push(`编码应以 "${ruleDefinition.prefix}" 开头`);
+      }
+
+      // Check length
+      if (ruleDefinition.minLength && code.length < ruleDefinition.minLength) {
+        errors.push(`编码长度不足 ${ruleDefinition.minLength} 位`);
+      }
+      if (ruleDefinition.maxLength && code.length > ruleDefinition.maxLength) {
+        errors.push(`编码长度超过 ${ruleDefinition.maxLength} 位`);
+      }
+
+      // Check pattern (regex)
+      if (ruleDefinition.pattern) {
+        const regex = new RegExp(ruleDefinition.pattern);
+        if (!regex.test(code)) {
+          errors.push(`编码不符合规则模式: ${ruleDefinition.pattern}`);
+        }
+      }
+
+      // Check uniqueness
+      const existing = await db.select({ id: materials.id }).from(materials)
+        .where(eq(materials.materialCode, code))
+        .limit(1);
+      if (existing.length > 0) {
+        errors.push('该编码已被使用');
+      }
+
+      return {
+        valid: errors.length === 0,
+        errors,
+        ruleVersion: rule.version,
+        message: errors.length === 0 ? '编码校验通过' : errors.join('; '),
       };
     }),
 });

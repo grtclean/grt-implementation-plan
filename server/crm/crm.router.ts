@@ -96,6 +96,51 @@ const customersRouter = router({
       return createCustomer(input);
     }),
 
+  /**
+   * Quick-create a customer from minimal info (e.g. WeChat lead, exhibition card).
+   * Only `name` is required. Optionally creates a linked contact when
+   * `contactName` or `contactPhone` is supplied.
+   */
+  quickCreate: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1),
+        contactName: z.string().optional(),
+        contactPhone: z.string().optional(),
+        industry: z.string().optional(),
+        source: z
+          .enum(["wechat", "exhibition", "referral", "cold_call", "website", "community"])
+          .optional(),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { name, contactName, contactPhone, industry, source, notes } = input;
+
+      // Create the customer with sensible defaults
+      const customer = await createCustomer({
+        name,
+        industry,
+        source: source as any,
+        notes,
+        level: "C",
+        type: "prospect",
+        status: "active",
+      });
+
+      // Optionally create a linked contact
+      let contact = null;
+      if (contactName || contactPhone) {
+        contact = await createContact({
+          customerId: customer.id,
+          name: contactName ?? name,
+          mobile: contactPhone,
+        });
+      }
+
+      return { customer, contact };
+    }),
+
   /** Update an existing customer */
   update: protectedProcedure
     .input(
@@ -293,6 +338,47 @@ const opportunitiesRouter = router({
       return updateOpportunity(id, data);
     }),
 
+  /** Convert a won opportunity into an M0 project record */
+  convertToProject: requirePermission('crm:customers:edit')
+    .input(z.object({ opportunityId: z.number(), managerId: z.number().optional() }))
+    .mutation(async ({ input }) => {
+      const opportunity = await getOpportunityById(input.opportunityId);
+      if (!opportunity) {
+        throw new Error(`Opportunity ${input.opportunityId} not found`);
+      }
+
+      const customer = await getCustomerById(opportunity.customerId);
+
+      const { requireDb } = await import("../db");
+      const { projects, crmOpportunitiesV2 } = await import("../../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const db = await requireDb();
+
+      const projectCode = `PRJ-${new Date().getFullYear()}-${Date.now()}`;
+      const description = `从商机[${opportunity.name}]转化立项 - 客户: ${customer?.name ?? opportunity.customerId}`;
+
+      const [project] = await db.insert(projects).values({
+        projectCode,
+        name: opportunity.name,
+        customerId: opportunity.customerId,
+        opportunityId: input.opportunityId,
+        type: "standard",
+        status: "draft",
+        currentPhase: "M0",
+        priority: "medium",
+        budget: opportunity.expectedAmount ? Number(opportunity.expectedAmount) : null,
+        managerId: input.managerId ?? null,
+        description,
+      }).returning();
+
+      await db
+        .update(crmOpportunitiesV2)
+        .set({ stage: "closed_won" } as any)
+        .where(eq(crmOpportunitiesV2.id, input.opportunityId));
+
+      return project;
+    }),
+
   /** Get opportunity statistics */
   stats: protectedProcedure.query(async () => {
     return getOpportunityStats();
@@ -303,8 +389,8 @@ const opportunitiesRouter = router({
     return getPipelineFunnel();
   }),
 
-  /** Convert a won opportunity into an M0 project */
-  convertToProject: requirePermission('crm:customers:edit')
+  /** Convert a won opportunity into an M0 project (legacy — delegates to service layer) */
+  convertToProjectLegacy: requirePermission('crm:customers:edit')
     .input(z.object({ id: z.number(), pm: z.number().optional() }))
     .mutation(async ({ input }) => {
       return convertOpportunityToProject(input.id, input.pm);
@@ -465,6 +551,43 @@ const interactionsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       return createInteraction({ ...input, createdBy: ctx.user!.id });
+    }),
+
+  /**
+   * Quick-log an interaction from minimal input (e.g. paste a chat summary,
+   * drop in a voice-memo transcript). Only `customerId` and `content` are
+   * required; everything else is defaulted or auto-derived.
+   */
+  quickLog: protectedProcedure
+    .input(
+      z.object({
+        customerId: z.number(),
+        content: z.string().min(1),
+        type: z
+          .enum(["call", "email", "visit", "complaint", "meeting", "wechat"])
+          .optional(),
+        subject: z.string().optional(),
+        sentiment: z.enum(["positive", "neutral", "negative"]).optional(),
+        opportunityId: z.number().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { customerId, content, opportunityId } = input;
+      const type = input.type ?? "wechat";
+      const sentiment = input.sentiment ?? "neutral";
+      const subject =
+        input.subject ??
+        (content.length > 30 ? content.slice(0, 30) + "..." : content);
+
+      return createInteraction({
+        customerId,
+        content,
+        type,
+        subject,
+        sentiment,
+        opportunityId,
+        createdBy: ctx.user!.id,
+      });
     }),
 
   /** Resolve a complaint interaction */

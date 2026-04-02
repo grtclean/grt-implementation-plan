@@ -437,6 +437,7 @@ interface UserProfileContextState {
   dataScope: DataScope;
   isRoleSwitching: boolean;
   level: number;                   // 角色权限级别 (from ROLE_HIERARCHY)
+  maxLevel: number;                // 用户RBAC最高权限等级（限制角色切换范围）
 }
 
 // Context 方法接口
@@ -495,23 +496,77 @@ export function UserProfileProvider({ children, defaultRole = "employee" }: User
     return defaultRole;
   });
 
-  // Sync server-provided effectiveRole from RBAC into default role.
-  // Only applies once (on first auth load) and only if user hasn't
-  // explicitly chosen a role via ProfileSwitcher (localStorage).
+  // RBAC 最高权限等级 — 从服务端获取，限制 ProfileSwitcher 可选范围
+  const [maxLevel, setMaxLevel] = useState<number>(() => {
+    // admin 用户默认 level 10
+    return 1;
+  });
+
+  // Sync server-provided effectiveRole + maxLevel from RBAC into default role.
+  // Detects user switch (different openId) and forces role reset.
   const serverRoleSynced = useRef(false);
+  const lastSyncedUserId = useRef<string | null>(null);
   useEffect(() => {
-    if (serverRoleSynced.current || !user?.effectiveRole) return;
-    const serverRole = user.effectiveRole as string;
+    if (!user) return;
+
+    // Always sync maxLevel from server
+    if (typeof user.maxLevel === "number") {
+      setMaxLevel(user.maxLevel);
+    } else if (user.role === "admin") {
+      setMaxLevel(10);
+    }
+
+    if (!user.effectiveRole) return;
+
+    // Detect user switch — if different user logged in, force role reset
+    const currentUserId = user.openId || user.id?.toString() || "";
+    const previousUserId = lastSyncedUserId.current;
+    const isUserSwitch = previousUserId && previousUserId !== currentUserId;
+    if (isUserSwitch) {
+      serverRoleSynced.current = false; // allow re-sync
+    }
+    lastSyncedUserId.current = currentUserId;
+
+    // Also store which user the cached role belongs to
+    const ROLE_USER_KEY = "grt-role-user";
+    const storedRoleUser = localStorage.getItem(ROLE_USER_KEY);
+    const isDifferentUser = storedRoleUser && storedRoleUser !== currentUserId;
+
+    if (serverRoleSynced.current && !isDifferentUser) return;
+
+    let serverRole = user.effectiveRole as string;
+    // Map RBAC role names to frontend UserRole names where they differ
+    const RBAC_TO_FRONTEND: Record<string, UserRole> = {
+      sales_rep: "bu_sales",
+      sales_director: "bu_sales",
+      qc_manager: "quality_eng",
+      production_supervisor: "team_lead",
+      floor_operator: "production_worker",
+      engineer: "bu_mech",
+      project_manager: "bu_pm",
+      vp: "director",
+      super_admin: "admin",
+      hr_director: "hr_director",
+    };
+    if (!VALID_ROLES.includes(serverRole as UserRole) && RBAC_TO_FRONTEND[serverRole]) {
+      serverRole = RBAC_TO_FRONTEND[serverRole];
+    }
     if (!VALID_ROLES.includes(serverRole as UserRole)) return;
     serverRoleSynced.current = true;
 
-    // Only override if no explicit ProfileSwitcher choice exists
+    // Force override when user switched, or when no stored role / default role
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored || stored === "employee" || stored === "staff") {
+    const storedLevel = stored && VALID_ROLES.includes(stored as UserRole)
+      ? ROLE_HIERARCHY[stored as UserRole] ?? 0
+      : 0;
+    const serverMaxLevel = typeof user.maxLevel === "number" ? user.maxLevel : 1;
+
+    if (isDifferentUser || !stored || stored === "employee" || stored === "staff" || storedLevel > serverMaxLevel) {
       setCurrentUserRole(serverRole as UserRole);
       localStorage.setItem(STORAGE_KEY, serverRole);
+      localStorage.setItem(ROLE_USER_KEY, currentUserId);
     }
-  }, [user?.effectiveRole]);
+  }, [user]);
 
   // BU选择状态
   const [currentBU, setCurrentBU] = useState<string | null>(() => {
@@ -537,8 +592,10 @@ export function UserProfileProvider({ children, defaultRole = "employee" }: User
   const roleConfig = useMemo(() => ROLE_CONFIGS[currentUserRole], [currentUserRole]);
   const dataScope = useMemo(() => getDataScopeByRole(currentUserRole), [currentUserRole]);
 
-  // 切换角色
+  // 切换角色 — 不允许切换到超过 maxLevel 的角色
   const switchRole = useCallback((newRole: UserRole) => {
+    const targetLevel = ROLE_HIERARCHY[newRole] ?? 0;
+    if (targetLevel > maxLevel) return; // 越权拦截
     setIsRoleSwitching(true);
     setTimeout(() => {
       setCurrentUserRole(newRole);
@@ -547,7 +604,7 @@ export function UserProfileProvider({ children, defaultRole = "employee" }: User
       }
       setIsRoleSwitching(false);
     }, 300);
-  }, []);
+  }, [maxLevel]);
 
   // 切换BU
   const switchBU = useCallback((buCode: string | null) => {
@@ -666,6 +723,7 @@ export function UserProfileProvider({ children, defaultRole = "employee" }: User
     dataScope,
     isRoleSwitching,
     level,
+    maxLevel,
     switchRole,
     switchBU,
     setViewMode,
@@ -674,7 +732,7 @@ export function UserProfileProvider({ children, defaultRole = "employee" }: User
     isRoleAtLeast,
   }), [
     currentUserRole, currentBU, currentDepartment, viewMode,
-    permissions, roleConfig, dataScope, isRoleSwitching, level,
+    permissions, roleConfig, dataScope, isRoleSwitching, level, maxLevel,
     switchRole, switchBU, setViewMode, hasPermission, canAccessRoute, isRoleAtLeast,
   ]);
 

@@ -176,12 +176,12 @@ function getMockMessages(): TeamsMessage[] {
     {
       id: "mock-msg-2",
       chatId: "chat-2",
-      chatName: "李四",
+      chatName: "洪小东",
       chatType: "oneOnOne",
       content: "设计稿已经更新，请查收",
       timestamp: new Date(now.getTime() - 60 * 60000).toISOString(),
       sender: {
-        name: "李四",
+        name: "洪小东",
         id: "user-2",
       },
       importance: "normal",
@@ -204,7 +204,7 @@ function getMockMessages(): TeamsMessage[] {
       content: "明天的会议改到上午10点",
       timestamp: new Date(now.getTime() - 2 * 60 * 60000).toISOString(),
       sender: {
-        name: "张三",
+        name: "周辉",
         id: "user-3",
       },
       importance: "normal",

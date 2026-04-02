@@ -432,8 +432,8 @@ export default function EmployeeManagement() {
         {/* ── Filters ── */}
         <Card>
           <CardContent className="p-4">
-            <div className="flex flex-wrap gap-3 items-center">
-              <div className="flex-1 min-w-[220px]">
+            <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
+              <div className="flex-1 min-w-[180px] sm:min-w-[220px]">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -445,7 +445,7 @@ export default function EmployeeManagement() {
                 </div>
               </div>
               <Select value={selectedBU} onValueChange={(v) => { setSelectedBU(v); setPage(1); }}>
-                <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{isEn ? "All BU" : "全部事业部"}</SelectItem>
                   {Object.entries(BU_CODE_TO_NAME).map(([code, name]) => (
@@ -454,7 +454,7 @@ export default function EmployeeManagement() {
                 </SelectContent>
               </Select>
               <Select value={selectedDepartment} onValueChange={(v) => { setSelectedDepartment(v); setPage(1); }}>
-                <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{isEn ? "All Departments" : "全部部门"}</SelectItem>
                   {departments.map((d) => (
@@ -463,7 +463,7 @@ export default function EmployeeManagement() {
                 </SelectContent>
               </Select>
               <Select value={selectedRole} onValueChange={(v) => { setSelectedRole(v); setPage(1); }}>
-                <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{isEn ? "All Roles" : "全部角色"}</SelectItem>
                   {SYSTEM_ROLES.map(r => (
@@ -474,7 +474,7 @@ export default function EmployeeManagement() {
                 </SelectContent>
               </Select>
               <Select value={selectedStatus} onValueChange={(v) => { setSelectedStatus(v); setPage(1); }}>
-                <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[120px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{isEn ? "All Status" : "全部状态"}</SelectItem>
                   <SelectItem value="active">{isEn ? "Active" : "在职"}</SelectItem>
@@ -666,7 +666,7 @@ export default function EmployeeManagement() {
               <Label>{isEn ? "Full Name" : "姓名"} <span className="text-red-500">*</span></Label>
               <Input
                 {...addForm.register("name")}
-                placeholder={isEn ? "e.g. Zhang San" : "例：张三"}
+                placeholder={isEn ? "e.g. Zhang San" : "例：胡杨"}
                 className="mt-1.5"
               />
               {addForm.formState.errors.name && (

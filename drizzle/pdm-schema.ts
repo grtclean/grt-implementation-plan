@@ -128,7 +128,7 @@ export const pdmProducts = pgTable(
     id: serial("id").primaryKey(),
     productCode: varchar("product_code", { length: 50 }).notNull().unique(),
     productName: varchar("product_name", { length: 200 }).notNull(),
-    productFamily: pdmProductFamilyEnum("product_family").notNull(),
+    productFamily: varchar("product_family", { length: 20 }).notNull(),
     productCategory: varchar("product_category", { length: 100 }),
     description: text("description"),
     stationCount: integer("station_count").default(0),

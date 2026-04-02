@@ -54,10 +54,31 @@ export function serveStatic(app: Express) {
     log.error({ distPath }, "Could not find the build directory, make sure to build the client first");
   }
 
-  app.use(express.static(distPath));
+  // ── Gzip/Brotli compression — reduces transfer size by 60-80% ──
+  try {
+    const compression = require("compression");
+    app.use(compression({ level: 6, threshold: 1024 }));
+    log.info("Compression middleware enabled");
+  } catch {
+    log.warn("compression package not installed — serving uncompressed. Run: pnpm add compression");
+  }
+
+  // ── Static assets with long cache (hashed filenames = cache-safe) ──
+  app.use("/assets", express.static(path.resolve(distPath, "assets"), {
+    maxAge: "365d",
+    immutable: true,
+  }));
+
+  // ── Other static files (logo, manifest, sw.js) — short cache ──
+  app.use(express.static(distPath, {
+    maxAge: "1h",
+  }));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
+    // Short cache + must-revalidate — browser can use cached HTML for 60s,
+    // then must check with server (ETag). Reduces DDNS round-trips on quick revisits.
+    res.set("Cache-Control", "public, max-age=60, must-revalidate");
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

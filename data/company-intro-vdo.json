@@ -1,0 +1,234 @@
+{
+  "_README": "GRT公司介绍VDO数据源 — 修改此文件即可更新展示内容，无需改代码。media字段填入/data/vdo/下的文件名即可加载。",
+
+  "company": {
+    "nameZh": "杰瑞德自动化",
+    "nameEn": "Global Robot Technology",
+    "abbr": "GRT",
+    "founded": "2006",
+    "headquarters": "无锡",
+    "website": "www.gerrytech.com",
+    "email": "sales@gerrytech.com"
+  },
+
+  "taglines": {
+    "zh": "让工业清洗更智能",
+    "en": "Making Industrial Cleaning Smarter",
+    "de": "Industrielle Reinigung intelligenter machen",
+    "fr": "Rendre le nettoyage industriel plus intelligent"
+  },
+
+  "sections": [
+    {
+      "id": "heritage",
+      "titleZh": "企业传承",
+      "titleEn": "Heritage",
+      "titleDe": "Unternehmensgeschichte",
+      "titleFr": "Notre héritage",
+      "icon": "building",
+      "audience": ["public", "customer", "colleague", "expo"],
+      "contentZh": "GRT杰瑞德自动化，成立于2006年，专注非标自动化工业清洗设备的研发、制造与全球交付。20年来，我们始终秉持「以最有效资源实现生产力」的使命，服务全球头部汽车制造商和零部件供应商。",
+      "contentEn": "Founded in 2006, GRT (Global Robot Technology) specializes in the R&D, manufacturing and global delivery of custom industrial cleaning systems. For 20 years, we have upheld our mission of 'achieving productivity with the most effective resources', serving the world's leading automotive manufacturers and component suppliers.",
+      "contentDe": "GRT (Global Robot Technology) wurde 2006 gegründet und ist spezialisiert auf Forschung, Entwicklung, Herstellung und weltweite Lieferung von kundenspezifischen industriellen Reinigungssystemen.",
+      "contentFr": "Fondée en 2006, GRT (Global Robot Technology) est spécialisée dans la R&D, la fabrication et la livraison mondiale de systèmes de nettoyage industriel sur mesure.",
+      "milestones": [
+        { "year": "2006", "zh": "公司成立，专注工业清洗设备", "en": "Company founded, focused on industrial cleaning equipment" },
+        { "year": "2010", "zh": "首套出口欧洲清洗系统交付", "en": "First cleaning system exported to Europe" },
+        { "year": "2015", "zh": "获得IATF 16949认证，进入Tier 1供应链", "en": "IATF 16949 certified, entered Tier 1 supply chain" },
+        { "year": "2018", "zh": "斯图加特欧洲技术中心成立", "en": "Stuttgart European Technology Center established" },
+        { "year": "2020", "zh": "累计交付300+套系统，底特律服务中心成立", "en": "300+ systems delivered, Detroit Service Center established" },
+        { "year": "2023", "zh": "AI数智部成立，数字孪生平台上线", "en": "AI Digital Intelligence Dept. established, Digital Twin platform launched" },
+        { "year": "2025", "zh": "500+套设备交付，全面进入新能源清洗领域", "en": "500+ systems delivered, fully entered NEV cleaning sector" },
+        { "year": "2026", "zh": "GRT Showcase Hub上线，AI Agent工艺优化全面部署", "en": "GRT Showcase Hub launched, AI Agent process optimization fully deployed" }
+      ],
+      "media": ""
+    },
+    {
+      "id": "global",
+      "titleZh": "全球布局",
+      "titleEn": "Global Presence",
+      "titleDe": "Globale Präsenz",
+      "titleFr": "Présence mondiale",
+      "icon": "globe",
+      "audience": ["public", "customer", "expo"],
+      "contentZh": "三大全球中心协同运作：无锡总部（研发·制造·交付·313人）、斯图加特欧洲技术中心（12人）、底特律北美服务中心（5人）。覆盖亚欧美三大工业腹地，实现24小时全球响应。",
+      "contentEn": "Three global centers working in synergy: Wuxi HQ (R&D, Manufacturing, Delivery — 313 people), Stuttgart European Tech Center (12 people), Detroit North America Service Center (5 people). Covering three major industrial regions across Asia, Europe and Americas for 24-hour global response.",
+      "contentDe": "Drei globale Zentren arbeiten im Einklang: Wuxi-Hauptsitz (F&E, Fertigung, Lieferung — 313 Mitarbeiter), Stuttgart Europäisches Technologiezentrum (12 Mitarbeiter), Detroit Nordamerika-Servicezentrum (5 Mitarbeiter).",
+      "contentFr": "Trois centres mondiaux travaillant en synergie : siège de Wuxi (R&D, fabrication, livraison — 313 personnes), centre technologique européen de Stuttgart (12 personnes), centre de service nord-américain de Détroit (5 personnes).",
+      "centers": [
+        { "nameZh": "无锡总部", "nameEn": "Wuxi HQ", "role": "研发·制造·交付", "people": 313, "lat": 31.49, "lng": 120.31 },
+        { "nameZh": "斯图加特", "nameEn": "Stuttgart", "role": "欧洲技术中心", "people": 12, "lat": 48.78, "lng": 9.18 },
+        { "nameZh": "底特律", "nameEn": "Detroit", "role": "北美服务中心", "people": 5, "lat": 42.33, "lng": -83.05 }
+      ],
+      "media": ""
+    },
+    {
+      "id": "capability",
+      "titleZh": "核心竞争力",
+      "titleEn": "Core Competencies",
+      "titleDe": "Kernkompetenzen",
+      "titleFr": "Compétences clés",
+      "icon": "zap",
+      "audience": ["customer", "expo"],
+      "contentZh": "五大核心技术构成GRT的竞争壁垒：自适应多频超声清洗、六轴联动高压定点清洗、真空干燥一体化、在线颗粒度全检、AI工艺自优化引擎。从单台设备到整线交钥匙，为客户提供一站式清洗解决方案。",
+      "contentEn": "Five core technologies form GRT's competitive moat: adaptive multi-frequency ultrasonic cleaning, 6-axis high-pressure targeted cleaning, integrated vacuum drying, inline particulate 100% inspection, and AI process self-optimization engine. From single machines to turnkey production lines.",
+      "contentDe": "Fünf Kerntechnologien bilden GRTs Wettbewerbsvorteil: adaptive Mehrfrequenz-Ultraschallreinigung, 6-Achsen-Hochdruck-Zielreinigung, integrierte Vakuumtrocknung, 100%-Partikelprüfung und KI-Prozessoptimierung.",
+      "contentFr": "Cinq technologies clés forment l'avantage concurrentiel de GRT : nettoyage ultrasonique multi-fréquences adaptatif, nettoyage haute pression ciblé 6 axes, séchage sous vide intégré, inspection 100% des particules et optimisation des processus par IA.",
+      "techs": [
+        { "nameZh": "自适应多频超声清洗", "nameEn": "Adaptive Multi-Frequency Ultrasonic", "value": "28/40/68/120kHz" },
+        { "nameZh": "六轴联动高压定点清洗", "nameEn": "6-Axis High-Pressure Targeted", "value": "80~200bar" },
+        { "nameZh": "真空干燥一体化", "nameEn": "Integrated Vacuum Drying", "value": "-0.095MPa" },
+        { "nameZh": "在线颗粒度全检", "nameEn": "Inline Particulate 100% Inspection", "value": "ISO 16232" },
+        { "nameZh": "AI工艺自优化引擎", "nameEn": "AI Process Self-Optimization", "value": "Digital Twin" }
+      ],
+      "media": ""
+    },
+    {
+      "id": "ai-future",
+      "titleZh": "AI驱动的未来",
+      "titleEn": "AI-Powered Future",
+      "titleDe": "KI-gesteuerte Zukunft",
+      "titleFr": "Un avenir propulsé par l'IA",
+      "icon": "brain",
+      "audience": ["public", "customer", "colleague", "expo"],
+      "contentZh": "GRT正在从传统设备制造商转型为AI驱动的智能清洗解决方案提供商。我们的AI体系包括：17个智能Agent实时优化清洗工艺、数字孪生平台实现远程诊断与预测维护、GRT Showcase Hub为每位客户提供专属数字展厅。面向未来，AI将重新定义工业清洗行业的分工格局。",
+      "contentEn": "GRT is transforming from a traditional equipment manufacturer into an AI-driven intelligent cleaning solution provider. Our AI ecosystem includes: 17 intelligent Agents optimizing cleaning processes in real-time, Digital Twin platform for remote diagnostics and predictive maintenance, and GRT Showcase Hub providing each customer with a dedicated digital showroom. AI will redefine the division of labor in the industrial cleaning industry.",
+      "contentDe": "GRT wandelt sich vom traditionellen Gerätehersteller zum KI-gesteuerten Anbieter intelligenter Reinigungslösungen. Unser KI-Ökosystem umfasst: 17 intelligente Agenten, Digital-Twin-Plattform und GRT Showcase Hub.",
+      "contentFr": "GRT se transforme d'un fabricant d'équipements traditionnel en un fournisseur de solutions de nettoyage intelligentes pilotées par l'IA. Notre écosystème IA comprend : 17 agents intelligents, une plateforme Digital Twin et le GRT Showcase Hub.",
+      "aiCapabilities": [
+        { "nameZh": "智能Agent工艺优化", "nameEn": "Intelligent Agent Process Optimization", "count": 17 },
+        { "nameZh": "数字孪生远程诊断", "nameEn": "Digital Twin Remote Diagnostics", "desc": "减少非计划停机80%" },
+        { "nameZh": "GRT Showcase Hub", "nameEn": "Customer Digital Showroom", "desc": "VIP专属展厅" },
+        { "nameZh": "MES/ERP无缝集成", "nameEn": "Seamless MES/ERP Integration", "desc": "OPC UA + MQTT + REST" }
+      ],
+      "media": ""
+    },
+    {
+      "id": "ecosystem",
+      "titleZh": "全球工业清洗生态布局",
+      "titleEn": "Global Industrial Cleaning Ecosystem",
+      "titleDe": "Globales Ökosystem für industrielle Reinigung",
+      "titleFr": "Écosystème mondial de nettoyage industriel",
+      "icon": "network",
+      "audience": ["public", "customer", "expo"],
+      "contentZh": "GRT的生态布局覆盖四大核心行业：汽车动力总成（齿轴·缸体·变速箱壳体）、新能源电驱系统（电机壳体·减速器·电控壳体）、精密零部件（喷油嘴·液压阀·谐波减速器）、工程机械（大型齿轮箱·回转支承·液压泵）。从方案咨询到设备交付到售后服务，全生命周期闭环。",
+      "contentEn": "GRT's ecosystem covers four core industries: Automotive Powertrain (gear shafts, engine blocks, transmission housings), NEV E-Drive Systems (motor housings, reducers, ECU housings), Precision Components (fuel injectors, hydraulic valves, harmonic drives), and Heavy Machinery (large gearboxes, slewing bearings, hydraulic pumps). Full lifecycle coverage from consulting to delivery to after-sales service.",
+      "contentDe": "GRTs Ökosystem deckt vier Kernindustrien ab: Automobil-Antriebsstrang, NEV-E-Antriebssysteme, Präzisionskomponenten und Schwermaschinenbau.",
+      "contentFr": "L'écosystème de GRT couvre quatre industries clés : groupe motopropulseur automobile, systèmes d'entraînement électrique NEV, composants de précision et machines lourdes.",
+      "industries": [
+        { "iconEmoji": "🚗", "nameZh": "汽车动力总成", "nameEn": "Automotive Powertrain" },
+        { "iconEmoji": "⚡", "nameZh": "新能源电驱系统", "nameEn": "NEV E-Drive Systems" },
+        { "iconEmoji": "🔬", "nameZh": "精密零部件", "nameEn": "Precision Components" },
+        { "iconEmoji": "🏗️", "nameZh": "工程机械", "nameEn": "Heavy Machinery" }
+      ],
+      "media": ""
+    },
+    {
+      "id": "team",
+      "titleZh": "全员核心竞争力",
+      "titleEn": "Empowered Team Excellence",
+      "titleDe": "Teamexzellenz",
+      "titleFr": "Excellence d'équipe",
+      "icon": "users",
+      "audience": ["colleague", "expo"],
+      "contentZh": "GRT相信，核心竞争力来自每一位团队成员。313名员工覆盖机械设计、电气自动化、软件开发、AI算法、质量管理、全球销售六大专业领域。我们通过六大能力模型持续提升全员素质，让每个人都成为GRT竞争力的一部分。",
+      "contentEn": "GRT believes that core competitiveness comes from every team member. 313 employees across six professional domains: mechanical design, electrical automation, software development, AI algorithms, quality management, and global sales. Through our Six Competency Model, we continuously develop our talent to make everyone part of GRT's competitive advantage.",
+      "contentDe": "GRT glaubt, dass die Kernkompetenz von jedem Teammitglied kommt. 313 Mitarbeiter in sechs Fachbereichen.",
+      "contentFr": "GRT croit que la compétitivité vient de chaque membre de l'équipe. 313 employés dans six domaines professionnels.",
+      "domains": [
+        { "zh": "机械设计", "en": "Mechanical Design" },
+        { "zh": "电气自动化", "en": "Electrical Automation" },
+        { "zh": "软件开发", "en": "Software Development" },
+        { "zh": "AI算法", "en": "AI Algorithms" },
+        { "zh": "质量管理", "en": "Quality Management" },
+        { "zh": "全球销售", "en": "Global Sales" }
+      ],
+      "media": ""
+    },
+    {
+      "id": "smart-manufacturing",
+      "titleZh": "智能研发与制造服务",
+      "titleEn": "Smart R&D & Manufacturing Services",
+      "titleDe": "Intelligente F&E & Fertigungsdienstleistungen",
+      "titleFr": "R&D et services de fabrication intelligents",
+      "icon": "cog",
+      "audience": ["customer", "expo"],
+      "contentZh": "从M0需求锁定到M12量产达产，GRT的数字化交付流程确保每个项目按时、按质、按预算完成。CFD流体仿真、3D工厂布局、数字孪生调试——我们用数字化手段把交付风险降到最低，把客户满意度提到最高。",
+      "contentEn": "From M0 requirements lock to M12 mass production, GRT's digitalized delivery process ensures every project is completed on time, on quality, and on budget. CFD fluid simulation, 3D factory layout, Digital Twin commissioning — we use digital tools to minimize delivery risk and maximize customer satisfaction.",
+      "contentDe": "Von M0 Anforderungssicherung bis M12 Serienproduktion gewährleistet GRTs digitalisierter Lieferprozess pünktliche, qualitätsgerechte Projektabwicklung.",
+      "contentFr": "De M0 verrouillage des exigences à M12 production en série, le processus de livraison numérisé de GRT garantit chaque projet dans les délais et le budget.",
+      "deliveryPhases": [
+        { "code": "M0", "zh": "需求锁定", "en": "Requirements Lock" },
+        { "code": "M1", "zh": "方案设计", "en": "Solution Design" },
+        { "code": "M3", "zh": "制造集成", "en": "Manufacturing" },
+        { "code": "M6", "zh": "FAT验收", "en": "Factory Acceptance" },
+        { "code": "M9", "zh": "现场安装", "en": "Site Installation" },
+        { "code": "M12", "zh": "量产达产", "en": "Mass Production" }
+      ],
+      "media": ""
+    },
+    {
+      "id": "satisfaction",
+      "titleZh": "客户满意度承诺",
+      "titleEn": "Customer Satisfaction Commitment",
+      "titleDe": "Kundenzufriedenheitsversprechen",
+      "titleFr": "Engagement de satisfaction client",
+      "icon": "heart",
+      "audience": ["customer", "expo"],
+      "contentZh": "客户满意度是GRT一切工作的终极衡量标准。OEE≥92%设备效率承诺、24小时全球远程诊断响应、VIP数字展厅实时项目透明、售后技工团队覆盖亚欧美——我们不只交付设备，我们交付信赖。",
+      "contentEn": "Customer satisfaction is the ultimate measure of everything GRT does. OEE ≥92% equipment efficiency guarantee, 24-hour global remote diagnostics, VIP digital showroom for real-time project transparency, after-sales technician teams across Asia, Europe and Americas — we don't just deliver equipment, we deliver trust.",
+      "contentDe": "Kundenzufriedenheit ist der ultimative Maßstab für alles, was GRT tut. OEE ≥92%, 24-Stunden-Ferndiagnose weltweit, VIP-Digitalshowroom.",
+      "contentFr": "La satisfaction client est la mesure ultime de tout ce que fait GRT. OEE ≥92%, diagnostic à distance 24h/24, showroom numérique VIP.",
+      "commitments": [
+        { "zh": "OEE ≥92% 设备效率承诺", "en": "OEE ≥92% Equipment Efficiency Guarantee" },
+        { "zh": "24小时全球远程诊断", "en": "24-Hour Global Remote Diagnostics" },
+        { "zh": "VIP数字展厅实时透明", "en": "VIP Digital Showroom Real-Time Transparency" },
+        { "zh": "亚欧美售后团队覆盖", "en": "After-Sales Teams Across Asia, Europe & Americas" }
+      ],
+      "media": ""
+    },
+    {
+      "id": "mission",
+      "titleZh": "使命与愿景",
+      "titleEn": "Mission & Vision",
+      "titleDe": "Mission & Vision",
+      "titleFr": "Mission & Vision",
+      "icon": "star",
+      "audience": ["public", "customer", "colleague", "expo"],
+      "contentZh": "以最有效资源实现生产力——这是GRT成立之初的使命，也是我们面向未来的信仰。在AI重新定义工业分工的时代，GRT将继续深耕工业清洗，用技术创新和全球化布局，成为全球最值得信赖的智能清洗解决方案提供商。",
+      "contentEn": "Achieving productivity with the most effective resources — this is GRT's founding mission and our belief for the future. In an era where AI is redefining industrial division of labor, GRT will continue to deepen its roots in industrial cleaning, using technological innovation and global presence to become the world's most trusted intelligent cleaning solution provider.",
+      "contentDe": "Produktivität mit den effektivsten Ressourcen erreichen — das ist GRTs Gründungsmission und unser Glaube an die Zukunft.",
+      "contentFr": "Atteindre la productivité avec les ressources les plus efficaces — c'est la mission fondatrice de GRT et notre vision pour l'avenir.",
+      "quotes": [
+        { "zh": "以最有效资源实现生产力", "en": "Achieving Productivity with the Most Effective Resources" },
+        { "zh": "让工业清洗更智能", "en": "Making Industrial Cleaning Smarter" },
+        { "zh": "不只交付设备，交付信赖", "en": "We Don't Just Deliver Equipment, We Deliver Trust" }
+      ],
+      "media": ""
+    }
+  ],
+
+  "facts": [
+    { "value": "20+", "labelZh": "年行业深耕", "labelEn": "Years of Expertise" },
+    { "value": "500+", "labelZh": "套设备交付", "labelEn": "Systems Delivered" },
+    { "value": "313", "labelZh": "名团队成员", "labelEn": "Team Members" },
+    { "value": "3", "labelZh": "大全球中心", "labelEn": "Global Centers" },
+    { "value": "96%", "labelZh": "设备OEE达成", "labelEn": "Equipment OEE Achieved" },
+    { "value": "99.8%", "labelZh": "清洁度达标率", "labelEn": "Cleanliness Compliance" }
+  ],
+
+  "certifications": ["IATF 16949", "ISO 14001", "CE", "UL", "VDA 19.1"],
+
+  "keyCustomers": [
+    "Volkswagen", "双环传动", "Linamar", "吉利汽车", "长城汽车",
+    "比亚迪", "蔚来", "三一重工", "潍柴", "威孚"
+  ],
+
+  "_mediaGuide": {
+    "说明": "将VDO视频/图片文件放入 /data/vdo/ 目录，然后在上方各section的media字段填入文件名",
+    "支持格式": ["mp4", "webm", "jpg", "png", "webp"],
+    "示例": "heritage-timeline.mp4",
+    "建议分辨率": "1920x1080 或 3840x2160",
+    "建议时长": "每个section 15-30秒，总计3-5分钟"
+  }
+}

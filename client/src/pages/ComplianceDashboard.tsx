@@ -158,7 +158,7 @@ export default function ComplianceDashboard() {
     {
       id: "ALT001",
       employeeId: "DE001",
-      employeeName: "张三",
+      employeeName: "胡杨",
       alertType: "DAILY_10H_LIMIT",
       jurisdiction: "DE",
       severity: "critical",
@@ -171,7 +171,7 @@ export default function ComplianceDashboard() {
     {
       id: "ALT002",
       employeeId: "DE002",
-      employeeName: "李四",
+      employeeName: "刘健康",
       alertType: "REST_PERIOD_11H",
       jurisdiction: "DE",
       severity: "warning",
@@ -212,7 +212,7 @@ export default function ComplianceDashboard() {
   const employeeStatuses: EmployeeComplianceStatus[] = [
     {
       id: "DE001",
-      name: "张三",
+      name: "胡杨",
       department: "服务部",
       jurisdiction: "DE",
       weeklyHours: 42,
@@ -223,7 +223,7 @@ export default function ComplianceDashboard() {
     },
     {
       id: "DE002",
-      name: "李四",
+      name: "刘健康",
       department: "技术部",
       jurisdiction: "DE",
       weeklyHours: 38,
@@ -279,7 +279,7 @@ export default function ComplianceDashboard() {
       id: "APR003",
       type: "rest_period_exception",
       employeeId: "DE002",
-      employeeName: "李四",
+      employeeName: "刘健康",
       description: "休息期例外申请（紧急维修）",
       requestedAt: "2026-01-24T06:00:00Z",
       status: "pending"
@@ -890,7 +890,7 @@ export default function ComplianceDashboard() {
                 <p className="text-sm text-muted-foreground">
                   当前检测到 <strong className="text-red-500">3个严重违规</strong> 和 
                   <strong className="text-yellow-500"> 11个警告</strong>。
-                  建议优先处理德国员工张三的每日工时超限问题，该违规可能导致ArbZG合规风险。
+                  建议优先处理德国员工胡杨的每日工时超限问题，该违规可能导致ArbZG合规风险。
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

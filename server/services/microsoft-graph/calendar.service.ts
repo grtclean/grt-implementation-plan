@@ -185,8 +185,8 @@ function getMockEvents(): AgendaEvent[] {
       isAllDay: false,
       importance: "high",
       attendees: [
-        { name: "张三", email: "zhang@example.com", status: "accepted" },
-        { name: "李四", email: "li@example.com", status: "tentative" },
+        { name: "杨勇", email: "yangyong@grt.com", status: "accepted" },
+        { name: "洪香龙", email: "hongxl@grt.com", status: "tentative" },
       ],
     },
     {

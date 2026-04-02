@@ -53,3 +53,9 @@ docs
 # 截图和备份
 screenshots
 *.bak
+
+# Release artifacts
+release
+
+# Data files
+data

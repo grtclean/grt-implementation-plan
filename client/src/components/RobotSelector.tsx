@@ -39,6 +39,22 @@ const STATUS_DOT: Record<string, string> = {
   maintenance: "bg-yellow-500",
 };
 
+// GRT 清洗机器人 fallback 列表（后端无数据时展示）
+const FALLBACK_ROBOTS = [
+  { robotCode: "R-01", brand: "kuka", model: "KR 360 R2830", status: "online" },
+  { robotCode: "R-02", brand: "kuka", model: "KR 210 R3100", status: "online" },
+  { robotCode: "R-03", brand: "fanuc", model: "M-20iD/25", status: "online" },
+  { robotCode: "R-04", brand: "fanuc", model: "R-2000iC/165F", status: "maintenance" },
+  { robotCode: "R-05", brand: "abb", model: "IRB 6700-205/2.80", status: "online" },
+  { robotCode: "R-06", brand: "abb", model: "IRB 4600-60/2.05", status: "offline" },
+  { robotCode: "R-07", brand: "staubli", model: "TX2-90L", status: "online" },
+  { robotCode: "R-08", brand: "staubli", model: "TX2-60L", status: "online" },
+  { robotCode: "GRT-CL-01", brand: "kuka", model: "KR 360 清洗专用", status: "online" },
+  { robotCode: "GRT-CL-02", brand: "fanuc", model: "M-20iD 清洗线A", status: "online" },
+  { robotCode: "GRT-CL-03", brand: "abb", model: "IRB 6700 清洗线B", status: "online" },
+  { robotCode: "GRT-CL-04", brand: "staubli", model: "TX2-90 洁净室", status: "online" },
+];
+
 interface RobotSelectorProps {
   value: string;
   onChange: (robotCode: string) => void;
@@ -50,7 +66,8 @@ export function RobotSelector({ value, onChange, className }: RobotSelectorProps
   const robotsQuery = trpc.robotFleet.registry.list.useQuery({ pageSize: 100 });
 
   const grouped = useMemo(() => {
-    const robots = robotsQuery.data?.rows ?? [];
+    const dbRobots = robotsQuery.data?.rows ?? [];
+    const robots = dbRobots.length > 0 ? dbRobots : FALLBACK_ROBOTS;
     const groups: Record<string, typeof robots> = { kuka: [], fanuc: [], abb: [], staubli: [] };
     for (const r of robots) {
       if (groups[r.brand]) groups[r.brand].push(r);
@@ -64,11 +81,6 @@ export function RobotSelector({ value, onChange, className }: RobotSelectorProps
         <SelectValue placeholder={t("robotCleaning.fleet.selectRobot")} />
       </SelectTrigger>
       <SelectContent>
-        {/* Manual entry option */}
-        <SelectItem value={value || "R-01"}>
-          <span className="font-mono text-xs">{value || "R-01"}</span>
-        </SelectItem>
-
         {Object.entries(grouped).map(([brand, robots]) =>
           robots.length > 0 ? (
             <SelectGroup key={brand}>

@@ -46,86 +46,88 @@
 }
 
 :root {
-  /* Microsoft Fluent Design System - Light Mode (Default) */
-  --primary: oklch(0.55 0.15 250); /* Microsoft Blue #0078d4 */
-  --primary-foreground: oklch(1 0 0); /* White */
-  --sidebar-primary: oklch(0.55 0.15 250);
+  /* GRT Industrial Precision — Light Mode (High Contrast) */
+  --primary: oklch(0.50 0.18 250); /* Deep Blue — more saturated */
+  --primary-foreground: oklch(1 0 0);
+  --sidebar-primary: oklch(0.50 0.18 250);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --chart-1: oklch(0.55 0.15 250); /* Microsoft Blue */
-  --chart-2: oklch(0.58 0.1 195); /* Teal */
-  --chart-3: oklch(0.65 0.16 55); /* Orange */
-  --chart-4: oklch(0.6 0.14 145); /* Green */
-  --chart-5: oklch(0.52 0.15 300); /* Purple */
-  --radius: 0.25rem; /* Fluent Design 4px base radius */
-  --background: #faf9f8; /* Fluent neutral lighter */
-  --foreground: oklch(0.27 0.01 260); /* #323130 */
-  --card: oklch(1 0 0); /* White */
-  --card-foreground: oklch(0.27 0.01 260);
+  --chart-1: oklch(0.50 0.18 250); /* Blue */
+  --chart-2: oklch(0.55 0.14 195); /* Teal */
+  --chart-3: oklch(0.62 0.20 55);  /* Orange — vivid */
+  --chart-4: oklch(0.55 0.18 145); /* Green — vivid */
+  --chart-5: oklch(0.48 0.18 300); /* Purple — vivid */
+  --radius: 0.375rem; /* 6px — slightly rounded for modern feel */
+  --background: #f8f9fc; /* Cool white — slight blue tint */
+  --foreground: oklch(0.20 0.02 260); /* Near-black text — max readability */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.20 0.02 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.27 0.01 260);
-  --secondary: oklch(0.96 0.003 80); /* #f3f2f1 */
-  --secondary-foreground: oklch(0.27 0.01 260);
-  --muted: oklch(0.96 0.003 80); /* #f3f2f1 */
-  --muted-foreground: oklch(0.46 0.01 260); /* #605e5c */
-  --accent: oklch(0.96 0.003 80); /* #f3f2f1 */
-  --accent-foreground: oklch(0.27 0.01 260);
-  --destructive: oklch(0.45 0.16 25); /* #a4262c */
+  --popover-foreground: oklch(0.20 0.02 260);
+  --secondary: oklch(0.95 0.008 240); /* Cool grey with blue tint */
+  --secondary-foreground: oklch(0.20 0.02 260);
+  --muted: oklch(0.95 0.008 240);
+  --muted-foreground: oklch(0.40 0.02 260); /* Darker muted text — readable on screen share */
+  --accent: oklch(0.94 0.01 240);
+  --accent-foreground: oklch(0.20 0.02 260);
+  --destructive: oklch(0.50 0.22 25); /* Vivid red */
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.94 0.003 260); /* #edebe9 */
-  --input: oklch(0.94 0.003 260);
-  --ring: oklch(0.55 0.15 250); /* Microsoft Blue */
-  --sidebar: oklch(1 0 0); /* White */
-  --sidebar-foreground: oklch(0.27 0.01 260); /* #323130 */
-  --sidebar-accent: oklch(0.96 0.003 80); /* #f3f2f1 */
-  --sidebar-accent-foreground: oklch(0.27 0.01 260);
-  --sidebar-border: oklch(0.94 0.003 260); /* #edebe9 */
-  --sidebar-ring: oklch(0.55 0.15 250);
+  --border: oklch(0.88 0.01 240); /* Visible borders */
+  --input: oklch(0.90 0.008 240);
+  --ring: oklch(0.50 0.18 250);
+  --sidebar: oklch(0.98 0.005 240); /* Near-white sidebar */
+  --sidebar-foreground: oklch(0.20 0.02 260);
+  --sidebar-accent: oklch(0.93 0.015 240);
+  --sidebar-accent-foreground: oklch(0.20 0.02 260);
+  --sidebar-border: oklch(0.88 0.01 240);
+  --sidebar-ring: oklch(0.50 0.18 250);
 }
 
 .dark {
-  /* Industrial Precision Theme - Dark Mode (Secondary, kept for backwards compat) */
-  --primary: oklch(0.646 0.222 41.116); /* Safety Orange */
-  --primary-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.646 0.222 41.116);
-  --sidebar-primary-foreground: oklch(0.141 0.005 285.823);
-  
-  --background: oklch(0.13 0.02 260); /* Deep Navy Background */
-  --foreground: oklch(0.92 0.01 260); /* Light Grey Text */
-  
-  --card: oklch(0.17 0.03 260); /* Slightly lighter Navy for cards */
-  --card-foreground: oklch(0.92 0.01 260);
-  
-  --popover: oklch(0.17 0.03 260);
-  --popover-foreground: oklch(0.92 0.01 260);
-  
-  --secondary: oklch(0.25 0.03 260); /* Slate Blue */
-  --secondary-foreground: oklch(0.92 0.01 260);
-  
-  --muted: oklch(0.25 0.03 260);
-  --muted-foreground: oklch(0.6 0.02 260);
-  
-  --accent: oklch(0.25 0.03 260);
-  --accent-foreground: oklch(0.985 0 0);
-  
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  
-  --border: oklch(0.3 0.03 260); /* Visible borders */
-  --input: oklch(0.25 0.03 260);
-  --ring: oklch(0.646 0.222 41.116); /* Orange Ring */
-  
-  --chart-1: oklch(0.646 0.222 41.116); /* Orange */
-  --chart-2: oklch(0.4 0.1 260); /* Blue */
-  --chart-3: oklch(0.5 0.05 260); /* Slate */
-  --chart-4: oklch(0.7 0.15 250); /* Cyan */
-  --chart-5: oklch(0.6 0.02 260); /* Grey */
-  
-  --sidebar: oklch(0.11 0.02 260); /* Darker Navy Sidebar */
+  /* GRT Industrial Control Center — Dark Mode (Reference: unnamed.jpg)
+   * Deep navy-black bg · Cyan primary · Neon-glow borders · High-contrast text
+   * Optimized for: LED screens, screen sharing, 500-person venues */
+  --primary: oklch(0.72 0.18 200); /* Vivid Cyan — matches reference accent */
+  --primary-foreground: oklch(0.10 0.02 260);
+  --sidebar-primary: oklch(0.72 0.18 200);
+  --sidebar-primary-foreground: oklch(0.10 0.02 260);
+
+  --background: oklch(0.10 0.025 260); /* Near-black navy — deeper than before */
+  --foreground: oklch(0.95 0.005 260); /* Bright white text — max contrast */
+
+  --card: oklch(0.14 0.03 255); /* Dark navy cards — distinct from bg */
+  --card-foreground: oklch(0.95 0.005 260);
+
+  --popover: oklch(0.14 0.03 255);
+  --popover-foreground: oklch(0.95 0.005 260);
+
+  --secondary: oklch(0.22 0.035 255); /* Visible secondary bg */
+  --secondary-foreground: oklch(0.95 0.005 260);
+
+  --muted: oklch(0.20 0.03 255);
+  --muted-foreground: oklch(0.70 0.02 260); /* Readable on dark — not too dim */
+
+  --accent: oklch(0.22 0.04 255);
+  --accent-foreground: oklch(0.98 0 0);
+
+  --destructive: oklch(0.60 0.25 25); /* Vivid red-orange */
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border: oklch(0.30 0.04 250); /* Visible borders — key for card definition */
+  --input: oklch(0.20 0.03 255);
+  --ring: oklch(0.72 0.18 200); /* Cyan ring — matches primary */
+
+  --chart-1: oklch(0.72 0.18 200); /* Cyan */
+  --chart-2: oklch(0.65 0.20 55);  /* Orange — vivid */
+  --chart-3: oklch(0.60 0.18 145); /* Green — vivid */
+  --chart-4: oklch(0.55 0.15 290); /* Purple */
+  --chart-5: oklch(0.70 0.20 85);  /* Amber — vivid */
+
+  --sidebar: oklch(0.08 0.025 260); /* Deep black sidebar */
   --sidebar-foreground: oklch(0.92 0.01 260);
-  --sidebar-accent: oklch(0.25 0.03 260);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.3 0.03 260);
-  --sidebar-ring: oklch(0.646 0.222 41.116);
+  --sidebar-accent: oklch(0.18 0.04 250);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.25 0.04 250); /* Visible sidebar borders */
+  --sidebar-ring: oklch(0.72 0.18 200);
 }
 
 /* Fluent Design Elevation System */
@@ -139,10 +141,10 @@
   --shadow-dialog: var(--shadow-16);
 }
 .dark {
-  --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.24);
-  --shadow-4: 0 2px 4px rgba(0, 0, 0, 0.32);
-  --shadow-8: 0 4px 8px rgba(0, 0, 0, 0.40);
-  --shadow-16: 0 8px 16px rgba(0, 0, 0, 0.48);
+  --shadow-2: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 1px rgba(56, 189, 248, 0.05);
+  --shadow-4: 0 2px 6px rgba(0, 0, 0, 0.5), 0 0 2px rgba(56, 189, 248, 0.08);
+  --shadow-8: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 4px rgba(56, 189, 248, 0.1);
+  --shadow-16: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 8px rgba(56, 189, 248, 0.12);
 }
 
 @layer base {
@@ -357,6 +359,15 @@
     }
   }
 
+  /* Client logo marquee (CustomerAuth) */
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    animation: marquee 25s linear infinite;
+  }
+
   /* Waffle dropdown animation */
   @keyframes waffleIn {
     from { opacity: 0; transform: scale(0.95) translateY(-4px); }
@@ -366,10 +377,170 @@
 
   /* Mobile bottom nav safe area */
   .safe-area-pb { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .safe-area-pt { padding-top: env(safe-area-inset-top, 0px); }
 
   /* PWA standalone mode adjustments */
   @media all and (display-mode: standalone) {
     .safe-area-pt { padding-top: env(safe-area-inset-top, 0px); }
+  }
+
+  /* ═══ Shopfloor / Production Worker Touch Enhancements ═══ */
+
+  /* 产线大按钮模式 — 最小 48px 触控目标 */
+  .sf-touch-lg button,
+  .sf-touch-lg [role="button"],
+  .sf-touch-lg a {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  /* 产线高对比字体 — 车间光线差时更易阅读 */
+  .sf-text {
+    font-size: 1rem;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+  .sf-text-lg {
+    font-size: 1.25rem;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+
+  /* 触控设备上的 checkbox/radio 增大命中区域 */
+  @media (hover: none) and (pointer: coarse) {
+    input[type="checkbox"],
+    input[type="radio"] {
+      min-width: 24px;
+      min-height: 24px;
+    }
+
+    /* 表格行增大行高 — 方便点击 */
+    [data-slot="table-body"] tr {
+      min-height: 48px;
+    }
+    [data-slot="table-cell"] {
+      padding-top: 0.75rem;
+      padding-bottom: 0.75rem;
+    }
+
+    /* 下拉菜单项增大 */
+    [data-slot="dropdown-menu-item"],
+    [data-slot="select-item"] {
+      min-height: 44px;
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+
+    /* Tab触控目标 */
+    [data-slot="tabs-trigger"] {
+      min-height: 44px;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Mobile Responsive Utilities
+   ═══════════════════════════════════════════════════════ */
+
+/* Prevent horizontal overflow on mobile — applied to main content wrapper */
+.mobile-safe {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Table mobile scroll hint — fade gradient on right edge */
+[data-slot="table-container"] {
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 767px) {
+  [data-slot="table-container"] {
+    position: relative;
+  }
+  [data-slot="table-container"]::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 24px;
+    background: linear-gradient(to right, transparent, var(--color-background, #fff) 90%);
+    pointer-events: none;
+    opacity: 0.8;
+    z-index: 1;
+  }
+  /* Hide fade when scrolled to the right edge */
+  [data-slot="table-container"]:not(:has(table)):after,
+  [data-slot="table-container"].scrolled-end::after {
+    opacity: 0;
+  }
+}
+
+/* Dialog mobile: full-width with better padding */
+@media (max-width: 639px) {
+  [data-slot="dialog-content"] {
+    max-width: calc(100vw - 1rem) !important;
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    padding: 1rem !important;
+  }
+}
+
+/* Mobile touch targets — minimum 44px for interactive elements */
+@media (hover: none) and (pointer: coarse) {
+  [data-slot="table-row"] td {
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+  }
+  [data-slot="dropdown-menu-item"] {
+    min-height: 2.75rem;
+  }
+}
+
+/* Cards: prevent fixed-width children from overflowing */
+@media (max-width: 767px) {
+  .grid > [class*="col-span"] {
+    min-width: 0;
+  }
+}
+
+/* ── Auto-responsive grids on small screens ──
+   Grids with 4+ columns collapse to 2 cols on phones.
+   Pages that already have sm:/md: breakpoints override this naturally.
+   TabsList grids are excluded (they scroll horizontally). */
+@media (max-width: 639px) {
+  .grid[class*="grid-cols-4"]:not([role="tablist"]):not(.no-collapse),
+  .grid[class*="grid-cols-5"]:not([role="tablist"]):not(.no-collapse),
+  .grid[class*="grid-cols-6"]:not([role="tablist"]):not(.no-collapse) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* TabsList: horizontal scroll on small screens instead of cramped grid */
+@media (max-width: 639px) {
+  [role="tablist"].grid {
+    display: flex !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0.25rem;
+  }
+  [role="tablist"].grid::-webkit-scrollbar {
+    display: none;
+  }
+  [role="tablist"].grid > * {
+    flex: 0 0 auto;
+    min-width: max-content;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+/* Filter rows: stack vertically on mobile when children have min-width */
+@media (max-width: 639px) {
+  .flex.flex-wrap > [class*="min-w-["] {
+    flex-basis: 100%;
   }
 }
 
@@ -505,3 +676,105 @@ aside nav.sidebar-scroll {
   color: #e2e8f0;
 }
 .dark-agent-panel textarea::placeholder { color: #475569; }
+
+/* ═══════════════════════════════════════════════════════════════
+ * GRT Industrial Control Center — Global Visual Enhancements
+ * Reference: Deep navy bg, cyan neon glow, high-contrast cards
+ * Optimized for: Screen sharing · LED venues · User engagement
+ * ═══════════════════════════════════════════════════════════════ */
+
+/* ── Dark mode: Card glow borders ── */
+.dark [data-slot="card"],
+.dark .rounded-lg.border,
+.dark .rounded-xl.border,
+.dark .rounded-2xl.border {
+  border-color: rgba(56, 189, 248, 0.12);
+  box-shadow: 0 0 1px rgba(56, 189, 248, 0.1), 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.dark [data-slot="card"]:hover,
+.dark .rounded-lg.border:hover,
+.dark .rounded-xl.border:hover {
+  border-color: rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.12), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Dark mode: Sidebar neon active item ── */
+.dark [data-sidebar="menu-button"][data-active="true"],
+.dark .bg-sidebar-accent {
+  border-left: 3px solid rgba(56, 189, 248, 0.6) !important;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.08), transparent) !important;
+}
+
+/* ── Dark mode: Badge vivid colors ── */
+.dark [data-slot="badge"] {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ── Dark mode: Table row visibility ── */
+.dark table tbody tr {
+  border-bottom-color: rgba(56, 189, 248, 0.06);
+}
+.dark table tbody tr:hover {
+  background: rgba(56, 189, 248, 0.04) !important;
+}
+.dark table thead tr {
+  border-bottom: 2px solid rgba(56, 189, 248, 0.15);
+}
+
+/* ── Dark mode: Input field glow on focus ── */
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2), 0 0 8px rgba(56, 189, 248, 0.1);
+}
+
+/* ── Dark mode: Button enhancements ── */
+.dark button[data-slot="button"].bg-primary {
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+}
+.dark button[data-slot="button"].bg-primary:hover {
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+}
+
+/* ── Light mode: Sharper card shadows for screen share clarity ── */
+[data-slot="card"],
+.rounded-lg.border,
+.rounded-xl.border {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+[data-slot="card"]:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Light mode: Higher contrast text ── */
+.text-muted-foreground {
+  opacity: 1 !important; /* Prevent any opacity reduction */
+}
+
+/* ── Both modes: Tab underline enhancement ── */
+[data-state="active"][role="tab"] {
+  font-weight: 700;
+}
+
+/* ── Both modes: Better scroll bars ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.5); }
+.dark ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.15); }
+.dark ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.3); }
+
+/* ── Dark mode: Notification/status dot pulse ── */
+.dark .animate-pulse {
+  animation-duration: 2s;
+}
+
+/* ── Both modes: Chart/data number emphasis ── */
+.font-mono {
+  letter-spacing: -0.01em;
+}
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

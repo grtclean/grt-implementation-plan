@@ -181,12 +181,6 @@
       "position": "机械装配"
     },
     {
-      "id": "GRT033",
-      "name": "徐家乐",
-      "department": "事业一部",
-      "position": "机械装配"
-    },
-    {
       "id": "GRT034",
       "name": "王勇",
       "department": "事业三部",
@@ -453,7 +447,7 @@
     {
       "id": "GRT081",
       "name": "马康风",
-      "department": "未分配",
+      "department": "财务部",
       "position": "供应链助理工程师"
     },
     {
@@ -515,12 +509,6 @@
       "name": "王爱云",
       "department": "人事行政部",
       "position": "后勤助理"
-    },
-    {
-      "id": "GRT096",
-      "name": "侯晓薇",
-      "department": "AI数智部",
-      "position": "部门经理"
     },
     {
       "id": "GRT097",
@@ -671,6 +659,12 @@
       "name": "华淼",
       "department": "财务部",
       "position": "财务"
+    },
+    {
+      "id": "GRT112",
+      "name": "谢伟",
+      "department": "事业三部",
+      "position": "机械工程师"
     }
   ],
   "departments": [

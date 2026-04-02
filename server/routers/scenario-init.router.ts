@@ -202,7 +202,7 @@ async function initPerformancePoints(db: Db, userId: number) {
   const departments = ["研发部", "技术部", "项目部"];
   const reviewIds: number[] = [];
   const employeeNames = [
-    "赵一", "钱二", "孙三", "李四", "周五", "吴六", "郑七", "王八", "冯九", "陈十",
+    "洪小东", "钱佳奇", "孙坚", "李大鹏", "周辉", "冯艳", "匡凯旋", "马柯", "杨勇", "孙国祥",
   ];
 
   let empIdx = 0;
@@ -274,8 +274,8 @@ async function initPayrollAttendance(db: Db, userId: number) {
 
   // Seed attendance for 20 employees
   const empNames = [
-    "张一", "王二", "李三", "赵四", "刘五", "陈六", "杨七", "黄八", "周九", "吴十",
-    "郑十一", "冯十二", "褚十三", "卫十四", "蒋十五", "沈十六", "韩十七", "朱十八", "秦十九", "尤二十",
+    "李大鹏", "戴晓燕", "刘健康", "张洵", "匡凯旋", "洪香龙", "洪小东", "钱佳奇", "周辉", "孙坚",
+    "沈迎凤", "冯艳", "杨勇", "孙国祥", "马柯", "黄晓兰", "王秀萍", "沙建梅", "倪微薇", "徐树奎",
   ];
   for (let emp = 0; emp < 20; emp++) {
     const hasAnomaly = emp === 6 || emp === 14; // 2 anomalies

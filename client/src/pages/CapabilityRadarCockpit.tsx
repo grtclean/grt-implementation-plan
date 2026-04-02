@@ -13,10 +13,11 @@
  * Scores: L1-L5 levels + 0-100 numeric from CEO evaluation
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Radar, Users, Target, TrendingUp, BarChart3, ArrowRight,
   ChevronDown, Search, Filter, User, Award, AlertTriangle,
+  Pencil, Save, X,
 } from "lucide-react";
 
 // ══════════════════════════════════════════════════════════════
@@ -32,7 +33,8 @@ interface Employee {
 
 // ── REAL data from CEO assessment (GRT人员能力测评 202602.xlsx) ──
 // Names corrected to match employees.json master roster
-const ASSESSMENTS: Employee[] = [
+// Mutable: 董事长 can adjust scores via 个人雷达 tab
+let ASSESSMENTS: Employee[] = [
   { id: "GRT001", name: "倪亚东", position: "董事长", department: "总裁办", T: "L4", S: "L5", D: "L4", C: "L5", K: "L4", L: "L5", Ts: 85, Ss: 92, Ds: 80, Cs: 95, Ks: 88, Ls: 96 },
   { id: "GRT080", name: "刘奥运", position: "董事长助理", department: "AI数智部", T: "L4", S: "L4", D: "L3", C: "L4", K: "L4", L: "L3", Ts: 82, Ss: 78, Ds: 72, Cs: 85, Ks: 80, Ls: 75 },
   { id: "GRT002", name: "黄晓兰", position: "会计", department: "财务部", T: "L2", S: "L3", D: "L1", C: "L3", K: "L4", L: "L1", Ts: 45, Ss: 68, Ds: 30, Cs: 65, Ks: 82, Ls: 25 },
@@ -44,7 +46,7 @@ const ASSESSMENTS: Employee[] = [
   { id: "GRT100", name: "田炜钰", position: "行政前台", department: "人事行政部", T: "L1", S: "L3", D: "L1", C: "L3", K: "L2", L: "L1", Ts: 30, Ss: 62, Ds: 25, Cs: 65, Ks: 55, Ls: 22 },
   { id: "GRT049", name: "胡杨", position: "IT工程师", department: "AI数智部", T: "L4", S: "L3", D: "L3", C: "L3", K: "L3", L: "L2", Ts: 88, Ss: 65, Ds: 72, Cs: 68, Ks: 70, Ls: 42 },
   { id: "GRT062", name: "朱宇浩", position: "生产工程师兼项目及IT工程师", department: "事业二部", T: "L4", S: "L3", D: "L3", C: "L3", K: "L3", L: "L2", Ts: 85, Ss: 62, Ds: 70, Cs: 65, Ks: 68, Ls: 40 },
-  { id: "GRT096", name: "侯晓薇", position: "部门经理", department: "AI数智部", T: "L3", S: "L3", D: "L3", C: "L3", K: "L3", L: "L2", Ts: 72, Ss: 68, Ds: 75, Cs: 62, Ks: 65, Ls: 38 },
+
   { id: "GRT083", name: "刘坤", position: "市场主管", department: "AI数智部", T: "L3", S: "L3", D: "L2", C: "L4", K: "L3", L: "L2", Ts: 68, Ss: 72, Ds: 55, Cs: 80, Ks: 65, Ls: 45 },
   { id: "GRT103", name: "朱文韬", position: "市场专员", department: "AI数智部", T: "L2", S: "L3", D: "L2", C: "L4", K: "L3", L: "L2", Ts: 48, Ss: 65, Ds: 52, Cs: 78, Ks: 62, Ls: 42 },
   { id: "GRT004", name: "戴晓燕", position: "高级销售经理", department: "事业一部", T: "L3", S: "L4", D: "L2", C: "L5", K: "L3", L: "L4", Ts: 65, Ss: 82, Ds: 48, Cs: 90, Ks: 72, Ls: 78 },
@@ -63,6 +65,7 @@ const ASSESSMENTS: Employee[] = [
   { id: "GRT008", name: "马柯", position: "质量专员", department: "事业十部", T: "L3", S: "L3", D: "L2", C: "L3", K: "L4", L: "L2", Ts: 68, Ss: 62, Ds: 48, Cs: 65, Ks: 80, Ls: 42 },
   { id: "GRT009", name: "史龙昌", position: "激光切作班组长", department: "事业十部", T: "L3", S: "L2", D: "L2", C: "L2", K: "L3", L: "L2", Ts: 72, Ss: 55, Ds: 45, Cs: 58, Ks: 68, Ls: 40 },
   { id: "GRT045", name: "杨勇", position: "生产工程师兼项目经理", department: "事业三部", T: "L3", S: "L4", D: "L2", C: "L4", K: "L3", L: "L3", Ts: 65, Ss: 78, Ds: 48, Cs: 82, Ks: 72, Ls: 68 },
+  { id: "GRT112", name: "谢伟", position: "机械工程师", department: "事业三部", T: "L2.8", S: "L3.6", D: "L3.8", C: "L3.6", K: "L3", L: "L3.4", Ts: 70, Ss: 82, Ds: 85, Cs: 82, Ks: 72, Ls: 78 },
 ];
 
 const DOMAIN_NAMES: Record<string, string> = {
@@ -486,6 +489,9 @@ function OverviewTab() {
 
 function IndividualRadarTab() {
   const [selectedId, setSelectedId] = useState(ASSESSMENTS[0].id);
+  const [editing, setEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState<Record<string, { level: number; score: number }>>({});
+  const [ver, setVer] = useState(0); // force re-render after mutation
 
   const emp = ASSESSMENTS.find(e => e.id === selectedId) || ASSESSMENTS[0];
   const jobFamily = getJobFamily(emp.position);
@@ -497,9 +503,41 @@ function IndividualRadarTab() {
 
   const radarLabels = DOMAINS.map(d => `${d} ${DOMAIN_NAMES[d].slice(0, 2)}`);
 
+  // Start editing: populate draft from current employee
+  const startEdit = useCallback(() => {
+    const draft: Record<string, { level: number; score: number }> = {};
+    for (const d of DOMAINS) {
+      draft[d] = { level: parseLevel(emp[d]), score: emp[`${d}s` as keyof Employee] as number };
+    }
+    setEditDraft(draft);
+    setEditing(true);
+  }, [emp]);
+
+  // Save edits: mutate ASSESSMENTS in place
+  const saveEdit = useCallback(() => {
+    const idx = ASSESSMENTS.findIndex(e => e.id === selectedId);
+    if (idx === -1) return;
+    for (const d of DOMAINS) {
+      const draft = editDraft[d];
+      if (!draft) continue;
+      ASSESSMENTS[idx] = {
+        ...ASSESSMENTS[idx],
+        [d]: `L${draft.level}`,
+        [`${d}s`]: draft.score,
+      };
+    }
+    setEditing(false);
+    setVer(v => v + 1);
+  }, [selectedId, editDraft]);
+
+  const cancelEdit = useCallback(() => { setEditing(false); }, []);
+
+  // Suppress lint for ver (used to trigger re-render)
+  void ver;
+
   return (
     <div className="space-y-6">
-      {/* Employee selector */}
+      {/* Employee selector + Edit button */}
       <div className="bg-slate-900/80 border border-slate-700/50 rounded-lg p-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
@@ -508,7 +546,7 @@ function IndividualRadarTab() {
           </div>
           <select
             value={selectedId}
-            onChange={e => setSelectedId(e.target.value)}
+            onChange={e => { setSelectedId(e.target.value); setEditing(false); }}
             className="bg-slate-800 border border-slate-600 text-slate-200 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
             {ASSESSMENTS.map(e => (
@@ -517,6 +555,24 @@ function IndividualRadarTab() {
               </option>
             ))}
           </select>
+          {!editing ? (
+            <button
+              onClick={startEdit}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded text-xs font-medium hover:bg-amber-500/30 transition-colors"
+            >
+              <Pencil className="w-3 h-3" />
+              董事长调整
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button onClick={saveEdit} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded text-xs font-medium hover:bg-emerald-500/30 transition-colors">
+                <Save className="w-3 h-3" /> 保存
+              </button>
+              <button onClick={cancelEdit} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700/50 border border-slate-600 text-slate-400 rounded text-xs font-medium hover:bg-slate-700 transition-colors">
+                <X className="w-3 h-3" /> 取消
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-4 ml-auto text-xs text-slate-400">
             <span>岗位族: <span className="text-blue-400 font-medium">{jobFamily}</span></span>
             <span>均值: <span className="text-emerald-400 font-bold">{avgLevel(emp).toFixed(2)}</span></span>
@@ -524,6 +580,60 @@ function IndividualRadarTab() {
           </div>
         </div>
       </div>
+
+      {/* ── Edit Panel (董事长手动调整) ── */}
+      {editing && (
+        <div className="bg-amber-950/30 border border-amber-500/30 rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-amber-300 mb-3 flex items-center gap-2">
+            <Pencil className="w-4 h-4" />
+            调整 {emp.name} 的能力评估
+          </h3>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {DOMAINS.map(d => {
+              const draft = editDraft[d] || { level: 0, score: 0 };
+              return (
+                <div key={d} className="bg-slate-900/60 border border-slate-700/40 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: DOMAIN_COLORS[d] }} />
+                    <span className="text-sm font-medium text-slate-200">{DOMAIN_NAMES[d]}</span>
+                    <span className="text-xs text-slate-500">({d})</span>
+                  </div>
+                  {/* Level slider L1-L5 */}
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-xs text-slate-400 w-14">等级:</span>
+                    <input
+                      type="range" min={1} max={5} step={0.5}
+                      value={draft.level}
+                      onChange={e => setEditDraft(prev => ({ ...prev, [d]: { ...prev[d], level: parseFloat(e.target.value) } }))}
+                      className="flex-1 h-1.5 accent-amber-500"
+                    />
+                    <span className="text-sm font-mono font-bold text-amber-300 w-8 text-right">L{draft.level}</span>
+                  </div>
+                  {/* Score input 0-100 */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-400 w-14">分数:</span>
+                    <input
+                      type="range" min={0} max={100} step={1}
+                      value={draft.score}
+                      onChange={e => setEditDraft(prev => ({ ...prev, [d]: { ...prev[d], score: parseInt(e.target.value) } }))}
+                      className="flex-1 h-1.5 accent-blue-500"
+                    />
+                    <input
+                      type="number" min={0} max={100}
+                      value={draft.score}
+                      onChange={e => {
+                        const v = Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
+                        setEditDraft(prev => ({ ...prev, [d]: { ...prev[d], score: v } }));
+                      }}
+                      className="w-14 bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-0.5 text-sm font-mono text-center"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Radar chart */}

@@ -44,7 +44,7 @@ interface EmployeeLocation {
 const mockEmployeeLocations: EmployeeLocation[] = [
   {
     id: 1,
-    name: "张三",
+    name: "胡杨",
     position: { lat: 31.2304, lng: 121.4737 },
     status: 'on_site',
     tripId: 1001,
@@ -52,11 +52,11 @@ const mockEmployeeLocations: EmployeeLocation[] = [
     taskStatus: "设备调试中",
     lastUpdate: new Date().toISOString(),
     phone: "13800138001",
-    department: "技术服务部"
+    department: "AI数智部"
   },
   {
     id: 2,
-    name: "李四",
+    name: "刘健康",
     position: { lat: 39.9042, lng: 116.4074 },
     status: 'traveling',
     tripId: 1002,
@@ -64,11 +64,11 @@ const mockEmployeeLocations: EmployeeLocation[] = [
     taskStatus: "前往途中",
     lastUpdate: new Date().toISOString(),
     phone: "13800138002",
-    department: "技术服务部"
+    department: "事业一部"
   },
   {
     id: 3,
-    name: "王五",
+    name: "杨勇",
     position: { lat: 23.1291, lng: 113.2644 },
     status: 'on_site',
     tripId: 1003,
@@ -76,11 +76,11 @@ const mockEmployeeLocations: EmployeeLocation[] = [
     taskStatus: "FAT验收",
     lastUpdate: new Date().toISOString(),
     phone: "13800138003",
-    department: "项目部"
+    department: "事业三部"
   },
   {
     id: 4,
-    name: "赵六",
+    name: "焦斌",
     position: { lat: 30.5728, lng: 104.0668 },
     status: 'returning',
     tripId: 1004,
@@ -88,11 +88,11 @@ const mockEmployeeLocations: EmployeeLocation[] = [
     taskStatus: "任务完成返程",
     lastUpdate: new Date().toISOString(),
     phone: "13800138004",
-    department: "技术服务部"
+    department: "事业一部"
   },
   {
     id: 5,
-    name: "钱七",
+    name: "韩保程",
     position: { lat: 34.3416, lng: 108.9398 },
     status: 'on_site',
     tripId: 1005,
@@ -100,7 +100,7 @@ const mockEmployeeLocations: EmployeeLocation[] = [
     taskStatus: "设备安装",
     lastUpdate: new Date().toISOString(),
     phone: "13800138005",
-    department: "安装部"
+    department: "事业一部"
   }
 ];
 

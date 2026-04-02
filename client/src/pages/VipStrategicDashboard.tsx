@@ -10,6 +10,7 @@
  *   3. AI 战略幕僚 — 高情商对话流
  */
 import { useState, useRef, useCallback, useEffect } from "react";
+import FloatingNav from '@/components/FloatingNav';
 import {
   Award, Shield, Star, TrendingUp, Zap, Heart,
   Upload, FileCheck, Link2, CheckCircle2, Loader2,
@@ -711,6 +712,7 @@ export default function VipStrategicDashboard() {
       <div className="w-[30%] min-w-[320px] max-w-[420px] shrink-0 border-l border-slate-700/50 bg-slate-900/80 flex flex-col h-screen sticky top-0">
         <AiChatPanel />
       </div>
+      <FloatingNav variant="light" />
     </div>
   );
 }

@@ -128,6 +128,31 @@ export const FUNCTION_MODULES: FunctionModule[] = [
   { id: "go_live", name: "上线指挥中心", nameEn: "Go-Live Command Center", category: "System", description: "上线就绪评估、薪资导入、编码合规、军团模拟", sensitivityLevel: "high" },
   // Smart Payroll模块
   { id: "smart_payroll", name: "智能薪酬引擎", nameEn: "Smart Payroll Engine", category: "Finance", description: "薪资计算、审批流转、个税阶梯、五险一金", sensitivityLevel: "critical" },
+  // 云端摄像头 + MES + 装配视觉
+  { id: "mfg_camera_view", name: "摄像头查看", nameEn: "Camera View", category: "MFG", description: "查看摄像头画面和录像", sensitivityLevel: "low" },
+  { id: "mfg_camera_manage", name: "摄像头管理", nameEn: "Camera Manage", category: "MFG", description: "增删改摄像头设备、分组、维保", sensitivityLevel: "high" },
+  { id: "mfg_camera_ptz", name: "摄像头PTZ控制", nameEn: "Camera PTZ", category: "MFG", description: "云台方向、变焦、预置位控制", sensitivityLevel: "medium" },
+  { id: "mfg_camera_recording", name: "录像管理", nameEn: "Camera Recording", category: "MFG", description: "启停录像、管理快照", sensitivityLevel: "medium" },
+  { id: "mfg_mes_dispatch", name: "MES派工", nameEn: "MES Dispatch", category: "MFG", description: "工单派工到工位", sensitivityLevel: "high" },
+  { id: "mfg_mes_operate", name: "MES操作", nameEn: "MES Operate", category: "MFG", description: "操作员级别MES动作", sensitivityLevel: "medium" },
+  { id: "mfg_assembly_review", name: "装配审核", nameEn: "Assembly Review", category: "MFG", description: "审核装配录像和工时分析", sensitivityLevel: "medium" },
+  { id: "mfg_assembly_manage", name: "装配管理", nameEn: "Assembly Manage", category: "MFG", description: "管理标准工时和标记", sensitivityLevel: "high" },
+  // 人型机器人 + 维护 + UWB + 机器人调试
+  { id: "mfg_humanoid_view", name: "人型机器人查看", nameEn: "Humanoid View", category: "MFG", description: "查看人型机器人状态和数据", sensitivityLevel: "low" },
+  { id: "mfg_humanoid_manage", name: "人型机器人管理", nameEn: "Humanoid Manage", category: "MFG", description: "注册/配置/退役人型机器人", sensitivityLevel: "high" },
+  { id: "mfg_humanoid_operate", name: "人型机器人操作", nameEn: "Humanoid Operate", category: "MFG", description: "执行视觉任务、上下料作业", sensitivityLevel: "medium" },
+  { id: "mfg_maintenance_view", name: "维护查看", nameEn: "Maintenance View", category: "MFG", description: "查看维护计划和工单", sensitivityLevel: "low" },
+  { id: "mfg_maintenance_manage", name: "维护管理", nameEn: "Maintenance Manage", category: "MFG", description: "创建维护计划、生成工单", sensitivityLevel: "high" },
+  { id: "mfg_maintenance_execute", name: "维护执行", nameEn: "Maintenance Execute", category: "MFG", description: "执行维护步骤、上传证据、签署完成", sensitivityLevel: "medium" },
+  { id: "mfg_uwb_dashboard", name: "UWB看板", nameEn: "UWB Dashboard", category: "MFG", description: "访问UWB车间实时定位看板", sensitivityLevel: "low" },
+  { id: "mfg_robot_debug_manage", name: "机器人调试管理", nameEn: "Robot Debug Manage", category: "MFG", description: "创建管理调试会话", sensitivityLevel: "high" },
+  { id: "mfg_robot_debug_operate", name: "机器人调试操作", nameEn: "Robot Debug Operate", category: "MFG", description: "发送命令、捕获快照", sensitivityLevel: "medium" },
+  // MES 产能/停机/缺陷 + 工时成本 + AGV 物流
+  { id: "mfg_capacity_manage", name: "产能管理", nameEn: "Capacity Manage", category: "MFG", description: "创建更新产能规划", sensitivityLevel: "high" },
+  { id: "mfg_downtime_manage", name: "停机管理", nameEn: "Downtime Manage", category: "MFG", description: "记录解决设备停机", sensitivityLevel: "medium" },
+  { id: "mfg_labor_manage", name: "工时成本管理", nameEn: "Labor Cost Manage", category: "MFG", description: "工时校验、成本跟踪、技能匹配", sensitivityLevel: "high" },
+  { id: "mfg_agv_manage", name: "AGV管理", nameEn: "AGV Manage", category: "MFG", description: "注册AGV、创建路径、设置交通规则", sensitivityLevel: "high" },
+  { id: "mfg_agv_operate", name: "AGV操作", nameEn: "AGV Operate", category: "MFG", description: "创建任务、调度AGV、充电管理", sensitivityLevel: "medium" },
 ];
 
 // ============================================

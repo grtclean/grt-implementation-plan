@@ -13,12 +13,14 @@ import { TopBarSearch } from "@/components/TopBarSearch";
 import {
   Bell,
   ChevronDown,
+  Globe,
   Grid3X3,
   HelpCircle,
   LogOut,
   Menu,
   PenSquare,
   User,
+  UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -151,52 +153,65 @@ export default function TopHeader({
           <HelpCircle className="w-4 h-4" />
         </Button>
 
-        {/* User Profile Dropdown (desktop) */}
+        {/* User Profile Dropdown — all screen sizes */}
         {user && (
-          <div className="hidden md:block">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 px-2 py-1 rounded-sm hover:bg-accent transition-colors">
-                  <Avatar className="h-7 w-7 border border-border">
-                    <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
-                      {avatarInitial}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium hidden xl:inline">
-                    {resolvedDisplayName}
-                  </span>
-                  <ChevronDown className="w-3 h-3 text-muted-foreground" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <div className="px-2 py-1.5 border-b border-border">
-                  <p className="text-sm font-medium">{resolvedDisplayName}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {user.email || ""}
-                  </p>
-                </div>
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => onNavigate("/user-profile")}
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  <span>
-                    {language === "zh" ? "个人资料" : "Profile"}
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={logout}
-                  className="cursor-pointer text-destructive focus:text-destructive"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>
-                    {language === "zh" ? "退出登录" : "Sign out"}
-                  </span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-1 px-1.5 md:px-2 py-1 rounded-sm hover:bg-accent transition-colors">
+                <Avatar className="h-7 w-7 border border-border">
+                  <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
+                    {avatarInitial}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium hidden xl:inline">
+                  {resolvedDisplayName}
+                </span>
+                <ChevronDown className="w-3 h-3 text-muted-foreground hidden md:block" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <div className="px-2 py-1.5 border-b border-border">
+                <p className="text-sm font-medium">{resolvedDisplayName}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user.email || ""}
+                </p>
+              </div>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => onNavigate("/user-profile")}
+              >
+                <User className="mr-2 h-4 w-4" />
+                <span>
+                  {language === "zh" ? "个人资料" : "Profile"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => window.open("/customer-workspace", "_blank")}
+                className="cursor-pointer"
+              >
+                <Globe className="mr-2 h-4 w-4" />
+                <span>{language === "zh" ? "客户门户预览" : "Customer Portal"}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => { window.location.href = "/login?switch=1"; }}
+                className="cursor-pointer"
+              >
+                <UserCog className="mr-2 h-4 w-4" />
+                <span>{language === "zh" ? "切换账号" : "Switch Account"}</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={logout}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>
+                  {language === "zh" ? "退出登录" : "Sign out"}
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
     </header>

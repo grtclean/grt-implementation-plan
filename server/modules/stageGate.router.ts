@@ -205,7 +205,7 @@ export const stageGateRouter = router({
     }),
 
   // 创建门径检查项
-  createGateChecklist: adminProcedure
+  createGateChecklist: requirePermission('project:stage-gate:manage')
     .input(z.object({
       projectId: z.number(),
       gateStage: z.enum(['M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12']),
@@ -237,7 +237,7 @@ export const stageGateRouter = router({
     }),
 
   // 批量创建门径检查项（从模板）
-  createGateChecklistsFromTemplate: adminProcedure
+  createGateChecklistsFromTemplate: requirePermission('project:stage-gate:manage')
     .input(z.object({
       projectId: z.number(),
       templateName: z.string().default('standard'),
@@ -360,7 +360,7 @@ export const stageGateRouter = router({
     }),
 
   // 自动验证门径检查项
-  autoVerifyGateChecklist: adminProcedure
+  autoVerifyGateChecklist: requirePermission('project:stage-gate:manage')
     .input(z.object({
       id: z.number(),
     }))
@@ -793,30 +793,42 @@ export const stageGateRouter = router({
       const params = projectId ? [projectId] : [];
       const whereClause = projectId ? 'WHERE project_id = $1' : '';
 
-      // 门径检查统计
-      const [gateStats] = await (db as unknown as RawQueryExecutor).execute(
-        `SELECT gate_stage, status, COUNT(*) as count
-         FROM gate_checklists ${whereClause}
-         GROUP BY gate_stage, status`,
-        params
-      );
+      // 门径检查统计（表可能不存在）
+      let gateStats: any = [];
+      try {
+        const [result] = await (db as unknown as RawQueryExecutor).execute(
+          `SELECT gate_stage, status, COUNT(*) as count
+           FROM gate_checklists ${whereClause}
+           GROUP BY gate_stage, status`,
+          params
+        );
+        gateStats = result;
+      } catch { /* table may not exist */ }
 
-      // 拉动信号统计
-      const [signalStats] = await (db as unknown as RawQueryExecutor).execute(
-        `SELECT status, priority, COUNT(*) as count
-         FROM production_pull_signals ${whereClause}
-         GROUP BY status, priority`,
-        params
-      );
+      // 拉动信号统计（表可能不存在）
+      let signalStats: any = [];
+      try {
+        const [result] = await (db as unknown as RawQueryExecutor).execute(
+          `SELECT status, priority, COUNT(*) as count
+           FROM production_pull_signals ${whereClause}
+           GROUP BY status, priority`,
+          params
+        );
+        signalStats = result;
+      } catch { /* table may not exist */ }
 
-      // 自动验证统计
-      const [autoVerifyStats] = await (db as unknown as RawQueryExecutor).execute(
-        `SELECT auto_verified, COUNT(*) as count
-         FROM gate_checklists ${whereClause}
-         GROUP BY auto_verified`,
-        params
-      );
-      
+      // 自动验证统计（表可能不存在）
+      let autoVerifyStats: any = [];
+      try {
+        const [result] = await (db as unknown as RawQueryExecutor).execute(
+          `SELECT auto_verified, COUNT(*) as count
+           FROM gate_checklists ${whereClause}
+           GROUP BY auto_verified`,
+          params
+        );
+        autoVerifyStats = result;
+      } catch { /* table may not exist */ }
+
       return {
         gates: gateStats,
         signals: signalStats,

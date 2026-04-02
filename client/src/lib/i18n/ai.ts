@@ -1290,7 +1290,7 @@ export const aiTranslations: TranslationModule = {
     "ai.digitalAssistant.assistantCode": "助手代码",
     "ai.digitalAssistant.autoGenerate": "自动生成",
     "ai.digitalAssistant.displayName": "显示名称",
-    "ai.digitalAssistant.displayNamePlaceholder": "例如：张三的数字助手",
+    "ai.digitalAssistant.displayNamePlaceholder": "例如：刘奥运的数字助手",
     "ai.digitalAssistant.capabilityConfig": "能力配置",
     "ai.digitalAssistant.personalization": "个性化设置",
     "ai.digitalAssistant.communicationStyle": "沟通风格",

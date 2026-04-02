@@ -138,7 +138,7 @@ const SAMPLE_SUBMITTED_DATA = {
   reason: "身体不适，需要到医院检查治疗，预计需要休息3天恢复。",
   needSickNote: true,
   hospitalName: "上海市第一人民医院",
-  emergencyContact: "李明 (工号: GRT-0042)",
+  emergencyContact: "胡杨 (工号: GRT049)",
   emergencyPhone: "13912345678",
   handoverPerson: "吴卫成 (工号: GRT-0018)", // demo
   handoverNotes: "1. M5项目BOM审核交给吴卫成跟进\n2. 周三供应商审核会议由吴卫成代参加\n3. 质检报告本周五前提交，已完成80%",
@@ -159,11 +159,11 @@ interface LeaveRecord {
 }
 
 const DEMO_LEAVE_DATA: LeaveRecord[] = [
-  { id: "LR-2026-001", applicant: "徐家乐", type: "病假", days: 3, startDate: "2026-02-23", endDate: "2026-02-25", status: "已通过" }, // demo
-  { id: "LR-2026-002", applicant: "李芳", type: "年假", days: 5, startDate: "2026-03-01", endDate: "2026-03-05", status: "审批中" },
+  { id: "LR-2026-001", applicant: "焦斌", type: "病假", days: 3, startDate: "2026-02-23", endDate: "2026-02-25", status: "已通过" }, // demo
+  { id: "LR-2026-002", applicant: "田炜钰", type: "年假", days: 5, startDate: "2026-03-01", endDate: "2026-03-05", status: "审批中" },
   { id: "LR-2026-003", applicant: "吴卫成", type: "事假", days: 1, startDate: "2026-02-28", endDate: "2026-02-28", status: "已通过" }, // demo
-  { id: "LR-2026-004", applicant: "陈静", type: "调休", days: 0.5, startDate: "2026-02-27", endDate: "2026-02-27", status: "已通过" },
-  { id: "LR-2026-005", applicant: "刘强", type: "婚假", days: 10, startDate: "2026-03-10", endDate: "2026-03-19", status: "审批中" },
+  { id: "LR-2026-004", applicant: "沙建梅", type: "调休", days: 0.5, startDate: "2026-02-27", endDate: "2026-02-27", status: "已通过" },
+  { id: "LR-2026-005", applicant: "崔聪聪", type: "婚假", days: 10, startDate: "2026-03-10", endDate: "2026-03-19", status: "审批中" },
   { id: "LR-2026-006", applicant: "戴晓燕", type: "年假", days: 2, startDate: "2026-03-06", endDate: "2026-03-07", status: "已驳回" },
 ];
 

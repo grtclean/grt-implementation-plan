@@ -22,6 +22,9 @@ import {
   Users,
   Target,
   ChevronDown,
+  ArrowUp,
+  Home,
+  LayoutDashboard,
 } from "lucide-react";
 import ValueChainVisualizer from "@/components/ValueChainVisualizer";
 import DepartmentExcellenceGrid from "@/components/DepartmentExcellenceCard";
@@ -439,11 +442,11 @@ export default function ExcellenceShowcase() {
         </motion.div>
       </section>
 
-      {/* ─── Fixed bottom bar ─────────────────────────────────────── */}
+      {/* ─── Fixed bottom bar with navigation ─────────────────────── */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 h-10 flex items-center justify-between px-6 border-t backdrop-blur-xl"
+        className="fixed bottom-0 left-0 right-0 z-50 h-12 flex items-center justify-between px-6 border-t backdrop-blur-xl"
         style={{
-          background: "rgba(6,10,20,0.85)",
+          background: "rgba(6,10,20,0.92)",
           borderColor: C.border,
         }}
       >
@@ -453,15 +456,59 @@ export default function ExcellenceShowcase() {
             GRT EXCELLENCE HUB v1.0
           </span>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-[10px] font-mono" style={{ color: `${C.silver}40` }}>
-            © 2026 GRT Advanced Cleaning Technology
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              document.documentElement.scrollTo({ top: 0, behavior: "smooth" });
+              document.body.scrollTo({ top: 0, behavior: "smooth" });
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all hover:scale-105 cursor-pointer"
+            style={{ borderColor: `${C.cyan}40`, color: C.cyan, background: `${C.cyan}10` }}
+            type="button"
+          >
+            <ArrowUp className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-medium">返回顶部</span>
+          </button>
+          <button
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                window.location.href = "/showcase-hub";
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all hover:scale-105 cursor-pointer"
+            style={{ borderColor: `${C.silver}30`, color: C.silver, background: `${C.silver}08` }}
+            type="button"
+          >
+            <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+            <span className="text-[11px] font-medium">返回</span>
+          </button>
+          <button
+            onClick={() => { window.location.href = "/showcase-hub"; }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all hover:scale-105"
+            style={{ borderColor: `${C.purple}40`, color: C.purple, background: `${C.purple}10` }}
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-medium">展示中枢</span>
+          </button>
+          <button
+            onClick={() => { window.location.href = "/me"; }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all hover:scale-105"
+            style={{ borderColor: `${C.amber}40`, color: C.amber, background: `${C.amber}10` }}
+          >
+            <Home className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-medium">主界面</span>
+          </button>
+          <span className="text-[10px] font-mono ml-2" style={{ color: `${C.silver}30` }}>
+            © 2026 GRT
           </span>
         </div>
       </div>
 
       {/* Bottom padding for fixed bar */}
-      <div className="h-10" />
+      <div className="h-12" />
     </div>
   );
 }

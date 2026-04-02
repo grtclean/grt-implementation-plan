@@ -96,7 +96,7 @@ const plannedCertifications = [
       { id: 3, name: "控制措施实施", date: "2026-05-15", status: "pending" },
       { id: 4, name: "认证审核", date: "2026-06-20", status: "pending" },
     ],
-    responsible: "IT部 - 王工程师",
+    responsible: "IT部 - 胡杨",
     notes: "博世等Tier1要求"
   },
   { 

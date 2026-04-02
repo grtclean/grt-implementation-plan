@@ -209,7 +209,7 @@ export const commonTranslations: TranslationModule = {
     "common.socialHub.generateAiReply": "生成AI回复",
     "common.socialHub.desensitizeRulesTitle": "脱敏规则测试",
     "common.socialHub.desensitizeRulesDesc": "测试脱敏规则效果",
-    "common.socialHub.desensitizeTestPlaceholder": "输入测试文本，如：张三的手机号是13812345678，邮箱是zhangsan@company.com",
+    "common.socialHub.desensitizeTestPlaceholder": "输入测试文本，如：刘奥运的手机号是13812345678，邮箱是liuaoyun@grt.com",
     "common.socialHub.testDesensitize": "测试脱敏",
     "common.socialHub.desensitizeResult": "脱敏结果:",
     "common.socialHub.messageStatsTitle": "群消息统计",

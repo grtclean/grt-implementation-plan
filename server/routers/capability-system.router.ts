@@ -181,38 +181,61 @@ function makeAssessment(
   };
 }
 
-// Real 30-employee TSDCKL data — CEO's Feb 2026 evaluation (exact scores from Excel)
+// Level → numeric score mapping (L1=25, L1.5=38, L2=50, L2.5=58, L3=70, L3.5=78, L4=85, L5=95)
+function levelToScore(level: string): number {
+  const m = level.match(/L([\d.]+)/);
+  if (!m) return 25;
+  const v = parseFloat(m[1]);
+  const MAP: Record<number, number> = { 1: 25, 1.5: 38, 2: 50, 2.5: 58, 3: 70, 3.5: 78, 4: 85, 4.5: 90, 5: 95 };
+  return MAP[v] ?? Math.round(v * 20);
+}
+
+// Real 37-employee TSDCKL data — from 副本GRT人员能力测评（202602）.xlsx (CEO's real assessment)
 export const EMPLOYEE_ASSESSMENTS: EmployeeAssessment[] = [
-  makeAssessment(1,  1,   "倪亚东", "Ni Yadong",       "总裁办",     "bu_gm",          "董事长",                      85, 92, 80, 95, 88, 96),
-  makeAssessment(2,  80,  "刘奥运", "Liu Aoyun",        "AI数智部",   "director",       "董事长助理",                  82, 78, 72, 85, 80, 75),
-  makeAssessment(3,  2,   "黄晓兰", "Huang Xiaolan",    "财务部",     "finance_manager", "会计",                       45, 68, 30, 65, 82, 25),
-  makeAssessment(4,  54,  "王秀萍", "Wang Xiuping",     "财务部",     "finance_manager", "总账会计",                   48, 65, 28, 62, 85, 22),
-  makeAssessment(5,  101, "王汝月", "Wang Ruyue",       "财务部",     "employee",       "会计助理",                    32, 52, 25, 55, 68, 18),
-  makeAssessment(6,  66,  "李新正", "Li Xinzheng",      "财务部",     "employee",       "仓库管理员",                  42, 55, 28, 58, 65, 20),
-  makeAssessment(7,  67,  "沙建梅", "Sha Jianmei",      "人事行政部", "hr_manager",     "人事行政主管",                40, 82, 45, 85, 72, 70),
-  makeAssessment(8,  53,  "段天珠", "Duan Tianzhu",     "人事行政部", "hr_specialist",  "前法",                        38, 65, 42, 68, 80, 48),
-  makeAssessment(9,  100, "田炜钰", "Tian Weiyu",       "人事行政部", "employee",       "行政前台",                    30, 62, 25, 65, 55, 22),
-  makeAssessment(10, 49,  "胡杨",   "Hu Yang",          "AI数智部",   "it_engineer",    "IT工程师",                    88, 65, 72, 68, 70, 42),
-  makeAssessment(11, 62,  "朱宇浩", "Zhu Yuhao",        "事业二部",   "bu_pm",          "生产工程师兼项目及IT工程师",   85, 62, 70, 65, 68, 40),
-  makeAssessment(12, 96,  "侯晓薇", "Hou Xiaowei",      "AI数智部",   "dept_manager",   "部门经理",                   72, 68, 75, 62, 65, 38),
-  makeAssessment(13, 83,  "刘坤",   "Liu Kun",          "AI数智部",   "bu_sales",       "销售与项目工程师",            68, 72, 55, 80, 65, 45),
-  makeAssessment(14, 103, "朱文韬", "Zhu Wentao",       "AI数智部",   "bu_sales",       "市场专员",                    48, 65, 52, 78, 62, 42),
-  makeAssessment(15, 4,   "戴晓燕", "Dai Xiaoyan",      "事业一部",   "bu_sales",       "高级销售经理",                65, 82, 48, 90, 72, 78),
-  makeAssessment(16, 5,   "金晓锋", "Jin Xiaofeng",     "事业一部",   "dept_manager",   "制造质量经理",                85, 68, 72, 70, 88, 68),
-  makeAssessment(17, 22,  "李大鹏", "Li Dapeng",        "事业一部",   "bu_elec",        "电气工程师",                  82, 55, 75, 52, 70, 28),
-  makeAssessment(18, 63,  "刘健康", "Liu Jiankang",     "事业一部",   "bu_sales",       "销售经理",                    62, 78, 45, 85, 68, 65),
-  makeAssessment(19, 6,   "洪香龙", "Hong Xianglong",   "事业二部",   "dept_manager",   "机械设计经理",                92, 68, 90, 65, 82, 72),
-  makeAssessment(20, 44,  "洪小东", "Hong Xiaodong",    "事业二部",   "bu_mech",        "机械研发工程师",              80, 55, 82, 52, 70, 28),
-  makeAssessment(21, 97,  "钱佳奇", "Qian Jiaqi",       "事业二部",   "bu_elec",        "电气工程师",                  78, 52, 72, 55, 68, 25),
-  makeAssessment(22, 3,   "倪亚琴", "Ni Yaqin",         "事业三部",   "procurement_eng","采购与项目工程师",            65, 68, 52, 72, 70, 45),
-  makeAssessment(23, 7,   "孙坚",   "Sun Jian",         "事业三部",   "team_lead",      "电气主管",                    85, 65, 78, 62, 80, 68),
-  makeAssessment(24, 55,  "沈迎凤", "Shen Yingfeng",    "事业三部",   "dept_manager",   "商务经理",                    48, 80, 45, 82, 68, 65),
-  makeAssessment(25, 19,  "冯艳",   "Feng Yan",         "事业三部",   "bu_sales",       "销售与项目工程师",            62, 72, 48, 78, 65, 42),
-  makeAssessment(26, 18,  "孙国祥", "Sun Guoxiang",     "事业四部",   "bu_elec",        "电气工程师",                  82, 55, 72, 52, 70, 28),
-  makeAssessment(27, 24,  "张腾飞", "Zhang Tengfei",    "事业四部",   "team_lead",      "机加工班组长",                72, 65, 48, 68, 72, 52),
-  makeAssessment(28, 8,   "马柯",   "Ma Ke",            "事业十部",   "employee",       "质量专员",                    68, 62, 48, 65, 80, 42),
-  makeAssessment(29, 9,   "史龙昌", "Shi Longchang",    "事业十部",   "team_lead",      "激光切作班组长",              72, 55, 45, 58, 68, 40),
-  makeAssessment(30, 45,  "杨勇",   "Yang Yong",        "事业三部",   "bu_pm",          "生产工程师兼项目经理",        65, 78, 48, 82, 72, 68),
+  // ── 事业一部 ──
+  makeAssessment(1,  4,   "戴晓燕", "Dai Xiaoyan",      "事业一部",   "bu_sales",       "高级销售经理",           levelToScore("L3"), levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L3"), levelToScore("L2"), levelToScore("L3")),
+  makeAssessment(2,  5,   "金晓锋", "Jin Xiaofeng",     "事业一部",   "dept_manager",   "制造质量经理",           levelToScore("L3"), levelToScore("L2"), levelToScore("L2.5"), levelToScore("L3"), levelToScore("L2.5"), levelToScore("L3")),
+  makeAssessment(3,  22,  "李大鹏", "Li Dapeng",        "事业一部",   "bu_elec",        "电气工程师",             levelToScore("L2"), levelToScore("L2"), levelToScore("L2"), levelToScore("L2"), levelToScore("L2"), levelToScore("L2")),
+  makeAssessment(4,  30,  "匡凯旋", "Kuang Kaixuan",    "事业一部",   "team_lead",      "售后服务主管",           levelToScore("L2.5"), levelToScore("L2"), levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L2"), levelToScore("L2.5")),
+  makeAssessment(5,  35,  "王志强", "Wang Zhiqiang",    "事业一部",   "bu_sales",       "销售与项目工程师",       levelToScore("L2"), levelToScore("L2"), levelToScore("L1.5"), levelToScore("L2"), levelToScore("L2"), levelToScore("L1.5")),
+  makeAssessment(6,  63,  "刘健康", "Liu Jiankang",     "事业一部",   "bu_sales",       "销售与项目工程师",       levelToScore("L2"), levelToScore("L1.5"), levelToScore("L1"), levelToScore("L1.5"), levelToScore("L1.5"), levelToScore("L1")),
+  makeAssessment(7,  87,  "梅奥杰", "Mei Aojie",        "事业一部",   "bu_elec",        "助理电气工程师",         levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1")),
+  makeAssessment(8,  88,  "高嘉义", "Gao Jiayi",        "事业一部",   "bu_elec",        "助理电气工程师",         levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1")),
+  makeAssessment(9,  90,  "陈加丽", "Chen Jiali",       "事业一部",   "bu_mech",        "助理机械研发工程师",     levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1")),
+  makeAssessment(10, 20,  "张洵",   "Zhang Xun",        "事业一部",   "procurement_eng","采购与项目工程师",       levelToScore("L2.5"), levelToScore("L2"), levelToScore("L2"), levelToScore("L1.5"), levelToScore("L2"), levelToScore("L2")),
+  makeAssessment(11, 57,  "滕顺英", "Teng Shunying",    "事业一部",   "procurement_eng","采购与项目工程师",       levelToScore("L2"), levelToScore("L2"), levelToScore("L2"), levelToScore("L1.5"), levelToScore("L2"), levelToScore("L2")),
+  makeAssessment(12, 104, "董纾雨", "Dong Shuyu",       "事业一部",   "bu_sales",       "销售与项目工程师",       levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1")),
+  // ── 事业二部 ──
+  makeAssessment(13, 6,   "洪香龙", "Hong Xianglong",   "事业二部",   "dept_manager",   "机械设计经理",           levelToScore("L3"), levelToScore("L2.5"), levelToScore("L3"), levelToScore("L2.5"), levelToScore("L2"), levelToScore("L3")),
+  makeAssessment(14, 44,  "洪小东", "Hong Xiaodong",    "事业二部",   "bu_mech",        "机械研发工程师",         levelToScore("L2"), levelToScore("L2"), levelToScore("L2"), levelToScore("L1.5"), levelToScore("L1.5"), levelToScore("L2")),
+  makeAssessment(15, 94,  "徐树奎", "Xu Shukui",        "事业二部",   "dept_manager",   "事业二部经理",           levelToScore("L3"), levelToScore("L2"), levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L2.5")),
+  makeAssessment(16, 97,  "钱佳奇", "Qian Jiaqi",       "事业二部",   "bu_elec",        "电气工程师",             levelToScore("L2"), levelToScore("L2"), levelToScore("L2"), levelToScore("L2"), levelToScore("L2"), levelToScore("L2")),
+  makeAssessment(17, 99,  "殷金刚", "Yin Jingang",      "事业二部",   "bu_mech",        "机械研发工程师",         levelToScore("L2.5"), levelToScore("L2"), levelToScore("L2.5"), levelToScore("L2"), levelToScore("L1.5"), levelToScore("L2")),
+  makeAssessment(18, 62,  "朱宇浩", "Zhu Yuhao",        "事业二部",   "bu_pm",          "IT工程师&EHS",           levelToScore("L2"), levelToScore("L2.5"), levelToScore("L2"), levelToScore("L1.5"), levelToScore("L2"), levelToScore("L2")),
+  // ── 事业三部 ──
+  makeAssessment(19, 3,   "倪亚琴", "Ni Yaqin",         "事业三部",   "procurement_eng","采购与项目工程师",       levelToScore("L2"), levelToScore("L2"), levelToScore("L2"), levelToScore("L1.5"), levelToScore("L2"), levelToScore("L2")),
+  makeAssessment(20, 7,   "孙坚",   "Sun Jian",         "事业三部",   "team_lead",      "电气主管",               levelToScore("L3"), levelToScore("L3"), levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L2")),
+  makeAssessment(21, 19,  "冯艳",   "Feng Yan",         "事业三部",   "bu_sales",       "销售与项目工程师",       levelToScore("L2.5"), levelToScore("L2"), levelToScore("L2"), levelToScore("L2"), levelToScore("L2"), levelToScore("L1.5")),
+  makeAssessment(22, 43,  "韩保程", "Han Baocheng",     "事业三部",   "bu_sales",       "销售与项目工程师",       levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L2"), levelToScore("L2")),
+  makeAssessment(23, 45,  "杨勇",   "Yang Yong",        "事业三部",   "bu_pm",          "销售与项目服务经理",     levelToScore("L2"), levelToScore("L3"), levelToScore("L1.5"), levelToScore("L2"), levelToScore("L1.5"), levelToScore("L1.5")),
+  makeAssessment(24, 55,  "沈迎凤", "Shen Yingfeng",    "事业三部",   "dept_manager",   "采购经理",               levelToScore("L3"), levelToScore("L3"), levelToScore("L3"), levelToScore("L2"), levelToScore("L2"), levelToScore("L3.5")),
+  makeAssessment(25, 58,  "周辉",   "Zhou Hui",         "事业三部",   "dept_manager",   "事业三部经理",           levelToScore("L3"), levelToScore("L2"), levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L2.5")),
+  makeAssessment(26, 89,  "罗小玲", "Luo Xiaoling",     "事业三部",   "bu_mech",        "助理机械研发工程师",     levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1")),
+  makeAssessment(27, 93,  "李柯瑶", "Li Keyao",         "事业三部",   "bu_sales",       "销售与项目工程师",       levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1")),
+  // ── 事业四部 ──
+  makeAssessment(28, 18,  "孙国祥", "Sun Guoxiang",     "事业四部",   "bu_elec",        "电气工程师",             levelToScore("L2"), levelToScore("L1.5"), levelToScore("L2"), levelToScore("L2"), levelToScore("L2"), levelToScore("L2")),
+  // ── AI数智部 ──
+  makeAssessment(29, 49,  "胡杨",   "Hu Yang",          "AI数智部",   "it_engineer",    "IT工程师",               levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L3"), levelToScore("L2"), levelToScore("L2"), levelToScore("L2")),
+  makeAssessment(30, 80,  "刘奥运", "Liu Aoyun",        "AI数智部",   "director",       "董事长助理",             levelToScore("L2"), levelToScore("L2"), levelToScore("L1"), levelToScore("L1.5"), levelToScore("L2"), levelToScore("L2")),
+  makeAssessment(31, 83,  "刘坤",   "Liu Kun",          "AI数智部",   "bu_sales",       "市场主管",               levelToScore("L2"), levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L1.5"), levelToScore("L2"), levelToScore("L2")),
+  makeAssessment(32, 103, "朱文韬", "Zhu Wentao",       "AI数智部",   "bu_sales",       "市场专员",               levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1")),
+  // ── 财务部 ──
+  makeAssessment(33, 54,  "王秀萍", "Wang Xiuping",     "财务部",     "finance_manager","总账会计",               levelToScore("L2.5"), levelToScore("L2"), levelToScore("L2.5"), levelToScore("L2"), levelToScore("L2.5"), levelToScore("L2")),
+  makeAssessment(34, 81,  "马康风", "Ma Kangfeng",      "财务部",     "employee",       "供应链助理工程师",       levelToScore("L2.5"), levelToScore("L2.5"), levelToScore("L1.5"), levelToScore("L1.5"), levelToScore("L2"), levelToScore("L2.5")),
+  makeAssessment(35, 101, "王汝月", "Wang Ruyue",       "财务部",     "employee",       "会计助理",               levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1")),
+  // ── 人事行政部 ──
+  makeAssessment(36, 67,  "沙建梅", "Sha Jianmei",      "人事行政部", "hr_manager",     "人事行政主管",           levelToScore("L2"), levelToScore("L1.5"), levelToScore("L2"), levelToScore("L2"), levelToScore("L2"), levelToScore("L2")),
+  makeAssessment(37, 100, "田炜钰", "Tian Weiyu",       "人事行政部", "employee",       "行政前台",               levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1"), levelToScore("L1")),
 ];
 
 // ─── Employee Profile Data (from CEO's salary-summary Excel) ─────────
@@ -239,7 +262,7 @@ export const EMPLOYEE_PROFILES: Record<number, EmployeeProfileData> = {
   100: { grtId: "GRT100", grade: "4",    hireDate: "2025-08-01", performanceJan2026: null, avg2024: 0,     avg2025: 0,    comprehensiveSalary: 6517 },
   49:  { grtId: "GRT049", grade: "8",    hireDate: "2022-04-01", performanceJan2026: 81,   avg2024: 78,    avg2025: 82,   comprehensiveSalary: 11430 },
   62:  { grtId: "GRT062", grade: "8",    hireDate: "2021-02-01", performanceJan2026: 81,   avg2024: 82,    avg2025: 82,   comprehensiveSalary: 8000 },
-  96:  { grtId: "GRT096", grade: "7",    hireDate: "2024-09-01", performanceJan2026: null, avg2024: null,  avg2025: null, comprehensiveSalary: null },
+
   83:  { grtId: "GRT083", grade: "8",    hireDate: "2024-01-01", performanceJan2026: 78,   avg2024: 0,     avg2025: 75,   comprehensiveSalary: 16500 },
   103: { grtId: "GRT103", grade: "4",    hireDate: "2025-09-01", performanceJan2026: null, avg2024: 0,     avg2025: 0,    comprehensiveSalary: 6800 },
   4:   { grtId: "GRT004", grade: "10C",  hireDate: "2014-06-01", performanceJan2026: 59.2, avg2024: 45.13, avg2025: 75,   comprehensiveSalary: 25315 },
@@ -399,10 +422,26 @@ export const capabilitySystemRouter = router({
   /** Get an individual employee's assessment (by employeeId) */
   getMyAssessment: protectedProcedure
     .input(z.object({ employeeId: z.number().optional() }))
-    .query(({ input }) => {
-      // Default to 刘奥运 (80/GRT080) if no ID provided — the logged-in user
-      const id = input.employeeId || 80;
-      return EMPLOYEE_ASSESSMENTS.find(e => e.employeeId === id) || EMPLOYEE_ASSESSMENTS[0];
+    .query(({ input, ctx }) => {
+      // Derive employeeId from openId if not provided (GRT083 → 83)
+      let id = input.employeeId;
+      if (!id && ctx.user?.openId) {
+        const match = (ctx.user.openId as string).match(/GRT0*(\d+)/);
+        if (match) id = parseInt(match[1]);
+      }
+      if (!id) id = 80;
+
+      const found = EMPLOYEE_ASSESSMENTS.find(e => e.employeeId === id);
+      if (found) return found;
+
+      // Auto-generate default assessment for employees not in the 37-person assessed list
+      const userName = ctx.user?.name || `Employee ${id}`;
+      return makeAssessment(
+        1000 + id, id, userName as string, "",
+        "", "employee", "",
+        levelToScore("L1"), levelToScore("L1"), levelToScore("L1"),
+        levelToScore("L1"), levelToScore("L1"), levelToScore("L1"),
+      );
     }),
 
   /** Get full team assessments (HR/admin view) */
@@ -519,19 +558,28 @@ export const capabilitySystemRouter = router({
       };
     }),
 
-  /** AI Improvement Tips for a specific employee */
-  aiImprovementTips: requirePermission('capability:matrix:manage')
+  /** AI Improvement Tips for a specific employee (self-service for all employees) */
+  aiImprovementTips: protectedProcedure
     .input(z.object({
       employeeId: z.number(),
       role: z.string(),
     }))
     .mutation(({ input }) => {
-      const emp = EMPLOYEE_ASSESSMENTS.find(e => e.employeeId === input.employeeId);
+      let emp = EMPLOYEE_ASSESSMENTS.find(e => e.employeeId === input.employeeId);
       const criteria = ROLE_CRITERIA.find(r => r.role === input.role) || ROLE_CRITERIA.find(r => r.role === "employee")!;
-      if (!emp) throw new Error("Employee not found");
+      // Fallback: create a default assessment for employees not in the hardcoded list
+      if (!emp) {
+        emp = {
+          employeeId: input.employeeId,
+          name: `Employee #${input.employeeId}`,
+          department: "未知",
+          position: input.role,
+          scores: { T: 55, S: 50, D: 45, C: 50, K: 48, L: 40 },
+        } as any;
+      }
 
       const tips = CAPABILITY_DICTIONARY.map(pillar => {
-        const actual = emp.scores[pillar.code] || 0;
+        const actual = emp!.scores[pillar.code] || 0;
         const target = criteria.targets[pillar.code] || 60;
         const gap = target - actual;
 
@@ -570,8 +618,8 @@ export const capabilitySystemRouter = router({
       });
 
       return {
-        employeeId: emp.employeeId,
-        name: emp.name,
+        employeeId: emp!.employeeId,
+        name: emp!.name,
         generatedAt: new Date().toISOString(),
         tips: tips.sort((a, b) => b.gap - a.gap), // highest gap first
       };

@@ -1,6 +1,6 @@
 {
   "name": "GRT System — 智能管理系统",
-  "short_name": "GRT",
+  "short_name": "GRTSystem",
   "description": "GRT Intelligent Management System — Enterprise Super App",
   "start_url": "/",
   "display": "standalone",

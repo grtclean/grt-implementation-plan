@@ -122,7 +122,7 @@ export default function MobileSidebarDrawer({
       <div
         ref={drawerRef}
         className={cn(
-          "fixed inset-y-0 left-0 z-[80] w-80 max-w-[85vw] bg-white flex flex-col shadow-2xl transition-transform duration-250 ease-out md:hidden",
+          "fixed inset-y-0 left-0 z-[80] w-[85vw] sm:w-80 bg-white flex flex-col shadow-2xl transition-transform duration-250 ease-out md:hidden",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >

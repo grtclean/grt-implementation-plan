@@ -71,10 +71,10 @@ const mockTemplates = [
 
 // 模拟已颁发证书
 const mockIssuedCerts = [
-  { id: 1, templateId: 1, recipientName: "张三", certNo: "GRT-2025-001", issuedAt: "2025-01-30T14:00:00Z", status: "valid" },
-  { id: 2, templateId: 3, recipientName: "李四", certNo: "GRT-2025-002", issuedAt: "2025-01-31T09:00:00Z", status: "valid" },
-  { id: 3, templateId: 2, recipientName: "王五", certNo: "GRT-2025-003", issuedAt: "2025-01-28T10:30:00Z", status: "valid" },
-  { id: 4, templateId: 4, recipientName: "赵六", certNo: "GRT-2024-156", issuedAt: "2024-12-15T11:00:00Z", status: "expired" }
+  { id: 1, templateId: 1, recipientName: "胡杨", certNo: "GRT-2025-001", issuedAt: "2025-01-30T14:00:00Z", status: "valid" },
+  { id: 2, templateId: 3, recipientName: "刘健康", certNo: "GRT-2025-002", issuedAt: "2025-01-31T09:00:00Z", status: "valid" },
+  { id: 3, templateId: 2, recipientName: "杨勇", certNo: "GRT-2025-003", issuedAt: "2025-01-28T10:30:00Z", status: "valid" },
+  { id: 4, templateId: 4, recipientName: "焦斌", certNo: "GRT-2024-156", issuedAt: "2024-12-15T11:00:00Z", status: "expired" }
 ];
 
 export default function CertificateTemplates() {

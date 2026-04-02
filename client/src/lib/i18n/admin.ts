@@ -1743,7 +1743,7 @@ export const adminTranslations: TranslationModule = {
     "admin.oaTest.tabSchema": "Schema定义",
     "admin.oaTest.leaveRequest": "请假申请",
     "admin.oaTest.leaveRequestApproved": "请假申请 — 已审批",
-    "admin.oaTest.applicantInfo": "申请人: 徐家乐 | 提交时间: 2026-02-22 09:30",
+    "admin.oaTest.applicantInfo": "申请人: 焦斌 | 提交时间: 2026-02-22 09:30",
     "admin.oaTest.approved": "已通过",
     "admin.oaTest.submitSuccess": "提交成功 — 表单数据",
     "admin.oaTest.submitBtn": "提交申请",

@@ -159,7 +159,7 @@ export default function AITalentAssessment() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">员工姓名</label>
-                <Input placeholder="如: 张三" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} />
+                <Input placeholder="如: 胡杨" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">岗位角色</label>

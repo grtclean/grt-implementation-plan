@@ -510,11 +510,11 @@ export const okrRouter = router({
       const companyObjs = [
         { title: "2026年营收突破5亿", level: "company" as const, ownerId: "CEO", ownerName: "倪亚东", period: "2026-Q1", priority: "P0", progress: 65, status: "active" as const },
         { title: "海外市场份额提升至25%", level: "company" as const, ownerId: "CEO", ownerName: "倪亚东", period: "2026-Q1", priority: "P0", progress: 45, status: "active" as const },
-        { title: "新产品研发周期缩短20%", level: "company" as const, ownerId: "CTO", ownerName: "胡炜", period: "2026-Q1", priority: "P1", progress: 72, status: "active" as const },
+        { title: "新产品研发周期缩短20%", level: "company" as const, ownerId: "CTO", ownerName: "刘奥运", period: "2026-Q1", priority: "P1", progress: 72, status: "active" as const },
       ];
 
       const buObjs = [
-        { title: "海外BU Q1签约2000万", level: "bu" as const, ownerId: "BU1-GM", ownerName: "廉龙海", period: "2026-Q1", priority: "P0", buCode: "overseas", progress: 58, status: "active" as const },
+        { title: "海外BU Q1签约2000万", level: "bu" as const, ownerId: "BU1-GM", ownerName: "海外事业部经理", period: "2026-Q1", priority: "P0", buCode: "overseas", progress: 58, status: "active" as const },
         { title: "商用车BU客户满意度95%", level: "bu" as const, ownerId: "BU2-GM", ownerName: "马林山", period: "2026-Q1", priority: "P1", buCode: "commercial_vehicle", progress: 80, status: "active" as const },
         { title: "半导体BU产能提升30%", level: "bu" as const, ownerId: "BU4-GM", ownerName: "翁小飞", period: "2026-Q1", priority: "P0", buCode: "semiconductor", progress: 35, status: "active" as const },
       ];

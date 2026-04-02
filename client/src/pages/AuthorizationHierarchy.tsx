@@ -91,8 +91,8 @@ const LEADERBOARD = [
   { rank: 6,  name: "焦斌",   dept: "工程部",       score: 87, tier: "金牌", badge: "⭐", streak: 3  },
   { rank: 7,  name: "吴卫成", dept: "销售部",       score: 85, tier: "银牌", badge: "⭐", streak: 2  },
   { rank: 8,  name: "韩保程", dept: "生产部",       score: 82, tier: "银牌", badge: "⭐", streak: 1  },
-  { rank: 9,  name: "王芳",   dept: "行政部",       score: 80, tier: "银牌", badge: "⭐", streak: 0  },
-  { rank: 10, name: "李明",   dept: "研发部",       score: 78, tier: "铜牌", badge: "⭐", streak: 0  },
+  { rank: 9,  name: "沙建梅", dept: "行政部",       score: 80, tier: "银牌", badge: "⭐", streak: 0  },
+  { rank: 10, name: "胡杨",   dept: "研发部",       score: 78, tier: "铜牌", badge: "⭐", streak: 0  },
 ];
 
 const DEPT_COMPARISON = [
@@ -122,8 +122,8 @@ const RECENT_APPROVALS = [
   { id: "APR-2026-0891", applicant: "吴卫成", domain: "差旅费用",  amount: "¥3,200", approver: "周辉",   decision: "通过", date: "2026-03-12" },
   { id: "APR-2026-0890", applicant: "韩保程", domain: "物料领用",  amount: "¥1,800", approver: "张洵",   decision: "通过", date: "2026-03-12" },
   { id: "APR-2026-0889", applicant: "焦斌",   domain: "采购申请",  amount: "¥28,000", approver: "徐树奎",decision: "通过", date: "2026-03-11" },
-  { id: "APR-2026-0888", applicant: "李明",   domain: "预算调整",  amount: "¥15,000", approver: "沈迎凤",decision: "驳回", date: "2026-03-11" },
-  { id: "APR-2026-0887", applicant: "王芳",   domain: "费用报销",  amount: "¥4,500", approver: "黄晓兰", decision: "通过", date: "2026-03-10" },
+  { id: "APR-2026-0888", applicant: "胡杨",   domain: "预算调整",  amount: "¥15,000", approver: "沈迎凤",decision: "驳回", date: "2026-03-11" },
+  { id: "APR-2026-0887", applicant: "沙建梅", domain: "费用报销",  amount: "¥4,500", approver: "黄晓兰", decision: "通过", date: "2026-03-10" },
 ];
 
 // ─── demo: Active delegations ─────────────────────────────────────────────────
@@ -975,7 +975,7 @@ export default function AuthorizationHierarchy() {
                       <SelectValue placeholder={isZh ? "选择员工" : "Select employee"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {["焦斌", "张洵", "吴卫成", "韩保程", "王芳"].map(name => (
+                      {["焦斌", "张洵", "吴卫成", "韩保程", "沙建梅"].map(name => (
                         <SelectItem key={name} value={name}>{name}</SelectItem>
                       ))}
                     </SelectContent>

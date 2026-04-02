@@ -60,10 +60,11 @@ export default function FastIdentitySwitch({ onIdentified }: FastIdentitySwitchP
       const res = await fetch("/api/trpc/kiosk.createQrSession", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stationId: session.stationId, departmentCode: session.departmentCode }),
+        credentials: "include",
+        body: JSON.stringify({ json: { stationId: session.stationId, departmentCode: session.departmentCode } }),
       });
       const json = await res.json();
-      const sid = json?.result?.data?.sessionId;
+      const sid = json?.result?.data?.json?.sessionId ?? json?.result?.data?.sessionId;
       if (!sid) throw new Error("No sessionId");
 
       setQrSessionId(sid);
@@ -88,11 +89,11 @@ export default function FastIdentitySwitch({ onIdentified }: FastIdentitySwitchP
     pollRef.current = setInterval(async () => {
       try {
         const res = await fetch(
-          "/api/trpc/kiosk.pollQrSession?input=" + encodeURIComponent(JSON.stringify({ sessionId: sid })),
+          "/api/trpc/kiosk.pollQrSession?input=" + encodeURIComponent(JSON.stringify({ json: { sessionId: sid } })),
           { credentials: "include" }
         );
         const json = await res.json();
-        const data = json?.result?.data;
+        const data = json?.result?.data?.json ?? json?.result?.data;
 
         if (data?.status === "confirmed" && data.operator) {
           // Stop polling FIRST to prevent duplicate identify calls

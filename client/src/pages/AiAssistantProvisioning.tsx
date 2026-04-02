@@ -74,6 +74,12 @@ export default function AiAssistantProvisioning() {
       listQuery.refetch();
     },
   });
+  const reprovisionAllMut = trpc.employeeAiAssistant.reprovisionAll.useMutation({
+    onSuccess: () => {
+      statusQuery.refetch();
+      listQuery.refetch();
+    },
+  });
   const provisionOneMut = trpc.employeeAiAssistant.provisionOne.useMutation({
     onSuccess: () => {
       statusQuery.refetch();
@@ -186,6 +192,19 @@ export default function AiAssistantProvisioning() {
               {t("ai.provisioning.provisionAll")}
             </Button>
             <Button
+              onClick={() => reprovisionAllMut.mutate()}
+              disabled={reprovisionAllMut.isPending}
+              variant="outline"
+              className="border-orange-300 text-orange-700 hover:bg-orange-50"
+            >
+              {reprovisionAllMut.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              重新配置(真实名录)
+            </Button>
+            <Button
               variant="outline"
               onClick={() => refreshPresetsMut.mutate({})}
               disabled={refreshPresetsMut.isPending}
@@ -222,6 +241,21 @@ export default function AiAssistantProvisioning() {
           </div>
 
           {/* Mutation results */}
+          {reprovisionAllMut.data && (
+            <div className="mt-3 rounded-md bg-orange-50 dark:bg-orange-950 p-3 text-sm">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-orange-600" />
+                <span>
+                  重新配置完成：已创建 <strong>{reprovisionAllMut.data.created}</strong> 个AI助理（真实员工名录）
+                  {reprovisionAllMut.data.errors.length > 0 && (
+                    <span className="text-red-600 ml-2">
+                      {reprovisionAllMut.data.errors.length} 个错误
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
           {provisionAllMut.data && (
             <div className="mt-3 rounded-md bg-blue-50 dark:bg-blue-950 p-3 text-sm">
               <div className="flex items-center gap-2">

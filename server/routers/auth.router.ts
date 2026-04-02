@@ -15,9 +15,9 @@ export const authRouter = router({
     return successResponse;
   }),
 
-  getPreferences: protectedProcedure.query(async ({ ctx }) => {
+  getPreferences: publicProcedure.query(async ({ ctx }) => {
     if (!ctx.user?.id) {
-      return { language: "zh", theme: "dark", sidebarCollapsed: false, timezone: "Asia/Shanghai" };
+      return { language: "zh", theme: "light", sidebarCollapsed: false, timezone: "Asia/Shanghai" };
     }
     try {
       const { getUserPreferences } = await import("../db");
@@ -88,7 +88,7 @@ export const authRouter = router({
       }
     }),
 
-  getLanguagePreference: protectedProcedure.query(async ({ ctx }) => {
+  getLanguagePreference: publicProcedure.query(async ({ ctx }) => {
     if (!ctx.user?.id) return { language: "zh" };
     try {
       const { getUserPreferences } = await import("../db");

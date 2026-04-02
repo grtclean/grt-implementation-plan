@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertTriangle, Loader2, Sparkles, CheckCircle, Shield, Target, ListChecks,
@@ -84,6 +85,30 @@ export default function NCRWorkflow() {
   const mutation = trpc.qualityAdvanced.analyzeNCR.useMutation({
     onSuccess: (data) => setResult(data as unknown as NCRResult),
   });
+
+  // Phase 5: 保存 NCR 到数据库
+  const saveMutation = (trpc.qualityAdvanced as any).saveNCR?.useMutation?.({
+    onSuccess: () => toast.success("NCR 已保存到数据库"),
+    onError: (err: any) => toast.error(`保存失败: ${err.message}`),
+  }) ?? null;
+
+  const handleSaveNCR = () => {
+    if (!result || !saveMutation) return;
+    saveMutation.mutate({
+      ncrNumber: (result as any).ncrNumber || `NCR-${Date.now()}`,
+      productName,
+      batchNumber,
+      defectCategory,
+      defectDescription,
+      detectionStage,
+      severity: (result as any).severity || severity,
+      analysisResult: result as any,
+      rootCauseAnalysis: (result as any).rootCauseAnalysis || [],
+      correctiveActions: (result as any).correctiveActions || [],
+      preventiveActions: (result as any).preventiveActions || [],
+      disposition: (result as any).dispositionRecommendation || null,
+    });
+  };
 
   const handleSubmit = () => {
     if (!productName.trim() || !batchNumber.trim() || !defectDescription.trim() || !quantity || mutation.isPending) return;
@@ -234,11 +259,22 @@ export default function NCRWorkflow() {
                     <p className="text-sm text-muted-foreground">{t("quality.ncr.sectionNumber")}</p>
                     <p className="text-3xl font-bold text-primary">{result.ncrNumber}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
                     <Badge variant="outline" className="text-sm">{result.classification}</Badge>
                     <Badge className={`text-sm ${severityColor(result.severity)}`}>
                       {severityLabel(result.severity)}
                     </Badge>
+                    {saveMutation && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleSaveNCR}
+                        disabled={saveMutation.isPending}
+                        className="ml-2"
+                      >
+                        {saveMutation.isPending ? "保存中..." : "保存到数据库"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>

@@ -126,10 +126,10 @@ function SandboxCardUI({
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
       className={cn(
-        "group relative flex flex-col rounded-xl border p-4 transition-all duration-500 cursor-default",
+        "group relative flex flex-col rounded-2xl border-2 p-5 transition-all duration-500 cursor-default",
         isCPosition
-          ? "bg-gradient-to-br from-amber-500/10 via-[#0d1117] to-amber-900/10 border-amber-500/40 min-w-[280px]"
-          : "bg-[#0d1117] border-gray-800 hover:border-gray-600 min-w-[200px]",
+          ? "bg-gradient-to-br from-amber-500/15 via-[#0d1117] to-amber-900/15 border-amber-400/50 min-w-[300px] shadow-[0_0_40px_rgba(245,158,11,0.15)]"
+          : "bg-[#0a0e17] border-gray-600/60 hover:border-gray-400 min-w-[220px] shadow-lg shadow-black/50",
         dimmed && "opacity-20 scale-[0.97] blur-[0.5px]",
         highlighted && !isCPosition && "!opacity-100 !scale-100 !blur-0 ring-1 ring-cyan-500/40 border-cyan-500/30",
         isCPosition && "z-10",
@@ -146,40 +146,40 @@ function SandboxCardUI({
         </div>
       )}
 
-      {/* Top: Number badge + Status */}
+      {/* Top: Number badge + Status — venue-grade */}
       <div className="flex items-start justify-between mb-3 relative z-10">
         <div className={cn(
-          "flex items-center justify-center w-8 h-8 rounded-lg border text-xs font-bold font-mono",
+          "flex items-center justify-center w-10 h-10 rounded-xl border-2 text-sm font-black font-mono",
           isCPosition
-            ? "bg-amber-500/20 border-amber-500/40 text-amber-400"
-            : `bg-${card.accent}-500/10 border-${card.accent}-500/30 text-${card.accent}-400`,
-        )} style={!isCPosition ? { backgroundColor: `${card.accentHex}15`, borderColor: `${card.accentHex}40`, color: card.accentHex } : undefined}>
+            ? "bg-amber-500/25 border-amber-400/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+            : `bg-${card.accent}-500/15 border-${card.accent}-500/40 text-${card.accent}-300`,
+        )} style={!isCPosition ? { backgroundColor: `${card.accentHex}20`, borderColor: `${card.accentHex}50`, color: card.accentHex, boxShadow: `0 0 12px ${card.accentHex}30` } : undefined}>
           {card.num < 10 ? `0${card.num}` : card.num}
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {isInitialized && (
-            <span className="text-[8px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full font-medium">已注入</span>
+            <span className="text-xs text-emerald-300 bg-emerald-500/15 border border-emerald-400/30 px-2 py-0.5 rounded-full font-semibold">已注入</span>
           )}
-          <span className={cn("h-2 w-2 rounded-full shadow-sm", STATUS_DOT[card.status])} />
-          <span className="text-[9px] text-gray-500 uppercase tracking-wider">{card.status}</span>
+          <span className={cn("h-3 w-3 rounded-full shadow-md", STATUS_DOT[card.status])} />
+          <span className="text-xs text-gray-300 uppercase tracking-wider font-medium">{card.status}</span>
         </div>
       </div>
 
-      {/* Icon + Name */}
-      <div className="flex items-center gap-2.5 mb-1 relative z-10">
-        <Icon className={cn("h-5 w-5 shrink-0", isCPosition ? "text-amber-400" : "text-gray-400 group-hover:text-gray-200")} style={!isCPosition ? { color: highlighted ? card.accentHex : undefined } : undefined} />
-        <h3 className={cn("text-sm font-bold leading-snug", isCPosition ? "text-amber-200" : "text-gray-200")}>
-          {isCPosition && <span className="text-amber-400 mr-1">{"\u{1F31F}"}</span>}
+      {/* Icon + Name — venue-grade sizing */}
+      <div className="flex items-center gap-3 mb-1.5 relative z-10">
+        <Icon className={cn("h-6 w-6 shrink-0", isCPosition ? "text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" : "text-gray-300 group-hover:text-white")} style={!isCPosition ? { color: highlighted ? card.accentHex : undefined } : undefined} />
+        <h3 className={cn("text-lg font-black leading-snug", isCPosition ? "text-amber-100" : "text-white")}>
+          {isCPosition && <span className="text-amber-300 mr-1">{"\u{1F31F}"}</span>}
           {card.name}
         </h3>
       </div>
-      <p className="text-[10px] text-gray-500 mb-2 relative z-10">{card.nameEn}</p>
+      <p className="text-sm text-gray-300 mb-2 relative z-10 tracking-wide">{card.nameEn}</p>
 
       {/* Description */}
       {card.desc && (
         <p className={cn(
-          "text-[11px] leading-relaxed mb-3 relative z-10",
-          isCPosition ? "text-amber-300/70" : "text-gray-500",
+          "text-sm leading-relaxed mb-3 relative z-10",
+          isCPosition ? "text-amber-200/80" : "text-gray-300",
         )}>
           {card.desc}
         </p>
@@ -250,29 +250,29 @@ function SandboxCardUI({
 function TvTerminalNode({ highlighted }: { highlighted: boolean }) {
   return (
     <div className={cn(
-      "relative flex items-center gap-3 mx-auto px-5 py-3 rounded-xl border transition-all duration-500",
+      "relative flex items-center gap-4 mx-auto px-6 py-4 rounded-2xl border-2 transition-all duration-500",
       highlighted
-        ? "bg-cyan-500/10 border-cyan-500/30 shadow-lg shadow-cyan-500/10"
-        : "bg-[#080b12] border-gray-700/50",
+        ? "bg-cyan-500/15 border-cyan-400/50 shadow-[0_0_40px_rgba(34,211,238,0.25)]"
+        : "bg-[#080b12] border-gray-600/50",
     )}>
       <div className={cn(
-        "w-10 h-10 rounded-lg flex items-center justify-center border transition-all",
+        "w-14 h-14 rounded-xl flex items-center justify-center border-2 transition-all",
         highlighted
-          ? "bg-cyan-500/20 border-cyan-500/40"
-          : "bg-gray-800 border-gray-700",
+          ? "bg-cyan-500/25 border-cyan-400/50"
+          : "bg-gray-800 border-gray-600",
       )}>
-        <Tv className={cn("h-5 w-5", highlighted ? "text-cyan-400" : "text-gray-500")} style={highlighted ? { animation: "tvPulse 2s ease-in-out infinite" } : undefined} />
+        <Tv className={cn("h-7 w-7", highlighted ? "text-cyan-300 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]" : "text-gray-400")} style={highlighted ? { animation: "tvPulse 2s ease-in-out infinite" } : undefined} />
       </div>
       <div>
-        <p className={cn("text-xs font-bold", highlighted ? "text-cyan-300" : "text-gray-400")}>
+        <p className={cn("text-base font-bold", highlighted ? "text-cyan-200" : "text-gray-300")}>
           {"\u{1F4FA}"} 车间 A3 工位局域网防呆大屏
         </p>
-        <p className={cn("text-[10px]", highlighted ? "text-cyan-400/70" : "text-gray-600")}>
+        <p className={cn("text-sm", highlighted ? "text-cyan-300/80" : "text-gray-400")}>
           {highlighted ? "正在执行指令..." : "接收 AI 工艺切片 · 强制防呆显示"}
         </p>
       </div>
       {highlighted && (
-        <div className="absolute -right-1 -top-1 w-3 h-3 rounded-full bg-cyan-400 animate-ping" />
+        <div className="absolute -right-1.5 -top-1.5 w-4 h-4 rounded-full bg-cyan-400 animate-ping shadow-[0_0_15px_rgba(34,211,238,0.6)]" />
       )}
     </div>
   );
@@ -319,9 +319,9 @@ function FlowConnectors({ hoveringTwin }: { hoveringTwin: boolean }) {
           <line
             x1={line.x} y1="24.5%" x2={line.x} y2="32.5%"
             stroke="#3B82F6"
-            strokeWidth="1.5"
-            strokeDasharray="6,4"
-            opacity={hoveringTwin && (i === 2 || i === 3) ? 1 : 0.3}
+            strokeWidth="2.5"
+            strokeDasharray="8,5"
+            opacity={hoveringTwin && (i === 2 || i === 3) ? 1 : 0.5}
             markerEnd="url(#arrowDown)"
             style={{ animation: "dataFlowDown 1s linear infinite" }}
           />
@@ -414,48 +414,48 @@ export default function SandboxOverview() {
     const isCenterLane = laneNum === 2;
     return (
       <div className={cn(
-        "relative rounded-2xl border p-5 transition-all duration-500",
+        "relative rounded-2xl border-2 p-6 transition-all duration-500",
         `bg-gradient-to-r ${meta.gradient}`,
         meta.borderColor,
-        isCenterLane && "py-6",
+        isCenterLane && "py-8",
       )}>
-        {/* Lane header */}
-        <div className="flex items-center gap-3 mb-4">
+        {/* Lane header — venue-grade */}
+        <div className="flex items-center gap-4 mb-5">
           <div className={cn(
-            "px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border",
+            "px-4 py-1.5 rounded-xl text-sm font-black uppercase tracking-widest border-2",
             isCenterLane
-              ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+              ? "bg-amber-500/15 border-amber-400/50 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
               : laneNum === 1
-                ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
-                : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
+                ? "bg-blue-500/15 border-blue-400/50 text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.2)]"
+                : "bg-emerald-500/15 border-emerald-400/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]",
           )}>
             泳道 {laneNum === 1 ? "I" : laneNum === 2 ? "II" : "III"}
           </div>
           <div>
             <h2 className={cn(
-              "text-sm font-bold",
-              isCenterLane ? "text-amber-200" : "text-gray-300",
+              "text-xl font-black",
+              isCenterLane ? "text-amber-100" : "text-white",
             )}>
               {meta.label}
             </h2>
-            <p className="text-[10px] text-gray-500">{meta.labelEn}</p>
+            <p className="text-sm text-gray-300">{meta.labelEn}</p>
           </div>
           {isCenterLane && (
-            <div className="ml-auto flex items-center gap-1.5 px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
-              <Activity className="h-3 w-3 text-amber-400" />
-              <span className="text-[10px] text-amber-400 font-medium">C 位中枢 · 极度高亮</span>
+            <div className="ml-auto flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/15 border-2 border-amber-400/30 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+              <Activity className="h-4 w-4 text-amber-300" />
+              <span className="text-sm text-amber-300 font-bold">C 位中枢 · 极度高亮</span>
             </div>
           )}
           {laneNum === 1 && (
-            <div className="ml-auto flex items-center gap-1 text-[10px] text-blue-400/60">
+            <div className="ml-auto flex items-center gap-1.5 text-sm text-blue-300/80 font-medium">
               <span>数据流</span>
-              <span className="text-blue-400">\u2193</span>
+              <span className="text-blue-300 text-lg">\u2193</span>
               <span>向下穿透至制造中枢</span>
             </div>
           )}
           {laneNum === 3 && (
-            <div className="ml-auto flex items-center gap-1 text-[10px] text-emerald-400/60">
-              <span className="text-emerald-400">\u2191</span>
+            <div className="ml-auto flex items-center gap-1.5 text-sm text-emerald-300/80 font-medium">
+              <span className="text-emerald-300 text-lg">\u2191</span>
               <span>车间实时数据反哺</span>
             </div>
           )}
@@ -485,24 +485,24 @@ export default function SandboxOverview() {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-neutral-950 text-gray-200">
-      <div className="relative max-w-[1400px] mx-auto px-6 py-8">
+    <div className="h-full overflow-y-auto bg-black text-gray-100">
+      <div className="relative max-w-[1600px] mx-auto px-8 py-10">
 
-        {/* ── Page Header ── */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 flex items-center justify-center">
-              <Shield className="h-6 w-6 text-cyan-400" />
+        {/* ── Page Header — venue-grade ── */}
+        <div className="mb-10">
+          <div className="flex items-center gap-5 mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border-2 border-cyan-400/50 flex items-center justify-center shadow-[0_0_30px_rgba(34,211,238,0.3)]">
+              <Shield className="h-8 w-8 text-cyan-300 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight">
-                <span className="text-gray-100">GRT 工业 OS</span>
-                <span className="text-gray-600 mx-2">|</span>
-                <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-black tracking-tight">
+                <span className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]">GRT 工业 OS</span>
+                <span className="text-gray-500 mx-3">|</span>
+                <span className="bg-gradient-to-r from-cyan-300 to-blue-300 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(34,211,238,0.4)]">
                   全局沙盘管理中心
                 </span>
               </h1>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-base text-gray-300 mt-1 tracking-wide">
                 Sandbox Command Center — 12 Core Sandboxes · Value Stream Topology · Data Flows In Real-Time
               </p>
             </div>

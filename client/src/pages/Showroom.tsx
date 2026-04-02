@@ -6,6 +6,7 @@
  */
 import { useState, useEffect, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import FloatingNav from '@/components/FloatingNav';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,12 +33,17 @@ import {
   AlertTriangle,
   CheckCircle2,
   ArrowRight,
+  ArrowUp,
+  ArrowLeft,
+  LayoutDashboard,
+  Home,
   Phone,
   FileText,
   Activity,
   Zap,
   Target,
   TrendingUp,
+  Building2,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -166,7 +172,6 @@ function AdaptiveLoopDiagram({ history }: { history: any[] }) {
 // ── PIE COLORS ──
 const PIE_COLORS = ["#06b6d4", "#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
 
-// ── Main Component ──
 export default function Showroom() {
   const { t } = useLanguage();
   const [animateIn, setAnimateIn] = useState(false);
@@ -216,6 +221,28 @@ export default function Showroom() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white overflow-x-hidden">
+      {/* ── Top Navigation Bar ── */}
+      <div className="sticky top-0 z-50 h-11 flex items-center justify-between px-5 border-b border-white/[0.06] backdrop-blur-xl" style={{ background: "rgba(10,10,10,0.88)" }}>
+        <div className="flex items-center gap-2">
+          <img src="/GRTlogo.gif" alt="GRT" className="w-6 h-6 rounded" />
+          <span className="text-[11px] font-mono text-neutral-500">GRT Showroom</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => { if (window.history.length > 1) window.history.back(); else window.location.href = "/"; }} className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-neutral-600/30 text-neutral-400 bg-neutral-500/10 text-[10px] font-medium hover:scale-105 transition-transform cursor-pointer">
+            <ArrowLeft className="w-3 h-3" /> 返回
+          </button>
+          <button type="button" onClick={() => { window.location.href = "/customer/portal"; }} className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-cyan-500/30 text-cyan-400 bg-cyan-500/10 text-[10px] font-medium hover:scale-105 transition-transform cursor-pointer">
+            <Gauge className="w-3 h-3" /> 客户门户
+          </button>
+          <button type="button" onClick={() => { window.location.href = "/showcase-hub"; }} className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-purple-500/30 text-purple-400 bg-purple-500/10 text-[10px] font-medium hover:scale-105 transition-transform cursor-pointer">
+            <LayoutDashboard className="w-3 h-3" /> 展示中枢
+          </button>
+          <button type="button" onClick={() => { window.location.href = "/"; }} className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-amber-500/30 text-amber-400 bg-amber-500/10 text-[10px] font-medium hover:scale-105 transition-transform cursor-pointer">
+            <Home className="w-3 h-3" /> 首页
+          </button>
+        </div>
+      </div>
+
       {/* ── Hero Section ── */}
       <section className="relative py-20 px-6 text-center overflow-hidden">
         {/* Gradient background */}
@@ -457,8 +484,15 @@ export default function Showroom() {
             </Button>
           </div>
           <p className="text-neutral-500 text-sm mt-6">
-            Contact: sales@grt-group.com | +86 21 xxxx xxxx
+            Contact: sales@grt-group.com | +86 510 834 83999
           </p>
+          <a
+            href="/supplier-governance"
+            className="inline-flex items-center gap-1.5 mt-4 text-xs text-green-400/60 hover:text-green-400 transition-colors"
+          >
+            <Building2 className="h-3.5 w-3.5" />
+            供应商合作请进入供应商治理平台 →
+          </a>
         </GlassCard>
       </section>
 
@@ -466,6 +500,27 @@ export default function Showroom() {
       <footer className="border-t border-white/5 py-6 text-center text-neutral-600 text-sm">
         &copy; {new Date().getFullYear()} GRT Group — Intelligent Manufacturing Division
       </footer>
+
+      {/* ─── Fixed Bottom Navigation ─── */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 h-12 flex items-center justify-between px-6 border-t border-white/[0.05] backdrop-blur-xl" style={{ background: "rgba(10,10,10,0.92)" }}>
+        <span className="text-[10px] font-mono text-neutral-600">GRT Showroom</span>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => { document.documentElement.scrollTo({ top: 0, behavior: "smooth" }); document.body.scrollTo({ top: 0, behavior: "smooth" }); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-cyan-500/30 text-cyan-400 bg-cyan-500/10 text-[11px] font-medium hover:scale-105 transition-transform cursor-pointer">
+            <ArrowUp className="w-3.5 h-3.5" /> 返回顶部
+          </button>
+          <button type="button" onClick={() => { if (window.history.length > 1) window.history.back(); else window.location.href = "/showcase-hub"; }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-neutral-600/30 text-neutral-400 bg-neutral-500/10 text-[11px] font-medium hover:scale-105 transition-transform cursor-pointer">
+            <ArrowLeft className="w-3.5 h-3.5" /> 返回
+          </button>
+          <button type="button" onClick={() => { window.location.href = "/showcase-hub"; }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-purple-500/30 text-purple-400 bg-purple-500/10 text-[11px] font-medium hover:scale-105 transition-transform cursor-pointer">
+            <LayoutDashboard className="w-3.5 h-3.5" /> 展示中枢
+          </button>
+          <button type="button" onClick={() => { window.location.href = "/me"; }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-500/30 text-amber-400 bg-amber-500/10 text-[11px] font-medium hover:scale-105 transition-transform cursor-pointer">
+            <Home className="w-3.5 h-3.5" /> 主界面
+          </button>
+        </div>
+      </div>
+      <div className="h-12" />
+      <FloatingNav />
     </div>
   );
 }

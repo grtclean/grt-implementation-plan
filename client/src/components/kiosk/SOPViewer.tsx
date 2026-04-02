@@ -54,13 +54,13 @@ export default function SOPViewer({ projectId, processCode }: SOPViewerProps) {
     const fetchSOP = async () => {
       setLoading(true);
       try {
-        const params = { projectId: Number(projectId) || projectId, processCode };
+        const params = { json: { projectId: Number(projectId) || projectId, processCode } };
         const res = await fetch(
           "/api/trpc/kiosk.getStationSOP?input=" + encodeURIComponent(JSON.stringify(params)),
           { credentials: "include" }
         );
         const json = await res.json();
-        setData(json?.result?.data || null);
+        setData(json?.result?.data?.json ?? json?.result?.data ?? null);
       } catch (err) {
         console.error("[Kiosk] Failed to fetch SOP:", err);
       }

@@ -575,6 +575,26 @@ export async function createMonthlyReview(data: {
   return result[0];
 }
 
+/**
+ * 绩效等级→薪酬系数自动计算 (Phase 2.2)
+ * A(≥90) → 1.3, B+(80-89) → 1.15, B(70-79) → 1.0, C(60-69) → 0.85, D(<60) → 0.7
+ */
+export function calculateBonusCoefficient(overallKpiScore: number): string {
+  if (overallKpiScore >= 90) return "1.30";
+  if (overallKpiScore >= 80) return "1.15";
+  if (overallKpiScore >= 70) return "1.00";
+  if (overallKpiScore >= 60) return "0.85";
+  return "0.70";
+}
+
+export function getPerformanceGrade(overallKpiScore: number): string {
+  if (overallKpiScore >= 90) return "A";
+  if (overallKpiScore >= 80) return "B+";
+  if (overallKpiScore >= 70) return "B";
+  if (overallKpiScore >= 60) return "C";
+  return "D";
+}
+
 export async function updateMonthlyReview(
   id: number,
   data: {
@@ -593,6 +613,15 @@ export async function updateMonthlyReview(
 ) {
   const db = await requireDb();
   const updateData: any = { ...data, updatedAt: sql`now()` };
+
+  // Phase 2.2: 当状态变为 finalized 时自动计算绩效系数
+  if (data.status === "finalized" && data.overallKpiScore) {
+    const score = parseFloat(data.overallKpiScore);
+    if (!isNaN(score) && !data.bonusCoefficient) {
+      updateData.bonusCoefficient = calculateBonusCoefficient(score);
+    }
+  }
+
   Object.keys(updateData).forEach((key) => {
     if (updateData[key] === undefined) delete updateData[key];
   });

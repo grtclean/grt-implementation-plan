@@ -74,11 +74,11 @@ export function useKioskSession(stationId: string, departmentCode: string): Kios
 
   const identify = useCallback(async (employeeId: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const res = await fetch("/api/trpc/kiosk.identifyOperator?input=" + encodeURIComponent(JSON.stringify({ employeeId })), {
+      const res = await fetch("/api/trpc/kiosk.identifyOperator?input=" + encodeURIComponent(JSON.stringify({ json: { employeeId } })), {
         credentials: "include",
       });
       const json = await res.json();
-      const data = json?.result?.data;
+      const data = json?.result?.data?.json ?? json?.result?.data;
 
       if (!data?.operator) {
         return { success: false, error: "工号未找到" };

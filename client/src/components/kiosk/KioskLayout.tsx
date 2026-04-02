@@ -21,6 +21,19 @@ export default function KioskLayout({ children, stationId: propStationId, depart
 
   const session = useKioskSession(stationId, departmentCode);
 
+  // Auto kiosk login — create session cookie so tRPC protectedProcedure works
+  const [kioskReady, setKioskReady] = useState(false);
+  useEffect(() => {
+    fetch("/api/auth/kiosk-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ stationId, departmentCode }),
+    })
+      .then(() => setKioskReady(true))
+      .catch(() => setKioskReady(true)); // proceed anyway
+  }, [stationId, departmentCode]);
+
   // Clock ticker
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);

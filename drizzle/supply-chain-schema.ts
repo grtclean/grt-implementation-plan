@@ -98,6 +98,8 @@ export const supplierShipmentLabels = pgTable(
   "supplier_shipment_labels",
   {
     id: serial("id").primaryKey(),
+    labelCode: varchar("label_code", { length: 100 }),
+    status: varchar("status", { length: 30 }).default("pending"),
     supplierSerialNumber: varchar("supplier_serial_number", { length: 100 }).notNull(),
     supplierId: integer("supplier_id"),
     supplierName: varchar("supplier_name", { length: 200 }),
@@ -191,6 +193,7 @@ export const assemblyBomScanLogs = pgTable(
   {
     id: serial("id").primaryKey(),
     projectNumber: varchar("project_number", { length: 50 }).notNull(),
+    projectId: integer("project_id"), // FK for joins; projectNumber kept for display
     processCode: varchar("process_code", { length: 20 }).notNull(), // T1-T15
     scannedBarcode: varchar("scanned_barcode", { length: 200 }).notNull(),
     resolvedMaterialCode: varchar("resolved_material_code", { length: 100 }),
@@ -264,6 +267,7 @@ export const customerQualityComplaints = pgTable(
     customerId: integer("customer_id"),
     customerName: varchar("customer_name", { length: 200 }),
     projectNumber: varchar("project_number", { length: 50 }),
+    projectId: integer("project_id"), // FK for joins; projectNumber kept for display
     equipmentSerialNumber: varchar("equipment_serial_number", { length: 100 }),
     severity: varchar("severity", { length: 20 }).default("medium").notNull(), // low/medium/high/critical
     status: varchar("status", { length: 20 }).default("open").notNull(), // open/investigating/resolved/closed

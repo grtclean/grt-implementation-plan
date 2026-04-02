@@ -822,6 +822,118 @@ export const processManagementRouter = router({
       message: `Seeded ${defResults.length} definitions, ${instResults.length} instances, ${M2_TAGS.length} M2 tags, ${RISKS.length} risk alerts`,
     };
   }),
+
+  // ══════════════════════════════════════════════════════════════════
+  // 工序工时知识库 — 36项目×915部件×7工序 (from 部件&工序工时最新.xlsx)
+  // Tables: project_process_hours, process_consumption_stats
+  // ══════════════════════════════════════════════════════════════════
+
+  /** 获取项目列表（含整机工时汇总） */
+  getProjectHoursSummary: protectedProcedure
+    .input(z.object({ hoursType: z.enum(["theory", "planned"]).default("theory") }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const htype = input?.hoursType ?? "theory";
+      const result = await db.execute(sql`
+        SELECT project_code AS "projectCode", total_hours AS "totalHours",
+          laser_cutting AS "laserCutting", machining, shearing_bending AS "shearingBending",
+          sub_assembly AS "subAssembly", mechanical_assembly AS "mechanicalAssembly",
+          electrical_assembly AS "electricalAssembly", debug_ship_install AS "debugShipInstall"
+        FROM project_process_hours
+        WHERE part_no = '00' AND hours_type = ${htype}
+        ORDER BY total_hours DESC
+      `);
+      return result.rows;
+    }),
+
+  /** 获取项目部件工时明细 */
+  getProjectPartHours: protectedProcedure
+    .input(z.object({
+      projectCode: z.string(),
+      hoursType: z.enum(["theory", "planned"]).default("theory"),
+    }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const result = await db.execute(sql`
+        SELECT part_no AS "partNo", part_name AS "partName", total_hours AS "totalHours",
+          laser_cutting AS "laserCutting", machining, shearing_bending AS "shearingBending",
+          sub_assembly AS "subAssembly", mechanical_assembly AS "mechanicalAssembly",
+          electrical_assembly AS "electricalAssembly", debug_ship_install AS "debugShipInstall"
+        FROM project_process_hours
+        WHERE project_code = ${input.projectCode} AND hours_type = ${input.hoursType} AND part_no != '00'
+        ORDER BY part_no
+      `);
+      return result.rows;
+    }),
+
+  /** 理论 vs 计划工时对比 */
+  getTheoryVsPlanned: protectedProcedure
+    .input(z.object({ projectCode: z.string() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const result = await db.execute(sql`
+        SELECT t.part_no AS "partNo", t.part_name AS "partName",
+          t.total_hours AS "theoryTotal", p.total_hours AS "plannedTotal",
+          (p.total_hours - t.total_hours) AS "variance",
+          CASE WHEN t.total_hours > 0 THEN round(((p.total_hours - t.total_hours) / t.total_hours * 100)::numeric, 1) ELSE 0 END AS "variancePct"
+        FROM project_process_hours t
+        JOIN project_process_hours p ON p.project_code = t.project_code AND p.part_no = t.part_no AND p.hours_type = 'planned'
+        WHERE t.project_code = ${input.projectCode} AND t.hours_type = 'theory' AND t.part_no != '00'
+        ORDER BY abs(p.total_hours - t.total_hours) DESC
+      `);
+      return result.rows;
+    }),
+
+  /** 工序工时消耗分析（实际 vs 计划 vs 理论） */
+  getProcessConsumption: protectedProcedure
+    .input(z.object({ projectCode: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const result = input?.projectCode
+        ? await db.execute(sql`
+            SELECT project_code AS "projectCode", process_name AS "processName",
+              planned_hours AS "plannedHours", theory_hours AS "theoryHours",
+              completion_rate AS "completionRate", actual_hours AS "actualHours",
+              consumption_rate AS "consumptionRate"
+            FROM process_consumption_stats
+            WHERE project_code = ${input.projectCode}
+            ORDER BY process_name
+          `)
+        : await db.execute(sql`
+            SELECT process_name AS "processName",
+              count(*) AS "projectCount",
+              round(avg(planned_hours)::numeric,1) AS "avgPlannedHours",
+              round(avg(theory_hours)::numeric,1) AS "avgTheoryHours",
+              round(avg(actual_hours)::numeric,1) AS "avgActualHours",
+              round(avg(completion_rate)::numeric,3) AS "avgCompletionRate",
+              round(avg(consumption_rate)::numeric,3) AS "avgConsumptionRate"
+            FROM process_consumption_stats
+            GROUP BY process_name ORDER BY process_name
+          `);
+      return result.rows;
+    }),
+
+  /** 工序历史基准（跨项目对标） */
+  getProcessBenchmarks: protectedProcedure
+    .query(async () => {
+      const db = await requireDb();
+      const result = await db.execute(sql`
+        SELECT
+          '激光切割' AS "processName", 'T5.2' AS code,
+          round(avg(laser_cutting)::numeric,1) AS "avgHours",
+          round(min(laser_cutting)::numeric,1) AS "minHours",
+          round(max(laser_cutting)::numeric,1) AS "maxHours",
+          round(percentile_cont(0.5) WITHIN GROUP (ORDER BY laser_cutting)::numeric,1) AS "p50"
+        FROM project_process_hours WHERE part_no='00' AND hours_type='theory' AND laser_cutting > 0
+        UNION ALL SELECT '机加工','T5.3', round(avg(machining)::numeric,1), round(min(machining)::numeric,1), round(max(machining)::numeric,1), round(percentile_cont(0.5) WITHIN GROUP (ORDER BY machining)::numeric,1) FROM project_process_hours WHERE part_no='00' AND hours_type='theory' AND machining > 0
+        UNION ALL SELECT '剪板折弯','T5.4', round(avg(shearing_bending)::numeric,1), round(min(shearing_bending)::numeric,1), round(max(shearing_bending)::numeric,1), round(percentile_cont(0.5) WITHIN GROUP (ORDER BY shearing_bending)::numeric,1) FROM project_process_hours WHERE part_no='00' AND hours_type='theory' AND shearing_bending > 0
+        UNION ALL SELECT '部件制作','T5.5', round(avg(sub_assembly)::numeric,1), round(min(sub_assembly)::numeric,1), round(max(sub_assembly)::numeric,1), round(percentile_cont(0.5) WITHIN GROUP (ORDER BY sub_assembly)::numeric,1) FROM project_process_hours WHERE part_no='00' AND hours_type='theory' AND sub_assembly > 0
+        UNION ALL SELECT '机械装配','T5.6', round(avg(mechanical_assembly)::numeric,1), round(min(mechanical_assembly)::numeric,1), round(max(mechanical_assembly)::numeric,1), round(percentile_cont(0.5) WITHIN GROUP (ORDER BY mechanical_assembly)::numeric,1) FROM project_process_hours WHERE part_no='00' AND hours_type='theory' AND mechanical_assembly > 0
+        UNION ALL SELECT '电气装配','T5.7', round(avg(electrical_assembly)::numeric,1), round(min(electrical_assembly)::numeric,1), round(max(electrical_assembly)::numeric,1), round(percentile_cont(0.5) WITHIN GROUP (ORDER BY electrical_assembly)::numeric,1) FROM project_process_hours WHERE part_no='00' AND hours_type='theory' AND electrical_assembly > 0
+        UNION ALL SELECT '调试/发货/安装','T7', round(avg(debug_ship_install)::numeric,1), round(min(debug_ship_install)::numeric,1), round(max(debug_ship_install)::numeric,1), round(percentile_cont(0.5) WITHIN GROUP (ORDER BY debug_ship_install)::numeric,1) FROM project_process_hours WHERE part_no='00' AND hours_type='theory' AND debug_ship_install > 0
+      `);
+      return result.rows;
+    }),
 });
 
 export type ProcessManagementRouter = typeof processManagementRouter;
